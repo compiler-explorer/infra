@@ -1,0 +1,45 @@
+server {
+	listen 80 default;
+	location /healthcheck {
+		access_log off;
+		return 200;
+	}
+	location / {
+		deny all;
+	}
+}
+
+proxy_cache_path /var/cache/nginx-gcc keys_zone=gcc:10m max_size=200m;
+server {
+	server_name gcc.godbolt.org;
+	index index.html;
+
+	location / {
+		proxy_pass http://localhost:10240;
+		proxy_cache gcc;
+		proxy_cache_valid 200 2m;
+	}
+
+	location ~* \.(html|js|ico|css)$ {
+		root /home/gcc-user/gcc-explorer/static;
+		expires max;
+	}
+}
+
+
+server {
+	server_name d.godbolt.org;
+	index index.html;
+
+	location / {
+		proxy_pass http://localhost:10241;
+		proxy_cache gcc;
+		proxy_cache_valid 200 2m;
+	}
+
+	location ~* \.(html|js|ico|css)$ {
+		root /home/gcc-user/gcc-explorer/static;
+		expires max;
+	}
+}
+

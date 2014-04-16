@@ -21,3 +21,5 @@ su -c "git clone git://github.com/mattgodbolt/gcc-explorer.git" gcc-user
 cd gcc-explorer
 su -c "make node_modules" gcc-user
 
+mkdir /var/cache/nginx-gcc
+chown www-data /var/cache/nginx-gcc
