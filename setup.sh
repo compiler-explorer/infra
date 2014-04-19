@@ -10,13 +10,16 @@ apt-get -y update
 apt-get -y upgrade
 apt-get -y install $(cat ${DIR}/needs-installing)
 
-mkdir /opt
+rm /opt
+ln -sf /mnt /opt
 cd /opt
 wget http://downloads.dlang.org/releases/2014/dmd_2.065.0-0_amd64.deb
 dpkg -i dmd_2.065.0-0_amd64.deb
 rm dmd_2.065.0-0_amd64.deb
 
-adduser --disabled-password gcc-user
+useradd gcc-user
+mkdir /home/gcc-user
+chown gcc-user /home/gcc-user
 cd /home/gcc-user
 su -c "git clone git://github.com/mattgodbolt/gcc-explorer.git" gcc-user
 cd gcc-explorer
@@ -25,7 +28,7 @@ su -c "make node_modules" gcc-user
 mkdir /var/cache/nginx-gcc
 chown www-data /var/cache/nginx-gcc
 
-cp ${DIR}/nginx-conf /etc/sites-available/default
+cp ${DIR}/nginx-conf /etc/nginx/sites-available/default
 service nginx reload
 
 cat > ~/.s3cfg <<EOF
@@ -45,9 +48,9 @@ rm $f
 done
 
 # Intel compiler
-for f in 
 s3cmd get s3://gcc-explorer/opt/l_ccompxe_2013.1.117.tar.xz
 tar Jxf l_ccompxe_2013.1.117.tar.xz
+rm l_ccompxe_2013.1.117.tar.xz
 cat > /tmp/install.sh <<EOF
 SEND_USAGE_DATA=no
 PSET_SERIAL_NUMBER=${INTEL_SERIAL_NUMBER}
@@ -61,5 +64,6 @@ EOF
 cd l_ccompxe_2013.1.117
 ./install.sh --silent /tmp/install.sh
 cd ..
-rm -rf l_ccompxe_2013.1.117.tar.xz l_ccompxe_2013.1.117
+rm -rf l_ccompxe_2013.1.117
 
+service nginx start
