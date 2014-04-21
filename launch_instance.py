@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
+import time
 from string import Template
 from config import S3_ACCESS_KEY, S3_SECRET_KEY
 
 import boto.ec2
+import boto.ec2.elb
 
 
 def get_script(filename='user-data-script.sh'):
@@ -15,14 +17,19 @@ def get_script(filename='user-data-script.sh'):
 
 def launch():
     connection = boto.ec2.connect_to_region('us-east-1')
-    return connection.run_instances(
+    print "Launching"
+    reservation = connection.run_instances(
             image_id = 'ami-59a4a230',
             instance_type = 't1.micro',
             key_name = 'mattgodbolt',
             security_groups = ['quick-start-1'],
             user_data=get_script()
             )
-
+    print "Adding to LB"
+    elb = boto.ec2.elb.connect_to_region('us-east-1')
+    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorer'])
+    balancer[0].register_instances([i.id for i in reservation.instances])
+    print "done"
 
 if __name__ == '__main__':
-    print launch()
+    launch()
