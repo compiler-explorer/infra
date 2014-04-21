@@ -25,6 +25,7 @@ su -c "make prereqs" gcc-user
 
 cp ${DIR}/nginx/* /etc/nginx/sites-available/
 for config in $(ls -1 ${DIR}/nginx/*); do
+    config=$(basename ${config})
     ln -sf /etc/nginx/sites-available/${config} /etc/nginx/sites-enabled/${config}
 done
 
