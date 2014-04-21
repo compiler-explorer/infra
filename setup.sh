@@ -10,7 +10,7 @@ apt-get -y update
 apt-get -y upgrade
 apt-get -y install $(cat ${DIR}/needs-installing)
 
-rm /opt
+rmdir /opt
 ln -sf /mnt /opt
 cd /opt
 wget http://downloads.dlang.org/releases/2014/dmd_2.065.0-0_amd64.deb
@@ -41,6 +41,7 @@ for f in clang-3.2.tar.gz \
     clang-3.3.tar.gz \
     gcc-4.9.0-0909-concepts.tar.gz \
     gcc-4.9.0-with-concepts.tar.gz \
+    intel.tar.gz \
     ; do
 s3cmd get s3://gcc-explorer/opt/$f
 tar zxf $f
@@ -48,22 +49,30 @@ rm $f
 done
 
 # Intel compiler
-s3cmd get s3://gcc-explorer/opt/l_ccompxe_2013.1.117.tar.xz
-tar Jxf l_ccompxe_2013.1.117.tar.xz
-rm l_ccompxe_2013.1.117.tar.xz
-cat > /tmp/install.sh <<EOF
-SEND_USAGE_DATA=no
-PSET_SERIAL_NUMBER=${INTEL_SERIAL_NUMBER}
-ACTIVATION=serial_number
-CONTINUE_WITH_INSTALLDIR_OVERWRITE=yes
-CONTINUE_WITH_OPTIONAL_ERROR=yes
-PSET_INSTALL_DIR=/opt/intel/composer_xe_2013.1.117
-INSTALL_MODE=NONRPM
-ACCEPT_EULA=accept
-EOF
-cd l_ccompxe_2013.1.117
-./install.sh --silent /tmp/install.sh
-cd ..
-rm -rf l_ccompxe_2013.1.117
+#s3cmd get s3://gcc-explorer/opt/l_ccompxe_2013.1.117.tar.xz
+#tar Jxf l_ccompxe_2013.1.117.tar.xz
+#rm l_ccompxe_2013.1.117.tar.xz
+#cat > /tmp/install.sh <<EOF
+#SEND_USAGE_DATA=no
+#PSET_SERIAL_NUMBER=${INTEL_SERIAL_NUMBER}
+#ACTIVATION=serial_number
+#CONTINUE_WITH_INSTALLDIR_OVERWRITE=yes
+#CONTINUE_WITH_OPTIONAL_ERROR=yes
+#PSET_INSTALL_DIR=/opt/intel/composer_xe_2013.1.117
+#INSTALL_MODE=NONRPM
+#ACCEPT_EULA=accept
+#EOF
+#cd l_ccompxe_2013.1.117
+#./install.sh --silent /tmp/install.sh
+#cd ..
+#rm -rf l_ccompxe_2013.1.117
+
+cp ${DIR}/gcc-explorer.conf /etc/init/
+cp ${DIR}/d-explorer.conf /etc/init/
+
+service gcc-explorer start
+service d-explorer start
+
+sleep 10
 
 service nginx start
