@@ -35,7 +35,7 @@ mkdir /var/cache/nginx-sth
 chown www-data /var/cache/nginx-sth
 
 cd /home/ubuntu/
-su -c "git clone git@github.com:mattgodbolt/jsbeeb.git" ubuntu
+su -c "git clone git://github.com/mattgodbolt/jsbeeb.git" ubuntu
 
 service nginx reload
 
