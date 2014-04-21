@@ -35,6 +35,7 @@ access_key = ${S3_ACCESS_KEY}
 secret_key = ${S3_SECRET_KEY}
 EOF
 
+cd /opt
 for f in clang-3.2.tar.gz \
     clang-3.3.tar.gz \
     gcc-4.9.0-0909-concepts.tar.gz \
