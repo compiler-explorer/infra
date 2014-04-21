@@ -23,10 +23,19 @@ su -c "git clone git://github.com/mattgodbolt/gcc-explorer.git" gcc-user
 cd gcc-explorer
 su -c "make prereqs" gcc-user
 
+cp ${DIR}/nginx/* /etc/nginx/sites-available/
+for config in $(ls -1 ${DIR}/nginx/*); do
+    ln -sf /etc/nginx/sites-available/${config} /etc/nginx/sites-enabled/${config}
+done
+
 mkdir /var/cache/nginx-gcc
 chown www-data /var/cache/nginx-gcc
+mkdir /var/cache/nginx-sth
+chown www-data /var/cache/nginx-sth
 
-cp ${DIR}/nginx-conf /etc/nginx/sites-available/default
+cd /home/ubuntu/
+su -c "git clone git@github.com:mattgodbolt/jsbeeb.git" ubuntu
+
 service nginx reload
 
 cat > /root/.s3cfg <<EOF
