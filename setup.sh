@@ -74,6 +74,7 @@ for f in clang-3.2.tar.gz \
     clang-3.3.tar.gz \
     gcc-4.9.0-0909-concepts.tar.gz \
     gcc-4.9.0-with-concepts.tar.gz \
+    gcc-4.9.0.tar.gz \
     intel.tar.gz \
     ; do
 if [[ ! -e "$f.installed" ]]; then
