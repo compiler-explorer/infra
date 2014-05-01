@@ -21,6 +21,7 @@ get_or_update_repo() {
 service nginx stop || true
 service gcc-explorer stop || true
 service d-explorer stop || true
+service rust-explorer stop || true
 
 add-apt-repository -y ppa:chris-lea/node.js
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
@@ -89,12 +90,16 @@ cd /opt
 curl http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz | tar zxf -
 cd rust-nightly-x86_64-unknown-linux-gnu
 ./install.sh --prefix=/opt/rust-nightly
+cd ..
+rm -rf rust-nightly-x86_64-unknown-linux-gnu
 
 cp ${DIR}/gcc-explorer.conf /etc/init/
 cp ${DIR}/d-explorer.conf /etc/init/
+cp ${DIR}/rust-explorer.conf /etc/init/
 
 service gcc-explorer start
 service d-explorer start
+service rust-explorer start
 
 sleep 10
 
