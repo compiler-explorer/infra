@@ -19,7 +19,8 @@ def launch():
     connection = boto.ec2.connect_to_region('us-east-1')
     print "Launching"
     reservation = connection.run_instances(
-            image_id = 'ami-59a4a230',
+            #image_id = 'ami-59a4a230', # basic image
+            image_id = 'ami-ea32d482', # GCC Explorer image May 1st
             instance_type = 't1.micro',
             key_name = 'mattgodbolt',
             security_groups = ['quick-start-1'],
