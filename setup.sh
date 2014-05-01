@@ -31,6 +31,7 @@ apt-get -y install $(cat ${DIR}/needs-installing)
 cd /opt
 DMD_VERSION="2.065.0-0"
 if [[ "$(get_version dmd)" != "${DMD_VERSION}" ]]; then
+    rm -f ${DMD_VERSION}_amd64.deb
     wget http://downloads.dlang.org/releases/2014/dmd_${DMD_VERSION}_amd64.deb
     dpkg -i ${DMD_VERSION}_amd64.deb
     rm ${DMD_VERSION}_amd64.deb
@@ -75,7 +76,7 @@ for f in clang-3.2.tar.gz \
     intel.tar.gz \
     ; do
 if [[ ! -e "$f.installed" ]]; then
-    rm -f $f.installed
+    rm -f $f.installed $f
     s3cmd --config /root/.s3cfg get s3://gcc-explorer/opt/$f
     tar zxf $f
     rm $f
