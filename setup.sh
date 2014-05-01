@@ -11,7 +11,7 @@ get_version() {
 get_or_update_repo() {
     local USER=$1
     local REPO=$2
-    if [[ -e ${REPO} ]]; then
+    if [[ ! -e ${REPO} ]]; then
         su -c "git clone git://github.com/mattgodbolt/${REPO}.git" "${USER}"
     else
         su -c "cd ${REPO}; git pull" "${USER}"
@@ -25,7 +25,7 @@ service d-explorer stop || true
 add-apt-repository -y ppa:chris-lea/node.js
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 apt-get -y update
-apt-get -y upgrade
+apt-get -y upgrade --force-yes
 apt-get -y install $(cat ${DIR}/needs-installing)
 
 cd /opt
