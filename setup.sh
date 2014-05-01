@@ -34,8 +34,8 @@ DMD_VERSION="2.065.0-0"
 if [[ "$(get_version dmd)" != "${DMD_VERSION}" ]]; then
     rm -f ${DMD_VERSION}_amd64.deb
     wget http://downloads.dlang.org/releases/2014/dmd_${DMD_VERSION}_amd64.deb
-    dpkg -i ${DMD_VERSION}_amd64.deb
-    rm ${DMD_VERSION}_amd64.deb
+    dpkg -i dmd_${DMD_VERSION}_amd64.deb
+    rm dmd_${DMD_VERSION}_amd64.deb
 fi
 
 if ! grep gcc-user /etc/passwd; then
