@@ -86,6 +86,12 @@ if [[ ! -e "$f.installed" ]]; then
 fi
 done
 
+# Clang 3.4
+if [[ ! -e "clang3.4.1.installed" ]]; then
+    curl http://llvm.org/releases/3.4.1/clang+llvm-3.4.1-x86_64-unknown-ubuntu12.04.tar.xz | tar Jxf -
+    touch clang3.4.1.installed
+fi
+
 # Unconditionally install the nightly rust
 cd /opt
 curl http://static.rust-lang.org/dist/rust-nightly-x86_64-unknown-linux-gnu.tar.gz | tar zxf -
