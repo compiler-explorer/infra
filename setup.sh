@@ -49,6 +49,9 @@ get_or_update_repo gcc-user gcc-explorer
 cd gcc-explorer
 su -c "make prereqs" gcc-user
 
+# Comment-in the default gzip config.
+perl -pi -e 's/# (.*gzip)/\1/g' /etc/nginx/nginx.conf
+
 cp ${DIR}/nginx/* /etc/nginx/sites-available/
 for config in $(ls -1 ${DIR}/nginx/*); do
     config=$(basename ${config})
