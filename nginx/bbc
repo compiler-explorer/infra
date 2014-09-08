@@ -4,7 +4,7 @@ server {
 	root /home/ubuntu/jsbeeb;
 	index index.html;
 
-	server_name bbc.godbolt.org;
+	server_name bbc.godbolt.org master.godbolt.org;
 
 	location /sth/ {
 		proxy_pass http://www.stairwaytohell.com/bbc/archive/;
