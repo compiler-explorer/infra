@@ -20,8 +20,9 @@ def launch():
     print "Launching"
     reservation = connection.run_instances(
             #image_id = 'ami-59a4a230', # basic image
-            image_id = 'ami-ea32d482', # GCC Explorer image May 1st
-            instance_type = 't1.micro',
+            #image_id = 'ami-ea32d482', # GCC Explorer image May 1st
+            image_id = 'ami-864d84ee', # 14.04 server
+            instance_type = 't2.micro',
             key_name = 'mattgodbolt',
             security_groups = ['quick-start-1'],
             user_data=get_script()
