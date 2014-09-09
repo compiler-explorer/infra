@@ -24,6 +24,7 @@ gcc-snapshot
 gdc                                                                             
 gdc-4.4                                                                         
 gdc-4.6                                                                         
+gdc-4.8
 gir1.2-gudev-1.0                                                                
 git                                                                             
 libboost-all-dev                                                                
