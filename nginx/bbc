@@ -19,6 +19,6 @@ server {
 	}
 
     location /beta/ {
-        root /home/ubuntu/beta/jsbeeb
+        root /home/ubuntu/jsbeeb-beta
     }
 }

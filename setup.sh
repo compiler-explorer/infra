@@ -12,10 +12,11 @@ get_or_update_repo() {
     local USER=$1
     local REPO=$2
     local BRANCH=$3
-    if [[ ! -e ${REPO} ]]; then
-        su -c "git clone --branch ${BRANCH} git://github.com/mattgodbolt/${REPO}.git" "${USER}"
+    local DIR=${4-${REPO}}
+    if [[ ! -e ${DIR} ]]; then
+        su -c "git clone --branch ${BRANCH} git://github.com/mattgodbolt/${REPO}.git ${DIR}" "${USER}"
     else
-        su -c "cd ${REPO}; git pull && git checkout ${BRANCH}" "${USER}"
+        su -c "cd ${DIR}; git pull && git checkout ${BRANCH}" "${USER}"
     fi
 }
 
@@ -66,9 +67,7 @@ chown www-data /var/cache/nginx-sth
 
 cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
-mkdir -p beta
-pushd beta
-get_or_update_repo ubuntu jsbeeb master
+get_or_update_repo ubuntu jsbeeb master jsbeeb-beta
 popd
 
 cat > /root/.s3cfg <<EOF
