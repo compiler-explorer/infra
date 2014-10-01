@@ -18,7 +18,8 @@ server {
 		add_header Access-Control-Allow-Origin *;
 	}
 
-    location /beta/ {
-        root /home/ubuntu/jsbeeb-beta;
+    location /beta {
+        autoindex on;
+        alias /home/ubuntu/jsbeeb-beta;
     }
 }
