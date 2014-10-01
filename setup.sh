@@ -68,7 +68,6 @@ chown www-data /var/cache/nginx-sth
 cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
 get_or_update_repo ubuntu jsbeeb master jsbeeb-beta
-popd
 
 cat > /root/.s3cfg <<EOF
 [default]
