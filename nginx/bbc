@@ -17,4 +17,8 @@ server {
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 		add_header Access-Control-Allow-Origin *;
 	}
+
+    location /beta/ {
+        root /home/ubuntu/beta/jsbeeb
+    }
 }

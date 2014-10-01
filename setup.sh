@@ -11,10 +11,11 @@ get_version() {
 get_or_update_repo() {
     local USER=$1
     local REPO=$2
+    local BRANCH=$3
     if [[ ! -e ${REPO} ]]; then
-        su -c "git clone git://github.com/mattgodbolt/${REPO}.git" "${USER}"
+        su -c "git clone --branch ${BRANCH} git://github.com/mattgodbolt/${REPO}.git" "${USER}"
     else
-        su -c "cd ${REPO}; git pull" "${USER}"
+        su -c "cd ${REPO}; git pull && git checkout ${BRANCH}" "${USER}"
     fi
 }
 
@@ -45,7 +46,7 @@ if ! grep gcc-user /etc/passwd; then
 fi
 
 cd /home/gcc-user
-get_or_update_repo gcc-user gcc-explorer
+get_or_update_repo gcc-user gcc-explorer master
 cd gcc-explorer
 su -c "make prereqs GDC=/usr/bin/gdc-4.8" gcc-user
 
@@ -64,7 +65,11 @@ mkdir -p /var/cache/nginx-sth
 chown www-data /var/cache/nginx-sth
 
 cd /home/ubuntu/
-get_or_update_repo ubuntu jsbeeb
+get_or_update_repo ubuntu jsbeeb release
+mkdir -p beta
+pushd beta
+get_or_update_repo ubuntu jsbeeb master
+popd
 
 cat > /root/.s3cfg <<EOF
 [default]
