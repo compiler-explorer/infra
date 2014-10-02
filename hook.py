@@ -12,9 +12,9 @@ class MainHandler(tornado.web.RequestHandler):
         obj = json.loads(self.request.body)
         logging.info("Got {}".format(obj))
         if obj['repository']['name'] == 'jsbeeb':
-            if obj['refs'] == 'refs/heads/master':
+            if obj['ref'] == 'refs/heads/master':
                 update_repo.update('jsbeeb-beta')
-            elif obj['refs'] == 'refs/heads/release':
+            elif obj['ref'] == 'refs/heads/release':
                 update_repo.update('jsbeeb')
             self.write("OK")
 
