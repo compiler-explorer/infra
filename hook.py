@@ -15,7 +15,7 @@ class MainHandler(tornado.web.RequestHandler):
             if obj['refs'] == 'refs/heads/master':
                 update_repo.update('jsbeeb-beta')
             elif obj['refs'] == 'refs/heads/release':
-	        update_repo.update('jsbeeb')
+                update_repo.update('jsbeeb')
             self.write("OK")
 
 if __name__ == '__main__':
