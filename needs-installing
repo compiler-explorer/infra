@@ -35,6 +35,7 @@ libcurl4-openssl-dev
 libgudev-1.0-0                                                                  
 libitm1                                                                         
 libjansson-dev                                                                  
+libpng12-dev
 libsclang1                                                                      
 libtool                                                                         
 make                                                                            
