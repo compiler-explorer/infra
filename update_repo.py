@@ -18,7 +18,7 @@ def update(repo):
             print "Connecting to", instance
             ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
                     user_name='ubuntu')
-            status, stdout, stderr = ssh_client.run('cd {} && git pull'.format(repo))
+            status, stdout, stderr = ssh_client.run('cd {} && git pull && make dist'.format(repo))
             if status:
 	        print "Error"
                 print stdout
