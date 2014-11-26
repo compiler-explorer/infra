@@ -49,7 +49,7 @@ fi
 cd /home/gcc-user
 get_or_update_repo gcc-user gcc-explorer master
 cd gcc-explorer
-su -c "make prereqs GDC=/usr/bin/gdc-4.8" gcc-user
+su -c "make prereqs GDC=/usr/bin/gdc-4.9" gcc-user
 
 # Comment-in the default gzip config.
 perl -pi -e 's/# (.*gzip)/\1/g' /etc/nginx/nginx.conf
