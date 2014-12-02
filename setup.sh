@@ -69,7 +69,6 @@ cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
 pushd jsbeeb
 su -c "make dist" ubuntu
-sudo make dist
 popd
 get_or_update_repo ubuntu jsbeeb master jsbeeb-beta
 pushd jsbeeb-beta
