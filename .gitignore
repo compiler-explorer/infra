@@ -1,3 +1,4 @@
 config.py
 *.pyc
 *.pem
+*.swp
