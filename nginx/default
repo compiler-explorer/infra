@@ -20,6 +20,12 @@ server {
 		proxy_cache_valid 200 2m;
 	}
 
+    location /client-options.js {
+		proxy_pass http://localhost:10240;
+		proxy_cache gcc;
+		proxy_cache_valid 200 2m;
+	}
+
 	location ~* \.(html|js|ico|css)$ {
 		root /home/gcc-user/gcc-explorer/static;
 		expires max;
