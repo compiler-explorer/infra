@@ -15,7 +15,7 @@ if __name__ == '__main__':
             ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
                     user_name='ubuntu')
             print "Connected. Running command"
-            status, stdout, stderr = ssh_client.run('sudo -u gcc-user bash -c "cd /home/gcc-user/gcc-explorer; git pull && make prereqs GDC=/usr/bin/gdc-4.9" && sudo service gcc-explorer restart; sudo service d-explorer restart; sudo service rust-explorer restart')
+            status, stdout, stderr = ssh_client.run('sudo service gcc-explorer stop; sudo service d-explorer stop; sudo service rust-explorer stop; sudo -u gcc-user bash -c "cd /home/gcc-user/gcc-explorer; git pull && make prereqs GDC=/usr/bin/gdc-4.9" && sudo service gcc-explorer restart; sudo service d-explorer restart; sudo service rust-explorer restart')
             print "Status", status
             print "Stdout", stdout
             print "Stderr", stderr

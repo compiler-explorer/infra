@@ -45,5 +45,6 @@ nodejs
 pkg-config
 s3cmd
 subversion
+wget
 xdg-utils
 yasm

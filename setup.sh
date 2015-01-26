@@ -25,6 +25,8 @@ service gcc-explorer stop || true
 service d-explorer stop || true
 service rust-explorer stop || true
 
+apt-get -y update
+apt-get install python-software-properties
 add-apt-repository -y ppa:chris-lea/node.js
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 apt-get -y update
@@ -44,6 +46,12 @@ if ! grep gcc-user /etc/passwd; then
     useradd gcc-user
     mkdir /home/gcc-user
     chown gcc-user /home/gcc-user
+fi
+
+if ! grep ubuntu /etc/passwd; then
+    useradd ubuntu
+    mkdir /home/ubuntu
+    chown ubuntu /home/ubuntu
 fi
 
 cd /home/gcc-user
