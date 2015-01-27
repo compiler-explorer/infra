@@ -15,7 +15,7 @@ server {
 	index index.html;
 
 	location / {
-		proxy_pass http://localhost:10240;
+		proxy_pass http://gcc:10240;
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
 	}
@@ -38,7 +38,7 @@ server {
 	index index.html;
 
 	location / {
-		proxy_pass http://localhost:10241;
+		proxy_pass http://d:10241;
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
 	}
@@ -60,7 +60,7 @@ server {
 	index index.html;
 
 	location / {
-		proxy_pass http://localhost:10242;
+		proxy_pass http://rust:10242;
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
 	}
