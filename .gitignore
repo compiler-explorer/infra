@@ -4,3 +4,4 @@ config.py
 *.swp
 /out
 .s3cfg
+*.xz
