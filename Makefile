@@ -2,7 +2,7 @@
 all: docker-image
 
 docker-image:
-	sudo docker build .
+	sudo docker build -t "gcc-explorer" .
 
 clean:
 	echo nothing to clean yet

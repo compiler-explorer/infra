@@ -7,8 +7,8 @@ RUN useradd gcc-user && mkdir /home/gcc-user && chown gcc-user /home/gcc-user
 RUN apt-get -y update && apt-get install -y python-software-properties
 RUN add-apt-repository -y ppa:chris-lea/node.js && add-apt-repository -y ppa:ubuntu-toolchain-r/test
 RUN apt-get -y update && apt-get install -y \
-    autoconf \
-    automake \
+    curl \
+    s3cmd \
     clang \
     g++ \
     g++-4.4 \
@@ -30,28 +30,10 @@ RUN apt-get -y update && apt-get install -y \
     gcc-avr \
     gcc-msp430 \
     gcc-snapshot \
-    gir1.2-gudev-1.0 \
     git \
     libboost-all-dev \
-    libclang-common-dev \
-    libclang-dev \
-    libclang1 \
-    libcurl4-openssl-dev \
-    libgudev-1.0-0 \
-    libitm1 \
-    libjansson-dev \
-    libpng12-dev \
-    libsclang1 \
-    libtool \
     make \
-    nodejs \
-    pkg-config \
-    subversion \
-    wget \
-    xdg-utils \
-    yasm
-
-RUN apt-get install -y curl s3cmd
+    nodejs
 
 RUN mkdir -p /opt
 RUN mkdir -p /root
@@ -60,7 +42,8 @@ COPY compilers.sh /root/
 RUN bash /root/compilers.sh
 RUN rm /root/.s3cfg
 RUN rm /root/compilers.sh
-RUN apt-get remove -y curl s3cmd && apt-get autoremove -y && apt-get clean
+RUN apt-get purge -y curl s3cmd openjdk-6-jre-lib \
+    && apt-get autoremove -y && apt-get clean
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN mkdir -p /root/.ssh
