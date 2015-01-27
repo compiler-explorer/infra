@@ -1,7 +1,7 @@
 .NOTPARALLEL: 
 all: docker-images
 
-docker-images: gcc-explorer-image d-explorer-image
+docker-images: gcc-explorer-image d-explorer-image rust-explorer-image
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
@@ -15,10 +15,14 @@ compiler-base: compiler-base/.s3cfg
 
 gcc-explorer-image: compiler-base
 	sudo docker build -t "gcc-explorer" gcc-explorer
+
 d-explorer-image: compiler-base
 	sudo docker build -t "d-explorer" d-explorer
+
+rust-explorer-image: compiler-base
+	sudo docker build -t "rust-explorer" rust-explorer
 
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images compiler-base gcc-explorer-image
+.PHONY: all clean docker-images compiler-base gcc-explorer-image rust-explorer-image

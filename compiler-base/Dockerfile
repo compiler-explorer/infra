@@ -3,9 +3,9 @@ MAINTAINER Matt Godbolt <matt@godbolt.org>
 
 RUN mkdir -p /opt
 RUN useradd gcc-user && mkdir /home/gcc-user && chown gcc-user /home/gcc-user
-
 RUN apt-get -y update && apt-get install -y python-software-properties
 RUN add-apt-repository -y ppa:chris-lea/node.js && add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
 RUN apt-get -y update && apt-get install -y \
     curl \
     s3cmd \
