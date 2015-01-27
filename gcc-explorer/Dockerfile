@@ -26,14 +26,15 @@ RUN apt-get install -y \
 
 COPY compilers.sh /root/
 RUN bash /root/compilers.sh
-RUN rm /root/compilers.sh && ${CLEANUP_COMMAND}
+RUN echo "rm /root/compilers.sh && $CLEANUP_COMMAND" > /tmp/cleanup
+RUN bash /tmp/cleanup
 
-RUN git clone https://github.com/mattgodbolt/gcc-explorer.git /d-explorer
-RUN chown -R gcc-user /d-explorer
-RUN su -c "cd /gcc-explorer && ls && make prereqs GDC=/usr/bin/gdc-4.9" gcc-user
+RUN git clone https://github.com/mattgodbolt/gcc-explorer.git /gcc-explorer
+RUN chown -R gcc-user /gcc-explorer
+RUN su -c "cd /gcc-explorer && ls && make prereqs" gcc-user
 
 USER gcc-user
-WORKDIR /d-explorer
-VOLUME /d-explorer
-EXPOSE 10241
-CMD ["nodejs", "app.js", "--env", "amazon-d"]
+WORKDIR /gcc-explorer
+VOLUME /gcc-explorer
+EXPOSE 10240
+CMD ["nodejs", "app.js", "--env", "amazon"]
