@@ -1,4 +1,4 @@
-FROM compiler-base
+FROM mattgodbolt/gcc-explorer:base
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
 RUN apt-get install -y \

@@ -4,16 +4,7 @@ all: docker-images
 DOCKER := sudo docker
 COMPRESS_FLAGS := -9
 
-docker-images: gcc-explorer-image.xz rust-explorer-image.xz d-explorer-image.xz
-
-gcc-explorer-image.xz: gcc-explorer-image
-	$(DOCKER) save gcc-explorer | xz $(COMPRESS_FLAGS) > $@
-
-rust-explorer-image.xz: rust-explorer-image
-	$(DOCKER) save rust-explorer | xz $(COMPRESS_FLAGS) > $@
-
-d-explorer-image.xz: d-explorer-image
-	$(DOCKER) save d-explorer | xz $(COMPRESS_FLAGS) > $@
+docker-images: gcc-explorer-image d-explorer-image rust-explorer-image
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
@@ -23,16 +14,16 @@ compiler-base/.s3cfg: .s3cfg
 	cp $< $@
 
 compiler-base: compiler-base/.s3cfg
-	$(DOCKER) build -t "compiler-base" compiler-base
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:base" compiler-base
 
 gcc-explorer-image: compiler-base
-	$(DOCKER) build -t "gcc-explorer" gcc-explorer
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" gcc-explorer
 
 d-explorer-image: compiler-base
-	$(DOCKER) build -t "d-explorer" d-explorer
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:d" d-explorer
 
 rust-explorer-image: compiler-base
-	$(DOCKER) build -t "rust-explorer" rust-explorer
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:rust" rust-explorer
 
 clean:
 	echo nothing to clean yet
