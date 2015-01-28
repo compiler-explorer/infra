@@ -23,3 +23,5 @@ rm -rf patchelf-0.8
 
 # Don't need docs
 rm -rf /opt/rust-nightly/share
+
+find /opt -executable -type f | xargs strip || true

@@ -16,3 +16,5 @@ for compiler in clang-3.2.tar.gz \
 done
 
 curl http://llvm.org/releases/3.4.1/clang+llvm-3.4.1-x86_64-unknown-ubuntu12.04.tar.xz | tar Jxf -
+
+find /opt -executable -type f | xargs strip || true
