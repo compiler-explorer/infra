@@ -14,16 +14,16 @@ compiler-base/.s3cfg: .s3cfg
 	cp $< $@
 
 compiler-base: compiler-base/.s3cfg
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:base" compiler-base
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:base" docker/compiler-base
 
 gcc-explorer-image: compiler-base
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" gcc-explorer
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" docker/gcc-explorer
 
 d-explorer-image: compiler-base
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:d" d-explorer
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:d" docker/d-explorer
 
 rust-explorer-image: compiler-base
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:rust" rust-explorer
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:rust" docker/rust-explorer
 
 clean:
 	echo nothing to clean yet
