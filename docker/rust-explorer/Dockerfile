@@ -14,6 +14,5 @@ RUN bash /tmp/cleanup
 
 USER gcc-user
 WORKDIR /gcc-explorer
-VOLUME /gcc-explorer
 EXPOSE 10242
 CMD ["nodejs", "app.js", "--env", "amazon-rust"]

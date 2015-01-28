@@ -17,7 +17,7 @@ RUN mkdir -p /root
 COPY .s3cfg /root/
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
-COPY gcc-explorer /
+COPY gcc-explorer /gcc-explorer
 RUN chown -R gcc-user /gcc-explorer
 
 ENV CLEANUP_COMMAND rm /root/.s3cfg && apt-get purge -y curl s3cmd openjdk-6-jre-lib \

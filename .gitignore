@@ -2,6 +2,5 @@ config.py
 *.pyc
 *.pem
 *.swp
-/out
 .s3cfg
 *.xz
