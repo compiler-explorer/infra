@@ -13,7 +13,13 @@ docker-images: gcc-explorer-image d-explorer-image rust-explorer-image
 compiler-base/.s3cfg: .s3cfg
 	cp $< $@
 
-compiler-base: compiler-base/.s3cfg
+source:
+	rm -rf out/gcc-explorer
+	mkdir -p out/gcc-explorer
+	cp -r gcc-explorer/* out/gcc-explorer/
+	cd out/gcc-explorer && ../../fixup-times.sh
+
+compiler-base: compiler-base/.s3cfg source
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:base" docker/compiler-base
 
 gcc-explorer-image: compiler-base
@@ -28,4 +34,4 @@ rust-explorer-image: compiler-base
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images compiler-base gcc-explorer-image rust-explorer-image
+.PHONY: all clean docker-images compiler-base gcc-explorer-image rust-explorer-image source

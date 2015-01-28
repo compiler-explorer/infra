@@ -9,7 +9,6 @@ RUN add-apt-repository -y ppa:chris-lea/node.js && add-apt-repository -y ppa:ubu
 RUN apt-get -y update && apt-get install -y \
     curl \
     s3cmd \
-    git \
     make \
     nodejs
 
@@ -18,6 +17,8 @@ RUN mkdir -p /root
 COPY .s3cfg /root/
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
+COPY gcc-explorer /
+RUN chown -R gcc-user /gcc-explorer
 
 ENV CLEANUP_COMMAND rm /root/.s3cfg && apt-get purge -y curl s3cmd openjdk-6-jre-lib \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

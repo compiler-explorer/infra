@@ -29,8 +29,6 @@ RUN bash /root/compilers.sh
 RUN echo "rm /root/compilers.sh && $CLEANUP_COMMAND" > /tmp/cleanup
 RUN bash /tmp/cleanup
 
-RUN git clone https://github.com/mattgodbolt/gcc-explorer.git /gcc-explorer
-RUN chown -R gcc-user /gcc-explorer
 RUN su -c "cd /gcc-explorer && ls && make prereqs" gcc-user
 
 USER gcc-user

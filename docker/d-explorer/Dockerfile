@@ -12,15 +12,13 @@ RUN apt-get install -y \
 COPY compilers.sh /root/
 RUN bash /root/compilers.sh
 
-RUN git clone https://github.com/mattgodbolt/gcc-explorer.git /d-explorer
-RUN chown -R gcc-user /d-explorer
-RUN su -c "cd /d-explorer && ls && make prereqs GDC=/usr/bin/gdc-4.9" gcc-user
+RUN su -c "cd /gcc-explorer && ls && make prereqs GDC=/usr/bin/gdc-4.9" gcc-user
 
 RUN echo "rm /root/compilers.sh && apt-get purge -y gcc && $CLEANUP_COMMAND" > /tmp/cleanup
 RUN bash /tmp/cleanup
 
 USER gcc-user
-WORKDIR /d-explorer
-VOLUME /d-explorer
+WORKDIR /gcc-explorer
+VOLUME /gcc-explorer
 EXPOSE 10241
 CMD ["nodejs", "app.js", "--env", "amazon-d"]

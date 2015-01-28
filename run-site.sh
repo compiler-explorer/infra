@@ -12,6 +12,7 @@ trap "sudo docker stop $GCC $D $RUST" SIGINT SIGTERM
 
 sudo docker run \
 	-p 80:80 \
+    --volumes-from gcc \
 	-v /var/log/nginx:/var/log/nginx \
 	-v $(pwd)/nginx:/etc/nginx/sites-enabled \
 	--link gcc:gcc --link d:d --link rust:rust \

@@ -1,0 +1,3 @@
+[submodule "gcc-explorer"]
+	path = gcc-explorer
+	url = https://github.com/mattgodbolt/gcc-explorer.git
