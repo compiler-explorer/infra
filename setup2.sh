@@ -18,7 +18,7 @@ get_or_update_repo() {
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install git make nodejs npm docker
+apt-get -y install git make nodejs-legacy npm docker.io libpng-dev m4
 
 if ! grep ubuntu /etc/passwd; then
     useradd ubuntu
@@ -26,6 +26,7 @@ if ! grep ubuntu /etc/passwd; then
     chown ubuntu /home/ubuntu
 fi
 
+# TODO needs to support node being "nodejs"
 cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
 pushd jsbeeb
@@ -36,5 +37,6 @@ pushd jsbeeb-beta
 su -c "make dist" ubuntu
 popd
 
-cp docker-init.conf /etc/init/
-service gcc-explorer start
+# needs docker login
+cp /gcc-explorer-image/docker-init.conf /etc/init/
+service docker-init start
