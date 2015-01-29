@@ -18,7 +18,7 @@ get_or_update_repo() {
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install git make nodejs
+apt-get -y install git make nodejs npm docker
 
 if ! grep ubuntu /etc/passwd; then
     useradd ubuntu
