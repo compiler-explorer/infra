@@ -2,6 +2,10 @@
 
 set -ex
 
+# TODO:
+# check caching works in nginx
+# check STH proxy works
+
 sudo docker rm gcc d rust || true
 
 GCC=$(sudo docker run --name gcc -d -p 10240:10240 mattgodbolt/gcc-explorer:gcc)
@@ -16,4 +20,5 @@ sudo docker run \
 	-v /var/log/nginx:/var/log/nginx \
 	-v $(pwd)/nginx:/etc/nginx/sites-enabled \
 	--link gcc:gcc --link d:d --link rust:rust \
+    "$*" \
 	dockerfile/nginx
