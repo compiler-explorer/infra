@@ -7,7 +7,6 @@ if [[ $UID -= 0 ]]; then
     SUDO=
 fi
 
-
 # TODO:
 # check caching works in nginx
 # check STH proxy works

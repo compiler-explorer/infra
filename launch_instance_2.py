@@ -2,13 +2,16 @@
 
 import time
 from string import Template
+from config import DOCKER_CFG
 
 import boto.ec2
 import boto.ec2.elb
 
 
 def get_script(filename='user-data-script-2.sh'):
-    return open(filename).read()
+    template = open(filename).read()
+    return Template(template).substitute(
+            DOCKER_CFG=DOCKER_CFG)
 
 
 def launch():

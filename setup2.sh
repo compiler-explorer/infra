@@ -26,7 +26,6 @@ if ! grep ubuntu /etc/passwd; then
     chown ubuntu /home/ubuntu
 fi
 
-# TODO needs to support node being "nodejs"
 cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
 pushd jsbeeb
@@ -37,6 +36,5 @@ pushd jsbeeb-beta
 su -c "make dist" ubuntu
 popd
 
-# needs docker login
 cp /gcc-explorer-image/docker-init.conf /etc/init/
 service docker-init start
