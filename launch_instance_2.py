@@ -6,6 +6,7 @@ from config import DOCKER_CFG
 
 import boto.ec2
 import boto.ec2.elb
+from boto.ec2.blockdevicemapping import *
 
 
 def get_script(filename='user-data-script-2.sh'):
@@ -17,6 +18,10 @@ def get_script(filename='user-data-script-2.sh'):
 def launch():
     connection = boto.ec2.connect_to_region('us-east-1')
     print "Launching"
+    dev_sda1 = BlockDeviceType()
+    dev_sda1.size = 16
+    bdm = BlockDeviceMapping()
+    bdm['/dev/sda1'] = dev_sda1
     reservation = connection.run_instances(
             image_id = 'ami-9eaa1cf6', # 14.04 server
             instance_type = 't2.micro',
@@ -24,6 +29,7 @@ def launch():
             subnet_id = 'subnet-690ed81e',
             security_group_ids = ['sg-99df30fd'], # gcc explorer
             user_data=get_script(),
+            block_device_map=bdm,
             dry_run=False
             )
     print "Not Adding to LB (yet)"

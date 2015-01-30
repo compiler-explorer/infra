@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 set -ex
 
@@ -28,5 +28,4 @@ $SUDO docker run \
 	-v /var/log/nginx:/var/log/nginx \
 	-v $(pwd)/nginx:/etc/nginx/sites-enabled \
 	--link gcc:gcc --link d:d --link rust:rust \
-    "$*" \
 	dockerfile/nginx
