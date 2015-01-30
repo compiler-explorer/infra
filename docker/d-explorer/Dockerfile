@@ -7,14 +7,16 @@ RUN apt-get install -y \
     gdc-4.4 \
     gdc-4.6 \
     gdc-4.8 \
-    gdc-4.9
+    gdc-4.9 \
+    xdg-utils gcc-multilib \
+    wget
 
 COPY compilers.sh /root/
 RUN bash /root/compilers.sh
 
 RUN su -c "cd /gcc-explorer && ls && make prereqs GDC=/usr/bin/gdc-4.9" gcc-user
 
-RUN echo "rm /root/compilers.sh && apt-get purge -y gcc && $CLEANUP_COMMAND" > /tmp/cleanup
+RUN echo "rm /root/compilers.sh && apt-get purge -y gcc wget && $CLEANUP_COMMAND" > /tmp/cleanup
 RUN bash /tmp/cleanup
 
 USER gcc-user
