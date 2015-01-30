@@ -20,10 +20,12 @@ def launch():
     print "Launching"
     dev_sda1 = BlockDeviceType()
     dev_sda1.size = 16
+    dev_sda1.delete_on_termination = True
     bdm = BlockDeviceMapping()
     bdm['/dev/sda1'] = dev_sda1
     reservation = connection.run_instances(
-            image_id = 'ami-9eaa1cf6', # 14.04 server
+            #image_id = 'ami-9eaa1cf6', # 14.04 server
+            image_id = 'ami-7a8cca12', # gcc-docker-iimg
             instance_type = 't2.micro',
             key_name = 'mattgodbolt',
             subnet_id = 'subnet-690ed81e',
@@ -32,11 +34,11 @@ def launch():
             block_device_map=bdm,
             dry_run=False
             )
-    print "Not Adding to LB (yet)"
-    #elb = boto.ec2.elb.connect_to_region('us-east-1')
-    #balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorer'])
-    #balancer[0].register_instances([i.id for i in reservation.instances])
-    #print "done"
+    print "Adding to LB"
+    elb = boto.ec2.elb.connect_to_region('us-east-1')
+    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorerVpc'])
+    balancer[0].register_instances([i.id for i in reservation.instances])
+    print "done"
 
 if __name__ == '__main__':
     launch()
