@@ -3,7 +3,7 @@
 set -ex
 
 SUDO=sudo
-if [[ $UID -= 0 ]]; then
+if [[ $UID = 0 ]]; then
     SUDO=
 fi
 
@@ -11,6 +11,7 @@ fi
 # check caching works in nginx
 # check STH proxy works
 
+$SUDO docker stop gcc d rust || true
 $SUDO docker rm gcc d rust || true
 
 $SUDO docker pull mattgodbolt/gcc-explorer
