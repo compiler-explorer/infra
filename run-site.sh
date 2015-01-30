@@ -23,9 +23,10 @@ RUST=$(sudo docker run --name rust -d -p 10242:10242 mattgodbolt/gcc-explorer:ru
 trap "$SUDO docker stop $GCC $D $RUST" SIGINT SIGTERM
 
 $SUDO docker run \
-	-p 80:80 \
+    -p 80:80 \
     --volumes-from gcc \
-	-v /var/log/nginx:/var/log/nginx \
-	-v $(pwd)/nginx:/etc/nginx/sites-enabled \
-	--link gcc:gcc --link d:d --link rust:rust \
-	dockerfile/nginx
+    -v /var/log/nginx:/var/log/nginx \
+    -v /home/ubuntu:/var/www \
+    -v $(pwd)/nginx:/etc/nginx/sites-enabled \
+    --link gcc:gcc --link d:d --link rust:rust \
+    dockerfile/nginx

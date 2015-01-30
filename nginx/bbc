@@ -1,7 +1,7 @@
 proxy_cache_path /var/cache/nginx-sth keys_zone=sth:10m max_size=200m;
 
 server {
-	root /home/ubuntu/jsbeeb/out/dist;
+	root /var/www/jsbeeb/out/dist;
 	index index.html;
 
 	server_name bbc.godbolt.org master.godbolt.org;
@@ -20,6 +20,6 @@ server {
 
     location /beta {
         autoindex on;
-        alias /home/ubuntu/jsbeeb-beta/out/dist;
+        alias /var/www/jsbeeb-beta/out/dist;
     }
 }
