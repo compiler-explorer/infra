@@ -47,4 +47,4 @@ if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
 cp /gcc-explorer-image/gcc-explorer.conf /etc/init/
-[ "$UPSTART_JOB" != "gcc-explorer" ] && service gcc-explorer start
+[ "$UPSTART_JOB" != "gcc-explorer" ] && service gcc-explorer start || true
