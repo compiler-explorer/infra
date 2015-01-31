@@ -40,6 +40,7 @@ def launch():
 #    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorerVpc'])
 #    balancer[0].register_instances([i.id for i in reservation.instances])
 #    print "done"
-#
+    print "Instance is {}".format(reservation.instances[0].id)
+
 if __name__ == '__main__':
     launch()

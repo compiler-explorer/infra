@@ -1,5 +1,5 @@
 #!/bin/bash
 
 set -ex
-./setup.sh
-./run_site.sh
+source ./setup.sh
+source ./run_site.sh
