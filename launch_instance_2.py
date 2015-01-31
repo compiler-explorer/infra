@@ -23,6 +23,7 @@ def launch():
     dev_sda1.delete_on_termination = True
     bdm = BlockDeviceMapping()
     bdm['/dev/sda1'] = dev_sda1
+    # todo, pick a subnet to distribute more evenly
     reservation = connection.run_instances(
             #image_id = 'ami-9eaa1cf6', # 14.04 server
             image_id = 'ami-7a8cca12', # gcc-docker-iimg

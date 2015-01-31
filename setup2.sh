@@ -4,6 +4,13 @@ set -ex
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+if [[ "$1" != "--updated" ]]; then
+    git --work-tree ${DIR} pull
+    pwd
+    exec bash ${BASH_SOURCE[0]} --updated
+    exit 0
+fi
+
 get_or_update_repo() {
     local USER=$1
     local REPO=$2
@@ -36,5 +43,8 @@ pushd jsbeeb-beta
 su -c "make dist" ubuntu
 popd
 
+if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
+    echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
+fi
 cp /gcc-explorer-image/docker-init.conf /etc/init/
-service docker-init start
+[ -z "$UPSTART_JOB" ] && service docker-init start

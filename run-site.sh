@@ -7,11 +7,6 @@ if [[ $UID = 0 ]]; then
     SUDO=
 fi
 
-# TODO:
-# check caching works in nginx (seemingly yes for gcc explorer)
-# check STH proxy works - it does, but seemingly doesn't cache?
-# access.log seems not reliable for bbc
-
 $SUDO docker stop gcc d rust nginx || true
 $SUDO docker rm gcc d rust nginx || true
 
