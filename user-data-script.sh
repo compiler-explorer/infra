@@ -13,4 +13,4 @@ apt-get -y update
 apt-get -y install git
 git clone https://github.com/mattgodbolt/gcc-explorer-image.git
 cd gcc-explorer-image
-bash setup2.sh 2>&1 | tee /tmp/setup.log
+bash setup.sh 2>&1 | tee /tmp/setup.log
