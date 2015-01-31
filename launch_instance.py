@@ -2,36 +2,44 @@
 
 import time
 from string import Template
-from config import S3_ACCESS_KEY, S3_SECRET_KEY
+from config import DOCKER_CFG
 
 import boto.ec2
 import boto.ec2.elb
+from boto.ec2.blockdevicemapping import *
 
 
 def get_script(filename='user-data-script.sh'):
     template = open(filename).read()
     return Template(template).substitute(
-            S3_ACCESS_KEY=S3_ACCESS_KEY,
-            S3_SECRET_KEY=S3_SECRET_KEY)
+            DOCKER_CFG=DOCKER_CFG)
 
 
 def launch():
     connection = boto.ec2.connect_to_region('us-east-1')
     print "Launching"
+    dev_sda1 = BlockDeviceType()
+    dev_sda1.size = 16
+    dev_sda1.delete_on_termination = True
+    bdm = BlockDeviceMapping()
+    bdm['/dev/sda1'] = dev_sda1
+    # todo, pick a subnet to distribute more evenly
     reservation = connection.run_instances(
-            #image_id = 'ami-59a4a230', # basic image
-            image_id = 'ami-ea32d482', # GCC Explorer image May 1st
-            #image_id = 'ami-864d84ee', # 14.04 server
-            instance_type = 't1.micro',
+            image_id = 'ami-9eaa1cf6', # 14.04 server
+            #image_id = 'ami-7a8cca12', # gcc-docker-iimg
+            instance_type = 't2.micro',
             key_name = 'mattgodbolt',
-            security_groups = ['quick-start-1'],
-            user_data=get_script()
+            subnet_id = 'subnet-690ed81e',
+            security_group_ids = ['sg-99df30fd'], # gcc explorer
+            user_data=get_script(),
+            block_device_map=bdm,
+            dry_run=False
             )
-    print "Adding to LB"
-    elb = boto.ec2.elb.connect_to_region('us-east-1')
-    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorer'])
-    balancer[0].register_instances([i.id for i in reservation.instances])
-    print "done"
-
+#    print "Adding to LB"
+#    elb = boto.ec2.elb.connect_to_region('us-east-1')
+#    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorerVpc'])
+#    balancer[0].register_instances([i.id for i in reservation.instances])
+#    print "done"
+#
 if __name__ == '__main__':
     launch()
