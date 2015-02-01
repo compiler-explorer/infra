@@ -1,9 +1,6 @@
-http {
-    gzip on;
     gzip_proxied any;
     gzip_http_version 1.1;
     gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-}
 
 server {
 	listen 80 default;
