@@ -26,7 +26,6 @@ def launch():
     # todo, pick a subnet to distribute more evenly
     reservation = connection.run_instances(
             image_id = 'ami-9eaa1cf6', # 14.04 server
-            #image_id = 'ami-7a8cca12', # gcc-docker-iimg
             instance_type = 't2.micro',
             key_name = 'mattgodbolt',
             subnet_id = 'subnet-690ed81e',
