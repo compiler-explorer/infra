@@ -16,8 +16,9 @@ RUN bash /root/compilers.sh
 
 RUN su -c "cd /gcc-explorer && ls && make prereqs GDC=/usr/bin/gdc-4.9" gcc-user
 
-RUN echo "rm /root/compilers.sh && apt-get purge -y gcc wget && $CLEANUP_COMMAND" > /tmp/cleanup
-RUN bash /tmp/cleanup
+RUN rm /root/compilers.sh
+RUN apt-get purge -y gcc wget
+RUN /root/cleanup.sh
 
 USER gcc-user
 WORKDIR /gcc-explorer

@@ -9,8 +9,9 @@ RUN bash /root/compilers.sh
 
 RUN su -c "cd /gcc-explorer && ls && make prereqs" gcc-user
 
-RUN echo "rm /root/compilers.sh && apt-get -y purge gcc g++ make && $CLEANUP_COMMAND" > /tmp/cleanup
-RUN bash /tmp/cleanup
+RUN rm /root/compilers.sh
+RUN apt-get purge -y gcc g++ make
+RUN /root/cleanup.sh
 
 USER gcc-user
 WORKDIR /gcc-explorer

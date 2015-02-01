@@ -26,10 +26,10 @@ RUN apt-get install -y \
 
 COPY compilers.sh /root/
 RUN bash /root/compilers.sh
-RUN echo "rm /root/compilers.sh && $CLEANUP_COMMAND" > /tmp/cleanup
-RUN bash /tmp/cleanup
-
 RUN su -c "cd /gcc-explorer && ls && make prereqs" gcc-user
+
+RUN rm /root/compilers.sh
+RUN /root/cleanup.sh
 
 USER gcc-user
 WORKDIR /gcc-explorer
