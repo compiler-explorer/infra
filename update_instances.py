@@ -3,7 +3,7 @@
 import boto.ec2
 from boto.manage.cmdshell import sshclient_from_instance
 
-if __name__ == '__main__':
+def update_gcc_explorers():
     conn = boto.ec2.connect_to_region('us-east-1')
     reservations = conn.get_all_instances()
     for reservation in reservations:
@@ -20,3 +20,7 @@ if __name__ == '__main__':
             print "Stdout", stdout
             print "Stderr", stderr
             print "Done"
+
+
+if __name__ == '__main__':
+    update_gcc_explorers()
