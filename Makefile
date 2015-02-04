@@ -25,7 +25,10 @@ d-explorer-image: docker/d-explorer/.s3cfg
 rust-explorer-image: docker/rust-explorer/.s3cfg
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:rust" docker/rust-explorer
 
+publish: docker-images
+	sudo docker push mattgodbolt/gcc-explorer
+
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images gcc-explorer-image rust-explorer-image source
+.PHONY: all clean docker-images gcc-explorer-image rust-explorer-image source publish
