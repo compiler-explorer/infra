@@ -7,10 +7,10 @@ if [[ $UID = 0 ]]; then
     SUDO=
 fi
 
+$SUDO docker pull mattgodbolt/gcc-explorer
+
 $SUDO docker stop gcc d rust nginx || true
 $SUDO docker rm gcc d rust nginx || true
-
-$SUDO docker pull mattgodbolt/gcc-explorer
 
 GCC=$(sudo docker run --name gcc -d -p 10240:10240 mattgodbolt/gcc-explorer:gcc)
 D=$(sudo docker run --name d -d -p 10241:10241 mattgodbolt/gcc-explorer:d)
