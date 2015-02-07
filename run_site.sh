@@ -2,28 +2,40 @@
 
 set -ex
 
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 SUDO=sudo
 if [[ $UID = 0 ]]; then
     SUDO=
 fi
 
-$SUDO docker pull mattgodbolt/gcc-explorer
+EXTERNAL_PORT=80
+CONFIG_FILE=${DIR}/site-prod.sh
+if [[ ${DEV_MODE=1} = 1 ]]; then
+    EXTERNAL_PORT=8000
+    CONFIG_FILE=${DIR}/site-dev.sh
+else
+    $SUDO docker pull mattgodbolt/gcc-explorer
+fi
 
-$SUDO docker stop gcc d rust nginx || true
-$SUDO docker rm gcc d rust nginx || true
+ALL="gcc gcc1204 d rust nginx"
+$SUDO docker stop ${ALL} || true
+$SUDO docker rm ${ALL} || true
 
-GCC=$(sudo docker run --name gcc -d -p 10240:10240 mattgodbolt/gcc-explorer:gcc)
-D=$(sudo docker run --name d -d -p 10241:10241 mattgodbolt/gcc-explorer:d)
-RUST=$(sudo docker run --name rust -d -p 10242:10242 mattgodbolt/gcc-explorer:rust)
+CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 
-trap "$SUDO docker stop $GCC $D $RUST" SIGINT SIGTERM SIGPIPE
+$SUDO docker run --name gcc1204 ${CFG} -d -p 20480:20480 mattgodbolt/gcc-explorer:gcc1204
+$SUDO docker run --name gcc ${CFG} --link gcc1204:gcc1204 -d -p 10240:10240 mattgodbolt/gcc-explorer:gcc
+$SUDO docker run --name d ${CFG} -d -p 10241:10241 mattgodbolt/gcc-explorer:d
+$SUDO docker run --name rust ${CFG} -d -p 10242:10242 mattgodbolt/gcc-explorer:rust
+
+trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
 
 $SUDO docker run \
-    -p 80:80 \
+    -p ${EXTERNAL_PORT}:80 \
     --name nginx \
     --volumes-from gcc \
     -v /var/log/nginx:/var/log/nginx \
-    -v /home/ubuntu:/var/www \
-    -v $(pwd)/nginx:/etc/nginx/sites-enabled \
+    -v /home/ubuntu:/var/www:ro \
+    -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
     --link gcc:gcc --link d:d --link rust:rust \
     dockerfile/nginx

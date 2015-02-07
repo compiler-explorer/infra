@@ -3,13 +3,15 @@ all: docker-images
 
 DOCKER := sudo docker
 
-docker-images: gcc-explorer-image d-explorer-image rust-explorer-image
+docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
 		.format(S3_ACCESS_KEY, S3_SECRET_KEY)' | python > $@
 
 docker/gcc-explorer/.s3cfg: .s3cfg
+	cp $< $@
+docker/gcc-explorer-1204/.s3cfg: .s3cfg
 	cp $< $@
 docker/d-explorer/.s3cfg: .s3cfg
 	cp $< $@
@@ -18,6 +20,9 @@ docker/rust-explorer/.s3cfg: .s3cfg
 
 gcc-explorer-image: docker/gcc-explorer/.s3cfg
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" docker/gcc-explorer
+
+gcc-explorer-image-1204: docker/gcc-explorer-1204/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc1204" docker/gcc-explorer-1204
 
 d-explorer-image: docker/d-explorer/.s3cfg
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:d" docker/d-explorer
