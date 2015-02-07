@@ -29,7 +29,7 @@ def launch():
             image_id = 'ami-9eaa1cf6', # 14.04 server
             instance_type = 't2.micro',
             key_name = 'mattgodbolt',
-            subnet_id = 'subnet-690ed81e',
+            subnet_id = 'subnet-1df1e135', # 1d (where reserved instance is)
             security_group_ids = ['sg-99df30fd'], # gcc explorer
             user_data=get_script(),
             block_device_map=bdm,
