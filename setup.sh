@@ -38,7 +38,7 @@ fi
 mkdir -p /home/ubuntu/.ssh
 cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
 chown -R ubuntu /home/ubuntu/.ssh
-chmod 600 /home/ubuntu/.ssh/id_rda
+chmod 600 /home/ubuntu/.ssh/id_rsa
 
 cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
