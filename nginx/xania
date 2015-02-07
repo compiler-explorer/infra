@@ -1,0 +1,5 @@
+server {
+	server_name xania.org godbolt.org www.xania.org www.godbolt.org
+	root /var/www/blog/htdocs
+	index index.html;
+}

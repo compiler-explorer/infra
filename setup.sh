@@ -25,7 +25,9 @@ get_or_update_repo() {
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install git make nodejs-legacy npm docker.io libpng-dev m4
+apt-get -y install git make nodejs-legacy npm docker.io libpng-dev m4 \
+    python-markdown python-pygments python-pip
+pip install pytz
 
 if ! grep ubuntu /etc/passwd; then
     useradd ubuntu
