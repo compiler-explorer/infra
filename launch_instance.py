@@ -2,7 +2,7 @@
 
 import time
 from string import Template
-from config import DOCKER_CFG
+from config import *
 
 import boto.ec2
 import boto.ec2.elb
@@ -12,6 +12,8 @@ from boto.ec2.blockdevicemapping import *
 def get_script(filename='user-data-script.sh'):
     template = open(filename).read()
     return Template(template).substitute(
+            PUBLIC_KEY=PUBLIC_KEY,
+            PRIVATE_KEY=PRIVATE_KEY,
             DOCKER_CFG=DOCKER_CFG)
 
 
@@ -23,7 +25,6 @@ def launch():
     dev_sda1.delete_on_termination = True
     bdm = BlockDeviceMapping()
     bdm['/dev/sda1'] = dev_sda1
-    # todo, pick a subnet to distribute more evenly
     reservation = connection.run_instances(
             image_id = 'ami-9eaa1cf6', # 14.04 server
             instance_type = 't2.micro',
@@ -34,11 +35,6 @@ def launch():
             block_device_map=bdm,
             dry_run=False
             )
-#    print "Adding to LB"
-#    elb = boto.ec2.elb.connect_to_region('us-east-1')
-#    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorerVpc'])
-#    balancer[0].register_instances([i.id for i in reservation.instances])
-#    print "done"
     print "Instance is {}".format(reservation.instances[0].id)
 
 if __name__ == '__main__':

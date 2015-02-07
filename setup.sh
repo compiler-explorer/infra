@@ -35,6 +35,11 @@ if ! grep ubuntu /etc/passwd; then
     chown ubuntu /home/ubuntu
 fi
 
+mkdir -p /home/ubuntu/.ssh
+cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
+chown -R ubuntu /home/ubuntu/.ssh
+chmod 600 /home/ubuntu/.ssh/id_rda
+
 cd /home/ubuntu/
 get_or_update_repo ubuntu jsbeeb release
 pushd jsbeeb
@@ -43,6 +48,10 @@ popd
 get_or_update_repo ubuntu jsbeeb master jsbeeb-beta
 pushd jsbeeb-beta
 su -c "make dist" ubuntu
+popd
+get_or_update_repo ubuntu blog master blog
+pushd blog
+su -c "./publish.sh" ubuntu
 popd
 
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
