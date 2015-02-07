@@ -15,9 +15,9 @@ get_or_update_repo() {
     local USER=$1
     local REPO=$2
     local BRANCH=$3
-    local DIR=${4-${REPO}}
+    local DIR=$4
     if [[ ! -e ${DIR} ]]; then
-        su -c "git clone --branch ${BRANCH} git@github.com/mattgodbolt/${REPO}.git ${DIR}" "${USER}"
+        su -c "git clone --branch ${BRANCH} ${REPO} ${DIR}" "${USER}"
     else
         su -c "cd ${DIR}; git pull && git checkout ${BRANCH}" "${USER}"
     fi
@@ -44,9 +44,9 @@ chown -R ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/id_rsa
 
 cd /home/ubuntu/
-get_or_update_repo ubuntu jsbeeb release
-get_or_update_repo ubuntu jsbeeb master jsbeeb-beta
-get_or_update_repo ubuntu blog master blog
+get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git release jsbeeb
+get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta
+get_or_update_repo ubuntu git@github.com/mattgodbolt/blog.git master blog
 
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
