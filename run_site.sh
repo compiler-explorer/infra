@@ -24,8 +24,11 @@ $SUDO docker rm ${ALL} || true
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 
 $SUDO docker run --name gcc1204 ${CFG} -d -p 20480:20480 mattgodbolt/gcc-explorer:gcc1204
+sleep 10
 $SUDO docker run --name gcc ${CFG} --link gcc1204:gcc1204 -d -p 10240:10240 mattgodbolt/gcc-explorer:gcc
+sleep 10
 $SUDO docker run --name d ${CFG} -d -p 10241:10241 mattgodbolt/gcc-explorer:d
+sleep 10
 $SUDO docker run --name rust ${CFG} -d -p 10242:10242 mattgodbolt/gcc-explorer:rust
 
 trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
