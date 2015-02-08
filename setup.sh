@@ -12,13 +12,13 @@ if [[ "$1" != "--updated" ]]; then
 fi
 
 miraclehook() {
+    rm -rf roms
     mkdir -p roms
-    pushd roms
     rm -f miracle-roms.tar.gz
     /root/s3cmd/s3cmd get s3://xania.org/miracle-roms.tar.gz
     tar zxf miracle-roms.tar.gz
-    rm miracle-roms.tar.gz s3cfg
-    popd
+    rm miracle-roms.tar.gz
+    chown -R ubuntu roms
 }
 
 get_or_update_repo() {
