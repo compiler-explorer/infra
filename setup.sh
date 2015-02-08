@@ -32,7 +32,7 @@ get_or_update_repo() {
     fi
     pushd ${DIR}
     $5
-    su -c "make dist" ${USER}
+    [[ -e Makefile ]] && su -c "make dist" ${USER}
     popd
 }
 
