@@ -15,6 +15,7 @@ miraclehook() {
     mkdir -p roms
     pushd roms
     /root/s3cmd/s3cmd get s3://xania.org/miracle-roms.tar.gz
+    rm -f miracle-roms.tar.gz
     tar zxf miracle-roms.tar.gz
     rm miracle-roms.tar.gz s3cfg
     popd
