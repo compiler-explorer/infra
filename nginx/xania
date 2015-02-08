@@ -2,4 +2,13 @@ server {
 	server_name xania.org godbolt.org www.xania.org www.godbolt.org;
 	root /var/www/blog/htdocs;
 	index index.html;
+    try_files $uri $uri.html $uri.css $uri.atom $uri/ =404;
+
+    location /article.php {
+        rewrite ^/article.php/citroen /200504/fantastic-spoof-citroen-video last;
+    }
+
+    location /miracle {
+        alias /var/www/miracle;
+    }
 }

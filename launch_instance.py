@@ -33,6 +33,7 @@ def launch():
             security_group_ids = ['sg-99df30fd'], # gcc explorer
             user_data=get_script(),
             block_device_map=bdm,
+            instance_profile_arn='arn:aws:iam::052730242331:instance-profile/XaniaBlog',
             dry_run=False
             )
     print "Instance is {}".format(reservation.instances[0].id)
