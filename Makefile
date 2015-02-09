@@ -9,6 +9,12 @@ docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explo
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
 		.format(S3_ACCESS_KEY, S3_SECRET_KEY)' | python > $@
 
+config.json: config.py make_json.py
+	python make_json.py
+
+packer: config.json
+	../packer/packer build -var-file=config.json packer.json 
+
 docker/gcc-explorer/.s3cfg: .s3cfg
 	cp $< $@
 docker/gcc-explorer-1204/.s3cfg: .s3cfg

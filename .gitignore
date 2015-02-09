@@ -4,3 +4,4 @@ config.py
 *.swp
 .s3cfg
 *.xz
+config.json
