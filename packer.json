@@ -3,14 +3,14 @@
     {
       "type": "amazon-ebs",
       "region": "us-east-1",
-      "access_key": "{{user `S3_ACCESS_KEY`}}",
-      "secret_key": "{{user `S3_SECRET_KEY`}}",
+      "access_key": "{{user `MY_ACCESS_KEY`}}",
+      "secret_key": "{{user `MY_SECRET_KEY`}}",
       "source_ami": "ami-9eaa1cf6",
       "instance_type": "t2.micro",
       "ssh_username": "ubuntu",
       "ami_name": "gcc-explorer packer {{timestamp}}",
       "associate_public_ip_address": true,
-      "iam_instance_profile": "arn:aws:iam::052730242331:instance-profile/XaniaBlog",
+      "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
       "security_group_id": "sg-99df30fd",
       "subnet_id": "subnet-1df1e135",
@@ -26,6 +26,8 @@
   ],
 
   "variables": {
+    "MY_ACCESS_KEY": "",
+    "MY_SECRET_KEY": "",
     "S3_ACCESS_KEY": "",
     "S3_SECRET_KEY": "",
     "PRIVATE_KEY": "{{user `PRIVATE_KEY`}}",
@@ -37,6 +39,7 @@
     {
       "type": "shell",
       "script": "user-data-script.sh",
+      "execute_command" : "sudo sh '{{ .Path }}'",
       "environment_vars": [ 
         "PRIVATE_KEY={{user `PRIVATE_KEY`}}", 
         "PUBLIC_KEY={{user `PUBLIC_KEY`}}", 
