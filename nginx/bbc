@@ -3,6 +3,8 @@ proxy_cache_path /var/cache/nginx-sth keys_zone=sth:10m max_size=200m;
 server {
 	root /var/www/jsbeeb/out/dist;
 	index index.html;
+	access_log /var/log/nginx/bbc.log;
+	error_log /var/log/nginx/bbc.err;
 
 	server_name bbc.godbolt.org master.godbolt.org;
 
