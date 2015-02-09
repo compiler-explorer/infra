@@ -23,14 +23,19 @@ class MainHandler(tornado.web.RequestHandler):
         if 'ref' not in obj: 
             logging.info("Skipping, no ref")
             return
-        if obj['repository']['name'] == 'jsbeeb':
-            if obj['ref'] == 'refs/heads/master':
+
+        repo = obj['repository']['name']
+        branch = obj['ref']
+        if repo == 'jsbeeb':
+            if branch == 'refs/heads/master':
                 update_repo.update('jsbeeb-beta')
-            elif obj['ref'] == 'refs/heads/release':
+            elif branch == 'refs/heads/release':
                 update_repo.update('jsbeeb')
             self.write("OK")
-	elif obj['repository']['name'] == 'gcc-explorer':
-	    if obj['ref'] == 'refs/heads/release':
+        elif repo == 'blog':
+            update_repo.update('blog')
+	elif repo == 'gcc-explorer':
+	    if branch == 'refs/heads/release':
 		update_instances.update_gcc_explorers()
             self.write("OK")
 
