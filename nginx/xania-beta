@@ -1,0 +1,16 @@
+server {
+	server_name beta.xania.org;
+	root /var/www/blog-beta/htdocs;
+	index index.html;
+    try_files $uri $uri.html $uri.css $uri.jpeg $uri.png $uri.jpg $uri.atom $uri/ =404;
+    access_log /var/log/nginx/xania-beta.log;
+    error_log /var/log/nginx/xania-beta.err;
+
+    location /article.php {
+        rewrite ^/article.php/citroen /200504/fantastic-spoof-citroen-video last;
+    }
+
+    location /miracle {
+        alias /var/www/miracle;
+    }
+}

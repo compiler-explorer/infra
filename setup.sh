@@ -60,6 +60,7 @@ get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git release jsbeeb
 get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta
 get_or_update_repo ubuntu git://github.com/mattgodbolt/Miracle master miracle miraclehook
 get_or_update_repo ubuntu git@github.com:mattgodbolt/blog.git master blog
+get_or_update_repo ubuntu git@github.com:mattgodbolt/blog.git new_blot blog-beta
 
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io

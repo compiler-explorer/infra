@@ -30,9 +30,9 @@
     "MY_SECRET_KEY": "",
     "S3_ACCESS_KEY": "",
     "S3_SECRET_KEY": "",
-    "PRIVATE_KEY": "{{user `PRIVATE_KEY`}}",
-    "PUBLIC_KEY": "{{user `PUBLIC_KEY`}}",
-    "DOCKER_CFG": "{{user `DOCKER_CFG`}}"
+    "PRIVATE_KEY": "",
+    "PUBLIC_KEY": "",
+    "DOCKER_CFG": ""
   },
 
   "provisioners": [

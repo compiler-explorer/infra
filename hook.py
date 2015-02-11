@@ -33,7 +33,11 @@ class MainHandler(tornado.web.RequestHandler):
                 update_repo.update('jsbeeb')
             self.write("OK")
         elif repo == 'blog':
-            update_repo.update('blog')
+            if branch == 'refs/heads/master':
+                update_repo.update('blog')
+            elif branch == 'refs/heads/new_blog':
+                update_repo.update('blog-beta')
+            self.write("OK")
 	elif repo == 'gcc-explorer':
 	    if branch == 'refs/heads/release':
 		update_instances.update_gcc_explorers()
