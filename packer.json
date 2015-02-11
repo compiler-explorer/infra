@@ -39,11 +39,11 @@
     {
       "type": "shell",
       "script": "user-data-script.sh",
-      "execute_command" : "sudo sh '{{ .Path }}'",
+      "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
       "environment_vars": [ 
-        "PRIVATE_KEY={{user `PRIVATE_KEY`}}", 
-        "PUBLIC_KEY={{user `PUBLIC_KEY`}}", 
-        "DOCKER_CFG={{user `DOCKER_CFG`}}"
+        "PRIVATE_KEY='{{user `PRIVATE_KEY`}}'", 
+        "PUBLIC_KEY='{{user `PUBLIC_KEY`}}'", 
+        "DOCKER_CFG='{{user `DOCKER_CFG`}}'"
       ]
     }
   ]
