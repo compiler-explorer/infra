@@ -16,7 +16,15 @@
       "subnet_id": "subnet-1df1e135",
       "ami_block_device_mappings": [
         {
-          "device_name": "/dev/sda",
+          "device_name": "/dev/sda1",
+          "volume_size": 16,
+          "delete_on_termination": true,
+          "volume_type": "standard"
+        }
+      ],
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
           "volume_size": 16,
           "delete_on_termination": true,
           "volume_type": "standard"
