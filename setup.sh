@@ -67,4 +67,5 @@ if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
 fi
 cp /gcc-explorer-image/gcc-explorer.conf /etc/init/
 docker pull mattgodbolt/gcc-explorer
+docker pull dockerfile/nginx
 [ "$UPSTART_JOB" != "gcc-explorer" ] && service gcc-explorer start || true

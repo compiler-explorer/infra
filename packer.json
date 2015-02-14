@@ -52,7 +52,9 @@
 	"apt-get -y install git",
 	"git clone https://github.com/mattgodbolt/gcc-explorer-image.git /gcc-explorer-image",
 	"cd /gcc-explorer-image",
-	"bash setup.sh 2>&1 | tee /tmp/setup.log"
+	"bash setup.sh 2>&1 | tee /tmp/setup.log",
+        "sleep 60",
+        "service gcc-explorer stop"
       ]
     }
   ]
