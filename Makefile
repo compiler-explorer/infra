@@ -2,6 +2,7 @@
 all: docker-images
 
 DOCKER := sudo docker
+PACKER ?= ../packer/packer
 
 docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204
 
@@ -12,8 +13,17 @@ docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explo
 config.json: config.py make_json.py
 	python make_json.py
 
-packer: config.json
-	../packer/packer build -var-file=config.json packer.json 
+packer/id_rsa: config.py
+	echo 'from config import *; print PRIVATE_KEY' | python > $@
+
+packer/id_rsa.pub: config.py
+	echo 'from config import *; print PUBLIC_KEY' | python > $@
+
+packer/dockercfg: config.py
+	echo 'from config import *; print DOCKER_CFG' | python > $@
+
+packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
+	$(PACKER) build -var-file=config.json packer.json 
 
 docker/gcc-explorer/.s3cfg: .s3cfg
 	cp $< $@
@@ -42,4 +52,4 @@ publish: docker-images
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images gcc-explorer-image rust-explorer-image source publish
+.PHONY: all clean docker-images gcc-explorer-image rust-explorer-image source publish packer

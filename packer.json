@@ -27,23 +27,32 @@
 
   "variables": {
     "MY_ACCESS_KEY": "",
-    "MY_SECRET_KEY": "",
-    "S3_ACCESS_KEY": "",
-    "S3_SECRET_KEY": "",
-    "PRIVATE_KEY": "",
-    "PUBLIC_KEY": "",
-    "DOCKER_CFG": ""
+    "MY_SECRET_KEY": ""
   },
 
   "provisioners": [
+    { "type": "file", "source": "packer", "destination": "/home/ubuntu/" },
     {
       "type": "shell",
-      "script": "user-data-script.sh",
       "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
-      "environment_vars": [ 
-        "PRIVATE_KEY='{{user `PRIVATE_KEY`}}'", 
-        "PUBLIC_KEY='{{user `PUBLIC_KEY`}}'", 
-        "DOCKER_CFG='{{user `DOCKER_CFG`}}'"
+      "inline": [
+        "set -e",
+        "mkdir -p /root/.ssh",
+        "mv /home/ubuntu/packer/id_rsa /root/.ssh/",
+        "chmod 600 /root/.ssh/id_rsa",
+        "mv /home/ubuntu/packer/id_rsa.pub /root/.ssh/",
+        "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
+        "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
+	"cp /home/ubuntu/packer/dockercfg /root/.dockercfg",
+	"chmod 600 /root/.dockercfg",
+	"cp /home/ubuntu/packer/dockercfg /home/ubuntu/.dockercfg",
+	"chmod 600 /home/ubuntu/.dockercfg",
+	"rm -rf /home/ubuntu/packer",
+	"apt-get -y update",
+	"apt-get -y install git",
+	"git clone https://github.com/mattgodbolt/gcc-explorer-image.git /gcc-explorer-image",
+	"cd /gcc-explorer-image",
+	"bash setup.sh 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]
