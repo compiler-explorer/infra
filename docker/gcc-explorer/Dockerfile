@@ -11,6 +11,7 @@ RUN apt-get -y update && apt-get install -y \
     nodejs \
     s3cmd \
     clang-3.5 \
+    gcc \
     g++-4.8 \
     g++-4.9 \
     g++-4.8-powerpc-linux-gnu \

@@ -17,7 +17,7 @@ else
     $SUDO docker pull mattgodbolt/gcc-explorer
 fi
 
-ALL="gcc gcc1204 d rust nginx"
+ALL="nginx gcc gcc1204 d rust"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -26,23 +26,26 @@ CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 # Terrible hack as I can't for the life of me get the containers to reliably start:
 # sometimes they hang or get stuck in npm update due to a as-yet-undiscovered race/problem.
 start_and_wait() {
-    local name = $1
-    local port = $2
-    local FULL_COMMAND = "${SUDO} docker run --name ${name} ${CFG} -d -p ${PORT}:${PORT} mattgodbolt/gcc-explorer:${name}"
+    local NAME=$1
+    local PORT=$2
+    shift
+    shift
+    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${NAME}"
+    local CONTAINER_UID=""
     for retries in $(seq 3); do
-        $SUDO docker stop ${name} || true
-        $SUDO docker rm ${name} || true
-        echo "Attempt $((retries + 1)) to start ${name}"
-        $FULL_COMMAND
+        $SUDO docker stop ${NAME} || true
+        $SUDO docker rm ${NAME} || true
+        echo "Attempt ${retries} to start ${NAME}"
+        CONTAINER_UID=$($FULL_COMMAND)
         for second in $(seq 60); do
             sleep 1
-            if [[ $($SUDO docker ps ${name} | wc -l) -ne 2 ]]; then
+            if ! $SUDO docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
                 echo "Container failed to start, logs:"
-                $SUDO docker logs ${name}
+                $SUDO docker logs ${NAME}
                 break
             fi
-            if curl http://localhost:$port/ > /dev/null 2>&1; then
-                echo "Server ${name} is up and running"
+            if curl http://localhost:$PORT/ > /dev/null 2>&1; then
+                echo "Server ${NAME} is up and running"
                 return
             fi
         done
@@ -52,10 +55,10 @@ start_and_wait() {
 
 trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
 
-start_and_wait gcc1204
-start_and_wait gcc
-start_and_wait d
-start_and_wait rust
+start_and_wait gcc1204 20480
+start_and_wait gcc 10240 --link gcc1204:gcc1204
+start_and_wait d 10241
+start_and_wait rust 10242
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
