@@ -23,15 +23,39 @@ $SUDO docker rm ${ALL} || true
 
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 
-$SUDO docker run --name gcc1204 ${CFG} -d -p 20480:20480 mattgodbolt/gcc-explorer:gcc1204
-sleep 10
-$SUDO docker run --name gcc ${CFG} --link gcc1204:gcc1204 -d -p 10240:10240 mattgodbolt/gcc-explorer:gcc
-sleep 10
-$SUDO docker run --name d ${CFG} -d -p 10241:10241 mattgodbolt/gcc-explorer:d
-sleep 10
-$SUDO docker run --name rust ${CFG} -d -p 10242:10242 mattgodbolt/gcc-explorer:rust
+# Terrible hack as I can't for the life of me get the containers to reliably start:
+# sometimes they hang or get stuck in npm update due to a as-yet-undiscovered race/problem.
+start_and_wait() {
+    local name = $1
+    local port = $2
+    local FULL_COMMAND = "${SUDO} docker run --name ${name} ${CFG} -d -p ${PORT}:${PORT} mattgodbolt/gcc-explorer:${name}"
+    for retries in $(seq 3); do
+        $SUDO docker stop ${name} || true
+        $SUDO docker rm ${name} || true
+        echo "Attempt $((retries + 1)) to start ${name}"
+        $FULL_COMMAND
+        for second in $(seq 60); do
+            sleep 1
+            if [[ $($SUDO docker ps ${name} | wc -l) -ne 2 ]]; then
+                echo "Container failed to start, logs:"
+                $SUDO docker logs ${name}
+                break
+            fi
+            if curl http://localhost:$port/ > /dev/null 2>&1; then
+                echo "Server ${name} is up and running"
+                return
+            fi
+        done
+        echo "Failed."
+    done
+}
 
 trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
+
+start_and_wait gcc1204
+start_and_wait gcc
+start_and_wait d
+start_and_wait rust
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
