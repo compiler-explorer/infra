@@ -15,6 +15,9 @@ def update(repo):
             if instance.state != 'running':
                 print "Skipping {} instance {}".format(instance.state, instance.id)
                 continue
+            if "App" not in instance.tags or instance.tags["App"] != "GccExplorer":
+                print "Skipping non-gcc explorer instance {}".format(instance.id)
+                continue
             print "Connecting to", instance
             ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
                     user_name='ubuntu')
