@@ -24,6 +24,14 @@ COPY .s3cfg /root/
 COPY known_hosts /root/.ssh/
 COPY compilers.sh /root/
 RUN bash /root/compilers.sh
+
+COPY clang.list /etc/apt/sources.list.d/
+RUN sudo add-apt-repository ppa:xorg-edgers/ppa 
+RUN apt-get -y update
+RUN curl http://llvm.org/apt/llvm-snapshot.gpg.key | sudo apt-key add -
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 15CF4D18AF4F7421
+RUN apt-get install --force-yes -y clang-3.6 clang-3.7
+
 RUN rm /root/compilers.sh
 RUN rm /root/.s3cfg
 RUN apt-get purge -y curl s3cmd openjdk-6-jre-lib

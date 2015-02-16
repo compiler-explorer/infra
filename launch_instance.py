@@ -19,6 +19,15 @@ def get_script(filename='user-data-script.sh'):
 
 def launch():
     connection = boto.ec2.connect_to_region('us-east-1')
+    image_id = None
+    for image in connection.get_all_images(owners=["self"]):
+        print image.tags
+        if 'Name' in image.tags and image.tags["Name"] == "current":
+            image_id = image.id
+	    print "Found image {}".format(image_id)
+    if not image_id:
+        print "Unable to find 'current' image"
+	return 1
     print "Launching"
     dev_sda1 = BlockDeviceType()
     dev_sda1.size = 16
@@ -26,7 +35,7 @@ def launch():
     bdm = BlockDeviceMapping()
     bdm['/dev/sda1'] = dev_sda1
     reservation = connection.run_instances(
-            image_id = 'ami-9eaa1cf6', # 14.04 server
+            image_id = image_id,
             instance_type = 't2.micro',
             key_name = 'mattgodbolt',
             subnet_id = 'subnet-1df1e135', # 1d (where reserved instance is)
