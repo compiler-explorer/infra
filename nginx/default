@@ -89,3 +89,27 @@ server {
 	}
 }
 
+server {
+	server_name go.godbolt.org;
+	index index.html;
+	access_log /var/log/nginx/go.log;
+	error_log /var/log/nginx/go.err;
+
+	location / {
+		proxy_pass http://go:10243;
+		proxy_cache gcc;
+		proxy_cache_valid 200 2m;
+	}
+
+    location ^~ /client-options.js {
+		proxy_pass http://go:10243;
+		proxy_cache gcc;
+		proxy_cache_valid 200 2m;
+	}
+
+	location ~* \.(html|js|ico|css)$ {
+		root /gcc-explorer/static;
+		expires max;
+	}
+}
+

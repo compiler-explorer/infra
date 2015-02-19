@@ -17,7 +17,7 @@ else
     $SUDO docker pull mattgodbolt/gcc-explorer
 fi
 
-ALL="nginx gcc gcc1204 d rust"
+ALL="nginx gcc go gcc1204 d rust"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -50,6 +50,7 @@ start_and_wait() {
             fi
         done
         echo "Failed."
+	$SUDO docker logs ${NAME}
     done
 }
 
@@ -59,6 +60,7 @@ start_and_wait gcc1204 20480
 start_and_wait gcc 10240 --link gcc1204:gcc1204
 start_and_wait d 10241
 start_and_wait rust 10242
+start_and_wait go 10243
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
@@ -67,5 +69,5 @@ $SUDO docker run \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link gcc:gcc --link d:d --link rust:rust \
+    --link gcc:gcc --link d:d --link rust:rust --link go:go \
     dockerfile/nginx

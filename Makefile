@@ -4,7 +4,7 @@ all: docker-images
 DOCKER := sudo docker
 PACKER ?= ../packer/packer
 
-docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204
+docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204 go-explorer
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
@@ -27,12 +27,17 @@ packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
 
 docker/gcc-explorer/.s3cfg: .s3cfg
 	cp $< $@
+docker/go-explorer/.s3cfg: .s3cfg
+	cp $< $@
 docker/gcc-explorer-1204/.s3cfg: .s3cfg
 	cp $< $@
 docker/d-explorer/.s3cfg: .s3cfg
 	cp $< $@
 docker/rust-explorer/.s3cfg: .s3cfg
 	cp $< $@
+
+go-explorer-image: docker/go-explorer/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:go" docker/go-explorer
 
 gcc-explorer-image: docker/gcc-explorer/.s3cfg
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" docker/gcc-explorer
@@ -52,4 +57,5 @@ publish: docker-images
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images gcc-explorer-image rust-explorer-image source publish packer
+.PHONY: all clean docker-images gcc-explorer-image gcc-explorer-image-1204 go-explorer-image 
+.PHONY: rust-explorer-image source publish packer
