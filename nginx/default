@@ -36,7 +36,7 @@ server {
 
 	location ~* \.(html|js|ico|css)$ {
 		root /gcc-explorer/static;
-		expires max;
+		expires 600;
 	}
 }
 
@@ -61,7 +61,7 @@ server {
 
 	location ~* \.(html|js|ico|css)$ {
 		root /gcc-explorer/static;
-		expires max;
+		expires 600;
 	}
 }
 
@@ -85,7 +85,7 @@ server {
 
 	location ~* \.(html|js|ico|css)$ {
 		root /gcc-explorer/static;
-		expires max;
+		expires 600;
 	}
 }
 
@@ -109,7 +109,7 @@ server {
 
 	location ~* \.(html|js|ico|css)$ {
 		root /gcc-explorer/static;
-		expires max;
+		expires 600;
 	}
 }
 
