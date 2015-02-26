@@ -37,6 +37,28 @@ get_or_update_repo() {
     popd
 }
 
+PTRAIL='/etc/rsyslog.d/99-papertrail.conf '
+if [[ ! -f "${PTRAIL}" ]]; then
+    echo '*.*          @logs2.papertrailapp.com:34474' > "${PTRAIL}"
+    service rsyslog restart
+    pushd /tmp
+    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.13/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+    cp remote_syslog/remote_syslog /usr/local/bin/
+    cat > /etc/log_files.yml << EOF
+files:
+  - /var/log/nginx/*.log
+  - /var/log/nginx/*.err
+destination:
+  host: logs2.papertrailapp.com
+  port: 34474
+  protocol: tls
+EOF
+    docker pull gliderlabs/logspout:latest
+fi
+
+docker rm logspout || true
+docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock gliberlabs/logspout syslog://logs2.papertrailapp.com:34474
+
 apt-get -y update
 apt-get -y upgrade --force-yes
 apt-get -y install git make nodejs-legacy npm docker.io libpng-dev m4 \
