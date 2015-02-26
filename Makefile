@@ -4,7 +4,7 @@ all: docker-images
 DOCKER := sudo docker
 PACKER ?= ../packer/packer
 
-docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204 go-explorer
+docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204 go-explorer-image
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
