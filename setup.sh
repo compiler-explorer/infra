@@ -57,6 +57,7 @@ EOF
     popd
 fi
 
+docker stop logspout || true
 docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
