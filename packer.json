@@ -52,20 +52,20 @@
         "mv /home/ubuntu/packer/id_rsa.pub /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
-	"cp /home/ubuntu/packer/dockercfg /root/.dockercfg",
-	"chmod 600 /root/.dockercfg",
-	"cp /home/ubuntu/packer/dockercfg /home/ubuntu/.dockercfg",
-	"chmod 600 /home/ubuntu/.dockercfg",
-	"rm -rf /home/ubuntu/packer",
-	"apt-get -y update",
-	"apt-get -y install git",
-	"git clone https://github.com/mattgodbolt/gcc-explorer-image.git /gcc-explorer-image",
-	"cd /gcc-explorer-image",
-	"bash setup.sh 2>&1 | tee /tmp/setup.log",
+        "cp /home/ubuntu/packer/dockercfg /root/.dockercfg",
+        "chmod 600 /root/.dockercfg",
+        "cp /home/ubuntu/packer/dockercfg /home/ubuntu/.dockercfg",
+        "chmod 600 /home/ubuntu/.dockercfg",
+        "rm -rf /home/ubuntu/packer",
+        "apt-get -y update",
+        "apt-get -y install git",
+        "git clone https://github.com/mattgodbolt/gcc-explorer-image.git /gcc-explorer-image",
+        "cd /gcc-explorer-image",
+        "bash setup.sh 2>&1 | tee /tmp/setup.log",
         "sleep 120",
         "service gcc-explorer stop",
-	"docker stop gcc gcc1204 d rust nginx || true",
-	"docker rm gcc gcc1204 d rust nginx || true"
+        "docker stop gcc gcc1204 d rust nginx || true",
+        "docker rm gcc gcc1204 d rust nginx || true"
       ]
     }
   ]

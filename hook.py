@@ -35,8 +35,6 @@ class MainHandler(tornado.web.RequestHandler):
         elif repo == 'blog':
             if branch == 'refs/heads/master':
                 update_repo.update('blog')
-            elif branch == 'refs/heads/new_blog':
-                update_repo.update('blog-beta')
             self.write("OK")
 	elif repo == 'gcc-explorer':
 	    if branch == 'refs/heads/release':
