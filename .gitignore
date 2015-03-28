@@ -1,4 +1,5 @@
 config.py
+/docker-squash
 *.pyc
 *.pem
 *.swp
