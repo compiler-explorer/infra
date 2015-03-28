@@ -70,4 +70,4 @@ $SUDO docker run \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
     --link gcc:gcc --link d:d --link rust:rust --link go:go \
-    dockerfile/nginx
+    nginx
