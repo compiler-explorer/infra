@@ -17,7 +17,7 @@ else
     $SUDO docker pull mattgodbolt/gcc-explorer
 fi
 
-ALL="nginx gcc go gcc1204 d rust"
+ALL="nginx gcc go gcc1204 dx rust"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -30,7 +30,11 @@ start_and_wait() {
     local PORT=$2
     shift
     shift
-    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${NAME}"
+    local TAG=${NAME}
+    if [[ "${#NAME}" -eq 1 ]]; then
+    	NAME="${NAME}x"
+    fi
+    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
     local CONTAINER_UID=""
     for retries in $(seq 3); do
         $SUDO docker stop ${NAME} || true
@@ -68,6 +72,7 @@ $SUDO docker run \
     --volumes-from gcc \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
+    -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link gcc:gcc --link d:d --link rust:rust --link go:go \
+    --link gcc:gcc --link dx:d --link rust:rust --link go:go \
     nginx
