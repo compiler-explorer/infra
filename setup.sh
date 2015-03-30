@@ -57,15 +57,15 @@ EOF
     popd
 fi
 
-docker stop logspout || true
-docker rm logspout || true
-docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
-
 apt-get -y update
 apt-get -y upgrade --force-yes
 apt-get -y install git make nodejs-legacy npm docker.io libpng-dev m4 \
     python-markdown python-pygments python-pip perl
 pip install pytz python-dateutil
+
+docker stop logspout || true
+docker rm logspout || true
+docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
 if ! grep ubuntu /etc/passwd; then
     useradd ubuntu
