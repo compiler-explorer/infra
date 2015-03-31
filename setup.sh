@@ -39,7 +39,10 @@ get_or_update_repo() {
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install docker.io
+if ! which docker 2>&1 > /dev/null; then
+    apt-get -y install wget
+    wget -qO- https://get.docker.com/ | sh
+fi
 
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 if [[ ! -f "${PTRAIL}" ]]; then
