@@ -64,8 +64,8 @@
         "bash setup.sh 2>&1 | tee /tmp/setup.log",
         "sleep 120",
         "service gcc-explorer stop",
-        "docker stop gcc gcc1204 d rust nginx || true",
-        "docker rm gcc gcc1204 d rust nginx || true"
+        "docker stop gcc gcc1204 dx rust nginx || true",
+        "docker rm gcc gcc1204 dx rust nginx || true"
       ]
     }
   ]
