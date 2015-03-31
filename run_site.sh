@@ -14,7 +14,7 @@ if [[ ${DEV_MODE=1} = 1 ]]; then
     EXTERNAL_PORT=8000
     CONFIG_FILE=${DIR}/site-dev.sh
 else
-    $SUDO docker pull mattgodbolt/gcc-explorer
+    $SUDO docker pull -a mattgodbolt/gcc-explorer
 fi
 
 ALL="nginx gcc go gcc1204 dx rust"

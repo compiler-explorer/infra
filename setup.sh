@@ -95,6 +95,6 @@ if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
 cp /gcc-explorer-image/init/* /etc/init/
-docker pull mattgodbolt/gcc-explorer
+docker pull -a mattgodbolt/gcc-explorer
 docker pull nginx
 [ "$UPSTART_JOB" != "gcc-explorer" ] && service gcc-explorer start || true
