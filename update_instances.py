@@ -16,6 +16,7 @@ def ensure_at_least_two():
     print "ensuring at least two instances"
     gcc_explorer_group = get_gcc_ex_group()
     prev_min = gcc_explorer_group.min_size
+    print "Found {} instances".format(prev_min)
     if prev_min < 2:
         print "Updating min instances to 2"
         gcc_explorer_group.min_size = 2
