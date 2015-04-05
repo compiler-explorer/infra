@@ -59,7 +59,7 @@ def update_gcc_explorers():
             ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
                     user_name='ubuntu')
             print "Connected. Running command"
-            status, stdout, stderr = ssh_client.run('sudo -i docker pull mattgodbolt/gcc-explorer && sudo service gcc-explorer restart')
+            status, stdout, stderr = ssh_client.run('sudo -i docker pull -a mattgodbolt/gcc-explorer && sudo service gcc-explorer restart')
             print "Status", status
             print "Stdout", stdout
             print "Stderr", stderr
