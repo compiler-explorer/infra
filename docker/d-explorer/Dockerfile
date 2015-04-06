@@ -13,6 +13,7 @@ RUN apt-get -y update && apt-get install -y \
     clang \
     wget \
     gcc \
+    g++ \
     gdc \
     gdc-4.4 \
     gdc-4.6 \
