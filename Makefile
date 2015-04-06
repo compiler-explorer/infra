@@ -3,7 +3,7 @@ all: docker-images
 
 DOCKER := sudo docker
 PACKER ?= ../packer/packer
-SQUASH := sudo ./docker-squash
+SQUASH := sudo ./docker-squash -verbose
 
 docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204 go-explorer-image
 
