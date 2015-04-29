@@ -41,8 +41,8 @@ start_and_wait() {
         $SUDO docker rm ${NAME} || true
         echo "Attempt ${retries} to start ${NAME}"
         CONTAINER_UID=$($FULL_COMMAND)
-        for second in $(seq 60); do
-            sleep 1
+        for tensecond in $(seq 15); do
+            sleep 10
             if ! $SUDO docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
                 echo "Container failed to start, logs:"
                 $SUDO docker logs ${NAME}

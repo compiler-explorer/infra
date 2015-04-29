@@ -3,12 +3,9 @@ all: docker-images
 
 DOCKER := sudo docker
 PACKER ?= ../packer/packer
-SQUASH := sudo ./docker-squash -verbose
 
 docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204 go-explorer-image
 
-docker-squash:
-	bash -c "tar zxf <(curl -L https://github.com/jwilder/docker-squash/releases/download/v0.0.11/docker-squash-linux-amd64-v0.0.11.tar.gz)"
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
@@ -40,25 +37,20 @@ docker/d-explorer/.s3cfg: .s3cfg
 docker/rust-explorer/.s3cfg: .s3cfg
 	cp $< $@
 
-go-explorer-image: docker/go-explorer/.s3cfg docker-squash
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer-tmp:go" docker/go-explorer
-	$(DOCKER) save "mattgodbolt/gcc-explorer-tmp:go" | $(SQUASH) -t "mattgodbolt/gcc-explorer:go" | $(DOCKER) load
+go-explorer-image: docker/go-explorer/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:go" docker/go-explorer
 
-gcc-explorer-image: docker/gcc-explorer/.s3cfg docker-squash
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer-tmp:gcc" docker/gcc-explorer
-	$(DOCKER) save "mattgodbolt/gcc-explorer-tmp:gcc" | $(SQUASH) -t "mattgodbolt/gcc-explorer:gcc" | $(DOCKER) load
+gcc-explorer-image: docker/gcc-explorer/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" docker/gcc-explorer
 
-gcc-explorer-image-1204: docker/gcc-explorer-1204/.s3cfg docker-squash
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer-tmp:gcc1204" docker/gcc-explorer-1204
-	$(DOCKER) save "mattgodbolt/gcc-explorer-tmp:gcc1204" | $(SQUASH) -t "mattgodbolt/gcc-explorer:gcc1204" | $(DOCKER) load
+gcc-explorer-image-1204: docker/gcc-explorer-1204/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc1204" docker/gcc-explorer-1204
 
-d-explorer-image: docker/d-explorer/.s3cfg docker-squash
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer-tmp:d" docker/d-explorer
-	$(DOCKER) save "mattgodbolt/gcc-explorer-tmp:d" | $(SQUASH) -t "mattgodbolt/gcc-explorer:d" | $(DOCKER) load
+d-explorer-image: docker/d-explorer/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:d" docker/d-explorer
 
-rust-explorer-image: docker/rust-explorer/.s3cfg docker-squash
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer-tmp:rust" docker/rust-explorer
-	$(DOCKER) save "mattgodbolt/gcc-explorer-tmp:rust" | $(SQUASH) -t "mattgodbolt/gcc-explorer:rust" | $(DOCKER) load
+rust-explorer-image: docker/rust-explorer/.s3cfg
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:rust" docker/rust-explorer
 
 publish: docker-images
 	sudo docker push mattgodbolt/gcc-explorer

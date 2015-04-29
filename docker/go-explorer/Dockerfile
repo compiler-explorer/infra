@@ -33,6 +33,8 @@ RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 #####################
 RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
+COPY package.json /tmp/
+RUN su gcc-user bash -c "cd /tmp; npm install"
 COPY run.sh /
 
 USER gcc-user
