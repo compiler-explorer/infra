@@ -70,7 +70,7 @@ docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
 apt-get -y install git make nodejs-legacy npm libpng-dev m4 \
-    python-markdown python-pygments python-pip perl
+    python-markdown python-pygments python-pip=1.5.4-1 perl
 pip install pytz python-dateutil
 
 if ! grep ubuntu /etc/passwd; then
