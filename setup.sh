@@ -38,8 +38,8 @@ get_or_update_repo() {
 }
 
 apt-get -y update
-apt-get -y install python-pip=1.5.4-1 # temporary hack
-apt-get -y upgrade --force-yes
+apt-get -y --force-yes install python-pip=1.5.4-1 # temporary hack
+#apt-get -y upgrade --force-yes
 if ! which docker 2>&1 > /dev/null; then
     apt-get -y install wget
     wget -qO- https://get.docker.com/ | sh
