@@ -12,11 +12,11 @@ install_rust() {
     local NAME=$1
 
     cd /opt
-    curl http://static.rust-lang.org/dist/rust-${NAME}-x86_64-unknown-linux-gnu.tar.gz | tar zxf -
-    cd rust-${NAME}-x86_64-unknown-linux-gnu
+    curl -v -L http://static.rust-lang.org/dist/rustc-${NAME}-x86_64-unknown-linux-gnu.tar.gz | tar zxf -
+    cd rustc-${NAME}-x86_64-unknown-linux-gnu
     ./install.sh --prefix=/opt/rust-${NAME}
     cd /opt
-    rm -rf rust-${NAME}-x86_64-unknown-linux-gnu
+    rm -rf rustc-${NAME}-x86_64-unknown-linux-gnu
     
     # workaround for LD_LIBRARY_PATH
     for to_patch in /opt/rust-${NAME}/bin/rustc $(find /opt/rust-${NAME}/lib -name *.so); do
@@ -29,5 +29,6 @@ install_rust() {
 
 install_rust nightly
 install_rust 1.0.0
+install_rust 1.1.0
 find /opt -executable -type f | xargs strip || true
 rm -rf /opt/patchelf-0.8
