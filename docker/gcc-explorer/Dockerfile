@@ -6,6 +6,7 @@ RUN add-apt-repository -y ppa:chris-lea/node.js && add-apt-repository -y ppa:ubu
 
 RUN apt-get -y update && apt-get install -y \
     libc6-dev-i386 \
+    linux-libc-dev \
     curl \
     git \
     make \
@@ -40,6 +41,8 @@ RUN apt-get purge -y curl s3cmd openjdk-6-jre-lib
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Workaround for my woes with multiarch
+RUN ln -s /usr/include/asm-generic /usr/include/asm
 
 #####################
 RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
