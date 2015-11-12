@@ -49,7 +49,7 @@ if [[ ! -f "${PTRAIL}" ]]; then
     echo '*.*          @logs2.papertrailapp.com:34474' > "${PTRAIL}"
     service rsyslog restart
     pushd /tmp
-    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.13/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.14/remote_syslog_linux_amd64.tar.gz' | tar zxf -
     cp remote_syslog/remote_syslog /usr/local/bin/
     cat > /etc/log_files.yml << EOF
 files:
@@ -86,8 +86,11 @@ chmod 600 /home/ubuntu/.ssh/id_rsa
 
 cd /home/ubuntu/
 get_or_update_repo root git@github.com:s3tools/s3cmd.git master /root/s3cmd
-get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git release jsbeeb
-get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta
+
+get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git release jsbeeb &
+get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta &
+wait
+
 get_or_update_repo ubuntu git://github.com/mattgodbolt/Miracle master miracle miraclehook
 get_or_update_repo ubuntu git@github.com:mattgodbolt/blog.git master blog
 
@@ -95,6 +98,9 @@ if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
 cp /gcc-explorer-image/init/* /etc/init/
-docker pull -a mattgodbolt/gcc-explorer
-docker pull nginx
+
+docker pull -a mattgodbolt/gcc-explorer &
+docker pull nginx &
+wait
+
 [ "$UPSTART_JOB" != "gcc-explorer" ] && service gcc-explorer start || true
