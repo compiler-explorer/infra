@@ -23,9 +23,7 @@ $SUDO docker rm ${ALL} || true
 
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 
-# Terrible hack as I can't for the life of me get the containers to reliably start:
-# sometimes they hang or get stuck in npm update due to a as-yet-undiscovered race/problem.
-start_and_wait() {
+start_container() {
     local NAME=$1
     local PORT=$2
     shift
@@ -36,35 +34,48 @@ start_and_wait() {
     fi
     local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
     local CONTAINER_UID=""
-    for retries in $(seq 3); do
-        $SUDO docker stop ${NAME} || true
-        $SUDO docker rm ${NAME} || true
-        echo "Attempt ${retries} to start ${NAME}"
-        CONTAINER_UID=$($FULL_COMMAND)
-        for tensecond in $(seq 15); do
-            sleep 10
-            if ! $SUDO docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
-                echo "Container failed to start, logs:"
-                $SUDO docker logs ${NAME}
-                break
-            fi
-            if curl http://localhost:$PORT/ > /dev/null 2>&1; then
-                echo "Server ${NAME} is up and running"
-                return
-            fi
-        done
-        echo "Failed."
-	$SUDO docker logs ${NAME}
+    $SUDO docker stop ${NAME} >&2 || true
+    $SUDO docker rm ${NAME} >&2 || true
+    CONTAINER_UID=$($FULL_COMMAND)
+    echo ${CONTAINER_UID}
+}
+
+wait_for_container() {
+    local CONTAINER_UID=$1
+    local NAME=$2
+    local PORT=$3
+    shift
+    shift
+    shift
+    for tensecond in $(seq 15); do
+        if ! $SUDO docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
+            echo "Container failed to start, logs:"
+            $SUDO docker logs ${NAME}
+            break
+        fi
+        if curl http://localhost:$PORT/ > /dev/null 2>&1; then
+            echo "Server ${NAME} is up and running"
+            return
+        fi
+        sleep 10
     done
+    echo "Failed."
+    $SUDO docker logs ${NAME}
 }
 
 trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
 
-start_and_wait gcc1204 20480
-start_and_wait gcc 10240 --link gcc1204:gcc1204
-start_and_wait d 10241
-start_and_wait rust 10242
-start_and_wait go 10243
+UID_GCC1204=$(start_container gcc1204 20480)
+UID_GCC=$(start_container gcc 10240 --link gcc1204:gcc1204)
+UID_D=$(start_container d 10241)
+UID_RUST=$(start_container rust 10242)
+UID_GO=$(start_container go 10243)
+
+wait_for_container ${UID_GCC1204} gcc1204 20480
+wait_for_container ${UID_GCC} gcc 10240
+wait_for_container ${UID_D} d 10241
+wait_for_container ${UID_RUST} rust 10242
+wait_for_container ${UID_GO} go 10243
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
