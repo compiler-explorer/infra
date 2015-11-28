@@ -1,4 +1,4 @@
-proxy_cache_path /var/cache/nginx-sth keys_zone=sth:10m max_size=200m;
+proxy_cache_path /var/cache/nginx-sth levels=1:2 keys_zone=sth:10m max_size=200m inactive=30d;
 
 server {
 	root /var/www/jsbeeb/out/dist;
