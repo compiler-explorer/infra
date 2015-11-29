@@ -8,4 +8,4 @@ git clone -b ${BRANCH} --depth 1 https://github.com/mattgodbolt/gcc-explorer.git
 cd /gcc-explorer
 cp -r /tmp/node_modules .
 make prereqs
-nodejs app.js --env amazon1204
+nodejs app.js --env amazon --env amazon1204 --language C++ --port 20480

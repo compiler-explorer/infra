@@ -10,4 +10,4 @@ git pull
 rm -rf node_modules
 cp -r /tmp/node_modules .
 make prereqs
-nodejs app.js --env amazon
+nodejs app.js --env amazon --port 10240 --lang C++
