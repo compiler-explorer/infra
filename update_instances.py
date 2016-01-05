@@ -46,27 +46,28 @@ def set_back_to(prev):
 def update_gcc_explorers():
     prev = ensure_at_least_two()
     await_at_least_two_healthy()
-    conn = boto.ec2.connect_to_region('us-east-1')
-    reservations = conn.get_all_instances()
-    for reservation in reservations:
-        for instance in reservation.instances:
-            if instance.state != 'running':
-                print "Skipping {} instance {}".format(instance.state, instance.id)
-                continue
-            if "App" not in instance.tags or instance.tags["App"] != "GccExplorer":
-                print "Skipping non-gcc explorer instance {}".format(instance.id)
-                continue
-            print "Connecting to", instance
-            ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
-                    user_name='ubuntu')
-            print "Connected. Running command"
-            status, stdout, stderr = ssh_client.run('sudo -i docker pull -a mattgodbolt/gcc-explorer && sudo service gcc-explorer restart')
-            print "Status", status
-            print "Stdout", stdout
-            print "Stderr", stderr
-            print "Done, waiting a minute"
-	    time.sleep(60)
-	    await_at_least_two_healthy()
+    if prev != 1:
+        conn = boto.ec2.connect_to_region('us-east-1')
+        reservations = conn.get_all_instances()
+        for reservation in reservations:
+            for instance in reservation.instances:
+                if instance.state != 'running':
+                    print "Skipping {} instance {}".format(instance.state, instance.id)
+                    continue
+                if "App" not in instance.tags or instance.tags["App"] != "GccExplorer":
+                    print "Skipping non-gcc explorer instance {}".format(instance.id)
+                    continue
+                print "Connecting to", instance
+                ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
+                        user_name='ubuntu')
+                print "Connected. Running command"
+                status, stdout, stderr = ssh_client.run('sudo -i docker pull -a mattgodbolt/gcc-explorer && sudo service gcc-explorer restart')
+                print "Status", status
+                print "Stdout", stdout
+                print "Stderr", stderr
+                print "Done, waiting a minute"
+                time.sleep(60)
+                await_at_least_two_healthy()
     set_back_to(prev)
 
 
