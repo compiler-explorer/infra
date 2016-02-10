@@ -21,6 +21,9 @@ RUN apt-get -y update && apt-get install -y \
     g++-aarch64-linux-gnu \
     tcc
 
+RUN apt-get install -y \
+    libboost-all-dev
+
 RUN mkdir -p /opt && cd /opt && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
 
 RUN mkdir -p /root
