@@ -18,7 +18,8 @@ RUN apt-get -y update && apt-get install -y \
     g++-4.9 \
     g++-4.8-powerpc-linux-gnu \
     g++-arm-linux-gnueabihf \
-    g++-aarch64-linux-gnu
+    g++-aarch64-linux-gnu \
+    tcc
 
 RUN mkdir -p /opt && cd /opt && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
 
