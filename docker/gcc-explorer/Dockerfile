@@ -6,6 +6,7 @@ RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -y update && apt-get install -y \
     libc6-dev-i386 \
+    libboost-all-dev \
     linux-libc-dev \
     curl \
     git \
@@ -20,9 +21,6 @@ RUN apt-get -y update && apt-get install -y \
     g++-arm-linux-gnueabihf \
     g++-aarch64-linux-gnu \
     tcc
-
-RUN apt-get install -y \
-    libboost-all-dev
 
 RUN mkdir -p /opt && cd /opt && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
 

@@ -5,6 +5,7 @@ RUN apt-get -y update && apt-get install -y python-software-properties
 RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 RUN apt-get -y update && apt-get install -y \
+    libboost-all-dev \
     curl \
     git \
     make \
