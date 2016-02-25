@@ -45,6 +45,7 @@
       "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
       "inline": [
         "set -e",
+    	"while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "mkdir -p /root/.ssh",
         "mv /home/ubuntu/packer/id_rsa /root/.ssh/",
