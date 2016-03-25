@@ -8,6 +8,10 @@ if [[ $UID = 0 ]]; then
     SUDO=
 fi
 
+if [[ -f /env ]]; then
+    source /env
+fi
+
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
 if [[ ${DEV_MODE=1} = 1 ]]; then
