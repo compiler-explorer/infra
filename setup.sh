@@ -49,7 +49,7 @@ if [[ ! -f "${PTRAIL}" ]]; then
     echo '*.*          @logs2.papertrailapp.com:34474' > "${PTRAIL}"
     service rsyslog restart
     pushd /tmp
-    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.14/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.17/remote_syslog_linux_amd64.tar.gz' | tar zxf -
     cp remote_syslog/remote_syslog /usr/local/bin/
     cat > /etc/log_files.yml << EOF
 files:
