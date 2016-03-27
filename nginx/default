@@ -17,7 +17,7 @@ server {
 
 proxy_cache_path /var/cache/nginx-gcc keys_zone=gcc:10m max_size=200m;
 server {
-	server_name gcc.godbolt.org gcc.xania.org;
+	server_name gcc.godbolt.org gcc.xania.org godbolt.org;
 	index index.html;
 	access_log /var/log/nginx/gcc.log;
 	error_log /var/log/nginx/gcc.err;

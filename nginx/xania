@@ -1,5 +1,5 @@
 server {
-	server_name xania.org godbolt.org www.xania.org www.godbolt.org;
+	server_name xania.org www.xania.org www.godbolt.org;
 	root /var/www/blog/htdocs;
 	index index.html;
     try_files $uri $uri.html $uri.css $uri.atom $uri/ =404;
