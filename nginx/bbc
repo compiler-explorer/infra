@@ -7,6 +7,7 @@ server {
 	error_log /var/log/nginx/bbc.err;
 
 	server_name bbc.godbolt.org master.godbolt.org;
+    large_client_header_buffers 4 32k;
 
 	location /sth/ {
 		proxy_pass http://www.stairwaytohell.com/bbc/archive/;
