@@ -53,8 +53,8 @@ if [[ ! -f "${PTRAIL}" ]]; then
     cp remote_syslog/remote_syslog /usr/local/bin/
     cat > /etc/log_files.yml << EOF
 files:
-  - /var/log/nginx/*.log
-  - /var/log/nginx/*.err
+  - /var/log/nginx/bbc.*
+  - /var/log/nginx/xania.*
 destination:
   host: logs2.papertrailapp.com
   port: 34474
@@ -67,7 +67,7 @@ fi
 
 docker stop logspout || true
 docker rm logspout || true
-docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
+docker run --name logspout -d -v=/var/log/nginx:/var/log/nginx -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
 apt-get -y install git make nodejs-legacy npm libpng-dev m4 \
     python-markdown python-pygments python-pip perl
