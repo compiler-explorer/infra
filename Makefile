@@ -4,8 +4,27 @@ all: docker-images
 DOCKER := sudo docker
 PACKER ?= ../packer/packer
 
-docker-images: gcc-explorer-image d-explorer-image rust-explorer-image gcc-explorer-image-1204 go-explorer-image
+define add-image
+DOCKER_IMAGES += $(2)-image
 
+docker/$(2)/.s3cfg: .s3cfg
+	cp $$< $$@
+
+docker/$(2)/package.json: package.json
+	cp $$< $$@
+
+$(2)-image: docker/$(2)/.s3cfg docker/$(2)/package.json
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:$(1)" docker/$(2)
+
+endef
+
+$(eval $(call add-image,d,d-explorer))
+$(eval $(call add-image,gcc,gcc-explorer))
+$(eval $(call add-image,gcc1204,gcc-explorer-1204))
+$(eval $(call add-image,go,go-explorer))
+$(eval $(call add-image,rust,rust-explorer))
+
+docker-images: $(DOCKER_IMAGES)
 
 .s3cfg: config.py
 	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
@@ -26,37 +45,10 @@ packer/dockercfg: config.py
 packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
 	$(PACKER) build -var-file=config.json packer.json 
 
-docker/gcc-explorer/.s3cfg: .s3cfg
-	cp $< $@
-docker/go-explorer/.s3cfg: .s3cfg
-	cp $< $@
-docker/gcc-explorer-1204/.s3cfg: .s3cfg
-	cp $< $@
-docker/d-explorer/.s3cfg: .s3cfg
-	cp $< $@
-docker/rust-explorer/.s3cfg: .s3cfg
-	cp $< $@
-
-go-explorer-image: docker/go-explorer/.s3cfg
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:go" docker/go-explorer
-
-gcc-explorer-image: docker/gcc-explorer/.s3cfg
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc" docker/gcc-explorer
-
-gcc-explorer-image-1204: docker/gcc-explorer-1204/.s3cfg
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:gcc1204" docker/gcc-explorer-1204
-
-d-explorer-image: docker/d-explorer/.s3cfg
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:d" docker/d-explorer
-
-rust-explorer-image: docker/rust-explorer/.s3cfg
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:rust" docker/rust-explorer
-
 publish: docker-images
 	sudo docker push mattgodbolt/gcc-explorer
 
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images gcc-explorer-image gcc-explorer-image-1204 go-explorer-image 
-.PHONY: rust-explorer-image source publish packer
+.PHONY: all clean docker-images $(DOCKER_IMAGES) publish packer 
