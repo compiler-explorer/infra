@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
 RUN apt-get -y update && apt-get install -y python-software-properties software-properties-common
@@ -33,7 +33,7 @@ RUN bash /root/compilers.sh
 
 RUN rm /root/compilers.sh
 RUN rm /root/.s3cfg
-RUN apt-get purge -y curl s3cmd openjdk-6-jre-lib
+RUN apt-get purge -y curl s3cmd
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
