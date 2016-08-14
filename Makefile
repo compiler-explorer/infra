@@ -46,7 +46,7 @@ packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
 	$(PACKER) build -var-file=config.json packer.json 
 
 publish: docker-images
-	sudo docker push mattgodbolt/gcc-explorer
+	$(DOCKER) push mattgodbolt/gcc-explorer
 
 clean:
 	echo nothing to clean yet
