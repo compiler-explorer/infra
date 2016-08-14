@@ -12,11 +12,16 @@ if [[ -f /env ]]; then
     source /env
 fi
 
+DEV_MODE=$1
+if [[ "x${DEV_MODE}x" = "xx" ]]; then
+    DEV_MODE="dev"
+fi
+
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
-if [[ ${DEV_MODE=1} = 1 ]]; then
+if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=8000
-    CONFIG_FILE=${DIR}/site-dev.sh
+    CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
 else
     $SUDO docker pull -a mattgodbolt/gcc-explorer
 fi
