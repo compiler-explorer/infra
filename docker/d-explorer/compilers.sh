@@ -1,12 +1,20 @@
 #/bin/bash
 
 set -e
+mkdir -p /opt
 cd /opt
 
-wget http://gdcproject.org/downloads/binaries/x86_64-linux-gnu/i686-linux-gnu_2.066.1_gcc4.9.2_f378f9ab41_20150405.tar.xz
-tar Jxf i686-linux-gnu_2.066.1_gcc4.9.2_f378f9ab41_20150405.tar.xz
-rm i686-linux-gnu_2.066.1_gcc4.9.2_f378f9ab41_20150405.tar.xz
+getgdc() {
+    vers=$1
+    build=$2
+    mkdir /opt/gdc${vers}
+    pushd /opt/gdc${vers}
+    curl -L ftp://ftp.gdcproject.org/binaries/${vers}/x86_64-linux-gnu/gdc-${vers}+${build}.tar.xz | tar Jxf -
+    popd
+}
 
-wget http://gdcproject.org/downloads/binaries/x86_64-linux-gnu/x86_64-linux-gnu_2.066.1_gcc4.9.2_f378f9ab41_20150405.tar.xz
-tar Jxf x86_64-linux-gnu_2.066.1_gcc4.9.2_f378f9ab41_20150405.tar.xz
-rm x86_64-linux-gnu_2.066.1_gcc4.9.2_f378f9ab41_20150405.tar.xz
+getgdc 4.8.2 2.064.2
+getgdc 4.9.3 2.066.1
+getgdc 5.2.0 2.066.1
+
+find -type f | xargs strip --strip-debug || true
