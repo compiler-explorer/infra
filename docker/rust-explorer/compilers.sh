@@ -2,6 +2,7 @@
 
 set -e
 
+mkdir -p /opt
 cd /opt
 curl http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
 cd patchelf-0.8
@@ -54,6 +55,10 @@ install_new_rust beta
 install_new_rust 1.5.0
 install_new_rust 1.6.0
 install_new_rust 1.7.0
+install_new_rust 1.8.0
+install_new_rust 1.9.0
+install_new_rust 1.10.0
+install_new_rust 1.11.0
 
 install_rust 1.0.0
 install_rust 1.1.0
@@ -61,5 +66,5 @@ install_rust 1.2.0
 install_rust 1.3.0
 install_rust 1.4.0
 
-find /opt -executable -type f | xargs strip || true
+find -type f | xargs strip --strip-debug || true
 rm -rf /opt/patchelf-0.8

@@ -12,8 +12,9 @@ curl http://llvm.org/releases/3.8.0/clang+llvm-3.8.0-x86_64-linux-gnu-ubuntu-14.
 
 find /opt -executable -type f | xargs strip || true
 
-# gcc 5.x doesn't like being stripped
-for compiler in gcc-5.1.0.tar.gz gcc-5.2.0.tar.gz gcc-5.3.0.tar.gz gcc-6.1.0.tar.xz \
+# gcc 5.x doesn't like being stripped of anything
+# TODO: find what we can strip from this as the image is getting gigantic
+for compiler in gcc-5.1.0.tar.gz gcc-5.2.0.tar.gz gcc-5.3.0.tar.gz gcc-6.1.0.tar.xz gcc-6.2.0.tar.xz \
     ; do
     s3cmd --config /root/.s3cfg get s3://gcc-explorer/opt/$compiler /opt/$compiler
     tar axf $compiler
