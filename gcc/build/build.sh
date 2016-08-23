@@ -94,7 +94,7 @@ do
     popd
 done
 
-upx --best ${STAGING_DIR}/bin/* 
+upx --best ${STAGING_DIR}/bin/* || true
 for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
     upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${VERSION}/${EXE}
 done
