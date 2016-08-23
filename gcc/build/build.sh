@@ -64,7 +64,6 @@ CONFIG+=" --enable-threads=posix"
 CONFIG+=" --host=x86_64-linux-gnu"
 CONFIG+=" --target=x86_64-linux-gnu"
 CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
-CONFIG+=" --with-system-zlib"
 CONFIG+=" ${DEP_CONFIG}"
 
 # Setting LDFLAGS to add an RPATH in configure is broken, sadly. We also
