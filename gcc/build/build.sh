@@ -3,6 +3,7 @@
 set -e
 
 VERSION=$1
+OUTPUT=${2-/root/gcc-${VERSION}.tar.bz2}
 
 # Workaround for Ubuntu builds
 export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
@@ -99,4 +100,4 @@ for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
     upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${VERSION}/${EXE}
 done
 
-tar jcf /root/gcc-${VERSION}.tar.bz2 -C ${STAGING_DIR} .
+tar jcf ${OUTPUT} -C ${STAGING_DIR} .
