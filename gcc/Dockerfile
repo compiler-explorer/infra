@@ -7,6 +7,7 @@ RUN apt-get install -y \
     bison \
     bzip2 \
     curl \
+    file \
     flex \
     g++ \
     gcc \
