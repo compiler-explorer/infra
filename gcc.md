@@ -4,7 +4,7 @@ To build a gcc using the docker image:
 
     docker run -v $(pwd):/out mattgodbolt/gcc-builder bash build.sh 6.2.0 /out/gcc-6.2.0.tar.gz
 
-Note you'll need lots of disk space (16GB+).
+Note you'll need lots of disk space (32GB+).
 
 If like me, you want to run on a RancherOS EC2 image, you'll need to do something like:
 
