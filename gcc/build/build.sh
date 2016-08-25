@@ -38,7 +38,7 @@ applyPatches() {
     if [[ -d ${PATCH_DIR} ]]; then
         echo "Applying patches from ${PATCH_DIR}"
         pushd gcc-${VERSION}
-        for PATCH in ${PATCH_DIR}*; do
+        for PATCH in ${PATCH_DIR}/*; do
             patch -p1 < ${PATCH}
         done
         popd
