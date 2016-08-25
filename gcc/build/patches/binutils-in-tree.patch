@@ -1,0 +1,145 @@
+fix in-tree-binutils builds
+
+Quite a while ago configure.in go renamed to configure.ac in all of
+binutils' subtrees - allow for both when checking for that case while
+configuring.
+
+gcc/
+2015-07-15  Jan Beulich  <jbeulich@suse.com>
+
+	* acinclude.m4: Replace configure.in by configure.[ai][cn].
+	* configure.ac: Likewise.
+	* configure: Re-generate.
+
+--- a/gcc/acinclude.m4
++++ b/gcc/acinclude.m4
+@@ -390,7 +390,7 @@ AC_DEFUN([_gcc_COMPUTE_GAS_VERSION],
+ [gcc_cv_as_bfd_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/bfd
+ for f in $gcc_cv_as_bfd_srcdir/configure \
+          $gcc_cv_as_gas_srcdir/configure \
+-         $gcc_cv_as_gas_srcdir/configure.in \
++         $gcc_cv_as_gas_srcdir/configure.[ai][cn] \
+          $gcc_cv_as_gas_srcdir/Makefile.in ; do
+   gcc_cv_gas_version=`sed -n -e 's/^[[ 	]]*VERSION=[[^0-9A-Za-z_]]*\([[0-9]]*\.[[0-9]]*.*\)/VERSION=\1/p' < $f`
+   if test x$gcc_cv_gas_version != x; then
+--- a/gcc/configure
++++ b/gcc/configure
+@@ -21675,7 +21675,7 @@ else
+ 
+ if test -x "$DEFAULT_ASSEMBLER"; then
+ 	gcc_cv_as="$DEFAULT_ASSEMBLER"
+-elif test -f $gcc_cv_as_gas_srcdir/configure.in \
++elif test -f $gcc_cv_as_gas_srcdir/configure.[ai][cn] \
+      && test -f ../gas/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_as=../gas/as-new$build_exeext
+@@ -21748,7 +21748,7 @@ $as_echo "newly built gas" >&6; }
+   gcc_cv_as_bfd_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/bfd
+ for f in $gcc_cv_as_bfd_srcdir/configure \
+          $gcc_cv_as_gas_srcdir/configure \
+-         $gcc_cv_as_gas_srcdir/configure.in \
++         $gcc_cv_as_gas_srcdir/configure.[ai][cn] \
+          $gcc_cv_as_gas_srcdir/Makefile.in ; do
+   gcc_cv_gas_version=`sed -n -e 's/^[ 	]*VERSION=[^0-9A-Za-z_]*\([0-9]*\.[0-9]*.*\)/VERSION=\1/p' < $f`
+   if test x$gcc_cv_gas_version != x; then
+@@ -21838,7 +21838,7 @@ elif test $install_gold_as_default = yes
+      && test -f ../gold/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_ld=../gold/ld-new$build_exeext
+-elif test -f $gcc_cv_ld_gld_srcdir/configure.in \
++elif test -f $gcc_cv_ld_gld_srcdir/configure.[ai][cn] \
+      && test -f ../ld/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_ld=../ld/ld-new$build_exeext
+@@ -21954,7 +21954,7 @@ $as_echo "newly built ld" >&6; }
+ 	elif test "$ld_is_gold" = yes; then
+ 	  in_tree_ld_is_elf=yes
+ 	fi
+-	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
++	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.[ai][cn] $gcc_cv_ld_gld_srcdir/Makefile.in
+ 	do
+ 		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*VERSION=[^0-9A-Za-z_]*\([0-9]*\.[0-9]*.*\)/VERSION=\1/p' < $f`
+ 		if test x$gcc_cv_gld_version != x; then
+@@ -21987,7 +21987,7 @@ if test "${gcc_cv_nm+set}" = set; then :
+ 
+ else
+ 
+-if test -f $gcc_cv_binutils_srcdir/configure.in \
++if test -f $gcc_cv_binutils_srcdir/configure.[ai][cn] \
+      && test -f ../binutils/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_nm=../binutils/nm-new$build_exeext
+@@ -22066,7 +22066,7 @@ if test "${gcc_cv_objdump+set}" = set; t
+ 
+ else
+ 
+-if test -f $gcc_cv_binutils_srcdir/configure.in \
++if test -f $gcc_cv_binutils_srcdir/configure.[ai][cn] \
+      && test -f ../binutils/Makefile \
+      && test x$build = x$host; then
+ 	# Single tree build which includes binutils.
+@@ -22138,7 +22138,7 @@ if test "${gcc_cv_readelf+set}" = set; t
+ 
+ else
+ 
+-if test -f $gcc_cv_binutils_srcdir/configure.in \
++if test -f $gcc_cv_binutils_srcdir/configure.[ai][cn] \
+      && test -f ../binutils/Makefile \
+      && test x$build = x$host; then
+ 	# Single tree build which includes binutils.
+--- gcc-4.9.3/gcc/configure.ac	2015-05-12 10:55:54.000000000 +0200
++++ 4.9.3/gcc/configure.ac	2015-07-14 10:45:36.000000000 +0200
+@@ -2085,7 +2085,7 @@ m4_pattern_allow([AS_FOR_TARGET])dnl
+ AS_VAR_SET_IF(gcc_cv_as,, [
+ if test -x "$DEFAULT_ASSEMBLER"; then
+ 	gcc_cv_as="$DEFAULT_ASSEMBLER"
+-elif test -f $gcc_cv_as_gas_srcdir/configure.in \
++elif test -f $gcc_cv_as_gas_srcdir/configure.[ai][cn] \
+      && test -f ../gas/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_as=../gas/as-new$build_exeext
+@@ -2174,7 +2174,7 @@ elif test $install_gold_as_default = yes
+      && test -f ../gold/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_ld=../gold/ld-new$build_exeext
+-elif test -f $gcc_cv_ld_gld_srcdir/configure.in \
++elif test -f $gcc_cv_ld_gld_srcdir/configure.[ai][cn] \
+      && test -f ../ld/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_ld=../ld/ld-new$build_exeext
+@@ -2238,7 +2238,7 @@ if test "$gcc_cv_ld" = ../ld/ld-new$buil
+ 	elif test "$ld_is_gold" = yes; then
+ 	  in_tree_ld_is_elf=yes
+ 	fi
+-	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
++	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.[ai][cn] $gcc_cv_ld_gld_srcdir/Makefile.in
+ 	do
+ changequote(,)dnl
+ 		gcc_cv_gld_version=`sed -n -e 's/^[ 	]*VERSION=[^0-9A-Za-z_]*\([0-9]*\.[0-9]*.*\)/VERSION=\1/p' < $f`
+@@ -2271,7 +2271,7 @@ AC_SUBST(ORIGINAL_LD_GOLD_FOR_TARGET)
+ # Figure out what nm we will be using.
+ gcc_cv_binutils_srcdir=`echo $srcdir | sed -e 's,/gcc$,,'`/binutils
+ AS_VAR_SET_IF(gcc_cv_nm,, [
+-if test -f $gcc_cv_binutils_srcdir/configure.in \
++if test -f $gcc_cv_binutils_srcdir/configure.[ai][cn] \
+      && test -f ../binutils/Makefile \
+      && test x$build = x$host; then
+ 	gcc_cv_nm=../binutils/nm-new$build_exeext
+@@ -2303,7 +2303,7 @@ esac
+ 
+ # Figure out what objdump we will be using.
+ AS_VAR_SET_IF(gcc_cv_objdump,, [
+-if test -f $gcc_cv_binutils_srcdir/configure.in \
++if test -f $gcc_cv_binutils_srcdir/configure.[ai][cn] \
+      && test -f ../binutils/Makefile \
+      && test x$build = x$host; then
+ 	# Single tree build which includes binutils.
+@@ -2328,7 +2328,7 @@ fi
+ 
+ # Figure out what readelf we will be using.
+ AS_VAR_SET_IF(gcc_cv_readelf,, [
+-if test -f $gcc_cv_binutils_srcdir/configure.in \
++if test -f $gcc_cv_binutils_srcdir/configure.[ai][cn] \
+      && test -f ../binutils/Makefile \
+      && test x$build = x$host; then
+ 	# Single tree build which includes binutils.
