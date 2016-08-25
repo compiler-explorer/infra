@@ -2,7 +2,9 @@
 
 set -e
 
+ROOT=$(pwd)
 VERSION=$1
+MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
 OUTPUT=/root/gcc-${VERSION}.tar.xz
 S3OUTPUT=""
 if echo $2 | grep s3://; then
@@ -10,9 +12,6 @@ if echo $2 | grep s3://; then
 else
     OUTPUT=${2-/root/gcc-${VERSION}.tar.xz}
 fi
-
-echo output=$OUTPUT
-echo s3=$S3OUTPUT
 
 # Workaround for Ubuntu builds
 export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
@@ -33,6 +32,22 @@ rm -rf gcc-${VERSION}
 echo "Extracting GCC..."
 tar jxf gcc-${VERSION}.tar.bz2
 
+applyPatches() {
+    local PATCH_DIR=${ROOT}/$1
+    local PATCH=""
+    if [[ -d ${PATCH_DIR} ]]; then
+        echo "Applying patches from ${PATCH_DIR}"
+        pushd gcc-${VERSION}
+        for PATCH in ${PATCH_DIR}*; do
+            patch -p1 < ${PATCH}
+        done
+        popd
+    fi
+}
+
+applyPatches gcc${MAJOR}
+applyPatches gcc${VERSION}
+
 BINUTILS_VERSION=2.27
 echo "Fetching binutils ${BINUTILS_VERSION}"
 if [[ ! -e binutils-${BINUTILS_VERSION}.tar.bz2 ]]; then
@@ -44,7 +59,7 @@ tar jxf binutils-${BINUTILS_VERSION}.tar.bz2
 BINUTILS_FILES=$(cd ${BINUTILS_DIR}; ls -1)
 pushd gcc-${VERSION}
 for file in ${BINUTILS_FILES}
-do 
+do
     if [ ! -e "$file" ]
     then
         ln -sf "../${BINUTILS_DIR}/${file}"
@@ -73,7 +88,6 @@ CONFIG+=" --enable-threads=posix"
 CONFIG+=" --host=x86_64-linux-gnu"
 CONFIG+=" --target=x86_64-linux-gnu"
 CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
-CONFIG+=" ${DEP_CONFIG}"
 
 mkdir -p objdir
 pushd objdir
