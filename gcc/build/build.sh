@@ -3,6 +3,7 @@
 set -e
 
 VERSION=$1
+OUTPUT=${2-/root/gcc-${VERSION}.tar.bz2}
 
 # Workaround for Ubuntu builds
 export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
@@ -65,25 +66,12 @@ CONFIG+=" --target=x86_64-linux-gnu"
 CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
 CONFIG+=" ${DEP_CONFIG}"
 
-# Setting LDFLAGS to add an RPATH in configure is broken, sadly. We also
-# need to work around some other Makefile bugs by exporting an LD_LIBRARY_PATH.
-export LD_LIBRARY_PATH
-export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
-
 mkdir -p objdir
 pushd objdir
 ../gcc-${VERSION}/configure --prefix ${STAGING_DIR} ${CONFIG}
 make -j$(nproc)
 make install-strip
 popd
-
-# Fix up rpath
-EXECUTABLES=$(find ${STAGING_DIR} -type f -perm /u+x | xargs file | grep -E 'ELF.*executable' | cut -f1 -d:)
-for executable in ${EXECUTABLES}; do
-    root=${executable##${STAGING_DIR}}
-    base=\$ORIGIN/$(dirname $root | sed -r -e 's|\./||g' -e 's|[^/]+|..|g')
-    /root/patchelf --set-rpath ${base}/lib:${base}/lib64 ${executable}
-done
 
 # Work around insane in-tree built ld issue
 for bindir in ${STAGING_DIR}/{,x86_64-linux-gnu/}bin
@@ -93,9 +81,10 @@ do
     popd
 done
 
-upx --best ${STAGING_DIR}/bin/* 
+# Compress all the images with upx
+upx --best ${STAGING_DIR}/bin/* || true
 for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
     upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${VERSION}/${EXE}
 done
 
-tar jcf /root/gcc-${VERSION}.tar.bz2 -C ${STAGING_DIR} .
+tar jcf ${OUTPUT} -C ${STAGING_DIR} .
