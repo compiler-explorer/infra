@@ -3,7 +3,16 @@
 set -e
 
 VERSION=$1
-OUTPUT=${2-/root/gcc-${VERSION}.tar.bz2}
+OUTPUT=/root/gcc-${VERSION}.tar.xz
+S3OUTPUT=""
+if echo $2 | grep s3://; then
+    S3OUTPUT=$2
+else
+    OUTPUT=${2-/root/gcc-${VERSION}.tar.xz}
+fi
+
+echo output=$OUTPUT
+echo s3=$S3OUTPUT
 
 # Workaround for Ubuntu builds
 export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
@@ -87,4 +96,8 @@ for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
     upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${VERSION}/${EXE}
 done
 
-tar jcf ${OUTPUT} -C ${STAGING_DIR} .
+tar Jcf ${OUTPUT} --transform "s,^,gcc-${VERSION}/," -C ${STAGING_DIR} .
+
+if [[ ! -z "${S3OUTPUT}" ]]; then
+    s3cmd put --rr ${OUTPUT} ${S3OUTPUT}
+fi

@@ -14,9 +14,11 @@ RUN apt-get install -y \
     libc6-dev-i386 \
     linux-libc-dev \
     make \
+    s3cmd \
     texinfo \
     upx-ucl \
-    wget 
+    wget \
+    xz
 
 RUN mkdir -p /root
 COPY build /root/
