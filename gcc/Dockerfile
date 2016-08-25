@@ -18,7 +18,7 @@ RUN apt-get install -y \
     texinfo \
     upx-ucl \
     wget \
-    xz
+    xz-utils
 
 RUN mkdir -p /root
 COPY build /root/
