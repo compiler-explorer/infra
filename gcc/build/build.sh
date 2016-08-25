@@ -96,7 +96,7 @@ for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
     upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${VERSION}/${EXE}
 done
 
-tar Jcf ${OUTPUT} --transform "s,^,gcc-${VERSION}/," -C ${STAGING_DIR} .
+tar Jcf ${OUTPUT} --transform "s,^./,./gcc-${VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then
     s3cmd put --rr ${OUTPUT} ${S3OUTPUT}

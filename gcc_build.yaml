@@ -1,0 +1,3 @@
+#cloud-config
+rancher:
+    resize_device: /dev/xvda1
