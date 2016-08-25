@@ -14,6 +14,7 @@ RUN apt-get install -y \
     libc6-dev-i386 \
     linux-libc-dev \
     make \
+    patch \
     s3cmd \
     texinfo \
     upx-ucl \
