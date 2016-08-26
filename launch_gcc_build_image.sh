@@ -1,7 +1,7 @@
 #!/bin/bash
 
 aws ec2 run-instances \
-    --image-id ami-84ea6f93 \
+    --image-id ami-1071ca07 \
     --key-name mattgodbolt \
     --security-group-ids sg-cdce6cb7 \
     --subnet-id subnet-690ed81e \
