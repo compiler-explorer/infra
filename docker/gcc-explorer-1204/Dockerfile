@@ -30,7 +30,8 @@ RUN apt-get -y update && apt-get install -y \
     gcc-4.8-multilib \
     gcc-avr \
     gcc-msp430 \
-    gcc-snapshot
+    gcc-snapshot \
+    upx-ucl
 
 RUN mkdir -p /opt && cd /opt && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
 
