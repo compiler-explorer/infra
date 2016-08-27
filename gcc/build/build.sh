@@ -5,6 +5,7 @@ set -e
 ROOT=$(pwd)
 VERSION=$1
 MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
+MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
 OUTPUT=/root/gcc-${VERSION}.tar.xz
 S3OUTPUT=""
 if echo $2 | grep s3://; then
@@ -46,6 +47,7 @@ applyPatches() {
 }
 
 applyPatches gcc${MAJOR}
+applyPatches gcc${MAJOR_MINOR}
 applyPatches gcc${VERSION}
 
 BINUTILS_VERSION=2.27
