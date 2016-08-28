@@ -46,11 +46,11 @@ applyPatchesAndConfig() {
     fi
 
     local CONFIG_DIR=${ROOT}/config/$1
-    local CONFIG=""
+    local CONFIG_FILE=""
     if [[ -d ${CONFIG_DIR} ]]; then
         echo "Applying config from ${CONFIG_DIR}"
-        for CONFIG in ${CONFIG_DIR}/*; do
-            . ${CONFIG}
+        for CONFIG_FILE in ${CONFIG_DIR}/*; do
+            . ${CONFIG_FILE}
         done
     fi
 }
