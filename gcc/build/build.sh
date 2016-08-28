@@ -47,7 +47,7 @@ applyPatchesAndConfig() {
 
     local CONFIG_DIR=${ROOT}/config/$1
     local CONFIG=""
-    if [[ -d ${CONFIG} ]];
+    if [[ -d ${CONFIG} ]]; then
         echo "Applying config from ${CONFIG_DIR}"
         for CONFIG in ${CONFIG_DIR}/*; do
             . ${CONFIG}
@@ -76,6 +76,8 @@ BINUTILS_VERSION=2.27
 applyPatchesAndConfig gcc${MAJOR}
 applyPatchesAndConfig gcc${MAJOR_MINOR}
 applyPatchesAndConfig gcc${VERSION}
+
+echo "Will configure with ${CONFIG}"
 
 echo "Fetching binutils ${BINUTILS_VERSION}"
 if [[ ! -e binutils-${BINUTILS_VERSION}.tar.bz2 ]]; then
