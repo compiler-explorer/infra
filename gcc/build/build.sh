@@ -33,8 +33,8 @@ rm -rf gcc-${VERSION}
 echo "Extracting GCC..."
 tar jxf gcc-${VERSION}.tar.bz2
 
-applyPatches() {
-    local PATCH_DIR=${ROOT}/$1
+applyPatchesAndConfig() {
+    local PATCH_DIR=${ROOT}/patches/$1
     local PATCH=""
     if [[ -d ${PATCH_DIR} ]]; then
         echo "Applying patches from ${PATCH_DIR}"
@@ -44,13 +44,39 @@ applyPatches() {
         done
         popd
     fi
+
+    local CONFIG_DIR=${ROOT}/config/$1
+    local CONFIG=""
+    if [[ -d ${CONFIG} ]];
+        echo "Applying config from ${CONFIG_DIR}"
+        for CONFIG in ${CONFIG_DIR}/*; do
+            . ${CONFIG}
+        done
+    fi
 }
 
-applyPatches gcc${MAJOR}
-applyPatches gcc${MAJOR_MINOR}
-applyPatches gcc${VERSION}
-
+CONFIG=""
+CONFIG+=" --build=x86_64-linux-gnu"
+CONFIG+=" --disable-multilibs"
+CONFIG+=" --enable-clocale=gnu"
+CONFIG+=" --enable-languages=c,c++"
+CONFIG+=" --enable-ld=yes"
+CONFIG+=" --enable-gold=yes"
+CONFIG+=" --enable-libstdcxx-debug"
+CONFIG+=" --enable-libstdcxx-time=yes"
+CONFIG+=" --enable-linker-build-id" 
+CONFIG+=" --enable-lto"
+CONFIG+=" --enable-plugins"
+CONFIG+=" --enable-threads=posix"
+CONFIG+=" --host=x86_64-linux-gnu"
+CONFIG+=" --target=x86_64-linux-gnu"
+CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
 BINUTILS_VERSION=2.27
+
+applyPatchesAndConfig gcc${MAJOR}
+applyPatchesAndConfig gcc${MAJOR_MINOR}
+applyPatchesAndConfig gcc${VERSION}
+
 echo "Fetching binutils ${BINUTILS_VERSION}"
 if [[ ! -e binutils-${BINUTILS_VERSION}.tar.bz2 ]]; then
     curl -L -O http://ftp.gnu.org/gnu/binutils/binutils-${BINUTILS_VERSION}.tar.bz2
@@ -73,23 +99,6 @@ echo "Downloading prerequisites"
 pushd gcc-${VERSION}
 ./contrib/download_prerequisites
 popd
-
-CONFIG=""
-CONFIG+=" --build=x86_64-linux-gnu"
-CONFIG+=" --disable-multilibs"
-CONFIG+=" --enable-clocale=gnu"
-CONFIG+=" --enable-languages=c,c++"
-CONFIG+=" --enable-ld=yes"
-CONFIG+=" --enable-gold=yes"
-CONFIG+=" --enable-libstdcxx-debug"
-CONFIG+=" --enable-libstdcxx-time=yes"
-CONFIG+=" --enable-linker-build-id" 
-CONFIG+=" --enable-lto"
-CONFIG+=" --enable-plugins"
-CONFIG+=" --enable-threads=posix"
-CONFIG+=" --host=x86_64-linux-gnu"
-CONFIG+=" --target=x86_64-linux-gnu"
-CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
 
 mkdir -p objdir
 pushd objdir
