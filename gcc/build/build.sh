@@ -47,7 +47,7 @@ applyPatchesAndConfig() {
 
     local CONFIG_DIR=${ROOT}/config/$1
     local CONFIG=""
-    if [[ -d ${CONFIG} ]]; then
+    if [[ -d ${CONFIG_DIR} ]]; then
         echo "Applying config from ${CONFIG_DIR}"
         for CONFIG in ${CONFIG_DIR}/*; do
             . ${CONFIG}
