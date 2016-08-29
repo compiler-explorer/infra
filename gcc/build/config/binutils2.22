@@ -1,7 +1,0 @@
-# GCC 4.7 needs an older binutils, lest it fall foul of
-# binutils/dwarf.c:800: undefined reference to `get_DW_TAG_name'
-BINUTILS_VERSION=2.22
-
-# Older binutils suffer from a benign warning when built in-tree.
-# That becomes an error when built in-tree, so turn that off:
-CONFIG+=" --disable-werror"
