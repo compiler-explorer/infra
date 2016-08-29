@@ -86,7 +86,7 @@ cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
 chown -R ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/id_rsa
 
-mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
+mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
 
 cd /home/ubuntu/
 get_or_update_repo root git@github.com:s3tools/s3cmd.git master /root/s3cmd
