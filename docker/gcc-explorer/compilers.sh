@@ -19,3 +19,11 @@ for version in 5.1.0 5.2.0 5.3.0 6.1.0 6.2.0; do
     tar axf $compiler
     rm $compiler
 done
+
+# ICCs also UPX'd
+for version in 2016.3.210; do
+    compiler=intel-${version}.tar.xz
+    s3cmd --config /root/.s3cfg get s3://gcc-explorer/opt/$compiler /opt/$compiler
+    tar axf $compiler
+    rm $compiler
+done

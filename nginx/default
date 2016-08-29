@@ -17,7 +17,7 @@ server {
 
 proxy_cache_path /var/cache/nginx-gcc keys_zone=gcc:10m max_size=200m;
 server {
-	server_name gcc.godbolt.org gcc.xania.org godbolt.org;
+	server_name gcc.godbolt.org gcc.beta.godbolt.org gcc.xania.org godbolt.org;
 	index index.html;
 	access_log /var/log/nginx/gcc.log;
 	error_log /var/log/nginx/gcc.err;
@@ -42,7 +42,7 @@ server {
 
 
 server {
-	server_name d.godbolt.org d.xania.org;
+	server_name d.godbolt.org d.beta.godbolt.org d.xania.org;
 	index index.html;
 	access_log /var/log/nginx/d.log;
 	error_log /var/log/nginx/d.err;
@@ -66,7 +66,7 @@ server {
 }
 
 server {
-	server_name rust.godbolt.org rust.xania.org;
+	server_name rust.godbolt.org rust.beta.godbolt.org rust.xania.org;
 	index index.html;
 	access_log /var/log/nginx/rust.log;
 	error_log /var/log/nginx/rust.err;
@@ -90,7 +90,7 @@ server {
 }
 
 server {
-	server_name go.godbolt.org go.xania.org;
+	server_name go.godbolt.org go.beta.godbolt.org go.xania.org;
 	index index.html;
 	access_log /var/log/nginx/go.log;
 	error_log /var/log/nginx/go.err;

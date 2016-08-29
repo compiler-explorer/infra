@@ -8,10 +8,9 @@ RUN apt-get -y update && apt-get install -y \
     libc6-dev-i386 \
     libboost-all-dev \
     linux-libc-dev \
-    curl \
     git \
     make \
-    s3cmd \
+    curl \
     clang-3.5 \
     gcc \
     g++ \
@@ -26,18 +25,12 @@ RUN apt-get -y update && apt-get install -y \
     g++-5-mipsel-linux-gnu \
     tcc
 
-RUN mkdir -p /opt && cd /opt && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
+RUN cd / && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
 
 RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
-COPY .s3cfg /root/
 COPY known_hosts /root/.ssh/
-COPY compilers.sh /root/
-RUN bash /root/compilers.sh
 
-RUN rm /root/compilers.sh
-RUN rm /root/.s3cfg
-RUN apt-get purge -y curl s3cmd
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -47,9 +40,9 @@ RUN ln -s /usr/include/asm-generic /usr/include/asm
 #####################
 RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
-ENV PATH /opt/node/bin:$PATH
+ENV PATH /node/bin:$PATH
 COPY package.json /tmp/
-RUN su gcc-user bash -c "cd /tmp; env PATH=/opt/node/bin:$PATH npm install"
+RUN su gcc-user bash -c "cd /tmp; env PATH=/node/bin:$PATH npm install"
 COPY run.sh /
 
 USER gcc-user

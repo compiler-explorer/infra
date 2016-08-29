@@ -41,7 +41,7 @@ start_container() {
     if [[ "${#NAME}" -eq 1 ]]; then
     	NAME="${NAME}x"
     fi
-    local FULL_COMMAND="${SUDO} docker run --name ${NAME} -e GOOGLE_API_KEY=${GOOGLE_API_KEY} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
+    local FULL_COMMAND="${SUDO} docker run --name ${NAME} -e GOOGLE_API_KEY=${GOOGLE_API_KEY} ${CFG} -d -v/opt/gcc-explorer:/opt/gcc-explorer:ro -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
     local CONTAINER_UID=""
     $SUDO docker stop ${NAME} >&2 || true
     $SUDO docker rm ${NAME} >&2 || true

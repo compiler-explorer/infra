@@ -18,19 +18,13 @@ RUN cd / && curl -L https://github.com/sgerrand/docker-glibc-builder/releases/do
 
 RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
-COPY .s3cfg /root/
 COPY known_hosts /root/.ssh/
-COPY compilers.sh /root/
-RUN bash /root/compilers.sh
-RUN rm /root/compilers.sh
-RUN rm /root/.s3cfg
 
 #####################
 RUN adduser -D gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
-ENV PATH /opt/node/bin:$PATH
 COPY package.json /tmp/
-RUN su gcc-user bash -c "cd /tmp; env PATH=/opt/node/bin:$PATH npm install"
+RUN su gcc-user bash -c "cd /tmp; npm install"
 COPY run.sh /
 
 USER gcc-user
