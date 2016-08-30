@@ -37,8 +37,11 @@ get_or_update_repo() {
     popd
 }
 
-apt-get -y update
-apt-get -y upgrade --force-yes
+if [[ ! -f /updated ]]; then
+    apt-get -y update
+    apt-get -y upgrade --force-yes
+    touch /updated
+fi
 if ! which docker 2>&1 > /dev/null; then
     apt-get -y install wget
     wget -qO- https://get.docker.com/ | sh
