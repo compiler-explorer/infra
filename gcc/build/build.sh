@@ -113,7 +113,7 @@ make -j$(nproc)
 make install-strip
 popd
 
-if [[ -z "${BINUTILS_VERSION}" ]]; then
+if [[ ! -z "${BINUTILS_VERSION}" ]]; then
     # Work around insane in-tree built ld issue
     for bindir in ${STAGING_DIR}/{,x86_64-linux-gnu/}bin
     do
