@@ -71,9 +71,6 @@ if __name__ == '__main__':
     if len(instances) != 1:
         raise "Wrong number of instances"
     instance = instances[0]
-    ec2.create_tags(
-            Resources=[instance.id],
-            Tags=[{'Key': 'Name', 'Value': "Build GCC {}".format(args.version)}])
     print "Waiting for instance {} to become running".format(instance)
     time.sleep(30)
     while True:
@@ -85,6 +82,10 @@ if __name__ == '__main__':
         time.sleep(10)
     addr = instance.public_ip_address
     print "Got address {}".format(addr)
+
+    ec2.create_tags(
+            Resources=[instance.id],
+            Tags=[{'Key': 'Name', 'Value': "Build GCC {}".format(args.version)}])
 
     ssh = connect_ssh(addr)
 
