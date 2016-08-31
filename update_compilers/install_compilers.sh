@@ -141,7 +141,7 @@ for compiler in clang-3.2.tar.gz \
 do
     DIR=${compiler%.tar.*}
 	if [[ ! -d ${DIR} ]]; then
-		s3cmd get s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+		s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
 		tar zxf $compiler
 		rm $compiler
 		do_strip ${DIR}
@@ -172,10 +172,21 @@ do
 done
 
 # Custom-built GCCs are already UPX's and stripped
-for version in 5.1.0 5.2.0 5.3.0 6.1.0 6.2.0; do
+for version in \
+    4.7.3 \
+    4.7.4 \
+    4.8.1 \
+    4.8.5 \
+    4.9.4 \
+    5.1.0 \
+    5.2.0 \
+    5.3.0 \
+    6.1.0 \
+    6.2.0 \
+;do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
-        s3cmd get s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+        s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
@@ -185,7 +196,7 @@ done
 for version in 2016.3.210; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
-        s3cmd get s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+        s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi

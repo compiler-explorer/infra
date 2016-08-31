@@ -48,7 +48,12 @@ packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
 publish: docker-images
 	$(DOCKER) push mattgodbolt/gcc-explorer
 
+update-compilers:
+	$(DOCKER) build -t mattgodbolt/gcc-builder:update update_compilers
+	$(DOCKER) push mattgodbolt/gcc-builder:update
+	python update_efs_compilers.py
+
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images $(DOCKER_IMAGES) publish packer 
+.PHONY: all clean docker-images $(DOCKER_IMAGES) publish packer update-compilers
