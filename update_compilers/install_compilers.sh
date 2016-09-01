@@ -19,7 +19,7 @@ fi
 
 do_strip() {
     find $1 -executable -type f | xargs strip || true
-    find $1 -executable -type f | xargs --max-procs=$(nproc) -n 1 upx || true
+    find $1 -executable -type f | xargs --max-procs=$(nproc) -n 1 -I '{}' bash -c 'upx {} || true'
 }
 
 do_rust_install() {
@@ -157,8 +157,10 @@ for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
     3.5.2-x86_64-linux-gnu-ubuntu-14.04 \
     3.6.2-x86_64-linux-gnu-ubuntu-14.04 \
     3.7.0-x86_64-linux-gnu-ubuntu-14.04 \
-    3.7.1-x86_64-linux-gnu-ubuntu-14.04
-do
+    3.7.1-x86_64-linux-gnu-ubuntu-14.04 \
+    3.8.0-x86_64-linux-gnu-ubuntu-14.04 \
+    3.8.1-x86_64-linux-gnu-ubuntu-14.04 \
+;do
     DIR=clang+llvm-${clang}
     VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
     if [[ "${VERSION}" = "3.5.2" ]]; then
@@ -177,10 +179,15 @@ for version in \
     4.7.4 \
     4.8.1 \
     4.8.5 \
+    4.9.0 \
+    4.9.1 \
+    4.9.2 \
+    4.9.3 \
     4.9.4 \
     5.1.0 \
     5.2.0 \
     5.3.0 \
+    5.4.0 \
     6.1.0 \
     6.2.0 \
 ;do
