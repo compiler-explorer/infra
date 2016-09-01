@@ -23,13 +23,8 @@ RUN apt-get -y update && apt-get install -y \
     gcc-4.4 \
     gcc-4.5 \
     gcc-4.6 \
-    gcc-4.7-base \
-    gcc-4.7-multilib \
-    gcc-4.8 \
-    gcc-4.8-multilib \
     gcc-avr \
-    gcc-msp430 \
-    gcc-snapshot
+    gcc-msp430
 
 RUN cd / && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
 RUN mkdir -p /root
