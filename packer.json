@@ -5,8 +5,8 @@
       "region": "us-east-1",
       "access_key": "{{user `MY_ACCESS_KEY`}}",
       "secret_key": "{{user `MY_SECRET_KEY`}}",
-      "source_ami": "ami-fce3c696",
-      "instance_type": "t2.micro",
+      "source_ami": "ami-2d39803a",
+      "instance_type": "t2.medium",
       "ssh_username": "ubuntu",
       "ami_name": "gcc-explorer packer {{timestamp}}",
       "associate_public_ip_address": true,
@@ -17,7 +17,7 @@
       "ami_block_device_mappings": [
         {
           "device_name": "/dev/sda1",
-          "volume_size": 24,
+          "volume_size": 12,
           "delete_on_termination": true,
           "volume_type": "standard"
         }
@@ -25,7 +25,7 @@
       "launch_block_device_mappings": [
         {
           "device_name": "/dev/sda1",
-          "volume_size": 24,
+          "volume_size": 12,
           "delete_on_termination": true,
           "volume_type": "standard"
         }
@@ -65,7 +65,7 @@
         "git clone https://github.com/mattgodbolt/gcc-explorer-image.git /gcc-explorer-image",
         "cd /gcc-explorer-image",
         "bash setup.sh 2>&1 | tee /tmp/setup.log",
-        "sleep 120",
+        "sleep 300",
         "service gcc-explorer stop",
         "docker stop gcc gcc1204 dx rust nginx || true",
         "docker rm gcc gcc1204 dx rust nginx || true"

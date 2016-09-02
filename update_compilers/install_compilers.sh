@@ -136,7 +136,6 @@ getgdc 5.2.0 2.066.1
 # 12.04 compilers (mostly)
 for compiler in clang-3.2.tar.gz \
     clang-3.3.tar.gz \
-    gcc-4.9.0.tar.gz \
     intel.tar.gz
 do
     DIR=${compiler%.tar.*}
