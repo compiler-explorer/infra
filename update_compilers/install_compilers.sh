@@ -173,23 +173,17 @@ for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
 done
 
 # Custom-built GCCs are already UPX's and stripped
+# (notes on various compiler builds below:
+# 4.7.0 fails to build with a libgcc compile error:
+#   ./md-unwind-support.h:144:17: error: field 'info' has incomplete type
+# )
 for version in \
-    4.7.3 \
-    4.7.4 \
-    4.8.1 \
-    4.8.5 \
-    4.9.0 \
-    4.9.1 \
-    4.9.2 \
-    4.9.3 \
-    4.9.4 \
-    5.1.0 \
-    5.2.0 \
-    5.3.0 \
-    5.4.0 \
-    6.1.0 \
-    6.2.0 \
-;do
+    4.7.{1,2,3,4} \
+    4.8.{1,2,3,4,5} \
+    4.9.{0,1,2,3,4} \
+    5.{1,2,3,4}.0 \
+    6.{1,2}.0 \
+; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
         s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
