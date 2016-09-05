@@ -9,10 +9,12 @@ if echo ${VERSION} | grep 'snapshot-'; then
     URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.bz2
     MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
     MAJOR_MINOR=${MAJOR}-snapshot
+    BINARY_OUTPUT=${MAJOR}.0.0
 else
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/gcc-${VERSION}.tar.bz2
     MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
     MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
+    BINARY_OUTPUT=${VERSION}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
 S3OUTPUT=""
@@ -129,7 +131,7 @@ fi
 # Compress all the images with upx
 upx --best ${STAGING_DIR}/bin/* || true
 for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
-    upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${VERSION}/${EXE}
+    upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${BINARY_OUTPUT}/${EXE}
 done
 
 tar Jcf ${OUTPUT} --transform "s,^./,./gcc-${VERSION}/," -C ${STAGING_DIR} .
