@@ -4,8 +4,16 @@ set -e
 
 ROOT=$(pwd)
 VERSION=$1
-MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
-MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
+if echo ${VERSION} | grep 'snapshot-'; then
+    VERSION=${VERSION/#snapshot-/}
+    URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.bz2
+    MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
+    MAJOR_MINOR=${MAJOR}-snapshot
+else
+    URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/gcc-${VERSION}.tar.bz2
+    MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
+    MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
+fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
 S3OUTPUT=""
 if echo $2 | grep s3://; then
@@ -22,12 +30,7 @@ mkdir -p ${STAGING_DIR}
 
 if [[ ! -e gcc-${VERSION}.tar.bz2 ]]; then
     echo "Fetching GCC"
-    if echo ${VERSION} | grep 'snapshot-'; then
-        VERSION=${VERSION/#snapshot-/}
-        curl -L -O ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.bz2
-    else
-        curl -L -O ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/gcc-${VERSION}.tar.bz2
-    fi
+    curl -L -O ${URL}
 fi
 rm -rf gcc-${VERSION}
 echo "Extracting GCC..."
