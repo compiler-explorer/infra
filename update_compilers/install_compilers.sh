@@ -159,6 +159,7 @@ for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
     3.7.1-x86_64-linux-gnu-ubuntu-14.04 \
     3.8.0-x86_64-linux-gnu-ubuntu-14.04 \
     3.8.1-x86_64-linux-gnu-ubuntu-14.04 \
+    3.9.0-x86_64-linux-gnu-ubuntu-16.04 \
 ;do
     DIR=clang+llvm-${clang}
     VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
