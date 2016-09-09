@@ -27,7 +27,7 @@ def ensure_at_least_two():
 def await_at_least_two_healthy():
     print "Waiting for at least two healthy instances"
     elb = boto.ec2.elb.connect_to_region('us-east-1')
-    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorerVpc'])[0]
+    balancer = elb.get_all_load_balancers(load_balancer_names=['GccExplorerApp'])[0]
     while True:
         healthy = [s for s in balancer.get_instance_health() if s.state == u'InService']
         if len(healthy) >= 2:
