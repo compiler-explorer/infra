@@ -22,6 +22,7 @@ CONFIG_FILE=${DIR}/site-prod.sh
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=8000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
+    . ${CONFIG_FILE}
 else
     $SUDO docker pull -a mattgodbolt/gcc-explorer
 fi
