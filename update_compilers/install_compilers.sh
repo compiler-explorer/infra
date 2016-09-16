@@ -227,4 +227,16 @@ for version in 2016.3.210; do
     fi
 done
 
+# Oracle dev studio is stored on s3 only as it's behind a login screen on the
+# oracle site. It doesn't like being strip()ped
+for version in 12.5; do
+    fullname=OracleDeveloperStudio${version}-linux-x86-bin
+    if [[ ! -d ${fullname} ]]; then
+        compiler=${fullname}.tar.bz2
+        s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+        tar axf $compiler
+        rm $compiler
+    fi
+done
+
 #########################
