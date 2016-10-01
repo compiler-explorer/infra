@@ -2,32 +2,29 @@
 
 import boto3
 import time
-import paramiko
-import select
 import sys
 from argparse import ArgumentParser
 from build_gcc import connect_ssh, run_command
 
 parser = ArgumentParser(description='Update the EFS mount')
 parser.add_argument('-t', '--instance_type', help='Run on instance type TYPE',
-        metavar='TYPE', default='t2.micro')
-
+                    metavar='TYPE', default='t2.micro')
 
 if __name__ == '__main__':
     args = parser.parse_args()
     ec2 = boto3.resource('ec2')
     print "Launching a {} instance...".format(args.instance_type)
     instances = ec2.create_instances(
-            ImageId='ami-1071ca07',
-            KeyName='mattgodbolt',
-            SecurityGroupIds=['sg-99df30fd'],
-            SubnetId='subnet-690ed81e',
-            InstanceType=args.instance_type,
-            MinCount=1,
-            MaxCount=1,
-            IamInstanceProfile={'Name':'XaniaBlog'})
+        ImageId='ami-1071ca07',
+        KeyName='mattgodbolt',
+        SecurityGroupIds=['sg-99df30fd'],
+        SubnetId='subnet-690ed81e',
+        InstanceType=args.instance_type,
+        MinCount=1,
+        MaxCount=1,
+        IamInstanceProfile={'Name': 'XaniaBlog'})
     if len(instances) != 1:
-        raise "Wrong number of instances"
+        raise Exception("Wrong number of instances")
     instance = instances[0]
     print "Waiting for instance {} to become running".format(instance)
     time.sleep(30)
@@ -42,13 +39,13 @@ if __name__ == '__main__':
     print "Got address {}".format(addr)
 
     ec2.create_tags(
-            Resources=[instance.id],
-            Tags=[{'Key': 'Name', 'Value': "Update EFS"}])
+        Resources=[instance.id],
+        Tags=[{'Key': 'Name', 'Value': "Update EFS"}])
 
     ssh = connect_ssh(addr)
 
-    res = run_command(ssh, 
-            "docker run --privileged -i mattgodbolt/gcc-builder:update ./efs_update.sh") 
+    res = run_command(ssh,
+                      "docker run --privileged -i mattgodbolt/gcc-builder:update ./efs_update.sh")
 
     print "Shutting down instance"
     run_command(ssh, "sudo shutdown -h now")

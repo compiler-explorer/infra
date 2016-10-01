@@ -6,3 +6,5 @@ config.py
 .s3cfg
 *.xz
 config.json
+.env
+.idea
