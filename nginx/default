@@ -27,17 +27,6 @@ server {
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
 	}
-
-    location ^~ /client-options.js {
-		proxy_pass http://gcc:10240;
-		proxy_cache gcc;
-		proxy_cache_valid 200 2m;
-	}
-
-	location ~* \.(html|js|ico|css)$ {
-		root /gcc-explorer/static;
-		expires 600;
-	}
 }
 
 
@@ -52,17 +41,6 @@ server {
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
 	}
-
-    location ^~ /client-options.js {
-		proxy_pass http://d:10241;
-		proxy_cache gcc;
-		proxy_cache_valid 200 2m;
-	}
-
-	location ~* \.(html|js|ico|css)$ {
-		root /gcc-explorer/static;
-		expires 600;
-	}
 }
 
 server {
@@ -76,17 +54,6 @@ server {
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
 	}
-
-    location ^~ /client-options.js {
-		proxy_pass http://rust:10242;
-		proxy_cache gcc;
-		proxy_cache_valid 200 2m;
-	}
-
-	location ~* \.(html|js|ico|css)$ {
-		root /gcc-explorer/static;
-		expires 600;
-	}
 }
 
 server {
@@ -99,17 +66,6 @@ server {
 		proxy_pass http://go:10243;
 		proxy_cache gcc;
 		proxy_cache_valid 200 2m;
-	}
-
-    location ^~ /client-options.js {
-		proxy_pass http://go:10243;
-		proxy_cache gcc;
-		proxy_cache_valid 200 2m;
-	}
-
-	location ~* \.(html|js|ico|css)$ {
-		root /gcc-explorer/static;
-		expires 600;
 	}
 }
 
