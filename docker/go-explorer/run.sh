@@ -9,5 +9,5 @@ cd /gcc-explorer
 git pull
 rm -rf node_modules
 cp -r /tmp/node_modules .
-make prereqs
-node app.js --env amazon --language go --port 10243
+make dist
+node app.js --env amazon --language go --port 10243 --static out/dist
