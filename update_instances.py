@@ -19,6 +19,10 @@ def get_gcc_ex_group():
     return result['AutoScalingGroups'][0]
 
 
+def get_gcc_nodes():
+    return elb_client.describe_target_health(TargetGroupArn=NODES)['TargetHealthDescriptions']
+
+
 def ensure_at_least_two():
     print "ensuring at least two instances"
     gcc_explorer_group = get_gcc_ex_group()
@@ -42,8 +46,7 @@ def await_at_least_two_healthy():
         time.sleep(5)
     print "Enough healthy instances, waiting for target groups to become healthy"
     while True:
-        healths = elb_client.describe_target_health(TargetGroupArn=NODES)
-        healthy = [s for s in healths['TargetHealthDescriptions'] if s['TargetHealth']['State'] == 'healthy']
+        healthy = [s for s in get_gcc_nodes() if s['TargetHealth']['State'] == 'healthy']
         if len(healthy) >= 2:
             print "Found {} healthy".format(len(healthy))
             break
@@ -60,8 +63,7 @@ def update_gcc_explorers():
     prev = ensure_at_least_two()
     await_at_least_two_healthy()
     if prev != 1:
-        healths = elb_client.describe_target_health(TargetGroupArn=NODES)
-        for health in healths['TargetHealthDescriptions']:
+        for health in get_gcc_nodes():
             instance = ec2.Instance(id=health['Target']['Id'])
             instance.load()
             ssh = connect_ssh(instance.public_ip_address, 'ubuntu')
