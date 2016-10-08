@@ -38,11 +38,10 @@ RUN ln -s /usr/include/asm-generic /usr/include/asm
 RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
 ENV PATH /node/bin:$PATH
-COPY package.json /tmp/
-RUN su gcc-user bash -c "cd /tmp; env PATH=/node/bin:$PATH npm install"
-COPY run.sh /
+COPY *.sh /
 
 USER gcc-user
+RUN /update.sh
 WORKDIR /gcc-explorer
 VOLUME /gcc-explorer
 EXPOSE 10240

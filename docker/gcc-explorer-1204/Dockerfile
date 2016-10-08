@@ -40,11 +40,10 @@ RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user 
 ENV HOME /home/gcc-user
 ENV PATH /node/bin:$PATH
 
-COPY package.json /tmp/
-RUN su gcc-user bash -c "cd /tmp; env PATH=/node/bin:$PATH npm install"
-COPY run.sh /
+COPY *.sh /
 
 USER gcc-user
+RUN /update.sh
 WORKDIR /gcc-explorer
 EXPOSE 20480
 CMD ["/run.sh"]

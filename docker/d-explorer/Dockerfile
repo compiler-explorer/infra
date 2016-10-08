@@ -22,11 +22,13 @@ COPY known_hosts /root/.ssh/
 #####################
 RUN adduser -D gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
-COPY package.json /tmp/
-RUN su gcc-user bash -c "cd /tmp; npm install"
-COPY run.sh /
+ENV LIBRARY_PATH /usr/glibc-compat/lib
+ENV LD_LIBRARY_PATH /usr/glibc-compat/lib
+
+COPY *.sh /
 
 USER gcc-user
+RUN /update.sh
 WORKDIR /gcc-explorer
 EXPOSE 10241
 CMD ["/run.sh"]

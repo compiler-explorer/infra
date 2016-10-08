@@ -10,10 +10,7 @@ DOCKER_IMAGES += $(2)-image
 docker/$(2)/.s3cfg: .s3cfg
 	cp $$< $$@
 
-docker/$(2)/package.json: package.json
-	cp $$< $$@
-
-$(2)-image: docker/$(2)/.s3cfg docker/$(2)/package.json
+$(2)-image: docker/$(2)/.s3cfg
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:$(1)" docker/$(2)
 
 endef
