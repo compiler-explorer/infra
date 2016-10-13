@@ -3,7 +3,7 @@
 import boto3
 
 import time
-from build_gcc import connect_ssh, run_command
+from build_compiler import connect_ssh, run_command
 
 NODES = 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
 

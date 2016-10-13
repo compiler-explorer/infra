@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from build_gcc import connect_ssh, run_command
+from build_compiler import connect_ssh, run_command
 from update_instances import get_gcc_nodes, ec2
 
 

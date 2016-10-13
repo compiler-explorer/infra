@@ -132,7 +132,7 @@ if __name__ == '__main__':
 
     ec2.create_tags(
             Resources=[instance.id],
-            Tags=[{'Key': 'Name', 'Value': "Build GCC {}".format(args.version)}])
+            Tags=[{'Key': 'Name', 'Value': "Build {} {}".format(args.compiler, args.version)}])
 
     ssh = connect_ssh(addr)
 
@@ -147,7 +147,7 @@ resize2fs /dev/xvda1
 EOF
 """)
 
-    log("Building GCC {} to {}".format(args.version, args.destination))
+    log("Building {} {} to {}".format(args.compiler, args.version, args.destination))
     res = run_command(ssh, "docker run mattgodbolt/{}-builder bash build.sh {} {}".format(
         args.compiler, args.version, args.destination))
     

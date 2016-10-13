@@ -4,7 +4,7 @@ import boto3
 import time
 import sys
 from argparse import ArgumentParser
-from build_gcc import connect_ssh, run_command
+from build_compiler import connect_ssh, run_command
 
 parser = ArgumentParser(description='Update the EFS mount')
 parser.add_argument('-t', '--instance_type', help='Run on instance type TYPE',
