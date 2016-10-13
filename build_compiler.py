@@ -8,12 +8,13 @@ import datetime
 import sys
 from argparse import ArgumentParser
 
-parser = ArgumentParser(description='Run an ec2 instance to build GCC')
+parser = ArgumentParser(description='Run an ec2 instance to build GCC or clang')
 parser.add_argument('-t', '--instance_type', help='Run on instance type TYPE',
         metavar='TYPE', default='c4.8xlarge')
 parser.add_argument('--not-ebs', help='Do not use an EBS optimized instance', action='store_true',
         default=False)
-parser.add_argument('version', help='Build GCC version')
+parser.add_argument('compiler', help='Build compiler')
+parser.add_argument('version', help='Build version')
 parser.add_argument('destination', help='Build destination s3 URL')
 parser.add_argument('--spot-price', help='Set hourly spot price')
 
@@ -147,8 +148,8 @@ EOF
 """)
 
     log("Building GCC {} to {}".format(args.version, args.destination))
-    res = run_command(ssh, "docker run mattgodbolt/gcc-builder bash build.sh {} {}".format(
-        args.version, args.destination))
+    res = run_command(ssh, "docker run mattgodbolt/{}-builder bash build.sh {} {}".format(
+        args.compiler, args.version, args.destination))
     
     log("Shutting down instance")
     run_command(ssh, "sudo shutdown -h now")
