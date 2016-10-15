@@ -21,6 +21,10 @@ else
     OUTPUT=${2-/root/clang-${VERSION}.tar.xz}
 fi
 
+STAGING_DIR=$(pwd)/staging
+rm -rf ${STAGING_DIR}
+mkdir -p ${STAGING_DIR}
+
 svn co ${LLVM_BASE}/llvm/${TAG} llvm
 pushd llvm/tools
 svn co ${LLVM_BASE}/cfe/${TAG} clang
