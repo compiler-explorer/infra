@@ -126,9 +126,24 @@ getgdc() {
     popd
 }
 
+getldc() {
+    vers=$1
+    if [[ -d ldc${vers} ]]; then
+        echo LDC ${vers} already installed, skipping
+        return
+    fi
+    mkdir ldc${vers}
+    pushd ldc${vers}
+    curl -L https://github.com/ldc-developers/ldc/releases/download/v$vers/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf -    
+    do_strip ldc2-${vers}-linux-x86_64/bin
+    popd
+}
+
 getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
+getldc 0.17.2
+getldc 1.0.0
 #########################
 
 #########################
