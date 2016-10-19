@@ -135,7 +135,7 @@ getldc() {
     mkdir ldc${vers}
     pushd ldc${vers}
     curl -L https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf -    
-    do_strip ldc2-${vers}-linux-x86_64/bin
+    # any kind of stripping upsets ldc
     popd
 }
 
