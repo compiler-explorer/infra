@@ -260,4 +260,10 @@ if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
     do_strip msp430-gcc-5.3.0.219_linux32
 fi
 
+# GNU ARM Embedded toolchain
+if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
+    curl -L https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 | tar jxf -
+    do_strip gcc-arm-none-eabi-5_4-2016q3 
+fi
+
 #########################
