@@ -1,10 +1,13 @@
 FROM ubuntu:16.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apt-get -y update && apt-get install -y python-software-properties software-properties-common
-RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
-
-RUN apt-get -y update && dpkg --add-architecture i386 && apt-get install -y \
+RUN dpkg --add-architecture i386 && \
+    apt-get -y update && \
+    apt-get install -y python-software-properties software-properties-common && \
+    apt-get -y update && \
+    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+    apt-get -y update && \
+    apt-get install -y \
     clang-3.5 \
     curl \
     g++ \
