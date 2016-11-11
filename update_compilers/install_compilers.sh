@@ -267,4 +267,19 @@ if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     do_strip gcc-arm-none-eabi-5_4-2016q3 
 fi
 
+# Windows compilers
+mkdir -p windows
+pushd windows
+for file in \
+    10.0.10240.0 \
+    14.0.24224-Pre \
+; do
+    if [[ ! -d windows/${file} ]]; then
+        s3cmd get --force s3://gcc-explorer/opt/${file} ${file}.tar.xz
+        tar zxf ${file}.tar.xz
+        rm ${file}.tar.xz
+    fi
+done
+popd
+
 #########################
