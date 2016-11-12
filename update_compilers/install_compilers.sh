@@ -275,8 +275,8 @@ for file in \
     14.0.24224-Pre \
 ; do
     if [[ ! -d windows/${file} ]]; then
-        s3cmd get --force s3://gcc-explorer/opt/${file} ${file}.tar.xz
-        tar zxf ${file}.tar.xz
+        s3cmd get --force s3://gcc-explorer/opt/${file}.tar.xz ${file}.tar.xz
+        tar Jxf ${file}.tar.xz
         rm ${file}.tar.xz
     fi
 done
