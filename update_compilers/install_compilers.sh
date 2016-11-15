@@ -279,6 +279,7 @@ for file in \
         tar Jxf ${file}.tar.xz
         if [[ -d ${file}/lib/native/bin/amd64 ]]; then
             cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_arm/
+            cp ${file}/lib/native/bin/amd64/msvcdis140.dll ${file}/lib/native/bin/amd64_arm/
             cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_x86/
         fi
         rm ${file}.tar.xz
