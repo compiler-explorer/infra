@@ -277,6 +277,10 @@ for file in \
     if [[ ! -d windows/${file} ]]; then
         s3cmd get --force s3://gcc-explorer/opt/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
+        if [[ -d ${file}/lib/native/bin/amd64 ]]; then
+            cp ${file}/lib/native/bin/amd64/*.dll ${file}/lib/native/bin/amd64_arm/
+            cp ${file}/lib/native/bin/amd64/*.dll ${file}/lib/native/bin/amd64_x86/
+        fi
         rm ${file}.tar.xz
     fi
 done
