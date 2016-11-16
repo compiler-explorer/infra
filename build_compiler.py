@@ -17,6 +17,7 @@ parser.add_argument('compiler', help='Build compiler')
 parser.add_argument('version', help='Build version')
 parser.add_argument('destination', help='Build destination s3 URL')
 parser.add_argument('--spot-price', help='Set hourly spot price')
+parser.add_argument('--block-duration', default=60, help='duration to reserve, in minutes', type=int)
 
 
 def log(msg):
@@ -64,9 +65,9 @@ if __name__ == '__main__':
         response = client.request_spot_instances(
                 SpotPrice=args.spot_price,
                 Type='one-time',
-                BlockDurationMinutes=60,
+                BlockDurationMinutes=args.block_duration,
                 LaunchSpecification={
-                    'ImageId': 'ami-1071ca07',
+                    'ImageId': 'ami-dfdff3c8',
                     'KeyName': 'mattgodbolt',
                     'SecurityGroupIds': ['sg-cdce6cb7'],
                     'SubnetId': 'subnet-690ed81e',
@@ -100,7 +101,7 @@ if __name__ == '__main__':
     else:
         log("Launching a {} instance...".format(args.instance_type))
         instances = ec2.create_instances(
-                ImageId='ami-1071ca07',
+                ImageId='ami-dfdff3c8',
                 KeyName='mattgodbolt',
                 SecurityGroupIds=['sg-cdce6cb7'],
                 SubnetId='subnet-690ed81e',
@@ -136,20 +137,17 @@ if __name__ == '__main__':
 
     ssh = connect_ssh(addr)
 
-    log("Resizing disc")
-    run_command(ssh, """
-docker run --privileged -i --rm ubuntu bash << EOF
-apt-get update
-apt-get install -y cloud-guest-utils parted
-growpart /dev/xvda 1
-partprobe
-resize2fs /dev/xvda1
-EOF
-""")
-
-    log("Building {} {} to {}".format(args.compiler, args.version, args.destination))
-    res = run_command(ssh, "docker run mattgodbolt/{}-builder bash build.sh {} {}".format(
-        args.compiler, args.version, args.destination))
+    log("Waiting for docker daemon...")
+    for i in range(10):
+        res = run_command(ssh, "docker version")
+        if res == 0:
+            log("All ok!")
+            break
+        time.sleep(10)
+    if res == 0:
+        log("Building {} {} to {}".format(args.compiler, args.version, args.destination))
+        res = run_command(ssh, "docker run mattgodbolt/{}-builder bash build.sh {} {}".format(
+            args.compiler, args.version, args.destination))
     
     log("Shutting down instance")
     run_command(ssh, "sudo shutdown -h now")
