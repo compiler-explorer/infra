@@ -139,12 +139,25 @@ getldc() {
     popd
 }
 
+getldc_latestbeta() {
+    vers=$(curl https://ldc-developers.github.io/LATEST_BETA)
+    mkdir ldcbeta
+    pushd ldcbeta
+    curl -L https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf --strip 1 -
+    # any kind of stripping upsets ldc
+    popd
+}
+
+fetch_url() {
+    curl ${url}
+}
+
 getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
 getldc 0.17.2
 getldc 1.0.0
-getldc 1.1.0-beta3
+getldc_latestbeta
 #########################
 
 #########################
