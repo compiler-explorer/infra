@@ -141,9 +141,17 @@ getldc() {
 
 getldc_latestbeta() {
     vers=$(curl https://ldc-developers.github.io/LATEST_BETA)
-    mkdir ldcbeta
+    if [[ ! -d ldcbeta ]]; then
+        mkdir ldcbeta
+    fi
     pushd ldcbeta
-    curl -L https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf --strip 1 -
+    if [[ "$(cat .version)" = "${vers}" ]]; then
+        echo "LDC beta version ${vers} already installed, skipping"
+        return
+    fi
+    rm -rf *
+    curl -L https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf - --strip-components 1
+    echo "${vers}" > .version
     # any kind of stripping upsets ldc
     popd
 }
