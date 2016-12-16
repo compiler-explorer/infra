@@ -210,6 +210,18 @@ for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
     fi
 done
 
+# ellccs
+for RELEASE in x86_64-linux-0.1.33 \
+               x86_64-linux-0.1.34 \
+do
+    DIR=ellcc-${RELEASE}
+    curl http://ellcc.org/releases/ellcc-${RELEASE}.tgz  | tar xf -
+    
+    mv ellcc ${DIR}
+    do_strip ${DIR}
+done
+
+
 # Custom-built GCCs are already UPX's and stripped
 # (notes on various compiler builds below:
 # 4.7.0 fails to build with a libgcc compile error:
