@@ -1,0 +1,168 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".Ltext0:", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": ".LFB0:", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq   %rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        movq    %rsp, %rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        movq    %rdi, -24(%rbp)", 
+      "source": 1
+    }, 
+    {
+      "text": "        movl    %esi, -28(%rbp)", 
+      "source": 1
+    }, 
+    {
+      "text": "        movl    $0, -4(%rbp)", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBB2:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    $0, -8(%rbp)", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    -8(%rbp), %eax", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmpl    -28(%rbp), %eax", 
+      "source": 3
+    }, 
+    {
+      "text": "        jge     .L2", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl    -8(%rbp), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        cltq", 
+      "source": 4
+    }, 
+    {
+      "text": "        leaq    0(,%rax,4), %rdx", 
+      "source": 4
+    }, 
+    {
+      "text": "        movq    -24(%rbp), %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq    %rdx, %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl    (%rax), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        addl    %eax, -4(%rbp)", 
+      "source": 4
+    }, 
+    {
+      "text": "        addl    $1, -8(%rbp)", 
+      "source": 3
+    }, 
+    {
+      "text": "        jmp     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE2:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    -4(%rbp), %eax", 
+      "source": 6
+    }, 
+    {
+      "text": "        popq    %rbp", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": ".LFE0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Letext0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_info0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_abbrev0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_line0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF1:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF3:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF5:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

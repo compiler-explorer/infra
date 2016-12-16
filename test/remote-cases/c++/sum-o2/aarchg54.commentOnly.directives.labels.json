@@ -1,0 +1,76 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp     w1, 0", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     x4, x0", 
+      "source": 1
+    }, 
+    {
+      "text": "        ble     .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     x2, 0", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     w0, 0", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     w3, [x4, x2, lsl 2]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     x2, x2, 1", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     w1, w2", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     w0, w0, w3", 
+      "source": 4
+    }, 
+    {
+      "text": "        bgt     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ret", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     w0, 0", 
+      "source": 2
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

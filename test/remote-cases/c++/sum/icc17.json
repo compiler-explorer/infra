@@ -1,0 +1,1728 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "        .section .text", 
+      "source": null
+    }, 
+    {
+      "text": ".LNDBG_TX:", 
+      "source": null
+    }, 
+    {
+      "text": "# mark_description \"Intel(R) C Intel(R) 64 Compiler for applications running on Intel(R) 64, Version 17.0.0.098 Build 20160721\";", 
+      "source": null
+    }, 
+    {
+      "text": "# mark_description \"-g -o /tmp/output.s -S\";", 
+      "source": null
+    }, 
+    {
+      "text": "        .file \"example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .text", 
+      "source": null
+    }, 
+    {
+      "text": "..TXTST0:", 
+      "source": null
+    }, 
+    {
+      "text": ".L_2__routine_start__Z12testFunctionPii_0:", 
+      "source": null
+    }, 
+    {
+      "text": "# -- Begin  testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .text", 
+      "source": null
+    }, 
+    {
+      "text": "# mark_begin;", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "        .globl testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "# --- testFunction(int *, int)", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "# parameter 1(input): %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "# parameter 2(length): %esi", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.1:                         # Preds ..B1.0", 
+      "source": null
+    }, 
+    {
+      "text": "                                # Execution count [0.00e+00]", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_startproc", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_personality 0x3,__gxx_personality_v0", 
+      "source": null
+    }, 
+    {
+      "text": "..___tag_value__Z12testFunctionPii.2:", 
+      "source": null
+    }, 
+    {
+      "text": "..L3:", 
+      "source": null
+    }, 
+    {
+      "text": "                                                          #1.42", 
+      "source": null
+    }, 
+    {
+      "text": "..LN0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .file   1 \"/tmp/example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  1  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq     %rbp                                          #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        .cfi_def_cfa_offset 16", 
+      "source": null
+    }, 
+    {
+      "text": "..LN1:", 
+      "source": null
+    }, 
+    {
+      "text": "        movq      %rsp, %rbp                                    #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        .cfi_def_cfa 6, 16", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_offset 6, -16", 
+      "source": null
+    }, 
+    {
+      "text": "..LN2:", 
+      "source": null
+    }, 
+    {
+      "text": "        subq      $32, %rsp                                     #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "..LN3:", 
+      "source": null
+    }, 
+    {
+      "text": "        movq      %rdi, -24(%rbp)                               #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "..LN4:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      %esi, -16(%rbp)                               #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "..LN5:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  2  prologue_end  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      $0, -32(%rbp)                                 #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN6:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  3  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      $0, -28(%rbp)                                 #3.14", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN7:", 
+      "source": null
+    }, 
+    {
+      "text": "                                # LOE rbx rbp rsp r12 r13 r14 r15 rip", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.2:                         # Preds ..B1.3 ..B1.1", 
+      "source": null
+    }, 
+    {
+      "text": "                                # Execution count [0.00e+00]", 
+      "source": null
+    }, 
+    {
+      "text": "..LN8:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      -28(%rbp), %eax                               #3.19", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN9:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      -16(%rbp), %edx                               #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN10:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpl      %edx, %eax                                    #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN11:", 
+      "source": null
+    }, 
+    {
+      "text": "        jge       ..B1.4        # Prob 50%                      #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN12:", 
+      "source": null
+    }, 
+    {
+      "text": "                                # LOE rbx rbp rsp r12 r13 r14 r15 rip", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.3:                         # Preds ..B1.2", 
+      "source": null
+    }, 
+    {
+      "text": "                                # Execution count [0.00e+00]", 
+      "source": null
+    }, 
+    {
+      "text": "..LN13:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  4  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      -28(%rbp), %eax                               #4.18", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN14:", 
+      "source": null
+    }, 
+    {
+      "text": "        movslq    %eax, %rax                                    #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN15:", 
+      "source": null
+    }, 
+    {
+      "text": "        imulq     $4, %rax, %rax                                #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN16:", 
+      "source": null
+    }, 
+    {
+      "text": "        addq      -24(%rbp), %rax                               #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN17:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      (%rax), %eax                                  #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN18:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl      -32(%rbp), %eax                               #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN19:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      %eax, -32(%rbp)                               #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN20:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  3  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      $1, %eax                                      #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN21:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl      -28(%rbp), %eax                               #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN22:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      %eax, -28(%rbp)                               #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN23:", 
+      "source": null
+    }, 
+    {
+      "text": "        jmp       ..B1.2        # Prob 100%                     #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN24:", 
+      "source": null
+    }, 
+    {
+      "text": "                                # LOE rbx rbp rsp r12 r13 r14 r15 rip", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.4:                         # Preds ..B1.2", 
+      "source": null
+    }, 
+    {
+      "text": "                                # Execution count [0.00e+00]", 
+      "source": null
+    }, 
+    {
+      "text": "..LN25:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  6  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      -32(%rbp), %eax                               #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "..LN26:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1  6  epilogue_begin  is_stmt 1", 
+      "source": null
+    }, 
+    {
+      "text": "        leave                                                   #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "        .cfi_restore 6", 
+      "source": null
+    }, 
+    {
+      "text": "..LN27:", 
+      "source": null
+    }, 
+    {
+      "text": "        ret                                                     #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "        .cfi_endproc", 
+      "source": null
+    }, 
+    {
+      "text": "..LN28:", 
+      "source": null
+    }, 
+    {
+      "text": "                                # LOE", 
+      "source": null
+    }, 
+    {
+      "text": "..LN29:", 
+      "source": null
+    }, 
+    {
+      "text": "# mark_end;", 
+      "source": null
+    }, 
+    {
+      "text": "        .type   testFunction(int*, int),@function", 
+      "source": null
+    }, 
+    {
+      "text": "        .size   testFunction(int*, int),.-testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "..LN_Z12testFunctionPii.30:", 
+      "source": null
+    }, 
+    {
+      "text": ".LN_Z12testFunctionPii:", 
+      "source": null
+    }, 
+    {
+      "text": "        .data", 
+      "source": null
+    }, 
+    {
+      "text": "# -- End  testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .data", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .note.GNU-stack, \"\"", 
+      "source": null
+    }, 
+    {
+      "text": "// -- Begin DWARF2 SEGMENT .debug_info", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .debug_info", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_info_seg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x000000b5", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0004", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_abbrev_seg", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x08", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_compile_unit:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_comp_dir:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0xe", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_producer:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0x47", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0xb3", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_language:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x04", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_use_UTF8:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_low_pc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte ..LN0", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_high_pc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte ..LN_Z12testFunctionPii.30-..LN0", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_stmt_list:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_line_seg", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_namespace:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x02", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00647473", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_namespace:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0xf2", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_namespace:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0xfc", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_base_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x04", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_byte_size:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x04", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_encoding:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x05", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00746e69", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_subprogram:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x05", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_file:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00000041", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0x107", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0x114", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_low_pc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte ..L3", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_high_pc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte ..LN_Z12testFunctionPii.30-..L3", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_external:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_formal_parameter:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x06", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_file:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x000000b3", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0x128", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_location:", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x7602", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x68", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_formal_parameter:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x06", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_file:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00000041", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte .debug_str+0x12e", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_location:", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x7602", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x70", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_variable:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x07", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x02", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_file:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x006d7573", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00000041", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_location:", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x7602", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x60", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_lexical_block:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x08", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_file:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_low_pc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte ..LN6", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_high_pc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte ..LN25", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_variable:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x07", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_decl_file:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_name:", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0069", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00000041", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_location:", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x7602", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x64", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_TAG_pointer_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x09", 
+      "source": null
+    }, 
+    {
+      "text": "//      DW_AT_type:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00000041", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "// -- Begin DWARF2 SEGMENT .debug_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .debug_line", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_line_seg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align 1", 
+      "source": null
+    }, 
+    {
+      "text": "// -- Begin DWARF2 SEGMENT .debug_abbrev", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .debug_abbrev", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_abbrev_seg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x1b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x25", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x7681", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x53", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0c", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x12", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x07", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x10", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x17", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x02", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x39", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x08", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x39", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x04", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x24", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x08", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x05", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x2e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x4087", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x12", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x07", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3f", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0c", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x06", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x05", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x02", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x18", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x07", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x34", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x03", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x08", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x02", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x18", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x08", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0b", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x12", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x01", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x09", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x0f", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0000", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "// -- Begin DWARF2 SEGMENT .debug_frame", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .debug_frame", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_frame_seg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align 1", 
+      "source": null
+    }, 
+    {
+      "text": "// -- Begin DWARF2 SEGMENT .debug_str", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .debug_str,\"MS\",@progbits,1", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_str_seg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x7078652d6363672f", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x65726f6c", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0072", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6363672f706d742f", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x65726f6c7078652d", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6c69706d6f632d72", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x3131313631317265", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x7a78312d36372d36", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6178652f72326d74", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x7070632e656c706d", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x2952286c65746e49", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6c65746e49204320", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x4320343620295228", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x2072656c69706d6f", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6c70706120726f66", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x736e6f6974616369", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x676e696e6e757220", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x65746e49206e6f20", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x2c3436202952286c", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6e6f697372655620", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x2e302e302e373120", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6c69754220383930", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x3730363130322064", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x000a3132", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x742f206f2d20672d", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x652d6363672f706d", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x2d7265726f6c7078", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x72656c69706d6f63", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x2d36313131363131", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6d747a78312d3637", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x757074756f2f7232", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x20732e74", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x532d", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x78635f756e675f5f", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0078", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6962617878635f5f", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x3176", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x636e754674736574", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x6e6f6974", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x7473657432315a5f", 
+      "source": null
+    }, 
+    {
+      "text": "        .8byte 0x6e6f6974636e7546", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x00696950", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x75706e69", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x0074", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte 0x676e656c", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte 0x6874", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte 0x00", 
+      "source": null
+    }, 
+    {
+      "text": "// -- Begin DWARF2 SEGMENT .eh_frame", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .eh_frame,\"a\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".eh_frame_seg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align 8", 
+      "source": null
+    }, 
+    {
+      "text": "        .section .text", 
+      "source": null
+    }, 
+    {
+      "text": ".LNDBG_TXe:", 
+      "source": null
+    }, 
+    {
+      "text": "# End", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

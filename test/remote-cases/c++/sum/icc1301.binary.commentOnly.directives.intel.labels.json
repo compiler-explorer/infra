@@ -1,0 +1,128 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "L__routine_start__Z12testFunctionPii_0:", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        push      rbp                                           #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov       rbp, rsp                                      #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        sub       rsp, 32                                       #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov       QWORD PTR [-24+rbp], rdi                      #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov       DWORD PTR [-16+rbp], esi                      #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov       DWORD PTR [-32+rbp], 0                        #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov       DWORD PTR [-28+rbp], 0                        #3.14", 
+      "source": 3
+    }, 
+    {
+      "text": "..B1.2:                         # Preds ..B1.3 ..B1.1", 
+      "source": null
+    }, 
+    {
+      "text": "        mov       eax, DWORD PTR [-28+rbp]                      #3.19", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov       edx, DWORD PTR [-16+rbp]                      #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp       eax, edx                                      #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "        jge       ..B1.4        # Prob 50%                      #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov       eax, DWORD PTR [-28+rbp]                      #4.18", 
+      "source": 4
+    }, 
+    {
+      "text": "        movsxd    rax, eax                                      #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        imul      rax, rax, 4                                   #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        add       rax, QWORD PTR [-24+rbp]                      #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov       eax, DWORD PTR [rax]                          #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        add       eax, DWORD PTR [-32+rbp]                      #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov       DWORD PTR [-32+rbp], eax                      #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov       eax, 1                                        #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "        add       eax, DWORD PTR [-28+rbp]                      #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov       DWORD PTR [-28+rbp], eax                      #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "        jmp       ..B1.2        # Prob 100%                     #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "..B1.4:                         # Preds ..B1.2", 
+      "source": null
+    }, 
+    {
+      "text": "        mov       eax, DWORD PTR [-32+rbp]                      #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "        leave                                                   #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "        ret                                                     #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

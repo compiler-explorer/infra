@@ -1,0 +1,104 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "int example.square(int):", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     DWORD PTR [rbp-4], edi", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     eax, DWORD PTR [rbp-4]", 
+      "source": 3
+    }, 
+    {
+      "text": "        imul    eax, DWORD PTR [rbp-4]", 
+      "source": 3
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 4
+    }, 
+    {
+      "text": "        ret", 
+      "source": 4
+    }, 
+    {
+      "text": "_D7example12__ModuleInfoZ:", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   4100", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .string \"example\"", 
+      "source": null
+    }, 
+    {
+      "text": "__mod_ref.1989:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   _D7example12__ModuleInfoZ", 
+      "source": null
+    }, 
+    {
+      "text": "void example.__modinit():", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rax, QWORD PTR _Dmodule_ref[rip]", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     QWORD PTR __mod_ref.1989[rip], rax", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     QWORD PTR _Dmodule_ref[rip], OFFSET FLAT:__mod_ref.1989", 
+      "source": 3
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        ret", 
+      "source": 1
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

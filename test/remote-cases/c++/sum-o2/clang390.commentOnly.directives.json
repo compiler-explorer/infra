@@ -1,0 +1,484 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):                    # @testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": ".Lfunc_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp0:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 1
+    }, 
+    {
+      "text": ".Ltmp1:", 
+      "source": null
+    }, 
+    {
+      "text": "        testl   %esi, %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .LBB0_13", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp2:", 
+      "source": null
+    }, 
+    {
+      "text": "        leal    -1(%rsi), %r9d", 
+      "source": 4
+    }, 
+    {
+      "text": "        incq    %r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        xorl    %ecx, %ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmpq    $7, %r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl    $0, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        jbe     .LBB0_2", 
+      "source": 4
+    }, 
+    {
+      "text": "        xorl    %ecx, %ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        movabsq $8589934584, %r8        # imm = 0x1FFFFFFF8", 
+      "source": 4
+    }, 
+    {
+      "text": "        andq    %r9, %r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl    $0, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_2", 
+      "source": 4
+    }, 
+    {
+      "text": "        leaq    -8(%r8), %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        movq    %rcx, %r10", 
+      "source": 4
+    }, 
+    {
+      "text": "        shrq    $3, %r10", 
+      "source": 4
+    }, 
+    {
+      "text": "        leal    1(%r10), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        andl    $3, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        xorl    %edx, %edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmpq    $24, %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        jae     .LBB0_7", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm0, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm1, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        jmp     .LBB0_9", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_7:", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    -1(%rax), %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        subq    %r10, %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm0, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        xorl    %edx, %edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm1, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_8:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  (%rdi,%rdx,4), %xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  16(%rdi,%rdx,4), %xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm0, %xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  32(%rdi,%rdx,4), %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  48(%rdi,%rdx,4), %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  64(%rdi,%rdx,4), %xmm4", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  80(%rdi,%rdx,4), %xmm5", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm0, %xmm4", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm2, %xmm4", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm5", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm3, %xmm5", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  96(%rdi,%rdx,4), %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  112(%rdi,%rdx,4), %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        leaq    32(%rdx), %rdx", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm4, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm5, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq    $4, %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_8", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_9:", 
+      "source": null
+    }, 
+    {
+      "text": "        testq   %rax, %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_12", 
+      "source": 4
+    }, 
+    {
+      "text": "        leaq    16(%rdi,%rdx,4), %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        negq    %rax", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_11:                               # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  -16(%rcx), %xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  (%rcx), %xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm2, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm3, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq    $32, %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        incq    %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_11", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_12:", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  $78, %xmm0, %xmm1       # xmm1 = xmm0[2,3,0,1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm0, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  $229, %xmm1, %xmm0      # xmm0 = xmm1[1,1,2,3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movd    %xmm0, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmpq    %r8, %r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        movq    %r8, %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_13", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_2:", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    (%rdi,%rcx,4), %rdx", 
+      "source": 4
+    }, 
+    {
+      "text": "        subl    %ecx, %esi", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_3:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    (%rdx), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp3:", 
+      "source": null
+    }, 
+    {
+      "text": "        addq    $4, %rdx", 
+      "source": 3
+    }, 
+    {
+      "text": "        decl    %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_3", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_13:", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": 6
+    }, 
+    {
+      "text": ".Ltmp5:", 
+      "source": null
+    }, 
+    {
+      "text": ".Lfunc_end0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string1:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string2:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string3:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string4:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string5:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string6:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string7:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string8:", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string9:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_loc0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_loc1:", 
+      "source": null
+    }, 
+    {
+      "text": ".Lsection_abbrev:", 
+      "source": null
+    }, 
+    {
+      "text": ".Lsection_info:", 
+      "source": null
+    }, 
+    {
+      "text": ".Lcu_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_range:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_macinfo:", 
+      "source": null
+    }, 
+    {
+      "text": ".Lcu_macro_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubNames_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubNames_end0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubTypes_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubTypes_end0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": ".Lline_table_start0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

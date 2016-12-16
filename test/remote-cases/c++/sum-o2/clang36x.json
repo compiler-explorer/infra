@@ -1,0 +1,2104 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "        .text", 
+      "source": null
+    }, 
+    {
+      "text": "        .file   \"/tmp/example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_info,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Lsection_info:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_abbrev,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Lsection_abbrev:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_line,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Lsection_line:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_pubnames,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_pubtypes,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_str,\"MS\",@progbits,1", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_loc,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Lsection_debug_loc:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_ranges,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_range:", 
+      "source": null
+    }, 
+    {
+      "text": "        .text", 
+      "source": null
+    }, 
+    {
+      "text": "        .globl  testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .align  16, 0x90", 
+      "source": null
+    }, 
+    {
+      "text": "        .type   testFunction(int*, int),@function", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):                    # @testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": ".Lfunc_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .file   1 \"/tmp", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 1 0                   # /tmp/example.cpp:1:0", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_startproc", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#0:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # kill: ESI<def> ESI<kill> RSI<def>", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp0:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: i <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 1
+    }, 
+    {
+      "text": "        .loc    1 3 3 prologue_end      # /tmp/example.cpp:3:3", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp1:", 
+      "source": null
+    }, 
+    {
+      "text": "        testl   %esi, %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .LBB0_13", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp2:", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#1:                                 # %.lr.ph", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: i <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        leal    -1(%rsi), %r8d", 
+      "source": 3
+    }, 
+    {
+      "text": "        leaq    1(%r8), %r9", 
+      "source": 3
+    }, 
+    {
+      "text": "        xorl    %ecx, %ecx", 
+      "source": 3
+    }, 
+    {
+      "text": "        movabsq $8589934584, %rdx       # imm = 0x1FFFFFFF8", 
+      "source": 3
+    }, 
+    {
+      "text": "        andq    %r9, %rdx", 
+      "source": 3
+    }, 
+    {
+      "text": "        pxor    %xmm0, %xmm0", 
+      "source": 3
+    }, 
+    {
+      "text": "        pxor    %xmm1, %xmm1", 
+      "source": 3
+    }, 
+    {
+      "text": "        je      .LBB0_5", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp3:", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#2:                                 # %vector.body.preheader", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: i <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    16(%rdi), %rcx", 
+      "source": 3
+    }, 
+    {
+      "text": "        .loc    1 4 12                  # /tmp/example.cpp:4:12", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp4:", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    1(%r8), %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        andq    $-8, %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm0, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm1, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp5:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align  16, 0x90", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_3:                                # %vector.body", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: i <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqa  %xmm1, %xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqa  %xmm0, %xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  -16(%rcx), %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  (%rcx), %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        .loc    1 4 5 is_stmt 0         # /tmp/example.cpp:4:5", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd   %xmm3, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm2, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp6:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 3 3 is_stmt 1         # /tmp/example.cpp:3:3", 
+      "source": null
+    }, 
+    {
+      "text": "        addq    $32, %rcx", 
+      "source": 3
+    }, 
+    {
+      "text": "        addq    $-8, %rax", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_3", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp7:", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#4:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdx, %rcx", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp8:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_5:                                # %middle.block", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: i <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 4 5                   # /tmp/example.cpp:4:5", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  $78, %xmm0, %xmm1       # xmm1 = xmm0[2,3,0,1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm0, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  $-27, %xmm1, %xmm0      # xmm0 = xmm1[1,1,2,3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movd    %xmm0, %r10d", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmpq    %rcx, %r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_7", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp9:", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#6:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    %r10d, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 6 3                   # /tmp/example.cpp:6:3", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": 6
+    }, 
+    {
+      "text": ".LBB0_7:                                # %scalar.ph.preheader", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp10:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    %esi, %edx", 
+      "source": 6
+    }, 
+    {
+      "text": "        subl    %ecx, %edx", 
+      "source": 6
+    }, 
+    {
+      "text": "        subl    %ecx, %r8d", 
+      "source": 6
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 6
+    }, 
+    {
+      "text": "        testb   $3, %dl", 
+      "source": 6
+    }, 
+    {
+      "text": "        je      .LBB0_10", 
+      "source": 6
+    }, 
+    {
+      "text": ".Ltmp11:", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#8:                                 # %scalar.ph.prol.preheader", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 4 12                  # /tmp/example.cpp:4:12", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    %esi, %edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        subl    %ecx, %edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        andl    $3, %edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        negl    %edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl    %r10d, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp12:", 
+      "source": null
+    }, 
+    {
+      "text": "        .align  16, 0x90", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_9:                                # %scalar.ph.prol", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 4 5 is_stmt 0         # /tmp/example.cpp:4:5", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    (%rdi,%rcx,4), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp13:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- EAX", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 3 3 is_stmt 1         # /tmp/example.cpp:3:3", 
+      "source": null
+    }, 
+    {
+      "text": "        incq    %rcx", 
+      "source": 3
+    }, 
+    {
+      "text": "        incl    %edx", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl    %eax, %r10d", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_9", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp14:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_10:                               # %scalar.ph.preheader.split", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpl    $3, %r8d", 
+      "source": 3
+    }, 
+    {
+      "text": "        jb      .LBB0_13", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp15:", 
+      "source": null
+    }, 
+    {
+      "text": "# BB#11:                                # %scalar.ph.preheader.split.split", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:input <- RDI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:length <- ESI", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 4 12                  # /tmp/example.cpp:4:12", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    3(%rcx), %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        leaq    12(%rdi,%rcx,4), %rdi", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp16:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    $3, %esi", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp17:", 
+      "source": null
+    }, 
+    {
+      "text": "        subl    %eax, %esi", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl    %r10d, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        .align  16, 0x90", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_12:                               # %scalar.ph", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 4 5 is_stmt 0         # /tmp/example.cpp:4:5", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    -12(%rdi), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp18:", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- EAX", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    -8(%rdi), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp19:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    -4(%rdi), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        addl    (%rdi), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": ".Ltmp20:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 3 3 is_stmt 1         # /tmp/example.cpp:3:3", 
+      "source": null
+    }, 
+    {
+      "text": "        addq    $4, %rcx", 
+      "source": 3
+    }, 
+    {
+      "text": "        addq    $16, %rdi", 
+      "source": 3
+    }, 
+    {
+      "text": "        addl    $-4, %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_12", 
+      "source": 3
+    }, 
+    {
+      "text": ".Ltmp21:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB0_13:                               # %._crit_edge", 
+      "source": null
+    }, 
+    {
+      "text": "        #DEBUG_VALUE: testFunction:sum <- 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc    1 6 3                   # /tmp/example.cpp:6:3", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": 6
+    }, 
+    {
+      "text": ".Ltmp22:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp23:", 
+      "source": null
+    }, 
+    {
+      "text": "        .size   testFunction(int*, int), .Ltmp23-testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": ".Lfunc_end0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_endproc", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_end0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_str,\"MS\",@progbits,1", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"clang version 3.6.2 (tags/RELEASE_362/final)\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string1:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"/tmp/example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"/gcc-explorer\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string3:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"testFunction(int*, int)\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string4:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"testFunction\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string5:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"int\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string6:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"input\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string7:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"length\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string8:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"i\"", 
+      "source": null
+    }, 
+    {
+      "text": ".Linfo_string9:", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"sum\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_info,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".L.debug_info_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   144                     # Length of Unit", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  4                       # DWARF version number", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Lsection_abbrev        # Offset Into Abbrev. Section", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   8                       # Address Size (in bytes)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # Abbrev [1] 0xb:0x89 DW_TAG_compile_unit", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string0          # DW_AT_producer", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  4                       # DW_AT_language", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string1          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Lline_table_start0     # DW_AT_stmt_list", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string2          # DW_AT_comp_dir", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # DW_AT_APPLE_optimized", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Lfunc_begin0           # DW_AT_low_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Lfunc_end0-.Lfunc_begin0 # DW_AT_high_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   2                       # Abbrev [2] 0x2a:0x5d DW_TAG_subprogram", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Lfunc_begin0           # DW_AT_low_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Lfunc_end0-.Lfunc_begin0 # DW_AT_high_pc", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # DW_AT_APPLE_omit_frame_ptr", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_frame_base", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   87", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string3          # DW_AT_MIPS_linkage_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string4          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   135                     # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # DW_AT_external", 
+      "source": null
+    }, 
+    {
+      "text": "                                        # DW_AT_APPLE_optimized", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # Abbrev [3] 0x47:0xf DW_TAG_formal_parameter", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Ldebug_loc0            # DW_AT_location", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string6          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   142                     # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # Abbrev [3] 0x56:0xf DW_TAG_formal_parameter", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Ldebug_loc1            # DW_AT_location", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string7          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   135                     # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # Abbrev [4] 0x65:0xf DW_TAG_variable", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Ldebug_loc2            # DW_AT_location", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string9          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   2                       # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   135                     # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   5                       # Abbrev [5] 0x74:0x12 DW_TAG_lexical_block", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Ldebug_ranges0         # DW_AT_ranges", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   6                       # Abbrev [6] 0x79:0xc DW_TAG_variable", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # DW_AT_const_value", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string8          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   135                     # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # End Of Children Mark", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # End Of Children Mark", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   7                       # Abbrev [7] 0x87:0x7 DW_TAG_base_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .Linfo_string5          # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   5                       # DW_AT_encoding", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # DW_AT_byte_size", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   8                       # Abbrev [8] 0x8e:0x5 DW_TAG_pointer_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   135                     # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # End Of Children Mark", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_abbrev,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   17                      # DW_TAG_compile_unit", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_CHILDREN_yes", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   37                      # DW_AT_producer", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   19                      # DW_AT_language", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   5                       # DW_FORM_data2", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   16                      # DW_AT_stmt_list", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   23                      # DW_FORM_sec_offset", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   27                      # DW_AT_comp_dir", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"\\341\\177\"              # DW_AT_APPLE_optimized", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   25                      # DW_FORM_flag_present", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   17                      # DW_AT_low_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_FORM_addr", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   18                      # DW_AT_high_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   6                       # DW_FORM_data4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   2                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   46                      # DW_TAG_subprogram", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_CHILDREN_yes", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   17                      # DW_AT_low_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_FORM_addr", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   18                      # DW_AT_high_pc", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   6                       # DW_FORM_data4", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"\\347\\177\"              # DW_AT_APPLE_omit_frame_ptr", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   25                      # DW_FORM_flag_present", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   64                      # DW_AT_frame_base", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   24                      # DW_FORM_exprloc", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"\\207@\"                 # DW_AT_MIPS_linkage_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   58                      # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   59                      # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   73                      # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   19                      # DW_FORM_ref4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   63                      # DW_AT_external", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   25                      # DW_FORM_flag_present", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"\\341\\177\"              # DW_AT_APPLE_optimized", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   25                      # DW_FORM_flag_present", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   5                       # DW_TAG_formal_parameter", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # DW_CHILDREN_no", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   2                       # DW_AT_location", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   23                      # DW_FORM_sec_offset", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   58                      # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   59                      # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   73                      # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   19                      # DW_FORM_ref4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   52                      # DW_TAG_variable", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # DW_CHILDREN_no", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   2                       # DW_AT_location", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   23                      # DW_FORM_sec_offset", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   58                      # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   59                      # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   73                      # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   19                      # DW_FORM_ref4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   5                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_TAG_lexical_block", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   1                       # DW_CHILDREN_yes", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   85                      # DW_AT_ranges", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   23                      # DW_FORM_sec_offset", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   6                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   52                      # DW_TAG_variable", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # DW_CHILDREN_no", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   28                      # DW_AT_const_value", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   13                      # DW_FORM_sdata", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   58                      # DW_AT_decl_file", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   59                      # DW_AT_decl_line", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   73                      # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   19                      # DW_FORM_ref4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   7                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   36                      # DW_TAG_base_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # DW_CHILDREN_no", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   3                       # DW_AT_name", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   14                      # DW_FORM_strp", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   62                      # DW_AT_encoding", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_AT_byte_size", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   11                      # DW_FORM_data1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   8                       # Abbreviation Code", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   15                      # DW_TAG_pointer_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # DW_CHILDREN_no", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   73                      # DW_AT_type", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   19                      # DW_FORM_ref4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(1)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(2)", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # EOM(3)", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_ranges,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_ranges0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp1-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp9-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp11-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp21-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_loc,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_loc0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Lfunc_begin0-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp9-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp25-.Ltmp24         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp24:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   85                      # DW_OP_reg5", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp25:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp10-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp16-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp27-.Ltmp26         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp26:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   85                      # DW_OP_reg5", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp27:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_loc1:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Lfunc_begin0-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp0-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp29-.Ltmp28         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp28:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   84                      # super-register DW_OP_reg4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   147                     # DW_OP_piece", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # 4", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp29:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp2-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp9-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp31-.Ltmp30         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp30:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   84                      # super-register DW_OP_reg4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   147                     # DW_OP_piece", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # 4", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp31:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp10-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp17-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp33-.Ltmp32         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp32:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   84                      # super-register DW_OP_reg4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   147                     # DW_OP_piece", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # 4", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp33:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_loc2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp0-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp13-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp35-.Ltmp34         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp34:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   17                      # DW_OP_consts", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   159                     # DW_OP_stack_value", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp35:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp13-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp14-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp37-.Ltmp36         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp36:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   80                      # super-register DW_OP_reg0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   147                     # DW_OP_piece", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # 4", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp37:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp14-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp18-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp39-.Ltmp38         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp38:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   17                      # DW_OP_consts", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   159                     # DW_OP_stack_value", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp39:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp18-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp19-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp41-.Ltmp40         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp40:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   80                      # super-register DW_OP_reg0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   147                     # DW_OP_piece", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   4                       # 4", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp41:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Ltmp21-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   .Lfunc_end0-.Lfunc_begin0", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  .Ltmp43-.Ltmp42         # Loc expr size", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp42:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   17                      # DW_OP_consts", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0                       # 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   159                     # DW_OP_stack_value", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltmp43:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_pubnames,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .LpubNames_end0-.LpubNames_begin0 # Length of Public Names Info", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubNames_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  2                       # DWARF Version", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .L.debug_info_begin0    # Offset of Compilation Unit Info", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   148                     # Compilation Unit Length", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   42                      # DIE offset", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"testFunction\"          # External Name", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   0                       # End Mark", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubNames_end0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_pubtypes,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .LpubTypes_end0-.LpubTypes_begin0 # Length of Public Types Info", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubTypes_begin0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .short  2                       # DWARF Version", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   .L.debug_info_begin0    # Offset of Compilation Unit Info", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   148                     # Compilation Unit Length", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   135                     # DIE offset", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"int\"                   # External Name", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   0                       # End Mark", 
+      "source": null
+    }, 
+    {
+      "text": ".LpubTypes_end0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "        .ident  \"clang version 3.6.2 (tags/RELEASE_362/final)\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        \".note.GNU-stack\",\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_line,\"\",@progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Lline_table_start0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

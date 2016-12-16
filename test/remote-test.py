@@ -1,0 +1,107 @@
+#!/usr/bin/env python
+import glob
+import json
+import os
+import requests
+from argparse import ArgumentParser
+
+import re
+import sys
+
+parser = ArgumentParser()
+parser.add_argument('url')
+parser.add_argument('directory')
+parser.add_argument('--update-compilers', action='store_true')
+parser.add_argument('--bless', action='store_true')
+
+FILTERS = [
+    [],
+    ['labels', 'directives', 'commentOnly', 'intel'],
+    ['labels', 'directives', 'commentOnly'],
+    ['directives', 'commentOnly'],
+    ['directives'],
+    ['binary', 'labels', 'directives', 'commentOnly', 'intel'],
+    ['binary', 'labels', 'directives', 'commentOnly'],
+]
+
+
+def get(url, compiler, options, source, filters):
+    r = requests.post(url + 'compile', json={
+        'source': source,
+        'compiler': compiler,
+        'options': options,
+        'filters': {key: True for key in filters}
+    })
+    r.raise_for_status()
+
+    def fixup(obj):
+        obj['text'] = re.sub(r'/tmp/gcc-explorer-[^/]+', '/tmp', obj['text'])
+        return obj
+
+    result = r.json()
+    if not 'asm' in result:
+        result['asm'] = []
+    result['asm'] = [fixup(obj) for obj in result['asm']]
+    return result
+
+
+def get_compilers(url):
+    r = requests.get(url + 'api/compilers')
+    r.raise_for_status()
+    return list(sorted([url['id'] for url in r.json()]))
+
+
+def main(args):
+    compilers = get_compilers(args.url)
+    compiler_json = os.path.join(args.directory, 'compilers.json')
+    compiler_map = {}
+    if os.path.exists(compiler_json):
+        compiler_map = json.load(open(compiler_json))
+    if args.update_compilers:
+        for compiler in compilers:
+            if compiler not in compiler_map:
+                print "New compiler: " + compiler
+                compiler_map[compiler] = True
+        for compiler in compiler_map:
+            if compiler not in compilers:
+                print "Compiler removed: " + compiler
+                del compiler_map[compiler]
+        with open(compiler_json, 'w') as f:
+            f.write(json.dumps(compiler_map, indent=2))
+        print "Compilers updated to " + compiler_json
+        return 0
+    else:
+        compilers = list(sorted(compilers))
+        expected = list(sorted(compiler_map.keys()))
+        if expected != compilers:
+            raise RuntimeError('Compiler list changed: got {} expected {}'.format(compilers, expected))
+    for test_dir in glob.glob(os.path.join(args.directory, '*')):
+        if not os.path.isdir(test_dir):
+            continue
+        print 'Testing ' + test_dir
+        source_name = glob.glob(os.path.join(test_dir, 'test.*'))[0]
+        source = open(source_name).read()
+        options = open(os.path.join(test_dir, 'options')).read()
+        for compiler, enabled in compiler_map.iteritems():
+            if not enabled:
+                print ' Skipping compiler ' + compiler
+                continue
+            print ' Compiler ' + compiler
+            for filter_set in FILTERS:
+                print '  Filters ' + '; '.join(filter_set)
+                expected_filename = [compiler]
+                expected_filename.extend(sorted(filter_set))
+                expected_filename.append('json')
+                expected_file = os.path.join(test_dir, ".".join(expected_filename))
+                result = get(args.url, compiler, options, source, filter_set)
+                if args.bless:
+                    with open(expected_file, 'w') as f:
+                        f.write(json.dumps(result, indent=2))
+                else:
+                    expected = json.load(open(expected_file))
+                    if expected != result:
+                        raise RuntimeError('Differences in {}'.format(expected_file))
+
+
+if __name__ == '__main__':
+    sys.exit(main(parser.parse_args()))

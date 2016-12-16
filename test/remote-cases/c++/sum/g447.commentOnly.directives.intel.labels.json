@@ -1,0 +1,112 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     QWORD PTR [rbp-24], rdi", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     DWORD PTR [rbp-28], esi", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     DWORD PTR [rbp-4], 0", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     DWORD PTR [rbp-8], 0", 
+      "source": 3
+    }, 
+    {
+      "text": "        jmp     .L2", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     eax, DWORD PTR [rbp-8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        cdqe", 
+      "source": 4
+    }, 
+    {
+      "text": "        sal     rax, 2", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rax, QWORD PTR [rbp-24]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, DWORD PTR [rax]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     DWORD PTR [rbp-4], eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     DWORD PTR [rbp-8], 1", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     eax, DWORD PTR [rbp-8]", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     eax, DWORD PTR [rbp-28]", 
+      "source": 3
+    }, 
+    {
+      "text": "        setl    al", 
+      "source": 3
+    }, 
+    {
+      "text": "        test    al, al", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     eax, DWORD PTR [rbp-4]", 
+      "source": 6
+    }, 
+    {
+      "text": "        leave", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

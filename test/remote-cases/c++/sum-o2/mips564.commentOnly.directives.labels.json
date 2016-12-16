@@ -1,0 +1,100 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": 1
+    }, 
+    {
+      "text": "        blez    $5,.L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        addiu   $3,$5,-1", 
+      "source": 3
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "        dext    $3,$3,0,32", 
+      "source": 3
+    }, 
+    {
+      "text": "        daddiu  $3,$3,1", 
+      "source": 3
+    }, 
+    {
+      "text": "        dsll    $3,$3,2", 
+      "source": 3
+    }, 
+    {
+      "text": "        daddu   $3,$4,$3", 
+      "source": 3
+    }, 
+    {
+      "text": "        move    $2,$0", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        lw      $5,0($4)", 
+      "source": 4
+    }, 
+    {
+      "text": "        daddiu  $4,$4,4", 
+      "source": 4
+    }, 
+    {
+      "text": "        bne     $4,$3,.L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        addu    $2,$5,$2", 
+      "source": 3
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "        j       $31", 
+      "source": 3
+    }, 
+    {
+      "text": "        nop", 
+      "source": 3
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        j       $31", 
+      "source": 7
+    }, 
+    {
+      "text": "        move    $2,$0", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

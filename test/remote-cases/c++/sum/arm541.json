@@ -1,0 +1,1175 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "        .cpu arm7tdmi", 
+      "source": null
+    }, 
+    {
+      "text": "        .fpu softvfp", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 20, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 21, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 23, 3", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 24, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 25, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 26, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 30, 6", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 34, 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .eabi_attribute 18, 4", 
+      "source": null
+    }, 
+    {
+      "text": "        .arm", 
+      "source": null
+    }, 
+    {
+      "text": "        .syntax divided", 
+      "source": null
+    }, 
+    {
+      "text": "        .file   \"example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .text", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltext0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_sections   .debug_frame", 
+      "source": null
+    }, 
+    {
+      "text": "        .align  2", 
+      "source": null
+    }, 
+    {
+      "text": "        .global testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .type   testFunction(int*, int), %function", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        .fnstart", 
+      "source": null
+    }, 
+    {
+      "text": ".LFB0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .file 1 \"/tmp/example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc 1 1 0", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_startproc", 
+      "source": null
+    }, 
+    {
+      "text": "        @ Function supports interworking.", 
+      "source": null
+    }, 
+    {
+      "text": "        @ args = 0, pretend = 0, frame = 16", 
+      "source": null
+    }, 
+    {
+      "text": "        @ frame_needed = 1, uses_anonymous_args = 0", 
+      "source": null
+    }, 
+    {
+      "text": "        @ link register save eliminated.", 
+      "source": null
+    }, 
+    {
+      "text": "        str     fp, [sp, #-4]!", 
+      "source": 1
+    }, 
+    {
+      "text": "        .cfi_def_cfa_offset 4", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_offset 11, -4", 
+      "source": null
+    }, 
+    {
+      "text": "        add     fp, sp, #0", 
+      "source": 1
+    }, 
+    {
+      "text": "        .cfi_def_cfa_register 11", 
+      "source": null
+    }, 
+    {
+      "text": "        sub     sp, sp, #20", 
+      "source": 1
+    }, 
+    {
+      "text": "        str     r0, [fp, #-16]", 
+      "source": 1
+    }, 
+    {
+      "text": "        str     r1, [fp, #-20]", 
+      "source": 1
+    }, 
+    {
+      "text": "        .loc 1 2 0", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     r3, #0", 
+      "source": 2
+    }, 
+    {
+      "text": "        str     r3, [fp, #-8]", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBB2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc 1 3 0", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     r3, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        str     r3, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc 1 3 0 is_stmt 0 discriminator 3", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r2, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-20]", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     r2, r3", 
+      "source": 3
+    }, 
+    {
+      "text": "        bge     .L2", 
+      "source": 3
+    }, 
+    {
+      "text": "        .loc 1 4 0 is_stmt 1 discriminator 2", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-12]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     r3, r3, asl #2", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r2, [fp, #-16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     r3, r2, r3", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r3, [r3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r2, [fp, #-8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     r3, r2, r3", 
+      "source": 4
+    }, 
+    {
+      "text": "        str     r3, [fp, #-8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        .loc 1 3 0 discriminator 2", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     r3, r3, #1", 
+      "source": 3
+    }, 
+    {
+      "text": "        str     r3, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        b       .L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .loc 1 6 0", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-8]", 
+      "source": 6
+    }, 
+    {
+      "text": "        .loc 1 7 0", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     r0, r3", 
+      "source": 7
+    }, 
+    {
+      "text": "        sub     sp, fp, #0", 
+      "source": 7
+    }, 
+    {
+      "text": "        .cfi_def_cfa_register 13", 
+      "source": null
+    }, 
+    {
+      "text": "        @ sp needed", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     fp, [sp], #4", 
+      "source": 7
+    }, 
+    {
+      "text": "        .cfi_restore 11", 
+      "source": null
+    }, 
+    {
+      "text": "        .cfi_def_cfa_offset 0", 
+      "source": null
+    }, 
+    {
+      "text": "        bx      lr", 
+      "source": 7
+    }, 
+    {
+      "text": "        .cfi_endproc", 
+      "source": null
+    }, 
+    {
+      "text": ".LFE0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .cantunwind", 
+      "source": null
+    }, 
+    {
+      "text": "        .fnend", 
+      "source": null
+    }, 
+    {
+      "text": "        .size   testFunction(int*, int), .-testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": ".Letext0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_info,\"\",%progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_info0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x89", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte  0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Ldebug_abbrev0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LASF2", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LASF3", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Ltext0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Letext0-.Ltext0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Ldebug_line0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LASF4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LASF5", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x7f", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LFB0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LFE0-.LFB0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x9c", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x7f", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LASF0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x86", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x91", 
+      "source": null
+    }, 
+    {
+      "text": "        .sleb128 -20", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LASF1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x7f", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x91", 
+      "source": null
+    }, 
+    {
+      "text": "        .sleb128 -24", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"sum\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x7f", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x91", 
+      "source": null
+    }, 
+    {
+      "text": "        .sleb128 -12", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x5", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LBB2", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .LBE2-.LBB2", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"i\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x7f", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x91", 
+      "source": null
+    }, 
+    {
+      "text": "        .sleb128 -16", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x6", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x5", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"int\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x7", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x7f", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_abbrev,\"\",%progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_abbrev0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x25", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xe", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xe", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x12", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x6", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x10", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x17", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2e", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3f", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x19", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xe", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x6e", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xe", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x12", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x6", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x40", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x18", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2117", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x19", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x5", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xe", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x18", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x34", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x8", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3a", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3b", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x18", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x5", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x11", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x1", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x12", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x6", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x6", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x24", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3e", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x3", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x8", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x7", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xf", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0xb", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x49", 
+      "source": null
+    }, 
+    {
+      "text": "        .uleb128 0x13", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_aranges,\"\",%progbits", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0x1c", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte  0x2", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Ldebug_info0", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0x4", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte  0", 
+      "source": null
+    }, 
+    {
+      "text": "        .2byte  0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Ltext0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  .Letext0-.Ltext0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0", 
+      "source": null
+    }, 
+    {
+      "text": "        .4byte  0", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_line,\"\",%progbits", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_line0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .section        .debug_str,\"MS\",%progbits,1", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF4:", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"testFunction\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF1:", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"length\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF3:", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"/tmp/example\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \".cpp\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"input\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF5:", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"testFunction(int*, int)\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"GNU C++ 5.4.1 20160919 (release) [ARM/embedded-5-br\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .ascii  \"anch revision 240496] -g\\000\"", 
+      "source": null
+    }, 
+    {
+      "text": "        .ident  \"GCC: (GNU Tools for ARM Embedded Processors) 5.4.1 20160919 (release) [ARM/embedded-5-branch revision 240496]\"", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }, 
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }
+  ], 
+  "stdout": []
+}

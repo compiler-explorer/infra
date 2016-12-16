@@ -1,0 +1,616 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "        .file   \"example.cpp\"", 
+      "source": null
+    }, 
+    {
+      "text": "__SREG__ = 0x3f", 
+      "source": null
+    }, 
+    {
+      "text": "__SP_H__ = 0x3e", 
+      "source": null
+    }, 
+    {
+      "text": "__SP_L__ = 0x3d", 
+      "source": null
+    }, 
+    {
+      "text": "__CCP__ = 0x34", 
+      "source": null
+    }, 
+    {
+      "text": "__tmp_reg__ = 0", 
+      "source": null
+    }, 
+    {
+      "text": "__zero_reg__ = 1", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"/gcc-explorer/\",100,0,4,.Ltext0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"/tmp/example.cpp\",100,0,4,.Ltext0", 
+      "source": null
+    }, 
+    {
+      "text": "        .text", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltext0:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"gcc2_compiled.\",60,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"__builtin_va_list:t(0,1)=*(0,2)=(0,2)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"complex long double:t(0,3)=R3;8;0;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"complex double:t(0,4)=R3;8;0;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"complex float:t(0,5)=R3;8;0;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"complex int:t(0,6)=s4real:(0,7)=r(0,7);-32768;32767;,0,16;imag:(0,7),16,16;;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"long long unsigned int:t(0,8)=@s64;r(0,8);0;01777777777777777777777;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"long unsigned int:t(0,9)=@s32;r(0,9);0;037777777777;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"unsigned int:t(0,10)=r(0,10);0;0177777;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"unsigned char:t(0,11)=@s8;r(0,11);0;255;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"long long int:t(0,12)=@s64;r(0,12);01000000000000000000000;0777777777777777777777;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"long int:t(0,13)=@s32;r(0,13);020000000000;017777777777;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"int:t(0,7)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"signed char:t(0,14)=@s8;r(0,14);-128;127;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"char:t(0,15)=r(0,15);0;127;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"signed:t(0,7)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"unsigned long:t(0,9)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"long long unsigned:t(0,8)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"short int:t(0,16)=r(0,16);-32768;32767;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"short unsigned int:t(0,17)=r(0,17);0;0177777;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"unsigned short:t(0,17)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"float:t(0,18)=r(0,7);4;0;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"double:t(0,19)=r(0,7);4;0;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"long double:t(0,20)=r(0,7);4;0;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"void:t(0,2)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"wchar_t:t(0,21)=r(0,21);-32768;32767;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"bool:t(0,22)=@s8;-16;\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"__vtbl_ptr_type:t(0,23)=*(0,24)=f(0,7)\",128,0,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"testFunction(int*, int):F(0,7)\",36,0,1,testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"input:p(0,25)=*(0,7)\",160,0,1,5", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"length:p(0,7)\",160,0,1,7", 
+      "source": null
+    }, 
+    {
+      "text": ".global testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .type   testFunction(int*, int), @function", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabd  46,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,1,.LM0-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LFBB1:", 
+      "source": null
+    }, 
+    {
+      "text": "        push r29", 
+      "source": 1
+    }, 
+    {
+      "text": "        push r28", 
+      "source": 1
+    }, 
+    {
+      "text": "        in r28,__SP_L__", 
+      "source": 1
+    }, 
+    {
+      "text": "        in r29,__SP_H__", 
+      "source": 1
+    }, 
+    {
+      "text": "        sbiw r28,8", 
+      "source": 1
+    }, 
+    {
+      "text": "        in __tmp_reg__,__SREG__", 
+      "source": 1
+    }, 
+    {
+      "text": "        cli", 
+      "source": 1
+    }, 
+    {
+      "text": "        out __SP_H__,r29", 
+      "source": 1
+    }, 
+    {
+      "text": "        out __SREG__,__tmp_reg__", 
+      "source": 1
+    }, 
+    {
+      "text": "        out __SP_L__,r28", 
+      "source": 1
+    }, 
+    {
+      "text": "/* prologue: function */", 
+      "source": null
+    }, 
+    {
+      "text": "/* frame size = 8 */", 
+      "source": null
+    }, 
+    {
+      "text": "/* stack size = 10 */", 
+      "source": null
+    }, 
+    {
+      "text": ".L__stack_usage = 10", 
+      "source": null
+    }, 
+    {
+      "text": "        std Y+6,r25", 
+      "source": 1
+    }, 
+    {
+      "text": "        std Y+5,r24", 
+      "source": 1
+    }, 
+    {
+      "text": "        std Y+8,r23", 
+      "source": 1
+    }, 
+    {
+      "text": "        std Y+7,r22", 
+      "source": 1
+    }, 
+    {
+      "text": ".LBB2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,2,.LM1-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM1:", 
+      "source": null
+    }, 
+    {
+      "text": "        std Y+2,__zero_reg__", 
+      "source": 2
+    }, 
+    {
+      "text": "        std Y+1,__zero_reg__", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBB3:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,3,.LM2-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM2:", 
+      "source": null
+    }, 
+    {
+      "text": "        std Y+4,__zero_reg__", 
+      "source": 3
+    }, 
+    {
+      "text": "        std Y+3,__zero_reg__", 
+      "source": 3
+    }, 
+    {
+      "text": "        rjmp .L2", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,4,.LM3-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldd r24,Y+3", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldd r25,Y+4", 
+      "source": 4
+    }, 
+    {
+      "text": "        lsl r24", 
+      "source": 4
+    }, 
+    {
+      "text": "        rol r25", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldd r18,Y+5", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldd r19,Y+6", 
+      "source": 4
+    }, 
+    {
+      "text": "        add r24,r18", 
+      "source": 4
+    }, 
+    {
+      "text": "        adc r25,r19", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov r30,r24", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov r31,r25", 
+      "source": 4
+    }, 
+    {
+      "text": "        ld r24,Z", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldd r25,Z+1", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldd r18,Y+1", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldd r19,Y+2", 
+      "source": 4
+    }, 
+    {
+      "text": "        add r24,r18", 
+      "source": 4
+    }, 
+    {
+      "text": "        adc r25,r19", 
+      "source": 4
+    }, 
+    {
+      "text": "        std Y+2,r25", 
+      "source": 4
+    }, 
+    {
+      "text": "        std Y+1,r24", 
+      "source": 4
+    }, 
+    {
+      "text": "        .stabn  68,0,3,.LM4-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM4:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldd r24,Y+3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldd r25,Y+4", 
+      "source": 3
+    }, 
+    {
+      "text": "        adiw r24,1", 
+      "source": 3
+    }, 
+    {
+      "text": "        std Y+4,r25", 
+      "source": 3
+    }, 
+    {
+      "text": "        std Y+3,r24", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,3,.LM5-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM5:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldi r20,lo8(1)", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldd r18,Y+3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldd r19,Y+4", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldd r24,Y+7", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldd r25,Y+8", 
+      "source": 3
+    }, 
+    {
+      "text": "        cp r18,r24", 
+      "source": 3
+    }, 
+    {
+      "text": "        cpc r19,r25", 
+      "source": 3
+    }, 
+    {
+      "text": "        brlt .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldi r20,lo8(0)", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        tst r20", 
+      "source": 3
+    }, 
+    {
+      "text": "        brne .L4", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBE3:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,6,.LM6-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM6:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldd r24,Y+1", 
+      "source": 6
+    }, 
+    {
+      "text": "        ldd r25,Y+2", 
+      "source": 6
+    }, 
+    {
+      "text": "/* epilogue start */", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE2:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  68,0,7,.LM7-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".LM7:", 
+      "source": null
+    }, 
+    {
+      "text": "        adiw r28,8", 
+      "source": 7
+    }, 
+    {
+      "text": "        in __tmp_reg__,__SREG__", 
+      "source": 7
+    }, 
+    {
+      "text": "        cli", 
+      "source": 7
+    }, 
+    {
+      "text": "        out __SP_H__,r29", 
+      "source": 7
+    }, 
+    {
+      "text": "        out __SREG__,__tmp_reg__", 
+      "source": 7
+    }, 
+    {
+      "text": "        out __SP_L__,r28", 
+      "source": 7
+    }, 
+    {
+      "text": "        pop r28", 
+      "source": 7
+    }, 
+    {
+      "text": "        pop r29", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": "        .size   testFunction(int*, int), .-testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"sum:(0,7)\",128,0,2,1", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  192,0,0,.LBB2-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"i:(0,7)\",128,0,3,3", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  192,0,0,.LBB3-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  224,0,0,.LBE3-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabn  224,0,0,.LBE2-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": ".Lscope1:", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"\",36,0,0,.Lscope1-.LFBB1", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabd  78,0,0", 
+      "source": null
+    }, 
+    {
+      "text": "        .stabs  \"\",100,0,0,.Letext0", 
+      "source": null
+    }, 
+    {
+      "text": ".Letext0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

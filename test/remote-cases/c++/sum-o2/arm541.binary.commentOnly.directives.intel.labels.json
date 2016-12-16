@@ -1,0 +1,79 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp     r1, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        ble     .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     r3, r0", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     r0, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     r1, r3, r1, lsl #2", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r2, [r3], #4", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     r3, r1", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     r0, r0, r2", 
+      "source": 4
+    }, 
+    {
+      "text": "        bne     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        bx      lr", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     r0, #0", 
+      "source": 2
+    }, 
+    {
+      "text": "        bx      lr", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }, 
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }
+  ], 
+  "stdout": []
+}

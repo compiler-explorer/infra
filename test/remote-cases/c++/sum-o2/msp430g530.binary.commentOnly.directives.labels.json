@@ -1,0 +1,139 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "; start of function", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize_regs:     2", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize_locals:   0", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize_outgoing: 0", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize:          2", 
+      "source": null
+    }, 
+    {
+      "text": "; elim ap -> fp       4", 
+      "source": null
+    }, 
+    {
+      "text": "; elim fp -> sp       0", 
+      "source": null
+    }, 
+    {
+      "text": "; saved regs: R4", 
+      "source": null
+    }, 
+    {
+      "text": "        ; start of prologue", 
+      "source": null
+    }, 
+    {
+      "text": "        PUSHM.W #1, R4", 
+      "source": 1
+    }, 
+    {
+      "text": "        MOV.W   R1, R4", 
+      "source": 1
+    }, 
+    {
+      "text": "        ; end of prologue", 
+      "source": null
+    }, 
+    {
+      "text": "        MOV.B   #0, R14", 
+      "source": 3
+    }, 
+    {
+      "text": "        CMP.W   R13, R14 { JGE        .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        MOV.W   R12, R14", 
+      "source": 3
+    }, 
+    {
+      "text": "        ADD.W   R13, R13", 
+      "source": 3
+    }, 
+    {
+      "text": "        ADD.W   R12, R13", 
+      "source": 3
+    }, 
+    {
+      "text": "        MOV.B   #0, R12", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ADD.W   @R14, R12", 
+      "source": 4
+    }, 
+    {
+      "text": "        ADD.W   #2, R14", 
+      "source": 4
+    }, 
+    {
+      "text": "        CMP.W   R13, R14 { JNE        .L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        ; start of epilogue", 
+      "source": null
+    }, 
+    {
+      "text": "        POPM.W  #1, r4", 
+      "source": 7
+    }, 
+    {
+      "text": "        RET", 
+      "source": 7
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        MOV.B   #0, R12", 
+      "source": 2
+    }, 
+    {
+      "text": "        BR      #.L2", 
+      "source": 2
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }, 
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }
+  ], 
+  "stdout": []
+}

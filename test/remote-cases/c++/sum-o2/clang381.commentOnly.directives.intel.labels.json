@@ -1,0 +1,396 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):                    # @testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        xor     eax, eax", 
+      "source": 1
+    }, 
+    {
+      "text": "        test    esi, esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .LBB0_13", 
+      "source": 3
+    }, 
+    {
+      "text": "        lea     edx, [rsi - 1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     r10, [rdx + 1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     ecx, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     r10, 7", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, 0", 
+      "source": 4
+    }, 
+    {
+      "text": "        jbe     .LBB0_2", 
+      "source": 4
+    }, 
+    {
+      "text": "        movabs  r9, 8589934584", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     ecx, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     r8, r10", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     r8, r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, 0", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_2", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     r11, [rdx + 1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     r11, r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     r11, -8", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, r11d", 
+      "source": 4
+    }, 
+    {
+      "text": "        shr     eax, 3", 
+      "source": 4
+    }, 
+    {
+      "text": "        inc     eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     ecx, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        test    al, 3", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_6", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, esi", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     eax, 24", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     eax, -8", 
+      "source": 4
+    }, 
+    {
+      "text": "        shr     eax, 3", 
+      "source": 4
+    }, 
+    {
+      "text": "        inc     eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     eax, 3", 
+      "source": 4
+    }, 
+    {
+      "text": "        neg     rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm0, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     ecx, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm1, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_8:                                # %vector.body.prol", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  xmm2, xmmword ptr [rdi + 4*rcx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm3, xmmword ptr [rdi + 4*rcx + 16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rcx, 8", 
+      "source": 4
+    }, 
+    {
+      "text": "        inc     rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_8", 
+      "source": 4
+    }, 
+    {
+      "text": "        jmp     .LBB0_9", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_6:", 
+      "source": null
+    }, 
+    {
+      "text": "        pxor    xmm0, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm1, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_9:                                # %vector.body.preheader.split", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp     r11, 24", 
+      "source": 4
+    }, 
+    {
+      "text": "        jb      .LBB0_12", 
+      "source": 4
+    }, 
+    {
+      "text": "        inc     rdx", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     rdx, r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        sub     rdx, rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     rax, [rdi + 4*rcx + 112]", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_11:                               # %vector.body", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  xmm2, xmmword ptr [rax - 112]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm3, xmmword ptr [rax - 96]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm4, xmmword ptr [rax - 80]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm5, xmmword ptr [rax - 64]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm2, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm3, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm2, xmm4", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm3, xmm5", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm4, xmmword ptr [rax - 48]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm5, xmmword ptr [rax - 32]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm4, xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm5, xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm0, xmmword ptr [rax - 16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm1, xmmword ptr [rax]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm4", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm5", 
+      "source": 4
+    }, 
+    {
+      "text": "        sub     rax, -128", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rdx, -32", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_11", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_12:                               # %middle.block", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  xmm0, xmm1, 78          # xmm0 = xmm1[2,3,0,1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  xmm1, xmm0, 229         # xmm1 = xmm0[1,1,2,3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movd    eax, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     r10, r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     rcx, r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_13", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_2:                                # %.lr.ph.preheader11", 
+      "source": null
+    }, 
+    {
+      "text": "        lea     rdx, [rdi + 4*rcx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        sub     esi, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_3:                                # %.lr.ph", 
+      "source": null
+    }, 
+    {
+      "text": "        add     eax, dword ptr [rdx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rdx, 4", 
+      "source": 3
+    }, 
+    {
+      "text": "        dec     esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_3", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBB0_13:                               # %._crit_edge", 
+      "source": null
+    }, 
+    {
+      "text": "        ret", 
+      "source": 6
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

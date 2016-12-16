@@ -1,0 +1,72 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        testl   %esi, %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        xorl    %edx, %edx", 
+      "source": 3
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    (%rdi,%rdx,4), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq    $1, %rdx", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmpl    %edx, %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jg      .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        rep", 
+      "source": 3
+    }, 
+    {
+      "text": "        ret", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 2
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

@@ -1,0 +1,72 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        test    esi, esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        lea     eax, [rsi-1]", 
+      "source": 3
+    }, 
+    {
+      "text": "        lea     rdx, [rdi+4+rax*4]", 
+      "source": 3
+    }, 
+    {
+      "text": "        xor     eax, eax", 
+      "source": 2
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        add     eax, DWORD PTR [rdi]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rdi, 4", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     rdi, rdx", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        rep ret", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        xor     eax, eax", 
+      "source": 2
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

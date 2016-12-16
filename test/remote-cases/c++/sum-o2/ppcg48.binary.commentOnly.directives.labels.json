@@ -1,0 +1,96 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        stwu 1,-16(1)", 
+      "source": 1
+    }, 
+    {
+      "text": "        cmpwi 0,4,0", 
+      "source": 3
+    }, 
+    {
+      "text": "        ble 0,.L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        slwi 4,4,2", 
+      "source": 2
+    }, 
+    {
+      "text": "        addi 9,3,-4", 
+      "source": 2
+    }, 
+    {
+      "text": "        addi 4,4,-4", 
+      "source": 2
+    }, 
+    {
+      "text": "        li 3,0", 
+      "source": 2
+    }, 
+    {
+      "text": "        srwi 4,4,2", 
+      "source": 2
+    }, 
+    {
+      "text": "        addi 4,4,1", 
+      "source": 2
+    }, 
+    {
+      "text": "        mtctr 4", 
+      "source": 2
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        lwzu 10,4(9)", 
+      "source": 4
+    }, 
+    {
+      "text": "        add 3,3,10", 
+      "source": 4
+    }, 
+    {
+      "text": "        bdnz .L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        addi 1,1,16", 
+      "source": 7
+    }, 
+    {
+      "text": "        blr", 
+      "source": 7
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        li 3,0", 
+      "source": 2
+    }, 
+    {
+      "text": "        b .L2", 
+      "source": 2
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

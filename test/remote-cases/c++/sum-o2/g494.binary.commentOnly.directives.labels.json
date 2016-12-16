@@ -1,0 +1,246 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".plt.got:", 
+      "source": null
+    }, 
+    {
+      "text": " jmpq   *0x20051a(%rip)        # 600990 <_DYNAMIC+0x200>", 
+      "opcodes": [
+        255, 
+        37, 
+        26, 
+        5, 
+        32, 
+        0
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6293904, 
+          "length": 6, 
+          "offset": 33
+        }
+      ], 
+      "address": 4195440
+    }, 
+    {
+      "text": " xchg   %ax,%ax", 
+      "opcodes": [
+        102, 
+        144
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4195446
+    }, 
+    {
+      "text": "main:", 
+      "source": null
+    }, 
+    {
+      "text": " xor    %eax,%eax", 
+      "opcodes": [
+        49, 
+        192
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195456
+    }, 
+    {
+      "text": " retq   ", 
+      "opcodes": [
+        195
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195458
+    }, 
+    {
+      "text": " nopw   %cs:0x0(%rax,%rax,1)", 
+      "opcodes": [
+        102, 
+        46, 
+        15, 
+        31, 
+        132, 
+        0, 
+        0, 
+        0, 
+        0, 
+        0
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195459
+    }, 
+    {
+      "text": " nopl   (%rax)", 
+      "opcodes": [
+        15, 
+        31, 
+        0
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195469
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": " test   %esi,%esi", 
+      "opcodes": [
+        133, 
+        246
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195728
+    }, 
+    {
+      "text": " jle    4005ad <testFunction(int*, int)+0x1d>", 
+      "opcodes": [
+        126, 
+        25
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 4195757, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195730
+    }, 
+    {
+      "text": " lea    -0x1(%rsi),%eax", 
+      "opcodes": [
+        141, 
+        70, 
+        255
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195732
+    }, 
+    {
+      "text": " lea    0x4(%rdi,%rax,4),%rdx", 
+      "opcodes": [
+        72, 
+        141, 
+        84, 
+        135, 
+        4
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195735
+    }, 
+    {
+      "text": " xor    %eax,%eax", 
+      "opcodes": [
+        49, 
+        192
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195740
+    }, 
+    {
+      "text": " xchg   %ax,%ax", 
+      "opcodes": [
+        102, 
+        144
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195742
+    }, 
+    {
+      "text": " add    (%rdi),%eax", 
+      "opcodes": [
+        3, 
+        7
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195744
+    }, 
+    {
+      "text": " add    $0x4,%rdi", 
+      "opcodes": [
+        72, 
+        131, 
+        199, 
+        4
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195746
+    }, 
+    {
+      "text": " cmp    %rdx,%rdi", 
+      "opcodes": [
+        72, 
+        57, 
+        215
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195750
+    }, 
+    {
+      "text": " jne    4005a0 <testFunction(int*, int)+0x10>", 
+      "opcodes": [
+        117, 
+        245
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 4195744, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195753
+    }, 
+    {
+      "text": " repz retq ", 
+      "opcodes": [
+        243, 
+        195
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195755
+    }, 
+    {
+      "text": " xor    %eax,%eax", 
+      "opcodes": [
+        49, 
+        192
+      ], 
+      "source": 2, 
+      "links": null, 
+      "address": 4195757
+    }, 
+    {
+      "text": " retq   ", 
+      "opcodes": [
+        195
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 4195759
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

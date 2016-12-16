@@ -1,0 +1,648 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".LNDBG_TX:", 
+      "source": null
+    }, 
+    {
+      "text": "..TXTST0:", 
+      "source": null
+    }, 
+    {
+      "text": ".L_2__routine_start__Z12testFunctionPii_0:", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.1:                         # Preds ..B1.0", 
+      "source": null
+    }, 
+    {
+      "text": "..___tag_value__Z12testFunctionPii.2:", 
+      "source": null
+    }, 
+    {
+      "text": "..L3:", 
+      "source": null
+    }, 
+    {
+      "text": "..LN0:", 
+      "source": null
+    }, 
+    {
+      "text": "..LN1:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl      %eax, %eax                                    #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN2:", 
+      "source": null
+    }, 
+    {
+      "text": "        testl     %esi, %esi                                    #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN3:", 
+      "source": null
+    }, 
+    {
+      "text": "        jle       ..B1.18       # Prob 50%                      #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN4:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.2:                         # Preds ..B1.1", 
+      "source": null
+    }, 
+    {
+      "text": "..LN5:", 
+      "source": null
+    }, 
+    {
+      "text": "        movslq    %esi, %rdx                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN6:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq      $8, %rdx                                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN7:", 
+      "source": null
+    }, 
+    {
+      "text": "        jl        ..B1.19       # Prob 10%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN8:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.3:                         # Preds ..B1.2", 
+      "source": null
+    }, 
+    {
+      "text": "..LN9:", 
+      "source": null
+    }, 
+    {
+      "text": "        movq      %rdi, %rcx                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN10:", 
+      "source": null
+    }, 
+    {
+      "text": "        andq      $15, %rcx                                     #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN11:", 
+      "source": null
+    }, 
+    {
+      "text": "        testl     %ecx, %ecx                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN12:", 
+      "source": null
+    }, 
+    {
+      "text": "        je        ..B1.6        # Prob 50%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN13:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.4:                         # Preds ..B1.3", 
+      "source": null
+    }, 
+    {
+      "text": "..LN14:", 
+      "source": null
+    }, 
+    {
+      "text": "        testb     $3, %cl                                       #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN15:", 
+      "source": null
+    }, 
+    {
+      "text": "        jne       ..B1.19       # Prob 10%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN16:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.5:                         # Preds ..B1.4", 
+      "source": null
+    }, 
+    {
+      "text": "..LN17:", 
+      "source": null
+    }, 
+    {
+      "text": "        negl      %ecx                                          #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN18:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl      $16, %ecx                                     #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN19:", 
+      "source": null
+    }, 
+    {
+      "text": "        shrl      $2, %ecx                                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN20:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.6:                         # Preds ..B1.5 ..B1.3", 
+      "source": null
+    }, 
+    {
+      "text": "..LN21:", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      %ecx, %r8d                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN22:", 
+      "source": null
+    }, 
+    {
+      "text": "        lea       8(%r8), %r9                                   #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN23:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq      %r9, %rdx                                     #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN24:", 
+      "source": null
+    }, 
+    {
+      "text": "        jl        ..B1.19       # Prob 10%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN25:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.7:                         # Preds ..B1.6", 
+      "source": null
+    }, 
+    {
+      "text": "..LN26:", 
+      "source": null
+    }, 
+    {
+      "text": "        negl      %ecx                                          #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN27:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl      %esi, %ecx                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN28:", 
+      "source": null
+    }, 
+    {
+      "text": "        andl      $7, %ecx                                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN29:", 
+      "source": null
+    }, 
+    {
+      "text": "        subl      %ecx, %esi                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN30:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl      %ecx, %ecx                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN31:", 
+      "source": null
+    }, 
+    {
+      "text": "        movslq    %esi, %rsi                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN32:", 
+      "source": null
+    }, 
+    {
+      "text": "        testq     %r8, %r8                                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN33:", 
+      "source": null
+    }, 
+    {
+      "text": "        jbe       ..B1.11       # Prob 9%                       #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN34:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.9:                         # Preds ..B1.7 ..B1.9", 
+      "source": null
+    }, 
+    {
+      "text": "..L5:           # optimization report", 
+      "source": null
+    }, 
+    {
+      "text": "..LN35:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl      (%rdi,%rcx,4), %eax                           #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN36:", 
+      "source": null
+    }, 
+    {
+      "text": "        incq      %rcx                                          #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN37:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq      %r8, %rcx                                     #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN38:", 
+      "source": null
+    }, 
+    {
+      "text": "        jb        ..B1.9        # Prob 82%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN39:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.11:                        # Preds ..B1.9 ..B1.7", 
+      "source": null
+    }, 
+    {
+      "text": "..LN40:", 
+      "source": null
+    }, 
+    {
+      "text": "        movd      %eax, %xmm0                                   #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN41:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.12:                        # Preds ..B1.12 ..B1.11", 
+      "source": null
+    }, 
+    {
+      "text": "..L6:           # optimization report", 
+      "source": null
+    }, 
+    {
+      "text": "..LN42:", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd     (%rdi,%r8,4), %xmm0                           #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN43:", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd     16(%rdi,%r8,4), %xmm0                         #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN44:", 
+      "source": null
+    }, 
+    {
+      "text": "        addq      $8, %r8                                       #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN45:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq      %rsi, %r8                                     #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN46:", 
+      "source": null
+    }, 
+    {
+      "text": "        jb        ..B1.12       # Prob 82%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN47:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.13:                        # Preds ..B1.12", 
+      "source": null
+    }, 
+    {
+      "text": "..LN48:", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqa    %xmm0, %xmm1                                  #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN49:", 
+      "source": null
+    }, 
+    {
+      "text": "        psrldq    $8, %xmm1                                     #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN50:", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd     %xmm1, %xmm0                                  #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN51:", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqa    %xmm0, %xmm2                                  #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN52:", 
+      "source": null
+    }, 
+    {
+      "text": "        psrlq     $32, %xmm2                                    #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN53:", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd     %xmm2, %xmm0                                  #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN54:", 
+      "source": null
+    }, 
+    {
+      "text": "        movd      %xmm0, %eax                                   #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "..LN55:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.14:                        # Preds ..B1.13 ..B1.19", 
+      "source": null
+    }, 
+    {
+      "text": "..LN56:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq      %rdx, %rsi                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN57:", 
+      "source": null
+    }, 
+    {
+      "text": "        jae       ..B1.18       # Prob 9%                       #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN58:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.16:                        # Preds ..B1.14 ..B1.16", 
+      "source": null
+    }, 
+    {
+      "text": "..L7:           # optimization report", 
+      "source": null
+    }, 
+    {
+      "text": "..LN59:", 
+      "source": null
+    }, 
+    {
+      "text": "        addl      (%rdi,%rsi,4), %eax                           #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "..LN60:", 
+      "source": null
+    }, 
+    {
+      "text": "        incq      %rsi                                          #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN61:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq      %rdx, %rsi                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN62:", 
+      "source": null
+    }, 
+    {
+      "text": "        jb        ..B1.16       # Prob 82%                      #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN63:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.18:                        # Preds ..B1.16 ..B1.14 ..B1.1", 
+      "source": null
+    }, 
+    {
+      "text": "..LN64:", 
+      "source": null
+    }, 
+    {
+      "text": "        ret                                                     #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "..LN65:", 
+      "source": null
+    }, 
+    {
+      "text": "..B1.19:                        # Preds ..B1.2 ..B1.4 ..B1.6    # Infreq", 
+      "source": null
+    }, 
+    {
+      "text": "..LN66:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl      %esi, %esi                                    #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN67:", 
+      "source": null
+    }, 
+    {
+      "text": "        jmp       ..B1.14       # Prob 100%                     #3.3", 
+      "source": 3
+    }, 
+    {
+      "text": "..LN68:", 
+      "source": null
+    }, 
+    {
+      "text": "..LN69:", 
+      "source": null
+    }, 
+    {
+      "text": "..LN_Z12testFunctionPii.70:", 
+      "source": null
+    }, 
+    {
+      "text": ".LN_Z12testFunctionPii:", 
+      "source": null
+    }, 
+    {
+      "text": "..L11:", 
+      "source": null
+    }, 
+    {
+      "text": "..L12:", 
+      "source": null
+    }, 
+    {
+      "text": "..L13:", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_info_seg:", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_line_seg:", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_abbrev_seg:", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_frame_seg:", 
+      "source": null
+    }, 
+    {
+      "text": ".debug_str_seg:", 
+      "source": null
+    }, 
+    {
+      "text": ".eh_frame_seg:", 
+      "source": null
+    }, 
+    {
+      "text": ".LNDBG_TXe:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

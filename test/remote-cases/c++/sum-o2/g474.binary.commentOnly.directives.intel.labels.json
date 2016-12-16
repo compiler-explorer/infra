@@ -1,0 +1,238 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".plt.got:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x20050a]        # 600980 <_DYNAMIC+0x200>", 
+      "opcodes": [
+        255, 
+        37, 
+        10, 
+        5, 
+        32, 
+        0
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6293888, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4195440
+    }, 
+    {
+      "text": " xchg   ax,ax", 
+      "opcodes": [
+        102, 
+        144
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4195446
+    }, 
+    {
+      "text": "main:", 
+      "source": null
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        49, 
+        192
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195456
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        195
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195458
+    }, 
+    {
+      "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        102, 
+        46, 
+        15, 
+        31, 
+        132, 
+        0, 
+        0, 
+        0, 
+        0, 
+        0
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195459
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax]", 
+      "opcodes": [
+        15, 
+        31, 
+        0
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195469
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": " test   esi,esi", 
+      "opcodes": [
+        133, 
+        246
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195712
+    }, 
+    {
+      "text": " jle    40059d <testFunction(int*, int)+0x1d>", 
+      "opcodes": [
+        126, 
+        25
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 4195741, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195714
+    }, 
+    {
+      "text": " xor    edx,edx", 
+      "opcodes": [
+        49, 
+        210
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195716
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        49, 
+        192
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195718
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        15, 
+        31, 
+        132, 
+        0, 
+        0, 
+        0, 
+        0, 
+        0
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195720
+    }, 
+    {
+      "text": " add    eax,DWORD PTR [rdi+rdx*4]", 
+      "opcodes": [
+        3, 
+        4, 
+        151
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195728
+    }, 
+    {
+      "text": " add    rdx,0x1", 
+      "opcodes": [
+        72, 
+        131, 
+        194, 
+        1
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195731
+    }, 
+    {
+      "text": " cmp    esi,edx", 
+      "opcodes": [
+        57, 
+        214
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195735
+    }, 
+    {
+      "text": " jg     400590 <testFunction(int*, int)+0x10>", 
+      "opcodes": [
+        127, 
+        245
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 4195728, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195737
+    }, 
+    {
+      "text": " repz ret ", 
+      "opcodes": [
+        243, 
+        195
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195739
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        49, 
+        192
+      ], 
+      "source": 2, 
+      "links": null, 
+      "address": 4195741
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        195
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 4195743
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

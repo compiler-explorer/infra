@@ -1,0 +1,320 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "int example.square(int):", 
+      "source": null
+    }, 
+    {
+      "text": "        movl    %edi, -4(%rsp)", 
+      "source": 2
+    }, 
+    {
+      "text": "        movl    -4(%rsp), %edi", 
+      "source": 3
+    }, 
+    {
+      "text": "        imull   -4(%rsp), %edi", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl    %edi, %eax", 
+      "source": 3
+    }, 
+    {
+      "text": "        retq", 
+      "source": 3
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "ldc.dso_ctor.7example:", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq   %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsp, %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpb    $0, ldc.dso_initialized", 
+      "source": null
+    }, 
+    {
+      "text": "        jne     .LBB1_2", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $_D7example11__moduleRefZ, %rax", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $_minfo_end, %rcx", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $_minfo_beg, %rdx", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $ldc.dso_slot, %rsi", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    $1, ldc.dso_initialized(%rip)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsp, %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "        addq    $-48, %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdi, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    $1, (%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsi, 8(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdx, 16(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rcx, 24(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rax, 32(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        callq   _d_dso_registry", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB1_2:", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rbp, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        popq    %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "ldc.dso_dtor.7example:", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq   %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsp, %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpb    $0, ldc.dso_initialized", 
+      "source": null
+    }, 
+    {
+      "text": "        je      .LBB2_2", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $_D7example11__moduleRefZ, %rax", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $_minfo_end, %rcx", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $_minfo_beg, %rdx", 
+      "source": null
+    }, 
+    {
+      "text": "        movabsq $ldc.dso_slot, %rsi", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    $0, ldc.dso_initialized(%rip)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsp, %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "        addq    $-48, %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdi, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    $1, (%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsi, 8(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdx, 16(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rcx, 24(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rax, 32(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        callq   _d_dso_registry", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB2_2:", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rbp, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        popq    %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "_D7example12__ModuleInfoZ:", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   2147483652", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .asciz  \"example\"", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "_minfo_beg:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "_D7example11__moduleRefZ:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   _D7example12__ModuleInfoZ", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "_minfo_end:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "ldc.dso_slot:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "ldc.dso_initialized:", 
+      "source": null
+    }, 
+    {
+      "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

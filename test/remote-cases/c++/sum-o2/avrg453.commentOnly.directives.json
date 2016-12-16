@@ -1,0 +1,220 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "__SREG__ = 0x3f", 
+      "source": null
+    }, 
+    {
+      "text": "__SP_H__ = 0x3e", 
+      "source": null
+    }, 
+    {
+      "text": "__SP_L__ = 0x3d", 
+      "source": null
+    }, 
+    {
+      "text": "__CCP__ = 0x34", 
+      "source": null
+    }, 
+    {
+      "text": "__tmp_reg__ = 0", 
+      "source": null
+    }, 
+    {
+      "text": "__zero_reg__ = 1", 
+      "source": null
+    }, 
+    {
+      "text": ".Ltext0:", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": ".LM0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LFBB1:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB3:", 
+      "source": null
+    }, 
+    {
+      "text": ".LM1:", 
+      "source": null
+    }, 
+    {
+      "text": "        cp __zero_reg__,r22", 
+      "source": 3
+    }, 
+    {
+      "text": "        cpc __zero_reg__,r23", 
+      "source": 3
+    }, 
+    {
+      "text": "        brge .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov r30,r24", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov r31,r25", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldi r24,lo8(0)", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldi r25,hi8(0)", 
+      "source": 3
+    }, 
+    {
+      "text": ".LM2:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldi r18,lo8(0)", 
+      "source": 2
+    }, 
+    {
+      "text": "        ldi r19,hi8(0)", 
+      "source": 2
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": ".LM3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ld r20,Z+", 
+      "source": 4
+    }, 
+    {
+      "text": "        ld r21,Z+", 
+      "source": 4
+    }, 
+    {
+      "text": "        add r18,r20", 
+      "source": 4
+    }, 
+    {
+      "text": "        adc r19,r21", 
+      "source": 4
+    }, 
+    {
+      "text": ".LM4:", 
+      "source": null
+    }, 
+    {
+      "text": "        adiw r24,1", 
+      "source": 3
+    }, 
+    {
+      "text": "        cp r24,r22", 
+      "source": 3
+    }, 
+    {
+      "text": "        cpc r25,r23", 
+      "source": 3
+    }, 
+    {
+      "text": "        brne .L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE3:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LM5:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov r24,r18", 
+      "source": 7
+    }, 
+    {
+      "text": "        mov r25,r19", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB5:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LM6:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldi r18,lo8(0)", 
+      "source": 2
+    }, 
+    {
+      "text": "        ldi r19,hi8(0)", 
+      "source": 2
+    }, 
+    {
+      "text": "        rjmp .L2", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBE4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE5:", 
+      "source": null
+    }, 
+    {
+      "text": ".Lscope1:", 
+      "source": null
+    }, 
+    {
+      "text": ".Letext0:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

@@ -1,0 +1,231 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".Ltext0:", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": ".LFB0:", 
+      "source": null
+    }, 
+    {
+      "text": "        @ Function supports interworking.", 
+      "source": null
+    }, 
+    {
+      "text": "        @ args = 0, pretend = 0, frame = 16", 
+      "source": null
+    }, 
+    {
+      "text": "        @ frame_needed = 1, uses_anonymous_args = 0", 
+      "source": null
+    }, 
+    {
+      "text": "        @ link register save eliminated.", 
+      "source": null
+    }, 
+    {
+      "text": "        str     fp, [sp, #-4]!", 
+      "source": 1
+    }, 
+    {
+      "text": "        add     fp, sp, #0", 
+      "source": 1
+    }, 
+    {
+      "text": "        sub     sp, sp, #20", 
+      "source": 1
+    }, 
+    {
+      "text": "        str     r0, [fp, #-16]", 
+      "source": 1
+    }, 
+    {
+      "text": "        str     r1, [fp, #-20]", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r3, #0", 
+      "source": 2
+    }, 
+    {
+      "text": "        str     r3, [fp, #-8]", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBB2:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     r3, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        str     r3, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r2, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-20]", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     r2, r3", 
+      "source": 3
+    }, 
+    {
+      "text": "        bge     .L2", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-12]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     r3, r3, asl #2", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r2, [fp, #-16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     r3, r2, r3", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r3, [r3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r2, [fp, #-8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     r3, r2, r3", 
+      "source": 4
+    }, 
+    {
+      "text": "        str     r3, [fp, #-8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     r3, r3, #1", 
+      "source": 3
+    }, 
+    {
+      "text": "        str     r3, [fp, #-12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        b       .L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LBE2:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r3, [fp, #-8]", 
+      "source": 6
+    }, 
+    {
+      "text": "        mov     r0, r3", 
+      "source": 7
+    }, 
+    {
+      "text": "        sub     sp, fp, #0", 
+      "source": 7
+    }, 
+    {
+      "text": "        @ sp needed", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     fp, [sp], #4", 
+      "source": 7
+    }, 
+    {
+      "text": "        bx      lr", 
+      "source": 7
+    }, 
+    {
+      "text": ".LFE0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Letext0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_info0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_abbrev0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_line0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF1:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF5:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF3:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF2:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }, 
+    {
+      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+    }
+  ], 
+  "stdout": []
+}

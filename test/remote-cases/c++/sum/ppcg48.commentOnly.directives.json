@@ -1,0 +1,216 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".Ltext0:", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": ".LFB0:", 
+      "source": null
+    }, 
+    {
+      "text": "        stwu 1,-48(1)", 
+      "source": 1
+    }, 
+    {
+      "text": "        stw 31,44(1)", 
+      "source": 1
+    }, 
+    {
+      "text": "        mr 31,1", 
+      "source": 1
+    }, 
+    {
+      "text": "        stw 3,12(31)", 
+      "source": 1
+    }, 
+    {
+      "text": "        stw 4,8(31)", 
+      "source": 1
+    }, 
+    {
+      "text": ".LBB2:", 
+      "source": null
+    }, 
+    {
+      "text": "        li 9,0", 
+      "source": 2
+    }, 
+    {
+      "text": "        stw 9,24(31)", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBB3:", 
+      "source": null
+    }, 
+    {
+      "text": "        li 9,0", 
+      "source": 3
+    }, 
+    {
+      "text": "        stw 9,28(31)", 
+      "source": 3
+    }, 
+    {
+      "text": "        b .L2", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        lwz 9,28(31)", 
+      "source": 4
+    }, 
+    {
+      "text": "        slwi 9,9,2", 
+      "source": 4
+    }, 
+    {
+      "text": "        lwz 10,12(31)", 
+      "source": 4
+    }, 
+    {
+      "text": "        add 9,10,9", 
+      "source": 4
+    }, 
+    {
+      "text": "        lwz 9,0(9)", 
+      "source": 4
+    }, 
+    {
+      "text": "        lwz 10,24(31)", 
+      "source": 4
+    }, 
+    {
+      "text": "        add 9,10,9", 
+      "source": 4
+    }, 
+    {
+      "text": "        stw 9,24(31)", 
+      "source": 4
+    }, 
+    {
+      "text": "        lwz 9,28(31)", 
+      "source": 3
+    }, 
+    {
+      "text": "        addi 9,9,1", 
+      "source": 3
+    }, 
+    {
+      "text": "        stw 9,28(31)", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        lwz 10,28(31)", 
+      "source": 3
+    }, 
+    {
+      "text": "        lwz 9,8(31)", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmpw 7,10,9", 
+      "source": 3
+    }, 
+    {
+      "text": "        blt 7,.L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBE3:", 
+      "source": null
+    }, 
+    {
+      "text": "        lwz 9,24(31)", 
+      "source": 6
+    }, 
+    {
+      "text": ".LBE2:", 
+      "source": null
+    }, 
+    {
+      "text": "        mr 3,9", 
+      "source": 7
+    }, 
+    {
+      "text": "        addi 11,31,48", 
+      "source": 7
+    }, 
+    {
+      "text": "        lwz 31,-4(11)", 
+      "source": 7
+    }, 
+    {
+      "text": "        mr 1,11", 
+      "source": 7
+    }, 
+    {
+      "text": "        blr", 
+      "source": 7
+    }, 
+    {
+      "text": ".LFE0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Letext0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_info0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_abbrev0:", 
+      "source": null
+    }, 
+    {
+      "text": ".Ldebug_line0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF4:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF3:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF2:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF0:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF1:", 
+      "source": null
+    }, 
+    {
+      "text": ".LASF5:", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

@@ -1,0 +1,16 @@
+{
+  "okToCache": true, 
+  "code": 1, 
+  "asm": [
+    {
+      "text": "<Compilation failed>", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "clang: error: unsupported option '--gcc-toolchain=/opt/gcc-explorer/gcc-6.2.0'"
+    }
+  ], 
+  "stdout": []
+}
