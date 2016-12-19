@@ -308,7 +308,7 @@ for file in \
     10.0.10240.0 \
     14.0.24224-Pre \
 ; do
-    if [[ ! -d windows/${file} ]]; then
+    if [[ ! -d ${file} ]]; then
         s3cmd get --force s3://gcc-explorer/opt/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
         if [[ -d ${file}/lib/native/bin/amd64 ]]; then
