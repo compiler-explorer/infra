@@ -147,6 +147,7 @@ getldc_latestbeta() {
     pushd ldcbeta
     if [[ "$(cat .version)" = "${vers}" ]]; then
         echo "LDC beta version ${vers} already installed, skipping"
+        popd
         return
     fi
     rm -rf *
