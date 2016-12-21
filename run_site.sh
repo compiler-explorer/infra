@@ -19,19 +19,35 @@ fi
 
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
+ARCHIVE_DIR=/opt/gcc-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=8000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
-    . ${CONFIG_FILE}
 else
     $SUDO docker pull -a mattgodbolt/gcc-explorer
 fi
+. ${CONFIG_FILE}
 
 ALL="nginx gcc go gcc1204 dx rust"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
+CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
+CFG="${CFG} -v /opt/gcc-explorer:/opt/gcc-explorer:ro"
+
+update_archive() {
+    mkdir -p ${ARCHIVE_DIR}
+    rm -rf /tmp/gcc-archive
+    mkdir -p /tmp/gcc-archive
+    pushd /tmp/gcc-archive
+    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/gcc-explorer-archive:ro"
+    git clone https://github.com/mattgodbolt/gcc-explorer.git
+    cd gcc-explorer
+    make dist
+    rsync -av out/dist/v/ ${ARCHIVE_DIR}
+    popd
+}
 
 start_container() {
     local NAME=$1
@@ -42,11 +58,12 @@ start_container() {
     if [[ "${#NAME}" -eq 1 ]]; then
     	NAME="${NAME}x"
     fi
-    local FULL_COMMAND="${SUDO} docker run --name ${NAME} -e GOOGLE_API_KEY=${GOOGLE_API_KEY} ${CFG} -d -v/opt/gcc-explorer:/opt/gcc-explorer:ro -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
+    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
     local CONTAINER_UID=""
     $SUDO docker stop ${NAME} >&2 || true
     $SUDO docker rm ${NAME} >&2 || true
     CONTAINER_UID=$($FULL_COMMAND)
+    sleep 10
     echo ${CONTAINER_UID}
 }
 
@@ -74,6 +91,8 @@ wait_for_container() {
 }
 
 trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
+
+update_archive
 
 UID_GCC1204=$(start_container gcc1204 20480)
 UID_GCC=$(start_container gcc 10240 --link gcc1204:gcc1204)

@@ -11,4 +11,4 @@ git clone -b ${BRANCH} --depth 1 https://github.com/mattgodbolt/gcc-explorer.git
 cd /gcc-explorer
 cp -r /tmp/node_modules .
 make dist
-node app.js --env amazon --language rust --port 10242 --static out/dist
+node app.js --env amazon --language rust --port 10242 --static out/dist --archivedVersions /opt/gcc-explorer-archive
