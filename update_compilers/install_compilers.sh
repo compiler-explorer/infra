@@ -236,7 +236,7 @@ for version in \
     4.8.{1,2,3,4,5} \
     4.9.{0,1,2,3,4} \
     5.{1,2,3,4}.0 \
-    6.{1,2}.0 \
+    6.{1,2,3}.0 \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
