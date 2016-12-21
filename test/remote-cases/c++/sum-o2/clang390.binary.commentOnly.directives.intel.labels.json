@@ -9,12 +9,12 @@
     {
       "text": " jmp    QWORD PTR [rip+0x200c12]        # 600ff8 <_DYNAMIC+0x200>", 
       "opcodes": [
-        255, 
-        37, 
-        18, 
-        12, 
-        32, 
-        0
+        "ff", 
+        "25", 
+        "12", 
+        "0c", 
+        "20", 
+        "00"
       ], 
       "source": null, 
       "links": [
@@ -29,8 +29,8 @@
     {
       "text": " xchg   ax,ax", 
       "opcodes": [
-        102, 
-        144
+        "66", 
+        "90"
       ], 
       "source": null, 
       "links": null, 
@@ -43,8 +43,8 @@
     {
       "text": " xor    eax,eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 1, 
       "links": null, 
@@ -53,8 +53,8 @@
     {
       "text": " test   esi,esi", 
       "opcodes": [
-        133, 
-        246
+        "85", 
+        "f6"
       ], 
       "source": 3, 
       "links": null, 
@@ -63,12 +63,12 @@
     {
       "text": " jle    40063a <testFunction(int*, int)+0x14a>", 
       "opcodes": [
-        15, 
-        142, 
-        64, 
-        1, 
-        0, 
-        0
+        "0f", 
+        "8e", 
+        "40", 
+        "01", 
+        "00", 
+        "00"
       ], 
       "source": 3, 
       "links": [
@@ -83,10 +83,10 @@
     {
       "text": " lea    r9d,[rsi-0x1]", 
       "opcodes": [
-        68, 
-        141, 
-        78, 
-        255
+        "44", 
+        "8d", 
+        "4e", 
+        "ff"
       ], 
       "source": 4, 
       "links": null, 
@@ -95,9 +95,9 @@
     {
       "text": " inc    r9", 
       "opcodes": [
-        73, 
-        255, 
-        193
+        "49", 
+        "ff", 
+        "c1"
       ], 
       "source": 4, 
       "links": null, 
@@ -106,8 +106,8 @@
     {
       "text": " xor    ecx,ecx", 
       "opcodes": [
-        49, 
-        201
+        "31", 
+        "c9"
       ], 
       "source": 4, 
       "links": null, 
@@ -116,10 +116,10 @@
     {
       "text": " cmp    r9,0x7", 
       "opcodes": [
-        73, 
-        131, 
-        249, 
-        7
+        "49", 
+        "83", 
+        "f9", 
+        "07"
       ], 
       "source": 4, 
       "links": null, 
@@ -128,11 +128,11 @@
     {
       "text": " mov    eax,0x0", 
       "opcodes": [
-        184, 
-        0, 
-        0, 
-        0, 
-        0
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -141,12 +141,12 @@
     {
       "text": " jbe    40061c <testFunction(int*, int)+0x12c>", 
       "opcodes": [
-        15, 
-        134, 
-        10, 
-        1, 
-        0, 
-        0
+        "0f", 
+        "86", 
+        "0a", 
+        "01", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": [
@@ -161,8 +161,8 @@
     {
       "text": " xor    ecx,ecx", 
       "opcodes": [
-        49, 
-        201
+        "31", 
+        "c9"
       ], 
       "source": 4, 
       "links": null, 
@@ -171,16 +171,16 @@
     {
       "text": " movabs r8,0x1fffffff8", 
       "opcodes": [
-        73, 
-        184, 
-        248, 
-        255, 
-        255, 
-        255, 
-        1, 
-        0, 
-        0, 
-        0
+        "49", 
+        "b8", 
+        "f8", 
+        "ff", 
+        "ff", 
+        "ff", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -189,9 +189,9 @@
     {
       "text": " and    r8,r9", 
       "opcodes": [
-        77, 
-        33, 
-        200
+        "4d", 
+        "21", 
+        "c8"
       ], 
       "source": 4, 
       "links": null, 
@@ -200,11 +200,11 @@
     {
       "text": " mov    eax,0x0", 
       "opcodes": [
-        184, 
-        0, 
-        0, 
-        0, 
-        0
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -213,12 +213,12 @@
     {
       "text": " je     40061c <testFunction(int*, int)+0x12c>", 
       "opcodes": [
-        15, 
-        132, 
-        240, 
-        0, 
-        0, 
-        0
+        "0f", 
+        "84", 
+        "f0", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": [
@@ -233,10 +233,10 @@
     {
       "text": " lea    rcx,[r8-0x8]", 
       "opcodes": [
-        73, 
-        141, 
-        72, 
-        248
+        "49", 
+        "8d", 
+        "48", 
+        "f8"
       ], 
       "source": 4, 
       "links": null, 
@@ -245,9 +245,9 @@
     {
       "text": " mov    r10,rcx", 
       "opcodes": [
-        73, 
-        137, 
-        202
+        "49", 
+        "89", 
+        "ca"
       ], 
       "source": 4, 
       "links": null, 
@@ -256,10 +256,10 @@
     {
       "text": " shr    r10,0x3", 
       "opcodes": [
-        73, 
-        193, 
-        234, 
-        3
+        "49", 
+        "c1", 
+        "ea", 
+        "03"
       ], 
       "source": 4, 
       "links": null, 
@@ -268,10 +268,10 @@
     {
       "text": " lea    eax,[r10+0x1]", 
       "opcodes": [
-        65, 
-        141, 
-        66, 
-        1
+        "41", 
+        "8d", 
+        "42", 
+        "01"
       ], 
       "source": 4, 
       "links": null, 
@@ -280,9 +280,9 @@
     {
       "text": " and    eax,0x3", 
       "opcodes": [
-        131, 
-        224, 
-        3
+        "83", 
+        "e0", 
+        "03"
       ], 
       "source": 4, 
       "links": null, 
@@ -291,8 +291,8 @@
     {
       "text": " xor    edx,edx", 
       "opcodes": [
-        49, 
-        210
+        "31", 
+        "d2"
       ], 
       "source": 4, 
       "links": null, 
@@ -301,10 +301,10 @@
     {
       "text": " cmp    rcx,0x18", 
       "opcodes": [
-        72, 
-        131, 
-        249, 
-        24
+        "48", 
+        "83", 
+        "f9", 
+        "18"
       ], 
       "source": 4, 
       "links": null, 
@@ -313,8 +313,8 @@
     {
       "text": " jae    400550 <testFunction(int*, int)+0x60>", 
       "opcodes": [
-        115, 
-        10
+        "73", 
+        "0a"
       ], 
       "source": 4, 
       "links": [
@@ -329,10 +329,10 @@
     {
       "text": " pxor   xmm0,xmm0", 
       "opcodes": [
-        102, 
-        15, 
-        239, 
-        192
+        "66", 
+        "0f", 
+        "ef", 
+        "c0"
       ], 
       "source": 4, 
       "links": null, 
@@ -341,10 +341,10 @@
     {
       "text": " pxor   xmm1,xmm1", 
       "opcodes": [
-        102, 
-        15, 
-        239, 
-        201
+        "66", 
+        "0f", 
+        "ef", 
+        "c9"
       ], 
       "source": 4, 
       "links": null, 
@@ -353,8 +353,8 @@
     {
       "text": " jmp    4005c9 <testFunction(int*, int)+0xd9>", 
       "opcodes": [
-        235, 
-        121
+        "eb", 
+        "79"
       ], 
       "source": 4, 
       "links": [
@@ -369,10 +369,10 @@
     {
       "text": " lea    rcx,[rax-0x1]", 
       "opcodes": [
-        72, 
-        141, 
-        72, 
-        255
+        "48", 
+        "8d", 
+        "48", 
+        "ff"
       ], 
       "source": 4, 
       "links": null, 
@@ -381,9 +381,9 @@
     {
       "text": " sub    rcx,r10", 
       "opcodes": [
-        76, 
-        41, 
-        209
+        "4c", 
+        "29", 
+        "d1"
       ], 
       "source": 4, 
       "links": null, 
@@ -392,10 +392,10 @@
     {
       "text": " pxor   xmm0,xmm0", 
       "opcodes": [
-        102, 
-        15, 
-        239, 
-        192
+        "66", 
+        "0f", 
+        "ef", 
+        "c0"
       ], 
       "source": 4, 
       "links": null, 
@@ -404,8 +404,8 @@
     {
       "text": " xor    edx,edx", 
       "opcodes": [
-        49, 
-        210
+        "31", 
+        "d2"
       ], 
       "source": 4, 
       "links": null, 
@@ -414,10 +414,10 @@
     {
       "text": " pxor   xmm1,xmm1", 
       "opcodes": [
-        102, 
-        15, 
-        239, 
-        201
+        "66", 
+        "0f", 
+        "ef", 
+        "c9"
       ], 
       "source": 4, 
       "links": null, 
@@ -426,21 +426,21 @@
     {
       "text": " data16 data16 data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
       "opcodes": [
-        102, 
-        102, 
-        102, 
-        102, 
-        102, 
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -449,11 +449,11 @@
     {
       "text": " movdqu xmm2,XMMWORD PTR [rdi+rdx*4]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        20, 
-        151
+        "f3", 
+        "0f", 
+        "6f", 
+        "14", 
+        "97"
       ], 
       "source": 4, 
       "links": null, 
@@ -462,12 +462,12 @@
     {
       "text": " movdqu xmm3,XMMWORD PTR [rdi+rdx*4+0x10]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        92, 
-        151, 
-        16
+        "f3", 
+        "0f", 
+        "6f", 
+        "5c", 
+        "97", 
+        "10"
       ], 
       "source": 4, 
       "links": null, 
@@ -476,10 +476,10 @@
     {
       "text": " paddd  xmm2,xmm0", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        208
+        "66", 
+        "0f", 
+        "fe", 
+        "d0"
       ], 
       "source": 4, 
       "links": null, 
@@ -488,10 +488,10 @@
     {
       "text": " paddd  xmm3,xmm1", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        217
+        "66", 
+        "0f", 
+        "fe", 
+        "d9"
       ], 
       "source": 4, 
       "links": null, 
@@ -500,12 +500,12 @@
     {
       "text": " movdqu xmm0,XMMWORD PTR [rdi+rdx*4+0x20]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        68, 
-        151, 
-        32
+        "f3", 
+        "0f", 
+        "6f", 
+        "44", 
+        "97", 
+        "20"
       ], 
       "source": 4, 
       "links": null, 
@@ -514,12 +514,12 @@
     {
       "text": " movdqu xmm1,XMMWORD PTR [rdi+rdx*4+0x30]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        76, 
-        151, 
-        48
+        "f3", 
+        "0f", 
+        "6f", 
+        "4c", 
+        "97", 
+        "30"
       ], 
       "source": 4, 
       "links": null, 
@@ -528,12 +528,12 @@
     {
       "text": " movdqu xmm4,XMMWORD PTR [rdi+rdx*4+0x40]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        100, 
-        151, 
-        64
+        "f3", 
+        "0f", 
+        "6f", 
+        "64", 
+        "97", 
+        "40"
       ], 
       "source": 4, 
       "links": null, 
@@ -542,12 +542,12 @@
     {
       "text": " movdqu xmm5,XMMWORD PTR [rdi+rdx*4+0x50]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        108, 
-        151, 
-        80
+        "f3", 
+        "0f", 
+        "6f", 
+        "6c", 
+        "97", 
+        "50"
       ], 
       "source": 4, 
       "links": null, 
@@ -556,10 +556,10 @@
     {
       "text": " paddd  xmm4,xmm0", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        224
+        "66", 
+        "0f", 
+        "fe", 
+        "e0"
       ], 
       "source": 4, 
       "links": null, 
@@ -568,10 +568,10 @@
     {
       "text": " paddd  xmm4,xmm2", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        226
+        "66", 
+        "0f", 
+        "fe", 
+        "e2"
       ], 
       "source": 4, 
       "links": null, 
@@ -580,10 +580,10 @@
     {
       "text": " paddd  xmm5,xmm1", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        233
+        "66", 
+        "0f", 
+        "fe", 
+        "e9"
       ], 
       "source": 4, 
       "links": null, 
@@ -592,10 +592,10 @@
     {
       "text": " paddd  xmm5,xmm3", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        235
+        "66", 
+        "0f", 
+        "fe", 
+        "eb"
       ], 
       "source": 4, 
       "links": null, 
@@ -604,12 +604,12 @@
     {
       "text": " movdqu xmm0,XMMWORD PTR [rdi+rdx*4+0x60]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        68, 
-        151, 
-        96
+        "f3", 
+        "0f", 
+        "6f", 
+        "44", 
+        "97", 
+        "60"
       ], 
       "source": 4, 
       "links": null, 
@@ -618,12 +618,12 @@
     {
       "text": " movdqu xmm1,XMMWORD PTR [rdi+rdx*4+0x70]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        76, 
-        151, 
-        112
+        "f3", 
+        "0f", 
+        "6f", 
+        "4c", 
+        "97", 
+        "70"
       ], 
       "source": 4, 
       "links": null, 
@@ -632,10 +632,10 @@
     {
       "text": " lea    rdx,[rdx+0x20]", 
       "opcodes": [
-        72, 
-        141, 
-        82, 
-        32
+        "48", 
+        "8d", 
+        "52", 
+        "20"
       ], 
       "source": 4, 
       "links": null, 
@@ -644,10 +644,10 @@
     {
       "text": " paddd  xmm0,xmm4", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        196
+        "66", 
+        "0f", 
+        "fe", 
+        "c4"
       ], 
       "source": 4, 
       "links": null, 
@@ -656,10 +656,10 @@
     {
       "text": " paddd  xmm1,xmm5", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        205
+        "66", 
+        "0f", 
+        "fe", 
+        "cd"
       ], 
       "source": 4, 
       "links": null, 
@@ -668,10 +668,10 @@
     {
       "text": " add    rcx,0x4", 
       "opcodes": [
-        72, 
-        131, 
-        193, 
-        4
+        "48", 
+        "83", 
+        "c1", 
+        "04"
       ], 
       "source": 4, 
       "links": null, 
@@ -680,8 +680,8 @@
     {
       "text": " jne    400570 <testFunction(int*, int)+0x80>", 
       "opcodes": [
-        117, 
-        167
+        "75", 
+        "a7"
       ], 
       "source": 4, 
       "links": [
@@ -696,9 +696,9 @@
     {
       "text": " test   rax,rax", 
       "opcodes": [
-        72, 
-        133, 
-        192
+        "48", 
+        "85", 
+        "c0"
       ], 
       "source": 4, 
       "links": null, 
@@ -707,8 +707,8 @@
     {
       "text": " je     4005fa <testFunction(int*, int)+0x10a>", 
       "opcodes": [
-        116, 
-        44
+        "74", 
+        "2c"
       ], 
       "source": 4, 
       "links": [
@@ -723,11 +723,11 @@
     {
       "text": " lea    rcx,[rdi+rdx*4+0x10]", 
       "opcodes": [
-        72, 
-        141, 
-        76, 
-        151, 
-        16
+        "48", 
+        "8d", 
+        "4c", 
+        "97", 
+        "10"
       ], 
       "source": 4, 
       "links": null, 
@@ -736,9 +736,9 @@
     {
       "text": " neg    rax", 
       "opcodes": [
-        72, 
-        247, 
-        216
+        "48", 
+        "f7", 
+        "d8"
       ], 
       "source": 4, 
       "links": null, 
@@ -747,16 +747,16 @@
     {
       "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -765,11 +765,11 @@
     {
       "text": " movdqu xmm2,XMMWORD PTR [rcx-0x10]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        81, 
-        240
+        "f3", 
+        "0f", 
+        "6f", 
+        "51", 
+        "f0"
       ], 
       "source": 4, 
       "links": null, 
@@ -778,10 +778,10 @@
     {
       "text": " movdqu xmm3,XMMWORD PTR [rcx]", 
       "opcodes": [
-        243, 
-        15, 
-        111, 
-        25
+        "f3", 
+        "0f", 
+        "6f", 
+        "19"
       ], 
       "source": 4, 
       "links": null, 
@@ -790,10 +790,10 @@
     {
       "text": " paddd  xmm0,xmm2", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        194
+        "66", 
+        "0f", 
+        "fe", 
+        "c2"
       ], 
       "source": 4, 
       "links": null, 
@@ -802,10 +802,10 @@
     {
       "text": " paddd  xmm1,xmm3", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        203
+        "66", 
+        "0f", 
+        "fe", 
+        "cb"
       ], 
       "source": 4, 
       "links": null, 
@@ -814,10 +814,10 @@
     {
       "text": " add    rcx,0x20", 
       "opcodes": [
-        72, 
-        131, 
-        193, 
-        32
+        "48", 
+        "83", 
+        "c1", 
+        "20"
       ], 
       "source": 4, 
       "links": null, 
@@ -826,9 +826,9 @@
     {
       "text": " inc    rax", 
       "opcodes": [
-        72, 
-        255, 
-        192
+        "48", 
+        "ff", 
+        "c0"
       ], 
       "source": 4, 
       "links": null, 
@@ -837,8 +837,8 @@
     {
       "text": " jne    4005e0 <testFunction(int*, int)+0xf0>", 
       "opcodes": [
-        117, 
-        230
+        "75", 
+        "e6"
       ], 
       "source": 4, 
       "links": [
@@ -853,10 +853,10 @@
     {
       "text": " paddd  xmm0,xmm1", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        193
+        "66", 
+        "0f", 
+        "fe", 
+        "c1"
       ], 
       "source": 4, 
       "links": null, 
@@ -865,11 +865,11 @@
     {
       "text": " pshufd xmm1,xmm0,0x4e", 
       "opcodes": [
-        102, 
-        15, 
-        112, 
-        200, 
-        78
+        "66", 
+        "0f", 
+        "70", 
+        "c8", 
+        "4e"
       ], 
       "source": 4, 
       "links": null, 
@@ -878,10 +878,10 @@
     {
       "text": " paddd  xmm1,xmm0", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        200
+        "66", 
+        "0f", 
+        "fe", 
+        "c8"
       ], 
       "source": 4, 
       "links": null, 
@@ -890,11 +890,11 @@
     {
       "text": " pshufd xmm0,xmm1,0xe5", 
       "opcodes": [
-        102, 
-        15, 
-        112, 
-        193, 
-        229
+        "66", 
+        "0f", 
+        "70", 
+        "c1", 
+        "e5"
       ], 
       "source": 4, 
       "links": null, 
@@ -903,10 +903,10 @@
     {
       "text": " paddd  xmm0,xmm1", 
       "opcodes": [
-        102, 
-        15, 
-        254, 
-        193
+        "66", 
+        "0f", 
+        "fe", 
+        "c1"
       ], 
       "source": 4, 
       "links": null, 
@@ -915,10 +915,10 @@
     {
       "text": " movd   eax,xmm0", 
       "opcodes": [
-        102, 
-        15, 
-        126, 
-        192
+        "66", 
+        "0f", 
+        "7e", 
+        "c0"
       ], 
       "source": 4, 
       "links": null, 
@@ -927,9 +927,9 @@
     {
       "text": " cmp    r9,r8", 
       "opcodes": [
-        77, 
-        57, 
-        193
+        "4d", 
+        "39", 
+        "c1"
       ], 
       "source": 4, 
       "links": null, 
@@ -938,9 +938,9 @@
     {
       "text": " mov    rcx,r8", 
       "opcodes": [
-        76, 
-        137, 
-        193
+        "4c", 
+        "89", 
+        "c1"
       ], 
       "source": 4, 
       "links": null, 
@@ -949,8 +949,8 @@
     {
       "text": " je     40063a <testFunction(int*, int)+0x14a>", 
       "opcodes": [
-        116, 
-        30
+        "74", 
+        "1e"
       ], 
       "source": 4, 
       "links": [
@@ -965,10 +965,10 @@
     {
       "text": " lea    rdx,[rdi+rcx*4]", 
       "opcodes": [
-        72, 
-        141, 
-        20, 
-        143
+        "48", 
+        "8d", 
+        "14", 
+        "8f"
       ], 
       "source": 4, 
       "links": null, 
@@ -977,8 +977,8 @@
     {
       "text": " sub    esi,ecx", 
       "opcodes": [
-        41, 
-        206
+        "29", 
+        "ce"
       ], 
       "source": 4, 
       "links": null, 
@@ -987,20 +987,20 @@
     {
       "text": " data16 data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
       "opcodes": [
-        102, 
-        102, 
-        102, 
-        102, 
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -1009,8 +1009,8 @@
     {
       "text": " add    eax,DWORD PTR [rdx]", 
       "opcodes": [
-        3, 
-        2
+        "03", 
+        "02"
       ], 
       "source": 4, 
       "links": null, 
@@ -1019,10 +1019,10 @@
     {
       "text": " add    rdx,0x4", 
       "opcodes": [
-        72, 
-        131, 
-        194, 
-        4
+        "48", 
+        "83", 
+        "c2", 
+        "04"
       ], 
       "source": 3, 
       "links": null, 
@@ -1031,8 +1031,8 @@
     {
       "text": " dec    esi", 
       "opcodes": [
-        255, 
-        206
+        "ff", 
+        "ce"
       ], 
       "source": 3, 
       "links": null, 
@@ -1041,8 +1041,8 @@
     {
       "text": " jne    400630 <testFunction(int*, int)+0x140>", 
       "opcodes": [
-        117, 
-        246
+        "75", 
+        "f6"
       ], 
       "source": 3, 
       "links": [
@@ -1057,7 +1057,7 @@
     {
       "text": " ret    ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 6, 
       "links": null, 
@@ -1066,11 +1066,11 @@
     {
       "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
       "opcodes": [
-        15, 
-        31, 
-        68, 
-        0, 
-        0
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
       ], 
       "source": 6, 
       "links": null, 
@@ -1083,8 +1083,8 @@
     {
       "text": " xor    eax,eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 9, 
       "links": null, 
@@ -1093,7 +1093,7 @@
     {
       "text": " ret    ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 9, 
       "links": null, 
@@ -1102,16 +1102,16 @@
     {
       "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -1120,9 +1120,9 @@
     {
       "text": " nop    DWORD PTR [rax]", 
       "opcodes": [
-        15, 
-        31, 
-        0
+        "0f", 
+        "1f", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 

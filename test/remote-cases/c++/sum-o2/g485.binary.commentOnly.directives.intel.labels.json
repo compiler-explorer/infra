@@ -9,12 +9,12 @@
     {
       "text": " jmp    QWORD PTR [rip+0x20050a]        # 600980 <_DYNAMIC+0x200>", 
       "opcodes": [
-        255, 
-        37, 
-        10, 
-        5, 
-        32, 
-        0
+        "ff", 
+        "25", 
+        "0a", 
+        "05", 
+        "20", 
+        "00"
       ], 
       "source": null, 
       "links": [
@@ -29,8 +29,8 @@
     {
       "text": " xchg   ax,ax", 
       "opcodes": [
-        102, 
-        144
+        "66", 
+        "90"
       ], 
       "source": null, 
       "links": null, 
@@ -43,8 +43,8 @@
     {
       "text": " xor    eax,eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 9, 
       "links": null, 
@@ -53,7 +53,7 @@
     {
       "text": " ret    ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 9, 
       "links": null, 
@@ -62,16 +62,16 @@
     {
       "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -80,9 +80,9 @@
     {
       "text": " nop    DWORD PTR [rax]", 
       "opcodes": [
-        15, 
-        31, 
-        0
+        "0f", 
+        "1f", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -95,8 +95,8 @@
     {
       "text": " test   esi,esi", 
       "opcodes": [
-        133, 
-        246
+        "85", 
+        "f6"
       ], 
       "source": 3, 
       "links": null, 
@@ -105,8 +105,8 @@
     {
       "text": " jle    40059d <testFunction(int*, int)+0x1d>", 
       "opcodes": [
-        126, 
-        25
+        "7e", 
+        "19"
       ], 
       "source": 3, 
       "links": [
@@ -121,8 +121,8 @@
     {
       "text": " xor    edx,edx", 
       "opcodes": [
-        49, 
-        210
+        "31", 
+        "d2"
       ], 
       "source": 3, 
       "links": null, 
@@ -131,8 +131,8 @@
     {
       "text": " xor    eax,eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 2, 
       "links": null, 
@@ -141,14 +141,14 @@
     {
       "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
       "opcodes": [
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 2, 
       "links": null, 
@@ -157,9 +157,9 @@
     {
       "text": " add    eax,DWORD PTR [rdi+rdx*4]", 
       "opcodes": [
-        3, 
-        4, 
-        151
+        "03", 
+        "04", 
+        "97"
       ], 
       "source": 4, 
       "links": null, 
@@ -168,10 +168,10 @@
     {
       "text": " add    rdx,0x1", 
       "opcodes": [
-        72, 
-        131, 
-        194, 
-        1
+        "48", 
+        "83", 
+        "c2", 
+        "01"
       ], 
       "source": 4, 
       "links": null, 
@@ -180,8 +180,8 @@
     {
       "text": " cmp    esi,edx", 
       "opcodes": [
-        57, 
-        214
+        "39", 
+        "d6"
       ], 
       "source": 3, 
       "links": null, 
@@ -190,8 +190,8 @@
     {
       "text": " jg     400590 <testFunction(int*, int)+0x10>", 
       "opcodes": [
-        127, 
-        245
+        "7f", 
+        "f5"
       ], 
       "source": 3, 
       "links": [
@@ -206,8 +206,8 @@
     {
       "text": " repz ret ", 
       "opcodes": [
-        243, 
-        195
+        "f3", 
+        "c3"
       ], 
       "source": 3, 
       "links": null, 
@@ -216,8 +216,8 @@
     {
       "text": " xor    eax,eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 2, 
       "links": null, 
@@ -226,7 +226,7 @@
     {
       "text": " ret    ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 7, 
       "links": null, 

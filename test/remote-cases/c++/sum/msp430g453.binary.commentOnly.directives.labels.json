@@ -1,0 +1,152 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "/***********************", 
+      "source": null
+    }, 
+    {
+      "text": " * Function `testFunction(int*, int)' ", 
+      "source": null
+    }, 
+    {
+      "text": " ***********************/", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        push    r4", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r1, r4", 
+      "source": 1
+    }, 
+    {
+      "text": "        add     #2, r4", 
+      "source": 1
+    }, 
+    {
+      "text": "        sub     #8, r1", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r15, -6(r4)", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r14, -4(r4)", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     #0, -10(r4)", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     #0, -8(r4)", 
+      "source": 3
+    }, 
+    {
+      "text": "        jmp     .L2", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     -8(r4), r15", 
+      "source": 4
+    }, 
+    {
+      "text": "        rla     r15", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     -6(r4), r15", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     @r15, r15", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     r15, -10(r4)", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     #1, -8(r4)", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov.b   #1, r15", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     -4(r4), -8(r4)", 
+      "source": 3
+    }, 
+    {
+      "text": "        jl      .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov.b   #0, r15", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp.b   #0, r15", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     -10(r4), r15", 
+      "source": 6
+    }, 
+    {
+      "text": "        add     #8, r1", 
+      "source": 7
+    }, 
+    {
+      "text": "        pop     r4", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": ";; End of function ", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

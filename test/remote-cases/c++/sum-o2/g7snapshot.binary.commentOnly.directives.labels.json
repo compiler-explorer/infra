@@ -9,12 +9,12 @@
     {
       "text": " jmpq   *0x200c02(%rip)        # 600ff8 <_DYNAMIC+0x200>", 
       "opcodes": [
-        255, 
-        37, 
-        2, 
-        12, 
-        32, 
-        0
+        "ff", 
+        "25", 
+        "02", 
+        "0c", 
+        "20", 
+        "00"
       ], 
       "source": null, 
       "links": [
@@ -29,8 +29,8 @@
     {
       "text": " xchg   %ax,%ax", 
       "opcodes": [
-        102, 
-        144
+        "66", 
+        "90"
       ], 
       "source": null, 
       "links": null, 
@@ -43,8 +43,8 @@
     {
       "text": " xor    %eax,%eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 9, 
       "links": null, 
@@ -53,7 +53,7 @@
     {
       "text": " retq   ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 9, 
       "links": null, 
@@ -62,16 +62,16 @@
     {
       "text": " nopw   %cs:0x0(%rax,%rax,1)", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -80,9 +80,9 @@
     {
       "text": " nopl   (%rax)", 
       "opcodes": [
-        15, 
-        31, 
-        0
+        "0f", 
+        "1f", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -95,8 +95,8 @@
     {
       "text": " test   %esi,%esi", 
       "opcodes": [
-        133, 
-        246
+        "85", 
+        "f6"
       ], 
       "source": 3, 
       "links": null, 
@@ -105,8 +105,8 @@
     {
       "text": " jle    400520 <testFunction(int*, int)+0x20>", 
       "opcodes": [
-        126, 
-        28
+        "7e", 
+        "1c"
       ], 
       "source": 3, 
       "links": [
@@ -121,9 +121,9 @@
     {
       "text": " lea    -0x1(%rsi),%eax", 
       "opcodes": [
-        141, 
-        70, 
-        255
+        "8d", 
+        "46", 
+        "ff"
       ], 
       "source": 3, 
       "links": null, 
@@ -132,11 +132,11 @@
     {
       "text": " lea    0x4(%rdi,%rax,4),%rdx", 
       "opcodes": [
-        72, 
-        141, 
-        84, 
-        135, 
-        4
+        "48", 
+        "8d", 
+        "54", 
+        "87", 
+        "04"
       ], 
       "source": 3, 
       "links": null, 
@@ -145,8 +145,8 @@
     {
       "text": " xor    %eax,%eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 2, 
       "links": null, 
@@ -155,8 +155,8 @@
     {
       "text": " xchg   %ax,%ax", 
       "opcodes": [
-        102, 
-        144
+        "66", 
+        "90"
       ], 
       "source": 2, 
       "links": null, 
@@ -165,8 +165,8 @@
     {
       "text": " add    (%rdi),%eax", 
       "opcodes": [
-        3, 
-        7
+        "03", 
+        "07"
       ], 
       "source": 4, 
       "links": null, 
@@ -175,10 +175,10 @@
     {
       "text": " add    $0x4,%rdi", 
       "opcodes": [
-        72, 
-        131, 
-        199, 
-        4
+        "48", 
+        "83", 
+        "c7", 
+        "04"
       ], 
       "source": 4, 
       "links": null, 
@@ -187,9 +187,9 @@
     {
       "text": " cmp    %rdx,%rdi", 
       "opcodes": [
-        72, 
-        57, 
-        215
+        "48", 
+        "39", 
+        "d7"
       ], 
       "source": 3, 
       "links": null, 
@@ -198,8 +198,8 @@
     {
       "text": " jne    400510 <testFunction(int*, int)+0x10>", 
       "opcodes": [
-        117, 
-        245
+        "75", 
+        "f5"
       ], 
       "source": 3, 
       "links": [
@@ -214,8 +214,8 @@
     {
       "text": " repz retq ", 
       "opcodes": [
-        243, 
-        195
+        "f3", 
+        "c3"
       ], 
       "source": 3, 
       "links": null, 
@@ -224,9 +224,9 @@
     {
       "text": " nopl   (%rax)", 
       "opcodes": [
-        15, 
-        31, 
-        0
+        "0f", 
+        "1f", 
+        "00"
       ], 
       "source": 3, 
       "links": null, 
@@ -235,8 +235,8 @@
     {
       "text": " xor    %eax,%eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 2, 
       "links": null, 
@@ -245,7 +245,7 @@
     {
       "text": " retq   ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 7, 
       "links": null, 
@@ -254,16 +254,16 @@
     {
       "text": " nopw   %cs:0x0(%rax,%rax,1)", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 7, 
       "links": null, 
@@ -272,9 +272,9 @@
     {
       "text": " nopl   (%rax)", 
       "opcodes": [
-        15, 
-        31, 
-        0
+        "0f", 
+        "1f", 
+        "00"
       ], 
       "source": 7, 
       "links": null, 

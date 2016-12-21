@@ -6,22 +6,21 @@ import requests
 from argparse import ArgumentParser
 
 import re
+
 import sys
 
 parser = ArgumentParser()
 parser.add_argument('url')
 parser.add_argument('directory')
 parser.add_argument('--update-compilers', action='store_true')
+parser.add_argument('--disabled-by-default', action='store_true')
 parser.add_argument('--bless', action='store_true')
 
 FILTERS = [
-    [],
-    ['labels', 'directives', 'commentOnly', 'intel'],
-    ['labels', 'directives', 'commentOnly'],
-    ['directives', 'commentOnly'],
-    ['directives'],
     ['binary', 'labels', 'directives', 'commentOnly', 'intel'],
     ['binary', 'labels', 'directives', 'commentOnly'],
+    ['labels', 'directives', 'commentOnly', 'intel'],
+    ['labels', 'directives', 'commentOnly'],
 ]
 
 
@@ -35,11 +34,12 @@ def get(url, compiler, options, source, filters):
     r.raise_for_status()
 
     def fixup(obj):
-        obj['text'] = re.sub(r'/tmp/gcc-explorer-[^/]+', '/tmp', obj['text'])
+        if 'text' in obj:
+            obj['text'] = re.sub(r'/tmp/gcc-explorer-[^/]+', '/tmp', obj['text'])
         return obj
 
     result = r.json()
-    if not 'asm' in result:
+    if 'asm' not in result:
         result['asm'] = []
     result['asm'] = [fixup(obj) for obj in result['asm']]
     return result
@@ -61,8 +61,8 @@ def main(args):
         for compiler in compilers:
             if compiler not in compiler_map:
                 print "New compiler: " + compiler
-                compiler_map[compiler] = True
-        for compiler in compiler_map:
+                compiler_map[compiler] = not args.disabled_by_default
+        for compiler in list(compiler_map):
             if compiler not in compilers:
                 print "Compiler removed: " + compiler
                 del compiler_map[compiler]
@@ -100,6 +100,8 @@ def main(args):
                 else:
                     expected = json.load(open(expected_file))
                     if expected != result:
+                        with open('/tmp/got.json', 'w') as f:
+                            f.write(json.dumps(result, indent=2))
                         raise RuntimeError('Differences in {}'.format(expected_file))
 
 

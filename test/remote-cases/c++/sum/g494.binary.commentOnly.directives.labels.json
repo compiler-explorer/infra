@@ -9,12 +9,12 @@
     {
       "text": " jmpq   *0x20054a(%rip)        # 6009c0 <_DYNAMIC+0x200>", 
       "opcodes": [
-        255, 
-        37, 
-        74, 
-        5, 
-        32, 
-        0
+        "ff", 
+        "25", 
+        "4a", 
+        "05", 
+        "20", 
+        "00"
       ], 
       "source": null, 
       "links": [
@@ -29,8 +29,8 @@
     {
       "text": " xchg   %ax,%ax", 
       "opcodes": [
-        102, 
-        144
+        "66", 
+        "90"
       ], 
       "source": null, 
       "links": null, 
@@ -43,7 +43,7 @@
     {
       "text": " push   %rbp", 
       "opcodes": [
-        85
+        "55"
       ], 
       "source": 1, 
       "links": null, 
@@ -52,9 +52,9 @@
     {
       "text": " mov    %rsp,%rbp", 
       "opcodes": [
-        72, 
-        137, 
-        229
+        "48", 
+        "89", 
+        "e5"
       ], 
       "source": 1, 
       "links": null, 
@@ -63,10 +63,10 @@
     {
       "text": " mov    %rdi,-0x18(%rbp)", 
       "opcodes": [
-        72, 
-        137, 
-        125, 
-        232
+        "48", 
+        "89", 
+        "7d", 
+        "e8"
       ], 
       "source": 1, 
       "links": null, 
@@ -75,9 +75,9 @@
     {
       "text": " mov    %esi,-0x1c(%rbp)", 
       "opcodes": [
-        137, 
-        117, 
-        228
+        "89", 
+        "75", 
+        "e4"
       ], 
       "source": 1, 
       "links": null, 
@@ -86,13 +86,13 @@
     {
       "text": " movl   $0x0,-0x4(%rbp)", 
       "opcodes": [
-        199, 
-        69, 
-        252, 
-        0, 
-        0, 
-        0, 
-        0
+        "c7", 
+        "45", 
+        "fc", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 2, 
       "links": null, 
@@ -101,13 +101,13 @@
     {
       "text": " movl   $0x0,-0x8(%rbp)", 
       "opcodes": [
-        199, 
-        69, 
-        248, 
-        0, 
-        0, 
-        0, 
-        0
+        "c7", 
+        "45", 
+        "f8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 3, 
       "links": null, 
@@ -116,8 +116,8 @@
     {
       "text": " jmp    4005ae <testFunction(int*, int)+0x38>", 
       "opcodes": [
-        235, 
-        29
+        "eb", 
+        "1d"
       ], 
       "source": 3, 
       "links": [
@@ -132,9 +132,9 @@
     {
       "text": " mov    -0x8(%rbp),%eax", 
       "opcodes": [
-        139, 
-        69, 
-        248
+        "8b", 
+        "45", 
+        "f8"
       ], 
       "source": 4, 
       "links": null, 
@@ -143,8 +143,8 @@
     {
       "text": " cltq   ", 
       "opcodes": [
-        72, 
-        152
+        "48", 
+        "98"
       ], 
       "source": 4, 
       "links": null, 
@@ -153,14 +153,14 @@
     {
       "text": " lea    0x0(,%rax,4),%rdx", 
       "opcodes": [
-        72, 
-        141, 
-        20, 
-        133, 
-        0, 
-        0, 
-        0, 
-        0
+        "48", 
+        "8d", 
+        "14", 
+        "85", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -169,10 +169,10 @@
     {
       "text": " mov    -0x18(%rbp),%rax", 
       "opcodes": [
-        72, 
-        139, 
-        69, 
-        232
+        "48", 
+        "8b", 
+        "45", 
+        "e8"
       ], 
       "source": 4, 
       "links": null, 
@@ -181,9 +181,9 @@
     {
       "text": " add    %rdx,%rax", 
       "opcodes": [
-        72, 
-        1, 
-        208
+        "48", 
+        "01", 
+        "d0"
       ], 
       "source": 4, 
       "links": null, 
@@ -192,8 +192,8 @@
     {
       "text": " mov    (%rax),%eax", 
       "opcodes": [
-        139, 
-        0
+        "8b", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -202,9 +202,9 @@
     {
       "text": " add    %eax,-0x4(%rbp)", 
       "opcodes": [
-        1, 
-        69, 
-        252
+        "01", 
+        "45", 
+        "fc"
       ], 
       "source": 4, 
       "links": null, 
@@ -213,10 +213,10 @@
     {
       "text": " addl   $0x1,-0x8(%rbp)", 
       "opcodes": [
-        131, 
-        69, 
-        248, 
-        1
+        "83", 
+        "45", 
+        "f8", 
+        "01"
       ], 
       "source": 3, 
       "links": null, 
@@ -225,9 +225,9 @@
     {
       "text": " mov    -0x8(%rbp),%eax", 
       "opcodes": [
-        139, 
-        69, 
-        248
+        "8b", 
+        "45", 
+        "f8"
       ], 
       "source": 3, 
       "links": null, 
@@ -236,9 +236,9 @@
     {
       "text": " cmp    -0x1c(%rbp),%eax", 
       "opcodes": [
-        59, 
-        69, 
-        228
+        "3b", 
+        "45", 
+        "e4"
       ], 
       "source": 3, 
       "links": null, 
@@ -247,8 +247,8 @@
     {
       "text": " jl     400591 <testFunction(int*, int)+0x1b>", 
       "opcodes": [
-        124, 
-        219
+        "7c", 
+        "db"
       ], 
       "source": 3, 
       "links": [
@@ -263,9 +263,9 @@
     {
       "text": " mov    -0x4(%rbp),%eax", 
       "opcodes": [
-        139, 
-        69, 
-        252
+        "8b", 
+        "45", 
+        "fc"
       ], 
       "source": 6, 
       "links": null, 
@@ -274,7 +274,7 @@
     {
       "text": " pop    %rbp", 
       "opcodes": [
-        93
+        "5d"
       ], 
       "source": 7, 
       "links": null, 
@@ -283,7 +283,7 @@
     {
       "text": " retq   ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 7, 
       "links": null, 
@@ -296,7 +296,7 @@
     {
       "text": " push   %rbp", 
       "opcodes": [
-        85
+        "55"
       ], 
       "source": 9, 
       "links": null, 
@@ -305,9 +305,9 @@
     {
       "text": " mov    %rsp,%rbp", 
       "opcodes": [
-        72, 
-        137, 
-        229
+        "48", 
+        "89", 
+        "e5"
       ], 
       "source": 9, 
       "links": null, 
@@ -316,11 +316,11 @@
     {
       "text": " mov    $0x0,%eax", 
       "opcodes": [
-        184, 
-        0, 
-        0, 
-        0, 
-        0
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -329,7 +329,7 @@
     {
       "text": " pop    %rbp", 
       "opcodes": [
-        93
+        "5d"
       ], 
       "source": 9, 
       "links": null, 
@@ -338,7 +338,7 @@
     {
       "text": " retq   ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 9, 
       "links": null, 
@@ -347,16 +347,16 @@
     {
       "text": " nopw   %cs:0x0(%rax,%rax,1)", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 

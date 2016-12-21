@@ -31,10 +31,6 @@
       "source": null
     }, 
     {
-      "text": ".LFBB1:", 
-      "source": null
-    }, 
-    {
       "text": "        cp __zero_reg__,r22", 
       "source": 3
     }, 
@@ -75,10 +71,6 @@
       "source": null
     }, 
     {
-      "text": ".LM3:", 
-      "source": null
-    }, 
-    {
       "text": "        ld r20,Z+", 
       "source": 4
     }, 
@@ -93,10 +85,6 @@
     {
       "text": "        adc r19,r21", 
       "source": 4
-    }, 
-    {
-      "text": ".LM4:", 
-      "source": null
     }, 
     {
       "text": "        adiw r24,1", 

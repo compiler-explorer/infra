@@ -1,0 +1,40 @@
+{
+  "okToCache": true, 
+  "code": 1, 
+  "asm": [
+    {
+      "text": "<Compilation failed>", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "/opt/gcc-explorer/ldcbeta/bin/../lib/libdruntime-ldc.a(runtime.o): In function `_D4core7runtime18runModuleUnitTestsUZ19unittestSegvHandlerUNbiPS4core3sys5posix6signal9siginfo_tPvZv':"
+    }, 
+    {
+      "text": "/build/src/ldc/runtime/druntime/src/core/runtime.d:(.text._D4core7runtime18runModuleUnitTestsUZ19unittestSegvHandlerUNbiPS4core3sys5posix6signal9siginfo_tPvZv[_D4core7runtime18runModuleUnitTestsUZ19unittestSegvHandlerUNbiPS4core3sys5posix6signal9siginfo_tPvZv]+0x24): undefined reference to `backtrace'"
+    }, 
+    {
+      "text": "/build/src/ldc/runtime/druntime/src/core/runtime.d:(.text._D4core7runtime18runModuleUnitTestsUZ19unittestSegvHandlerUNbiPS4core3sys5posix6signal9siginfo_tPvZv[_D4core7runtime18runModuleUnitTestsUZ19unittestSegvHandlerUNbiPS4core3sys5posix6signal9siginfo_tPvZv]+0x33): undefined reference to `backtrace_symbols_fd'"
+    }, 
+    {
+      "text": "/opt/gcc-explorer/ldcbeta/bin/../lib/libdruntime-ldc.a(dwarf.o): In function `_D2rt9backtrace5dwarf23traceHandlerOpApplyImplFxAPvMDFKmKxAaZiZi':"
+    }, 
+    {
+      "text": "/build/src/ldc/runtime/druntime/src/rt/backtrace/dwarf.d:(.text._D2rt9backtrace5dwarf23traceHandlerOpApplyImplFxAPvMDFKmKxAaZiZi[_D2rt9backtrace5dwarf23traceHandlerOpApplyImplFxAPvMDFKmKxAaZiZi]+0x29): undefined reference to `backtrace_symbols'"
+    }, 
+    {
+      "text": "/usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/../../../../x86_64-alpine-linux-musl/bin/ld: /opt/gcc-explorer/ldcbeta/bin/../lib/libdruntime-ldc.a(errno.c.o): relocation R_X86_64_PC32 against undefined symbol `__errno_location' can not be used when making a shared object; recompile with -fPIC"
+    }, 
+    {
+      "text": "/usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/../../../../x86_64-alpine-linux-musl/bin/ld: final link failed: Bad value"
+    }, 
+    {
+      "text": "collect2: error: ld returned 1 exit status"
+    }, 
+    {
+      "text": "Error: /usr/bin/gcc failed with status: 1"
+    }
+  ], 
+  "stdout": []
+}

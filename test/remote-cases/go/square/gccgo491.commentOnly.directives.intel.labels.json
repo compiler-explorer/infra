@@ -131,6 +131,10 @@
       "source": 7
     }, 
     {
+      "text": "__go_init_main:", 
+      "source": null
+    }, 
+    {
       "text": "        cmpq    %fs:112, %rsp", 
       "source": 1
     }, 

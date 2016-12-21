@@ -9,8 +9,8 @@
     {
       "text": " xor    %eax,%eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 3, 
       "links": null, 
@@ -19,8 +19,8 @@
     {
       "text": " test   %esi,%esi", 
       "opcodes": [
-        133, 
-        246
+        "85", 
+        "f6"
       ], 
       "source": 3, 
       "links": null, 
@@ -29,8 +29,8 @@
     {
       "text": " jle    4005c4 <testFunction(int*, int)+0x24>", 
       "opcodes": [
-        126, 
-        30
+        "7e", 
+        "1e"
       ], 
       "source": 3, 
       "links": [
@@ -45,9 +45,9 @@
     {
       "text": " sub    $0x1,%esi", 
       "opcodes": [
-        131, 
-        238, 
-        1
+        "83", 
+        "ee", 
+        "01"
       ], 
       "source": 1, 
       "links": null, 
@@ -56,8 +56,8 @@
     {
       "text": " xor    %edx,%edx", 
       "opcodes": [
-        49, 
-        210
+        "31", 
+        "d2"
       ], 
       "source": 1, 
       "links": null, 
@@ -66,14 +66,14 @@
     {
       "text": " lea    0x4(,%rsi,4),%rcx", 
       "opcodes": [
-        72, 
-        141, 
-        12, 
-        181, 
-        4, 
-        0, 
-        0, 
-        0
+        "48", 
+        "8d", 
+        "0c", 
+        "b5", 
+        "04", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 1, 
       "links": null, 
@@ -82,11 +82,11 @@
     {
       "text": " nopl   0x0(%rax,%rax,1)", 
       "opcodes": [
-        15, 
-        31, 
-        68, 
-        0, 
-        0
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
       ], 
       "source": 1, 
       "links": null, 
@@ -95,9 +95,9 @@
     {
       "text": " add    (%rdi,%rdx,1),%eax", 
       "opcodes": [
-        3, 
-        4, 
-        23
+        "03", 
+        "04", 
+        "17"
       ], 
       "source": 4, 
       "links": null, 
@@ -106,10 +106,10 @@
     {
       "text": " add    $0x4,%rdx", 
       "opcodes": [
-        72, 
-        131, 
-        194, 
-        4
+        "48", 
+        "83", 
+        "c2", 
+        "04"
       ], 
       "source": 4, 
       "links": null, 
@@ -118,9 +118,9 @@
     {
       "text": " cmp    %rcx,%rdx", 
       "opcodes": [
-        72, 
-        57, 
-        202
+        "48", 
+        "39", 
+        "ca"
       ], 
       "source": 3, 
       "links": null, 
@@ -129,8 +129,8 @@
     {
       "text": " jne    4005b8 <testFunction(int*, int)+0x18>", 
       "opcodes": [
-        117, 
-        244
+        "75", 
+        "f4"
       ], 
       "source": 3, 
       "links": [
@@ -145,8 +145,8 @@
     {
       "text": " repz retq ", 
       "opcodes": [
-        243, 
-        195
+        "f3", 
+        "c3"
       ], 
       "source": 7, 
       "links": null, 
@@ -155,16 +155,16 @@
     {
       "text": " nopw   %cs:0x0(%rax,%rax,1)", 
       "opcodes": [
-        102, 
-        46, 
-        15, 
-        31, 
-        132, 
-        0, 
-        0, 
-        0, 
-        0, 
-        0
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 7, 
       "links": null, 
@@ -177,8 +177,8 @@
     {
       "text": " xor    %eax,%eax", 
       "opcodes": [
-        49, 
-        192
+        "31", 
+        "c0"
       ], 
       "source": 9, 
       "links": null, 
@@ -187,7 +187,7 @@
     {
       "text": " retq   ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 9, 
       "links": null, 
@@ -196,7 +196,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -205,7 +205,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -214,7 +214,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -223,7 +223,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -232,7 +232,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -241,7 +241,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -250,7 +250,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -259,7 +259,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -268,7 +268,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -277,7 +277,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -286,7 +286,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -295,7 +295,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -304,7 +304,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 

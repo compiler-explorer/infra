@@ -1,16 +1,16 @@
 {
   "r1100": false, 
   "r1110": true, 
-  "r190": true, 
   "r130": false, 
   "r120": false, 
   "r170": true, 
-  "nightly": true, 
+  "r190": true, 
   "beta": true, 
   "r180": false, 
-  "r150": false, 
+  "nightly": true, 
   "r140": false, 
   "r110": false, 
+  "r150": false, 
   "r100": true, 
   "r160": false
 }

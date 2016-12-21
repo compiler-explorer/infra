@@ -12,7 +12,7 @@
     }, 
     {
       "text": "testFunction(int*, int):", 
-      "source": 1
+      "source": null
     }, 
     {
       "text": "        addiu   $sp,$sp,-16", 
@@ -195,11 +195,11 @@
       "source": null
     }, 
     {
-      "text": "$LASF0:", 
+      "text": "$LASF3:", 
       "source": null
     }, 
     {
-      "text": "$LASF3:", 
+      "text": "$LASF0:", 
       "source": null
     }, 
     {

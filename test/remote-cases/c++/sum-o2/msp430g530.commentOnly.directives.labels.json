@@ -129,10 +129,10 @@
   ], 
   "stderr": [
     {
-      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+      "text": "ERROR: ld.so: object '/gcc-explorer/c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
     }, 
     {
-      "text": "ERROR: ld.so: object './c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
+      "text": "ERROR: ld.so: object '/gcc-explorer/c-preload/libpreload.so' from LD_PRELOAD cannot be preloaded (wrong ELF class: ELFCLASS64): ignored."
     }
   ], 
   "stdout": []

@@ -3,7 +3,8 @@
 set -e
 
 URL=${1:-godbolt.org}
-ARGS=${2}
+shift
+ARGS="$*"
 
 test/remote-test.py http://gcc.${URL}/ test/remote-cases/c++ ${ARGS}
 test/remote-test.py http://d.${URL}/ test/remote-cases/d ${ARGS}

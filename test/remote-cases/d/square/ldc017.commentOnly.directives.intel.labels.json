@@ -7,23 +7,23 @@
       "source": null
     }, 
     {
-      "text": "        mov     dword ptr [rsp - 4], edi", 
+      "text": "        movl    %edi, -4(%rsp)", 
       "source": 2
     }, 
     {
-      "text": "        mov     edi, dword ptr [rsp - 4]", 
+      "text": "        movl    -4(%rsp), %edi", 
       "source": 3
     }, 
     {
-      "text": "        imul    edi, dword ptr [rsp - 4]", 
+      "text": "        imull   -4(%rsp), %edi", 
       "source": 3
     }, 
     {
-      "text": "        mov     eax, edi", 
+      "text": "        movl    %edi, %eax", 
       "source": 3
     }, 
     {
-      "text": "        ret", 
+      "text": "        retq", 
       "source": 3
     }, 
     {
@@ -35,15 +35,15 @@
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
+      "text": "        pushq   %rbp", 
       "source": null
     }, 
     {
-      "text": "        mov     rbp, rsp", 
+      "text": "        movq    %rsp, %rbp", 
       "source": null
     }, 
     {
-      "text": "        cmp     byte ptr [ldc.dso_initialized], 0", 
+      "text": "        cmpb    $0, ldc.dso_initialized", 
       "source": null
     }, 
     {
@@ -51,59 +51,59 @@
       "source": null
     }, 
     {
-      "text": "        movabs  rax, _D7example11__moduleRefZ", 
+      "text": "        movabsq $_D7example11__moduleRefZ, %rax", 
       "source": null
     }, 
     {
-      "text": "        movabs  rcx, _minfo_end", 
+      "text": "        movabsq $_minfo_end, %rcx", 
       "source": null
     }, 
     {
-      "text": "        movabs  rdx, _minfo_beg", 
+      "text": "        movabsq $_minfo_beg, %rdx", 
       "source": null
     }, 
     {
-      "text": "        movabs  rsi, ldc.dso_slot", 
+      "text": "        movabsq $ldc.dso_slot, %rsi", 
       "source": null
     }, 
     {
-      "text": "        mov     byte ptr [rip + ldc.dso_initialized], 1", 
+      "text": "        movb    $1, ldc.dso_initialized(%rip)", 
       "source": null
     }, 
     {
-      "text": "        mov     rdi, rsp", 
+      "text": "        movq    %rsp, %rdi", 
       "source": null
     }, 
     {
-      "text": "        add     rdi, -48", 
+      "text": "        addq    $-48, %rdi", 
       "source": null
     }, 
     {
-      "text": "        mov     rsp, rdi", 
+      "text": "        movq    %rdi, %rsp", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi], 1", 
+      "text": "        movq    $1, (%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 8], rsi", 
+      "text": "        movq    %rsi, 8(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 16], rdx", 
+      "text": "        movq    %rdx, 16(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 24], rcx", 
+      "text": "        movq    %rcx, 24(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 32], rax", 
+      "text": "        movq    %rax, 32(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        call    _d_dso_registry", 
+      "text": "        callq   _d_dso_registry", 
       "source": null
     }, 
     {
@@ -111,15 +111,15 @@
       "source": null
     }, 
     {
-      "text": "        mov     rsp, rbp", 
+      "text": "        movq    %rbp, %rsp", 
       "source": null
     }, 
     {
-      "text": "        pop     rbp", 
+      "text": "        popq    %rbp", 
       "source": null
     }, 
     {
-      "text": "        ret", 
+      "text": "        retq", 
       "source": null
     }, 
     {
@@ -131,15 +131,15 @@
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
+      "text": "        pushq   %rbp", 
       "source": null
     }, 
     {
-      "text": "        mov     rbp, rsp", 
+      "text": "        movq    %rsp, %rbp", 
       "source": null
     }, 
     {
-      "text": "        cmp     byte ptr [ldc.dso_initialized], 0", 
+      "text": "        cmpb    $0, ldc.dso_initialized", 
       "source": null
     }, 
     {
@@ -147,59 +147,59 @@
       "source": null
     }, 
     {
-      "text": "        movabs  rax, _D7example11__moduleRefZ", 
+      "text": "        movabsq $_D7example11__moduleRefZ, %rax", 
       "source": null
     }, 
     {
-      "text": "        movabs  rcx, _minfo_end", 
+      "text": "        movabsq $_minfo_end, %rcx", 
       "source": null
     }, 
     {
-      "text": "        movabs  rdx, _minfo_beg", 
+      "text": "        movabsq $_minfo_beg, %rdx", 
       "source": null
     }, 
     {
-      "text": "        movabs  rsi, ldc.dso_slot", 
+      "text": "        movabsq $ldc.dso_slot, %rsi", 
       "source": null
     }, 
     {
-      "text": "        mov     byte ptr [rip + ldc.dso_initialized], 0", 
+      "text": "        movb    $0, ldc.dso_initialized(%rip)", 
       "source": null
     }, 
     {
-      "text": "        mov     rdi, rsp", 
+      "text": "        movq    %rsp, %rdi", 
       "source": null
     }, 
     {
-      "text": "        add     rdi, -48", 
+      "text": "        addq    $-48, %rdi", 
       "source": null
     }, 
     {
-      "text": "        mov     rsp, rdi", 
+      "text": "        movq    %rdi, %rsp", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi], 1", 
+      "text": "        movq    $1, (%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 8], rsi", 
+      "text": "        movq    %rsi, 8(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 16], rdx", 
+      "text": "        movq    %rdx, 16(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 24], rcx", 
+      "text": "        movq    %rcx, 24(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 32], rax", 
+      "text": "        movq    %rax, 32(%rdi)", 
       "source": null
     }, 
     {
-      "text": "        call    _d_dso_registry", 
+      "text": "        callq   _d_dso_registry", 
       "source": null
     }, 
     {
@@ -207,15 +207,15 @@
       "source": null
     }, 
     {
-      "text": "        mov     rsp, rbp", 
+      "text": "        movq    %rbp, %rsp", 
       "source": null
     }, 
     {
-      "text": "        pop     rbp", 
+      "text": "        popq    %rbp", 
       "source": null
     }, 
     {
-      "text": "        ret", 
+      "text": "        retq", 
       "source": null
     }, 
     {

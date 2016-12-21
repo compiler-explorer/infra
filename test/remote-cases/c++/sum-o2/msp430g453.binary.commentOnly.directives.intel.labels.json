@@ -1,0 +1,96 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "/***********************", 
+      "source": null
+    }, 
+    {
+      "text": " * Function `testFunction(int*, int)' ", 
+      "source": null
+    }, 
+    {
+      "text": " ***********************/", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     #0, r13", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     r14, r13", 
+      "source": 3
+    }, 
+    {
+      "text": "        jge     .L4", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     r15, r12", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     r13, r15", 
+      "source": 2
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        add     @r12+, r15", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     #1, r13", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     r14, r13", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ret", 
+      "source": 3
+    }, 
+    {
+      "text": ".L4:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     r13, r15", 
+      "source": 2
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": ";; End of function ", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

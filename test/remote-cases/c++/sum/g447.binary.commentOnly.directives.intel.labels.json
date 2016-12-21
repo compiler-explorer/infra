@@ -9,7 +9,7 @@
     {
       "text": " push   rbp", 
       "opcodes": [
-        85
+        "55"
       ], 
       "source": 1, 
       "links": null, 
@@ -18,9 +18,9 @@
     {
       "text": " mov    rbp,rsp", 
       "opcodes": [
-        72, 
-        137, 
-        229
+        "48", 
+        "89", 
+        "e5"
       ], 
       "source": 1, 
       "links": null, 
@@ -29,10 +29,10 @@
     {
       "text": " mov    QWORD PTR [rbp-0x18],rdi", 
       "opcodes": [
-        72, 
-        137, 
-        125, 
-        232
+        "48", 
+        "89", 
+        "7d", 
+        "e8"
       ], 
       "source": 1, 
       "links": null, 
@@ -41,9 +41,9 @@
     {
       "text": " mov    DWORD PTR [rbp-0x1c],esi", 
       "opcodes": [
-        137, 
-        117, 
-        228
+        "89", 
+        "75", 
+        "e4"
       ], 
       "source": 1, 
       "links": null, 
@@ -52,13 +52,13 @@
     {
       "text": " mov    DWORD PTR [rbp-0x4],0x0", 
       "opcodes": [
-        199, 
-        69, 
-        252, 
-        0, 
-        0, 
-        0, 
-        0
+        "c7", 
+        "45", 
+        "fc", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 2, 
       "links": null, 
@@ -67,13 +67,13 @@
     {
       "text": " mov    DWORD PTR [rbp-0x8],0x0", 
       "opcodes": [
-        199, 
-        69, 
-        248, 
-        0, 
-        0, 
-        0, 
-        0
+        "c7", 
+        "45", 
+        "f8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 3, 
       "links": null, 
@@ -82,8 +82,8 @@
     {
       "text": " jmp    4005c5 <testFunction(int*, int)+0x31>", 
       "opcodes": [
-        235, 
-        22
+        "eb", 
+        "16"
       ], 
       "source": 3, 
       "links": [
@@ -98,9 +98,9 @@
     {
       "text": " mov    eax,DWORD PTR [rbp-0x8]", 
       "opcodes": [
-        139, 
-        69, 
-        248
+        "8b", 
+        "45", 
+        "f8"
       ], 
       "source": 4, 
       "links": null, 
@@ -109,8 +109,8 @@
     {
       "text": " cdqe   ", 
       "opcodes": [
-        72, 
-        152
+        "48", 
+        "98"
       ], 
       "source": 4, 
       "links": null, 
@@ -119,10 +119,10 @@
     {
       "text": " shl    rax,0x2", 
       "opcodes": [
-        72, 
-        193, 
-        224, 
-        2
+        "48", 
+        "c1", 
+        "e0", 
+        "02"
       ], 
       "source": 4, 
       "links": null, 
@@ -131,10 +131,10 @@
     {
       "text": " add    rax,QWORD PTR [rbp-0x18]", 
       "opcodes": [
-        72, 
-        3, 
-        69, 
-        232
+        "48", 
+        "03", 
+        "45", 
+        "e8"
       ], 
       "source": 4, 
       "links": null, 
@@ -143,8 +143,8 @@
     {
       "text": " mov    eax,DWORD PTR [rax]", 
       "opcodes": [
-        139, 
-        0
+        "8b", 
+        "00"
       ], 
       "source": 4, 
       "links": null, 
@@ -153,9 +153,9 @@
     {
       "text": " add    DWORD PTR [rbp-0x4],eax", 
       "opcodes": [
-        1, 
-        69, 
-        252
+        "01", 
+        "45", 
+        "fc"
       ], 
       "source": 4, 
       "links": null, 
@@ -164,10 +164,10 @@
     {
       "text": " add    DWORD PTR [rbp-0x8],0x1", 
       "opcodes": [
-        131, 
-        69, 
-        248, 
-        1
+        "83", 
+        "45", 
+        "f8", 
+        "01"
       ], 
       "source": 3, 
       "links": null, 
@@ -176,9 +176,9 @@
     {
       "text": " mov    eax,DWORD PTR [rbp-0x8]", 
       "opcodes": [
-        139, 
-        69, 
-        248
+        "8b", 
+        "45", 
+        "f8"
       ], 
       "source": 3, 
       "links": null, 
@@ -187,9 +187,9 @@
     {
       "text": " cmp    eax,DWORD PTR [rbp-0x1c]", 
       "opcodes": [
-        59, 
-        69, 
-        228
+        "3b", 
+        "45", 
+        "e4"
       ], 
       "source": 3, 
       "links": null, 
@@ -198,9 +198,9 @@
     {
       "text": " setl   al", 
       "opcodes": [
-        15, 
-        156, 
-        192
+        "0f", 
+        "9c", 
+        "c0"
       ], 
       "source": 3, 
       "links": null, 
@@ -209,8 +209,8 @@
     {
       "text": " test   al,al", 
       "opcodes": [
-        132, 
-        192
+        "84", 
+        "c0"
       ], 
       "source": 3, 
       "links": null, 
@@ -219,8 +219,8 @@
     {
       "text": " jne    4005af <testFunction(int*, int)+0x1b>", 
       "opcodes": [
-        117, 
-        221
+        "75", 
+        "dd"
       ], 
       "source": 3, 
       "links": [
@@ -235,9 +235,9 @@
     {
       "text": " mov    eax,DWORD PTR [rbp-0x4]", 
       "opcodes": [
-        139, 
-        69, 
-        252
+        "8b", 
+        "45", 
+        "fc"
       ], 
       "source": 6, 
       "links": null, 
@@ -246,7 +246,7 @@
     {
       "text": " leave  ", 
       "opcodes": [
-        201
+        "c9"
       ], 
       "source": 7, 
       "links": null, 
@@ -255,7 +255,7 @@
     {
       "text": " ret    ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 7, 
       "links": null, 
@@ -268,7 +268,7 @@
     {
       "text": " push   rbp", 
       "opcodes": [
-        85
+        "55"
       ], 
       "source": 9, 
       "links": null, 
@@ -277,9 +277,9 @@
     {
       "text": " mov    rbp,rsp", 
       "opcodes": [
-        72, 
-        137, 
-        229
+        "48", 
+        "89", 
+        "e5"
       ], 
       "source": 9, 
       "links": null, 
@@ -288,11 +288,11 @@
     {
       "text": " mov    eax,0x0", 
       "opcodes": [
-        184, 
-        0, 
-        0, 
-        0, 
-        0
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
@@ -301,7 +301,7 @@
     {
       "text": " leave  ", 
       "opcodes": [
-        201
+        "c9"
       ], 
       "source": 9, 
       "links": null, 
@@ -310,7 +310,7 @@
     {
       "text": " ret    ", 
       "opcodes": [
-        195
+        "c3"
       ], 
       "source": 9, 
       "links": null, 
@@ -319,7 +319,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -328,7 +328,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -337,7 +337,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -346,7 +346,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -355,7 +355,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -364,7 +364,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -373,7 +373,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -382,7 +382,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -391,7 +391,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -400,7 +400,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -409,7 +409,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -418,7 +418,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -427,7 +427,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 
@@ -436,7 +436,7 @@
     {
       "text": " nop", 
       "opcodes": [
-        144
+        "90"
       ], 
       "source": 9, 
       "links": null, 

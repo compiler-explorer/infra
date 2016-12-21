@@ -3,6 +3,42 @@
   "code": 0, 
   "asm": [
     {
+      "text": "_ZN7example6square17h50fec2ed0ecc5e5aE:", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 2
+    }, 
+    {
+      "text": "        imul    edi, edi", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     eax, edi", 
+      "source": 2
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 2
+    }, 
+    {
+      "text": "        ret", 
+      "source": 2
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
       "text": "", 
       "source": null
     }, 
