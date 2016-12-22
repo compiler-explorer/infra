@@ -57,6 +57,11 @@ install_rust() {
 
 install_new_rust() {
     local NAME=$1
+    local FORCE=$2
+    if [[ -n "${FORCE}" ]]; then
+        echo Forcing install of $NAME
+        rm -rf rust-${NAME}
+    fi
 
 	if [[ -d rust-${NAME} ]]; then
         echo Skipping install of rust $NAME as already installed
@@ -80,9 +85,8 @@ install_new_rust() {
 
 #########################
 # RUST
-
-install_new_rust nightly
-install_new_rust beta
+install_new_rust nightly force
+install_new_rust beta force
 install_new_rust 1.5.0
 install_new_rust 1.6.0
 install_new_rust 1.7.0
@@ -90,6 +94,8 @@ install_new_rust 1.8.0
 install_new_rust 1.9.0
 install_new_rust 1.10.0
 install_new_rust 1.11.0
+install_new_rust 1.12.0
+install_new_rust 1.13.0
 
 install_rust 1.0.0
 install_rust 1.1.0
