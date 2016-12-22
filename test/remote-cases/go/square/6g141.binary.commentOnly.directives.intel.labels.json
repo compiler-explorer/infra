@@ -1,9 +1,232 @@
 {
-  "code": -1, 
-  "asm": [], 
-  "stderr": [
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
     {
-      "text": "Internal GCC explorer error: TypeError: Cannot read property 'match' of undefined"
+      "text": "        text    $\"\".Square\u00b7f+0(SB),$0-0", 
+      "source": null
+    }, 
+    {
+      "text": "        funcdata        $0,\"\".gcargs\u00b70+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        funcdata        $1,\"\".gclocals\u00b71+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        type    \"\".x+0(FP),$8", 
+      "source": null
+    }, 
+    {
+      "text": "        type    \"\".~r1+8(FP),$8", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    $0,\"\".~r1+8(FP)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    \"\".x+0(FP),BX", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    \"\".x+0(FP),BP", 
+      "source": null
+    }, 
+    {
+      "text": "        imulq   BP,BX", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    BX,\"\".~r1+8(FP)", 
+      "source": null
+    }, 
+    {
+      "text": "        ret     ,", 
+      "source": null
+    }, 
+    {
+      "text": "        call    ,$runtime.throwreturn\u00b7f+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        undef   ,", 
+      "source": null
+    }, 
+    {
+      "text": "        ret     ,", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        text    $\"\".main\u00b7f+0(SB),$0-0", 
+      "source": null
+    }, 
+    {
+      "text": "        funcdata        $0,\"\".gcargs\u00b72+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        funcdata        $1,\"\".gclocals\u00b73+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        ret     ,", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        text    $\"\".init\u00b7f+0(SB),$0-0", 
+      "source": null
+    }, 
+    {
+      "text": "        funcdata        $0,\"\".gcargs\u00b74+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        funcdata        $1,\"\".gclocals\u00b75+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    \"\".initdone\u00b7+0(SB),BX", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpb    BX,$0", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    \"\".initdone\u00b7+0(SB),BX", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpb    BX,$2", 
+      "source": null
+    }, 
+    {
+      "text": "        ret     ,", 
+      "source": null
+    }, 
+    {
+      "text": "        call    ,$runtime.throwinit\u00b7f+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        undef   ,", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    $1,\"\".initdone\u00b7+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    $2,\"\".initdone\u00b7+0(SB)", 
+      "source": null
+    }, 
+    {
+      "text": "        ret     ,", 
+      "source": null
+    }, 
+    {
+      "text": "        ret     ,", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   \"\".initdone\u00b7+0(SB),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    go.importpath.runtime.+0(SB)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    AL(AL*0)/0,AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        data    go.importpath.runtime.+0(SB)/0,$7", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
+    }, 
+    {
+      "text": "        globl   AL(AL*0),AL(AL*0)", 
+      "source": null
     }
-  ]
+  ], 
+  "stderr": [], 
+  "stdout": []
 }

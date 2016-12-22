@@ -9,10 +9,10 @@
   ], 
   "stderr": [
     {
-      "text": "/usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/../../../../x86_64-alpine-linux-musl/bin/ld: /tmp/gcc-explorer-compiler1161121-130-1es88u4.qj7hus1yvi/output.o: relocation R_X86_64_32S against `ldc.dso_initialized' can not be used when making a shared object; recompile with -fPIC"
+      "text": "/usr/lib/gcc/x86_64-alpine-linux-musl/5.3.0/../../../../x86_64-alpine-linux-musl/bin/ld: /tmp/gcc-explorer-compiler1161122-104-1h2ufug.1dhfj62yb9/output.o: relocation R_X86_64_32S against `ldc.dso_initialized' can not be used when making a shared object; recompile with -fPIC"
     }, 
     {
-      "text": "/tmp/gcc-explorer-compiler1161121-130-1es88u4.qj7hus1yvi/output.o: error adding symbols: Bad value"
+      "text": "/tmp/gcc-explorer-compiler1161122-104-1h2ufug.1dhfj62yb9/output.o: error adding symbols: Bad value"
     }, 
     {
       "text": "collect2: error: ld returned 1 exit status"
