@@ -1,52 +1,108 @@
 {
   "okToCache": true, 
-  "code": 1, 
+  "code": 0, 
   "asm": [
     {
-      "text": "<Compilation failed>", 
+      "text": "int example.square(int):", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     DWORD PTR [rbp-4], edi", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     eax, DWORD PTR [rbp-4]", 
+      "source": 3
+    }, 
+    {
+      "text": "        imul    eax, DWORD PTR [rbp-4]", 
+      "source": 3
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 4
+    }, 
+    {
+      "text": "        ret", 
+      "source": 4
+    }, 
+    {
+      "text": "_D7example12__ModuleInfoZ:", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   4100", 
+      "source": null
+    }, 
+    {
+      "text": "        .long   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .string \"example\"", 
+      "source": null
+    }, 
+    {
+      "text": "__mod_ref.3522:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   0", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   _D7example12__ModuleInfoZ", 
+      "source": null
+    }, 
+    {
+      "text": "void example.__modinit():", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rax, QWORD PTR _Dmodule_ref[rip]", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     QWORD PTR __mod_ref.3522[rip], rax", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     QWORD PTR _Dmodule_ref[rip], OFFSET FLAT:__mod_ref.3522", 
+      "source": 3
+    }, 
+    {
+      "text": "        nop", 
+      "source": 1
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        ret", 
+      "source": 1
+    }, 
+    {
+      "text": "", 
       "source": null
     }
   ], 
-  "stderr": [
-    {
-      "text": "/usr/bin/ld: warning: libc.so.6, needed by /opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so, not found (try using -rpath or -rpath-link)"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgphobos2.a(memory.o): In function `_D2rt6memory16initStaticDataGCFZv':"
-    }, 
-    {
-      "text": "/home/build/tmp/build/.build/src/gcc-5.2.0/libphobos/libdruntime/rt/memory.d:153: undefined reference to `__data_start'"
-    }, 
-    {
-      "text": "/home/build/tmp/build/.build/src/gcc-5.2.0/libphobos/libdruntime/rt/memory.d:153: undefined reference to `__data_start'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgphobos2.a(qsort.o): In function `_adSort':"
-    }, 
-    {
-      "text": "/home/build/tmp/build/.build/src/gcc-5.2.0/libphobos/libdruntime/rt/qsort.d:32: undefined reference to `qsort_r'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so: undefined reference to `free@GLIBC_2.2.5'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so: undefined reference to `calloc@GLIBC_2.2.5'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so: undefined reference to `realloc@GLIBC_2.2.5'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so: undefined reference to `malloc@GLIBC_2.2.5'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so: undefined reference to `abort@GLIBC_2.2.5'"
-    }, 
-    {
-      "text": "/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin/../lib/gcc/x86_64-pc-linux-gnu/5.2.0/../../../libgcc_s.so: undefined reference to `dl_iterate_phdr@GLIBC_2.2.5'"
-    }, 
-    {
-      "text": "collect2: error: ld returned 1 exit status"
-    }
-  ], 
+  "stderr": [], 
   "stdout": []
 }

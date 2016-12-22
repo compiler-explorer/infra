@@ -38,7 +38,7 @@
   "g482": false, 
   "armg463": false, 
   "armhfg54": true, 
-  "mips5el": true, 
+  "mips5el": false, 
   "clang390": true, 
   "g447": true, 
   "msp430g530": true, 
