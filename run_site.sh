@@ -43,6 +43,7 @@ update_archive() {
     pushd /tmp/gcc-archive
     CFG="${CFG} -v${ARCHIVE_DIR}:/opt/gcc-explorer-archive:ro"
     git clone https://github.com/mattgodbolt/gcc-explorer.git
+    git checkout ${BRANCH}
     cd gcc-explorer
     make dist
     rsync -av out/dist/v/ ${ARCHIVE_DIR}
