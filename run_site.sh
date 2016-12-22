@@ -45,6 +45,7 @@ update_archive() {
     git clone https://github.com/mattgodbolt/gcc-explorer.git
     cd gcc-explorer
     git checkout ${BRANCH}
+    chown -R ubuntu .
     su -c 'make dist' ubuntu
     rsync -av out/dist/v/ ${ARCHIVE_DIR}
     popd
