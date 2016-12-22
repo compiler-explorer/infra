@@ -11,9 +11,13 @@ cd ${OPT}
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
+    if [[ -f /sbin/apk ]]; then
+        # Assume we're under alpine
+        apk --update alpine-sdk
+    fi
     curl http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
     cd patchelf-0.8
-    ./configure
+    CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
     make -j$(nproc)
 fi
 
