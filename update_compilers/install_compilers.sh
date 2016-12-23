@@ -33,12 +33,13 @@ do_strip() {
 do_rust_install() {
     local DIR=$1
     local INSTALL=$2
-    cd ${OPT}
-    fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxf -
+    pushd /tmp
+    fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxvf -
     cd ${DIR}
     ./install.sh --prefix=${OPT}/${INSTALL} --verbose
     cd ${OPT}
     rm -rf ${DIR}
+    popd
 }
 
 install_rust() {
@@ -59,7 +60,7 @@ install_rust() {
     
     # Don't need docs
     rm -rf ${OPT}/rust-${NAME}/share
-
+    
     do_strip ${OPT}/rust-${NAME}
 }
 
