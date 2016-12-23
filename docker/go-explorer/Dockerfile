@@ -1,23 +1,10 @@
-FROM ubuntu:14.04
+FROM mattgodbolt/gcc-explorer:base
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apt-get -y update && apt-get install -y python-software-properties software-properties-common
-RUN add-apt-repository -y ppa:ubuntu-toolchain-r/test
-
-RUN apt-get -y update && apt-get install -y \
-    git \
-    make \
-    curl \
+RUN apt-get install -y \
     golang \
     gccgo
 
-RUN cd / && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
-
-RUN mkdir -p /root
-RUN mkdir -p /root/.ssh
-COPY known_hosts /root/.ssh/
-
-RUN apt-get purge -y openjdk-6-jre-lib
 RUN apt-get autoremove -y
 RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

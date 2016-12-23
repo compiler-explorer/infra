@@ -10,10 +10,13 @@ DOCKER_IMAGES += $(2)-image
 docker/$(2)/.s3cfg: .s3cfg
 	cp $$< $$@
 
-$(2)-image: docker/$(2)/.s3cfg
+$(2)-image: docker/$(2)/.s3cfg base-image
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:$(1)" docker/$(2)
 
 endef
+
+base-image:
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:base" docker/base
 
 $(eval $(call add-image,d,d-explorer))
 $(eval $(call add-image,gcc,gcc-explorer))
@@ -53,4 +56,4 @@ update-compilers:
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images $(DOCKER_IMAGES) publish packer update-compilers
+.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) publish packer update-compilers

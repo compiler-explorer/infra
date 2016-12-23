@@ -1,30 +1,14 @@
-FROM frolvlad/alpine-glibc
+FROM mattgodbolt/gcc-explorer:base
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apk add --no-cache \
-    bash \
-    bzip2 \
-    curl \
-    gcc \
-    git \
-    libc-dev \
-    make \
-    nodejs \
-    tar \
-    xz
-
-RUN cd / && curl -L https://github.com/sgerrand/docker-glibc-builder/releases/download/2.23-0/glibc-bin-2.23-0-x86_64.tar.gz | tar zxvf - --wildcards usr/glibc-compat/lib/*.a
-
-RUN mkdir -p /root
-RUN mkdir -p /root/.ssh
-COPY known_hosts /root/.ssh/
+RUN apt-get autoremove -y
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 #####################
-RUN adduser -D gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
+RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
-ENV LIBRARY_PATH /usr/glibc-compat/lib
-ENV LD_LIBRARY_PATH /usr/glibc-compat/lib
-
+ENV PATH /node/bin:$PATH
 COPY *.sh /
 
 USER gcc-user

@@ -9,13 +9,17 @@ set -ex
 mkdir -p ${OPT}
 cd ${OPT}
 
+fetch() {
+    curl -v -L "$*"
+}
+
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
     if [[ -f /sbin/apk ]]; then
         # Assume we're under alpine
         apk --update add alpine-sdk
     fi
-    curl http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
+    fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
     cd patchelf-0.8
     CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
     make -j$(nproc)
@@ -30,7 +34,7 @@ do_rust_install() {
     local DIR=$1
     local INSTALL=$2
     cd ${OPT}
-    curl -v -L http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxf -
+    fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxf -
     cd ${DIR}
     ./install.sh --prefix=${OPT}/${INSTALL} --verbose
     cd ${OPT}
@@ -62,6 +66,17 @@ install_rust() {
 install_new_rust() {
     local NAME=$1
     local FORCE=$2
+    local DIR=rust-${NAME}
+    
+    if [[ -n "$FORCE" && -d ${DIR} ]]; then
+        local time_from=$(date -d "now - $FORCE" +%s)
+        local dir_time=$(date -r ${DIR} +%s)
+        if (( dir_time > time_from )); then
+            echo "Treating ${DIR} as up to date enough, despite force"
+            FORCE=""
+        fi
+    fi
+
     # force install if asked, or if there's no 'cargo' (which used to happen with older builds)
     if [[ -n "${FORCE}" || ! -x rust-${NAME}/bin/cargo ]]; then
         echo Forcing install of $NAME
@@ -89,8 +104,8 @@ install_new_rust() {
 
 #########################
 # RUST
-install_new_rust nightly force
-install_new_rust beta force
+install_new_rust nightly '1 day'
+install_new_rust beta '1 week'
 install_new_rust 1.5.0
 install_new_rust 1.6.0
 install_new_rust 1.7.0
@@ -112,7 +127,7 @@ install_rust 1.4.0
 #########################
 # GO
 if [[ ! -d ${OPT}/go ]]; then
-    curl https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz | tar zxf -
+    fetch https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz | tar zxf -
     do_strip ${OPT}/go
 fi
 #########################
@@ -130,7 +145,7 @@ getgdc() {
     fi
     mkdir gdc${vers}
     pushd gdc${vers}
-    curl -L ftp://ftp.gdcproject.org/binaries/${vers}/x86_64-linux-gnu/gdc-${vers}+${build}.tar.xz | tar Jxf -
+    fetch ftp://ftp.gdcproject.org/binaries/${vers}/x86_64-linux-gnu/gdc-${vers}+${build}.tar.xz | tar Jxf -
     # stripping the D libraries seems to upset them, so just strip the exes
     do_strip x86_64-pc-linux-gnu/bin
     do_strip x86_64-pc-linux-gnu/libexec
@@ -145,7 +160,7 @@ getldc() {
     fi
     mkdir ldc${vers}
     pushd ldc${vers}
-    curl -L https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf -    
+    fetch https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf -    
     # any kind of stripping upsets ldc
     popd
 }
@@ -162,14 +177,10 @@ getldc_latestbeta() {
         return
     fi
     rm -rf *
-    curl -L https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf - --strip-components 1
+    fetch https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf - --strip-components 1
     echo "${vers}" > .version
     # any kind of stripping upsets ldc
     popd
-}
-
-fetch_url() {
-    curl ${url}
 }
 
 getgdc 4.8.2 2.064.2
@@ -217,7 +228,7 @@ for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
         DIR=clang+llvm-3.5.2-x86_64-linux-gnu
     fi
     if [[ ! -d ${DIR} ]]; then
-        curl http://llvm.org/releases/${VERSION}/clang+llvm-${clang}.tar.xz | tar Jxf -
+        fetch http://llvm.org/releases/${VERSION}/clang+llvm-${clang}.tar.xz | tar Jxf -
         do_strip ${DIR}
     fi
 done
@@ -230,7 +241,7 @@ for VERSION in 0.1.33 \
     if [[ -d ${DIR} ]]; then
         echo ${DIR} installed already
     else
-        curl http://ellcc.org/releases/ellcc-x86_64-linux-${VERSION}.tgz  | tar xzf -
+        fetch http://ellcc.org/releases/ellcc-x86_64-linux-${VERSION}.tgz  | tar xzf -
         mv ellcc ${DIR}
         do_strip ${DIR}
     fi
@@ -305,13 +316,13 @@ done
 
 # MSP compiler
 if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
-    curl -L http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
+    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
     do_strip msp430-gcc-5.3.0.219_linux32
 fi
 
 # GNU ARM Embedded toolchain
 if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
-    curl -L https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 | tar jxf -
+    fetch https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 | tar jxf -
     do_strip gcc-arm-none-eabi-5_4-2016q3 
 fi
 

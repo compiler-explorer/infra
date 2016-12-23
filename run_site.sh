@@ -21,7 +21,7 @@ EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
 ARCHIVE_DIR=/opt/gcc-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
-    EXTERNAL_PORT=8000
+    EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
 else
     $SUDO docker pull -a mattgodbolt/gcc-explorer

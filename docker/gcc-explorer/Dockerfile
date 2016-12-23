@@ -1,16 +1,8 @@
-FROM ubuntu:16.04
+FROM mattgodbolt/gcc-explorer:base
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN dpkg --add-architecture i386 && \
-    apt-get -y update && \
-    apt-get install -y python-software-properties software-properties-common && \
-    apt-get -y update && \
-    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
-    apt-get -y update && \
-    apt-get install -y \
+RUN apt-get install -y \
     clang-3.5 \
-    curl \
-    g++ \
     g++-4.8-powerpc-linux-gnu \
     g++-5-mips-linux-gnu \
     g++-5-mips64-linux-gnuabi64 \
@@ -18,21 +10,13 @@ RUN dpkg --add-architecture i386 && \
     g++-5-mipsel-linux-gnu \
     g++-aarch64-linux-gnu \
     g++-arm-linux-gnueabihf \
-    gcc \
     git \
     libboost-all-dev \
     libc6-dev-i386 \
     libc6:i386 \
     libncurses5:i386 \
     libstdc++6:i386 \
-    linux-libc-dev \
-    make
-
-RUN cd / && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
-
-RUN mkdir -p /root
-RUN mkdir -p /root/.ssh
-COPY known_hosts /root/.ssh/
+    linux-libc-dev
 
 RUN apt-get autoremove -y
 RUN apt-get clean
