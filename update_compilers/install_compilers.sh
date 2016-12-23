@@ -36,7 +36,7 @@ do_rust_install() {
     pushd /tmp
     fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxvf -
     cd ${DIR}
-    ./install.sh --prefix=${OPT}/${INSTALL} --verbose
+    ./install.sh --prefix=${OPT}/${INSTALL} --verbose --without rust-docs
     cd ${OPT}
     rm -rf ${DIR}
     popd
