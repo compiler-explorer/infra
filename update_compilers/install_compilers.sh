@@ -352,7 +352,7 @@ popd
 #########################
 # node.js
 
-TARGET_NODE_VERSION=v4.2.6
+TARGET_NODE_VERSION=v6.9.2
 CURRENT_NODE_VERSION=""
 if [[ -d node ]]; then
     CURRENT_NODE_VERSION=$(node/bin/node --version)

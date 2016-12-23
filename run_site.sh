@@ -73,7 +73,7 @@ start_container() {
     $SUDO docker stop ${NAME} >&2 || true
     $SUDO docker rm ${NAME} >&2 || true
     CONTAINER_UID=$($FULL_COMMAND)
-    sleep 10
+    sleep 2
     echo ${CONTAINER_UID}
 }
 
