@@ -32,7 +32,7 @@ do_rust_install() {
     cd ${OPT}
     curl -v -L http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxf -
     cd ${DIR}
-    ./install.sh --prefix=${OPT}/${INSTALL}
+    ./install.sh --prefix=${OPT}/${INSTALL} --verbose
     cd ${OPT}
     rm -rf ${DIR}
 }
@@ -62,7 +62,8 @@ install_rust() {
 install_new_rust() {
     local NAME=$1
     local FORCE=$2
-    if [[ -n "${FORCE}" ]]; then
+    # force install if asked, or if there's no 'cargo' (which used to happen with older builds)
+    if [[ -n "${FORCE}" -o ! -x rust-${NAME}/bin/cargo ]]; then
         echo Forcing install of $NAME
         rm -rf rust-${NAME}
     fi
@@ -73,11 +74,10 @@ install_new_rust() {
 	fi
     echo Installing rust $NAME
 
-    do_rust_install rustc-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
-    do_rust_install rust-std-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
+    do_rust_install rust-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
     
     # workaround for LD_LIBRARY_PATH
-    for to_patch in ${OPT}/rust-${NAME}/bin/rustc $(find ${OPT}/rust-${NAME}/lib -name *.so); do
+    for to_patch in ${OPT}/rust-${NAME}/bin/rustc ${OPT}/rust-${NAME}/bin/cargo $(find ${OPT}/rust-${NAME}/lib -name *.so); do
         ${PATCHELF} --set-rpath ${OPT}/rust-${NAME}/lib $to_patch
     done
     

@@ -8,4 +8,4 @@ set -ex
 cd /gcc-explorer
 git checkout ${BRANCH-release}
 git pull
-make dist
+env PATH=${PATH}:/opt/gcc-explorer/rust-1.14.0/bin make dist
