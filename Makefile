@@ -2,7 +2,7 @@
 all: docker-images
 
 DOCKER := sudo docker
-PACKER ?= ../packer/packer
+PACKER ?= ../packer
 
 define add-image
 DOCKER_IMAGES += $(2)-image
