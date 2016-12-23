@@ -8,3 +8,4 @@ config.py
 config.json
 .env
 .idea
+/.deploy

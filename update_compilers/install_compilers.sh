@@ -347,3 +347,19 @@ done
 popd
 
 #########################
+
+
+#########################
+# node.js
+
+TARGET_NODE_VERSION=v4.2.6
+CURRENT_NODE_VERSION=""
+if [[ -d node ]]; then
+    CURRENT_NODE_VERSION=$(node/bin/node --version)
+fi
+
+if [[ "$TARGET_NODE_VERSION" != "$CURRENT_NODE_VERSION" ]]; then
+    echo "Installing node $CURRENT_NODE_VERSION"
+    rm -rf node
+    fetch "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.gz" | tar zxf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
+fi

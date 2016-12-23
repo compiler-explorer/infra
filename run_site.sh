@@ -36,22 +36,26 @@ CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/gcc-explorer:/opt/gcc-explorer:ro"
 
-update_archive() {
-    mkdir -p ${ARCHIVE_DIR}
-    rm -rf /tmp/gcc-archive
-    mkdir -p /tmp/gcc-archive
-    pushd /tmp/gcc-archive
-    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/gcc-explorer-archive:ro"
+update_code() {
+    local DEPLOY_DIR=${DIR}/.deploy
+    rm -rf ${DEPLOY_DIR}
+    mkdir -p ${DEPLOY_DIR}
+    pushd ${DEPLOY_DIR}
     git clone https://github.com/mattgodbolt/gcc-explorer.git
     cd gcc-explorer
     git checkout ${BRANCH}
+    local DIST_CMD="env PATH=/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/gcc-explorer/rust-1.14.0/bin:/opt/gcc-explorer/node/bin:$PATH make dist"
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
-        su -c 'make dist' ubuntu
+        su -c "${DIST_CMD}" ubuntu
     else
-        make dist
+        ${DIST_CMD}
     fi
+    CFG="${CFG} -v${DEPLOY_DIR}/gcc-explorer:/gcc-explorer:ro"
+    # Back up the 'v' directory to the long-term archive
+    mkdir -p ${ARCHIVE_DIR}
     rsync -av out/dist/v/ ${ARCHIVE_DIR}
+    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/gcc-explorer-archive:ro"
     popd
 }
 
@@ -98,7 +102,7 @@ wait_for_container() {
 
 trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
 
-update_archive
+update_code
 
 UID_GCC1204=$(start_container gcc1204 20480)
 UID_GCC=$(start_container gcc 10240 --link gcc1204:gcc1204)

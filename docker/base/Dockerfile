@@ -14,8 +14,12 @@ RUN dpkg --add-architecture i386 && \
     git \
     make
 
-RUN cd / && curl "https://nodejs.org/dist/v4.2.3/node-v4.2.3-linux-x64.tar.gz" | tar zxf - && mv node-v4.2.3-linux-x64 node
-
 RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
+
+ENV PATH /opt/gcc-explorer/node/bin:$PATH
+RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
+ENV HOME /home/gcc-user
+
+WORKDIR /gcc-explorer

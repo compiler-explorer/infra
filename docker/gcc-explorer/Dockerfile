@@ -30,14 +30,8 @@ RUN add-apt-repository -y ppa:wine/wine-builds && \
     apt-get -y install winehq-devel
 
 #####################
-RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
-ENV HOME /home/gcc-user
-ENV PATH /node/bin:$PATH
 COPY *.sh /
 
 USER gcc-user
-RUN /update.sh
-WORKDIR /gcc-explorer
-VOLUME /gcc-explorer
 EXPOSE 10240
 CMD ["/run.sh"]
