@@ -63,7 +63,7 @@ install_new_rust() {
     local NAME=$1
     local FORCE=$2
     # force install if asked, or if there's no 'cargo' (which used to happen with older builds)
-    if [[ -n "${FORCE}" -o ! -x rust-${NAME}/bin/cargo ]]; then
+    if [[ -n "${FORCE}" || ! -x rust-${NAME}/bin/cargo ]]; then
         echo Forcing install of $NAME
         rm -rf rust-${NAME}
     fi
