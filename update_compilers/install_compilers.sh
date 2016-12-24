@@ -13,6 +13,14 @@ fetch() {
     curl -v -L "$*"
 }
 
+do_unzip() {
+    if [[ -z "$(which unzip 2>/dev/null)" ]]; then
+        # Assume we're under alpine
+        apk --update add unzip
+    fi
+    unzip "$*"
+}
+
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
     if [[ -f /sbin/apk ]]; then
@@ -326,6 +334,15 @@ if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     do_strip gcc-arm-none-eabi-5_4-2016q3 
 fi
 
+fix_up_windows() {
+    local file=$1
+    if [[ -d ${file}/lib/native/bin/amd64 ]]; then
+        cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_arm/
+        cp ${file}/lib/native/bin/amd64/msvcdis140.dll ${file}/lib/native/bin/amd64_arm/
+        cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_x86/
+    fi
+}
+
 # Windows compilers
 mkdir -p windows
 pushd windows
@@ -336,14 +353,22 @@ for file in \
     if [[ ! -d ${file} ]]; then
         s3cmd get --force s3://gcc-explorer/opt/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
-        if [[ -d ${file}/lib/native/bin/amd64 ]]; then
-            cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_arm/
-            cp ${file}/lib/native/bin/amd64/msvcdis140.dll ${file}/lib/native/bin/amd64_arm/
-            cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_x86/
-        fi
+        fix_up_windows ${file}
         rm ${file}.tar.xz
     fi
 done
+
+for version in \
+    14.0.24629 \
+; do
+    if [[ ! -d ${file} ]]; then
+        mkdir ${file}
+        pushd ${file}
+        fetch http://vcppdogfooding.azurewebsites.net/api/v2/package/visualcpptools/${file} -o ${file}.zip
+        do_unzip ${file}.zip
+        rm ${file}.zip
+        popd
+        fix_up_windows ${file}
 popd
 
 #########################
