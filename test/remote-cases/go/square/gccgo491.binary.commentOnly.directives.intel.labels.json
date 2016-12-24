@@ -3,159 +3,241 @@
   "code": 0, 
   "asm": [
     {
+      "text": "mprotect@plt-0x10:", 
+      "source": null
+    }, 
+    {
+      "text": " push   QWORD PTR [rip+0x202e72]        # 604008 <_GLOBAL_OFFSET_TABLE_+0x8>", 
+      "opcodes": [
+        "ff", 
+        "35", 
+        "72", 
+        "2e", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6307848, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4198800
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x202e74]        # 604010 <_GLOBAL_OFFSET_TABLE_+0x10>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "74", 
+        "2e", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6307856, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4198806
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "40", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4198812
+    }, 
+    {
+      "text": ".plt.got:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x202ca2]        # 603fd8 <_DYNAMIC+0x220>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "a2", 
+        "2c", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6307800, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4199216
+    }, 
+    {
+      "text": " xchg   ax,ax", 
+      "opcodes": [
+        "66", 
+        "90"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199222
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x202caa]        # 603fe8 <_DYNAMIC+0x230>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "aa", 
+        "2c", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6307816, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4199224
+    }, 
+    {
+      "text": " xchg   ax,ax", 
+      "opcodes": [
+        "66", 
+        "90"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199230
+    }, 
+    {
       "text": "main:", 
       "source": null
     }, 
     {
-      "text": " stc    ", 
+      "text": " cmp    rsp,QWORD PTR fs:0x70", 
       "opcodes": [
-        "f9"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199008
-    }, 
-    {
-      "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
-      "opcodes": [
-        "0f", 
-        "1f", 
-        "84", 
-        "00", 
-        "00", 
+        "64", 
+        "48", 
+        "3b", 
+        "24", 
+        "25", 
+        "70", 
         "00", 
         "00", 
         "00"
       ], 
       "source": null, 
       "links": null, 
-      "address": 4199009
+      "address": 4199232
     }, 
     {
-      "text": " jb     4012af <main+0x4f>", 
+      "text": " jb     401364 <main+0x24>", 
       "opcodes": [
         "72", 
-        "44"
+        "19"
       ], 
       "source": null, 
       "links": [
         {
-          "to": 4199087, 
+          "to": 4199268, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199017
+      "address": 4199241
     }, 
     {
-      "text": " push   rbp", 
-      "opcodes": [
-        "55"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199019
-    }, 
-    {
-      "text": " push   rbx", 
-      "opcodes": [
-        "53"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199020
-    }, 
-    {
-      "text": " mov    rbp,rsi", 
+      "text": " mov    rax,QWORD PTR [rip+0x202c9e]        # 603ff0 <_DYNAMIC+0x238>", 
       "opcodes": [
         "48", 
-        "89", 
-        "f5"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199021
-    }, 
-    {
-      "text": " mov    ebx,edi", 
-      "opcodes": [
-        "89", 
-        "fb"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199024
-    }, 
-    {
-      "text": " sub    rsp,0x8", 
-      "opcodes": [
-        "48", 
-        "83", 
-        "ec", 
-        "08"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199026
-    }, 
-    {
-      "text": " call   4010b0 <runtime_check@plt>", 
-      "opcodes": [
-        "e8", 
-        "35", 
-        "fe", 
-        "ff", 
-        "ff"
+        "8b", 
+        "05", 
+        "9e", 
+        "2c", 
+        "20", 
+        "00"
       ], 
       "source": null, 
       "links": [
         {
-          "to": 4198576, 
+          "to": 6307824, 
           "length": 6, 
-          "offset": 8
+          "offset": 46
         }
       ], 
-      "address": 4199030
+      "address": 4199243
     }, 
     {
-      "text": " mov    rsi,rbp", 
+      "text": " mov    BYTE PTR [rax],0x0", 
+      "opcodes": [
+        "c6", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199250
+    }, 
+    {
+      "text": " mov    rax,QWORD PTR [rip+0x202c64]        # 603fc0 <_DYNAMIC+0x208>", 
       "opcodes": [
         "48", 
-        "89", 
-        "ee"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199035
-    }, 
-    {
-      "text": " mov    edi,ebx", 
-      "opcodes": [
-        "89", 
-        "df"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199038
-    }, 
-    {
-      "text": " call   4010c0 <runtime_args@plt>", 
-      "opcodes": [
-        "e8", 
-        "3b", 
-        "fe", 
-        "ff", 
-        "ff"
+        "8b", 
+        "05", 
+        "64", 
+        "2c", 
+        "20", 
+        "00"
       ], 
       "source": null, 
       "links": [
         {
-          "to": 4198592, 
+          "to": 6307776, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4199253
+    }, 
+    {
+      "text": " cmp    BYTE PTR [rax],0x0", 
+      "opcodes": [
+        "80", 
+        "38", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199260
+    }, 
+    {
+      "text": " je     401375 <main+0x35>", 
+      "opcodes": [
+        "74", 
+        "14"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4199285, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199040
+      "address": 4199263
     }, 
     {
       "text": " xor    eax,eax", 
@@ -165,155 +247,16 @@
       ], 
       "source": null, 
       "links": null, 
-      "address": 4199045
+      "address": 4199265
     }, 
     {
-      "text": " call   4010d0 <runtime_osinit@plt>", 
+      "text": " ret    ", 
       "opcodes": [
-        "e8", 
-        "44", 
-        "fe", 
-        "ff", 
-        "ff"
-      ], 
-      "source": null, 
-      "links": [
-        {
-          "to": 4198608, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199047
-    }, 
-    {
-      "text": " call   4010e0 <runtime_schedinit@plt>", 
-      "opcodes": [
-        "e8", 
-        "4f", 
-        "fe", 
-        "ff", 
-        "ff"
-      ], 
-      "source": null, 
-      "links": [
-        {
-          "to": 4198624, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199052
-    }, 
-    {
-      "text": " xor    esi,esi", 
-      "opcodes": [
-        "31", 
-        "f6"
+        "c3"
       ], 
       "source": null, 
       "links": null, 
-      "address": 4199057
-    }, 
-    {
-      "text": " mov    edi,0x4010f0", 
-      "opcodes": [
-        "bf", 
-        "f0", 
-        "10", 
-        "40", 
-        "00"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199059
-    }, 
-    {
-      "text": " call   401100 <__go_go@plt>", 
-      "opcodes": [
-        "e8", 
-        "63", 
-        "fe", 
-        "ff", 
-        "ff"
-      ], 
-      "source": null, 
-      "links": [
-        {
-          "to": 4198656, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199064
-    }, 
-    {
-      "text": " call   401110 <runtime_m@plt>", 
-      "opcodes": [
-        "e8", 
-        "6e", 
-        "fe", 
-        "ff", 
-        "ff"
-      ], 
-      "source": null, 
-      "links": [
-        {
-          "to": 4198672, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199069
-    }, 
-    {
-      "text": " mov    rdi,rax", 
-      "opcodes": [
-        "48", 
-        "89", 
-        "c7"
-      ], 
-      "source": null, 
-      "links": null, 
-      "address": 4199074
-    }, 
-    {
-      "text": " call   401120 <runtime_mstart@plt>", 
-      "opcodes": [
-        "e8", 
-        "76", 
-        "fe", 
-        "ff", 
-        "ff"
-      ], 
-      "source": null, 
-      "links": [
-        {
-          "to": 4198688, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199077
-    }, 
-    {
-      "text": " call   401130 <abort@plt>", 
-      "opcodes": [
-        "e8", 
-        "81", 
-        "fe", 
-        "ff", 
-        "ff"
-      ], 
-      "source": null, 
-      "links": [
-        {
-          "to": 4198704, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199082
+      "address": 4199267
     }, 
     {
       "text": " mov    r10d,0x18", 
@@ -327,7 +270,7 @@
       ], 
       "source": null, 
       "links": null, 
-      "address": 4199087
+      "address": 4199268
     }, 
     {
       "text": " xor    r11d,r11d", 
@@ -338,26 +281,26 @@
       ], 
       "source": null, 
       "links": null, 
-      "address": 4199093
+      "address": 4199274
     }, 
     {
-      "text": " call   40143c <__morestack_non_split>", 
+      "text": " call   401583 <__morestack>", 
       "opcodes": [
         "e8", 
-        "7f", 
-        "01", 
+        "11", 
+        "02", 
         "00", 
         "00"
       ], 
       "source": null, 
       "links": [
         {
-          "to": 4199484, 
+          "to": 4199811, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199096
+      "address": 4199277
     }, 
     {
       "text": " ret    ", 
@@ -366,23 +309,372 @@
       ], 
       "source": null, 
       "links": null, 
-      "address": 4199101
+      "address": 4199282
     }, 
     {
-      "text": " jmp    40126b <main+0xb>", 
+      "text": " jmp    40134b <main+0xb>", 
       "opcodes": [
         "eb", 
-        "ab"
+        "d6"
       ], 
       "source": null, 
       "links": [
         {
-          "to": 4199019, 
+          "to": 4199243, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199102
+      "address": 4199283
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199285
+    }, 
+    {
+      "text": " push   rbx", 
+      "opcodes": [
+        "53"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199286
+    }, 
+    {
+      "text": " mov    rbp,rsi", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "f5"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199287
+    }, 
+    {
+      "text": " mov    ebx,edi", 
+      "opcodes": [
+        "89", 
+        "fb"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199290
+    }, 
+    {
+      "text": " sub    rsp,0x8", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "ec", 
+        "08"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199292
+    }, 
+    {
+      "text": " mov    BYTE PTR [rax],0x1", 
+      "opcodes": [
+        "c6", 
+        "00", 
+        "01"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199296
+    }, 
+    {
+      "text": " mov    rdx,QWORD PTR [rip+0x202c3e]        # 603fc8 <_DYNAMIC+0x210>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "15", 
+        "3e", 
+        "2c", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6307784, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4199299
+    }, 
+    {
+      "text": " lea    rax,[rip+0x202d77]        # 604108 <__go_end>", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "05", 
+        "77", 
+        "2d", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6308104, 
+          "length": 6, 
+          "offset": 36
+        }
+      ], 
+      "address": 4199306
+    }, 
+    {
+      "text": " mov    QWORD PTR [rax],rdx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "10"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199313
+    }, 
+    {
+      "text": " call   401290 <runtime_check@plt>", 
+      "opcodes": [
+        "e8", 
+        "f7", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4199056, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199316
+    }, 
+    {
+      "text": " mov    rsi,rbp", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "ee"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199321
+    }, 
+    {
+      "text": " mov    edi,ebx", 
+      "opcodes": [
+        "89", 
+        "df"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199324
+    }, 
+    {
+      "text": " call   4011d0 <runtime_args@plt>", 
+      "opcodes": [
+        "e8", 
+        "2d", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4198864, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199326
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199331
+    }, 
+    {
+      "text": " call   4012c0 <runtime_osinit@plt>", 
+      "opcodes": [
+        "e8", 
+        "16", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4199104, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199333
+    }, 
+    {
+      "text": " call   4011e0 <runtime_schedinit@plt>", 
+      "opcodes": [
+        "e8", 
+        "31", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4198880, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199338
+    }, 
+    {
+      "text": " mov    rdi,QWORD PTR [rip+0x202c02]        # 603fb8 <_DYNAMIC+0x200>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "3d", 
+        "02", 
+        "2c", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6307768, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4199343
+    }, 
+    {
+      "text": " xor    esi,esi", 
+      "opcodes": [
+        "31", 
+        "f6"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199350
+    }, 
+    {
+      "text": " call   4012b0 <__go_go@plt>", 
+      "opcodes": [
+        "e8", 
+        "f3", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4199088, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199352
+    }, 
+    {
+      "text": " call   401320 <runtime_m@plt>", 
+      "opcodes": [
+        "e8", 
+        "5e", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4199200, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199357
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199362
+    }, 
+    {
+      "text": " call   401210 <runtime_mstart@plt>", 
+      "opcodes": [
+        "e8", 
+        "46", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4198928, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199365
+    }, 
+    {
+      "text": " call   401250 <abort@plt>", 
+      "opcodes": [
+        "e8", 
+        "81", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4198992, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4199370
+    }, 
+    {
+      "text": " nop", 
+      "opcodes": [
+        "90"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4199375
     }, 
     {
       "text": "main.Square:", 
@@ -403,10 +695,10 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199350
+      "address": 4199622
     }, 
     {
-      "text": " jae    4013d3 <main.Square+0x1d>", 
+      "text": " jae    4014e3 <main.Square+0x1d>", 
       "opcodes": [
         "73", 
         "12"
@@ -414,12 +706,12 @@
       "source": 3, 
       "links": [
         {
-          "to": 4199379, 
+          "to": 4199651, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199359
+      "address": 4199631
     }, 
     {
       "text": " mov    r10d,0x8", 
@@ -433,7 +725,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199361
+      "address": 4199633
     }, 
     {
       "text": " mov    r11d,0x0", 
@@ -447,10 +739,10 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199367
+      "address": 4199639
     }, 
     {
-      "text": " call   401473 <__morestack>", 
+      "text": " call   401583 <__morestack>", 
       "opcodes": [
         "e8", 
         "a1", 
@@ -461,12 +753,12 @@
       "source": 3, 
       "links": [
         {
-          "to": 4199539, 
+          "to": 4199811, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199373
+      "address": 4199645
     }, 
     {
       "text": " ret    ", 
@@ -475,7 +767,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199378
+      "address": 4199650
     }, 
     {
       "text": " push   rbp", 
@@ -484,7 +776,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199379
+      "address": 4199651
     }, 
     {
       "text": " mov    rbp,rsp", 
@@ -495,7 +787,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199380
+      "address": 4199652
     }, 
     {
       "text": " mov    QWORD PTR [rbp-0x18],rdi", 
@@ -507,7 +799,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199383
+      "address": 4199655
     }, 
     {
       "text": " mov    QWORD PTR [rbp-0x8],0x0", 
@@ -523,7 +815,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4199387
+      "address": 4199659
     }, 
     {
       "text": " mov    rax,QWORD PTR [rbp-0x18]", 
@@ -535,7 +827,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4199395
+      "address": 4199667
     }, 
     {
       "text": " imul   rax,QWORD PTR [rbp-0x18]", 
@@ -548,7 +840,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4199399
+      "address": 4199671
     }, 
     {
       "text": " mov    QWORD PTR [rbp-0x8],rax", 
@@ -560,7 +852,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4199404
+      "address": 4199676
     }, 
     {
       "text": " mov    rax,QWORD PTR [rbp-0x8]", 
@@ -572,25 +864,25 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4199408
+      "address": 4199680
     }, 
     {
       "text": " pop    rbp", 
       "opcodes": [
         "5d"
       ], 
-      "source": 5, 
+      "source": 3, 
       "links": null, 
-      "address": 4199412
+      "address": 4199684
     }, 
     {
       "text": " ret    ", 
       "opcodes": [
         "c3"
       ], 
-      "source": 5, 
+      "source": 3, 
       "links": null, 
-      "address": 4199413
+      "address": 4199685
     }, 
     {
       "text": "main.main:", 
@@ -611,10 +903,10 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199414
+      "address": 4199686
     }, 
     {
-      "text": " jae    401413 <main.main+0x1d>", 
+      "text": " jae    401523 <main.main+0x1d>", 
       "opcodes": [
         "73", 
         "12"
@@ -622,12 +914,12 @@
       "source": 7, 
       "links": [
         {
-          "to": 4199443, 
+          "to": 4199715, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199423
+      "address": 4199695
     }, 
     {
       "text": " mov    r10d,0x8", 
@@ -641,7 +933,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199425
+      "address": 4199697
     }, 
     {
       "text": " mov    r11d,0x0", 
@@ -655,10 +947,10 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199431
+      "address": 4199703
     }, 
     {
-      "text": " call   401473 <__morestack>", 
+      "text": " call   401583 <__morestack>", 
       "opcodes": [
         "e8", 
         "61", 
@@ -669,12 +961,12 @@
       "source": 7, 
       "links": [
         {
-          "to": 4199539, 
+          "to": 4199811, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199437
+      "address": 4199709
     }, 
     {
       "text": " ret    ", 
@@ -683,7 +975,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199442
+      "address": 4199714
     }, 
     {
       "text": " push   rbp", 
@@ -692,7 +984,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199443
+      "address": 4199715
     }, 
     {
       "text": " mov    rbp,rsp", 
@@ -703,7 +995,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199444
+      "address": 4199716
     }, 
     {
       "text": " pop    rbp", 
@@ -712,7 +1004,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199447
+      "address": 4199719
     }, 
     {
       "text": " ret    ", 
@@ -721,11 +1013,38 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4199448
+      "address": 4199720
     }, 
     {
       "text": "free_dynamic_blocks:", 
       "source": null
+    }, 
+    {
+      "text": " test   rdi,rdi", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "ff"
+      ], 
+      "source": 1, 
+      "links": null, 
+      "address": 4200144
+    }, 
+    {
+      "text": " je     401702 <free_dynamic_blocks+0x32>", 
+      "opcodes": [
+        "74", 
+        "2d"
+      ], 
+      "source": 1, 
+      "links": [
+        {
+          "to": 4200194, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4200147
     }, 
     {
       "text": " push   rbp", 
@@ -734,7 +1053,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199856
+      "address": 4200149
     }, 
     {
       "text": " push   rbx", 
@@ -743,7 +1062,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199857
+      "address": 4200150
     }, 
     {
       "text": " mov    rbx,rdi", 
@@ -754,7 +1073,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199858
+      "address": 4200151
     }, 
     {
       "text": " sub    rsp,0x8", 
@@ -766,34 +1085,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199861
-    }, 
-    {
-      "text": " test   rdi,rdi", 
-      "opcodes": [
-        "48", 
-        "85", 
-        "ff"
-      ], 
-      "source": 1, 
-      "links": null, 
-      "address": 4199865
-    }, 
-    {
-      "text": " je     4015dc <free_dynamic_blocks+0x2c>", 
-      "opcodes": [
-        "74", 
-        "1e"
-      ], 
-      "source": 1, 
-      "links": [
-        {
-          "to": 4199900, 
-          "length": 6, 
-          "offset": 8
-        }
-      ], 
-      "address": 4199868
+      "address": 4200154
     }, 
     {
       "text": " xchg   ax,ax", 
@@ -803,7 +1095,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199870
+      "address": 4200158
     }, 
     {
       "text": " mov    rdi,QWORD PTR [rbx+0x10]", 
@@ -815,7 +1107,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199872
+      "address": 4200160
     }, 
     {
       "text": " mov    rbp,QWORD PTR [rbx]", 
@@ -826,26 +1118,26 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199876
+      "address": 4200164
     }, 
     {
-      "text": " call   401160 <free@plt>", 
+      "text": " call   4011c0 <free@plt>", 
       "opcodes": [
         "e8", 
-        "94", 
-        "fb", 
+        "d4", 
+        "fa", 
         "ff", 
         "ff"
       ], 
       "source": 1, 
       "links": [
         {
-          "to": 4198752, 
+          "to": 4198848, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199879
+      "address": 4200167
     }, 
     {
       "text": " mov    rdi,rbx", 
@@ -856,7 +1148,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199884
+      "address": 4200172
     }, 
     {
       "text": " mov    rbx,rbp", 
@@ -867,26 +1159,26 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199887
+      "address": 4200175
     }, 
     {
-      "text": " call   401160 <free@plt>", 
+      "text": " call   4011c0 <free@plt>", 
       "opcodes": [
         "e8", 
-        "89", 
-        "fb", 
+        "c9", 
+        "fa", 
         "ff", 
         "ff"
       ], 
       "source": 1, 
       "links": [
         {
-          "to": 4198752, 
+          "to": 4198848, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199890
+      "address": 4200178
     }, 
     {
       "text": " test   rbp,rbp", 
@@ -897,10 +1189,10 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199895
+      "address": 4200183
     }, 
     {
-      "text": " jne    4015c0 <free_dynamic_blocks+0x10>", 
+      "text": " jne    4016e0 <free_dynamic_blocks+0x10>", 
       "opcodes": [
         "75", 
         "e4"
@@ -908,12 +1200,12 @@
       "source": 1, 
       "links": [
         {
-          "to": 4199872, 
+          "to": 4200160, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4199898
+      "address": 4200186
     }, 
     {
       "text": " add    rsp,0x8", 
@@ -925,7 +1217,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199900
+      "address": 4200188
     }, 
     {
       "text": " pop    rbx", 
@@ -934,7 +1226,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199904
+      "address": 4200192
     }, 
     {
       "text": " pop    rbp", 
@@ -943,23 +1235,31 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199905
+      "address": 4200193
     }, 
     {
-      "text": " ret    ", 
+      "text": " repz ret ", 
       "opcodes": [
+        "f3", 
         "c3"
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199906
+      "address": 4200194
     }, 
     {
-      "text": " data32 data32 data32 nop WORD PTR cs:[rax+rax*1+0x0]", 
+      "text": " xchg   ax,ax", 
       "opcodes": [
         "66", 
-        "66", 
-        "66", 
+        "90"
+      ], 
+      "source": 1, 
+      "links": null, 
+      "address": 4200196
+    }, 
+    {
+      "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
         "66", 
         "2e", 
         "0f", 
@@ -973,7 +1273,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4199907
+      "address": 4200198
     }
   ], 
   "stderr": [], 

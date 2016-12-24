@@ -24,7 +24,7 @@ FILTERS = [
 ]
 
 
-def get(url, compiler, options, source, filters):
+def get(session, url, compiler, options, source, filters):
     r = requests.post(url + 'compile', json={
         'source': source,
         'compiler': compiler,
@@ -34,9 +34,13 @@ def get(url, compiler, options, source, filters):
     r.raise_for_status()
 
     def fixup(obj):
-        if 'text' in obj:
-            obj['text'] = re.sub(r'/tmp/gcc-explorer-[^/]+', '/tmp', obj['text'])
-        return obj
+        try:
+            if 'text' in obj:
+                obj['text'] = re.sub(r'/tmp/gcc-explorer-[^/]+', '/tmp', obj['text'])
+            return obj
+        except:
+            print "Issues with obj '{}'".format(obj)
+            raise
 
     result = r.json()
     if 'asm' not in result:
@@ -75,34 +79,35 @@ def main(args):
         expected = list(sorted(compiler_map.keys()))
         if expected != compilers:
             raise RuntimeError('Compiler list changed: got {} expected {}'.format(compilers, expected))
-    for test_dir in glob.glob(os.path.join(args.directory, '*')):
-        if not os.path.isdir(test_dir):
-            continue
-        print 'Testing ' + test_dir
-        source_name = glob.glob(os.path.join(test_dir, 'test.*'))[0]
-        source = open(source_name).read()
-        options = open(os.path.join(test_dir, 'options')).read()
-        for compiler, enabled in compiler_map.iteritems():
-            if not enabled:
-                print ' Skipping compiler ' + compiler
+    with requests.Session() as session:
+        for test_dir in glob.glob(os.path.join(args.directory, '*')):
+            if not os.path.isdir(test_dir):
                 continue
-            print ' Compiler ' + compiler
-            for filter_set in FILTERS:
-                print '  Filters ' + '; '.join(filter_set)
-                expected_filename = [compiler]
-                expected_filename.extend(sorted(filter_set))
-                expected_filename.append('json')
-                expected_file = os.path.join(test_dir, ".".join(expected_filename))
-                result = get(args.url, compiler, options, source, filter_set)
-                if args.bless:
-                    with open(expected_file, 'w') as f:
-                        f.write(json.dumps(result, indent=2))
-                else:
-                    expected = json.load(open(expected_file))
-                    if expected != result:
-                        with open('/tmp/got.json', 'w') as f:
+            print 'Testing ' + test_dir
+            source_name = glob.glob(os.path.join(test_dir, 'test.*'))[0]
+            source = open(source_name).read()
+            options = open(os.path.join(test_dir, 'options')).read()
+            for compiler, enabled in compiler_map.iteritems():
+                if not enabled:
+                    print ' Skipping compiler ' + compiler
+                    continue
+                print ' Compiler ' + compiler
+                for filter_set in FILTERS:
+                    print '  Filters ' + '; '.join(filter_set)
+                    expected_filename = [compiler]
+                    expected_filename.extend(sorted(filter_set))
+                    expected_filename.append('json')
+                    expected_file = os.path.join(test_dir, ".".join(expected_filename))
+                    result = get(session, args.url, compiler, options, source, filter_set)
+                    if args.bless:
+                        with open(expected_file, 'w') as f:
                             f.write(json.dumps(result, indent=2))
-                        raise RuntimeError('Differences in {}'.format(expected_file))
+                    else:
+                        expected = json.load(open(expected_file))
+                        if expected != result:
+                            with open('/tmp/got.json', 'w') as f:
+                                f.write(json.dumps(result, indent=2))
+                            raise RuntimeError('Differences in {}'.format(expected_file))
 
 
 if __name__ == '__main__':

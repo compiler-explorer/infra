@@ -3,7 +3,7 @@
   "code": 0, 
   "asm": [
     {
-      "text": "_ZN6square20he984d55150b12705eaaE:", 
+      "text": "square:", 
       "source": null
     }, 
     {

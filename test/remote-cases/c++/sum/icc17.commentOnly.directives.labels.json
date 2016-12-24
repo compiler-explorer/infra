@@ -1,0 +1,128 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq     %rbp                                          #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        movq      %rsp, %rbp                                    #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        subq      $32, %rsp                                     #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        movq      %rdi, -24(%rbp)                               #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        movl      %esi, -16(%rbp)                               #1.42", 
+      "source": 1
+    }, 
+    {
+      "text": "        movl      $0, -32(%rbp)                                 #2.11", 
+      "source": 2
+    }, 
+    {
+      "text": "        movl      $0, -28(%rbp)                                 #3.14", 
+      "source": 3
+    }, 
+    {
+      "text": "..B1.2:                         # Preds ..B1.3 ..B1.1", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      -28(%rbp), %eax                               #3.19", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl      -16(%rbp), %edx                               #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmpl      %edx, %eax                                    #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "        jge       ..B1.4        # Prob 50%                      #3.23", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl      -28(%rbp), %eax                               #4.18", 
+      "source": 4
+    }, 
+    {
+      "text": "        movslq    %eax, %rax                                    #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        imulq     $4, %rax, %rax                                #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq      -24(%rbp), %rax                               #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl      (%rax), %eax                                  #4.12", 
+      "source": 4
+    }, 
+    {
+      "text": "        addl      -32(%rbp), %eax                               #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl      %eax, -32(%rbp)                               #4.5", 
+      "source": 4
+    }, 
+    {
+      "text": "        movl      $1, %eax                                      #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "        addl      -28(%rbp), %eax                               #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl      %eax, -28(%rbp)                               #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "        jmp       ..B1.2        # Prob 100%                     #3.33", 
+      "source": 3
+    }, 
+    {
+      "text": "..B1.4:                         # Preds ..B1.2", 
+      "source": null
+    }, 
+    {
+      "text": "        movl      -32(%rbp), %eax                               #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "        leave                                                   #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "        ret                                                     #6.10", 
+      "source": 6
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

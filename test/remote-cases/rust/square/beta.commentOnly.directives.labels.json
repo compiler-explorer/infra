@@ -3,7 +3,7 @@
   "code": 0, 
   "asm": [
     {
-      "text": "_ZN7example6square17h40ee1ad1bc4b4c0fE:", 
+      "text": "example::square:", 
       "source": null
     }, 
     {
@@ -20,15 +20,15 @@
     }, 
     {
       "text": "        movl    %edi, %eax", 
-      "source": 2
+      "source": 4
     }, 
     {
       "text": "        popq    %rbp", 
-      "source": 2
+      "source": 4
     }, 
     {
       "text": "        retq", 
-      "source": 2
+      "source": 4
     }, 
     {
       "text": "", 
