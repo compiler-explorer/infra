@@ -334,6 +334,7 @@ if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     do_strip gcc-arm-none-eabi-5_4-2016q3 
 fi
 
+# Windows compilers
 fix_up_windows() {
     local file=$1
     if [[ -d ${file}/lib/native/bin/amd64 ]]; then
@@ -343,7 +344,6 @@ fix_up_windows() {
     fi
 }
 
-# Windows compilers
 mkdir -p windows
 pushd windows
 for file in \
@@ -358,19 +358,20 @@ for file in \
     fi
 done
 
-for version in \
+for file in \
     14.0.24629 \
 ; do
     if [[ ! -d ${file} ]]; then
         mkdir ${file}
         pushd ${file}
-        fetch http://vcppdogfooding.azurewebsites.net/api/v2/package/visualcpptools/${file} -o ${file}.zip
+        fetch http://vcppdogfooding.azurewebsites.net/api/v2/package/visualcpptools/${file} > ${file}.zip
         do_unzip ${file}.zip
         rm ${file}.zip
         popd
         fix_up_windows ${file}
+    fi
+done
 popd
-
 #########################
 
 
