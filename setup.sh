@@ -104,10 +104,10 @@ get_or_update_repo ubuntu git@github.com:mattgodbolt/blog.git master blog
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
-cp /gcc-explorer-image/init/* /etc/init/
+cp /compiler-explorer-image/init/* /etc/init/
 
 docker pull -a mattgodbolt/gcc-explorer &
 docker pull nginx &
 wait
 
-[ "$UPSTART_JOB" != "gcc-explorer" ] && service gcc-explorer start || true
+[ "$UPSTART_JOB" != "compiler-explorer" ] && service compiler-explorer start || true

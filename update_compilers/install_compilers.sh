@@ -3,7 +3,7 @@
 # This script installs all the compilers from s3 into a dir in /opt.
 # On EC2 this location is on an EFS drive.
 
-OPT=/opt/gcc-explorer
+OPT=/opt/compiler-explorer
 
 set -ex
 mkdir -p ${OPT}

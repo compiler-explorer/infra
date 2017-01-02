@@ -19,7 +19,7 @@ fi
 
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
-ARCHIVE_DIR=/opt/gcc-explorer-archive
+ARCHIVE_DIR=/opt/compiler-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
@@ -34,28 +34,28 @@ $SUDO docker rm ${ALL} || true
 
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
-CFG="${CFG} -v /opt/gcc-explorer:/opt/gcc-explorer:ro"
+CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
 
 update_code() {
     local DEPLOY_DIR=${DIR}/.deploy
     rm -rf ${DEPLOY_DIR}
     mkdir -p ${DEPLOY_DIR}
     pushd ${DEPLOY_DIR}
-    git clone https://github.com/mattgodbolt/gcc-explorer.git
-    cd gcc-explorer
+    git clone https://github.com/mattgodbolt/compiler-explorer.git
+    cd compiler-explorer
     git checkout ${BRANCH}
-    local DIST_CMD="env PATH=/opt/gcc-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/gcc-explorer/rust-1.14.0/bin:/opt/gcc-explorer/node/bin:$PATH make dist"
+    local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make dist"
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
         su -c "${DIST_CMD}" ubuntu
     else
         ${DIST_CMD}
     fi
-    CFG="${CFG} -v${DEPLOY_DIR}/gcc-explorer:/gcc-explorer:ro"
+    CFG="${CFG} -v${DEPLOY_DIR}/compiler-explorer:/compiler-explorer:ro"
     # Back up the 'v' directory to the long-term archive
     mkdir -p ${ARCHIVE_DIR}
     rsync -av out/dist/v/ ${ARCHIVE_DIR}
-    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/gcc-explorer-archive:ro"
+    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
     popd
 }
 

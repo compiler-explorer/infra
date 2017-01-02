@@ -18,8 +18,8 @@ RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
 
-ENV PATH /opt/gcc-explorer/node/bin:$PATH
-RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
+ENV PATH /opt/compiler-explorer/node/bin:$PATH
+RUN useradd gcc-user && mkdir -p /compiler-explorer /home/gcc-user && chown gcc-user /compiler-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
 
-WORKDIR /gcc-explorer
+WORKDIR /compiler-explorer

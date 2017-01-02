@@ -8,7 +8,7 @@
       "source_ami": "ami-5ac2cd4d",
       "instance_type": "t2.medium",
       "ssh_username": "ubuntu",
-      "ami_name": "gcc-explorer packer {{timestamp}}",
+      "ami_name": "compiler-explorer packer {{timestamp}}",
       "associate_public_ip_address": true,
       "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
@@ -62,11 +62,11 @@
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone https://github.com/mattgodbolt/gcc-explorer-image.git /gcc-explorer-image",
-        "cd /gcc-explorer-image",
+        "git clone https://github.com/mattgodbolt/compiler-explorer-image.git /compiler-explorer-image",
+        "cd /compiler-explorer-image",
         "bash setup.sh 2>&1 | tee /tmp/setup.log",
         "sleep 300",
-        "service gcc-explorer stop",
+        "service compiler-explorer stop",
         "docker stop gcc gcc1204 dx rust nginx || true",
         "docker rm gcc gcc1204 dx rust nginx || true"
       ]

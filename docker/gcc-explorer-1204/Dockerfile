@@ -35,13 +35,13 @@ RUN apt-get clean
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 #####################
-RUN useradd gcc-user && mkdir -p /gcc-explorer /home/gcc-user && chown gcc-user /gcc-explorer && chown gcc-user /home/gcc-user
+RUN useradd gcc-user && mkdir -p /compiler-explorer /home/gcc-user && chown gcc-user /compiler-explorer && chown gcc-user /home/gcc-user
 ENV HOME /home/gcc-user
-ENV PATH /opt/gcc-explorer/node/bin:$PATH
+ENV PATH /opt/compiler-explorer/node/bin:$PATH
 
 COPY *.sh /
 
 USER gcc-user
-WORKDIR /gcc-explorer
+WORKDIR /compiler-explorer
 EXPOSE 20480
 CMD ["/run.sh"]

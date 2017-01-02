@@ -28,7 +28,7 @@ if __name__ == '__main__':
             ssh_client = sshclient_from_instance(instance, "ec2-mattgodbolt.pem",
                     user_name='ubuntu')
             print "Connected. Running command"
-            status, stdout, stderr = ssh_client.run('sudo bash -c "export S3_ACCESS_KEY={}; export S3_SECRET_KEY={}; cd /gcc-explorer-image; git pull && bash setup.sh"'.format(
+            status, stdout, stderr = ssh_client.run('sudo bash -c "export S3_ACCESS_KEY={}; export S3_SECRET_KEY={}; cd /compiler-explorer-image; git pull && bash setup.sh"'.format(
                 S3_ACCESS_KEY, S3_SECRET_KEY))
             print "Status", status
             print "Stdout", stdout

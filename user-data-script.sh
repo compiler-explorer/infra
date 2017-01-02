@@ -18,6 +18,6 @@ echo -n '${DOCKER_CFG}' > /root/.dockercfg
 chmod 600 /root/.dockercfg
 apt-get -y update
 apt-get -y install git
-git clone https://github.com/mattgodbolt/gcc-explorer-image.git
-cd gcc-explorer-image
+git clone https://github.com/mattgodbolt/compiler-explorer-image.git
+cd compiler-explorer-image
 bash setup.sh 2>&1 | tee /tmp/setup.log
