@@ -4,6 +4,7 @@
 # On EC2 this location is on an EFS drive.
 
 OPT=/opt/compiler-explorer
+S3URL=s3://compiler-explorer/opt
 
 set -ex
 mkdir -p ${OPT}
@@ -61,8 +62,9 @@ install_rust() {
     do_rust_install rustc-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
     
     # workaround for LD_LIBRARY_PATH
-    for to_patch in ${OPT}/rust-${NAME}/bin/rustc $(find ${OPT}/rust-${NAME}/lib -name *.so); do
-        ${PATCHELF} --set-rpath ${OPT}/rust-${NAME}/lib $to_patch
+    ${PATCHELF} --set-rpath '$ORIGIN/../../lib' ${OPT}/rust-${NAME}/bin/rustc
+    for to_patch in ${OPT}/rust-${NAME}/lib/*.so; do
+        ${PATCHELF} --set-rpath '$ORIGIN' $to_patch
     done
     
     # Don't need docs
@@ -208,7 +210,7 @@ for compiler in clang-3.2.tar.gz \
 do
     DIR=${compiler%.tar.*}
 	if [[ ! -d ${DIR} ]]; then
-		s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+		s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
 		tar zxf $compiler
 		rm $compiler
 		do_strip ${DIR}
@@ -270,7 +272,7 @@ for version in \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
-        s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
@@ -278,12 +280,12 @@ done
 
 # snapshots
 for major in 7; do
-    compilers=$(s3cmd ls s3://gcc-explorer/opt/ | grep -oE "gcc-${major}-[0-9]+" | sort)
+    compilers=$(s3cmd ls ${S3URL}/ | grep -oE "gcc-${major}-[0-9]+" | sort)
     compiler_array=(${compilers})
     latest=${compiler_array[-1]}
     # Extract the latest...
     if [[ ! -d ${latest} ]]; then
-        s3cmd get --force s3://gcc-explorer/opt/${latest}.tar.xz ${OPT}/$latest.tar.xz
+        s3cmd get --force ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
         tar axf $latest.tar.xz
         rm $latest.tar.xz
     fi
@@ -304,7 +306,7 @@ done
 for version in 2016.3.210; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
-        s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
@@ -316,7 +318,7 @@ for version in 12.5; do
     fullname=OracleDeveloperStudio${version}-linux-x86-bin
     if [[ ! -d ${fullname} ]]; then
         compiler=${fullname}.tar.bz2
-        s3cmd get --force s3://gcc-explorer/opt/$compiler ${OPT}/$compiler
+        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
@@ -351,7 +353,7 @@ for file in \
     14.0.24224-Pre \
 ; do
     if [[ ! -d ${file} ]]; then
-        s3cmd get --force s3://gcc-explorer/opt/${file}.tar.xz ${file}.tar.xz
+        s3cmd get --force ${S3URL}/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
         fix_up_windows ${file}
         rm ${file}.tar.xz
