@@ -62,7 +62,7 @@ install_rust() {
     do_rust_install rustc-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
     
     # workaround for LD_LIBRARY_PATH
-    ${PATCHELF} --set-rpath '$ORIGIN/../../lib' ${OPT}/rust-${NAME}/bin/rustc
+    ${PATCHELF} --set-rpath '$ORIGIN/../lib' ${OPT}/rust-${NAME}/bin/rustc
     for to_patch in ${OPT}/rust-${NAME}/lib/*.so; do
         ${PATCHELF} --set-rpath '$ORIGIN' $to_patch
     done
@@ -102,8 +102,10 @@ install_new_rust() {
     do_rust_install rust-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
     
     # workaround for LD_LIBRARY_PATH
-    for to_patch in ${OPT}/rust-${NAME}/bin/rustc ${OPT}/rust-${NAME}/bin/cargo $(find ${OPT}/rust-${NAME}/lib -name *.so); do
-        ${PATCHELF} --set-rpath ${OPT}/rust-${NAME}/lib $to_patch
+    ${PATCHELF} --set-rpath '$ORIGIN/../lib' ${OPT}/rust-${NAME}/bin/rustc
+    ${PATCHELF} --set-rpath '$ORIGIN/../lib' ${OPT}/rust-${NAME}/bin/cargo
+    for to_patch in ${OPT}/rust-${NAME}/lib/*.so; do
+        ${PATCHELF} --set-rpath '$ORIGIN' $to_patch
     done
     
     # Don't need docs
