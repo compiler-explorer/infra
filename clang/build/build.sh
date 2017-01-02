@@ -9,8 +9,7 @@ if echo ${VERSION} | grep 'trunk'; then
     TAG=trunk
     VERSION=trunk-$(date +%Y%m%d)
 else
-    echo not yet, Kato
-    exit 1
+    TAG=tags/RELEASE_$(echo ${VERSION} | sed 's/\.//g')
 fi
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
