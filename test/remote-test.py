@@ -36,7 +36,7 @@ def get(session, url, compiler, options, source, filters):
     def fixup(obj):
         try:
             if 'text' in obj:
-                obj['text'] = re.sub(r'/tmp/gcc-explorer-[^/]+', '/tmp', obj['text'])
+                obj['text'] = re.sub(r'/tmp/compiler-explorer-[^/]+', '/tmp', obj['text'])
             return obj
         except:
             print "Issues with obj '{}'".format(obj)
