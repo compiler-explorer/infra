@@ -92,7 +92,7 @@ get_or_update_repo root git@github.com:s3tools/s3cmd.git master /root/s3cmd
 
 mkdir -p /home/ubuntu/.ssh
 cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
-/root/s3cmd/s3cmd --no-progress get 's3://compiler-explorer/authorized_keys/*' >> /home/ubuntu/.ssh/authorized_keys
+/root/s3cmd/s3cmd --no-progress get 's3://compiler-explorer/authorized_keys/*' - >> /home/ubuntu/.ssh/authorized_keys
 chown -R ubuntu /home/ubuntu/.ssh
 chmod 600 /home/ubuntu/.ssh/id_rsa
 
