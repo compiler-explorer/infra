@@ -37,6 +37,7 @@ get_or_update_repo() {
     popd
 }
 
+
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
@@ -74,6 +75,8 @@ docker stop logspout || true
 docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
+mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
+
 apt-get -y install git make nodejs-legacy npm libpng-dev m4 \
     python-markdown python-pygments python-pip perl nfs-common
 pip install pytz python-dateutil
@@ -84,19 +87,18 @@ if ! grep ubuntu /etc/passwd; then
     chown ubuntu /home/ubuntu
 fi
 
-mkdir -p /home/ubuntu/.ssh
-cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
-chown -R ubuntu /home/ubuntu/.ssh
-chmod 600 /home/ubuntu/.ssh/id_rsa
-
-mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
-
 cd /home/ubuntu/
 get_or_update_repo root git@github.com:s3tools/s3cmd.git master /root/s3cmd
 
+mkdir -p /home/ubuntu/.ssh
+cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
+/root/s3cmd/s3cmd --no-progress get 's3://compiler-explorer/authorized_keys/*' >> /home/ubuntu/.ssh/authorized_keys
+chown -R ubuntu /home/ubuntu/.ssh
+chmod 600 /home/ubuntu/.ssh/id_rsa
+
 get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git release jsbeeb &
 get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta &
-wait
+wait # waits for repos *and* mount point above
 
 get_or_update_repo ubuntu git://github.com/mattgodbolt/Miracle master miracle miraclehook
 get_or_update_repo ubuntu git@github.com:mattgodbolt/blog.git master blog
