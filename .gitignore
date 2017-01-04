@@ -9,3 +9,4 @@ config.json
 .env
 .idea
 /.deploy
+.nfs*
