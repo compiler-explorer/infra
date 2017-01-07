@@ -9,17 +9,6 @@ server {
 	server_name bbc.godbolt.org master.godbolt.org;
     large_client_header_buffers 4 32k;
 
-	location /sth/ {
-		proxy_pass http://www.stairwaytohell.com/bbc/archive/;
-		proxy_next_upstream error timeout invalid_header http_500 http_502 http_503 http_504;
-		proxy_redirect off;
-		proxy_cache sth;
-		proxy_cache_valid 200 1d;
-		proxy_set_header Host www.stairwaytohell.com;
-		proxy_set_header X-Real-IP $remote_addr;
-		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-	}
-
     location /beta {
         autoindex on;
         alias /var/www/jsbeeb-beta/out/dist;
