@@ -24,6 +24,11 @@ $(eval $(call add-image,gcc1204,gcc-explorer-1204))
 $(eval $(call add-image,go,go-explorer))
 $(eval $(call add-image,rust,rust-explorer))
 
+exec-image:
+	$(DOCKER) build -t "mattgodbolt/gcc-explorer:exec" exec
+
+DOCKER_IMAGES += exec-image
+
 docker-images: $(DOCKER_IMAGES)
 
 .s3cfg: config.py
@@ -48,6 +53,12 @@ packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
 publish: docker-images
 	$(DOCKER) push mattgodbolt/gcc-explorer
 
+build-compiler-images:
+	$(DOCKER) build -t mattgodbolt/clang-builder clang
+	$(DOCKER) push mattgodbolt/clang-builder
+	$(DOCKER) build -t mattgodbolt/gcc-builder gcc
+	$(DOCKER) push mattgodbolt/gcc-builder
+
 update-compilers:
 	$(DOCKER) build -t mattgodbolt/gcc-builder:update update_compilers
 	$(DOCKER) push mattgodbolt/gcc-builder:update
@@ -56,4 +67,4 @@ update-compilers:
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) publish packer update-compilers
+.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) publish packer update-compilers build-compiler-images

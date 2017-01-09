@@ -9,7 +9,7 @@ if echo ${VERSION} | grep 'trunk'; then
     TAG=trunk
     VERSION=trunk-$(date +%Y%m%d)
 else
-    TAG=tags/RELEASE_$(echo ${VERSION} | sed 's/\.//g')
+    TAG=tags/RELEASE_$(echo ${VERSION} | sed 's/\.//g')/final
 fi
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
@@ -38,7 +38,7 @@ cmake -G "Unix Makefiles" ../llvm \
 make -j$(nproc) install
 
 # Compress all the binaries with upx
-upx --best ${STAGING_DIR}/bin/* || true
+upx -4 ${STAGING_DIR}/bin/* || true
 
 tar Jcf ${OUTPUT} --transform "s,^./,./clang-${VERSION}/," -C ${STAGING_DIR} .
 
