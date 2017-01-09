@@ -304,6 +304,40 @@ for major in 7; do
     done
 done
 
+# Custom-built clangs also stripped and UPX'd
+for version in \
+    3.9.1 \
+; do
+    if [[ ! -d clang-${version} ]]; then
+        compiler=clang-${version}.tar.xz
+        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
+        tar axf $compiler
+        rm $compiler
+    fi
+done
+
+# trunk builds
+compilers=$(s3cmd ls ${S3URL}/ | grep -oE "clang-trunk-[0-9]+" | sort)
+compiler_array=(${compilers})
+latest=${compiler_array[-1]}
+# Extract the latest...
+if [[ ! -d ${latest} ]]; then
+    s3cmd get --force ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+    tar axf $latest.tar.xz
+    rm $latest.tar.xz
+fi
+# Ensure the symlink points at the latest
+rm -f ${OPT}/clang-trunk
+ln -s ${latest} ${OPT}/clang-trunk
+# Clean up any old snapshots
+for compiler in ${compiler-array}; do
+    if [[ -d ${compiler} ]]; then
+        if [[ "${compiler}" != "${latest}" ]]; then
+            rm -rf ${compiler}
+        fi
+    fi
+done
+
 # ICCs also UPX'd
 for version in 2016.3.210; do
     if [[ ! -d intel-${version} ]]; then
