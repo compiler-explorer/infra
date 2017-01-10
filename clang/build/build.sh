@@ -28,6 +28,10 @@ svn co ${LLVM_BASE}/llvm/${TAG} llvm
 pushd llvm/tools
 svn co ${LLVM_BASE}/cfe/${TAG} clang
 popd
+pushd llvm/projects
+svn co ${LLVM_BASE}/libcxx/${TAG} libcxx
+svn co ${LLVM_BASE}/libcxxabi/${TAG} libcxxabi
+popd
 
 mkdir build
 cd build
