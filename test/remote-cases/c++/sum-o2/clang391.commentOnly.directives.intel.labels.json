@@ -1,0 +1,360 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):                    # @testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        xor     eax, eax", 
+      "source": 1
+    }, 
+    {
+      "text": "        test    esi, esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .LBB0_13", 
+      "source": 3
+    }, 
+    {
+      "text": "        lea     r9d, [rsi - 1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        inc     r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     ecx, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     r9, 7", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, 0", 
+      "source": 4
+    }, 
+    {
+      "text": "        jbe     .LBB0_2", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     ecx, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": "        movabs  r8, 8589934584", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     r8, r9", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, 0", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_2", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     rcx, [r8 - 8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     r10, rcx", 
+      "source": 4
+    }, 
+    {
+      "text": "        shr     r10, 3", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     eax, [r10 + 1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        and     eax, 3", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     edx, edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     rcx, 24", 
+      "source": 4
+    }, 
+    {
+      "text": "        jae     .LBB0_7", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm0, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm1, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        jmp     .LBB0_9", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_7:", 
+      "source": null
+    }, 
+    {
+      "text": "        lea     rcx, [rax - 1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        sub     rcx, r10", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm0, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        xor     edx, edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    xmm1, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_8:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  xmm2, xmmword ptr [rdi + 4*rdx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm3, xmmword ptr [rdi + 4*rdx + 16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm2, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm3, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm0, xmmword ptr [rdi + 4*rdx + 32]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm1, xmmword ptr [rdi + 4*rdx + 48]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm4, xmmword ptr [rdi + 4*rdx + 64]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm5, xmmword ptr [rdi + 4*rdx + 80]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm4, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm4, xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm5, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm5, xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm0, xmmword ptr [rdi + 4*rdx + 96]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm1, xmmword ptr [rdi + 4*rdx + 112]", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     rdx, [rdx + 32]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm4", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm5", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rcx, 4", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_8", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_9:", 
+      "source": null
+    }, 
+    {
+      "text": "        test    rax, rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_12", 
+      "source": 4
+    }, 
+    {
+      "text": "        lea     rcx, [rdi + 4*rdx + 16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        neg     rax", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_11:                               # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  xmm2, xmmword ptr [rcx - 16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  xmm3, xmmword ptr [rcx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rcx, 32", 
+      "source": 4
+    }, 
+    {
+      "text": "        inc     rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_11", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_12:", 
+      "source": null
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  xmm1, xmm0, 78          # xmm1 = xmm0[2,3,0,1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm1, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  xmm0, xmm1, 229         # xmm0 = xmm1[1,1,2,3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   xmm0, xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        movd    eax, xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        cmp     r9, r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     rcx, r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_13", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_2:", 
+      "source": null
+    }, 
+    {
+      "text": "        lea     rdx, [rdi + 4*rcx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        sub     esi, ecx", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_3:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        add     eax, dword ptr [rdx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     rdx, 4", 
+      "source": 3
+    }, 
+    {
+      "text": "        dec     esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_3", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBB0_13:", 
+      "source": null
+    }, 
+    {
+      "text": "        ret", 
+      "source": 6
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

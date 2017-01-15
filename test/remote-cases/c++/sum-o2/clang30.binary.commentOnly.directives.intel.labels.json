@@ -9,7 +9,7 @@
   ], 
   "stderr": [
     {
-      "text": "clang: error: unsupported option '--gcc-toolchain=/opt/gcc-explorer/gcc-6.2.0'"
+      "text": "clang: error: unsupported option '--gcc-toolchain=/opt/compiler-explorer/gcc-6.2.0'"
     }
   ], 
   "stdout": []

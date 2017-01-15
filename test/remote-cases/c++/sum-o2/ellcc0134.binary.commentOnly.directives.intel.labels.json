@@ -1,0 +1,1637 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": " test   esi,esi", 
+      "opcodes": [
+        "85", 
+        "f6"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69696
+    }, 
+    {
+      "text": " jle    110cc <testFunction(int*, int)+0x8c>", 
+      "opcodes": [
+        "0f", 
+        "8e", 
+        "84", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 69836, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69698
+    }, 
+    {
+      "text": " mov    ecx,esi", 
+      "opcodes": [
+        "89", 
+        "f1"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69704
+    }, 
+    {
+      "text": " cmp    esi,0x7", 
+      "opcodes": [
+        "83", 
+        "fe", 
+        "07"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69706
+    }, 
+    {
+      "text": " jbe    110ab <testFunction(int*, int)+0x6b>", 
+      "opcodes": [
+        "76", 
+        "5c"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 69803, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69709
+    }, 
+    {
+      "text": " and    esi,0x7", 
+      "opcodes": [
+        "83", 
+        "e6", 
+        "07"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69711
+    }, 
+    {
+      "text": " mov    r8,rcx", 
+      "opcodes": [
+        "49", 
+        "89", 
+        "c8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69714
+    }, 
+    {
+      "text": " sub    r8,rsi", 
+      "opcodes": [
+        "49", 
+        "29", 
+        "f0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69717
+    }, 
+    {
+      "text": " je     110ab <testFunction(int*, int)+0x6b>", 
+      "opcodes": [
+        "74", 
+        "51"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 69803, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69720
+    }, 
+    {
+      "text": " lea    rax,[rdi+0x10]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "47", 
+        "10"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69722
+    }, 
+    {
+      "text": " pxor   xmm0,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "ef", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69726
+    }, 
+    {
+      "text": " mov    rdx,r8", 
+      "opcodes": [
+        "4c", 
+        "89", 
+        "c2"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69730
+    }, 
+    {
+      "text": " pxor   xmm1,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "ef", 
+        "c9"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69733
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "80", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69737
+    }, 
+    {
+      "text": " movdqu xmm2,XMMWORD PTR [rax-0x10]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "50", 
+        "f0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69744
+    }, 
+    {
+      "text": " movdqu xmm3,XMMWORD PTR [rax]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "18"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69749
+    }, 
+    {
+      "text": " paddd  xmm0,xmm2", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c2"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69753
+    }, 
+    {
+      "text": " paddd  xmm1,xmm3", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "cb"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69757
+    }, 
+    {
+      "text": " add    rax,0x20", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c0", 
+        "20"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69761
+    }, 
+    {
+      "text": " add    rdx,0xfffffffffffffff8", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c2", 
+        "f8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69765
+    }, 
+    {
+      "text": " jne    11070 <testFunction(int*, int)+0x30>", 
+      "opcodes": [
+        "75", 
+        "e5"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 69744, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69769
+    }, 
+    {
+      "text": " paddd  xmm1,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69771
+    }, 
+    {
+      "text": " pshufd xmm0,xmm1,0x4e", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "70", 
+        "c1", 
+        "4e"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69775
+    }, 
+    {
+      "text": " paddd  xmm0,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69780
+    }, 
+    {
+      "text": " pshufd xmm1,xmm0,0xe5", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "70", 
+        "c8", 
+        "e5"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69784
+    }, 
+    {
+      "text": " paddd  xmm1,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69789
+    }, 
+    {
+      "text": " movd   eax,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "7e", 
+        "c8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69793
+    }, 
+    {
+      "text": " test   esi,esi", 
+      "opcodes": [
+        "85", 
+        "f6"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69797
+    }, 
+    {
+      "text": " jne    110b0 <testFunction(int*, int)+0x70>", 
+      "opcodes": [
+        "75", 
+        "07"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 69808, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69799
+    }, 
+    {
+      "text": " jmp    110cb <testFunction(int*, int)+0x8b>", 
+      "opcodes": [
+        "eb", 
+        "20"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 69835, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69801
+    }, 
+    {
+      "text": " xor    r8d,r8d", 
+      "opcodes": [
+        "45", 
+        "31", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69803
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69806
+    }, 
+    {
+      "text": " lea    rdx,[rdi+r8*4]", 
+      "opcodes": [
+        "4a", 
+        "8d", 
+        "14", 
+        "87"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69808
+    }, 
+    {
+      "text": " sub    rcx,r8", 
+      "opcodes": [
+        "4c", 
+        "29", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69812
+    }, 
+    {
+      "text": " nop    WORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69815
+    }, 
+    {
+      "text": " add    eax,DWORD PTR [rdx]", 
+      "opcodes": [
+        "03", 
+        "02"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 69824
+    }, 
+    {
+      "text": " add    rdx,0x4", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c2", 
+        "04"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69826
+    }, 
+    {
+      "text": " dec    rcx", 
+      "opcodes": [
+        "48", 
+        "ff", 
+        "c9"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 69830
+    }, 
+    {
+      "text": " jne    110c0 <testFunction(int*, int)+0x80>", 
+      "opcodes": [
+        "75", 
+        "f5"
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 69824, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 69833
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 69835
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 69836
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 69838
+    }, 
+    {
+      "text": " nop", 
+      "opcodes": [
+        "90"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 69839
+    }, 
+    {
+      "text": "main:", 
+      "source": null
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 69840
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 69842
+    }, 
+    {
+      "text": "dummy:", 
+      "source": null
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 11, 
+      "links": null, 
+      "address": 69844
+    }, 
+    {
+      "text": "exit:", 
+      "source": null
+    }, 
+    {
+      "text": " push   rbx", 
+      "opcodes": [
+        "53"
+      ], 
+      "source": 29, 
+      "links": null, 
+      "address": 70962
+    }, 
+    {
+      "text": " mov    ebx,edi", 
+      "opcodes": [
+        "89", 
+        "fb"
+      ], 
+      "source": 29, 
+      "links": null, 
+      "address": 70963
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 30, 
+      "links": null, 
+      "address": 70965
+    }, 
+    {
+      "text": " call   1154f <__funcs_on_exit>", 
+      "opcodes": [
+        "e8", 
+        "13", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 30, 
+      "links": [
+        {
+          "to": 70991, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 70967
+    }, 
+    {
+      "text": " call   114f8 <__libc_exit_fini>", 
+      "opcodes": [
+        "e8", 
+        "b7", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 31, 
+      "links": [
+        {
+          "to": 70904, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 70972
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 32, 
+      "links": null, 
+      "address": 70977
+    }, 
+    {
+      "text": " call   1154f <__funcs_on_exit>", 
+      "opcodes": [
+        "e8", 
+        "07", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 32, 
+      "links": [
+        {
+          "to": 70991, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 70979
+    }, 
+    {
+      "text": " mov    edi,ebx", 
+      "opcodes": [
+        "89", 
+        "df"
+      ], 
+      "source": 33, 
+      "links": null, 
+      "address": 70984
+    }, 
+    {
+      "text": " call   11550 <_Exit>", 
+      "opcodes": [
+        "e8", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 33, 
+      "links": [
+        {
+          "to": 70992, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 70986
+    }, 
+    {
+      "text": "memcpy:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    rax,rdi", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "f8"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71012
+    }, 
+    {
+      "text": " cmp    rdx,0x8", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "fa", 
+        "08"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71015
+    }, 
+    {
+      "text": " jb     11581 <memcpy+0x1d>", 
+      "opcodes": [
+        "72", 
+        "14"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71041, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71019
+    }, 
+    {
+      "text": " test   edi,0x7", 
+      "opcodes": [
+        "f7", 
+        "c7", 
+        "07", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71021
+    }, 
+    {
+      "text": " je     11581 <memcpy+0x1d>", 
+      "opcodes": [
+        "74", 
+        "0c"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71041, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71027
+    }, 
+    {
+      "text": " movs   BYTE PTR es:[rdi],BYTE PTR ds:[rsi]", 
+      "opcodes": [
+        "a4"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71029
+    }, 
+    {
+      "text": " dec    rdx", 
+      "opcodes": [
+        "48", 
+        "ff", 
+        "ca"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71030
+    }, 
+    {
+      "text": " test   edi,0x7", 
+      "opcodes": [
+        "f7", 
+        "c7", 
+        "07", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71033
+    }, 
+    {
+      "text": " jne    11575 <memcpy+0x11>", 
+      "opcodes": [
+        "75", 
+        "f4"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71029, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71039
+    }, 
+    {
+      "text": " mov    rcx,rdx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "d1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71041
+    }, 
+    {
+      "text": " shr    rcx,0x3", 
+      "opcodes": [
+        "48", 
+        "c1", 
+        "e9", 
+        "03"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71044
+    }, 
+    {
+      "text": " rep movs QWORD PTR es:[rdi],QWORD PTR ds:[rsi]", 
+      "opcodes": [
+        "f3", 
+        "48", 
+        "a5"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71048
+    }, 
+    {
+      "text": " and    edx,0x7", 
+      "opcodes": [
+        "83", 
+        "e2", 
+        "07"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71051
+    }, 
+    {
+      "text": " je     11595 <memcpy+0x31>", 
+      "opcodes": [
+        "74", 
+        "05"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71061, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71054
+    }, 
+    {
+      "text": " movs   BYTE PTR es:[rdi],BYTE PTR ds:[rsi]", 
+      "opcodes": [
+        "a4"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71056
+    }, 
+    {
+      "text": " dec    edx", 
+      "opcodes": [
+        "ff", 
+        "ca"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71057
+    }, 
+    {
+      "text": " jne    11590 <memcpy+0x2c>", 
+      "opcodes": [
+        "75", 
+        "fb"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71056, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71059
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71061
+    }, 
+    {
+      "text": "memset:", 
+      "source": null
+    }, 
+    {
+      "text": " movzx  rax,sil", 
+      "opcodes": [
+        "48", 
+        "0f", 
+        "b6", 
+        "c6"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71064
+    }, 
+    {
+      "text": " movabs r8,0x101010101010101", 
+      "opcodes": [
+        "49", 
+        "b8", 
+        "01", 
+        "01", 
+        "01", 
+        "01", 
+        "01", 
+        "01", 
+        "01", 
+        "01"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71068
+    }, 
+    {
+      "text": " imul   rax,r8", 
+      "opcodes": [
+        "49", 
+        "0f", 
+        "af", 
+        "c0"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71078
+    }, 
+    {
+      "text": " cmp    rdx,0x7e", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "fa", 
+        "7e"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71082
+    }, 
+    {
+      "text": " ja     11628 <memset+0x90>", 
+      "opcodes": [
+        "77", 
+        "78"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71208, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71086
+    }, 
+    {
+      "text": " test   edx,edx", 
+      "opcodes": [
+        "85", 
+        "d2"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71088
+    }, 
+    {
+      "text": " je     11624 <memset+0x8c>", 
+      "opcodes": [
+        "74", 
+        "70"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71204, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71090
+    }, 
+    {
+      "text": " mov    BYTE PTR [rdi],sil", 
+      "opcodes": [
+        "40", 
+        "88", 
+        "37"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71092
+    }, 
+    {
+      "text": " mov    BYTE PTR [rdi+rdx*1-0x1],sil", 
+      "opcodes": [
+        "40", 
+        "88", 
+        "74", 
+        "17", 
+        "ff"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71095
+    }, 
+    {
+      "text": " cmp    edx,0x2", 
+      "opcodes": [
+        "83", 
+        "fa", 
+        "02"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71100
+    }, 
+    {
+      "text": " jbe    11624 <memset+0x8c>", 
+      "opcodes": [
+        "76", 
+        "63"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71204, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71103
+    }, 
+    {
+      "text": " mov    WORD PTR [rdi+0x1],ax", 
+      "opcodes": [
+        "66", 
+        "89", 
+        "47", 
+        "01"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71105
+    }, 
+    {
+      "text": " mov    WORD PTR [rdi+rdx*1-0x3],ax", 
+      "opcodes": [
+        "66", 
+        "89", 
+        "44", 
+        "17", 
+        "fd"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71109
+    }, 
+    {
+      "text": " cmp    edx,0x6", 
+      "opcodes": [
+        "83", 
+        "fa", 
+        "06"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71114
+    }, 
+    {
+      "text": " jbe    11624 <memset+0x8c>", 
+      "opcodes": [
+        "76", 
+        "55"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71204, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71117
+    }, 
+    {
+      "text": " mov    DWORD PTR [rdi+0x3],eax", 
+      "opcodes": [
+        "89", 
+        "47", 
+        "03"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71119
+    }, 
+    {
+      "text": " mov    DWORD PTR [rdi+rdx*1-0x7],eax", 
+      "opcodes": [
+        "89", 
+        "44", 
+        "17", 
+        "f9"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71122
+    }, 
+    {
+      "text": " cmp    edx,0xe", 
+      "opcodes": [
+        "83", 
+        "fa", 
+        "0e"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71126
+    }, 
+    {
+      "text": " jbe    11624 <memset+0x8c>", 
+      "opcodes": [
+        "76", 
+        "49"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71204, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71129
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x7],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "07"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71131
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0xf],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "f1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71135
+    }, 
+    {
+      "text": " cmp    edx,0x1e", 
+      "opcodes": [
+        "83", 
+        "fa", 
+        "1e"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71140
+    }, 
+    {
+      "text": " jbe    11624 <memset+0x8c>", 
+      "opcodes": [
+        "76", 
+        "3b"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71204, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71143
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0xf],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "0f"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71145
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x17],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "17"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71149
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x1f],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "e1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71153
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x17],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "e9"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71158
+    }, 
+    {
+      "text": " cmp    edx,0x3e", 
+      "opcodes": [
+        "83", 
+        "fa", 
+        "3e"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71163
+    }, 
+    {
+      "text": " jbe    11624 <memset+0x8c>", 
+      "opcodes": [
+        "76", 
+        "24"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71204, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71166
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x1f],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "1f"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71168
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x27],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "27"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71172
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x2f],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "2f"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71176
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x37],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "37"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71180
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x3f],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "c1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71184
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x37],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "c9"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71189
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x2f],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "d1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71194
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x27],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "d9"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71199
+    }, 
+    {
+      "text": " mov    rax,rdi", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "f8"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71204
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71207
+    }, 
+    {
+      "text": " test   edi,0xf", 
+      "opcodes": [
+        "f7", 
+        "c7", 
+        "0f", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71208
+    }, 
+    {
+      "text": " mov    r8,rdi", 
+      "opcodes": [
+        "49", 
+        "89", 
+        "f8"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71214
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+rdx*1-0x8],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "17", 
+        "f8"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71217
+    }, 
+    {
+      "text": " mov    rcx,rdx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "d1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71222
+    }, 
+    {
+      "text": " jne    11646 <memset+0xae>", 
+      "opcodes": [
+        "75", 
+        "0b"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71238, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71225
+    }, 
+    {
+      "text": " shr    rcx,0x3", 
+      "opcodes": [
+        "48", 
+        "c1", 
+        "e9", 
+        "03"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71227
+    }, 
+    {
+      "text": " rep stos QWORD PTR es:[rdi],rax", 
+      "opcodes": [
+        "f3", 
+        "48", 
+        "ab"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71231
+    }, 
+    {
+      "text": " mov    rax,r8", 
+      "opcodes": [
+        "4c", 
+        "89", 
+        "c0"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71234
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71237
+    }, 
+    {
+      "text": " xor    edx,edx", 
+      "opcodes": [
+        "31", 
+        "d2"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71238
+    }, 
+    {
+      "text": " sub    edx,edi", 
+      "opcodes": [
+        "29", 
+        "fa"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71240
+    }, 
+    {
+      "text": " and    edx,0xf", 
+      "opcodes": [
+        "83", 
+        "e2", 
+        "0f"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71242
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "07"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71245
+    }, 
+    {
+      "text": " mov    QWORD PTR [rdi+0x8],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "47", 
+        "08"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71248
+    }, 
+    {
+      "text": " sub    rcx,rdx", 
+      "opcodes": [
+        "48", 
+        "29", 
+        "d1"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71252
+    }, 
+    {
+      "text": " add    rdi,rdx", 
+      "opcodes": [
+        "48", 
+        "01", 
+        "d7"
+      ], 
+      "source": 7, 
+      "links": null, 
+      "address": 71255
+    }, 
+    {
+      "text": " jmp    1163b <memset+0xa3>", 
+      "opcodes": [
+        "eb", 
+        "df"
+      ], 
+      "source": 7, 
+      "links": [
+        {
+          "to": 71227, 
+          "length": 5, 
+          "offset": 8
+        }
+      ], 
+      "address": 71258
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

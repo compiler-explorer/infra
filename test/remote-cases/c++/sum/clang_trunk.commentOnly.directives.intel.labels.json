@@ -1,0 +1,116 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):                    # @testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     qword ptr [rbp - 8], rdi", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 12], esi", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 16], 0", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 20], 0", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBB0_1:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     eax, dword ptr [rbp - 20]", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     eax, dword ptr [rbp - 12]", 
+      "source": 3
+    }, 
+    {
+      "text": "        jge     .LBB0_4", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     rax, qword ptr [rbp - 8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        movsxd  rcx, dword ptr [rbp - 20]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     edx, dword ptr [rax + 4*rcx]", 
+      "source": 4
+    }, 
+    {
+      "text": "        add     edx, dword ptr [rbp - 16]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 16], edx", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     eax, dword ptr [rbp - 20]", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     eax, 1", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 20], eax", 
+      "source": 3
+    }, 
+    {
+      "text": "        jmp     .LBB0_1", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBB0_4:", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     eax, dword ptr [rbp - 16]", 
+      "source": 6
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 6
+    }, 
+    {
+      "text": "        ret", 
+      "source": 6
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

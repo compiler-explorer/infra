@@ -1,0 +1,1134 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": ".plt.got:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x200c12]        # 600ff8 <_DYNAMIC+0x200>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "12", 
+        "0c", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6295544, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4195296
+    }, 
+    {
+      "text": " xchg   ax,ax", 
+      "opcodes": [
+        "66", 
+        "90"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4195302
+    }, 
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 1, 
+      "links": null, 
+      "address": 4195568
+    }, 
+    {
+      "text": " test   esi,esi", 
+      "opcodes": [
+        "85", 
+        "f6"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195570
+    }, 
+    {
+      "text": " jle    40063a <testFunction(int*, int)+0x14a>", 
+      "opcodes": [
+        "0f", 
+        "8e", 
+        "40", 
+        "01", 
+        "00", 
+        "00"
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 4195898, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195572
+    }, 
+    {
+      "text": " lea    r9d,[rsi-0x1]", 
+      "opcodes": [
+        "44", 
+        "8d", 
+        "4e", 
+        "ff"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195578
+    }, 
+    {
+      "text": " inc    r9", 
+      "opcodes": [
+        "49", 
+        "ff", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195582
+    }, 
+    {
+      "text": " xor    ecx,ecx", 
+      "opcodes": [
+        "31", 
+        "c9"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195585
+    }, 
+    {
+      "text": " cmp    r9,0x7", 
+      "opcodes": [
+        "49", 
+        "83", 
+        "f9", 
+        "07"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195587
+    }, 
+    {
+      "text": " mov    eax,0x0", 
+      "opcodes": [
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195591
+    }, 
+    {
+      "text": " jbe    40061c <testFunction(int*, int)+0x12c>", 
+      "opcodes": [
+        "0f", 
+        "86", 
+        "0a", 
+        "01", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195868, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195596
+    }, 
+    {
+      "text": " xor    ecx,ecx", 
+      "opcodes": [
+        "31", 
+        "c9"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195602
+    }, 
+    {
+      "text": " movabs r8,0x1fffffff8", 
+      "opcodes": [
+        "49", 
+        "b8", 
+        "f8", 
+        "ff", 
+        "ff", 
+        "ff", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195604
+    }, 
+    {
+      "text": " and    r8,r9", 
+      "opcodes": [
+        "4d", 
+        "21", 
+        "c8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195614
+    }, 
+    {
+      "text": " mov    eax,0x0", 
+      "opcodes": [
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195617
+    }, 
+    {
+      "text": " je     40061c <testFunction(int*, int)+0x12c>", 
+      "opcodes": [
+        "0f", 
+        "84", 
+        "f0", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195868, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195622
+    }, 
+    {
+      "text": " lea    rcx,[r8-0x8]", 
+      "opcodes": [
+        "49", 
+        "8d", 
+        "48", 
+        "f8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195628
+    }, 
+    {
+      "text": " mov    r10,rcx", 
+      "opcodes": [
+        "49", 
+        "89", 
+        "ca"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195632
+    }, 
+    {
+      "text": " shr    r10,0x3", 
+      "opcodes": [
+        "49", 
+        "c1", 
+        "ea", 
+        "03"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195635
+    }, 
+    {
+      "text": " lea    eax,[r10+0x1]", 
+      "opcodes": [
+        "41", 
+        "8d", 
+        "42", 
+        "01"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195639
+    }, 
+    {
+      "text": " and    eax,0x3", 
+      "opcodes": [
+        "83", 
+        "e0", 
+        "03"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195643
+    }, 
+    {
+      "text": " xor    edx,edx", 
+      "opcodes": [
+        "31", 
+        "d2"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195646
+    }, 
+    {
+      "text": " cmp    rcx,0x18", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "f9", 
+        "18"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195648
+    }, 
+    {
+      "text": " jae    400550 <testFunction(int*, int)+0x60>", 
+      "opcodes": [
+        "73", 
+        "0a"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195664, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195652
+    }, 
+    {
+      "text": " pxor   xmm0,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "ef", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195654
+    }, 
+    {
+      "text": " pxor   xmm1,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "ef", 
+        "c9"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195658
+    }, 
+    {
+      "text": " jmp    4005c9 <testFunction(int*, int)+0xd9>", 
+      "opcodes": [
+        "eb", 
+        "79"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195785, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195662
+    }, 
+    {
+      "text": " lea    rcx,[rax-0x1]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "48", 
+        "ff"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195664
+    }, 
+    {
+      "text": " sub    rcx,r10", 
+      "opcodes": [
+        "4c", 
+        "29", 
+        "d1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195668
+    }, 
+    {
+      "text": " pxor   xmm0,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "ef", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195671
+    }, 
+    {
+      "text": " xor    edx,edx", 
+      "opcodes": [
+        "31", 
+        "d2"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195675
+    }, 
+    {
+      "text": " pxor   xmm1,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "ef", 
+        "c9"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195677
+    }, 
+    {
+      "text": " data16 data16 data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195681
+    }, 
+    {
+      "text": " movdqu xmm2,XMMWORD PTR [rdi+rdx*4]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "14", 
+        "97"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195696
+    }, 
+    {
+      "text": " movdqu xmm3,XMMWORD PTR [rdi+rdx*4+0x10]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "5c", 
+        "97", 
+        "10"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195701
+    }, 
+    {
+      "text": " paddd  xmm2,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "d0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195707
+    }, 
+    {
+      "text": " paddd  xmm3,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "d9"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195711
+    }, 
+    {
+      "text": " movdqu xmm0,XMMWORD PTR [rdi+rdx*4+0x20]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "44", 
+        "97", 
+        "20"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195715
+    }, 
+    {
+      "text": " movdqu xmm1,XMMWORD PTR [rdi+rdx*4+0x30]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "4c", 
+        "97", 
+        "30"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195721
+    }, 
+    {
+      "text": " movdqu xmm4,XMMWORD PTR [rdi+rdx*4+0x40]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "64", 
+        "97", 
+        "40"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195727
+    }, 
+    {
+      "text": " movdqu xmm5,XMMWORD PTR [rdi+rdx*4+0x50]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "6c", 
+        "97", 
+        "50"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195733
+    }, 
+    {
+      "text": " paddd  xmm4,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "e0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195739
+    }, 
+    {
+      "text": " paddd  xmm4,xmm2", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "e2"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195743
+    }, 
+    {
+      "text": " paddd  xmm5,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "e9"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195747
+    }, 
+    {
+      "text": " paddd  xmm5,xmm3", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "eb"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195751
+    }, 
+    {
+      "text": " movdqu xmm0,XMMWORD PTR [rdi+rdx*4+0x60]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "44", 
+        "97", 
+        "60"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195755
+    }, 
+    {
+      "text": " movdqu xmm1,XMMWORD PTR [rdi+rdx*4+0x70]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "4c", 
+        "97", 
+        "70"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195761
+    }, 
+    {
+      "text": " lea    rdx,[rdx+0x20]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "52", 
+        "20"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195767
+    }, 
+    {
+      "text": " paddd  xmm0,xmm4", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c4"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195771
+    }, 
+    {
+      "text": " paddd  xmm1,xmm5", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "cd"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195775
+    }, 
+    {
+      "text": " add    rcx,0x4", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c1", 
+        "04"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195779
+    }, 
+    {
+      "text": " jne    400570 <testFunction(int*, int)+0x80>", 
+      "opcodes": [
+        "75", 
+        "a7"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195696, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195783
+    }, 
+    {
+      "text": " test   rax,rax", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195785
+    }, 
+    {
+      "text": " je     4005fa <testFunction(int*, int)+0x10a>", 
+      "opcodes": [
+        "74", 
+        "2c"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195834, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195788
+    }, 
+    {
+      "text": " lea    rcx,[rdi+rdx*4+0x10]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "4c", 
+        "97", 
+        "10"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195790
+    }, 
+    {
+      "text": " neg    rax", 
+      "opcodes": [
+        "48", 
+        "f7", 
+        "d8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195795
+    }, 
+    {
+      "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195798
+    }, 
+    {
+      "text": " movdqu xmm2,XMMWORD PTR [rcx-0x10]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "51", 
+        "f0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195808
+    }, 
+    {
+      "text": " movdqu xmm3,XMMWORD PTR [rcx]", 
+      "opcodes": [
+        "f3", 
+        "0f", 
+        "6f", 
+        "19"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195813
+    }, 
+    {
+      "text": " paddd  xmm0,xmm2", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c2"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195817
+    }, 
+    {
+      "text": " paddd  xmm1,xmm3", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "cb"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195821
+    }, 
+    {
+      "text": " add    rcx,0x20", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c1", 
+        "20"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195825
+    }, 
+    {
+      "text": " inc    rax", 
+      "opcodes": [
+        "48", 
+        "ff", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195829
+    }, 
+    {
+      "text": " jne    4005e0 <testFunction(int*, int)+0xf0>", 
+      "opcodes": [
+        "75", 
+        "e6"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195808, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195832
+    }, 
+    {
+      "text": " paddd  xmm0,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195834
+    }, 
+    {
+      "text": " pshufd xmm1,xmm0,0x4e", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "70", 
+        "c8", 
+        "4e"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195838
+    }, 
+    {
+      "text": " paddd  xmm1,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c8"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195843
+    }, 
+    {
+      "text": " pshufd xmm0,xmm1,0xe5", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "70", 
+        "c1", 
+        "e5"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195847
+    }, 
+    {
+      "text": " paddd  xmm0,xmm1", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "fe", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195852
+    }, 
+    {
+      "text": " movd   eax,xmm0", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "7e", 
+        "c0"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195856
+    }, 
+    {
+      "text": " cmp    r9,r8", 
+      "opcodes": [
+        "4d", 
+        "39", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195860
+    }, 
+    {
+      "text": " mov    rcx,r8", 
+      "opcodes": [
+        "4c", 
+        "89", 
+        "c1"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195863
+    }, 
+    {
+      "text": " je     40063a <testFunction(int*, int)+0x14a>", 
+      "opcodes": [
+        "74", 
+        "1e"
+      ], 
+      "source": 4, 
+      "links": [
+        {
+          "to": 4195898, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195866
+    }, 
+    {
+      "text": " lea    rdx,[rdi+rcx*4]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "14", 
+        "8f"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195868
+    }, 
+    {
+      "text": " sub    esi,ecx", 
+      "opcodes": [
+        "29", 
+        "ce"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195872
+    }, 
+    {
+      "text": " data16 data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195874
+    }, 
+    {
+      "text": " add    eax,DWORD PTR [rdx]", 
+      "opcodes": [
+        "03", 
+        "02"
+      ], 
+      "source": 4, 
+      "links": null, 
+      "address": 4195888
+    }, 
+    {
+      "text": " add    rdx,0x4", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c2", 
+        "04"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195890
+    }, 
+    {
+      "text": " dec    esi", 
+      "opcodes": [
+        "ff", 
+        "ce"
+      ], 
+      "source": 3, 
+      "links": null, 
+      "address": 4195894
+    }, 
+    {
+      "text": " jne    400630 <testFunction(int*, int)+0x140>", 
+      "opcodes": [
+        "75", 
+        "f6"
+      ], 
+      "source": 3, 
+      "links": [
+        {
+          "to": 4195888, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4195896
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4195898
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4195899
+    }, 
+    {
+      "text": "main:", 
+      "source": null
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195904
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195906
+    }, 
+    {
+      "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195907
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "00"
+      ], 
+      "source": 9, 
+      "links": null, 
+      "address": 4195917
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}
