@@ -29,8 +29,9 @@ def get(session, url, compiler, options, source, filters):
         'source': source,
         'compiler': compiler,
         'options': options,
-        'filters': {key: True for key in filters}
-    })
+        'filters': {key: True for key in filters},
+    }, headers={'Accept': 'application/json'})
+
     r.raise_for_status()
 
     def fixup(obj):
@@ -50,7 +51,7 @@ def get(session, url, compiler, options, source, filters):
 
 
 def get_compilers(url):
-    r = requests.get(url + 'api/compilers')
+    r = requests.get(url + 'api/compilers', headers={'Accept': 'application/json'})
     r.raise_for_status()
     return list(sorted([url['id'] for url in r.json()]))
 
