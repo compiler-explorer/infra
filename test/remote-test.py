@@ -25,9 +25,8 @@ FILTERS = [
 
 
 def get(session, url, compiler, options, source, filters):
-    r = requests.post(url + 'compile', json={
+    r = requests.post(url + 'api/compiler/' + compiler + '/compile', json={
         'source': source,
-        'compiler': compiler,
         'options': options,
         'filters': {key: True for key in filters},
     }, headers={'Accept': 'application/json'})

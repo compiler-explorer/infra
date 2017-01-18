@@ -1,0 +1,168 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "        push    {r7}", 
+      "source": 1
+    }, 
+    {
+      "text": "        sub     sp, sp, #20", 
+      "source": 1
+    }, 
+    {
+      "text": "        add     r7, sp, #0", 
+      "source": 1
+    }, 
+    {
+      "text": "        str     r0, [r7, #4]", 
+      "source": 1
+    }, 
+    {
+      "text": "        str     r1, [r7, #0]", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r3, #0", 
+      "source": 2
+    }, 
+    {
+      "text": "        str     r3, [r7, #12]", 
+      "source": 2
+    }, 
+    {
+      "text": "        mov     r3, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        str     r3, [r7, #8]", 
+      "source": 3
+    }, 
+    {
+      "text": "        b       .L2", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r3, [r7, #8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        lsl     r3, r3, #2", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r2, [r7, #4]", 
+      "source": 4
+    }, 
+    {
+      "text": "        adds    r3, r2, r3", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r3, [r3, #0]", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r2, [r7, #12]", 
+      "source": 4
+    }, 
+    {
+      "text": "        adds    r3, r2, r3", 
+      "source": 4
+    }, 
+    {
+      "text": "        str     r3, [r7, #12]", 
+      "source": 4
+    }, 
+    {
+      "text": "        ldr     r3, [r7, #8]", 
+      "source": 3
+    }, 
+    {
+      "text": "        add     r3, r3, #1", 
+      "source": 3
+    }, 
+    {
+      "text": "        str     r3, [r7, #8]", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        ldr     r2, [r7, #8]", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldr     r3, [r7, #0]", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     r2, r3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ite     ge", 
+      "source": 3
+    }, 
+    {
+      "text": "        movge   r3, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        movlt   r3, #1", 
+      "source": 3
+    }, 
+    {
+      "text": "        uxtb    r3, r3", 
+      "source": 3
+    }, 
+    {
+      "text": "        cmp     r3, #0", 
+      "source": 3
+    }, 
+    {
+      "text": "        bne     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        ldr     r3, [r7, #12]", 
+      "source": 6
+    }, 
+    {
+      "text": "        mov     r0, r3", 
+      "source": 7
+    }, 
+    {
+      "text": "        add     r7, r7, #20", 
+      "source": 7
+    }, 
+    {
+      "text": "        mov     sp, r7", 
+      "source": 7
+    }, 
+    {
+      "text": "        pop     {r7}", 
+      "source": 7
+    }, 
+    {
+      "text": "        bx      lr", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}
