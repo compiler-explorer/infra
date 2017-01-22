@@ -223,7 +223,21 @@ mkdir -p ${OPT}/composer_xe_2013.1.117/Licenses/
 cp ${OPT}/intel/licenses/* ${OPT}/composer_xe_2013.1.117/Licenses/
 
 # clangs
-for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
+for clang in \
+    3.0-x86_64-linux-Ubuntu-11_10 \
+    3.1-x86_64-linux-ubuntu_12.04 \
+; do
+    DIR=clang+llvm-${clang}
+    VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
+    if [[ ! -d ${DIR} ]]; then
+        fetch http://llvm.org/releases/${VERSION}/clang+llvm-${clang}.tar.gz | tar zxf -
+        do_strip ${DIR}
+    fi
+done
+for clang in \
+    3.4.1-x86_64-unknown-ubuntu12.04 \
+    3.5.0-x86_64-linux-gnu-ubuntu-14.04 \
+    3.5.1-x86_64-linux-gnu \
     3.5.1-x86_64-linux-gnu \
     3.5.2-x86_64-linux-gnu-ubuntu-14.04 \
     3.6.2-x86_64-linux-gnu-ubuntu-14.04 \
@@ -232,7 +246,7 @@ for clang in 3.4.1-x86_64-unknown-ubuntu12.04 \
     3.8.0-x86_64-linux-gnu-ubuntu-14.04 \
     3.8.1-x86_64-linux-gnu-ubuntu-14.04 \
     3.9.0-x86_64-linux-gnu-ubuntu-16.04 \
-;do
+; do
     DIR=clang+llvm-${clang}
     VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
     if [[ "${VERSION}" = "3.5.2" ]]; then
@@ -266,6 +280,7 @@ done
 #   ./md-unwind-support.h:144:17: error: field 'info' has incomplete type
 # )
 for version in \
+    4.6.4 \
     4.7.{1,2,3,4} \
     4.8.{1,2,3,4,5} \
     4.9.{0,1,2,3,4} \

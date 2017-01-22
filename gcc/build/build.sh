@@ -63,6 +63,7 @@ applyPatchesAndConfig() {
 CONFIG=""
 CONFIG+=" --build=x86_64-linux-gnu"
 CONFIG+=" --disable-multilibs"
+CONFIG+=" --disable-bootstrap"
 CONFIG+=" --enable-clocale=gnu"
 CONFIG+=" --enable-languages=c,c++"
 CONFIG+=" --enable-ld=yes"

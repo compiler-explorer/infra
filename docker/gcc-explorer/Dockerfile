@@ -2,7 +2,6 @@ FROM mattgodbolt/gcc-explorer:base
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
 RUN apt-get install -y \
-    clang-3.5 \
     g++-4.8-powerpc-linux-gnu \
     g++-5-mips-linux-gnu \
     g++-5-mips64-linux-gnuabi64 \
