@@ -16,6 +16,7 @@ RUN apt install -y \
     make \
     patch \
     s3cmd \
+    subversion \
     texinfo \
     upx-ucl \
     wget \
