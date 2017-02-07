@@ -4,7 +4,13 @@ set -e
 
 ROOT=$(pwd)
 VERSION=$1
-if echo ${VERSION} | grep 'snapshot-'; then
+if echo ${VERSION} | grep 'trunk'; then
+    VERSION=trunk-$(date +%Y%m%d)
+    URL=svn://gcc.gnu.org/svn/gcc/trunk 
+    MAJOR=7
+    MAJOR_MINOR=7-trunk
+    BINARY_OUTPUT=7.0.0
+elif echo ${VERSION} | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
     URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.bz2
     MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
@@ -30,13 +36,18 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-if [[ ! -e gcc-${VERSION}.tar.bz2 ]]; then
-    echo "Fetching GCC"
-    curl -L -O ${URL}
+if echo ${URL} | grep svn://; then
+    rm -rf gcc-${VERSION}
+    svn checkout ${URL} gcc-${VERSION}
+else
+    if [[ ! -e gcc-${VERSION}.tar.bz2 ]]; then
+        echo "Fetching GCC"
+        curl -L -O ${URL}
+    fi
+    rm -rf gcc-${VERSION}
+    echo "Extracting GCC..."
+    tar jxf gcc-${VERSION}.tar.bz2
 fi
-rm -rf gcc-${VERSION}
-echo "Extracting GCC..."
-tar jxf gcc-${VERSION}.tar.bz2
 
 applyPatchesAndConfig() {
     local PATCH_DIR=${ROOT}/patches/$1
