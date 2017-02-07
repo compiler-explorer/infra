@@ -250,8 +250,11 @@ for clang in \
 ; do
     DIR=clang+llvm-${clang}
     VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
+    # stupid naming issues on clang
+    if [[ "${VERSION}" = "3.5.0" ]]; then
+        DIR=clang+llvm-3.5.0-x86_64-linux-gnu
+    fi
     if [[ "${VERSION}" = "3.5.2" ]]; then
-        # stupid naming issue on clang
         DIR=clang+llvm-3.5.2-x86_64-linux-gnu
     fi
     if [[ ! -d ${DIR} ]]; then
