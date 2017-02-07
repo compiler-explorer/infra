@@ -31,7 +31,7 @@ def connect_ssh(addr, username='rancher'):
     while True:
         log("Connecting to {}...".format(addr))
         try:
-            ssh.connect(addr, username=username)
+            ssh.connect(addr, username=username, key_filename='/home/matthew/ec2-mattgodbolt.pem')
         except Exception, e:
             log("Got exception {}".format(e))
             log("Retrying...")
