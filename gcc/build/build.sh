@@ -9,7 +9,7 @@ if echo ${VERSION} | grep 'trunk'; then
     URL=svn://gcc.gnu.org/svn/gcc/trunk 
     MAJOR=7
     MAJOR_MINOR=7-trunk
-    BINARY_OUTPUT=7.0.0
+    BINARY_OUTPUT='7.*'
 elif echo ${VERSION} | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
     URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.bz2
@@ -141,9 +141,9 @@ if [[ ! -z "${BINUTILS_VERSION}" ]]; then
 fi
 
 # Compress all the images with upx
-upx --best ${STAGING_DIR}/bin/* || true
+upx ${STAGING_DIR}/bin/* || true
 for EXE in cc1 cc1plus collect2 lto1 lto-wrapper; do
-    upx --best ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${BINARY_OUTPUT}/${EXE}
+    upx ${STAGING_DIR}/libexec/gcc/x86_64-linux-gnu/${BINARY_OUTPUT}/${EXE}
 done
 
 tar Jcf ${OUTPUT} --transform "s,^./,./gcc-${VERSION}/," -C ${STAGING_DIR} .

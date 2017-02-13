@@ -300,28 +300,26 @@ for version in \
     fi
 done
 
-# snapshots
-for major in 7; do
-    compilers=$(s3cmd ls ${S3URL}/ | grep -oE "gcc-${major}-[0-9]+" | sort)
-    compiler_array=(${compilers})
-    latest=${compiler_array[-1]}
-    # Extract the latest...
-    if [[ ! -d ${latest} ]]; then
-        s3cmd get --force ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
-        tar axf $latest.tar.xz
-        rm $latest.tar.xz
-    fi
-    # Ensure the symlink points at the latest
-    rm -f ${OPT}/gcc-${major}-snapshot
-    ln -s ${latest} ${OPT}/gcc-${major}-snapshot
-    # Clean up any old snapshots
-    for compiler in ${compiler-array}; do
-        if [[ -d ${compiler} ]]; then
-            if [[ "${compiler}" != "${latest}" ]]; then
-                rm -rf ${compiler}
-            fi
+# snapshots/trunk
+compilers=$(s3cmd ls ${S3URL}/ | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
+compiler_array=(${compilers})
+latest=${compiler_array[-1]}
+# Extract the latest...
+if [[ ! -d ${latest} ]]; then
+    s3cmd get --force ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+    tar axf $latest.tar.xz
+    rm $latest.tar.xz
+fi
+# Ensure the symlink points at the latest
+rm -f ${OPT}/gcc-7-snapshot
+ln -s ${latest} ${OPT}/gcc-7-snapshot
+# Clean up any old snapshots
+for compiler in ${compiler-array}; do
+    if [[ -d ${compiler} ]]; then
+        if [[ "${compiler}" != "${latest}" ]]; then
+            rm -rf ${compiler}
         fi
-    done
+    fi
 done
 
 # Custom-built clangs also stripped and UPX'd
