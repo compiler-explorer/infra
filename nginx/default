@@ -23,14 +23,13 @@ server {
     error_log /var/log/nginx/gcc.err;
 
     location / {
-        rewrite ^/beta$ $scheme/beta/ permanent;
+        rewrite ^/beta$ /beta/ permanent;
         rewrite ^/beta/(.*) /$1 break;
         proxy_pass http://gcc:10240;
         proxy_cache gcc;
         proxy_cache_valid 200 2m;
     }
 }
-
 
 server {
     server_name d.godbolt.org d.beta.godbolt.org d.xania.org;
@@ -39,7 +38,7 @@ server {
     error_log /var/log/nginx/d.err;
 
     location / {
-        rewrite ^/beta$ $scheme/beta/ permanent;
+        rewrite ^/beta$ /beta/ permanent;
         rewrite ^/beta/(.*) /$1 break;
         proxy_pass http://d:10241;
         proxy_cache gcc;
@@ -54,7 +53,7 @@ server {
     error_log /var/log/nginx/rust.err;
 
     location / {
-        rewrite ^/beta$ $scheme/beta/ permanent;
+        rewrite ^/beta$ /beta/ permanent;
         rewrite ^/beta/(.*) /$1 break;
         proxy_pass http://rust:10242;
         proxy_cache gcc;
@@ -69,7 +68,7 @@ server {
     error_log /var/log/nginx/go.err;
 
     location / {
-        rewrite ^/beta$ $scheme/beta/ permanent;
+        rewrite ^/beta$ /beta/ permanent;
         rewrite ^/beta/(.*) /$1 break;
         proxy_pass http://go:10243;
         proxy_cache gcc;
