@@ -108,8 +108,7 @@ if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
 fi
 cp /compiler-explorer-image/init/* /etc/init/
 
-docker pull -a mattgodbolt/gcc-explorer &
-docker pull nginx &
-wait
+docker pull -a mattgodbolt/gcc-explorer
+docker pull nginx
 
 [ "$UPSTART_JOB" != "compiler-explorer" ] && service compiler-explorer start || true
