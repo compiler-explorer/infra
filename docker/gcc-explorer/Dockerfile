@@ -26,7 +26,7 @@ RUN ln -s /usr/include/asm-generic /usr/include/asm
 # Experimental wine stuff
 RUN add-apt-repository -y ppa:wine/wine-builds && \
     apt-get update && \
-    apt-get -y install winehq-devel
+    apt-get -y install winehq-devel && echo only here to defeat cache
 
 #####################
 COPY *.sh /
