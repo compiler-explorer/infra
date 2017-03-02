@@ -32,6 +32,7 @@ pushd llvm/projects
 svn co ${LLVM_BASE}/libcxx/${TAG} libcxx
 svn co ${LLVM_BASE}/libcxxabi/${TAG} libcxxabi
 popd
+git clone http://llvm.org/git/polly.git llvm/tools/polly
 
 mkdir build
 cd build
