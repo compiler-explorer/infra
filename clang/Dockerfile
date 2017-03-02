@@ -1,9 +1,8 @@
 FROM ubuntu:16.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apt update -y && apt upgrade -y && apt update -y
-
-RUN apt install -y \
+RUN apt update -y && apt upgrade -y && apt update -y && \
+    apt install -y \
     bison \
     bzip2 \
     cmake \
@@ -12,6 +11,7 @@ RUN apt install -y \
     flex \
     g++ \
     gcc \
+    git \
     libc6-dev-i386 \
     linux-libc-dev \
     make \

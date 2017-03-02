@@ -8,8 +8,11 @@ LLVM_BASE=http://llvm.org/svn/llvm-project
 if echo ${VERSION} | grep 'trunk'; then
     TAG=trunk
     VERSION=trunk-$(date +%Y%m%d)
+    POLLY_BRANCH=master
 else
-    TAG=tags/RELEASE_$(echo ${VERSION} | sed 's/\.//g')/final
+    VSN=$(echo ${VERSION} | sed 's/\.//g')
+    TAG=tags/RELEASE_${VSN}/final
+    POLLY_BRANCH=svn-tags/RELEASE_${VSN}
 fi
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
@@ -25,6 +28,7 @@ rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
 svn co ${LLVM_BASE}/llvm/${TAG} llvm
+git clone -b ${POLLY_BRANCH} http://llvm.org/git/polly.git llvm/tools/polly
 pushd llvm/tools
 svn co ${LLVM_BASE}/cfe/${TAG} clang
 popd
@@ -32,7 +36,6 @@ pushd llvm/projects
 svn co ${LLVM_BASE}/libcxx/${TAG} libcxx
 svn co ${LLVM_BASE}/libcxxabi/${TAG} libcxxabi
 popd
-git clone http://llvm.org/git/polly.git llvm/tools/polly
 
 mkdir build
 cd build
