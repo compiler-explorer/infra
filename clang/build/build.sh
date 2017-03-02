@@ -12,7 +12,7 @@ if echo ${VERSION} | grep 'trunk'; then
 else
     VSN=$(echo ${VERSION} | sed 's/\.//g')
     TAG=tags/RELEASE_${VSN}/final
-    POLLY_BRANCH=svn-tags/RELEASE_${VSN}
+    POLLY_BRANCH=release_${VSN:0:2}
 fi
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
