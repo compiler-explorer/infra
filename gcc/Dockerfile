@@ -1,9 +1,7 @@
 FROM ubuntu:16.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apt update -y && apt upgrade -y && apt upgrade -y
-
-RUN apt install -y \
+RUN apt update -y && apt upgrade -y && apt upgrade -y && apt install -y \
     bison \
     bzip2 \
     curl \
