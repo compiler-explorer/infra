@@ -10,8 +10,10 @@ if echo ${VERSION} | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     POLLY_BRANCH=master
 else
+    SPLIT=(${VERSION}//-/ })
+    VERSION=${SPLIT[0]}
     VSN=$(echo ${VERSION} | sed 's/\.//g')
-    TAG=tags/RELEASE_${VSN}/final
+    TAG=tags/RELEASE_${VSN}/${SPLIT[1]-final}
     POLLY_BRANCH=release_${VSN:0:2}
 fi
 
