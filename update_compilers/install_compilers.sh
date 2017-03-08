@@ -379,6 +379,18 @@ for version in 12.5; do
     fi
 done
 
+# Zapcc
+for version in 20170226-190308-1.0; do
+    fullname=zapcc-${version}
+    if [[ ! -d ${fullname} ]]; then
+        compiler=${fullname}.tar.gz
+        s3cmd get --force ${S3URL}/${compiler} ${OPT}/$compiler
+        tar axf $compiler
+        rm $compiler
+        s3cmd get --force ${S3URL}/zapcc-key.txt ${OPT}/${fullname}/bin/zapcc-key.txt
+    fi
+done
+
 # MSP compilers
 if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
     fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
