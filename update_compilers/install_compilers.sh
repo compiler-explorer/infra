@@ -10,6 +10,10 @@ set -ex
 mkdir -p ${OPT}
 cd ${OPT}
 
+s3get() {
+    aws s3 cp --force $*
+}
+
 fetch() {
     curl -v -L "$*"
 }
@@ -214,7 +218,7 @@ for compiler in clang-3.2.tar.gz \
 do
     DIR=${compiler%.tar.*}
 	if [[ ! -d ${DIR} ]]; then
-		s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
+		s3get ${S3URL}/$compiler ${OPT}/$compiler
 		tar zxf $compiler
 		rm $compiler
 		do_strip ${DIR}
@@ -294,19 +298,19 @@ for version in \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
-        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
+        s3get ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
 done
 
 # snapshots/trunk
-compilers=$(s3cmd ls ${S3URL}/ | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
+compilers=$(aws s3 ls ${S3URL}/ | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
 compiler_array=(${compilers})
 latest=${compiler_array[-1]}
 # Extract the latest...
 if [[ ! -d ${latest} ]]; then
-    s3cmd get --force ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+    s3get ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
     tar axf $latest.tar.xz
     rm $latest.tar.xz
 fi
@@ -329,19 +333,19 @@ for version in \
 ; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
-        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
+        s3get ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
 done
 
 # trunk builds
-compilers=$(s3cmd ls ${S3URL}/ | grep -oE "clang-trunk-[0-9]+" | sort)
+compilers=$(aws s3 ls ${S3URL}/ | grep -oE "clang-trunk-[0-9]+" | sort)
 compiler_array=(${compilers})
 latest=${compiler_array[-1]}
 # Extract the latest...
 if [[ ! -d ${latest} ]]; then
-    s3cmd get --force ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+    s3get ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
     tar axf $latest.tar.xz
     rm $latest.tar.xz
 fi
@@ -361,7 +365,7 @@ done
 for version in 2016.3.210; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
-        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
+        s3get ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
@@ -373,7 +377,7 @@ for version in 12.5; do
     fullname=OracleDeveloperStudio${version}-linux-x86-bin
     if [[ ! -d ${fullname} ]]; then
         compiler=${fullname}.tar.bz2
-        s3cmd get --force ${S3URL}/$compiler ${OPT}/$compiler
+        s3get ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
@@ -384,10 +388,10 @@ for version in 20170226-190308-1.0; do
     fullname=zapcc-${version}
     if [[ ! -d ${fullname} ]]; then
         compiler=${fullname}.tar.gz
-        s3cmd get --force ${S3URL}/${compiler} ${OPT}/$compiler
+        s3get ${S3URL}/${compiler} ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
-        s3cmd get --force ${S3URL}/zapcc-key.txt ${OPT}/${fullname}/bin/zapcc-key.txt
+        s3get ${S3URL}/zapcc-key.txt ${OPT}/${fullname}/bin/zapcc-key.txt
     fi
 done
 
@@ -424,7 +428,7 @@ for file in \
     14.0.24224-Pre \
 ; do
     if [[ ! -d ${file} ]]; then
-        s3cmd get --force ${S3URL}/${file}.tar.xz ${file}.tar.xz
+        s3get ${S3URL}/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
         fix_up_windows ${file}
         rm ${file}.tar.xz
@@ -451,7 +455,7 @@ popd
 #########################
 # node.js
 
-TARGET_NODE_VERSION=v6.9.2
+TARGET_NODE_VERSION=v6.10.0
 CURRENT_NODE_VERSION=""
 if [[ -d node ]]; then
     CURRENT_NODE_VERSION=$(node/bin/node --version)

@@ -1,10 +1,17 @@
-FROM frolvlad/alpine-glibc
+FROM ubuntu:16.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apk add --no-cache nfs-utils bash coreutils py-pip xz curl tar bzip2 findutils binutils && \
-    pip install s3cmd && \
-    cd /bin && curl http://upx.sourceforge.net/download/upx-3.91-amd64_linux.tar.bz2 | \
-        tar jxf - --wildcards '*/upx' --strip-components 1
+RUN apt update -y && apt upgrade -y
+RUN apt install -y \
+     awscli \
+     bash \
+     bzip2 \
+     curl \
+     nfs-common \
+     python-pip \
+     tar \
+     upx-ucl \
+     xz-utils
 
 COPY install_compilers.sh /
 COPY efs_update.sh /
