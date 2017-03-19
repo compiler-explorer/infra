@@ -426,6 +426,7 @@ pushd windows
 for file in \
     10.0.10240.0 \
     14.0.24224-Pre \
+    19.10.25017 \
 ; do
     if [[ ! -d ${file} ]]; then
         s3get ${S3URL}/${file}.tar.xz ${file}.tar.xz
