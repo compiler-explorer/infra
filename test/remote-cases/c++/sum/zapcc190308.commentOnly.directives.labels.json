@@ -7,19 +7,27 @@
       "source": null
     }, 
     {
-      "text": "        mov     QWORD PTR [RSP - 8], RDI", 
+      "text": "        pushq   %rbp", 
       "source": 1
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 12], ESI", 
+      "text": "        movq    %rsp, %rbp", 
       "source": 1
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 16], 0", 
+      "text": "        movq    %rdi, -8(%rbp)", 
+      "source": 1
+    }, 
+    {
+      "text": "        movl    %esi, -12(%rbp)", 
+      "source": 1
+    }, 
+    {
+      "text": "        movl    $0, -16(%rbp)", 
       "source": 2
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 20], 0", 
+      "text": "        movl    $0, -20(%rbp)", 
       "source": 3
     }, 
     {
@@ -27,11 +35,11 @@
       "source": null
     }, 
     {
-      "text": "        mov     EAX, DWORD PTR [RSP - 20]", 
+      "text": "        movl    -20(%rbp), %eax", 
       "source": 3
     }, 
     {
-      "text": "        cmp     EAX, DWORD PTR [RSP - 12]", 
+      "text": "        cmpl    -12(%rbp), %eax", 
       "source": 3
     }, 
     {
@@ -39,39 +47,35 @@
       "source": 3
     }, 
     {
-      "text": "        movsxd  RAX, DWORD PTR [RSP - 20]", 
+      "text": "        movq    -8(%rbp), %rax", 
       "source": 4
     }, 
     {
-      "text": "        mov     RCX, QWORD PTR [RSP - 8]", 
+      "text": "        movslq  -20(%rbp), %rcx", 
       "source": 4
     }, 
     {
-      "text": "        mov     EDX, DWORD PTR [RCX + 4*RAX]", 
+      "text": "        movl    (%rax,%rcx,4), %edx", 
       "source": 4
     }, 
     {
-      "text": "        mov     ESI, DWORD PTR [RSP - 16]", 
+      "text": "        addl    -16(%rbp), %edx", 
       "source": 4
     }, 
     {
-      "text": "        add     ESI, EDX", 
+      "text": "        movl    %edx, -16(%rbp)", 
       "source": 4
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 16], ESI", 
-      "source": 4
-    }, 
-    {
-      "text": "        mov     EAX, DWORD PTR [RSP - 20]", 
+      "text": "        movl    -20(%rbp), %eax", 
       "source": 3
     }, 
     {
-      "text": "        add     EAX, 1", 
+      "text": "        addl    $1, %eax", 
       "source": 3
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 20], EAX", 
+      "text": "        movl    %eax, -20(%rbp)", 
       "source": 3
     }, 
     {
@@ -83,11 +87,15 @@
       "source": null
     }, 
     {
-      "text": "        mov     EAX, DWORD PTR [RSP - 16]", 
+      "text": "        movl    -16(%rbp), %eax", 
       "source": 6
     }, 
     {
-      "text": "        ret", 
+      "text": "        popq    %rbp", 
+      "source": 6
+    }, 
+    {
+      "text": "        retq", 
       "source": 6
     }, 
     {

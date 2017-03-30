@@ -1,0 +1,144 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):", 
+      "source": null
+    }, 
+    {
+      "text": "; start of function", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize_regs:     2", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize_locals:   8", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize_outgoing: 0", 
+      "source": null
+    }, 
+    {
+      "text": "; framesize:          10", 
+      "source": null
+    }, 
+    {
+      "text": "; elim ap -> fp       4", 
+      "source": null
+    }, 
+    {
+      "text": "; elim fp -> sp       8", 
+      "source": null
+    }, 
+    {
+      "text": "; saved regs: R4", 
+      "source": null
+    }, 
+    {
+      "text": "        ; start of prologue", 
+      "source": null
+    }, 
+    {
+      "text": "        PUSHM.W #1, R4", 
+      "source": 1
+    }, 
+    {
+      "text": "        MOV.W   R1, R4", 
+      "source": 1
+    }, 
+    {
+      "text": "        SUB.W   #8, R1", 
+      "source": 1
+    }, 
+    {
+      "text": "        ; end of prologue", 
+      "source": null
+    }, 
+    {
+      "text": "        MOV.W   R12, -6(R4)", 
+      "source": 1
+    }, 
+    {
+      "text": "        MOV.W   R13, -8(R4)", 
+      "source": 1
+    }, 
+    {
+      "text": "        MOV.W   #0, -2(R4)", 
+      "source": 2
+    }, 
+    {
+      "text": "        MOV.W   #0, -4(R4)", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        CMP.W   -8(R4), -4(R4) { JGE  .L2", 
+      "source": 3
+    }, 
+    {
+      "text": "        MOV.W   -4(R4), R12", 
+      "source": 4
+    }, 
+    {
+      "text": "        ADD.W   R12, R12", 
+      "source": 4
+    }, 
+    {
+      "text": "        ADD.W   -6(R4), R12", 
+      "source": 4
+    }, 
+    {
+      "text": "        MOV.W   @R12, R12", 
+      "source": 4
+    }, 
+    {
+      "text": "        ADD.W   R12, -2(R4)", 
+      "source": 4
+    }, 
+    {
+      "text": "        ADD.W   #1, -4(R4)", 
+      "source": 3
+    }, 
+    {
+      "text": "        BR      #.L3", 
+      "source": 3
+    }, 
+    {
+      "text": ".L2:", 
+      "source": null
+    }, 
+    {
+      "text": "        MOV.W   -2(R4), R12", 
+      "source": 6
+    }, 
+    {
+      "text": "        ; start of epilogue", 
+      "source": null
+    }, 
+    {
+      "text": "        ADD.W   #8, R1", 
+      "source": 7
+    }, 
+    {
+      "text": "        POPM.W  #1, r4", 
+      "source": 7
+    }, 
+    {
+      "text": "        RET", 
+      "source": 7
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

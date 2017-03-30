@@ -7,24 +7,164 @@
       "source": null
     }, 
     {
-      "text": "        mov     dword ptr [rsp - 4], edi", 
+      "text": "        movl    %edi, -4(%rsp)", 
       "source": 2
     }, 
     {
-      "text": "        mov     edi, dword ptr [rsp - 4]", 
+      "text": "        movl    -4(%rsp), %edi", 
       "source": 3
     }, 
     {
-      "text": "        imul    edi, dword ptr [rsp - 4]", 
+      "text": "        imull   -4(%rsp), %edi", 
       "source": 3
     }, 
     {
-      "text": "        mov     eax, edi", 
+      "text": "        movl    %edi, %eax", 
       "source": 3
     }, 
     {
-      "text": "        ret", 
+      "text": "        retq", 
       "source": 3
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "ldc.register_dso:", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq   %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsp, %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        subq    $16, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    %dil, %al", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    ldc.dso_initialized(%rip), %cl", 
+      "source": null
+    }, 
+    {
+      "text": "        xorb    %al, %cl", 
+      "source": null
+    }, 
+    {
+      "text": "        testb   $1, %cl", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    %al, -1(%rbp)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsi, -16(%rbp)", 
+      "source": null
+    }, 
+    {
+      "text": "        jne     .LBB1_2", 
+      "source": null
+    }, 
+    {
+      "text": "        jmp     .LBB1_1", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB1_1:", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    __stop___minfo(%rip), %rax", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    __start___minfo(%rip), %rcx", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    ldc.dso_slot(%rip), %rdx", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    -1(%rbp), %sil", 
+      "source": null
+    }, 
+    {
+      "text": "        notb    %sil", 
+      "source": null
+    }, 
+    {
+      "text": "        andb    $1, %sil", 
+      "source": null
+    }, 
+    {
+      "text": "        movb    %sil, ldc.dso_initialized(%rip)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rsp, %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "        addq    $-48, %rdi", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdi, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    $1, (%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rdx, 8(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rcx, 16(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rax, 24(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    -16(%rbp), %rax", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rax, 32(%rdi)", 
+      "source": null
+    }, 
+    {
+      "text": "        callq   _d_dso_registry@PLT", 
+      "source": null
+    }, 
+    {
+      "text": ".LBB1_2:", 
+      "source": null
+    }, 
+    {
+      "text": "        movq    %rbp, %rsp", 
+      "source": null
+    }, 
+    {
+      "text": "        popq    %rbp", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": null
     }, 
     {
       "text": "", 
@@ -35,91 +175,31 @@
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
+      "text": "        pushq   %rax", 
       "source": null
     }, 
     {
-      "text": "        mov     rbp, rsp", 
+      "text": "        xorl    %edi, %edi", 
       "source": null
     }, 
     {
-      "text": "        cmp     byte ptr [ldc.dso_initialized], 0", 
+      "text": "        movq    _D7example11__moduleRefZ@GOTPCREL(%rip), %rax", 
       "source": null
     }, 
     {
-      "text": "        jne     .LBB1_2", 
+      "text": "        movq    %rax, %rsi", 
       "source": null
     }, 
     {
-      "text": "        movabs  rax, _D7example11__moduleRefZ", 
+      "text": "        callq   ldc.register_dso", 
       "source": null
     }, 
     {
-      "text": "        movabs  rcx, _minfo_end", 
+      "text": "        popq    %rax", 
       "source": null
     }, 
     {
-      "text": "        movabs  rdx, _minfo_beg", 
-      "source": null
-    }, 
-    {
-      "text": "        movabs  rsi, ldc.dso_slot", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     byte ptr [rip + ldc.dso_initialized], 1", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rdi, rsp", 
-      "source": null
-    }, 
-    {
-      "text": "        add     rdi, -48", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rsp, rdi", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi], 1", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 8], rsi", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 16], rdx", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 24], rcx", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 32], rax", 
-      "source": null
-    }, 
-    {
-      "text": "        call    _d_dso_registry", 
-      "source": null
-    }, 
-    {
-      "text": ".LBB1_2:", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rsp, rbp", 
-      "source": null
-    }, 
-    {
-      "text": "        pop     rbp", 
-      "source": null
-    }, 
-    {
-      "text": "        ret", 
+      "text": "        retq", 
       "source": null
     }, 
     {
@@ -131,91 +211,31 @@
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
+      "text": "        pushq   %rax", 
       "source": null
     }, 
     {
-      "text": "        mov     rbp, rsp", 
+      "text": "        movl    $1, %edi", 
       "source": null
     }, 
     {
-      "text": "        cmp     byte ptr [ldc.dso_initialized], 0", 
+      "text": "        movq    _D7example11__moduleRefZ@GOTPCREL(%rip), %rax", 
       "source": null
     }, 
     {
-      "text": "        je      .LBB2_2", 
+      "text": "        movq    %rax, %rsi", 
       "source": null
     }, 
     {
-      "text": "        movabs  rax, _D7example11__moduleRefZ", 
+      "text": "        callq   ldc.register_dso", 
       "source": null
     }, 
     {
-      "text": "        movabs  rcx, _minfo_end", 
+      "text": "        popq    %rax", 
       "source": null
     }, 
     {
-      "text": "        movabs  rdx, _minfo_beg", 
-      "source": null
-    }, 
-    {
-      "text": "        movabs  rsi, ldc.dso_slot", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     byte ptr [rip + ldc.dso_initialized], 0", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rdi, rsp", 
-      "source": null
-    }, 
-    {
-      "text": "        add     rdi, -48", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rsp, rdi", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi], 1", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 8], rsi", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 16], rdx", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 24], rcx", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 32], rax", 
-      "source": null
-    }, 
-    {
-      "text": "        call    _d_dso_registry", 
-      "source": null
-    }, 
-    {
-      "text": ".LBB2_2:", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rsp, rbp", 
-      "source": null
-    }, 
-    {
-      "text": "        pop     rbp", 
-      "source": null
-    }, 
-    {
-      "text": "        ret", 
+      "text": "        retq", 
       "source": null
     }, 
     {
@@ -243,35 +263,11 @@
       "source": null
     }, 
     {
-      "text": "_minfo_beg:", 
-      "source": null
-    }, 
-    {
-      "text": "        .quad   0", 
-      "source": null
-    }, 
-    {
-      "text": "", 
-      "source": null
-    }, 
-    {
       "text": "_D7example11__moduleRefZ:", 
       "source": null
     }, 
     {
       "text": "        .quad   _D7example12__ModuleInfoZ", 
-      "source": null
-    }, 
-    {
-      "text": "", 
-      "source": null
-    }, 
-    {
-      "text": "_minfo_end:", 
-      "source": null
-    }, 
-    {
-      "text": "        .quad   0", 
       "source": null
     }, 
     {
@@ -296,6 +292,10 @@
     }, 
     {
       "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "", 
       "source": null
     }, 
     {

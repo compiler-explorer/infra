@@ -31,7 +31,7 @@
       "source": null
     }, 
     {
-      "text": "ldc.dso_ctor.7example:", 
+      "text": "ldc.register_dso:", 
       "source": null
     }, 
     {
@@ -43,7 +43,31 @@
       "source": null
     }, 
     {
-      "text": "        cmp     byte ptr [ldc.dso_initialized], 0", 
+      "text": "        sub     rsp, 16", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     al, dil", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     cl, byte ptr [rip + ldc.dso_initialized]", 
+      "source": null
+    }, 
+    {
+      "text": "        xor     cl, al", 
+      "source": null
+    }, 
+    {
+      "text": "        test    cl, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     byte ptr [rbp - 1], al", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     qword ptr [rbp - 16], rsi", 
       "source": null
     }, 
     {
@@ -51,23 +75,39 @@
       "source": null
     }, 
     {
-      "text": "        movabs  rax, _D7example11__moduleRefZ", 
+      "text": "        jmp     .LBB1_1", 
       "source": null
     }, 
     {
-      "text": "        movabs  rcx, _minfo_end", 
+      "text": ".LBB1_1:", 
       "source": null
     }, 
     {
-      "text": "        movabs  rdx, _minfo_beg", 
+      "text": "        lea     rax, [rip + __stop___minfo]", 
       "source": null
     }, 
     {
-      "text": "        movabs  rsi, ldc.dso_slot", 
+      "text": "        lea     rcx, [rip + __start___minfo]", 
       "source": null
     }, 
     {
-      "text": "        mov     byte ptr [rip + ldc.dso_initialized], 1", 
+      "text": "        lea     rdx, [rip + ldc.dso_slot]", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     sil, byte ptr [rbp - 1]", 
+      "source": null
+    }, 
+    {
+      "text": "        not     sil", 
+      "source": null
+    }, 
+    {
+      "text": "        and     sil, 1", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     byte ptr [rip + ldc.dso_initialized], sil", 
       "source": null
     }, 
     {
@@ -87,15 +127,19 @@
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 8], rsi", 
+      "text": "        mov     qword ptr [rdi + 8], rdx", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 16], rdx", 
+      "text": "        mov     qword ptr [rdi + 16], rcx", 
       "source": null
     }, 
     {
-      "text": "        mov     qword ptr [rdi + 24], rcx", 
+      "text": "        mov     qword ptr [rdi + 24], rax", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     rax, qword ptr [rbp - 16]", 
       "source": null
     }, 
     {
@@ -103,7 +147,7 @@
       "source": null
     }, 
     {
-      "text": "        call    _d_dso_registry", 
+      "text": "        call    _d_dso_registry@PLT", 
       "source": null
     }, 
     {
@@ -127,91 +171,67 @@
       "source": null
     }, 
     {
+      "text": "ldc.dso_ctor.7example:", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rax", 
+      "source": null
+    }, 
+    {
+      "text": "        xor     edi, edi", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     rax, qword ptr [rip + _D7example11__moduleRefZ@GOTPCREL]", 
+      "source": null
+    }, 
+    {
+      "text": "        mov     rsi, rax", 
+      "source": null
+    }, 
+    {
+      "text": "        call    ldc.register_dso", 
+      "source": null
+    }, 
+    {
+      "text": "        pop     rax", 
+      "source": null
+    }, 
+    {
+      "text": "        ret", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
       "text": "ldc.dso_dtor.7example:", 
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
+      "text": "        push    rax", 
       "source": null
     }, 
     {
-      "text": "        mov     rbp, rsp", 
+      "text": "        mov     edi, 1", 
       "source": null
     }, 
     {
-      "text": "        cmp     byte ptr [ldc.dso_initialized], 0", 
+      "text": "        mov     rax, qword ptr [rip + _D7example11__moduleRefZ@GOTPCREL]", 
       "source": null
     }, 
     {
-      "text": "        je      .LBB2_2", 
+      "text": "        mov     rsi, rax", 
       "source": null
     }, 
     {
-      "text": "        movabs  rax, _D7example11__moduleRefZ", 
+      "text": "        call    ldc.register_dso", 
       "source": null
     }, 
     {
-      "text": "        movabs  rcx, _minfo_end", 
-      "source": null
-    }, 
-    {
-      "text": "        movabs  rdx, _minfo_beg", 
-      "source": null
-    }, 
-    {
-      "text": "        movabs  rsi, ldc.dso_slot", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     byte ptr [rip + ldc.dso_initialized], 0", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rdi, rsp", 
-      "source": null
-    }, 
-    {
-      "text": "        add     rdi, -48", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rsp, rdi", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi], 1", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 8], rsi", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 16], rdx", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 24], rcx", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     qword ptr [rdi + 32], rax", 
-      "source": null
-    }, 
-    {
-      "text": "        call    _d_dso_registry", 
-      "source": null
-    }, 
-    {
-      "text": ".LBB2_2:", 
-      "source": null
-    }, 
-    {
-      "text": "        mov     rsp, rbp", 
-      "source": null
-    }, 
-    {
-      "text": "        pop     rbp", 
+      "text": "        pop     rax", 
       "source": null
     }, 
     {
@@ -243,35 +263,11 @@
       "source": null
     }, 
     {
-      "text": "_minfo_beg:", 
-      "source": null
-    }, 
-    {
-      "text": "        .quad   0", 
-      "source": null
-    }, 
-    {
-      "text": "", 
-      "source": null
-    }, 
-    {
       "text": "_D7example11__moduleRefZ:", 
       "source": null
     }, 
     {
       "text": "        .quad   _D7example12__ModuleInfoZ", 
-      "source": null
-    }, 
-    {
-      "text": "", 
-      "source": null
-    }, 
-    {
-      "text": "_minfo_end:", 
-      "source": null
-    }, 
-    {
-      "text": "        .quad   0", 
       "source": null
     }, 
     {
@@ -296,6 +292,10 @@
     }, 
     {
       "text": "        .byte   0", 
+      "source": null
+    }, 
+    {
+      "text": "", 
       "source": null
     }, 
     {

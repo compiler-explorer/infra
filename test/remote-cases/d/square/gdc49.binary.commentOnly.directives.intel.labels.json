@@ -3,99 +3,6932 @@
   "code": 0, 
   "asm": [
     {
-      "text": "int example.square(int):", 
+      "text": "dl_iterate_phdr@plt-0x10:", 
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
-      "source": 2
+      "text": " push   QWORD PTR [rip+0x256702]        # 658448 <_GLOBAL_OFFSET_TABLE_+0x8>", 
+      "opcodes": [
+        "ff", 
+        "35", 
+        "02", 
+        "67", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653000, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201792
     }, 
     {
-      "text": "        mov     rbp, rsp", 
-      "source": 2
+      "text": " jmp    QWORD PTR [rip+0x256704]        # 658450 <_GLOBAL_OFFSET_TABLE_+0x10>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "04", 
+        "67", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653008, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201798
     }, 
     {
-      "text": "        mov     DWORD PTR [rbp-4], edi", 
-      "source": 2
+      "text": " nop    DWORD PTR [rax+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "40", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201804
     }, 
     {
-      "text": "        mov     eax, DWORD PTR [rbp-4]", 
-      "source": 3
-    }, 
-    {
-      "text": "        imul    eax, DWORD PTR [rbp-4]", 
-      "source": 3
-    }, 
-    {
-      "text": "        pop     rbp", 
-      "source": 4
-    }, 
-    {
-      "text": "        ret", 
-      "source": 4
-    }, 
-    {
-      "text": "_D7example12__ModuleInfoZ:", 
+      "text": "dl_iterate_phdr@plt:", 
       "source": null
     }, 
     {
-      "text": "        .long   4100", 
+      "text": " jmp    QWORD PTR [rip+0x256702]        # 658458 <_GLOBAL_OFFSET_TABLE_+0x18>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "02", 
+        "67", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653016, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201808
+    }, 
+    {
+      "text": " push   0x0", 
+      "opcodes": [
+        "68", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201814
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "e0", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201819
+    }, 
+    {
+      "text": "free@plt:", 
       "source": null
     }, 
     {
-      "text": "        .long   0", 
+      "text": " jmp    QWORD PTR [rip+0x2566fa]        # 658460 <_GLOBAL_OFFSET_TABLE_+0x20>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "fa", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653024, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201824
+    }, 
+    {
+      "text": " push   0x1", 
+      "opcodes": [
+        "68", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201830
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "d0", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201835
+    }, 
+    {
+      "text": "pthread_create@plt:", 
       "source": null
     }, 
     {
-      "text": "        .string \"example\"", 
+      "text": " jmp    QWORD PTR [rip+0x2566f2]        # 658468 <_GLOBAL_OFFSET_TABLE_+0x28>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "f2", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653032, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201840
+    }, 
+    {
+      "text": " push   0x2", 
+      "opcodes": [
+        "68", 
+        "02", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201846
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "c0", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201851
+    }, 
+    {
+      "text": "pthread_detach@plt:", 
       "source": null
     }, 
     {
-      "text": "__mod_ref.2428:", 
+      "text": " jmp    QWORD PTR [rip+0x2566ea]        # 658470 <_GLOBAL_OFFSET_TABLE_+0x30>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ea", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653040, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201856
+    }, 
+    {
+      "text": " push   0x3", 
+      "opcodes": [
+        "68", 
+        "03", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201862
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "b0", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201867
+    }, 
+    {
+      "text": "pthread_getattr_np@plt:", 
       "source": null
     }, 
     {
-      "text": "        .quad   0", 
+      "text": " jmp    QWORD PTR [rip+0x2566d2]        # 658488 <_GLOBAL_OFFSET_TABLE_+0x48>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "d2", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653064, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201904
+    }, 
+    {
+      "text": " push   0x6", 
+      "opcodes": [
+        "68", 
+        "06", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201910
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "80", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201915
+    }, 
+    {
+      "text": "strncpy@plt:", 
       "source": null
     }, 
     {
-      "text": "        .quad   _D7example12__ModuleInfoZ", 
+      "text": " jmp    QWORD PTR [rip+0x2566ca]        # 658490 <_GLOBAL_OFFSET_TABLE_+0x50>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ca", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653072, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201920
+    }, 
+    {
+      "text": " push   0x7", 
+      "opcodes": [
+        "68", 
+        "07", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201926
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "70", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201931
+    }, 
+    {
+      "text": "sigaction@plt:", 
       "source": null
     }, 
     {
-      "text": "void example.__modinit():", 
+      "text": " jmp    QWORD PTR [rip+0x2566ba]        # 6584a0 <_GLOBAL_OFFSET_TABLE_+0x60>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ba", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653088, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201952
+    }, 
+    {
+      "text": " push   0x9", 
+      "opcodes": [
+        "68", 
+        "09", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201958
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "50", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201963
+    }, 
+    {
+      "text": "fcntl@plt:", 
       "source": null
     }, 
     {
-      "text": "        push    rbp", 
-      "source": 1
+      "text": " jmp    QWORD PTR [rip+0x2566b2]        # 6584a8 <_GLOBAL_OFFSET_TABLE_+0x68>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "b2", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653096, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4201968
     }, 
     {
-      "text": "        mov     rbp, rsp", 
-      "source": 1
+      "text": " push   0xa", 
+      "opcodes": [
+        "68", 
+        "0a", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4201974
     }, 
     {
-      "text": "        mov     rax, QWORD PTR _Dmodule_ref[rip]", 
-      "source": 3
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "40", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4201979
     }, 
     {
-      "text": "        mov     QWORD PTR __mod_ref.2428[rip], rax", 
-      "source": 3
+      "text": "pthread_kill@plt:", 
+      "source": null
     }, 
     {
-      "text": "        mov     QWORD PTR _Dmodule_ref[rip], OFFSET FLAT:__mod_ref.2428", 
-      "source": 3
+      "text": " jmp    QWORD PTR [rip+0x2566a2]        # 6584b8 <_GLOBAL_OFFSET_TABLE_+0x78>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "a2", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653112, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202000
     }, 
     {
-      "text": "        pop     rbp", 
-      "source": 1
+      "text": " push   0xc", 
+      "opcodes": [
+        "68", 
+        "0c", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202006
     }, 
     {
-      "text": "        ret", 
-      "source": 1
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "20", 
+        "ff", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202011
     }, 
     {
-      "text": "", 
+      "text": "pthread_once@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25668a]        # 6584d0 <_GLOBAL_OFFSET_TABLE_+0x90>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "8a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653136, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202048
+    }, 
+    {
+      "text": " push   0xf", 
+      "opcodes": [
+        "68", 
+        "0f", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202054
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "f0", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202059
+    }, 
+    {
+      "text": "strlen@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256682]        # 6584d8 <_GLOBAL_OFFSET_TABLE_+0x98>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "82", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653144, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202064
+    }, 
+    {
+      "text": " push   0x10", 
+      "opcodes": [
+        "68", 
+        "10", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202070
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "e0", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202075
+    }, 
+    {
+      "text": "pthread_mutexattr_destroy@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25667a]        # 6584e0 <_GLOBAL_OFFSET_TABLE_+0xa0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "7a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653152, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202080
+    }, 
+    {
+      "text": " push   0x11", 
+      "opcodes": [
+        "68", 
+        "11", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202086
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "d0", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202091
+    }, 
+    {
+      "text": "mmap@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256672]        # 6584e8 <_GLOBAL_OFFSET_TABLE_+0xa8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "72", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653160, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202096
+    }, 
+    {
+      "text": " push   0x12", 
+      "opcodes": [
+        "68", 
+        "12", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202102
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "c0", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202107
+    }, 
+    {
+      "text": "pthread_setspecific@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25666a]        # 6584f0 <_GLOBAL_OFFSET_TABLE_+0xb0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "6a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653168, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202112
+    }, 
+    {
+      "text": " push   0x13", 
+      "opcodes": [
+        "68", 
+        "13", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202118
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "b0", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202123
+    }, 
+    {
+      "text": "pthread_mutex_destroy@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256662]        # 6584f8 <_GLOBAL_OFFSET_TABLE_+0xb8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "62", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653176, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202128
+    }, 
+    {
+      "text": " push   0x14", 
+      "opcodes": [
+        "68", 
+        "14", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202134
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "a0", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202139
+    }, 
+    {
+      "text": "snprintf@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25665a]        # 658500 <_GLOBAL_OFFSET_TABLE_+0xc0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "5a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653184, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202144
+    }, 
+    {
+      "text": " push   0x15", 
+      "opcodes": [
+        "68", 
+        "15", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202150
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "90", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202155
+    }, 
+    {
+      "text": "pthread_mutexattr_init@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256652]        # 658508 <_GLOBAL_OFFSET_TABLE_+0xc8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "52", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653192, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202160
+    }, 
+    {
+      "text": " push   0x16", 
+      "opcodes": [
+        "68", 
+        "16", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202166
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "80", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202171
+    }, 
+    {
+      "text": "nanosleep@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25664a]        # 658510 <_GLOBAL_OFFSET_TABLE_+0xd0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "4a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653200, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202176
+    }, 
+    {
+      "text": " push   0x17", 
+      "opcodes": [
+        "68", 
+        "17", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202182
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "70", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202187
+    }, 
+    {
+      "text": "memset@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256642]        # 658518 <_GLOBAL_OFFSET_TABLE_+0xd8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "42", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653208, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202192
+    }, 
+    {
+      "text": " push   0x18", 
+      "opcodes": [
+        "68", 
+        "18", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202198
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "60", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202203
+    }, 
+    {
+      "text": "strnlen@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25663a]        # 658520 <_GLOBAL_OFFSET_TABLE_+0xe0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "3a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653216, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202208
+    }, 
+    {
+      "text": " push   0x19", 
+      "opcodes": [
+        "68", 
+        "19", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202214
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "50", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202219
+    }, 
+    {
+      "text": "close@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25662a]        # 658530 <_GLOBAL_OFFSET_TABLE_+0xf0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "2a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653232, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202240
+    }, 
+    {
+      "text": " push   0x1b", 
+      "opcodes": [
+        "68", 
+        "1b", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202246
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "30", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202251
+    }, 
+    {
+      "text": "pthread_attr_getstack@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256622]        # 658538 <_GLOBAL_OFFSET_TABLE_+0xf8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "22", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653240, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202256
+    }, 
+    {
+      "text": " push   0x1c", 
+      "opcodes": [
+        "68", 
+        "1c", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202262
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "20", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202267
+    }, 
+    {
+      "text": "sched_yield@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25661a]        # 658540 <_GLOBAL_OFFSET_TABLE_+0x100>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "1a", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653248, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202272
+    }, 
+    {
+      "text": " push   0x1d", 
+      "opcodes": [
+        "68", 
+        "1d", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202278
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "10", 
+        "fe", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202283
+    }, 
+    {
+      "text": "memcmp@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256602]        # 658558 <_GLOBAL_OFFSET_TABLE_+0x118>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "02", 
+        "66", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653272, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202320
+    }, 
+    {
+      "text": " push   0x20", 
+      "opcodes": [
+        "68", 
+        "20", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202326
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "e0", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202331
+    }, 
+    {
+      "text": "pthread_attr_init@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565fa]        # 658560 <_GLOBAL_OFFSET_TABLE_+0x120>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "fa", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653280, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202336
+    }, 
+    {
+      "text": " push   0x21", 
+      "opcodes": [
+        "68", 
+        "21", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202342
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "d0", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202347
+    }, 
+    {
+      "text": "calloc@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565f2]        # 658568 <_GLOBAL_OFFSET_TABLE_+0x128>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "f2", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653288, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202352
+    }, 
+    {
+      "text": " push   0x22", 
+      "opcodes": [
+        "68", 
+        "22", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202358
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "c0", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202363
+    }, 
+    {
+      "text": "strcmp@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565ea]        # 658570 <_GLOBAL_OFFSET_TABLE_+0x130>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ea", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653296, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202368
+    }, 
+    {
+      "text": " push   0x23", 
+      "opcodes": [
+        "68", 
+        "23", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202374
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "b0", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202379
+    }, 
+    {
+      "text": "sem_wait@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565e2]        # 658578 <_GLOBAL_OFFSET_TABLE_+0x138>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "e2", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653304, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202384
+    }, 
+    {
+      "text": " push   0x24", 
+      "opcodes": [
+        "68", 
+        "24", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202390
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "a0", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202395
+    }, 
+    {
+      "text": "fprintf@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565da]        # 658580 <_GLOBAL_OFFSET_TABLE_+0x140>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "da", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653312, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202400
+    }, 
+    {
+      "text": " push   0x25", 
+      "opcodes": [
+        "68", 
+        "25", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202406
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "90", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202411
+    }, 
+    {
+      "text": "memcpy@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565d2]        # 658588 <_GLOBAL_OFFSET_TABLE_+0x148>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "d2", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653320, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202416
+    }, 
+    {
+      "text": " push   0x26", 
+      "opcodes": [
+        "68", 
+        "26", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202422
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "80", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202427
+    }, 
+    {
+      "text": "sigfillset@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565ca]        # 658590 <_GLOBAL_OFFSET_TABLE_+0x150>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ca", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653328, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202432
+    }, 
+    {
+      "text": " push   0x27", 
+      "opcodes": [
+        "68", 
+        "27", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202438
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "70", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202443
+    }, 
+    {
+      "text": "pthread_getschedparam@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565c2]        # 658598 <_GLOBAL_OFFSET_TABLE_+0x158>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "c2", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653336, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202448
+    }, 
+    {
+      "text": " push   0x28", 
+      "opcodes": [
+        "68", 
+        "28", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202454
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "60", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202459
+    }, 
+    {
+      "text": "time@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565ba]        # 6585a0 <_GLOBAL_OFFSET_TABLE_+0x160>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ba", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653344, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202464
+    }, 
+    {
+      "text": " push   0x29", 
+      "opcodes": [
+        "68", 
+        "29", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202470
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "50", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202475
+    }, 
+    {
+      "text": "qsort_r@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565b2]        # 6585a8 <_GLOBAL_OFFSET_TABLE_+0x168>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "b2", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653352, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202480
+    }, 
+    {
+      "text": " push   0x2a", 
+      "opcodes": [
+        "68", 
+        "2a", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202486
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "40", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202491
+    }, 
+    {
+      "text": "pthread_attr_setdetachstate@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565aa]        # 6585b0 <_GLOBAL_OFFSET_TABLE_+0x170>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "aa", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653360, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202496
+    }, 
+    {
+      "text": " push   0x2b", 
+      "opcodes": [
+        "68", 
+        "2b", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202502
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "30", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202507
+    }, 
+    {
+      "text": "mmap64@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2565a2]        # 6585b8 <_GLOBAL_OFFSET_TABLE_+0x178>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "a2", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653368, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202512
+    }, 
+    {
+      "text": " push   0x2c", 
+      "opcodes": [
+        "68", 
+        "2c", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202518
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "20", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202523
+    }, 
+    {
+      "text": "pthread_getspecific@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25659a]        # 6585c0 <_GLOBAL_OFFSET_TABLE_+0x180>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "9a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653376, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202528
+    }, 
+    {
+      "text": " push   0x2d", 
+      "opcodes": [
+        "68", 
+        "2d", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202534
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "10", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202539
+    }, 
+    {
+      "text": "pthread_mutex_unlock@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256592]        # 6585c8 <_GLOBAL_OFFSET_TABLE_+0x188>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "92", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653384, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202544
+    }, 
+    {
+      "text": " push   0x2e", 
+      "opcodes": [
+        "68", 
+        "2e", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202550
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "00", 
+        "fd", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202555
+    }, 
+    {
+      "text": "pthread_mutexattr_settype@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25658a]        # 6585d0 <_GLOBAL_OFFSET_TABLE_+0x190>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "8a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653392, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202560
+    }, 
+    {
+      "text": " push   0x2f", 
+      "opcodes": [
+        "68", 
+        "2f", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202566
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "f0", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202571
+    }, 
+    {
+      "text": "malloc@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256582]        # 6585d8 <_GLOBAL_OFFSET_TABLE_+0x198>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "82", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653400, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202576
+    }, 
+    {
+      "text": " push   0x30", 
+      "opcodes": [
+        "68", 
+        "30", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202582
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "e0", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202587
+    }, 
+    {
+      "text": "fflush@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25657a]        # 6585e0 <_GLOBAL_OFFSET_TABLE_+0x1a0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "7a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653408, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202592
+    }, 
+    {
+      "text": " push   0x31", 
+      "opcodes": [
+        "68", 
+        "31", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202598
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "d0", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202603
+    }, 
+    {
+      "text": "sched_get_priority_min@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256572]        # 6585e8 <_GLOBAL_OFFSET_TABLE_+0x1a8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "72", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653416, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202608
+    }, 
+    {
+      "text": " push   0x32", 
+      "opcodes": [
+        "68", 
+        "32", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202614
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "c0", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202619
+    }, 
+    {
+      "text": "clock_gettime@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25656a]        # 6585f0 <_GLOBAL_OFFSET_TABLE_+0x1b0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "6a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653424, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202624
+    }, 
+    {
+      "text": " push   0x33", 
+      "opcodes": [
+        "68", 
+        "33", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202630
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "b0", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202635
+    }, 
+    {
+      "text": "sigsuspend@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256562]        # 6585f8 <_GLOBAL_OFFSET_TABLE_+0x1b8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "62", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653432, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202640
+    }, 
+    {
+      "text": " push   0x34", 
+      "opcodes": [
+        "68", 
+        "34", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202646
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "a0", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202651
+    }, 
+    {
+      "text": "sem_post@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25655a]        # 658600 <_GLOBAL_OFFSET_TABLE_+0x1c0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "5a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653440, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202656
+    }, 
+    {
+      "text": " push   0x35", 
+      "opcodes": [
+        "68", 
+        "35", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202662
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "90", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202667
+    }, 
+    {
+      "text": "pthread_attr_setstacksize@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256552]        # 658608 <_GLOBAL_OFFSET_TABLE_+0x1c8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "52", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653448, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202672
+    }, 
+    {
+      "text": " push   0x36", 
+      "opcodes": [
+        "68", 
+        "36", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202678
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "80", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202683
+    }, 
+    {
+      "text": "pthread_setschedprio@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25654a]        # 658610 <_GLOBAL_OFFSET_TABLE_+0x1d0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "4a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653456, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202688
+    }, 
+    {
+      "text": " push   0x37", 
+      "opcodes": [
+        "68", 
+        "37", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202694
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "70", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202699
+    }, 
+    {
+      "text": "realloc@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256542]        # 658618 <_GLOBAL_OFFSET_TABLE_+0x1d8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "42", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653464, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202704
+    }, 
+    {
+      "text": " push   0x38", 
+      "opcodes": [
+        "68", 
+        "38", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202710
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "60", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202715
+    }, 
+    {
+      "text": "munmap@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25653a]        # 658620 <_GLOBAL_OFFSET_TABLE_+0x1e0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "3a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653472, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202720
+    }, 
+    {
+      "text": " push   0x39", 
+      "opcodes": [
+        "68", 
+        "39", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202726
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "50", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202731
+    }, 
+    {
+      "text": "pthread_key_create@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256532]        # 658628 <_GLOBAL_OFFSET_TABLE_+0x1e8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "32", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653480, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202736
+    }, 
+    {
+      "text": " push   0x3a", 
+      "opcodes": [
+        "68", 
+        "3a", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202742
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "40", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202747
+    }, 
+    {
+      "text": "memmove@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25651a]        # 658640 <_GLOBAL_OFFSET_TABLE_+0x200>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "1a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653504, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202784
+    }, 
+    {
+      "text": " push   0x3d", 
+      "opcodes": [
+        "68", 
+        "3d", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202790
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "10", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202795
+    }, 
+    {
+      "text": "strtold@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256512]        # 658648 <_GLOBAL_OFFSET_TABLE_+0x208>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "12", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653512, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202800
+    }, 
+    {
+      "text": " push   0x3e", 
+      "opcodes": [
+        "68", 
+        "3e", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202806
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "00", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202811
+    }, 
+    {
+      "text": "pthread_self@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25650a]        # 658650 <_GLOBAL_OFFSET_TABLE_+0x210>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "0a", 
+        "65", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653520, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202816
+    }, 
+    {
+      "text": " push   0x3f", 
+      "opcodes": [
+        "68", 
+        "3f", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202822
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "f0", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202827
+    }, 
+    {
+      "text": "sem_init@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564fa]        # 658660 <_GLOBAL_OFFSET_TABLE_+0x220>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "fa", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653536, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202848
+    }, 
+    {
+      "text": " push   0x41", 
+      "opcodes": [
+        "68", 
+        "41", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202854
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "d0", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202859
+    }, 
+    {
+      "text": "open@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564f2]        # 658668 <_GLOBAL_OFFSET_TABLE_+0x228>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "f2", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653544, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202864
+    }, 
+    {
+      "text": " push   0x42", 
+      "opcodes": [
+        "68", 
+        "42", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202870
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "c0", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202875
+    }, 
+    {
+      "text": "sigdelset@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564ea]        # 658670 <_GLOBAL_OFFSET_TABLE_+0x230>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ea", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653552, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202880
+    }, 
+    {
+      "text": " push   0x43", 
+      "opcodes": [
+        "68", 
+        "43", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202886
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "b0", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202891
+    }, 
+    {
+      "text": "sysconf@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564e2]        # 658678 <_GLOBAL_OFFSET_TABLE_+0x238>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "e2", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653560, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202896
+    }, 
+    {
+      "text": " push   0x44", 
+      "opcodes": [
+        "68", 
+        "44", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202902
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "a0", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202907
+    }, 
+    {
+      "text": "pthread_join@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564da]        # 658680 <_GLOBAL_OFFSET_TABLE_+0x240>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "da", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653568, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202912
+    }, 
+    {
+      "text": " push   0x45", 
+      "opcodes": [
+        "68", 
+        "45", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202918
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "90", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202923
+    }, 
+    {
+      "text": "pthread_attr_destroy@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564d2]        # 658688 <_GLOBAL_OFFSET_TABLE_+0x248>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "d2", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653576, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202928
+    }, 
+    {
+      "text": " push   0x46", 
+      "opcodes": [
+        "68", 
+        "46", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202934
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "80", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202939
+    }, 
+    {
+      "text": "getpagesize@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564c2]        # 658698 <_GLOBAL_OFFSET_TABLE_+0x258>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "c2", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653592, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202960
+    }, 
+    {
+      "text": " push   0x48", 
+      "opcodes": [
+        "68", 
+        "48", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202966
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "60", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202971
+    }, 
+    {
+      "text": "pthread_key_delete@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564ba]        # 6586a0 <_GLOBAL_OFFSET_TABLE_+0x260>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "ba", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653600, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202976
+    }, 
+    {
+      "text": " push   0x49", 
+      "opcodes": [
+        "68", 
+        "49", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202982
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "50", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4202987
+    }, 
+    {
+      "text": "sched_get_priority_max@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564b2]        # 6586a8 <_GLOBAL_OFFSET_TABLE_+0x268>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "b2", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653608, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4202992
+    }, 
+    {
+      "text": " push   0x4a", 
+      "opcodes": [
+        "68", 
+        "4a", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4202998
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "40", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203003
+    }, 
+    {
+      "text": "fwrite@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564aa]        # 6586b0 <_GLOBAL_OFFSET_TABLE_+0x270>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "aa", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653616, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203008
+    }, 
+    {
+      "text": " push   0x4b", 
+      "opcodes": [
+        "68", 
+        "4b", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203014
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "30", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203019
+    }, 
+    {
+      "text": "bsearch@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x2564a2]        # 6586b8 <_GLOBAL_OFFSET_TABLE_+0x278>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "a2", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653624, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203024
+    }, 
+    {
+      "text": " push   0x4c", 
+      "opcodes": [
+        "68", 
+        "4c", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203030
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "20", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203035
+    }, 
+    {
+      "text": "strerror@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256492]        # 6586c8 <_GLOBAL_OFFSET_TABLE_+0x288>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "92", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653640, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203056
+    }, 
+    {
+      "text": " push   0x4e", 
+      "opcodes": [
+        "68", 
+        "4e", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203062
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "00", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203067
+    }, 
+    {
+      "text": "clock_getres@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25648a]        # 6586d0 <_GLOBAL_OFFSET_TABLE_+0x290>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "8a", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653648, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203072
+    }, 
+    {
+      "text": " push   0x4f", 
+      "opcodes": [
+        "68", 
+        "4f", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203078
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "f0", 
+        "fa", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203083
+    }, 
+    {
+      "text": "pthread_mutex_init@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25647a]        # 6586e0 <_GLOBAL_OFFSET_TABLE_+0x2a0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "7a", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653664, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203104
+    }, 
+    {
+      "text": " push   0x51", 
+      "opcodes": [
+        "68", 
+        "51", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203110
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "d0", 
+        "fa", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203115
+    }, 
+    {
+      "text": "pthread_mutex_lock@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256472]        # 6586e8 <_GLOBAL_OFFSET_TABLE_+0x2a8>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "72", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653672, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203120
+    }, 
+    {
+      "text": " push   0x52", 
+      "opcodes": [
+        "68", 
+        "52", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203126
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "c0", 
+        "fa", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203131
+    }, 
+    {
+      "text": "pthread_mutex_trylock@plt:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x25646a]        # 6586f0 <_GLOBAL_OFFSET_TABLE_+0x2b0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "6a", 
+        "64", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6653680, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203136
+    }, 
+    {
+      "text": " push   0x53", 
+      "opcodes": [
+        "68", 
+        "53", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203142
+    }, 
+    {
+      "text": " jmp    401d40 <_init+0x28>", 
+      "opcodes": [
+        "e9", 
+        "b0", 
+        "fa", 
+        "ff", 
+        "ff"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 4201792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4203147
+    }, 
+    {
+      "text": ".plt.got:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x256192]        # 658438 <_DYNAMIC+0x210>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "92", 
+        "61", 
+        "25", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6652984, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4203168
+    }, 
+    {
+      "text": " xchg   ax,ax", 
+      "opcodes": [
+        "66", 
+        "90"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4203174
+    }, 
+    {
+      "text": "deregister_tm_clones:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    eax,0x660c4f", 
+      "opcodes": [
+        "b8", 
+        "4f", 
+        "0c", 
+        "66", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205132
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205137
+    }, 
+    {
+      "text": " sub    rax,0x660c48", 
+      "opcodes": [
+        "48", 
+        "2d", 
+        "48", 
+        "0c", 
+        "66", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205138
+    }, 
+    {
+      "text": " cmp    rax,0xe", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "f8", 
+        "0e"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205144
+    }, 
+    {
+      "text": " mov    rbp,rsp", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "e5"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205148
+    }, 
+    {
+      "text": " jbe    402a73 <deregister_tm_clones+0x27>", 
+      "opcodes": [
+        "76", 
+        "12"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205171, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205151
+    }, 
+    {
+      "text": " mov    eax,0x0", 
+      "opcodes": [
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205153
+    }, 
+    {
+      "text": " test   rax,rax", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "c0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205158
+    }, 
+    {
+      "text": " je     402a73 <deregister_tm_clones+0x27>", 
+      "opcodes": [
+        "74", 
+        "08"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205171, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205161
+    }, 
+    {
+      "text": " pop    rbp", 
+      "opcodes": [
+        "5d"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205163
+    }, 
+    {
+      "text": " mov    edi,0x660c48", 
+      "opcodes": [
+        "bf", 
+        "48", 
+        "0c", 
+        "66", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205164
+    }, 
+    {
+      "text": " jmp    rax", 
+      "opcodes": [
+        "ff", 
+        "e0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205169
+    }, 
+    {
+      "text": " pop    rbp", 
+      "opcodes": [
+        "5d"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205171
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205172
+    }, 
+    {
+      "text": "register_tm_clones:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    esi,0x660c48", 
+      "opcodes": [
+        "be", 
+        "48", 
+        "0c", 
+        "66", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205173
+    }, 
+    {
+      "text": " mov    ecx,0x2", 
+      "opcodes": [
+        "b9", 
+        "02", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205178
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205183
+    }, 
+    {
+      "text": " sub    rsi,0x660c48", 
+      "opcodes": [
+        "48", 
+        "81", 
+        "ee", 
+        "48", 
+        "0c", 
+        "66", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205184
+    }, 
+    {
+      "text": " mov    rax,rsi", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "f0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205191
+    }, 
+    {
+      "text": " mov    rbp,rsp", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "e5"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205194
+    }, 
+    {
+      "text": " sar    rax,0x3", 
+      "opcodes": [
+        "48", 
+        "c1", 
+        "f8", 
+        "03"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205197
+    }, 
+    {
+      "text": " cqo    ", 
+      "opcodes": [
+        "48", 
+        "99"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205201
+    }, 
+    {
+      "text": " idiv   rcx", 
+      "opcodes": [
+        "48", 
+        "f7", 
+        "f9"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205203
+    }, 
+    {
+      "text": " test   rax,rax", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "c0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205206
+    }, 
+    {
+      "text": " mov    rsi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c6"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205209
+    }, 
+    {
+      "text": " je     402ab0 <register_tm_clones+0x3b>", 
+      "opcodes": [
+        "74", 
+        "12"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205232, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205212
+    }, 
+    {
+      "text": " mov    eax,0x0", 
+      "opcodes": [
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205214
+    }, 
+    {
+      "text": " test   rax,rax", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "c0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205219
+    }, 
+    {
+      "text": " je     402ab0 <register_tm_clones+0x3b>", 
+      "opcodes": [
+        "74", 
+        "08"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205232, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205222
+    }, 
+    {
+      "text": " pop    rbp", 
+      "opcodes": [
+        "5d"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205224
+    }, 
+    {
+      "text": " mov    edi,0x660c48", 
+      "opcodes": [
+        "bf", 
+        "48", 
+        "0c", 
+        "66", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205225
+    }, 
+    {
+      "text": " jmp    rax", 
+      "opcodes": [
+        "ff", 
+        "e0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205230
+    }, 
+    {
+      "text": " pop    rbp", 
+      "opcodes": [
+        "5d"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205232
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205233
+    }, 
+    {
+      "text": "frame_dummy:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    edi,0x6581f0", 
+      "opcodes": [
+        "bf", 
+        "f0", 
+        "81", 
+        "65", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205261
+    }, 
+    {
+      "text": " cmp    QWORD PTR [rdi],0x0", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "3f", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205266
+    }, 
+    {
+      "text": " je     402ae9 <frame_dummy+0x1c>", 
+      "opcodes": [
+        "74", 
+        "11"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205289, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205270
+    }, 
+    {
+      "text": " mov    eax,0x0", 
+      "opcodes": [
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205272
+    }, 
+    {
+      "text": " test   rax,rax", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "c0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205277
+    }, 
+    {
+      "text": " je     402ae9 <frame_dummy+0x1c>", 
+      "opcodes": [
+        "74", 
+        "07"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205289, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205280
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205282
+    }, 
+    {
+      "text": " mov    rbp,rsp", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "e5"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205283
+    }, 
+    {
+      "text": " call   rax", 
+      "opcodes": [
+        "ff", 
+        "d0"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205286
+    }, 
+    {
+      "text": " pop    rbp", 
+      "opcodes": [
+        "5d"
+      ], 
+      "source": 36, 
+      "links": null, 
+      "address": 4205288
+    }, 
+    {
+      "text": " jmp    402a75 <register_tm_clones>", 
+      "opcodes": [
+        "eb", 
+        "8a"
+      ], 
+      "source": 36, 
+      "links": [
+        {
+          "to": 4205173, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205289
+    }, 
+    {
+      "text": "main:", 
+      "source": null
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": 60, 
+      "links": null, 
+      "address": 4205291
+    }, 
+    {
+      "text": " mov    rbp,rsp", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "e5"
+      ], 
+      "source": 60, 
+      "links": null, 
+      "address": 4205292
+    }, 
+    {
+      "text": " sub    rsp,0x10", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "ec", 
+        "10"
+      ], 
+      "source": 60, 
+      "links": null, 
+      "address": 4205295
+    }, 
+    {
+      "text": " mov    DWORD PTR [rbp-0x4],edi", 
+      "opcodes": [
+        "89", 
+        "7d", 
+        "fc"
+      ], 
+      "source": 60, 
+      "links": null, 
+      "address": 4205299
+    }, 
+    {
+      "text": " mov    QWORD PTR [rbp-0x10],rsi", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "75", 
+        "f0"
+      ], 
+      "source": 60, 
+      "links": null, 
+      "address": 4205302
+    }, 
+    {
+      "text": " mov    rcx,QWORD PTR [rbp-0x10]", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "4d", 
+        "f0"
+      ], 
+      "source": 62, 
+      "links": null, 
+      "address": 4205306
+    }, 
+    {
+      "text": " mov    eax,DWORD PTR [rbp-0x4]", 
+      "opcodes": [
+        "8b", 
+        "45", 
+        "fc"
+      ], 
+      "source": 62, 
+      "links": null, 
+      "address": 4205310
+    }, 
+    {
+      "text": " mov    edx,0x402b22", 
+      "opcodes": [
+        "ba", 
+        "22", 
+        "2b", 
+        "40", 
+        "00"
+      ], 
+      "source": 62, 
+      "links": null, 
+      "address": 4205313
+    }, 
+    {
+      "text": " mov    rsi,rcx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "ce"
+      ], 
+      "source": 62, 
+      "links": null, 
+      "address": 4205318
+    }, 
+    {
+      "text": " mov    edi,eax", 
+      "opcodes": [
+        "89", 
+        "c7"
+      ], 
+      "source": 62, 
+      "links": null, 
+      "address": 4205321
+    }, 
+    {
+      "text": " call   402ce0 <_d_run_main>", 
+      "opcodes": [
+        "e8", 
+        "d0", 
+        "01", 
+        "00", 
+        "00"
+      ], 
+      "source": 62, 
+      "links": [
+        {
+          "to": 4205792, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4205323
+    }, 
+    {
+      "text": " leave  ", 
+      "opcodes": [
+        "c9"
+      ], 
+      "source": 63, 
+      "links": null, 
+      "address": 4205328
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 63, 
+      "links": null, 
+      "address": 4205329
+    }, 
+    {
+      "text": "_Dmain:", 
+      "source": null
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4205346
+    }, 
+    {
+      "text": " mov    rbp,rsp", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "e5"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4205347
+    }, 
+    {
+      "text": " mov    eax,0x0", 
+      "opcodes": [
+        "b8", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4205350
+    }, 
+    {
+      "text": " pop    rbp", 
+      "opcodes": [
+        "5d"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4205355
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 6, 
+      "links": null, 
+      "address": 4205356
+    }, 
+    {
+      "text": "rt_args:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    rax,QWORD PTR [rip+0x25e149]        # 660ce0 <_D2rt6dmain27_d_argsAAya>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "05", 
+        "49", 
+        "e1", 
+        "25", 
+        "00"
+      ], 
+      "source": 134, 
+      "links": [
+        {
+          "to": 6687968, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4205456
+    }, 
+    {
+      "text": " mov    rdx,QWORD PTR [rip+0x25e14a]        # 660ce8 <_D2rt6dmain27_d_argsAAya+0x8>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "15", 
+        "4a", 
+        "e1", 
+        "25", 
+        "00"
+      ], 
+      "source": 134, 
+      "links": [
+        {
+          "to": 6687976, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4205463
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 134, 
+      "links": null, 
+      "address": 4205470
+    }, 
+    {
+      "text": " nop", 
+      "opcodes": [
+        "90"
+      ], 
+      "source": 134, 
+      "links": null, 
+      "address": 4205471
+    }, 
+    {
+      "text": "rt_cArgs:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    rdx,QWORD PTR [rip+0x25e111]        # 660cb8 <_D2rt6dmain26_cArgsS2rt6dmain25CArgs+0x8>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "15", 
+        "11", 
+        "e1", 
+        "25", 
+        "00"
+      ], 
+      "source": 225, 
+      "links": [
+        {
+          "to": 6687928, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4205472
+    }, 
+    {
+      "text": " mov    rax,QWORD PTR [rip+0x25e102]        # 660cb0 <_D2rt6dmain26_cArgsS2rt6dmain25CArgs>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "05", 
+        "02", 
+        "e1", 
+        "25", 
+        "00"
+      ], 
+      "source": 225, 
+      "links": [
+        {
+          "to": 6687920, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4205479
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 226, 
+      "links": null, 
+      "address": 4205486
+    }, 
+    {
+      "text": " nop", 
+      "opcodes": [
+        "90"
+      ], 
+      "source": 226, 
+      "links": null, 
+      "address": 4205487
+    }, 
+    {
+      "text": "rt_init:", 
+      "source": null
+    }, 
+    {
+      "text": " sub    rsp,0x18", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "ec", 
+        "18"
+      ], 
+      "source": 152, 
+      "links": null, 
+      "address": 4206240
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "40", 
+        "00"
+      ], 
+      "source": 152, 
+      "links": null, 
+      "address": 4206244
+    }, 
+    {
+      "text": " mov    rax,QWORD PTR [rip+0x25de21]        # 660cd0 <_D2rt6dmain210_initCountOm>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "05", 
+        "21", 
+        "de", 
+        "25", 
+        "00"
+      ], 
+      "source": 1227, 
+      "links": [
+        {
+          "to": 6687952, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4206248
+    }, 
+    {
+      "text": " lea    rdx,[rax+0x1]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "50", 
+        "01"
+      ], 
+      "source": 1105, 
+      "links": null, 
+      "address": 4206255
+    }, 
+    {
+      "text": " mov    QWORD PTR [rsp+0x8],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "24", 
+        "08"
+      ], 
+      "source": 1105, 
+      "links": null, 
+      "address": 4206259
+    }, 
+    {
+      "text": " lock cmpxchg QWORD PTR [rip+0x25de0f],rdx        # 660cd0 <_D2rt6dmain210_initCountOm>", 
+      "opcodes": [
+        "f0", 
+        "48", 
+        "0f", 
+        "b1", 
+        "15", 
+        "0f", 
+        "de", 
+        "25", 
+        "00"
+      ], 
+      "source": 1185, 
+      "links": [
+        {
+          "to": 6687952, 
+          "length": 6, 
+          "offset": 52
+        }
+      ], 
+      "address": 4206264
+    }, 
+    {
+      "text": " jne    402ed8 <rt_init+0x38>", 
+      "opcodes": [
+        "75", 
+        "15"
+      ], 
+      "source": 1185, 
+      "links": [
+        {
+          "to": 4206296, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206273
+    }, 
+    {
+      "text": " cmp    rdx,0x1", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "fa", 
+        "01"
+      ], 
+      "source": 159, 
+      "links": null, 
+      "address": 4206275
+    }, 
+    {
+      "text": " jbe    402edf <rt_init+0x3f>", 
+      "opcodes": [
+        "76", 
+        "16"
+      ], 
+      "source": 159, 
+      "links": [
+        {
+          "to": 4206303, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206279
+    }, 
+    {
+      "text": " mov    eax,0x1", 
+      "opcodes": [
+        "b8", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 159, 
+      "links": null, 
+      "address": 4206281
+    }, 
+    {
+      "text": " add    rsp,0x18", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c4", 
+        "18"
+      ], 
+      "source": 180, 
+      "links": null, 
+      "address": 4206286
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 180, 
+      "links": null, 
+      "address": 4206290
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
+      ], 
+      "source": 180, 
+      "links": null, 
+      "address": 4206291
+    }, 
+    {
+      "text": " mov    QWORD PTR [rsp+0x8],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "24", 
+        "08"
+      ], 
+      "source": 1185, 
+      "links": null, 
+      "address": 4206296
+    }, 
+    {
+      "text": " jmp    402ea8 <rt_init+0x8>", 
+      "opcodes": [
+        "eb", 
+        "c9"
+      ], 
+      "source": 1185, 
+      "links": [
+        {
+          "to": 4206248, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206301
+    }, 
+    {
+      "text": " call   407160 <_STI_monitor_staticctor>", 
+      "opcodes": [
+        "e8", 
+        "7c", 
+        "42", 
+        "00", 
+        "00"
+      ], 
+      "source": 161, 
+      "links": [
+        {
+          "to": 4223328, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206303
+    }, 
+    {
+      "text": " call   41ba20 <_STI_critical_init>", 
+      "opcodes": [
+        "e8", 
+        "37", 
+        "8b", 
+        "01", 
+        "00"
+      ], 
+      "source": 162, 
+      "links": [
+        {
+          "to": 4307488, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206308
+    }, 
+    {
+      "text": " call   4142e0 <gc_init>", 
+      "opcodes": [
+        "e8", 
+        "f2", 
+        "13", 
+        "01", 
+        "00"
+      ], 
+      "source": 166, 
+      "links": [
+        {
+          "to": 4276960, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206313
+    }, 
+    {
+      "text": " call   403f20 <_D2rt6memory16initStaticDataGCFZv>", 
+      "opcodes": [
+        "e8", 
+        "2d", 
+        "10", 
+        "00", 
+        "00"
+      ], 
+      "source": 167, 
+      "links": [
+        {
+          "to": 4210464, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206318
+    }, 
+    {
+      "text": " call   403d40 <rt_moduleCtor>", 
+      "opcodes": [
+        "e8", 
+        "48", 
+        "0e", 
+        "00", 
+        "00"
+      ], 
+      "source": 168, 
+      "links": [
+        {
+          "to": 4209984, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206323
+    }, 
+    {
+      "text": " call   403c10 <rt_moduleTlsCtor>", 
+      "opcodes": [
+        "e8", 
+        "13", 
+        "0d", 
+        "00", 
+        "00"
+      ], 
+      "source": 169, 
+      "links": [
+        {
+          "to": 4209680, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206328
+    }, 
+    {
+      "text": " jmp    402ec9 <rt_init+0x29>", 
+      "opcodes": [
+        "eb", 
+        "ca"
+      ], 
+      "source": 169, 
+      "links": [
+        {
+          "to": 4206281, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206333
+    }, 
+    {
+      "text": " cmp    rdx,0x1", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "fa", 
+        "01"
+      ], 
+      "source": 169, 
+      "links": null, 
+      "address": 4206335
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": 169, 
+      "links": null, 
+      "address": 4206339
+    }, 
+    {
+      "text": " je     402f0d <rt_init+0x6d>", 
+      "opcodes": [
+        "74", 
+        "05"
+      ], 
+      "source": 169, 
+      "links": [
+        {
+          "to": 4206349, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206342
+    }, 
+    {
+      "text": " call   402250 <_Unwind_Resume@plt>", 
+      "opcodes": [
+        "e8", 
+        "43", 
+        "f3", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 169, 
+      "links": [
+        {
+          "to": 4203088, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206344
+    }, 
+    {
+      "text": " call   414f90 <__gdc_begin_catch>", 
+      "opcodes": [
+        "e8", 
+        "7e", 
+        "20", 
+        "01", 
+        "00"
+      ], 
+      "source": 172, 
+      "links": [
+        {
+          "to": 4280208, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206349
+    }, 
+    {
+      "text": " mov    esi,0x65cf00", 
+      "opcodes": [
+        "be", 
+        "00", 
+        "cf", 
+        "65", 
+        "00"
+      ], 
+      "source": 172, 
+      "links": null, 
+      "address": 4206354
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": 172, 
+      "links": null, 
+      "address": 4206359
+    }, 
+    {
+      "text": " call   41b800 <_d_dynamic_cast>", 
+      "opcodes": [
+        "e8", 
+        "e1", 
+        "88", 
+        "01", 
+        "00"
+      ], 
+      "source": 172, 
+      "links": [
+        {
+          "to": 4306944, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206362
+    }, 
+    {
+      "text": " xor    esi,esi", 
+      "opcodes": [
+        "31", 
+        "f6"
+      ], 
+      "source": 517, 
+      "links": null, 
+      "address": 4206367
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": 517, 
+      "links": null, 
+      "address": 4206369
+    }, 
+    {
+      "text": " mov    edx,0x402b70", 
+      "opcodes": [
+        "ba", 
+        "70", 
+        "2b", 
+        "40", 
+        "00"
+      ], 
+      "source": 517, 
+      "links": null, 
+      "address": 4206372
+    }, 
+    {
+      "text": " mov    QWORD PTR [rip+0x25dd9c],0x0        # 660cd0 <_D2rt6dmain210_initCountOm>", 
+      "opcodes": [
+        "48", 
+        "c7", 
+        "05", 
+        "9c", 
+        "dd", 
+        "25", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 174, 
+      "links": [
+        {
+          "to": 6687952, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4206377
+    }, 
+    {
+      "text": " call   402bb0 <_D2rt6dmain215formatThrowableFC6object9ThrowableDFNbxAaZvZv>", 
+      "opcodes": [
+        "e8", 
+        "77", 
+        "fc", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 517, 
+      "links": [
+        {
+          "to": 4205488, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206388
+    }, 
+    {
+      "text": " call   41b940 <_STD_critical_term>", 
+      "opcodes": [
+        "e8", 
+        "02", 
+        "8a", 
+        "01", 
+        "00"
+      ], 
+      "source": 177, 
+      "links": [
+        {
+          "to": 4307264, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206393
+    }, 
+    {
+      "text": " call   407190 <_STD_monitor_staticdtor>", 
+      "opcodes": [
+        "e8", 
+        "4d", 
+        "42", 
+        "00", 
+        "00"
+      ], 
+      "source": 178, 
+      "links": [
+        {
+          "to": 4223376, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206398
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 179, 
+      "links": null, 
+      "address": 4206403
+    }, 
+    {
+      "text": " add    rsp,0x18", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c4", 
+        "18"
+      ], 
+      "source": 180, 
+      "links": null, 
+      "address": 4206405
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 180, 
+      "links": null, 
+      "address": 4206409
+    }, 
+    {
+      "text": " nop    WORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
+      ], 
+      "source": 180, 
+      "links": null, 
+      "address": 4206410
+    }, 
+    {
+      "text": "rt_term:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    rdx,QWORD PTR [rip+0x25dd79]        # 660cd0 <_D2rt6dmain210_initCountOm>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "15", 
+        "79", 
+        "dd", 
+        "25", 
+        "00"
+      ], 
+      "source": 187, 
+      "links": [
+        {
+          "to": 6687952, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4206416
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 187, 
+      "links": null, 
+      "address": 4206423
+    }, 
+    {
+      "text": " test   rdx,rdx", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "d2"
+      ], 
+      "source": 187, 
+      "links": null, 
+      "address": 4206425
+    }, 
+    {
+      "text": " jne    402f60 <rt_term+0x10>", 
+      "opcodes": [
+        "75", 
+        "02"
+      ], 
+      "source": 187, 
+      "links": [
+        {
+          "to": 4206432, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206428
+    }, 
+    {
+      "text": " repz ret ", 
+      "opcodes": [
+        "f3", 
+        "c3"
+      ], 
+      "source": 208, 
+      "links": null, 
+      "address": 4206430
+    }, 
+    {
+      "text": " push   rbx", 
+      "opcodes": [
+        "53"
+      ], 
+      "source": 185, 
+      "links": null, 
+      "address": 4206432
+    }, 
+    {
+      "text": " sub    rsp,0x10", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "ec", 
+        "10"
+      ], 
+      "source": 185, 
+      "links": null, 
+      "address": 4206433
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "00"
+      ], 
+      "source": 185, 
+      "links": null, 
+      "address": 4206437
+    }, 
+    {
+      "text": " mov    rax,QWORD PTR [rip+0x25dd61]        # 660cd0 <_D2rt6dmain210_initCountOm>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "05", 
+        "61", 
+        "dd", 
+        "25", 
+        "00"
+      ], 
+      "source": 1227, 
+      "links": [
+        {
+          "to": 6687952, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4206440
+    }, 
+    {
+      "text": " lea    rdx,[rax-0x1]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "50", 
+        "ff"
+      ], 
+      "source": 1105, 
+      "links": null, 
+      "address": 4206447
+    }, 
+    {
+      "text": " mov    QWORD PTR [rsp+0x8],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "24", 
+        "08"
+      ], 
+      "source": 1105, 
+      "links": null, 
+      "address": 4206451
+    }, 
+    {
+      "text": " lock cmpxchg QWORD PTR [rip+0x25dd4f],rdx        # 660cd0 <_D2rt6dmain210_initCountOm>", 
+      "opcodes": [
+        "f0", 
+        "48", 
+        "0f", 
+        "b1", 
+        "15", 
+        "4f", 
+        "dd", 
+        "25", 
+        "00"
+      ], 
+      "source": 1185, 
+      "links": [
+        {
+          "to": 6687952, 
+          "length": 6, 
+          "offset": 52
+        }
+      ], 
+      "address": 4206456
+    }, 
+    {
+      "text": " jne    402f98 <rt_term+0x48>", 
+      "opcodes": [
+        "75", 
+        "15"
+      ], 
+      "source": 1185, 
+      "links": [
+        {
+          "to": 4206488, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206465
+    }, 
+    {
+      "text": " test   rdx,rdx", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "d2"
+      ], 
+      "source": 188, 
+      "links": null, 
+      "address": 4206467
+    }, 
+    {
+      "text": " mov    eax,0x1", 
+      "opcodes": [
+        "b8", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 188, 
+      "links": null, 
+      "address": 4206470
+    }, 
+    {
+      "text": " je     402f9f <rt_term+0x4f>", 
+      "opcodes": [
+        "74", 
+        "12"
+      ], 
+      "source": 188, 
+      "links": [
+        {
+          "to": 4206495, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206475
+    }, 
+    {
+      "text": " add    rsp,0x10", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c4", 
+        "10"
+      ], 
+      "source": 208, 
+      "links": null, 
+      "address": 4206477
+    }, 
+    {
+      "text": " pop    rbx", 
+      "opcodes": [
+        "5b"
+      ], 
+      "source": 208, 
+      "links": null, 
+      "address": 4206481
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 208, 
+      "links": null, 
+      "address": 4206482
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
+      ], 
+      "source": 208, 
+      "links": null, 
+      "address": 4206483
+    }, 
+    {
+      "text": " mov    QWORD PTR [rsp+0x8],rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "44", 
+        "24", 
+        "08"
+      ], 
+      "source": 1185, 
+      "links": null, 
+      "address": 4206488
+    }, 
+    {
+      "text": " jmp    402f68 <rt_term+0x18>", 
+      "opcodes": [
+        "eb", 
+        "c9"
+      ], 
+      "source": 1185, 
+      "links": [
+        {
+          "to": 4206440, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206493
+    }, 
+    {
+      "text": " call   403c30 <rt_moduleTlsDtor>", 
+      "opcodes": [
+        "e8", 
+        "8c", 
+        "0c", 
+        "00", 
+        "00"
+      ], 
+      "source": 192, 
+      "links": [
+        {
+          "to": 4209712, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206495
+    }, 
+    {
+      "text": " call   409bc0 <thread_joinAll>", 
+      "opcodes": [
+        "e8", 
+        "17", 
+        "6c", 
+        "00", 
+        "00"
+      ], 
+      "source": 193, 
+      "links": [
+        {
+          "to": 4234176, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206500
+    }, 
+    {
+      "text": " call   403c50 <rt_moduleDtor>", 
+      "opcodes": [
+        "e8", 
+        "a2", 
+        "0c", 
+        "00", 
+        "00"
+      ], 
+      "source": 194, 
+      "links": [
+        {
+          "to": 4209744, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206505
+    }, 
+    {
+      "text": " call   414320 <gc_term>", 
+      "opcodes": [
+        "e8", 
+        "6d", 
+        "13", 
+        "01", 
+        "00"
+      ], 
+      "source": 195, 
+      "links": [
+        {
+          "to": 4277024, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206510
+    }, 
+    {
+      "text": " call   41b940 <_STD_critical_term>", 
+      "opcodes": [
+        "e8", 
+        "88", 
+        "89", 
+        "01", 
+        "00"
+      ], 
+      "source": 204, 
+      "links": [
+        {
+          "to": 4307264, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206515
+    }, 
+    {
+      "text": " call   407190 <_STD_monitor_staticdtor>", 
+      "opcodes": [
+        "e8", 
+        "d3", 
+        "41", 
+        "00", 
+        "00"
+      ], 
+      "source": 205, 
+      "links": [
+        {
+          "to": 4223376, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206520
+    }, 
+    {
+      "text": " mov    eax,0x1", 
+      "opcodes": [
+        "b8", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 196, 
+      "links": null, 
+      "address": 4206525
+    }, 
+    {
+      "text": " jmp    402f8d <rt_term+0x3d>", 
+      "opcodes": [
+        "eb", 
+        "c9"
+      ], 
+      "source": 196, 
+      "links": [
+        {
+          "to": 4206477, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206530
+    }, 
+    {
+      "text": " cmp    rdx,0x1", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "fa", 
+        "01"
+      ], 
+      "source": 196, 
+      "links": null, 
+      "address": 4206532
+    }, 
+    {
+      "text": " jne    402ffc <rt_term+0xac>", 
+      "opcodes": [
+        "75", 
+        "32"
+      ], 
+      "source": 196, 
+      "links": [
+        {
+          "to": 4206588, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206536
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": 198, 
+      "links": null, 
+      "address": 4206538
+    }, 
+    {
+      "text": " call   414f90 <__gdc_begin_catch>", 
+      "opcodes": [
+        "e8", 
+        "be", 
+        "1f", 
+        "01", 
+        "00"
+      ], 
+      "source": 198, 
+      "links": [
+        {
+          "to": 4280208, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206541
+    }, 
+    {
+      "text": " mov    esi,0x65cf00", 
+      "opcodes": [
+        "be", 
+        "00", 
+        "cf", 
+        "65", 
+        "00"
+      ], 
+      "source": 198, 
+      "links": null, 
+      "address": 4206546
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": 198, 
+      "links": null, 
+      "address": 4206551
+    }, 
+    {
+      "text": " call   41b800 <_d_dynamic_cast>", 
+      "opcodes": [
+        "e8", 
+        "21", 
+        "88", 
+        "01", 
+        "00"
+      ], 
+      "source": 198, 
+      "links": [
+        {
+          "to": 4306944, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206554
+    }, 
+    {
+      "text": " xor    esi,esi", 
+      "opcodes": [
+        "31", 
+        "f6"
+      ], 
+      "source": 517, 
+      "links": null, 
+      "address": 4206559
+    }, 
+    {
+      "text": " mov    edx,0x402b70", 
+      "opcodes": [
+        "ba", 
+        "70", 
+        "2b", 
+        "40", 
+        "00"
+      ], 
+      "source": 517, 
+      "links": null, 
+      "address": 4206561
+    }, 
+    {
+      "text": " mov    rdi,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c7"
+      ], 
+      "source": 517, 
+      "links": null, 
+      "address": 4206566
+    }, 
+    {
+      "text": " call   402bb0 <_D2rt6dmain215formatThrowableFC6object9ThrowableDFNbxAaZvZv>", 
+      "opcodes": [
+        "e8", 
+        "c2", 
+        "fb", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 517, 
+      "links": [
+        {
+          "to": 4205488, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206569
+    }, 
+    {
+      "text": " call   41b940 <_STD_critical_term>", 
+      "opcodes": [
+        "e8", 
+        "4d", 
+        "89", 
+        "01", 
+        "00"
+      ], 
+      "source": 204, 
+      "links": [
+        {
+          "to": 4307264, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206574
+    }, 
+    {
+      "text": " call   407190 <_STD_monitor_staticdtor>", 
+      "opcodes": [
+        "e8", 
+        "98", 
+        "41", 
+        "00", 
+        "00"
+      ], 
+      "source": 205, 
+      "links": [
+        {
+          "to": 4223376, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206579
+    }, 
+    {
+      "text": " xor    eax,eax", 
+      "opcodes": [
+        "31", 
+        "c0"
+      ], 
+      "source": 207, 
+      "links": null, 
+      "address": 4206584
+    }, 
+    {
+      "text": " jmp    402f8d <rt_term+0x3d>", 
+      "opcodes": [
+        "eb", 
+        "91"
+      ], 
+      "source": 207, 
+      "links": [
+        {
+          "to": 4206477, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206586
+    }, 
+    {
+      "text": " mov    rbx,rax", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c3"
+      ], 
+      "source": 207, 
+      "links": null, 
+      "address": 4206588
+    }, 
+    {
+      "text": " call   41b940 <_STD_critical_term>", 
+      "opcodes": [
+        "e8", 
+        "3c", 
+        "89", 
+        "01", 
+        "00"
+      ], 
+      "source": 204, 
+      "links": [
+        {
+          "to": 4307264, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206591
+    }, 
+    {
+      "text": " call   407190 <_STD_monitor_staticdtor>", 
+      "opcodes": [
+        "e8", 
+        "87", 
+        "41", 
+        "00", 
+        "00"
+      ], 
+      "source": 205, 
+      "links": [
+        {
+          "to": 4223376, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206596
+    }, 
+    {
+      "text": " mov    rdi,rbx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "df"
+      ], 
+      "source": 205, 
+      "links": null, 
+      "address": 4206601
+    }, 
+    {
+      "text": " call   402250 <_Unwind_Resume@plt>", 
+      "opcodes": [
+        "e8", 
+        "3f", 
+        "f2", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 205, 
+      "links": [
+        {
+          "to": 4203088, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4206604
+    }, 
+    {
+      "text": " data16 data16 data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 205, 
+      "links": null, 
+      "address": 4206609
+    }, 
+    {
+      "text": "rt_moduleTlsCtor:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    rdi,QWORD PTR [rip+0x25d129]        # 660d40 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x20>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "3d", 
+        "29", 
+        "d1", 
+        "25", 
+        "00"
+      ], 
+      "source": 242, 
+      "links": [
+        {
+          "to": 6688064, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209680
+    }, 
+    {
+      "text": " mov    rsi,QWORD PTR [rip+0x25d12a]        # 660d48 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x28>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "35", 
+        "2a", 
+        "d1", 
+        "25", 
+        "00"
+      ], 
+      "source": 242, 
+      "links": [
+        {
+          "to": 6688072, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209687
+    }, 
+    {
+      "text": " jmp    403320 <_D2rt5minfo71__T14runModuleFuncsS482rt5minfo11ModuleGroup11runTlsCtorsMFZ9__lambda1Z14runModuleFuncsMFAxPyS6object10ModuleInfoZv.constprop.3>", 
+      "opcodes": [
+        "e9", 
+        "fd", 
+        "f6", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 242, 
+      "links": [
+        {
+          "to": 4207392, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209694
+    }, 
+    {
+      "text": " data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 242, 
+      "links": null, 
+      "address": 4209699
+    }, 
+    {
+      "text": "rt_moduleTlsDtor:", 
+      "source": null
+    }, 
+    {
+      "text": " mov    rdi,QWORD PTR [rip+0x25d109]        # 660d40 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x20>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "3d", 
+        "09", 
+        "d1", 
+        "25", 
+        "00"
+      ], 
+      "source": 247, 
+      "links": [
+        {
+          "to": 6688064, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209712
+    }, 
+    {
+      "text": " mov    rsi,QWORD PTR [rip+0x25d10a]        # 660d48 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x28>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "35", 
+        "0a", 
+        "d1", 
+        "25", 
+        "00"
+      ], 
+      "source": 247, 
+      "links": [
+        {
+          "to": 6688072, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209719
+    }, 
+    {
+      "text": " jmp    4032e0 <_D2rt5minfo74__T17runModuleFuncsRevS482rt5minfo11ModuleGroup11runTlsDtorsMFZ9__lambda1Z17runModuleFuncsRevMFAxPyS6object10ModuleInfoZv.constprop.2>", 
+      "opcodes": [
+        "e9", 
+        "9d", 
+        "f6", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 247, 
+      "links": [
+        {
+          "to": 4207328, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209726
+    }, 
+    {
+      "text": " data16 data16 data16 nop WORD PTR cs:[rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "66", 
+        "66", 
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 247, 
+      "links": null, 
+      "address": 4209731
+    }, 
+    {
+      "text": "rt_moduleDtor:", 
+      "source": null
+    }, 
+    {
+      "text": " sub    rsp,0x8", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "ec", 
+        "08"
+      ], 
+      "source": 317, 
+      "links": null, 
+      "address": 4209744
+    }, 
+    {
+      "text": " mov    rdi,QWORD PTR [rip+0x25d0d5]        # 660d30 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x10>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "3d", 
+        "d5", 
+        "d0", 
+        "25", 
+        "00"
+      ], 
+      "source": 252, 
+      "links": [
+        {
+          "to": 6688048, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209748
+    }, 
+    {
+      "text": " mov    rsi,QWORD PTR [rip+0x25d0d6]        # 660d38 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x18>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "35", 
+        "d6", 
+        "d0", 
+        "25", 
+        "00"
+      ], 
+      "source": 252, 
+      "links": [
+        {
+          "to": 6688056, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209755
+    }, 
+    {
+      "text": " call   4032a0 <_D2rt5minfo70__T17runModuleFuncsRevS442rt5minfo11ModuleGroup8runDtorsMFZ9__lambda1Z17runModuleFuncsRevMFAxPyS6object10ModuleInfoZv.constprop.1>", 
+      "opcodes": [
+        "e8", 
+        "39", 
+        "f6", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 252, 
+      "links": [
+        {
+          "to": 4207264, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209762
+    }, 
+    {
+      "text": " mov    rdi,QWORD PTR [rip+0x25d0ca]        # 660d38 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x18>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "3d", 
+        "ca", 
+        "d0", 
+        "25", 
+        "00"
+      ], 
+      "source": 257, 
+      "links": [
+        {
+          "to": 6688056, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209767
+    }, 
+    {
+      "text": " test   rdi,rdi", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "ff"
+      ], 
+      "source": 257, 
+      "links": null, 
+      "address": 4209774
+    }, 
+    {
+      "text": " je     403c78 <rt_moduleDtor+0x28>", 
+      "opcodes": [
+        "74", 
+        "05"
+      ], 
+      "source": 257, 
+      "links": [
+        {
+          "to": 4209784, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209777
+    }, 
+    {
+      "text": " call   401d60 <free@plt>", 
+      "opcodes": [
+        "e8", 
+        "e8", 
+        "e0", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 258, 
+      "links": [
+        {
+          "to": 4201824, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209779
+    }, 
+    {
+      "text": " mov    rdi,QWORD PTR [rip+0x25d0c9]        # 660d48 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x28>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "3d", 
+        "c9", 
+        "d0", 
+        "25", 
+        "00"
+      ], 
+      "source": 260, 
+      "links": [
+        {
+          "to": 6688072, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209784
+    }, 
+    {
+      "text": " mov    QWORD PTR [rip+0x25d0a6],0x0        # 660d30 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x10>", 
+      "opcodes": [
+        "48", 
+        "c7", 
+        "05", 
+        "a6", 
+        "d0", 
+        "25", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 259, 
+      "links": [
+        {
+          "to": 6688048, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209791
+    }, 
+    {
+      "text": " mov    QWORD PTR [rip+0x25d0a3],0x0        # 660d38 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x18>", 
+      "opcodes": [
+        "48", 
+        "c7", 
+        "05", 
+        "a3", 
+        "d0", 
+        "25", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 259, 
+      "links": [
+        {
+          "to": 6688056, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209802
+    }, 
+    {
+      "text": " test   rdi,rdi", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "ff"
+      ], 
+      "source": 260, 
+      "links": null, 
+      "address": 4209813
+    }, 
+    {
+      "text": " je     403c9f <rt_moduleDtor+0x4f>", 
+      "opcodes": [
+        "74", 
+        "05"
+      ], 
+      "source": 260, 
+      "links": [
+        {
+          "to": 4209823, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209816
+    }, 
+    {
+      "text": " call   401d60 <free@plt>", 
+      "opcodes": [
+        "e8", 
+        "c1", 
+        "e0", 
+        "ff", 
+        "ff"
+      ], 
+      "source": 261, 
+      "links": [
+        {
+          "to": 4201824, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209818
+    }, 
+    {
+      "text": " mov    QWORD PTR [rip+0x25d096],0x0        # 660d40 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x20>", 
+      "opcodes": [
+        "48", 
+        "c7", 
+        "05", 
+        "96", 
+        "d0", 
+        "25", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 262, 
+      "links": [
+        {
+          "to": 6688064, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209823
+    }, 
+    {
+      "text": " mov    QWORD PTR [rip+0x25d093],0x0        # 660d48 <_D2rt5minfo12_moduleGroupS2rt5minfo11ModuleGroup+0x28>", 
+      "opcodes": [
+        "48", 
+        "c7", 
+        "05", 
+        "93", 
+        "d0", 
+        "25", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 262, 
+      "links": [
+        {
+          "to": 6688072, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209834
+    }, 
+    {
+      "text": " add    rsp,0x8", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "c4", 
+        "08"
+      ], 
+      "source": 321, 
+      "links": null, 
+      "address": 4209845
+    }, 
+    {
+      "text": " ret    ", 
+      "opcodes": [
+        "c3"
+      ], 
+      "source": 321, 
+      "links": null, 
+      "address": 4209849
+    }, 
+    {
+      "text": " nop    WORD PTR [rax+rax*1+0x0]", 
+      "opcodes": [
+        "66", 
+        "0f", 
+        "1f", 
+        "44", 
+        "00", 
+        "00"
+      ], 
+      "source": 321, 
+      "links": null, 
+      "address": 4209850
+    }, 
+    {
+      "text": "getModuleInfos:", 
+      "source": null
+    }, 
+    {
+      "text": " push   rbp", 
+      "opcodes": [
+        "55"
+      ], 
+      "source": 402, 
+      "links": null, 
+      "address": 4209856
+    }, 
+    {
+      "text": " push   rbx", 
+      "opcodes": [
+        "53"
+      ], 
+      "source": 402, 
+      "links": null, 
+      "address": 4209857
+    }, 
+    {
+      "text": " sub    rsp,0x8", 
+      "opcodes": [
+        "48", 
+        "83", 
+        "ec", 
+        "08"
+      ], 
+      "source": 402, 
+      "links": null, 
+      "address": 4209858
+    }, 
+    {
+      "text": " mov    rbx,QWORD PTR [rip+0x25d033]        # 660d00 <_Dmodule_ref>", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "1d", 
+        "33", 
+        "d0", 
+        "25", 
+        "00"
+      ], 
+      "source": 417, 
+      "links": [
+        {
+          "to": 6688000, 
+          "length": 6, 
+          "offset": 46
+        }
+      ], 
+      "address": 4209862
+    }, 
+    {
+      "text": " test   rbx,rbx", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "db"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209869
+    }, 
+    {
+      "text": " je     403d26 <getModuleInfos+0x66>", 
+      "opcodes": [
+        "74", 
+        "54"
+      ], 
+      "source": 417, 
+      "links": [
+        {
+          "to": 4209958, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209872
+    }, 
+    {
+      "text": " mov    rdx,rbx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "da"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209874
+    }, 
+    {
+      "text": " mov    eax,0x1", 
+      "opcodes": [
+        "b8", 
+        "01", 
+        "00", 
+        "00", 
+        "00"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209877
+    }, 
+    {
+      "text": " jmp    403ce3 <getModuleInfos+0x23>", 
+      "opcodes": [
+        "eb", 
+        "07"
+      ], 
+      "source": 417, 
+      "links": [
+        {
+          "to": 4209891, 
+          "length": 6, 
+          "offset": 8
+        }
+      ], 
+      "address": 4209882
+    }, 
+    {
+      "text": " nop    DWORD PTR [rax+0x0]", 
+      "opcodes": [
+        "0f", 
+        "1f", 
+        "40", 
+        "00"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209884
+    }, 
+    {
+      "text": " mov    rax,rcx", 
+      "opcodes": [
+        "48", 
+        "89", 
+        "c8"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209888
+    }, 
+    {
+      "text": " mov    rdx,QWORD PTR [rdx]", 
+      "opcodes": [
+        "48", 
+        "8b", 
+        "12"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209891
+    }, 
+    {
+      "text": " lea    rcx,[rax+0x1]", 
+      "opcodes": [
+        "48", 
+        "8d", 
+        "48", 
+        "01"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209894
+    }, 
+    {
+      "text": " test   rdx,rdx", 
+      "opcodes": [
+        "48", 
+        "85", 
+        "d2"
+      ], 
+      "source": 417, 
+      "links": null, 
+      "address": 4209898
+    }, 
+    {
+      "text": "[truncated; too many lines]", 
       "source": null
     }
   ], 

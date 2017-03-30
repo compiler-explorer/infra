@@ -7,19 +7,27 @@
       "source": null
     }, 
     {
-      "text": "        mov     QWORD PTR [RSP - 8], RDI", 
+      "text": "        push    rbp", 
       "source": 1
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 12], ESI", 
+      "text": "        mov     rbp, rsp", 
       "source": 1
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 16], 0", 
+      "text": "        mov     qword ptr [rbp - 8], rdi", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 12], esi", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     dword ptr [rbp - 16], 0", 
       "source": 2
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 20], 0", 
+      "text": "        mov     dword ptr [rbp - 20], 0", 
       "source": 3
     }, 
     {
@@ -27,11 +35,11 @@
       "source": null
     }, 
     {
-      "text": "        mov     EAX, DWORD PTR [RSP - 20]", 
+      "text": "        mov     eax, dword ptr [rbp - 20]", 
       "source": 3
     }, 
     {
-      "text": "        cmp     EAX, DWORD PTR [RSP - 12]", 
+      "text": "        cmp     eax, dword ptr [rbp - 12]", 
       "source": 3
     }, 
     {
@@ -39,39 +47,35 @@
       "source": 3
     }, 
     {
-      "text": "        movsxd  RAX, DWORD PTR [RSP - 20]", 
+      "text": "        mov     rax, qword ptr [rbp - 8]", 
       "source": 4
     }, 
     {
-      "text": "        mov     RCX, QWORD PTR [RSP - 8]", 
+      "text": "        movsxd  rcx, dword ptr [rbp - 20]", 
       "source": 4
     }, 
     {
-      "text": "        mov     EDX, DWORD PTR [RCX + 4*RAX]", 
+      "text": "        mov     edx, dword ptr [rax + 4*rcx]", 
       "source": 4
     }, 
     {
-      "text": "        mov     ESI, DWORD PTR [RSP - 16]", 
+      "text": "        add     edx, dword ptr [rbp - 16]", 
       "source": 4
     }, 
     {
-      "text": "        add     ESI, EDX", 
+      "text": "        mov     dword ptr [rbp - 16], edx", 
       "source": 4
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 16], ESI", 
-      "source": 4
-    }, 
-    {
-      "text": "        mov     EAX, DWORD PTR [RSP - 20]", 
+      "text": "        mov     eax, dword ptr [rbp - 20]", 
       "source": 3
     }, 
     {
-      "text": "        add     EAX, 1", 
+      "text": "        add     eax, 1", 
       "source": 3
     }, 
     {
-      "text": "        mov     DWORD PTR [RSP - 20], EAX", 
+      "text": "        mov     dword ptr [rbp - 20], eax", 
       "source": 3
     }, 
     {
@@ -83,7 +87,11 @@
       "source": null
     }, 
     {
-      "text": "        mov     EAX, DWORD PTR [RSP - 16]", 
+      "text": "        mov     eax, dword ptr [rbp - 16]", 
+      "source": 6
+    }, 
+    {
+      "text": "        pop     rbp", 
       "source": 6
     }, 
     {

@@ -1,0 +1,208 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "testFunction(int*, int):                    # @testFunction(int*, int)", 
+      "source": null
+    }, 
+    {
+      "text": "        testl   %esi, %esi", 
+      "source": 3
+    }, 
+    {
+      "text": "        jle     .LBB0_1", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl    %esi, %ecx", 
+      "source": 0
+    }, 
+    {
+      "text": "        cmpl    $7, %esi", 
+      "source": 4
+    }, 
+    {
+      "text": "        jbe     .LBB0_3", 
+      "source": 4
+    }, 
+    {
+      "text": "        andl    $7, %esi", 
+      "source": 4
+    }, 
+    {
+      "text": "        movq    %rcx, %r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        subq    %rsi, %r8", 
+      "source": 4
+    }, 
+    {
+      "text": "        je      .LBB0_3", 
+      "source": 4
+    }, 
+    {
+      "text": "        leaq    16(%rdi), %rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        pxor    %xmm0, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        movq    %r8, %rdx", 
+      "source": 3
+    }, 
+    {
+      "text": "        pxor    %xmm1, %xmm1", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBB0_8:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        movdqu  -16(%rax), %xmm2", 
+      "source": 4
+    }, 
+    {
+      "text": "        movdqu  (%rax), %xmm3", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm2, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm3, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq    $32, %rax", 
+      "source": 3
+    }, 
+    {
+      "text": "        addq    $-8, %rdx", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_8", 
+      "source": 3
+    }, 
+    {
+      "text": "        paddd   %xmm0, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  $78, %xmm1, %xmm0       # xmm0 = xmm1[2,3,0,1]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm1, %xmm0", 
+      "source": 4
+    }, 
+    {
+      "text": "        pshufd  $229, %xmm0, %xmm1      # xmm1 = xmm0[1,1,2,3]", 
+      "source": 4
+    }, 
+    {
+      "text": "        paddd   %xmm0, %xmm1", 
+      "source": 4
+    }, 
+    {
+      "text": "        movd    %xmm1, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        testl   %esi, %esi", 
+      "source": 4
+    }, 
+    {
+      "text": "        jne     .LBB0_4", 
+      "source": 4
+    }, 
+    {
+      "text": "        jmp     .LBB0_10", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_3:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl    %r8d, %r8d", 
+      "source": 0
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 0
+    }, 
+    {
+      "text": ".LBB0_4:", 
+      "source": null
+    }, 
+    {
+      "text": "        leaq    (%rdi,%r8,4), %rdx", 
+      "source": 4
+    }, 
+    {
+      "text": "        subq    %r8, %rcx", 
+      "source": 4
+    }, 
+    {
+      "text": ".LBB0_5:                                # =>This Inner Loop Header: Depth=1", 
+      "source": null
+    }, 
+    {
+      "text": "        addl    (%rdx), %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        addq    $4, %rdx", 
+      "source": 3
+    }, 
+    {
+      "text": "        decq    %rcx", 
+      "source": 3
+    }, 
+    {
+      "text": "        jne     .LBB0_5", 
+      "source": 3
+    }, 
+    {
+      "text": ".LBB0_10:", 
+      "source": null
+    }, 
+    {
+      "text": "        retq", 
+      "source": 6
+    }, 
+    {
+      "text": ".LBB0_1:", 
+      "source": null
+    }, 
+    {
+      "text": "        xorl    %eax, %eax", 
+      "source": 0
+    }, 
+    {
+      "text": "        retq", 
+      "source": 6
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}
