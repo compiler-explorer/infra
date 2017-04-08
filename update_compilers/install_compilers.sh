@@ -319,7 +319,7 @@ fi
 rm -f ${OPT}/gcc-7-snapshot
 ln -s ${latest} ${OPT}/gcc-7-snapshot
 # Clean up any old snapshots
-for compiler in ${compiler-array}; do
+for compiler in gcc-{7,trunk}-[0-9]*; do
     if [[ -d ${compiler} ]]; then
         if [[ "${compiler}" != "${latest}" ]]; then
             rm -rf ${compiler}
@@ -354,7 +354,7 @@ fi
 rm -f ${OPT}/clang-trunk
 ln -s ${latest} ${OPT}/clang-trunk
 # Clean up any old snapshots
-for compiler in ${compiler-array}; do
+for compiler in clang-trunk-[0-9]*; do
     if [[ -d ${compiler} ]]; then
         if [[ "${compiler}" != "${latest}" ]]; then
             rm -rf ${compiler}
