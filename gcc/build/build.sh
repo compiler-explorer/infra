@@ -33,6 +33,7 @@ fi
 # Workaround for Ubuntu builds
 export LIBRARY_PATH=/usr/lib/x86_64-linux-gnu
 STAGING_DIR=$(pwd)/staging
+INSTALL_TARGET=install-strip
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
@@ -132,7 +133,7 @@ mkdir -p objdir
 pushd objdir
 ../gcc-${VERSION}/configure --prefix ${STAGING_DIR} ${CONFIG}
 make -j$(nproc)
-make install-strip
+make ${INSTALL_TARGET}
 popd
 
 if [[ ! -z "${BINUTILS_VERSION}" ]]; then
