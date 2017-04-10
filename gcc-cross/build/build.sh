@@ -23,7 +23,7 @@ ${CT} oldconfig
 ${CT} build.$(nproc)
 
 # Compress all the images with upx
-for EXE in $(find ${STAGING_DIR} -type f -executable); do
+for EXE in $(find ${STAGING_DIR} -type f -executable -not -regex '.*\.so.*'); do
     upx ${EXE} || true
 done
 

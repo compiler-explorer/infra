@@ -305,6 +305,24 @@ for version in \
     fi
 done
 
+# other architectures
+gcc_arch_install() {
+    local arch=$1
+    local version=$2
+    local xz=${arch}-gcc-${version}.tar.xz
+    local dir=${arch}/gcc-${version}
+    mkdir -p ${arch}
+    if [[ ! -d ${dir} ]]; then
+        s3get ${S3URL}/${xz} ${OPT}/${xz}
+        tar axf ${OPT}/${xz} -C ${OPT}/${arch}
+        rm ${xz}
+    fi
+}
+gcc_arch_install arm 4.5.4
+gcc_arch_install arm 4.6.4
+gcc_arch_install avr 4.5.4
+gcc_arch_install avr 4.6.4
+
 # snapshots/trunk
 compilers=$(aws s3 ls ${S3URL}/ | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
 compiler_array=(${compilers})

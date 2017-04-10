@@ -58,6 +58,8 @@ build-compiler-images:
 	$(DOCKER) push mattgodbolt/clang-builder
 	$(DOCKER) build -t mattgodbolt/gcc-builder gcc
 	$(DOCKER) push mattgodbolt/gcc-builder
+	$(DOCKER) build -t mattgodbolt/gcc-cross gcc-cross
+	$(DOCKER) push mattgodbolt/gcc-cross
 
 update-compilers:
 	$(DOCKER) build -t mattgodbolt/gcc-builder:update update_compilers

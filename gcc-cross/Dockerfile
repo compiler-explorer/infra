@@ -32,12 +32,12 @@ RUN apt-get install -y \
     wget \
     xz-utils
 
-WORKDIR /opt
-USER gcc-user
-
-RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.22.0.tar.xz | tar Jxvf - && \
+RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.22.0.tar.xz | tar Jxf - && \
     cd crosstool-ng && \
     ./configure --enable-local && \
     make -j$(nproc)
 
 COPY build /opt/
+WORKDIR /opt
+RUN chown -R gcc-user /opt
+USER gcc-user
