@@ -10,6 +10,7 @@ RUN apt update -y && apt upgrade -y && apt upgrade -y && apt install -y \
     g++ \
     gcc \
     libc6-dev-i386 \
+    libelf-dev \
     linux-libc-dev \
     make \
     patch \

@@ -288,8 +288,11 @@ done
 # (notes on various compiler builds below:
 # 4.7.0 fails to build with a libgcc compile error:
 #   ./md-unwind-support.h:144:17: error: field 'info' has incomplete type
+#   (which could now be fixed with the unwind patch if I cared to do so)
 # )
 for version in \
+    4.4.7 \
+    4.5.3 \
     4.6.4 \
     4.7.{1,2,3,4} \
     4.8.{1,2,3,4,5} \
