@@ -3,7 +3,7 @@ MAINTAINER Matt Godbolt <matt@godbolt.org>
 
 RUN apt-get -y update && apt-get install -y \
     sudo \
-    libboost-all
+    libboost-all-dev
 
 #####################
 RUN useradd ce-user && mkdir /home/ce-user && chown ce-user /home/ce-user
