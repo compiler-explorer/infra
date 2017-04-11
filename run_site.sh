@@ -28,7 +28,7 @@ else
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx gcc go gcc1204 dx rust"
+ALL="nginx gcc go dx rust"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -104,13 +104,11 @@ trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
 
 update_code
 
-UID_GCC1204=$(start_container gcc1204 20480)
 UID_D=$(start_container d 10241)
 UID_RUST=$(start_container rust 10242)
 UID_GO=$(start_container go 10243)
-UID_GCC=$(start_container gcc 10240 --link gcc1204:gcc1204)
+UID_GCC=$(start_container gcc 10240)
 
-wait_for_container ${UID_GCC1204} gcc1204 20480
 wait_for_container ${UID_D} d 10241
 wait_for_container ${UID_RUST} rust 10242
 wait_for_container ${UID_GO} go 10243

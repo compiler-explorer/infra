@@ -20,7 +20,6 @@ base-image:
 
 $(eval $(call add-image,d,d-explorer))
 $(eval $(call add-image,gcc,gcc-explorer))
-$(eval $(call add-image,gcc1204,gcc-explorer-1204))
 $(eval $(call add-image,go,go-explorer))
 $(eval $(call add-image,rust,rust-explorer))
 
