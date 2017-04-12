@@ -3,7 +3,6 @@
 set -e
 
 ROOT=$(pwd)
-CT=${ROOT}/crosstool-ng/ct-ng
 
 ARCHITECTURE=$1
 VERSION=$2
@@ -18,7 +17,15 @@ else
     OUTPUT=${3-/home/gcc-user/${ARCHITECTURE}-gcc-${VERSION}.tar.xz}
 fi
 
-cp ${ARCHITECTURE}-${VERSION}.config .config
+CONFIG_FILE=${ARCHITECTURE}-${VERSION}.config
+if [[ -f old/${CONFIG_FILE} ]]; then
+    CONFIG_FILE=old/${CONFIG_FILE}
+    CT=${ROOT}/crosstool-ng/ct-ng
+else
+    CONFIG_FILE=new/${CONFIG_FILE}
+    CT=${ROOT}/crosstool-ng-1.23.0.rc2/ct-ng
+fi
+cp ${CONFIG_FILE} .config
 ${CT} oldconfig
 ${CT} build.$(nproc)
 

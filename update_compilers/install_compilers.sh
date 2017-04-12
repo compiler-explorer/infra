@@ -326,6 +326,7 @@ gcc_arch_install arm 4.6.4
 gcc_arch_install avr 4.5.4
 gcc_arch_install avr 4.6.4
 gcc_arch_install msp430 4.5.3
+gcc_arch_install powerpc 4.8.5
 
 # snapshots/trunk
 compilers=$(aws s3 ls ${S3URL}/ | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
