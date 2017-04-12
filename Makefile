@@ -7,10 +7,7 @@ PACKER ?= ../packer
 define add-image
 DOCKER_IMAGES += $(2)-image
 
-docker/$(2)/.s3cfg: .s3cfg
-	cp $$< $$@
-
-$(2)-image: docker/$(2)/.s3cfg base-image
+$(2)-image: base-image
 	$(DOCKER) build -t "mattgodbolt/gcc-explorer:$(1)" docker/$(2)
 
 endef
@@ -29,10 +26,6 @@ exec-image:
 DOCKER_IMAGES += exec-image
 
 docker-images: $(DOCKER_IMAGES)
-
-.s3cfg: config.py
-	echo 'from config import *; print "[default]\\naccess_key = {}\\nsecret_key={}\\n" \
-		.format(S3_ACCESS_KEY, S3_SECRET_KEY)' | python > $@
 
 config.json: config.py make_json.py
 	python make_json.py
