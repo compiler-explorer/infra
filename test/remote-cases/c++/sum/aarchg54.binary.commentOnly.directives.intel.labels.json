@@ -19,11 +19,11 @@
       "source": 1
     }, 
     {
-      "text": "        str     wzr, [sp, 24]", 
+      "text": "        str     wzr, [sp, 28]", 
       "source": 2
     }, 
     {
-      "text": "        str     wzr, [sp, 28]", 
+      "text": "        str     wzr, [sp, 24]", 
       "source": 3
     }, 
     {
@@ -31,7 +31,7 @@
       "source": null
     }, 
     {
-      "text": "        ldr     w1, [sp, 28]", 
+      "text": "        ldr     w1, [sp, 24]", 
       "source": 3
     }, 
     {
@@ -47,7 +47,7 @@
       "source": 3
     }, 
     {
-      "text": "        ldrsw   x0, [sp, 28]", 
+      "text": "        ldrsw   x0, [sp, 24]", 
       "source": 4
     }, 
     {
@@ -67,7 +67,7 @@
       "source": 4
     }, 
     {
-      "text": "        ldr     w1, [sp, 24]", 
+      "text": "        ldr     w1, [sp, 28]", 
       "source": 4
     }, 
     {
@@ -75,11 +75,11 @@
       "source": 4
     }, 
     {
-      "text": "        str     w0, [sp, 24]", 
+      "text": "        str     w0, [sp, 28]", 
       "source": 4
     }, 
     {
-      "text": "        ldr     w0, [sp, 28]", 
+      "text": "        ldr     w0, [sp, 24]", 
       "source": 3
     }, 
     {
@@ -87,7 +87,7 @@
       "source": 3
     }, 
     {
-      "text": "        str     w0, [sp, 28]", 
+      "text": "        str     w0, [sp, 24]", 
       "source": 3
     }, 
     {
@@ -99,7 +99,7 @@
       "source": null
     }, 
     {
-      "text": "        ldr     w0, [sp, 24]", 
+      "text": "        ldr     w0, [sp, 28]", 
       "source": 6
     }, 
     {

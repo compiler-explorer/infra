@@ -4,6 +4,7 @@ import json
 import os
 import requests
 from argparse import ArgumentParser
+from difflib import unified_diff
 
 import re
 
@@ -78,7 +79,8 @@ def main(args):
         compilers = list(sorted(compilers))
         expected = list(sorted(compiler_map.keys()))
         if expected != compilers:
-            raise RuntimeError('Compiler list changed: got {} expected {}'.format(compilers, expected))
+            raise RuntimeError('Compiler list changed:\n{}'.format(
+                "\n".join(list(unified_diff(compilers, expected, fromfile="got", tofile="expected")))))
     with requests.Session() as session:
         for test_dir in glob.glob(os.path.join(args.directory, '*')):
             if not os.path.isdir(test_dir):

@@ -23,11 +23,11 @@
       "source": 1
     }, 
     {
-      "text": "        mov     DWORD PTR [rbp-4], 0", 
+      "text": "        mov     DWORD PTR [rbp-8], 0", 
       "source": 2
     }, 
     {
-      "text": "        mov     DWORD PTR [rbp-8], 0", 
+      "text": "        mov     DWORD PTR [rbp-4], 0", 
       "source": 3
     }, 
     {
@@ -39,7 +39,7 @@
       "source": null
     }, 
     {
-      "text": "        mov     eax, DWORD PTR [rbp-8]", 
+      "text": "        mov     eax, DWORD PTR [rbp-4]", 
       "source": 4
     }, 
     {
@@ -59,11 +59,11 @@
       "source": 4
     }, 
     {
-      "text": "        add     DWORD PTR [rbp-4], eax", 
+      "text": "        add     DWORD PTR [rbp-8], eax", 
       "source": 4
     }, 
     {
-      "text": "        add     DWORD PTR [rbp-8], 1", 
+      "text": "        add     DWORD PTR [rbp-4], 1", 
       "source": 3
     }, 
     {
@@ -71,7 +71,7 @@
       "source": null
     }, 
     {
-      "text": "        mov     eax, DWORD PTR [rbp-8]", 
+      "text": "        mov     eax, DWORD PTR [rbp-4]", 
       "source": 3
     }, 
     {
@@ -91,7 +91,7 @@
       "source": 3
     }, 
     {
-      "text": "        mov     eax, DWORD PTR [rbp-4]", 
+      "text": "        mov     eax, DWORD PTR [rbp-8]", 
       "source": 6
     }, 
     {

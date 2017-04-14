@@ -3,6 +3,40 @@
   "code": 0, 
   "asm": [
     {
+      "text": ".plt.got:", 
+      "source": null
+    }, 
+    {
+      "text": " jmp    QWORD PTR [rip+0x200532]        # 600998 <_DYNAMIC+0x1c0>", 
+      "opcodes": [
+        "ff", 
+        "25", 
+        "32", 
+        "05", 
+        "20", 
+        "00"
+      ], 
+      "source": null, 
+      "links": [
+        {
+          "to": 6293912, 
+          "length": 6, 
+          "offset": 42
+        }
+      ], 
+      "address": 4195424
+    }, 
+    {
+      "text": " xchg   ax,ax", 
+      "opcodes": [
+        "66", 
+        "90"
+      ], 
+      "source": null, 
+      "links": null, 
+      "address": 4195430
+    }, 
+    {
       "text": "testFunction(int*, int):", 
       "source": null
     }, 
@@ -14,7 +48,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4195744
+      "address": 4195648
     }, 
     {
       "text": " test   esi,esi", 
@@ -24,10 +58,10 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4195746
+      "address": 4195650
     }, 
     {
-      "text": " jle    4005c4 <testFunction(int*, int)+0x24>", 
+      "text": " jle    400564 <testFunction(int*, int)+0x24>", 
       "opcodes": [
         "7e", 
         "1e"
@@ -35,12 +69,12 @@
       "source": 3, 
       "links": [
         {
-          "to": 4195780, 
+          "to": 4195684, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4195748
+      "address": 4195652
     }, 
     {
       "text": " sub    esi,0x1", 
@@ -51,7 +85,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4195750
+      "address": 4195654
     }, 
     {
       "text": " xor    edx,edx", 
@@ -61,7 +95,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4195753
+      "address": 4195657
     }, 
     {
       "text": " lea    rcx,[rsi*4+0x4]", 
@@ -77,7 +111,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4195755
+      "address": 4195659
     }, 
     {
       "text": " nop    DWORD PTR [rax+rax*1+0x0]", 
@@ -90,7 +124,7 @@
       ], 
       "source": 1, 
       "links": null, 
-      "address": 4195763
+      "address": 4195667
     }, 
     {
       "text": " add    eax,DWORD PTR [rdi+rdx*1]", 
@@ -101,7 +135,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195768
+      "address": 4195672
     }, 
     {
       "text": " add    rdx,0x4", 
@@ -113,7 +147,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195771
+      "address": 4195675
     }, 
     {
       "text": " cmp    rdx,rcx", 
@@ -124,10 +158,10 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4195775
+      "address": 4195679
     }, 
     {
-      "text": " jne    4005b8 <testFunction(int*, int)+0x18>", 
+      "text": " jne    400558 <testFunction(int*, int)+0x18>", 
       "opcodes": [
         "75", 
         "f4"
@@ -135,12 +169,12 @@
       "source": 3, 
       "links": [
         {
-          "to": 4195768, 
+          "to": 4195672, 
           "length": 6, 
           "offset": 8
         }
       ], 
-      "address": 4195778
+      "address": 4195682
     }, 
     {
       "text": " repz ret ", 
@@ -150,7 +184,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4195780
+      "address": 4195684
     }, 
     {
       "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
@@ -168,7 +202,7 @@
       ], 
       "source": 7, 
       "links": null, 
-      "address": 4195782
+      "address": 4195686
     }, 
     {
       "text": "main:", 
@@ -182,7 +216,7 @@
       ], 
       "source": 9, 
       "links": null, 
-      "address": 4195792
+      "address": 4195696
     }, 
     {
       "text": " ret    ", 
@@ -191,124 +225,36 @@
       ], 
       "source": 9, 
       "links": null, 
-      "address": 4195794
+      "address": 4195698
     }, 
     {
-      "text": " nop", 
+      "text": " nop    WORD PTR cs:[rax+rax*1+0x0]", 
       "opcodes": [
-        "90"
+        "66", 
+        "2e", 
+        "0f", 
+        "1f", 
+        "84", 
+        "00", 
+        "00", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
-      "address": 4195795
+      "address": 4195699
     }, 
     {
-      "text": " nop", 
+      "text": " nop    DWORD PTR [rax]", 
       "opcodes": [
-        "90"
+        "0f", 
+        "1f", 
+        "00"
       ], 
       "source": 9, 
       "links": null, 
-      "address": 4195796
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195797
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195798
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195799
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195800
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195801
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195802
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195803
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195804
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195805
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195806
-    }, 
-    {
-      "text": " nop", 
-      "opcodes": [
-        "90"
-      ], 
-      "source": 9, 
-      "links": null, 
-      "address": 4195807
+      "address": 4195709
     }
   ], 
   "stderr": [], 

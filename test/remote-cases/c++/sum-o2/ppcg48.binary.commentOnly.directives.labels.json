@@ -7,15 +7,11 @@
       "source": null
     }, 
     {
-      "text": "        stwu 1,-16(1)", 
-      "source": 1
-    }, 
-    {
       "text": "        cmpwi 0,4,0", 
       "source": 3
     }, 
     {
-      "text": "        ble 0,.L4", 
+      "text": "        ble- 0,.L4", 
       "source": 3
     }, 
     {
@@ -63,16 +59,8 @@
       "source": 3
     }, 
     {
-      "text": ".L2:", 
-      "source": null
-    }, 
-    {
-      "text": "        addi 1,1,16", 
-      "source": 7
-    }, 
-    {
       "text": "        blr", 
-      "source": 7
+      "source": 3
     }, 
     {
       "text": ".L4:", 
@@ -83,8 +71,8 @@
       "source": 2
     }, 
     {
-      "text": "        b .L2", 
-      "source": 2
+      "text": "        blr", 
+      "source": 7
     }, 
     {
       "text": "", 

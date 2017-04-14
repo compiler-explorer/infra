@@ -23,11 +23,11 @@
       "source": 1
     }, 
     {
-      "text": "        movl    $0, -4(%rbp)", 
+      "text": "        movl    $0, -8(%rbp)", 
       "source": 2
     }, 
     {
-      "text": "        movl    $0, -8(%rbp)", 
+      "text": "        movl    $0, -4(%rbp)", 
       "source": 3
     }, 
     {
@@ -39,7 +39,7 @@
       "source": null
     }, 
     {
-      "text": "        movl    -8(%rbp), %eax", 
+      "text": "        movl    -4(%rbp), %eax", 
       "source": 4
     }, 
     {
@@ -59,11 +59,11 @@
       "source": 4
     }, 
     {
-      "text": "        addl    %eax, -4(%rbp)", 
+      "text": "        addl    %eax, -8(%rbp)", 
       "source": 4
     }, 
     {
-      "text": "        addl    $1, -8(%rbp)", 
+      "text": "        addl    $1, -4(%rbp)", 
       "source": 3
     }, 
     {
@@ -71,7 +71,7 @@
       "source": null
     }, 
     {
-      "text": "        movl    -8(%rbp), %eax", 
+      "text": "        movl    -4(%rbp), %eax", 
       "source": 3
     }, 
     {
@@ -91,7 +91,7 @@
       "source": 3
     }, 
     {
-      "text": "        movl    -4(%rbp), %eax", 
+      "text": "        movl    -8(%rbp), %eax", 
       "source": 6
     }, 
     {

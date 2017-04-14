@@ -7,7 +7,11 @@
       "source": null
     }, 
     {
-      "text": "        push    {r7}", 
+      "text": "        str     fp, [sp, #-4]!", 
+      "source": 1
+    }, 
+    {
+      "text": "        add     fp, sp, #0", 
       "source": 1
     }, 
     {
@@ -15,31 +19,27 @@
       "source": 1
     }, 
     {
-      "text": "        add     r7, sp, #0", 
+      "text": "        str     r0, [fp, #-16]", 
       "source": 1
     }, 
     {
-      "text": "        str     r0, [r7, #4]", 
+      "text": "        str     r1, [fp, #-20]", 
       "source": 1
     }, 
     {
-      "text": "        str     r1, [r7]", 
-      "source": 1
-    }, 
-    {
-      "text": "        movs    r3, #0", 
+      "text": "        mov     r3, #0", 
       "source": 2
     }, 
     {
-      "text": "        str     r3, [r7, #8]", 
+      "text": "        str     r3, [fp, #-8]", 
       "source": 2
     }, 
     {
-      "text": "        movs    r3, #0", 
+      "text": "        mov     r3, #0", 
       "source": 3
     }, 
     {
-      "text": "        str     r3, [r7, #12]", 
+      "text": "        str     r3, [fp, #-12]", 
       "source": 3
     }, 
     {
@@ -47,11 +47,11 @@
       "source": null
     }, 
     {
-      "text": "        ldr     r2, [r7, #12]", 
+      "text": "        ldr     r2, [fp, #-12]", 
       "source": 3
     }, 
     {
-      "text": "        ldr     r3, [r7]", 
+      "text": "        ldr     r3, [fp, #-20]", 
       "source": 3
     }, 
     {
@@ -63,19 +63,19 @@
       "source": 3
     }, 
     {
-      "text": "        ldr     r3, [r7, #12]", 
+      "text": "        ldr     r3, [fp, #-12]", 
       "source": 4
     }, 
     {
-      "text": "        lsls    r3, r3, #2", 
+      "text": "        mov     r3, r3, asl #2", 
       "source": 4
     }, 
     {
-      "text": "        ldr     r2, [r7, #4]", 
+      "text": "        ldr     r2, [fp, #-16]", 
       "source": 4
     }, 
     {
-      "text": "        add     r3, r3, r2", 
+      "text": "        add     r3, r2, r3", 
       "source": 4
     }, 
     {
@@ -83,27 +83,27 @@
       "source": 4
     }, 
     {
-      "text": "        ldr     r2, [r7, #8]", 
+      "text": "        ldr     r2, [fp, #-8]", 
       "source": 4
     }, 
     {
-      "text": "        add     r3, r3, r2", 
+      "text": "        add     r3, r2, r3", 
       "source": 4
     }, 
     {
-      "text": "        str     r3, [r7, #8]", 
+      "text": "        str     r3, [fp, #-8]", 
       "source": 4
     }, 
     {
-      "text": "        ldr     r3, [r7, #12]", 
+      "text": "        ldr     r3, [fp, #-12]", 
       "source": 3
     }, 
     {
-      "text": "        adds    r3, r3, #1", 
+      "text": "        add     r3, r3, #1", 
       "source": 3
     }, 
     {
-      "text": "        str     r3, [r7, #12]", 
+      "text": "        str     r3, [fp, #-12]", 
       "source": 3
     }, 
     {
@@ -115,7 +115,7 @@
       "source": null
     }, 
     {
-      "text": "        ldr     r3, [r7, #8]", 
+      "text": "        ldr     r3, [fp, #-8]", 
       "source": 6
     }, 
     {
@@ -123,15 +123,11 @@
       "source": 7
     }, 
     {
-      "text": "        adds    r7, r7, #20", 
+      "text": "        sub     sp, fp, #0", 
       "source": 7
     }, 
     {
-      "text": "        mov     sp, r7", 
-      "source": 7
-    }, 
-    {
-      "text": "        ldr     r7, [sp], #4", 
+      "text": "        ldr     fp, [sp], #4", 
       "source": 7
     }, 
     {

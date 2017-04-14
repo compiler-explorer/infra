@@ -19,11 +19,11 @@
       "source": 3
     }, 
     {
-      "text": "        add     r1, r0, r1, lsl #2", 
+      "text": "        mov     r0, #0", 
       "source": 3
     }, 
     {
-      "text": "        movs    r0, #0", 
+      "text": "        add     r1, r3, r1, lsl #2", 
       "source": 3
     }, 
     {
@@ -55,7 +55,7 @@
       "source": null
     }, 
     {
-      "text": "        movs    r0, #0", 
+      "text": "        mov     r0, #0", 
       "source": 2
     }, 
     {

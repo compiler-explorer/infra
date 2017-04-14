@@ -7,7 +7,7 @@
       "source": null
     }, 
     {
-      "text": "        cmp     w1, 0", 
+      "text": "        cmp     w1, wzr", 
       "source": 3
     }, 
     {

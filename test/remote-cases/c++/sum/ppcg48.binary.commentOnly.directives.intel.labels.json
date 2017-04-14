@@ -19,11 +19,11 @@
       "source": 1
     }, 
     {
-      "text": "        stw 3,12(31)", 
+      "text": "        stw 3,24(31)", 
       "source": 1
     }, 
     {
-      "text": "        stw 4,8(31)", 
+      "text": "        stw 4,28(31)", 
       "source": 1
     }, 
     {
@@ -31,7 +31,7 @@
       "source": 2
     }, 
     {
-      "text": "        stw 9,24(31)", 
+      "text": "        stw 9,8(31)", 
       "source": 2
     }, 
     {
@@ -39,7 +39,7 @@
       "source": 3
     }, 
     {
-      "text": "        stw 9,28(31)", 
+      "text": "        stw 9,12(31)", 
       "source": 3
     }, 
     {
@@ -51,23 +51,11 @@
       "source": null
     }, 
     {
-      "text": "        lwz 9,28(31)", 
+      "text": "        lwz 9,12(31)", 
       "source": 4
     }, 
     {
       "text": "        slwi 9,9,2", 
-      "source": 4
-    }, 
-    {
-      "text": "        lwz 10,12(31)", 
-      "source": 4
-    }, 
-    {
-      "text": "        add 9,10,9", 
-      "source": 4
-    }, 
-    {
-      "text": "        lwz 9,0(9)", 
       "source": 4
     }, 
     {
@@ -79,11 +67,23 @@
       "source": 4
     }, 
     {
-      "text": "        stw 9,24(31)", 
+      "text": "        lwz 9,0(9)", 
       "source": 4
     }, 
     {
-      "text": "        lwz 9,28(31)", 
+      "text": "        lwz 10,8(31)", 
+      "source": 4
+    }, 
+    {
+      "text": "        add 9,10,9", 
+      "source": 4
+    }, 
+    {
+      "text": "        stw 9,8(31)", 
+      "source": 4
+    }, 
+    {
+      "text": "        lwz 9,12(31)", 
       "source": 3
     }, 
     {
@@ -91,7 +91,7 @@
       "source": 3
     }, 
     {
-      "text": "        stw 9,28(31)", 
+      "text": "        stw 9,12(31)", 
       "source": 3
     }, 
     {
@@ -99,11 +99,11 @@
       "source": null
     }, 
     {
-      "text": "        lwz 10,28(31)", 
+      "text": "        lwz 10,12(31)", 
       "source": 3
     }, 
     {
-      "text": "        lwz 9,8(31)", 
+      "text": "        lwz 9,28(31)", 
       "source": 3
     }, 
     {
@@ -115,7 +115,7 @@
       "source": 3
     }, 
     {
-      "text": "        lwz 9,24(31)", 
+      "text": "        lwz 9,8(31)", 
       "source": 6
     }, 
     {

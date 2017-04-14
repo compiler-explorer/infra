@@ -19,7 +19,7 @@
       "source": 1
     }, 
     {
-      "text": "        sd      $4,8($fp)", 
+      "text": "        sd      $4,16($fp)", 
       "source": 1
     }, 
     {
@@ -31,15 +31,15 @@
       "source": 1
     }, 
     {
-      "text": "        sw      $2,4($fp)", 
+      "text": "        sw      $2,24($fp)", 
       "source": 1
     }, 
     {
-      "text": "        sw      $0,24($fp)", 
+      "text": "        sw      $0,0($fp)", 
       "source": 2
     }, 
     {
-      "text": "        sw      $0,28($fp)", 
+      "text": "        sw      $0,4($fp)", 
       "source": 3
     }, 
     {
@@ -47,11 +47,11 @@
       "source": null
     }, 
     {
-      "text": "        lw      $3,28($fp)", 
+      "text": "        lw      $3,4($fp)", 
       "source": 3
     }, 
     {
-      "text": "        lw      $2,4($fp)", 
+      "text": "        lw      $2,24($fp)", 
       "source": 3
     }, 
     {
@@ -71,7 +71,7 @@
       "source": null
     }, 
     {
-      "text": "        lw      $2,28($fp)", 
+      "text": "        lw      $2,4($fp)", 
       "source": 4
     }, 
     {
@@ -79,7 +79,7 @@
       "source": 4
     }, 
     {
-      "text": "        ld      $3,8($fp)", 
+      "text": "        ld      $3,16($fp)", 
       "source": 4
     }, 
     {
@@ -91,7 +91,7 @@
       "source": 4
     }, 
     {
-      "text": "        lw      $3,24($fp)", 
+      "text": "        lw      $3,0($fp)", 
       "source": 4
     }, 
     {
@@ -99,11 +99,11 @@
       "source": 4
     }, 
     {
-      "text": "        sw      $2,24($fp)", 
+      "text": "        sw      $2,0($fp)", 
       "source": 4
     }, 
     {
-      "text": "        lw      $2,28($fp)", 
+      "text": "        lw      $2,4($fp)", 
       "source": 3
     }, 
     {
@@ -111,7 +111,7 @@
       "source": 3
     }, 
     {
-      "text": "        sw      $2,28($fp)", 
+      "text": "        sw      $2,4($fp)", 
       "source": 3
     }, 
     {
@@ -131,7 +131,7 @@
       "source": null
     }, 
     {
-      "text": "        lw      $2,24($fp)", 
+      "text": "        lw      $2,0($fp)", 
       "source": 6
     }, 
     {
