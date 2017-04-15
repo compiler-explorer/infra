@@ -136,15 +136,19 @@
       "address": 4195596
     }, 
     {
-      "text": " jge    40052d <testFunction(int*, int)+0x3d>", 
+      "text": " jge    400534 <testFunction(int*, int)+0x44>", 
       "opcodes": [
-        "7d", 
-        "1c"
+        "0f", 
+        "8d", 
+        "1f", 
+        "00", 
+        "00", 
+        "00"
       ], 
       "source": 3, 
       "links": [
         {
-          "to": 4195629, 
+          "to": 4195636, 
           "length": 6, 
           "offset": 8
         }
@@ -161,7 +165,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195601
+      "address": 4195605
     }, 
     {
       "text": " movslq -0x14(%rbp),%rcx", 
@@ -173,7 +177,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195605
+      "address": 4195609
     }, 
     {
       "text": " mov    (%rax,%rcx,4),%edx", 
@@ -184,7 +188,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195609
+      "address": 4195613
     }, 
     {
       "text": " add    -0x10(%rbp),%edx", 
@@ -195,7 +199,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195612
+      "address": 4195616
     }, 
     {
       "text": " mov    %edx,-0x10(%rbp)", 
@@ -206,7 +210,7 @@
       ], 
       "source": 4, 
       "links": null, 
-      "address": 4195615
+      "address": 4195619
     }, 
     {
       "text": " mov    -0x14(%rbp),%eax", 
@@ -217,7 +221,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4195618
+      "address": 4195622
     }, 
     {
       "text": " add    $0x1,%eax", 
@@ -228,7 +232,7 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4195621
+      "address": 4195625
     }, 
     {
       "text": " mov    %eax,-0x14(%rbp)", 
@@ -239,13 +243,16 @@
       ], 
       "source": 3, 
       "links": null, 
-      "address": 4195624
+      "address": 4195628
     }, 
     {
-      "text": " jmp    400509 <testFunction(int*, int)+0x19>", 
+      "text": " jmpq   400509 <testFunction(int*, int)+0x19>", 
       "opcodes": [
-        "eb", 
-        "dc"
+        "e9", 
+        "d5", 
+        "ff", 
+        "ff", 
+        "ff"
       ], 
       "source": 3, 
       "links": [
@@ -255,7 +262,7 @@
           "offset": 8
         }
       ], 
-      "address": 4195627
+      "address": 4195631
     }, 
     {
       "text": " mov    -0x10(%rbp),%eax", 
@@ -266,7 +273,7 @@
       ], 
       "source": 6, 
       "links": null, 
-      "address": 4195629
+      "address": 4195636
     }, 
     {
       "text": " pop    %rbp", 
@@ -275,7 +282,7 @@
       ], 
       "source": 6, 
       "links": null, 
-      "address": 4195632
+      "address": 4195639
     }, 
     {
       "text": " retq   ", 
@@ -284,21 +291,14 @@
       ], 
       "source": 6, 
       "links": null, 
-      "address": 4195633
+      "address": 4195640
     }, 
     {
-      "text": " data16 data16 data16 data16 nopw %cs:0x0(%rax,%rax,1)", 
+      "text": " nopl   0x0(%rax)", 
       "opcodes": [
-        "66", 
-        "66", 
-        "66", 
-        "66", 
-        "66", 
-        "2e", 
         "0f", 
         "1f", 
-        "84", 
-        "00", 
+        "80", 
         "00", 
         "00", 
         "00", 
@@ -306,7 +306,7 @@
       ], 
       "source": 6, 
       "links": null, 
-      "address": 4195634
+      "address": 4195641
     }, 
     {
       "text": "main:", 

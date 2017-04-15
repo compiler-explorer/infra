@@ -1,0 +1,88 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "square:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmpq    %fs:112, %rsp", 
+      "source": 2
+    }, 
+    {
+      "text": "        ja      .LBB0_2", 
+      "source": 2
+    }, 
+    {
+      "text": "        movabsq $8, %r10", 
+      "source": 2
+    }, 
+    {
+      "text": "        movabsq $0, %r11", 
+      "source": 2
+    }, 
+    {
+      "text": "        callq   __morestack", 
+      "source": 2
+    }, 
+    {
+      "text": "        retq", 
+      "source": 2
+    }, 
+    {
+      "text": ".LBB0_2:", 
+      "source": null
+    }, 
+    {
+      "text": "        pushq   %rbp", 
+      "source": 2
+    }, 
+    {
+      "text": "        movq    %rsp, %rbp", 
+      "source": 2
+    }, 
+    {
+      "text": "        imull   %edi, %edi", 
+      "source": 3
+    }, 
+    {
+      "text": "        movl    %edi, %eax", 
+      "source": 4
+    }, 
+    {
+      "text": "        popq    %rbp", 
+      "source": 4
+    }, 
+    {
+      "text": "        retq", 
+      "source": 4
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

@@ -1,0 +1,188 @@
+{
+  "okToCache": true, 
+  "code": 0, 
+  "asm": [
+    {
+      "text": "main.Square$descriptor:", 
+      "source": null
+    }, 
+    {
+      "text": "        .quad   main.Square", 
+      "source": null
+    }, 
+    {
+      "text": "main.Square:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp     rsp, QWORD PTR %fs:112", 
+      "source": 3
+    }, 
+    {
+      "text": "        jnb     .L3", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     r10d, 8", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     r11d, 0", 
+      "source": 3
+    }, 
+    {
+      "text": "        call    __morestack", 
+      "source": 3
+    }, 
+    {
+      "text": "        ret", 
+      "source": 3
+    }, 
+    {
+      "text": ".L3:", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     QWORD PTR [rbp-24], rdi", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     QWORD PTR [rbp-8], 0", 
+      "source": 3
+    }, 
+    {
+      "text": "        mov     rax, QWORD PTR [rbp-24]", 
+      "source": 4
+    }, 
+    {
+      "text": "        imul    rax, QWORD PTR [rbp-24]", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     QWORD PTR [rbp-8], rax", 
+      "source": 4
+    }, 
+    {
+      "text": "        mov     rax, QWORD PTR [rbp-8]", 
+      "source": 4
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 5
+    }, 
+    {
+      "text": "        ret", 
+      "source": 5
+    }, 
+    {
+      "text": "main.main:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp     rsp, QWORD PTR %fs:112", 
+      "source": 7
+    }, 
+    {
+      "text": "        jnb     .L5", 
+      "source": 7
+    }, 
+    {
+      "text": "        mov     r10d, 8", 
+      "source": 7
+    }, 
+    {
+      "text": "        mov     r11d, 0", 
+      "source": 7
+    }, 
+    {
+      "text": "        call    __morestack", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": ".L5:", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 7
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 7
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 7
+    }, 
+    {
+      "text": "        ret", 
+      "source": 7
+    }, 
+    {
+      "text": "__go_init_main:", 
+      "source": null
+    }, 
+    {
+      "text": "        cmp     rsp, QWORD PTR %fs:112", 
+      "source": 1
+    }, 
+    {
+      "text": "        jnb     .L7", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r10d, 8", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     r11d, 0", 
+      "source": 1
+    }, 
+    {
+      "text": "        call    __morestack", 
+      "source": 1
+    }, 
+    {
+      "text": "        ret", 
+      "source": 1
+    }, 
+    {
+      "text": ".L7:", 
+      "source": null
+    }, 
+    {
+      "text": "        push    rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        mov     rbp, rsp", 
+      "source": 1
+    }, 
+    {
+      "text": "        pop     rbp", 
+      "source": 1
+    }, 
+    {
+      "text": "        ret", 
+      "source": 1
+    }, 
+    {
+      "text": "", 
+      "source": null
+    }
+  ], 
+  "stderr": [], 
+  "stdout": []
+}

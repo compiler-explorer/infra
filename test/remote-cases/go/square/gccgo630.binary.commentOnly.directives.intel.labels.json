@@ -1,0 +1,22 @@
+{
+  "okToCache": true, 
+  "code": 1, 
+  "asm": [
+    {
+      "text": "<Compilation failed>", 
+      "source": null
+    }
+  ], 
+  "stderr": [
+    {
+      "text": "/opt/compiler-explorer/gcc-6.3.0/bin/../lib/gcc/x86_64-linux-gnu/6.3.0/../../../../x86_64-linux-gnu/bin/ld: warning: libpthread.so.0, needed by /opt/compiler-explorer/gcc-6.3.0/bin/../lib/gcc/x86_64-linux-gnu/6.3.0/../../../../lib64/libgo.so, not found (try using -rpath or -rpath-link)"
+    }, 
+    {
+      "text": "/opt/compiler-explorer/gcc-6.3.0/bin/../lib/gcc/x86_64-linux-gnu/6.3.0/../../../../lib64/libgo.so: undefined reference to `pthread_sigmask@GLIBC_2.2.5'"
+    }, 
+    {
+      "text": "collect2: error: ld returned 1 exit status"
+    }
+  ], 
+  "stdout": []
+}
