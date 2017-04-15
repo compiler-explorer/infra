@@ -74,10 +74,14 @@ applyPatchesAndConfig() {
 
 CONFIG=""
 CONFIG+=" --build=x86_64-linux-gnu"
-CONFIG+=" --disable-multilibs"
+CONFIG+=" --host=x86_64-linux-gnu"
+CONFIG+=" --target=x86_64-linux-gnu"
+CONFIG+=" --disable-multilib"
 CONFIG+=" --disable-bootstrap"
+CONFIG+=" --disable-multiarch"
+CONFIG+=" --with-arch-32=i586"  # For go, apparently
 CONFIG+=" --enable-clocale=gnu"
-CONFIG+=" --enable-languages=c,c++"
+CONFIG+=" --enable-languages=c,c++,go,fortran"
 CONFIG+=" --enable-ld=yes"
 CONFIG+=" --enable-gold=yes"
 CONFIG+=" --enable-libstdcxx-debug"
@@ -86,8 +90,6 @@ CONFIG+=" --enable-linker-build-id"
 CONFIG+=" --enable-lto"
 CONFIG+=" --enable-plugins"
 CONFIG+=" --enable-threads=posix"
-CONFIG+=" --host=x86_64-linux-gnu"
-CONFIG+=" --target=x86_64-linux-gnu"
 CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
 BINUTILS_VERSION=2.27
 
