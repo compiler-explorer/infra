@@ -15,9 +15,9 @@ miraclehook() {
     rm -rf roms
     mkdir -p roms
     rm -f miracle-roms.tar.gz
-    /root/s3cmd/s3cmd get s3://xania.org/miracle-roms.tar.gz
-    tar zxf miracle-roms.tar.gz
-    rm miracle-roms.tar.gz
+    aws s3 cp s3://xania.org/miracle-roms.tar.gz /tmp/
+    tar zxf /tmp/miracle-roms.tar.gz
+    rm /tmp/miracle-roms.tar.gz
     chown -R ubuntu roms
 }
 
@@ -43,9 +43,23 @@ if [[ ! -f /updated ]]; then
     apt-get -y upgrade --force-yes
     touch /updated
 fi
+
+if ! grep ubuntu /etc/passwd; then
+    useradd ubuntu
+    mkdir /home/ubuntu
+    chown ubuntu /home/ubuntu
+fi
+
 if ! which docker 2>&1 > /dev/null; then
     apt-get -y install wget
     wget -qO- https://get.docker.com/ | sh
+fi
+
+if ! which aws 2>&1 > /dev/null; then
+    apt-get -y install awscli
+    mkdir -p /root/.aws /home/ubuntu/.aws
+    echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
+    chown -R ubuntu /home/ubuntu/.aws
 fi
 
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
@@ -77,38 +91,34 @@ docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(host
 
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
 
-apt-get -y install git make nodejs-legacy npm libpng-dev m4 \
+apt-get -y install git make libpng-dev m4 \
     python-markdown python-pygments python-pip perl nfs-common
 pip install pytz python-dateutil
 
-if ! grep ubuntu /etc/passwd; then
-    useradd ubuntu
-    mkdir /home/ubuntu
-    chown ubuntu /home/ubuntu
-fi
-
 cd /home/ubuntu/
-get_or_update_repo root git@github.com:s3tools/s3cmd.git master /root/s3cmd
 
 mkdir -p /home/ubuntu/.ssh
-cp /root/.ssh/known_hosts /root/.ssh/id_rsa* /home/ubuntu/.ssh/
-/root/s3cmd/s3cmd --no-progress get 's3://compiler-explorer/authorized_keys/*' - | grep '^ssh' >> /home/ubuntu/.ssh/authorized_keys
+mkdir -p /tmp/auth_keys
+aws s3 sync s3://compiler-explorer/authorized_keys /tmp/auth_keys
+cat /tmp/auth_keys/* >> /home/ubuntu/.ssh/authorized_keys
+rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
-chmod 600 /home/ubuntu/.ssh/id_rsa
 
-get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git release jsbeeb &
-get_or_update_repo ubuntu git://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta &
+get_or_update_repo ubuntu https://github.com/mattgodbolt/jsbeeb.git release jsbeeb &
+get_or_update_repo ubuntu https://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta &
 wait # waits for repos *and* mount point above
 
-get_or_update_repo ubuntu git://github.com/mattgodbolt/Miracle master miracle miraclehook
-get_or_update_repo ubuntu git@github.com:mattgodbolt/blog.git master blog
+get_or_update_repo ubuntu https://github.com/mattgodbolt/Miracle.git master miracle miraclehook
+get_or_update_repo ubuntu https://github.com/mattgodbolt/blog.git master blog
 
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
 cp /compiler-explorer-image/init/* /etc/init/
 
-docker pull -a mattgodbolt/gcc-explorer
+[ -n "$PACKER_SETUP" ] && exit
+
+docker pull -a mattgodbolt/compiler-explorer
 docker pull nginx
 
 [ "$UPSTART_JOB" != "compiler-explorer" ] && service compiler-explorer start || true

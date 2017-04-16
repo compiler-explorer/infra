@@ -24,7 +24,7 @@ if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
 else
-    $SUDO docker pull -a mattgodbolt/gcc-explorer
+    $SUDO docker pull -a mattgodbolt/compiler-explorer
 fi
 . ${CONFIG_FILE}
 
@@ -41,10 +41,9 @@ update_code() {
     rm -rf ${DEPLOY_DIR}
     mkdir -p ${DEPLOY_DIR}
     pushd ${DEPLOY_DIR}
-    git clone https://github.com/mattgodbolt/compiler-explorer.git
+    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git
     cd compiler-explorer
-    git checkout ${BRANCH}
-    local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make dist"
+    local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
         su -c "${DIST_CMD}" ubuntu
@@ -68,7 +67,7 @@ start_container() {
     if [[ "${#NAME}" -eq 1 ]]; then
     	NAME="${NAME}x"
     fi
-    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
+    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/compiler-explorer:${TAG}"
     local CONTAINER_UID=""
     $SUDO docker stop ${NAME} >&2 || true
     $SUDO docker rm ${NAME} >&2 || true

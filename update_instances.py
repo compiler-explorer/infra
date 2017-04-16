@@ -67,7 +67,7 @@ def update_compiler_explorers():
             instance = ec2.Instance(id=health['Target']['Id'])
             instance.load()
             ssh = connect_ssh(instance.public_ip_address, 'ubuntu')
-            run_command(ssh, 'sudo -i docker pull -a mattgodbolt/gcc-explorer && sudo service compiler-explorer restart')
+            run_command(ssh, 'sudo -i docker pull -a mattgodbolt/compiler-explorer && sudo service compiler-explorer restart')
             print "Done, waiting a minute"
             time.sleep(60)
             await_at_least_two_healthy()

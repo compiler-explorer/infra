@@ -17,7 +17,7 @@
       "ami_block_device_mappings": [
         {
           "device_name": "/dev/sda1",
-          "volume_size": 9,
+          "volume_size": 6,
           "delete_on_termination": true,
           "volume_type": "standard"
         }
@@ -49,26 +49,15 @@
     	"while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "mkdir -p /root/.ssh",
-        "mv /home/ubuntu/packer/id_rsa /root/.ssh/",
-        "chmod 600 /root/.ssh/id_rsa",
-        "mv /home/ubuntu/packer/id_rsa.pub /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
-        "cp /home/ubuntu/packer/dockercfg /root/.dockercfg",
-        "chmod 600 /root/.dockercfg",
-        "cp /home/ubuntu/packer/dockercfg /home/ubuntu/.dockercfg",
-        "chmod 600 /home/ubuntu/.dockercfg",
         "echo 'GOOGLE_API_KEY={{user `GOOGLE_API_KEY`}}' > /env",
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
         "git clone https://github.com/mattgodbolt/compiler-explorer-image.git /compiler-explorer-image",
         "cd /compiler-explorer-image",
-        "bash setup.sh 2>&1 | tee /tmp/setup.log",
-        "sleep 300",
-        "service compiler-explorer stop",
-        "docker stop gcc dx rust nginx || true",
-        "docker rm gcc dx rust nginx || true"
+        "env PACKER_SETUP=yes bash setup.sh 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]

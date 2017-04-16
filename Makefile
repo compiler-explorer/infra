@@ -8,12 +8,12 @@ define add-image
 DOCKER_IMAGES += $(2)-image
 
 $(2)-image: base-image
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:$(1)" docker/$(2)
+	$(DOCKER) build -t "mattgodbolt/compiler-explorer:$(1)" docker/$(2)
 
 endef
 
 base-image:
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:base" docker/base
+	$(DOCKER) build -t "mattgodbolt/compiler-explorer:base" docker/base
 
 $(eval $(call add-image,d,d-explorer))
 $(eval $(call add-image,gcc,gcc-explorer))
@@ -21,29 +21,20 @@ $(eval $(call add-image,go,go-explorer))
 $(eval $(call add-image,rust,rust-explorer))
 
 exec-image:
-	$(DOCKER) build -t "mattgodbolt/gcc-explorer:exec" exec
+	$(DOCKER) build -t "mattgodbolt/compiler-explorer:exec" exec
 
 DOCKER_IMAGES += exec-image
 
 docker-images: $(DOCKER_IMAGES)
 
-config.json: config.py make_json.py
+config.json: make_json.py
 	python make_json.py
 
-packer/id_rsa: config.py
-	echo 'from config import *; print PRIVATE_KEY' | python > $@
-
-packer/id_rsa.pub: config.py
-	echo 'from config import *; print PUBLIC_KEY' | python > $@
-
-packer/dockercfg: config.py
-	echo 'from config import *; print DOCKER_CFG' | python > $@
-
-packer: config.json packer/id_rsa packer/id_rsa.pub packer/dockercfg
+packer: config.json
 	$(PACKER) build -var-file=config.json packer.json 
 
 publish: docker-images
-	$(DOCKER) push mattgodbolt/gcc-explorer
+	$(DOCKER) push mattgodbolt/compiler-explorer
 
 build-compiler-images:
 	$(DOCKER) build -t mattgodbolt/clang-builder clang

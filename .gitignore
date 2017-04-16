@@ -1,9 +1,7 @@
-config.py
 /docker-squash
 *.pyc
 *.pem
 *.swp
-.s3cfg
 *.xz
 config.json
 .env

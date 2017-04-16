@@ -1,27 +1,16 @@
 FROM ubuntu:16.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN dpkg --add-architecture i386 && \
-    apt-get -y update && \
-    apt-get install -y python-software-properties software-properties-common && \
-    apt-get -y update && \
-    add-apt-repository -y ppa:wine/wine-builds && \
-    add-apt-repository -y ppa:ubuntu-toolchain-r/test && \
+RUN  dpkg --add-architecture i386 && apt-get -y update && \
+    apt-get install -y curl apt-transport-https apt-utils software-properties-common && \
+    apt-add-repository 'https://dl.winehq.org/wine-builds/ubuntu/' && \
+    curl -sL https://repos.wine-staging.com/wine/Release.key | apt-key add - && \
     apt-get -y update && \
     apt-get install -y \
-        libboost-all-dev \
-        libc6-dev-i386 \
-        libc6:i386 \
-        libncurses5:i386 \
-        libstdc++6:i386 \
-        linux-libc-dev \
         bzip2 \
-        curl \
-        winehq-devel \
-        g++ \
         git \
         make \
-    && \
+    && apt-get install -y --install-recommends winehq-devel && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
