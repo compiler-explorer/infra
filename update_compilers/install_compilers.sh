@@ -33,9 +33,10 @@ if [[ ! -f $PATCHELF ]]; then
         apk --update add alpine-sdk
     fi
     fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
-    cd patchelf-0.8
+    pushd patchelf-0.8
     CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
     make -j$(nproc)
+    popd
 fi
 
 do_strip() {
@@ -427,7 +428,7 @@ done
 
 # MSP compilers
 if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
-    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
+    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/4_01_00_00/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
     do_strip msp430-gcc-5.3.0.219_linux32
 fi
 if [[ ! -d msp430-gcc-6.2.1.16_linux64 ]]; then
