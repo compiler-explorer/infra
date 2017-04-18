@@ -8,8 +8,9 @@ RUN  dpkg --add-architecture i386 && apt-get -y update && \
     apt-get -y update && \
     apt-get install -y \
         bzip2 \
-        git \
+        libc6-dev-i386 \
         make \
+        git \
     && apt-get install -y --install-recommends winehq-devel && \
     apt-get autoremove -y && \
     apt-get clean && \
