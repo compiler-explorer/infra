@@ -484,11 +484,11 @@ popd
 
 # add kvasir libraries
 
-if [ ! -d "../libs/kvasir/mpl/trunk" ]; then
-        git clone https://github.com/kvasir-io/mpl.git ../libs/kvasir/mpl/trunk
-        git -C ../libs/kvasir/mpl/trunk checkout development
+if [ ! -d "libs/kvasir/mpl/trunk" ]; then
+        git clone https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
+        git -C libs/kvasir/mpl/trunk checkout development
 else
-        git -C ../libs/kvasir/mpl/trunk pull origin development
+        git -C libs/kvasir/mpl/trunk pull origin development
 fi
 
 #########################
