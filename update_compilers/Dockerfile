@@ -7,6 +7,7 @@ RUN apt install -y \
      bash \
      bzip2 \
      curl \
+     git \
      nfs-common \
      python-pip \
      tar \
