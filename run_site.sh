@@ -24,7 +24,7 @@ if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
 else
-    $SUDO docker pull -a mattgodbolt/gcc-explorer
+    $SUDO docker pull -a mattgodbolt/compiler-explorer
 fi
 . ${CONFIG_FILE}
 
@@ -67,7 +67,7 @@ start_container() {
     if [[ "${#NAME}" -eq 1 ]]; then
     	NAME="${NAME}x"
     fi
-    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/gcc-explorer:${TAG}"
+    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/compiler-explorer:${TAG}"
     local CONTAINER_UID=""
     $SUDO docker stop ${NAME} >&2 || true
     $SUDO docker rm ${NAME} >&2 || true
