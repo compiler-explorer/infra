@@ -3,15 +3,16 @@
 set -ex
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-BRANCH=${1}
+SHA=${1}
 OUTPUT=$(realpath ${2})
-DEPLOY_DIR=$(mktemp -d ce-build-XXXXXXXX)
+DEPLOY_DIR=$(mktemp -d /tmp/ce-build-XXXXXXXX)
 
 rm -rf ${DEPLOY_DIR}
 mkdir -p ${DEPLOY_DIR}
 cd ${DEPLOY_DIR}
-git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git
+git clone https://github.com/mattgodbolt/compiler-explorer.git
 cd compiler-explorer
+git reset --hard ${SHA}
 
 add_path() {
     local new_path=$1
@@ -28,3 +29,5 @@ add_path /opt/compiler-explorer/node/bin
 make -j$(nproc) dist
 
 tar Jcvf ${OUTPUT} .
+
+rm -rf ${DEPLOY_DIR}
