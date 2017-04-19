@@ -38,8 +38,9 @@ class MainHandler(tornado.web.RequestHandler):
                 update_repo.update('blog')
             self.write("OK")
         elif repo == 'compiler-explorer':
-            if branch == 'refs/heads/release':
+            if branch != 'refs/heads/master':
                 update_instances.build_deployment(hash)
+            if branch == 'refs/heads/release':
                 update_instances.update_compiler_explorers()
             self.write("OK")
 
