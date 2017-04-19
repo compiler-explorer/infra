@@ -17,15 +17,16 @@ class MainHandler(tornado.web.RequestHandler):
             logging.info("Got a ping")
             self.write("OK")
             return
-	if event != 'push':
+        if event != 'push':
             raise RuntimeError("Unsupported")
 
-        if 'ref' not in obj: 
+        if 'ref' not in obj:
             logging.info("Skipping, no ref")
             return
 
         repo = obj['repository']['name']
         branch = obj['ref']
+        hash = obj['id']
         if repo == 'jsbeeb':
             if branch == 'refs/heads/master':
                 update_repo.update('jsbeeb-beta')
@@ -36,9 +37,10 @@ class MainHandler(tornado.web.RequestHandler):
             if branch == 'refs/heads/master':
                 update_repo.update('blog')
             self.write("OK")
-	elif repo == 'compiler-explorer':
-	    if branch == 'refs/heads/release':
-		update_instances.update_compiler_explorers()
+        elif repo == 'compiler-explorer':
+            if branch == 'refs/heads/release':
+                update_instances.build_deployment(hash)
+                update_instances.update_compiler_explorers()
             self.write("OK")
 
 

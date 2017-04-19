@@ -59,6 +59,14 @@ def set_back_to(prev):
     as_client.update_auto_scaling_group(AutoScalingGroupName=AS_NAME, MinSize=prev)
 
 
+def build_deployment(hash):
+    out_name = hash + ".tar.xz"
+    local_name = "/tmp/" + out_name
+    system("./build_deployment.sh {} {}".format(hash, local_name))
+    system("aws s3 cp {} s3://compiler-explorer/dist/{}".format(local_name, out_name))
+    os.unlink(local_name)
+
+
 def update_compiler_explorers():
     prev = ensure_at_least_two()
     await_at_least_two_healthy()
@@ -67,7 +75,8 @@ def update_compiler_explorers():
             instance = ec2.Instance(id=health['Target']['Id'])
             instance.load()
             ssh = connect_ssh(instance.public_ip_address, 'ubuntu')
-            run_command(ssh, 'sudo -i docker pull -a mattgodbolt/compiler-explorer && sudo service compiler-explorer restart')
+            run_command(ssh,
+                        'sudo -i docker pull -a mattgodbolt/compiler-explorer && sudo service compiler-explorer restart')
             print "Done, waiting a minute"
             time.sleep(60)
             await_at_least_two_healthy()
