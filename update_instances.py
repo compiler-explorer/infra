@@ -62,8 +62,8 @@ def set_back_to(prev):
 def build_deployment(hash):
     out_name = hash + ".tar.xz"
     local_name = "/tmp/" + out_name
-    system("./build_deployment.sh {} {}".format(hash, local_name))
-    system("aws s3 cp {} s3://compiler-explorer/dist/{}".format(local_name, out_name))
+    os.system("./build_deployment.sh {} {}".format(hash, local_name))
+    os.system("aws s3 cp {} s3://compiler-explorer/dist/{}".format(local_name, out_name))
     os.unlink(local_name)
 
 
