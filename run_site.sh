@@ -36,14 +36,29 @@ CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
 
+get_from_git() {
+    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git
+    cd compiler-explorer
+    local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
+}
+
+get_released_code() {
+    local HASH=$(git ls-remote https://github.com/mattgodbolt/compiler-explorer.git refs/heads/${BRANCH} | awk '{ print $1 }')
+    aws s3 cp s3://compiler-explorer/dist/${HASH}.tar.xz release.tar.xz || true
+    if [[ ! -f release.tar.xz ]]; then
+        get_from_git
+        return
+    fi
+    tar Jxf release.tar.xz
+    rm release.tar.xz
+}
+
 update_code() {
     local DEPLOY_DIR=${DIR}/.deploy
     rm -rf ${DEPLOY_DIR}
     mkdir -p ${DEPLOY_DIR}
     pushd ${DEPLOY_DIR}
-    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git
-    cd compiler-explorer
-    local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
+    get_released_code
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
         su -c "${DIST_CMD}" ubuntu
