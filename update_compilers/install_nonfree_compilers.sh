@@ -3,7 +3,8 @@
 # This script installs all the non-free compilers from s3 into a dir in /opt.
 # On EC2 this location is on an EFS drive.
 
-. ./common.inc
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. ${DIR}/common.inc
 S3URL=s3://compiler-explorer/opt-nonfree
 
 ##################################
