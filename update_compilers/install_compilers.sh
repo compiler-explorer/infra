@@ -488,10 +488,13 @@ fi
 
 # boost 1_64
 if [ ! -d "libs/boost_1_64_0" ]; then
-    mkdir -p libs
-    pushd libs
-    fetch https://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.tar.bz2/download | tar jxf -
+    mkdir -p /tmp/boost
+    pushd /tmp/boost
+    fetch https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2 | tar jxf - boost_1_64_0/boost
+    mkdir -p ${OPT}/libs/boost_1_64_0/boost
+    rsync -a boost_1_64_0/boost/ ${OPT}/libs/boost_1_64_0/boost/
     popd
+    rm -rf /tmp/boost
 fi
 #########################
 
