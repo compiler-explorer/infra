@@ -28,7 +28,7 @@ else
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx gcc go dx rust"
+ALL="nginx gcc go dx rust cppx"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -37,40 +37,45 @@ CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
 
 get_from_git() {
-    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git
-    cd compiler-explorer
+    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git $1
+    pushd $1
     local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
-}
-
-get_released_code() {
-    local HASH=$(git ls-remote https://github.com/mattgodbolt/compiler-explorer.git refs/heads/${BRANCH} | awk '{ print $1 }')
-    aws s3 cp s3://compiler-explorer/dist/${HASH}.tar.xz release.tar.xz || true
-    if [[ ! -f release.tar.xz ]]; then
-        get_from_git
-        return
-    fi
-    tar Jxf release.tar.xz
-    rm release.tar.xz
-}
-
-update_code() {
-    local DEPLOY_DIR=${DIR}/.deploy
-    rm -rf ${DEPLOY_DIR}
-    mkdir -p ${DEPLOY_DIR}
-    pushd ${DEPLOY_DIR}
-    get_released_code
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
         su -c "${DIST_CMD}" ubuntu
     else
         ${DIST_CMD}
     fi
-    CFG="${CFG} -v${DEPLOY_DIR}/compiler-explorer:/compiler-explorer:ro"
+    popd
+}
+
+get_released_code() {
+    local HASH=$(git ls-remote https://github.com/mattgodbolt/compiler-explorer.git refs/heads/${BRANCH} | awk '{ print $1 }')
+    local TEMPFILE=/tmp/ce-release.tar.xz
+    aws s3 cp s3://compiler-explorer/dist/${HASH}.tar.xz ${TEMPFILE} || true
+    if [[ ! -f ${TEMPFILE} ]]; then
+        get_from_git $1
+        return
+    fi
+    mkdir -p $1
+    pushd $1
+    tar Jxf ${TEMPFILE}
+    rm ${TEMPFILE}
+    if [[ $UID = 0 ]]; then
+        chown -R ubuntu .
+    fi
+    popd
+}
+
+update_code() {
+    local DEPLOY_DIR=${DIR}/.deploy
+    rm -rf ${DEPLOY_DIR}
+    get_released_code ${DEPLOY_DIR}
+    CFG="${CFG} -v${DEPLOY_DIR}:/compiler-explorer:ro"
     # Back up the 'v' directory to the long-term archive
     mkdir -p ${ARCHIVE_DIR}
-    rsync -av out/dist/v/ ${ARCHIVE_DIR}
+    rsync -av ${DEPLOY_DIR}/out/dist/v/ ${ARCHIVE_DIR}
     CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
-    popd
 }
 
 start_container() {
@@ -122,11 +127,13 @@ UID_D=$(start_container d 10241)
 UID_RUST=$(start_container rust 10242)
 UID_GO=$(start_container go 10243)
 UID_GCC=$(start_container gcc 10240)
+UID_CPPX=$(start_container cppx 20480)
 
 wait_for_container ${UID_D} d 10241
 wait_for_container ${UID_RUST} rust 10242
 wait_for_container ${UID_GO} go 10243
 wait_for_container ${UID_GCC} gcc 10240
+wait_for_container ${UID_CPPX} gcc 20480
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
@@ -136,5 +143,5 @@ $SUDO docker run \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link gcc:gcc --link dx:d --link rust:rust --link go:go \
+    --link gcc:gcc --link dx:d --link rust:rust --link go:go --link cppx:cppx \
     nginx
