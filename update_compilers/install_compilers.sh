@@ -19,10 +19,6 @@ fetch() {
 }
 
 do_unzip() {
-    if [[ -z "$(which unzip 2>/dev/null)" ]]; then
-        # Assume we're under alpine
-        apk --update add unzip
-    fi
     unzip "$*"
 }
 
@@ -483,14 +479,20 @@ done
 popd
 
 # add kvasir libraries
-
 if [ ! -d "libs/kvasir/mpl/trunk" ]; then
-        git clone https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
-        git -C libs/kvasir/mpl/trunk checkout development
+    git clone https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
+    git -C libs/kvasir/mpl/trunk checkout development
 else
-        git -C libs/kvasir/mpl/trunk pull origin development
+    git -C libs/kvasir/mpl/trunk pull origin development
 fi
 
+# boost 1_64
+if [ ! -d "libs/boost_1_64_0" ]; then
+    mkdir -p libs
+    pushd libs
+    fetch https://sourceforge.net/projects/boost/files/boost/1.64.0/boost_1_64_0.tar.bz2/download | tar jxf -
+    popd
+fi
 #########################
 
 
