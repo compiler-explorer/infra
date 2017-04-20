@@ -133,7 +133,7 @@ wait_for_container ${UID_D} d 10241
 wait_for_container ${UID_RUST} rust 10242
 wait_for_container ${UID_GO} go 10243
 wait_for_container ${UID_GCC} gcc 10240
-wait_for_container ${UID_CPPX} gcc 20480
+wait_for_container ${UID_CPPX} cppx 20480
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
