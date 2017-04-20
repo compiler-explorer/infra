@@ -1,26 +1,10 @@
 #!/bin/bash
 
-# This script installs all the compilers from s3 into a dir in /opt.
+# This script installs all the free compilers from s3 into a dir in /opt.
 # On EC2 this location is on an EFS drive.
 
-OPT=/opt/compiler-explorer
+. ./common.inc
 S3URL=s3://compiler-explorer/opt
-
-set -ex
-mkdir -p ${OPT}
-cd ${OPT}
-
-s3get() {
-    aws s3 cp --force $*
-}
-
-fetch() {
-    curl -v -L "$*"
-}
-
-do_unzip() {
-    unzip "$*"
-}
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
@@ -34,11 +18,6 @@ if [[ ! -f $PATCHELF ]]; then
     make -j$(nproc)
     popd
 fi
-
-do_strip() {
-    find $1 -executable -type f | xargs strip || true
-    find $1 -executable -type f | xargs --max-procs=$(nproc) -n 1 -I '{}' bash -c 'upx {} || true'
-}
 
 do_rust_install() {
     local DIR=$1
@@ -211,8 +190,7 @@ getldc_latestbeta
 # C++
 # 12.04 compilers (mostly)
 for compiler in clang-3.2.tar.gz \
-    clang-3.3.tar.gz \
-    intel.tar.gz
+    clang-3.3.tar.gz
 do
     DIR=${compiler%.tar.*}
 	if [[ ! -d ${DIR} ]]; then
@@ -222,9 +200,6 @@ do
 		do_strip ${DIR}
 	fi
 done
-# Workaround for Intel license
-mkdir -p ${OPT}/composer_xe_2013.1.117/Licenses/
-cp ${OPT}/intel/licenses/* ${OPT}/composer_xe_2013.1.117/Licenses/
 
 # clangs
 for clang in \
@@ -388,16 +363,6 @@ for compiler in clang-trunk-[0-9]*; do
     fi
 done
 
-# ICCs also UPX'd
-for version in 2016.3.210; do
-    if [[ ! -d intel-${version} ]]; then
-        compiler=intel-${version}.tar.xz
-        s3get ${S3URL}/$compiler ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
-    fi
-done
-
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the
 # oracle site. It doesn't like being strip()ped
 for version in 12.5; do
@@ -407,18 +372,6 @@ for version in 12.5; do
         s3get ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
-    fi
-done
-
-# Zapcc
-for version in 20170226-190308-1.0; do
-    fullname=zapcc-${version}
-    if [[ ! -d ${fullname} ]]; then
-        compiler=${fullname}.tar.gz
-        s3get ${S3URL}/${compiler} ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
-        s3get ${S3URL}/zapcc-key.txt ${OPT}/${fullname}/bin/zapcc-key.txt
     fi
 done
 
@@ -437,46 +390,6 @@ if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     fetch https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 | tar jxf -
     do_strip gcc-arm-none-eabi-5_4-2016q3 
 fi
-
-# Windows compilers
-fix_up_windows() {
-    local file=$1
-    if [[ -d ${file}/lib/native/bin/amd64 ]]; then
-        cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_arm/
-        cp ${file}/lib/native/bin/amd64/msvcdis140.dll ${file}/lib/native/bin/amd64_arm/
-        cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_x86/
-    fi
-}
-
-mkdir -p windows
-pushd windows
-for file in \
-    10.0.10240.0 \
-    14.0.24224-Pre \
-    19.10.25017 \
-; do
-    if [[ ! -d ${file} ]]; then
-        s3get ${S3URL}/${file}.tar.xz ${file}.tar.xz
-        tar Jxf ${file}.tar.xz
-        fix_up_windows ${file}
-        rm ${file}.tar.xz
-    fi
-done
-
-for file in \
-    14.0.24629 \
-; do
-    if [[ ! -d ${file} ]]; then
-        mkdir ${file}
-        pushd ${file}
-        fetch http://vcppdogfooding.azurewebsites.net/api/v2/package/visualcpptools/${file} > ${file}.zip
-        do_unzip ${file}.zip
-        rm ${file}.zip
-        popd
-        fix_up_windows ${file}
-    fi
-done
-popd
 
 # add kvasir libraries
 if [ ! -d "libs/kvasir/mpl/trunk" ]; then

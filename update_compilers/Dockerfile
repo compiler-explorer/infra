@@ -16,3 +16,4 @@ RUN apt install -y \
 
 COPY install_compilers.sh /
 COPY efs_update.sh /
+COPY common.inc /
