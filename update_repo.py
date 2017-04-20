@@ -11,7 +11,3 @@ def update(repo):
         ssh = connect_ssh(instance.public_ip_address, 'ubuntu')
         run_command(ssh, 'cd {} && git pull && make dist'.format(repo))
     return True
-
-
-if __name__ == '__main__':
-    update("jsbeeb-beta")

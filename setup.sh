@@ -76,7 +76,6 @@ fi
 killall remote_syslog || true
 cat > /etc/log_files.yml << EOF
 files:
-    - /var/log/nginx/bbc.*
     - /var/log/nginx/xania.*
 destination:
     host: logs2.papertrailapp.com
@@ -104,10 +103,6 @@ cat /tmp/auth_keys/* >> /home/ubuntu/.ssh/authorized_keys
 rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
 
-get_or_update_repo ubuntu https://github.com/mattgodbolt/jsbeeb.git release jsbeeb &
-get_or_update_repo ubuntu https://github.com/mattgodbolt/jsbeeb.git master jsbeeb-beta &
-wait # waits for repos *and* mount point above
-
 get_or_update_repo ubuntu https://github.com/mattgodbolt/Miracle.git master miracle miraclehook
 get_or_update_repo ubuntu https://github.com/mattgodbolt/blog.git master blog
 
@@ -115,6 +110,8 @@ if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
 cp /compiler-explorer-image/init/* /etc/init/
+
+wait # wait for mount point
 
 [ -n "$PACKER_SETUP" ] && exit
 

@@ -28,10 +28,11 @@ class MainHandler(tornado.web.RequestHandler):
         branch = obj['ref']
         hash = obj['after']
         if repo == 'jsbeeb':
-            if branch == 'refs/heads/master':
-                update_repo.update('jsbeeb-beta')
-            elif branch == 'refs/heads/release':
-                update_repo.update('jsbeeb')
+            # TODO!
+            #if branch == 'refs/heads/master':
+            #    update_repo.update('jsbeeb-beta')
+            #elif branch == 'refs/heads/release':
+            #    update_repo.update('jsbeeb')
             self.write("OK")
         elif repo == 'blog':
             if branch == 'refs/heads/master':
