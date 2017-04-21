@@ -14,6 +14,5 @@ RUN apt install -y \
      upx-ucl \
      xz-utils
 
-COPY install_compilers.sh /
-COPY efs_update.sh /
+COPY *.sh /
 COPY common.inc /
