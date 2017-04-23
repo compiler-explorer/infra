@@ -184,6 +184,7 @@ getgdc 5.2.0 2.066.1
 getldc 0.17.2
 getldc 1.0.0
 getldc 1.1.0
+getldc 1.2.0
 getldc_latestbeta
 #########################
 
