@@ -273,6 +273,7 @@ for version in \
     4.9.{0,1,2,3,4} \
     5.{1,2,3,4}.0 \
     6.{1,2,3}.0 \
+    7.1.0 \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
@@ -319,8 +320,8 @@ if [[ ! -d ${latest} ]]; then
     rm $latest.tar.xz
 fi
 # Ensure the symlink points at the latest
-rm -f ${OPT}/gcc-7-snapshot
-ln -s ${latest} ${OPT}/gcc-7-snapshot
+rm -f ${OPT}/gcc-snapshot
+ln -s ${latest} ${OPT}/gcc-snapshot
 # Clean up any old snapshots
 for compiler in gcc-{7,trunk}-[0-9]*; do
     if [[ -d ${compiler} ]]; then
