@@ -11,33 +11,6 @@ if [[ "$1" != "--updated" ]]; then
     exit 0
 fi
 
-miraclehook() {
-    rm -rf roms
-    mkdir -p roms
-    rm -f miracle-roms.tar.gz
-    aws s3 cp s3://xania.org/miracle-roms.tar.gz /tmp/
-    tar zxf /tmp/miracle-roms.tar.gz
-    rm /tmp/miracle-roms.tar.gz
-    chown -R ubuntu roms
-}
-
-get_or_update_repo() {
-    local USER=$1
-    local REPO=$2
-    local BRANCH=$3
-    local DIR=$4
-    if [[ ! -e ${DIR} ]]; then
-        su -c "git clone --branch ${BRANCH} ${REPO} ${DIR}" "${USER}"
-    else
-        su -c "cd ${DIR}; git pull && git checkout ${BRANCH}" "${USER}"
-    fi
-    pushd ${DIR}
-    $5
-    grep 'dist:' Makefile && su -c "make dist" ${USER}
-    popd
-}
-
-
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
@@ -90,9 +63,7 @@ docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(host
 
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
 
-apt-get -y install git make libpng-dev m4 \
-    python-markdown python-pygments python-pip perl nfs-common
-pip install pytz python-dateutil
+apt-get -y install git make libpng-dev m4 perl nfs-common
 
 cd /home/ubuntu/
 
@@ -102,9 +73,6 @@ aws s3 sync s3://compiler-explorer/authorized_keys /tmp/auth_keys
 cat /tmp/auth_keys/* >> /home/ubuntu/.ssh/authorized_keys
 rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
-
-get_or_update_repo ubuntu https://github.com/mattgodbolt/Miracle.git master miracle miraclehook
-get_or_update_repo ubuntu https://github.com/mattgodbolt/blog.git master blog
 
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
