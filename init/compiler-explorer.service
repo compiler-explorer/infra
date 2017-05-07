@@ -1,0 +1,14 @@
+[Unit]
+Description=Compiler Explorer
+After=docker.target
+Wants=docker.target
+
+[Service]
+Type=simple
+Environment=HOME=/root
+TimeoutStartSec=5min
+ExecStartPre=/compiler-explorer-image/init/pre-start.sh
+ExecStart=/compiler-explorer-image/init/start.sh
+
+[Install]
+WantedBy=multi-user.target

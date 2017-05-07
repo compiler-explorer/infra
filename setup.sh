@@ -82,7 +82,9 @@ chown -R ubuntu /home/ubuntu/.ssh
 if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
     echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
 fi
-cp /compiler-explorer-image/init/* /etc/init/
+cp /compiler-explorer-image/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
+systemctl daemon-reload
+systemctl enable compiler-explorer
 
 wait # wait for mount point
 
@@ -90,5 +92,3 @@ wait # wait for mount point
 
 docker pull -a mattgodbolt/compiler-explorer
 docker pull nginx
-
-[ "$UPSTART_JOB" != "compiler-explorer" ] && service compiler-explorer start || true
