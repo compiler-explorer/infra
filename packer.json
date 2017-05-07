@@ -5,10 +5,10 @@
       "region": "us-east-1",
       "access_key": "{{user `MY_ACCESS_KEY`}}",
       "secret_key": "{{user `MY_SECRET_KEY`}}",
-      "source_ami": "ami-49c9295f",
+      "source_ami": "ami-80861296",
       "instance_type": "t2.medium",
       "ssh_username": "ubuntu",
-      "ami_name": "compiler-explorer packer {{timestamp}}",
+      "ami_name": "compiler-explorer packer 16.04 @ {{timestamp}}",
       "associate_public_ip_address": true,
       "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
@@ -25,7 +25,7 @@
       "launch_block_device_mappings": [
         {
           "device_name": "/dev/sda1",
-          "volume_size": 9,
+          "volume_size": 8,
           "delete_on_termination": true,
           "volume_type": "standard"
         }

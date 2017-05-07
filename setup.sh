@@ -14,6 +14,13 @@ fi
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
+    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common
+    curl -sL http://aws-cloudwatch.s3.amazonaws.com/downloads/CloudWatchMonitoringScripts-1.2.1.zip -o /tmp/cwm.zip
+    cd /root
+    unzip /tmp/cwm.zip
+    rm /tmp/cwm.zip
+    echo '*/5 * * * * /root/aws-scripts-mon/mon-put-instance-data.pl ' \
+         '--mem-util --disk-space-util --disk-path=/ --from-cron' >> /etc/crontab
     touch /updated
 fi
 
@@ -61,9 +68,7 @@ docker stop logspout || true
 docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
-mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
-
-apt-get -y install git make libpng-dev m4 perl nfs-common
+mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,ro $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
 
 cd /home/ubuntu/
 
