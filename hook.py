@@ -4,7 +4,6 @@ import logging
 import tornado.ioloop
 import tornado.web
 import json
-import update_repo
 import update_instances
 
 
@@ -27,18 +26,7 @@ class MainHandler(tornado.web.RequestHandler):
         repo = obj['repository']['name']
         branch = obj['ref']
         hash = obj['after']
-        if repo == 'jsbeeb':
-            # TODO!
-            #if branch == 'refs/heads/master':
-            #    update_repo.update('jsbeeb-beta')
-            #elif branch == 'refs/heads/release':
-            #    update_repo.update('jsbeeb')
-            self.write("OK")
-        elif repo == 'blog':
-            if branch == 'refs/heads/master':
-                update_repo.update('blog')
-            self.write("OK")
-        elif repo == 'compiler-explorer':
+        if repo == 'compiler-explorer':
             if branch != 'refs/heads/master':
                 update_instances.build_deployment(hash)
             if branch == 'refs/heads/release':

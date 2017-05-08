@@ -19,8 +19,8 @@ if [[ ! -f /updated ]]; then
     cd /root
     unzip /tmp/cwm.zip
     rm /tmp/cwm.zip
-    echo '*/5 * * * * /root/aws-scripts-mon/mon-put-instance-data.pl ' \
-         '--mem-util --disk-space-util --disk-path=/ --from-cron' >> /etc/crontab
+    echo '*/5 * * * * root /root/aws-scripts-mon/mon-put-instance-data.pl ' \
+         '--mem-util --disk-space-util --disk-path=/ --auto-scaling --from-cron' >> /etc/crontab
     touch /updated
 fi
 

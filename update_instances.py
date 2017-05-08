@@ -67,6 +67,16 @@ def build_deployment(hash):
     os.unlink(local_name)
 
 
+def await_lc(id, state):
+    while True:
+        time.sleep(10)
+        i = as_client.describe_auto_scaling_instances(InstanceIds=[id])
+        lc = i['AutoScalingInstances'][0]['LifecycleState']
+        print "Instance state: {}".format(lc)
+        if lc == state:
+            break
+
+
 def update_compiler_explorers():
     prev = ensure_at_least_two()
     await_at_least_two_healthy()
@@ -74,9 +84,21 @@ def update_compiler_explorers():
         for health in get_compiler_nodes():
             instance = ec2.Instance(id=health['Target']['Id'])
             instance.load()
+            print "Putting {} into standby".format(instance.id)
+            as_client.enter_standby(
+                    InstanceIds=[instance.id],
+                    AutoScalingGroupName=AS_NAME,
+                    ShouldDecrementDesiredCapacity=False)
+            await_lc(instance.id, 'Standby')
+            print "Updating instance..."
             ssh = connect_ssh(instance.public_ip_address, 'ubuntu')
             run_command(ssh,
                         'sudo -i docker pull -a mattgodbolt/compiler-explorer && sudo service compiler-explorer restart')
+
+            as_client.exit_standby(
+                    InstanceIds=[instance.id],
+                    AutoScalingGroupName=AS_NAME)
+            await_lc(instance.id, 'InService')
             print "Done, waiting a minute"
             time.sleep(60)
             await_at_least_two_healthy()
