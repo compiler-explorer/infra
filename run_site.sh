@@ -34,7 +34,7 @@ $SUDO docker rm ${ALL} || true
 
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
-CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
+CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer" # TODO make :ro again once we don't rsync to it for old versions!
 CFG="${CFG} -v /var/run/docker.sock:/var/run/docker.sock"
 
 get_from_git() {
