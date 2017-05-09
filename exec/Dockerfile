@@ -1,13 +1,8 @@
-FROM ubuntu:16.04
+FROM busybox:glibc
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN apt-get -y update && apt-get install -y \
-    sudo \
-    libboost-all-dev
-
-#####################
-RUN useradd ce-user && mkdir /home/ce-user && chown ce-user /home/ce-user
+RUN echo "ce-user:x:100:100:ce-user:/home/ce-user:/bin/sh" >> /etc/passwd
+RUN mkdir /home/ce-user && chown ce-user /home/ce-user
 ENV HOME /home/ce-user
-COPY run.sh /
 WORKDIR /home/ce-user
-ENTRYPOINT ["/run.sh"]
+USER ce-user
