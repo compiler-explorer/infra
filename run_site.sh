@@ -35,6 +35,7 @@ $SUDO docker rm ${ALL} || true
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
+CFG="${CFG} -v /var/run/docker.sock:/var/run/docker.sock"
 
 get_from_git() {
     git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git $1
