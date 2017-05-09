@@ -68,7 +68,8 @@ docker stop logspout || true
 docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
-mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,ro $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
+# TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
+mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
 
 cd /home/ubuntu/
 
