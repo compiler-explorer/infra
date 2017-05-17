@@ -68,11 +68,17 @@ docker stop logspout || true
 docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
-# TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
+####### GROTESQUE HACK BEGIN #########
 apt-get install cachefilesd
 /etc/init.d/cachefilesd stop
-echo 'RUN="yes"' >> /etc/default/cachefilesd
-/etc/init.d/cachefilesd start
+sleep 3
+perl -pi -e 's/^#RUN/RUN/' /etc/default/cachefilesd
+sleep 3
+/etc/init.d/cachefilesd start || true # maybe ? ugly!
+sleep 3
+/etc/init.d/cachefilesd start || true
+####### GROTESQUE HACK END #########
+# TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,fsc $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt &
 
 cd /home/ubuntu/
