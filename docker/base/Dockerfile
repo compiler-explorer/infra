@@ -17,6 +17,14 @@ RUN  dpkg --add-architecture i386 && apt-get -y update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ln -s /usr/include/asm-generic /usr/include/asm
 
+# Add Advance Toolchain from IBM - prebuilt ppc64{,le} cross-compiler based on gcc
+# curl - account for proxy if set.
+RUN curl ${http_proxy:+--proxy $http_proxy} http://ftp.unicamp.br/pub/linuxpatch/toolchain/at/ubuntu/dists/utopic/6976a827.gpg.key | apt-key add -
+RUN echo 'deb http://ftp.unicamp.br/pub/linuxpatch/toolchain/at/ubuntu xenial at10.0'  >> /etc/apt/sources.list.d/at.list
+RUN apt update && \
+    apt install -y advance-toolchain-at10.0-cross-ppc64 advance-toolchain-at10.0-cross-ppc64le && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
