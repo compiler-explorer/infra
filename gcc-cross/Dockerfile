@@ -38,8 +38,8 @@ RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.22.0.t
     ./configure --enable-local && \
     make -j$(nproc)
 
-RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.23.0.rc2.tar.xz | tar Jxf - && \
-    cd crosstool-ng-1.23.0.rc2 && \
+RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.23.0.tar.xz | tar Jxf - && \
+    cd crosstool-ng-1.23.0 && \
     ./configure --enable-local && \
     make -j$(nproc)
 
