@@ -23,7 +23,7 @@ if [[ -f old/${CONFIG_FILE} ]]; then
     CT=${ROOT}/crosstool-ng/ct-ng
 else
     CONFIG_FILE=new/${CONFIG_FILE}
-    CT=${ROOT}/crosstool-ng-1.23.0.rc2/ct-ng
+    CT=${ROOT}/crosstool-ng-1.23.0/ct-ng
 fi
 cp ${CONFIG_FILE} .config
 ${CT} oldconfig
