@@ -8,8 +8,9 @@ s3get() {
     aws s3 cp --force $*
 }
 
+# Grossly assumes the same proxy for http, https and ftp
 fetch() {
-    curl -v -L "$*"
+    curl -v ${http_proxy:+--proxy $http_proxy} -L "$*"
 }
 
 do_unzip() {
