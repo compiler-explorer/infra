@@ -6,7 +6,7 @@ Wants=docker.target
 [Service]
 Type=simple
 Environment=HOME=/root
-TimeoutStartSec=5min
+TimeoutStartSec=infinity
 ExecStartPre=/compiler-explorer-image/init/pre-start.sh
 ExecStart=/compiler-explorer-image/init/start.sh
 
