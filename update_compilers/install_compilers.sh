@@ -162,7 +162,7 @@ getldc() {
 }
 
 getldc_latestbeta() {
-    vers=$(curl https://ldc-developers.github.io/LATEST_BETA)
+    vers=$(curl ${https_proxy:+--proxy $https_proxy} https://ldc-developers.github.io/LATEST_BETA)
     if [[ ! -d ldcbeta ]]; then
         mkdir ldcbeta
     fi
