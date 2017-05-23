@@ -4,16 +4,18 @@ all: docker-images
 DOCKER := sudo docker
 PACKER ?= ../packer
 
+BUILD_OPT = $${https_proxy:+--build-arg https_proxy=$$https_proxy} $${http_proxy:+--build-arg http_proxy=$$http_proxy}
+
 define add-image
 DOCKER_IMAGES += $(2)-image
 
 $(2)-image: base-image
-	$(DOCKER) build -t "mattgodbolt/compiler-explorer:$(1)" docker/$(2)
+	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:$(1)" docker/$(2)
 
 endef
 
 base-image:
-	$(DOCKER) build -t "mattgodbolt/compiler-explorer:base" docker/base
+	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:base" docker/base
 
 $(eval $(call add-image,d,d-explorer))
 $(eval $(call add-image,gcc,gcc-explorer))
@@ -22,7 +24,7 @@ $(eval $(call add-image,rust,rust-explorer))
 $(eval $(call add-image,cppx,cppx-explorer))
 
 exec-image:
-	$(DOCKER) build -t "mattgodbolt/compiler-explorer:exec" exec
+	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:exec" exec
 
 DOCKER_IMAGES += exec-image
 
@@ -35,18 +37,18 @@ packer: config.json
 	$(PACKER) build -var-file=config.json packer.json 
 
 publish: docker-images
-	$(DOCKER) push mattgodbolt/compiler-explorer
+	$(DOCKER) push $(BUILD_OPT) mattgodbolt/compiler-explorer
 
 build-compiler-images:
-	$(DOCKER) build -t mattgodbolt/clang-builder clang
+	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/clang-builder clang
 	$(DOCKER) push mattgodbolt/clang-builder
-	$(DOCKER) build -t mattgodbolt/gcc-builder gcc
+	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder gcc
 	$(DOCKER) push mattgodbolt/gcc-builder
-	$(DOCKER) build -t mattgodbolt/gcc-cross gcc-cross
+	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-cross gcc-cross
 	$(DOCKER) push mattgodbolt/gcc-cross
 
 update-compilers:
-	$(DOCKER) build -t mattgodbolt/gcc-builder:update update_compilers
+	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder:update update_compilers
 	$(DOCKER) push mattgodbolt/gcc-builder:update
 	python update_efs_compilers.py
 
