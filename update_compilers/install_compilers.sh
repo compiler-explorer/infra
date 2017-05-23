@@ -97,8 +97,7 @@ install_new_rust() {
 
 #########################
 # RUST
-# temporarily disabled as it tries to install completions in /etc
-#install_new_rust nightly '1 day'
+install_new_rust nightly '1 day'
 install_new_rust beta '1 week'
 install_new_rust 1.5.0
 install_new_rust 1.6.0
