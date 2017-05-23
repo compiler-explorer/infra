@@ -414,6 +414,15 @@ if [ ! -d "libs/boost_1_64_0" ]; then
     popd
     rm -rf /tmp/boost
 fi
+
+# nvcc
+curl ${http_proxy:+--proxy $http_proxy} http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64/7fa2af80.pub | apt-key add -
+echo 'deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1604/x86_64 /' > /etc/apt/sources.list.d/cuda.list
+apt-get update && apt install -y cuda-minimal-build-8-0
+rm -rf /var/lib/apt/lists/*
+mv /usr/local/cuda-8.0 ${OPT}/
+do_strip ${OPT}/cuda-8.0
+
 #########################
 
 
