@@ -1,10 +1,28 @@
 #!/usr/bin/env python
 
+import tempfile
 import logging
+
+import shutil
+
+import subprocess
 import tornado.ioloop
 import tornado.web
 import json
 import update_instances
+
+
+def update_jsbeeb(branch, dest):
+    destdir = tempfile.mkdtemp()
+    subprocess.check_call([
+        'git', 'clone', 'git@github.com:mattgodbolt/jsbeeb.git',
+        '-b', branch,
+        destdir
+    ])
+    subprocess.check_call([
+        'make', '-C', destdir, 'upload', 'BRANCH=' + dest
+    ])
+    shutil.rmtree(destdir)
 
 
 class MainHandler(tornado.web.RequestHandler):
@@ -31,6 +49,12 @@ class MainHandler(tornado.web.RequestHandler):
                 update_instances.build_deployment(hash)
             if branch == 'refs/heads/release':
                 update_instances.update_compiler_explorers()
+            self.write("OK")
+        elif repo == 'jsbeeb':
+            if branch == 'refs/heads/release':
+                update_jsbeeb('release', '')
+            if branch == 'refs/heads/master':
+                update_jsbeeb('master', 'beta')
             self.write("OK")
 
 
