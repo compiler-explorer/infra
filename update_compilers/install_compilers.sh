@@ -414,6 +414,24 @@ if [ ! -d "libs/boost_1_64_0" ]; then
     popd
     rm -rf /tmp/boost
 fi
+
+# intel ispc
+get_ispc() {
+    local VER=$1
+    local DIR=ispc-$VER
+
+    if [[ ! -d ${DIR} ]]; then
+        mkdir $DIR
+        pushd $DIR
+        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz \
+            | tar zxf - ispc-v$VER-linux/ispc --strip-components 1
+        popd
+        do_strip $DIR
+    fi
+}
+
+get_ispc 1.9.1
+
 #########################
 
 
