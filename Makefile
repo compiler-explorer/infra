@@ -22,6 +22,7 @@ $(eval $(call add-image,gcc,gcc-explorer))
 $(eval $(call add-image,go,go-explorer))
 $(eval $(call add-image,rust,rust-explorer))
 $(eval $(call add-image,cppx,cppx-explorer))
+$(eval $(call add-image,ispc,ispc-explorer))
 
 exec-image:
 	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:exec" exec

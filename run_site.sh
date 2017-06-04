@@ -28,7 +28,7 @@ else
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx gcc go dx rust cppx"
+ALL="nginx gcc go dx rust cppx ispc"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -128,12 +128,14 @@ UID_D=$(start_container d 10241)
 UID_RUST=$(start_container rust 10242)
 UID_GO=$(start_container go 10243)
 UID_CPPX=$(start_container cppx 20480)
+UID_CPPX=$(start_container ispc 20481)
 UID_GCC=$(start_container gcc 10240)
 
 wait_for_container ${UID_D} d 10241
 wait_for_container ${UID_RUST} rust 10242
 wait_for_container ${UID_GO} go 10243
 wait_for_container ${UID_CPPX} cppx 20480
+wait_for_container ${UID_CPPX} ispc 20481
 wait_for_container ${UID_GCC} gcc 10240
 
 $SUDO docker run \
@@ -145,4 +147,5 @@ $SUDO docker run \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
     --link gcc:gcc --link dx:d --link rust:rust --link go:go --link cppx:cppx \
+    --link ispc:ispc \
     nginx

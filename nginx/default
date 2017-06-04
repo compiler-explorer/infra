@@ -47,6 +47,21 @@ server {
 }
 
 server {
+    server_name ispc.godbolt.org ispc.xania.org ispc.compiler-explorer.com;
+    index index.html;
+    access_log /var/log/nginx/ispc.log;
+    error_log /var/log/nginx/ispc.err;
+
+    location / {
+        rewrite ^/beta$ /beta/ permanent;
+        rewrite ^/beta/(.*) /$1 break;
+        proxy_pass http://ispc:20481;
+        proxy_cache gcc;
+        proxy_cache_valid 200 2m;
+    }
+}
+
+server {
     server_name d.godbolt.org d.beta.godbolt.org d.xania.org d.compiler-explorer.com;
     index index.html;
     access_log /var/log/nginx/d.log;
