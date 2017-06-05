@@ -128,14 +128,14 @@ UID_D=$(start_container d 10241)
 UID_RUST=$(start_container rust 10242)
 UID_GO=$(start_container go 10243)
 UID_CPPX=$(start_container cppx 20480)
-UID_CPPX=$(start_container ispc 20481)
+UID_ISPC=$(start_container ispc 20481)
 UID_GCC=$(start_container gcc 10240)
 
 wait_for_container ${UID_D} d 10241
 wait_for_container ${UID_RUST} rust 10242
 wait_for_container ${UID_GO} go 10243
 wait_for_container ${UID_CPPX} cppx 20480
-wait_for_container ${UID_CPPX} ispc 20481
+wait_for_container ${UID_ISPC} ispc 20481
 wait_for_container ${UID_GCC} gcc 10240
 
 $SUDO docker run \
