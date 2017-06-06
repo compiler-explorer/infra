@@ -40,7 +40,7 @@ CFG="${CFG} -v /var/run/docker.sock:/var/run/docker.sock"
 get_from_git() {
     git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git $1
     pushd $1
-    local DIST_CMD="env PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
+    local DIST_CMD="env NODE_ENV=development PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
         su -c "${DIST_CMD}" ubuntu
