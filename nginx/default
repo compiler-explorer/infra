@@ -62,6 +62,21 @@ server {
 }
 
 server {
+    server_name haskell.godbolt.org haskell.xania.org haskell.compiler-explorer.com;
+    index index.html;
+    access_log /var/log/nginx/haskell.log;
+    error_log /var/log/nginx/haskell.err;
+
+    location / {
+        rewrite ^/beta$ /beta/ permanent;
+        rewrite ^/beta/(.*) /$1 break;
+        proxy_pass http://haskell:20482;
+        proxy_cache gcc;
+        proxy_cache_valid 200 2m;
+    }
+}
+
+server {
     server_name d.godbolt.org d.beta.godbolt.org d.xania.org d.compiler-explorer.com;
     index index.html;
     access_log /var/log/nginx/d.log;

@@ -106,6 +106,7 @@ docker pull mattgodbolt/compiler-explorer:gcc
 docker pull mattgodbolt/compiler-explorer:d
 docker pull mattgodbolt/compiler-explorer:cppx
 docker pull mattgodbolt/compiler-explorer:ispc
+docker pull mattgodbolt/compiler-explorer:haskell
 docker pull mattgodbolt/compiler-explorer:go
 docker pull mattgodbolt/compiler-explorer:rust
 docker pull nginx
