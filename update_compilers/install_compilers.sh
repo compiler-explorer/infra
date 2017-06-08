@@ -433,6 +433,22 @@ get_ispc() {
 
 get_ispc 1.9.1
 
+get_ghc() {
+    local VER=$1
+    local DIR=ghc-$VER
+
+    if [[ ! -d ${DIR} ]]; then
+        pushd /tmp
+        fetch https://downloads.haskell.org/~ghc/${VER}/ghc-${VER}-x86_64-deb8-linux.tar.xz | tar Jxf -
+        cd /tmp/ghc-${VER}
+        ./configure --prefix=${OPT}/${DIR}
+        make install
+        popd
+    fi
+}
+
+get_ghc 8.0.2
+
 #########################
 
 
