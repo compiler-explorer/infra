@@ -306,7 +306,11 @@ gcc_arch_install msp430 4.5.3
 gcc_arch_install powerpc 4.8.5
 gcc_arch_install powerpc64le 6.3.0
 gcc_arch_install arm 5.4.0
+gcc_arch_install arm 6.3.0
+gcc_arch_install arm 7.1.0
 gcc_arch_install arm64 5.4.0
+gcc_arch_install arm64 6.3.0
+gcc_arch_install arm64 7.1.0
 gcc_arch_install mips 5.4.0
 gcc_arch_install mips64 5.4.0
 gcc_arch_install mipsel 5.4.0
