@@ -52,7 +52,7 @@ cd ..
 # Get LDC source
 mkdir ldc
 cd ldc
-fetch https://github.com/ldc-developers/ldc/releases/download/v${VERSION}/ldc2-${VERSION}-src.tar.gz | tar Jxf --strip 1 -
+curl -sL https://github.com/ldc-developers/ldc/releases/download/v${VERSION}/ldc2-${VERSION}-src.tar.gz | tar zxf - --strip 1
 cd ..
 
 # Build LDC
