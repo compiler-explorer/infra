@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # Grab CE's GCC 6.3.0 for its binutils (which is what the site uses to link currently)
 mkdir -p /opt/compiler-explorer
@@ -43,14 +43,14 @@ cd ..
 # Building LDC requires a D compiler, get prebuilt LDC 1.1.0
 mkdir -p ldc110
 cd ldc110
-curl -sL https://github.com/ldc-developers/ldc/releases/download/v1.1.0/ldc-1.1.0-linux-x86_64.tar.xz | tar Jxf - --strip 1
+curl -sL https://github.com/ldc-developers/ldc/releases/download/v1.1.0/ldc2-1.1.0-linux-x86_64.tar.xz | tar Jxf - --strip 1
 export DMD=$(pwd)/bin/ldmd2
 cd ..
 
 # Get LDC source
 mkdir ldc
 cd ldc
-curl -sL https://github.com/ldc-developers/ldc/releases/download/v${VERSION}/ldc2-${VERSION}-src.tar.gz | tar zxf - --strip 1
+curl -sL https://github.com/ldc-developers/ldc/releases/download/v${VERSION}/ldc-${VERSION}-src.tar.gz | tar zxf - --strip 1
 cd ..
 
 # Build LDC
