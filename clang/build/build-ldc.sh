@@ -27,8 +27,7 @@ mkdir -p ${STAGING_DIR}
 LLVM_VERSION=4.0.0
 mkdir llvm
 cd llvm
-wget -q http://releases.llvm.org/$LLVM_VERSION/llvm-$LLVM_VERSION.src.tar.xz
-tar -xf llvm* --strip 1
+curl -sL http://releases.llvm.org/$LLVM_VERSION/llvm-$LLVM_VERSION.src.tar.xz | tar Jxf - --strip 1
 cd ..
 
 # Build LLVM
@@ -44,8 +43,7 @@ cd ..
 # Building LDC requires a D compiler, get prebuilt LDC 1.1.0
 mkdir -p ldc110
 cd ldc110
-wget -q https://github.com/ldc-developers/ldc/releases/download/v1.1.0/ldc2-1.1.0-linux-x86_64.tar.xz
-tar xf ldc2-1.1.0-linux-x86_64.tar.xz --strip 1
+curl -sL https://github.com/ldc-developers/ldc/releases/download/v1.1.0/ldc-1.1.0-linux-x86_64.tar.xz | tar Jxf - --strip 1
 export DMD=$(pwd)/bin/ldmd2
 cd ..
 
