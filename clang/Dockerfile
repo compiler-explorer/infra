@@ -13,6 +13,7 @@ RUN apt update -y && apt upgrade -y && apt update -y && \
     gcc \
     git \
     libc6-dev-i386 \
+    libconfig++8-dev \
     linux-libc-dev \
     make \
     patch \
