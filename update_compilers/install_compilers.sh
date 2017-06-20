@@ -449,6 +449,20 @@ get_ghc() {
 
 get_ghc 8.0.2
 
+get_swift() {
+    local VER=$1
+    local DIR=swift-${VER}
+
+    if [[ ! -d ${DIR} ]]; then
+        mkdir ${DIR}
+        pushd ${DIR}
+        fetch https://swift.org/builds/swift-${VER}-release/ubuntu1604/swift-${VER}-RELEASE/swift-${VER}-RELEASE-ubuntu16.04.tar.gz | tar zxf - --strip-components 1
+        popd
+    fi
+}
+
+get_swift 3.1.1
+
 #########################
 
 
