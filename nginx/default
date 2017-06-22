@@ -77,6 +77,21 @@ server {
 }
 
 server {
+    server_name swift.godbolt.org swift.xania.org swift.compiler-explorer.com;
+    index index.html;
+    access_log /var/log/nginx/swift.log;
+    error_log /var/log/nginx/swift.err;
+
+    location / {
+        rewrite ^/beta$ /beta/ permanent;
+        rewrite ^/beta/(.*) /$1 break;
+        proxy_pass http://swift:20483;
+        proxy_cache gcc;
+        proxy_cache_valid 200 2m;
+    }
+}
+
+server {
     server_name d.godbolt.org d.beta.godbolt.org d.xania.org d.compiler-explorer.com;
     index index.html;
     access_log /var/log/nginx/d.log;
