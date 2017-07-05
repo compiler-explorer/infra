@@ -162,6 +162,15 @@ getldc() {
     popd
 }
 
+getldc_s3() {
+    vers=$1
+    if [[ -d ldc2-${vers} ]]; then
+        echo LDC ${vers} already installed, skipping
+        return
+    fi
+    fetch https://s3.amazonaws.com/compiler-explorer/opt/ldc2-${vers}.tar.xz | tar Jxf -    
+}
+
 getldc_latestbeta() {
     vers=$(curl ${https_proxy:+--proxy $https_proxy} https://ldc-developers.github.io/LATEST_BETA)
     if [[ ! -d ldcbeta ]]; then
@@ -188,6 +197,7 @@ getldc 1.0.0
 getldc 1.1.0
 getldc 1.2.0
 getldc_latestbeta
+getldc_s3 1.2.0
 #########################
 
 #########################
