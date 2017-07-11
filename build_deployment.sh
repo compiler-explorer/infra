@@ -27,6 +27,7 @@ add_path /opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin
 add_path /opt/compiler-explorer/rust-nightly/bin
 add_path /opt/compiler-explorer/node/bin
 add_path /opt/compiler-explorer/ghc-8.0.2/bin
+export RUST_FLAGS="-C target-cpu=x86-64 -C target-feature=+sse,+sse2,+sse3,+sse4.1,+sse4.2 --features simd-accel"
 make -j$(nproc) dist
 
 tar Jcvf ${OUTPUT} .
