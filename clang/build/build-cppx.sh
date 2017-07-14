@@ -25,15 +25,15 @@ rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
 git clone git@github.com:llvm-mirror/llvm.git
-(cd llvm && git reset --hard b0f1c39d24a03cef6cce132a57fbb07f35b6a0a5)
+(cd llvm && git reset --hard 40b1e969f9cb2a0c697e247435193fb006ef1311)
 pushd llvm/tools
 git clone git@github.com:asutton/clang.git
 popd
 pushd llvm/projects
 git clone git@github.com:llvm-mirror/libcxx.git
-(cd libcxx && git reset --hard ff8cce45f416204451eb88136eba383dd48753b9)
+(cd libcxx && git reset --hard 64182a5877865cde2538c6038f98e3df33c93a03)
 git clone git@github.com:llvm-mirror/libcxxabi.git
-(cd libcxxabi && git reset --hard e8b3ec33ccb6f76caea7388317d5620b9c36de51)
+(cd libcxxabi && git reset --hard c515867bc14c433febcc574baedd081c078124d1)
 popd
 
 mkdir build
