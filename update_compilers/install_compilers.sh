@@ -412,25 +412,6 @@ if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     do_strip gcc-arm-none-eabi-5_4-2016q3 
 fi
 
-# add kvasir libraries
-if [ ! -d "libs/kvasir/mpl/trunk" ]; then
-    git clone https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
-    git -C libs/kvasir/mpl/trunk checkout development
-else
-    git -C libs/kvasir/mpl/trunk pull origin development
-fi
-
-# boost 1_64
-if [ ! -d "libs/boost_1_64_0" ]; then
-    mkdir -p /tmp/boost
-    pushd /tmp/boost
-    fetch https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2 | tar jxf - boost_1_64_0/boost
-    mkdir -p ${OPT}/libs/boost_1_64_0/boost
-    rsync -a boost_1_64_0/boost/ ${OPT}/libs/boost_1_64_0/boost/
-    popd
-    rm -rf /tmp/boost
-fi
-
 # intel ispc
 get_ispc() {
     local VER=$1
@@ -482,6 +463,33 @@ get_swift 3.1.1
 
 #########################
 
+#########################
+# Libraries!
+
+# add kvasir libraries
+if [ ! -d "libs/kvasir/mpl/trunk" ]; then
+    git clone https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
+    git -C libs/kvasir/mpl/trunk checkout development
+else
+    git -C libs/kvasir/mpl/trunk pull origin development
+fi
+
+# boost 1_64
+if [ ! -d "libs/boost_1_64_0" ]; then
+    mkdir -p /tmp/boost
+    pushd /tmp/boost
+    fetch https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2 | tar jxf - boost_1_64_0/boost
+    mkdir -p ${OPT}/libs/boost_1_64_0/boost
+    rsync -a boost_1_64_0/boost/ ${OPT}/libs/boost_1_64_0/boost/
+    popd
+    rm -rf /tmp/boost
+fi
+
+if [ ! -d "libs/cmcstl2" ]; then
+    git clone https://github.com/CaseyCarter/cmcstl2.git libs/cmcstl2
+else
+    git -C libs/cmcstl2 pull
+fi
 
 #########################
 # node.js
