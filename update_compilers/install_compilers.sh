@@ -496,7 +496,7 @@ get_or_sync() {
     fi
 }
 
-get_or_sync libs/cmcstl https://github.com/CaseyCarter/cmcstl2.git 
+get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git 
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 
