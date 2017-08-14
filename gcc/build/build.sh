@@ -7,20 +7,21 @@ VERSION=$1
 if echo ${VERSION} | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/trunk 
-    MAJOR=7
-    MAJOR_MINOR=7-trunk
-    BINARY_OUTPUT='7.*'
+    MAJOR=8
+    MAJOR_MINOR=8-trunk
 elif echo ${VERSION} | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
-    URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/gcc-${VERSION}.tar.bz2
+    TARBALL=gcc-${VERSION}.tar.xz
+    URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/${TARBALL}
     MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
     MAJOR_MINOR=${MAJOR}-snapshot
-    BINARY_OUTPUT=${MAJOR}.0.0
 else
-    URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/gcc-${VERSION}.tar.bz2
     MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
     MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
-    BINARY_OUTPUT=${VERSION}
+    TARBALL=gcc-${VERSION}.tar.bz2
+    if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" -eq "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
 S3OUTPUT=""
@@ -41,13 +42,13 @@ if echo ${URL} | grep svn://; then
     rm -rf gcc-${VERSION}
     svn checkout ${URL} gcc-${VERSION}
 else
-    if [[ ! -e gcc-${VERSION}.tar.bz2 ]]; then
+    if [[ ! -e ${TARBALL} ]]; then
         echo "Fetching GCC"
         curl -L -O ${URL}
     fi
     rm -rf gcc-${VERSION}
     echo "Extracting GCC..."
-    tar jxf gcc-${VERSION}.tar.bz2
+    tar axf ${TARBALL}
 fi
 
 applyPatchesAndConfig() {
