@@ -287,6 +287,7 @@ for version in \
     5.{1,2,3,4}.0 \
     6.{1,2,3}.0 \
     7.1.0 \
+    7.2.0 \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
@@ -485,17 +486,19 @@ if [ ! -d "libs/boost_1_64_0" ]; then
     rm -rf /tmp/boost
 fi
 
-if [ ! -d "libs/cmcstl2" ]; then
-    git clone https://github.com/CaseyCarter/cmcstl2.git libs/cmcstl2
-else
-    git -C libs/cmcstl2 pull
-fi
+get_or_sync() {
+    local DIR=$1
+    local URL=$2
+    if [ ! -d "${DIR}" ]; then
+        git clone "${URL}" "${DIR}"
+    else
+	git -C "${DIR}" pull
+    fi
+}
 
-if [ ! -d "libs/GSL" ]; then
-    git clone https://github.com/Microsoft/GSL.git libs/GSL
-else
-    git -C libs/GSL pull
-fi
+get_or_sync libs/cmcstl https://github.com/CaseyCarter/cmcstl2.git 
+get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
+get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 
 #########################
 # node.js
