@@ -491,6 +491,12 @@ else
     git -C libs/cmcstl2 pull
 fi
 
+if [ ! -d "libs/GSL" ]; then
+    git clone https://github.com/Microsoft/GSL.git libs/GSL
+else
+    git -C libs/GSL pull
+fi
+
 #########################
 # node.js
 
