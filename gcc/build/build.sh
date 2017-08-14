@@ -20,7 +20,7 @@ else
     MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
     TARBALL=gcc-${VERSION}.tar.bz2
     if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" -eq "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" = "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
