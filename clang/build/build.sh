@@ -2,10 +2,10 @@
 
 set -e
 
-# Grab CE's GCC 6.3.0 for its binutils (which is what the site uses to link currently)
+# Grab CE's GCC 7.2.0 for its binutils (which is what the site uses to link currently)
 mkdir -p /opt/compiler-explorer
 pushd /opt/compiler-explorer
-curl -sL https://s3.amazonaws.com/compiler-explorer/opt/gcc-6.3.0.tar.xz | tar Jxf -
+curl -sL https://s3.amazonaws.com/compiler-explorer/opt/gcc-7.2.0.tar.xz | tar Jxf -
 popd
 
 ROOT=$(pwd)
@@ -50,7 +50,7 @@ cd build
 cmake -G "Unix Makefiles" ../llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
-    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-6.3.0/lib/gcc/x86_64-linux-gnu/6.3.0/plugin/include/
+    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-7.2.0/lib/gcc/x86_64-linux-gnu/7.2.0/plugin/include/
 
 make -j$(nproc) install
 
