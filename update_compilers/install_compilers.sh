@@ -41,7 +41,7 @@ install_rust() {
     echo Installing rust $NAME
 
     do_rust_install rustc-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
-    
+
     # workaround for LD_LIBRARY_PATH
     ${PATCHELF} --set-rpath '$ORIGIN/../lib' ${OPT}/rust-${NAME}/bin/rustc
     for to_patch in ${OPT}/rust-${NAME}/lib/*.so; do
@@ -114,6 +114,7 @@ install_new_rust 1.16.0
 install_new_rust 1.17.0
 install_new_rust 1.18.0
 install_new_rust 1.19.0
+install_new_rust 1.20.0
 
 install_rust 1.0.0
 install_rust 1.1.0
@@ -476,16 +477,19 @@ else
     git -C libs/kvasir/mpl/trunk pull origin development
 fi
 
-# boost 1_64
-if [ ! -d "libs/boost_1_64_0" ]; then
+install_boost() {
+    local VERSION=$1
+    local VERSION_UNDERSCORE=$(echo ${VERSION} | tr . _)
     mkdir -p /tmp/boost
     pushd /tmp/boost
-    fetch https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2 | tar jxf - boost_1_64_0/boost
-    mkdir -p ${OPT}/libs/boost_1_64_0/boost
-    rsync -a boost_1_64_0/boost/ ${OPT}/libs/boost_1_64_0/boost/
+    fetch https://dl.bintray.com/boostorg/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.bz2 | tar jxf - boost_${VERSION_UNDERSCORE}/boost
+    mkdir -p ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost
+    rsync -a boost_${VERSION_UNDERSCORE}/boost/ ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost/
     popd
     rm -rf /tmp/boost
-fi
+}
+install_boost 1.64.0
+install_boost 1.65.0
 
 get_or_sync() {
     local DIR=$1
