@@ -41,7 +41,7 @@ pushd llvm/tools
 svn co ${LLVM_BASE}/cfe/${TAG} clang
 popd
 pushd llvm/tools/clang/tools
-svn co ${LLVM_BASE}/clang-tools-extra/trunk extra
+svn co ${LLVM_BASE}/clang-tools-extra/${TAG} extra
 popd
 pushd llvm/projects
 svn co ${LLVM_BASE}/libcxx/${TAG} libcxx
