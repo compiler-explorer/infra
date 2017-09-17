@@ -199,6 +199,7 @@ getldc 1.0.0
 getldc 1.1.0
 getldc 1.2.0
 getldc 1.3.0
+getldc 1.4.0
 getldc_latestbeta
 getldc_s3 1.2.0
 #########################
