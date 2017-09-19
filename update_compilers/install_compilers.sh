@@ -481,13 +481,16 @@ fi
 install_boost() {
     local VERSION=$1
     local VERSION_UNDERSCORE=$(echo ${VERSION} | tr . _)
-    mkdir -p /tmp/boost
-    pushd /tmp/boost
-    fetch https://dl.bintray.com/boostorg/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.bz2 | tar jxf - boost_${VERSION_UNDERSCORE}/boost
-    mkdir -p ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost
-    rsync -a boost_${VERSION_UNDERSCORE}/boost/ ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost/
-    popd
-    rm -rf /tmp/boost
+    local DEST=${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost/ 
+    if [[ ! -d ${DEST} ]]; then
+        mkdir -p /tmp/boost
+        pushd /tmp/boost
+        fetch https://dl.bintray.com/boostorg/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.bz2 | tar jxf - boost_${VERSION_UNDERSCORE}/boost
+        mkdir -p ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost
+        rsync -a boost_${VERSION_UNDERSCORE}/boost/ ${DEST}
+        popd
+        rm -rf /tmp/boost
+    fi
 }
 install_boost 1.64.0
 install_boost 1.65.0
