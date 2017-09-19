@@ -8,4 +8,7 @@ mkfifo /tmp/compiler-explorer-log
 exec >/tmp/compiler-explorer-log
 rm /tmp/compiler-explorer-log
 cd /compiler-explorer-image
-exec ./run_site.sh prod 2>&1
+ENV=$(curl http://169.254.169.254/latest/user-data)
+ENV=${ENV:-prod}
+echo Running in environment ${ENV}
+exec ./run_site.sh ${ENV} 2>&1
