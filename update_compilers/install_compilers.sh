@@ -202,6 +202,60 @@ getldc 1.3.0
 getldc 1.4.0
 getldc_latestbeta
 getldc_s3 1.2.0
+
+#########################
+# D libraries
+
+# MIR GLAS
+if [ ! -d "${OPT}/libs/d/mir-glas-trunk" ]; then
+    git clone https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
+    git -C ${OPT}/libs/d/mir-glas-trunk checkout master
+else
+    git -C ${OPT}/libs/d/mir-glas-trunk pull origin master
+fi
+install_mir_glas() {
+    # https://github.com/libmir/mir-glas/archive/v0.2.3.tar.gz
+    local VERSION=$1
+    local DEST=${OPT}/libs/d/mir-glas-v${VERSION}/
+    if [[ ! -d ${DEST} ]]; then
+        mkdir -p /tmp/mir-glas
+        pushd /tmp/mir-glas
+        wget https://github.com/libmir/mir-glas/archive/v${VERSION}.tar.gz
+        tar xf v${VERSION}.tar.gz
+        mkdir -p ${DEST}
+        rsync -a mir-glas-${VERSION}/ ${DEST}
+        popd
+        rm -rf /tmp/mir-glas
+    fi
+}
+install_mir_glas 0.1.5
+install_mir_glas 0.2.3
+
+# MIR Algorithm
+if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
+    git clone https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
+    git -C ${OPT}/libs/d/mir-algorithm-trunk checkout master
+else
+    git -C ${OPT}/libs/d/mir-algorithm-trunk pull origin master
+fi
+install_mir_algorithm() {
+    # https://github.com/libmir/mir-algorithm/archive/v0.6.11.tar.gz
+    local VERSION=$1
+    local DEST=${OPT}/libs/d/mir-algorithm-v${VERSION}/
+    if [[ ! -d ${DEST} ]]; then
+        mkdir -p /tmp/mir-algorithm
+        pushd /tmp/mir-algorithm
+        wget https://github.com/libmir/mir-algorithm/archive/v${VERSION}.tar.gz
+        tar xf v${VERSION}.tar.gz
+        mkdir -p ${DEST}
+        rsync -a mir-algorithm-${VERSION}/ ${DEST}
+        popd
+        rm -rf /tmp/mir-algorithm
+    fi
+}
+install_mir_algorithm 0.5.17
+install_mir_algorithm 0.6.13
+
 #########################
 
 #########################
