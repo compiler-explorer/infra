@@ -220,8 +220,7 @@ install_mir_glas() {
     if [[ ! -d ${DEST} ]]; then
         mkdir -p /tmp/mir-glas
         pushd /tmp/mir-glas
-        wget https://github.com/libmir/mir-glas/archive/v${VERSION}.tar.gz
-        tar xf v${VERSION}.tar.gz
+        fetch https://github.com/libmir/mir-glas/archive/v${VERSION}.tar.gz | tar zxf -
         mkdir -p ${DEST}
         rsync -a mir-glas-${VERSION}/ ${DEST}
         popd
@@ -245,8 +244,7 @@ install_mir_algorithm() {
     if [[ ! -d ${DEST} ]]; then
         mkdir -p /tmp/mir-algorithm
         pushd /tmp/mir-algorithm
-        wget https://github.com/libmir/mir-algorithm/archive/v${VERSION}.tar.gz
-        tar xf v${VERSION}.tar.gz
+        fetch https://github.com/libmir/mir-algorithm/archive/v${VERSION}.tar.gz | tar zxf -
         mkdir -p ${DEST}
         rsync -a mir-algorithm-${VERSION}/ ${DEST}
         popd
