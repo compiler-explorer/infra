@@ -475,7 +475,7 @@ get_swift 3.1.1
 #########################
 # node.js
 
-TARGET_NODE_VERSION=v6.11.1
+TARGET_NODE_VERSION=v6.11.3
 CURRENT_NODE_VERSION=""
 if [[ -d node ]]; then
     CURRENT_NODE_VERSION=$(node/bin/node --version)
