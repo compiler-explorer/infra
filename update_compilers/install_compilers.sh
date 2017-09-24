@@ -352,9 +352,7 @@ if install_nightly; then
     latest=${compiler_array[-1]}
     # Extract the latest...
     if [[ ! -d ${latest} ]]; then
-        fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
-        tar axf $latest.tar.xz
-        rm $latest.tar.xz
+        fetch ${S3URL}/${latest}.tar.xz | tar Jxf -
     fi
     # Ensure the symlink points at the latest
     rm -f ${OPT}/gcc-snapshot
@@ -391,9 +389,7 @@ if install_nightly; then
     latest=${compiler_array[-1]}
     # Extract the latest...
     if [[ ! -d ${latest} ]]; then
-        fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
-        tar axf $latest.tar.xz
-        rm $latest.tar.xz
+        fetch ${S3URL}/${latest}.tar.xz | tar Jxf -
     fi
     # Ensure the symlink points at the latest
     rm -f ${OPT}/clang-trunk
