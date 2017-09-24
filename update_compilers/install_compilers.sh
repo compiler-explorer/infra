@@ -21,8 +21,6 @@ else
     echo "Skipping install of nightly compilers"
 fi
 
-stop
-
 S3BUCKET=compiler-explorer
 SUBDIR=opt
 S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
