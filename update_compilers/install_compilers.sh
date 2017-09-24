@@ -6,6 +6,23 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${DIR}/common.inc
 
+ARG1="$1"
+install_nightly() {
+    if [[ "$ARG1" = "nightly" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+if install_nightly; then
+    echo "Installing nightly builds"
+else
+    echo "Skipping install of nightly compilers"
+fi
+
+stop
+
 S3BUCKET=compiler-explorer
 SUBDIR=opt
 S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
@@ -101,8 +118,10 @@ install_new_rust() {
 
 #########################
 # RUST
-install_new_rust nightly '1 day'
-install_new_rust beta '1 week'
+if install_nightly; then
+    install_new_rust nightly '1 day'
+    install_new_rust beta '1 week'
+fi
 install_new_rust 1.5.0
 install_new_rust 1.6.0
 install_new_rust 1.7.0
@@ -328,27 +347,29 @@ gcc_arch_install mips64 5.4.0
 gcc_arch_install mipsel 5.4.0
 gcc_arch_install mips64el 5.4.0
 
-# snapshots/trunk
-compilers=$(echo $ALL_COMPILERS | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
-compiler_array=(${compilers})
-latest=${compiler_array[-1]}
-# Extract the latest...
-if [[ ! -d ${latest} ]]; then
-    fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
-    tar axf $latest.tar.xz
-    rm $latest.tar.xz
-fi
-# Ensure the symlink points at the latest
-rm -f ${OPT}/gcc-snapshot
-ln -s ${latest} ${OPT}/gcc-snapshot
-# Clean up any old snapshots
-for compiler in gcc-{7,trunk}-[0-9]*; do
-    if [[ -d ${compiler} ]]; then
-        if [[ "${compiler}" != "${latest}" ]]; then
-            rm -rf ${compiler}
-        fi
+if install_nightly; then
+    # snapshots/trunk
+    compilers=$(echo $ALL_COMPILERS | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
+    compiler_array=(${compilers})
+    latest=${compiler_array[-1]}
+    # Extract the latest...
+    if [[ ! -d ${latest} ]]; then
+        fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+        tar axf $latest.tar.xz
+        rm $latest.tar.xz
     fi
-done
+    # Ensure the symlink points at the latest
+    rm -f ${OPT}/gcc-snapshot
+    ln -s ${latest} ${OPT}/gcc-snapshot
+    # Clean up any old snapshots
+    for compiler in gcc-{7,trunk}-[0-9]*; do
+        if [[ -d ${compiler} ]]; then
+            if [[ "${compiler}" != "${latest}" ]]; then
+                rm -rf ${compiler}
+            fi
+        fi
+    done
+fi
 
 # Custom-built clangs also stripped and UPX'd
 for version in \
@@ -365,27 +386,29 @@ for version in \
     fi
 done
 
-# trunk builds
-compilers=$(echo $ALL_COMPILERS | grep -oE "clang-trunk-[0-9]+" | sort)
-compiler_array=(${compilers})
-latest=${compiler_array[-1]}
-# Extract the latest...
-if [[ ! -d ${latest} ]]; then
-    fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
-    tar axf $latest.tar.xz
-    rm $latest.tar.xz
-fi
-# Ensure the symlink points at the latest
-rm -f ${OPT}/clang-trunk
-ln -s ${latest} ${OPT}/clang-trunk
-# Clean up any old snapshots
-for compiler in clang-trunk-[0-9]*; do
-    if [[ -d ${compiler} ]]; then
-        if [[ "${compiler}" != "${latest}" ]]; then
-            rm -rf ${compiler}
-        fi
+if install_nightly; then
+    # trunk builds
+    compilers=$(echo $ALL_COMPILERS | grep -oE "clang-trunk-[0-9]+" | sort)
+    compiler_array=(${compilers})
+    latest=${compiler_array[-1]}
+    # Extract the latest...
+    if [[ ! -d ${latest} ]]; then
+        fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+        tar axf $latest.tar.xz
+        rm $latest.tar.xz
     fi
-done
+    # Ensure the symlink points at the latest
+    rm -f ${OPT}/clang-trunk
+    ln -s ${latest} ${OPT}/clang-trunk
+    # Clean up any old snapshots
+    for compiler in clang-trunk-[0-9]*; do
+        if [[ -d ${compiler} ]]; then
+            if [[ "${compiler}" != "${latest}" ]]; then
+                rm -rf ${compiler}
+            fi
+        fi
+    done
+fi
 
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the
 # oracle site. It doesn't like being strip()ped
