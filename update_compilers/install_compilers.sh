@@ -6,9 +6,6 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${DIR}/common.inc
 
-# Install libraries
-bash ${DIR}/install_libraries.sh
-
 S3URL=s3://compiler-explorer/opt
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
