@@ -6,7 +6,10 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${DIR}/common.inc
 
-S3URL=s3://compiler-explorer/opt
+S3BUCKET=compiler-explorer
+SUBDIR=opt
+S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
+ALL_COMPILERS=$(python ${DIR}/list_compilers.py --s3url ${S3BUCKET} --prefix ${SUBDIR}/)
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
@@ -212,9 +215,7 @@ for compiler in clang-3.2.tar.gz \
 do
     DIR=${compiler%.tar.*}
 	if [[ ! -d ${DIR} ]]; then
-		s3get ${S3URL}/$compiler ${OPT}/$compiler
-		tar zxf $compiler
-		rm $compiler
+		fetch ${S3URL}/$compiler | tar zxf -
 		do_strip ${DIR}
 	fi
 done
@@ -294,9 +295,7 @@ for version in \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
-        s3get ${S3URL}/$compiler ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
+        fetch ${S3URL}/$compiler | tar Jxf -
     fi
 done
 
@@ -308,9 +307,7 @@ gcc_arch_install() {
     local dir=${arch}/gcc-${version}
     mkdir -p ${arch}
     if [[ ! -d ${dir} ]]; then
-        s3get ${S3URL}/${xz} ${OPT}/${xz}
-        tar axf ${OPT}/${xz} -C ${OPT}/${arch}
-        rm ${xz}
+        fetch ${S3URL}/${xz} | tar Jxf - -C ${OPT}/${arch}
     fi
 }
 gcc_arch_install arm 4.5.4
@@ -332,12 +329,12 @@ gcc_arch_install mipsel 5.4.0
 gcc_arch_install mips64el 5.4.0
 
 # snapshots/trunk
-compilers=$(aws s3 ls ${S3URL}/ | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
+compilers=$(echo $ALL_COMPILERS | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
 compiler_array=(${compilers})
 latest=${compiler_array[-1]}
 # Extract the latest...
 if [[ ! -d ${latest} ]]; then
-    s3get ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+    fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
     tar axf $latest.tar.xz
     rm $latest.tar.xz
 fi
@@ -362,19 +359,19 @@ for version in \
 ; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
-        s3get ${S3URL}/$compiler ${OPT}/$compiler
+        fetch ${S3URL}/$compiler ${OPT}/$compiler
         tar axf $compiler
         rm $compiler
     fi
 done
 
 # trunk builds
-compilers=$(aws s3 ls ${S3URL}/ | grep -oE "clang-trunk-[0-9]+" | sort)
+compilers=$(echo $ALL_COMPILERS | grep -oE "clang-trunk-[0-9]+" | sort)
 compiler_array=(${compilers})
 latest=${compiler_array[-1]}
 # Extract the latest...
 if [[ ! -d ${latest} ]]; then
-    s3get ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
+    fetch ${S3URL}/${latest}.tar.xz ${OPT}/$latest.tar.xz
     tar axf $latest.tar.xz
     rm $latest.tar.xz
 fi
@@ -396,9 +393,7 @@ for version in 12.5; do
     fullname=OracleDeveloperStudio${version}-linux-x86-bin
     if [[ ! -d ${fullname} ]]; then
         compiler=${fullname}.tar.bz2
-        s3get ${S3URL}/$compiler ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
+        fetch ${S3URL}/$compiler | tar Jxf -
     fi
 done
 
