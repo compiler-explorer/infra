@@ -392,9 +392,10 @@ if install_nightly; then
     do_nightly_install clang-trunk clang-trunk
 fi
 
-if install_nightly; then
-    do_nightly_install clang-cppx-trunk clang-cppx-trunk
-fi
+# Not yet working
+#if install_nightly; then
+#    do_nightly_install clang-cppx-trunk clang-cppx-trunk
+#fi
 
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the
 # oracle site. It doesn't like being strip()ped
