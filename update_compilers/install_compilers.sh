@@ -3,8 +3,8 @@
 # This script installs all the free compilers from s3 into a dir in /opt.
 # On EC2 this location is on an EFS drive.
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${DIR}/common.inc
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. ${SCRIPT_DIR}/common.inc
 
 ARG1="$1"
 install_nightly() {
@@ -24,7 +24,7 @@ fi
 S3BUCKET=compiler-explorer
 SUBDIR=opt
 S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
-ALL_COMPILERS=$(python ${DIR}/list_compilers.py --s3url ${S3BUCKET} --prefix ${SUBDIR}/)
+ALL_COMPILERS=$(python ${SCRIPT_DIR}/list_compilers.py --s3url ${S3BUCKET} --prefix ${SUBDIR}/)
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then

@@ -15,4 +15,5 @@ RUN apt install -y \
      xz-utils
 
 COPY *.sh /
+COPY *.py /
 COPY common.inc /
