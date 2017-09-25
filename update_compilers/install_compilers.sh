@@ -345,9 +345,11 @@ gcc_arch_install mips64 5.4.0
 gcc_arch_install mipsel 5.4.0
 gcc_arch_install mips64el 5.4.0
 
-if install_nightly; then
+do_nightly_install() {
+    local COMPILER_PATTERN="$1"
+    local DESTINATION="$2"
     # snapshots/trunk
-    compilers=$(echo $ALL_COMPILERS | grep -oE 'gcc-(7|trunk)-[0-9]+' | sort)
+    compilers=$(echo $ALL_COMPILERS | grep -oE "${COMPILER_PATTERN}-[0-9]+" | sort)
     compiler_array=(${compilers})
     latest=${compiler_array[-1]}
     # Extract the latest...
@@ -355,16 +357,20 @@ if install_nightly; then
         fetch ${S3URL}/${latest}.tar.xz | tar Jxf -
     fi
     # Ensure the symlink points at the latest
-    rm -f ${OPT}/gcc-snapshot
-    ln -s ${latest} ${OPT}/gcc-snapshot
+    rm -f ${OPT}/${DESTINATION}
+    ln -s ${latest} ${OPT}/${DESTINATION}
     # Clean up any old snapshots
-    for compiler in gcc-{7,trunk}-[0-9]*; do
+    for compiler in ${COMPILER_PATTERN}-[0-9]*; do
         if [[ -d ${compiler} ]]; then
             if [[ "${compiler}" != "${latest}" ]]; then
                 rm -rf ${compiler}
             fi
         fi
     done
+}
+
+if install_nightly; then
+    do_nightly_install gcc-trunk gcc-snapshot
 fi
 
 # Custom-built clangs also stripped and UPX'd
@@ -383,25 +389,11 @@ for version in \
 done
 
 if install_nightly; then
-    # trunk builds
-    compilers=$(echo $ALL_COMPILERS | grep -oE "clang-trunk-[0-9]+" | sort)
-    compiler_array=(${compilers})
-    latest=${compiler_array[-1]}
-    # Extract the latest...
-    if [[ ! -d ${latest} ]]; then
-        fetch ${S3URL}/${latest}.tar.xz | tar Jxf -
-    fi
-    # Ensure the symlink points at the latest
-    rm -f ${OPT}/clang-trunk
-    ln -s ${latest} ${OPT}/clang-trunk
-    # Clean up any old snapshots
-    for compiler in clang-trunk-[0-9]*; do
-        if [[ -d ${compiler} ]]; then
-            if [[ "${compiler}" != "${latest}" ]]; then
-                rm -rf ${compiler}
-            fi
-        fi
-    done
+    do_nightly_install clang-trunk clang-trunk
+fi
+
+if install_nightly; then
+    do_nightly_install clang-cppx-trunk clang-cppx-trunk
 fi
 
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the
