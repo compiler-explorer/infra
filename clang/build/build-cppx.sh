@@ -10,7 +10,7 @@ popd
 
 ROOT=$(pwd)
 TAG=trunk
-VERSION=cppx-$(date +%Y%m%d)
+VERSION=cppx-trunk-$(date +%Y%m%d)
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
 S3OUTPUT=""
