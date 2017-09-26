@@ -26,7 +26,7 @@ mkdir -p ${STAGING_DIR}
 
 git clone git@github.com:llvm-mirror/llvm.git
 pushd llvm/tools
-git clone git@github.com:asutton/clang.git
+git clone https://github.com/asutton/clang.git
 popd
 pushd llvm/projects
 git clone git@github.com:llvm-mirror/libcxx.git
