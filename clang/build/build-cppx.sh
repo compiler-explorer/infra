@@ -10,8 +10,7 @@ popd
 
 ROOT=$(pwd)
 TAG=trunk
-VERSION=cppx-trunk-$(date +%Y%m%d)
-LLVM_BASE=http://llvm.org/svn/llvm-project
+VERSION=cppx-$(date +%Y%m%d)
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
 S3OUTPUT=""
@@ -25,13 +24,16 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-svn co ${LLVM_BASE}/llvm/${TAG} llvm
+git clone https://github.com/llvm-mirror/llvm.git
+(cd llvm && git reset --hard 40b1e969f9cb2a0c697e247435193fb006ef1311)
 pushd llvm/tools
 git clone https://github.com/asutton/clang.git
 popd
 pushd llvm/projects
-svn co ${LLVM_BASE}/libcxx/${TAG} libcxx
-svn co ${LLVM_BASE}/libcxxabi/${TAG} libcxxabi
+git clone https://github.com/llvm-mirror/libcxx.git
+(cd libcxx && git reset --hard 64182a5877865cde2538c6038f98e3df33c93a03)
+git clone https://github.com/llvm-mirror/libcxxabi.git
+(cd libcxxabi && git reset --hard c515867bc14c433febcc574baedd081c078124d1)
 popd
 
 mkdir build
