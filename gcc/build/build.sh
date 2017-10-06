@@ -92,7 +92,7 @@ CONFIG+=" --enable-lto"
 CONFIG+=" --enable-plugins"
 CONFIG+=" --enable-threads=posix"
 CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
-BINUTILS_VERSION=2.27
+BINUTILS_VERSION=2.29.1
 
 applyPatchesAndConfig gcc${MAJOR}
 applyPatchesAndConfig gcc${MAJOR_MINOR}
