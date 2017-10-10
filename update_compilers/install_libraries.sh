@@ -39,7 +39,7 @@ get_or_sync() {
     if [ ! -d "${DIR}" ]; then
         git clone "${URL}" "${DIR}"
     else
-	git -C "${DIR}" pull
+	    git -C "${DIR}" pull
     fi
 }
 
@@ -51,6 +51,30 @@ get_or_sync libs/xtensor https://github.com/QuantStack/xtensor.git
 get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
 get_or_sync libs/cctz https://github.com/google/cctz.git
 get_or_sync libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git
+
+get_if_not_there() {
+    local DIR=$1
+    local URL=$2
+    if [[ ! -d ${DIR} ]]; then
+        mkdir -p ${DIR}
+        fetch ${URL} | tar zxf - --strip-components=1 -C ${DIR}
+    fi
+}
+
+get_github_versioned_and_trunk() {
+    local DIR=$1
+    local URL=https://github.com/$2
+    shift
+    shift
+    mkdir -p $DIR
+    get_or_sync ${DIR}/trunk ${URL}.git
+    local version
+    for tag in "$@"; do
+        get_if_not_there ${DIR}/${tag} ${URL}/archive/${tag}.tar.gz
+    done
+}
+
+get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 
 #########################
 
