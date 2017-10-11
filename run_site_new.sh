@@ -99,8 +99,8 @@ init_wine() {
     # Hope that that's enough...
 }
 
-#update_code
-#init_wine
+update_code
+init_wine
 
 export LOG_DIR=/tmp/ce-logs
 mkdir -p ${LOG_DIR}
