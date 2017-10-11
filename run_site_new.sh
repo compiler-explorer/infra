@@ -110,23 +110,27 @@ PORTS=
 start_server() {
     local LANG=$1
     local PORT=$2
-    ./node_modules/.bin/supervisor -s -e node,js,properties -w app.js,etc,lib -- \
+    shift
+    shift
+    env PATH=/opt/compiler-explorer/bin:${PATH} node ./node_modules/.bin/supervisor -s -e node,js,properties -w app.js,etc,lib -- \
         app.js \
         --env amazon \
         --port ${PORT} \
         --lang ${LANG} \
         --static out/dist \
         --archivedVersions ${ARCHIVE_DIR} \
-        ${EXTRA_ARGS} >> ${LOG_DIR}/${LANG}-${PORT}.log 2>&1 &
+        "$@" >> ${LOG_DIR}/${LANG}-${PORT}.log 2>&1 &
      PORTS="${PORTS} ${PORT}"
 }
 
 trap '$SUDO docker stop nginx' SIGINT SIGTERM SIGPIPE
 # TODO: update /etc/log_files.yml to log outputs, or configure outputs directly somehow?
+# TODO handle being the "right" user (not ubuntu/root)
+# TODO check all the relevant apps work
 start_server C++ 10240
 start_server D 10241
 start_server Rust 10242
-start_server C++ 20480
+start_server C++ 20480 --env cppx
 start_server Ispc 20481
 start_server Haskell 20482
 start_server Swift 20483
@@ -138,6 +142,7 @@ $SUDO docker rm nginx || true
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
     --name nginx \
+    --network="host" \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
     -v ${DIR}/nginx.conf:/etc/nginx/nginx.conf:ro \
