@@ -130,6 +130,7 @@ install_mir_algorithm() {
     fi
 }
 install_mir_algorithm 0.5.17
+install_mir_algorithm 0.6.13
 install_mir_algorithm 0.6.21
 
 #########################
