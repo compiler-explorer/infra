@@ -70,18 +70,18 @@ update_code() {
     CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
 }
 
-wait_for_ports() {
-    for PORT in "$@"; do
-        for tensecond in $(seq 15); do
-            if curl http://localhost:$PORT/healthcheck > /dev/null 2>&1; then
-                echo "Server on port ${PORT} is up and running"
-                return
-            fi
-            sleep 10
-        done
-        echo "Failed to get port ${PORT}"
-        exit 1
+wait_for_port() {
+    local PORT=$1
+    local LANG=$2
+    for tensecond in $(seq 15); do
+        if curl http://localhost:$PORT/healthcheck > /dev/null 2>&1; then
+            echo "Server on port ${PORT} is up and running"
+            return
+        fi
+        sleep 10
     done
+    echo "Failed to wait for ${LANG} on port ${PORT}"
+    exit 1
 }
 
 init_wine() {
@@ -105,7 +105,6 @@ init_wine
 export LOG_DIR=/tmp/ce-logs
 mkdir -p ${LOG_DIR}
 cd ${DEPLOY_DIR}
-PORTS=
 
 start_server() {
     local LANG=$1
@@ -120,7 +119,7 @@ start_server() {
         --static out/dist \
         --archivedVersions ${ARCHIVE_DIR} \
         "$@" >> ${LOG_DIR}/${LANG}-${PORT}.log 2>&1 &
-     PORTS="${PORTS} ${PORT}"
+    wait_for_port $PORT $LANG
 }
 
 trap '$SUDO docker stop nginx' SIGINT SIGTERM SIGPIPE
@@ -134,8 +133,6 @@ start_server C++ 20480 --env cppx
 start_server Ispc 20481
 start_server Haskell 20482
 start_server Swift 20483
-
-wait_for_ports ${PORTS}
 
 $SUDO docker stop nginx || true
 $SUDO docker rm nginx || true
