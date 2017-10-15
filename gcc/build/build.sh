@@ -79,12 +79,11 @@ CONFIG+=" --host=x86_64-linux-gnu"
 CONFIG+=" --target=x86_64-linux-gnu"
 CONFIG+=" --disable-bootstrap"
 CONFIG+=" --enable-multiarch"
-CONFIG+=" --with-arch-32=i686"  # For go, apparently
 CONFIG+=" --with-abi=m64"
 CONFIG+=" --with-multilib-list=m32,m64,mx32"
 CONFIG+=" --enable-multilib"
 CONFIG+=" --enable-clocale=gnu"
-CONFIG+=" --enable-languages=c,c++,go,fortran"
+CONFIG+=" --enable-languages=c,c++,fortran" # used to have go, but is incompatible with m32/mx32
 CONFIG+=" --enable-ld=yes"
 CONFIG+=" --enable-gold=yes"
 CONFIG+=" --enable-libstdcxx-debug"
