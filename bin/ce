@@ -1,0 +1,83 @@
+#!/usr/bin/env python
+
+import os
+import boto3
+import readline
+from argparse import ArgumentParser
+
+ec2 = boto3.resource('ec2')
+as_client = boto3.client('autoscaling')
+elb_client = boto3.client('elbv2')
+
+
+def target_group_arn_for(args):
+    if args['env'] == 'prod':
+        return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
+    else:
+        return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/Beta/07d45244520b84c4'
+
+
+class Instance(object):
+    def __init__(self, health):
+        self.instance = ec2.Instance(id=health['Target']['Id'])
+        self.instance.load()
+        self.elb_health = health['TargetHealth']['State']
+
+    def __str__(self):
+        return '%s : %s' % (self.instance, self.health)
+
+    @staticmethod
+    def elb_instances(group_arn):
+        return [Instance(health) for health in
+                elb_client.describe_target_health(TargetGroupArn=group_arn)['TargetHealthDescriptions']]
+
+
+def print_instances(instances, number=False):
+    STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <10}'
+    if number:
+        print '   ',
+    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB Status')
+    count = 0
+    for inst in instances:
+        if number:
+            print '{: <3}'.format(count),
+        count += 1
+        print STATUS_FORMAT.format(
+            inst.instance.public_ip_address,
+            inst.instance.id,
+            inst.instance.state['Name'],
+            inst.instance.instance_type,
+            inst.elb_health)
+
+
+def list(args):
+    print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
+
+
+def pick_instance(args):
+    instances = Instance.elb_instances(target_group_arn_for(args))
+    if len(instances) == 1:
+        return instances[0]
+    while True:
+        print_instances(instances, number=True)
+        inst = raw_input('Which instance? ')
+        try:
+            return instances[int(inst)]
+        except:
+            pass
+
+
+def login(args):
+    instance = pick_instance(args)
+    os.system('ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ubuntu@{}'.format(
+        instance.instance.public_ip_address))
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='Administrate Compiler Explorer instances')
+    parser.add_argument('--env', choices=['prod', 'beta'], default='prod')
+    subparsers = parser.add_subparsers(dest='command')
+    list_parser = subparsers.add_parser('list')
+    login_parser = subparsers.add_parser('login')
+    kwargs = vars(parser.parse_args())
+    globals()[kwargs.pop('command')](kwargs)
