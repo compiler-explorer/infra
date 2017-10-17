@@ -4,6 +4,7 @@ import os
 import boto3
 import readline
 from argparse import ArgumentParser
+import subprocess
 
 ec2 = boto3.resource('ec2')
 as_client = boto3.client('autoscaling')
@@ -17,11 +18,27 @@ def target_group_arn_for(args):
         return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/Beta/07d45244520b84c4'
 
 
+def run_remote(instance, command):
+    os.system(
+        'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{} -- {}'.format(
+            instance.instance.public_ip_address, " ".join(command)))
+
+
+def exec_remote(instance, command):
+    return subprocess.check_output(
+        ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no', '-o', 'LogLevel=ERROR',
+         'ubuntu@' + instance.instance.public_ip_address, '--'] + command)
+
+
 class Instance(object):
     def __init__(self, health):
         self.instance = ec2.Instance(id=health['Target']['Id'])
         self.instance.load()
         self.elb_health = health['TargetHealth']['State']
+        self.service_status = {key: value for key, value in
+                               (s.split("=", 1) for s in
+                                exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
+                                "=" in s)}
 
     def __str__(self):
         return '%s : %s' % (self.instance, self.health)
@@ -33,10 +50,10 @@ class Instance(object):
 
 
 def print_instances(instances, number=False):
-    STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <10}'
+    STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <10} {: <10}'
     if number:
         print '   ',
-    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB Status')
+    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB Status', 'Service Status')
     count = 0
     for inst in instances:
         if number:
@@ -47,10 +64,11 @@ def print_instances(instances, number=False):
             inst.instance.id,
             inst.instance.state['Name'],
             inst.instance.instance_type,
-            inst.elb_health)
+            inst.elb_health,
+            inst.service_status['SubState'])
 
 
-def list(args):
+def list_cmd(args):
     print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
 
 
@@ -67,10 +85,19 @@ def pick_instance(args):
             pass
 
 
-def login(args):
+def pick_instances(args):
+    # TODO, maybe something in args to select only some?
+    return Instance.elb_instances(target_group_arn_for(args))
+
+
+def login_cmd(args):
     instance = pick_instance(args)
-    os.system('ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no ubuntu@{}'.format(
-        instance.instance.public_ip_address))
+    run_remote(instance, [])
+
+
+def restart_cmd(args):
+    for instance in pick_instances(args):
+        run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
 
 
 if __name__ == '__main__':
@@ -79,5 +106,8 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(dest='command')
     list_parser = subparsers.add_parser('list')
     login_parser = subparsers.add_parser('login')
+    start_parser = subparsers.add_parser('start')
+    stop_parser = subparsers.add_parser('stop')
+    restart_parser = subparsers.add_parser('restart')
     kwargs = vars(parser.parse_args())
-    globals()[kwargs.pop('command')](kwargs)
+    globals()[kwargs.pop('command') + "_cmd"](kwargs)
