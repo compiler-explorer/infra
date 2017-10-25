@@ -5,10 +5,13 @@ import boto3
 import readline
 from argparse import ArgumentParser
 import subprocess
+import itertools
 
 ec2 = boto3.resource('ec2')
 as_client = boto3.client('autoscaling')
 elb_client = boto3.client('elbv2')
+s3 = boto3.resource('s3')
+s3_client = boto3.client('s3')
 
 
 def target_group_arn_for(args):
@@ -68,7 +71,7 @@ def print_instances(instances, number=False):
             inst.service_status['SubState'])
 
 
-def list_cmd(args):
+def status_cmd(args):
     print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
 
 
@@ -95,6 +98,72 @@ def login_cmd(args):
     run_remote(instance, [])
 
 
+class Hash(object):
+    def __init__(self, hash):
+        self.hash = hash
+
+    def __repr__(self):
+        return self.hash
+
+    def __str__(self):
+        return self.hash[:6] + ".." + self.hash[-6:]
+
+
+class Release(object):
+    def __init__(self, version, branch, key, size, hash):
+        self.version = version
+        self.branch = branch
+        self.key = key
+        self.size = size
+        self.hash = hash
+
+    def __repr__(self):
+        return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
+
+
+def sizeof_fmt(num, suffix='B'):
+    for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
+        if abs(num) < 1024.0:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= 1024.0
+    return "%.1f%s%s" % (num, 'Yi', suffix)
+
+
+def list_cmd(args):
+    releases = get_releases()
+    RELEASE_FORMAT = '{: <10} {: <10} {: <10} {: <14}'
+    print RELEASE_FORMAT.format('Branch', 'Version', 'Size', 'Hash')
+    for branch, releases in itertools.groupby(releases, lambda r: r.branch):
+        for release in releases:
+            print RELEASE_FORMAT.format(release.branch, release.version, sizeof_fmt(release.size), release.hash)
+
+
+def get_releases():
+    paginator = s3_client.get_paginator('list_objects_v2')
+    PREFIX = 'dist/travis/'
+    result_iterator = paginator.paginate(
+        Bucket='compiler-explorer',
+        Prefix=PREFIX
+    )
+    releases = []
+    for result in result_iterator.search('[Contents][]'):
+        key = result['Key']
+        if not key.endswith(".tar.xz"):
+            continue
+        split_key = key.split('/')
+        branch = split_key[-2]
+        version = split_key[-1].split('.')[0]
+        size = result['Size']
+        info_key = "/".join(split_key[:-1]) + "/" + version + ".txt"
+        o = s3_client.get_object(
+            Bucket='compiler-explorer',
+            Key=info_key
+        )
+        hash = o['Body'].read().strip()
+        releases.append(Release(int(version), branch, key, size, Hash(hash)))
+    return releases
+
+
 def restart_cmd(args):
     for instance in pick_instances(args):
         run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
@@ -105,6 +174,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', choices=['prod', 'beta'], default='prod')
     subparsers = parser.add_subparsers(dest='command')
     list_parser = subparsers.add_parser('list')
+    status_parser = subparsers.add_parser('status')
     login_parser = subparsers.add_parser('login')
     start_parser = subparsers.add_parser('start')
     stop_parser = subparsers.add_parser('stop')
