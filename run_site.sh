@@ -43,7 +43,7 @@ get_released_code() {
     echo "Unpacking build from ${URL}"
     mkdir -p $1
     pushd $1
-    echo ${URL} > s3_key
+    echo ${S3_KEY} > s3_key
     curl -sL ${URL} | tar Jxf -
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
