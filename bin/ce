@@ -14,6 +14,9 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 
 
+# TODO document aws policy needed.
+# S3-compiler-explorer-acces seems to be fairly minimal. XaniaBlog seems too open
+
 def target_group_arn_for(args):
     if args['env'] == 'prod':
         return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
