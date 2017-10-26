@@ -21,16 +21,21 @@ def target_group_arn_for(args):
         return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/Beta/07d45244520b84c4'
 
 
+# TODO connect timeout on SSH and handle more gracefully
 def run_remote(instance, command):
+    # print "Running '{}' on {}".format(" ".join(command), instance)
     os.system(
-        'ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{} -- {}'.format(
+        'ssh -o ConnectTimeout=2 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{} -- {}'.format(
             instance.instance.public_ip_address, " ".join(command)))
 
 
 def exec_remote(instance, command):
+    # TODO properlogging
+    # print "Running '{}' on {}".format(" ".join(command), instance)
     return subprocess.check_output(
-        ['ssh', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no', '-o', 'LogLevel=ERROR',
-         'ubuntu@' + instance.instance.public_ip_address, '--'] + command)
+        ['ssh', '-o', 'ConnectTimeout=2', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
+         '-o', 'LogLevel=ERROR',
+         'ubuntu@' + instance.instance.public_ip_address, '--'] + ["'{}'".format(c) for c in command])
 
 
 class Instance(object):
@@ -42,9 +47,13 @@ class Instance(object):
                                (s.split("=", 1) for s in
                                 exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
                                 "=" in s)}
+        self.running_version = exec_remote(self, [
+            'bash', '-c',
+            'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; then cat /compiler-explorer-image/.deploy/s3_key; fi'
+        ]).strip()
 
     def __str__(self):
-        return '%s : %s' % (self.instance, self.health)
+        return '%s' % self.instance
 
     @staticmethod
     def elb_instances(group_arn):
@@ -53,22 +62,29 @@ class Instance(object):
 
 
 def print_instances(instances, number=False):
-    STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <10} {: <10}'
+    STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
     if number:
         print '   ',
-    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB Status', 'Service Status')
+    releases = get_releases()
+    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB', 'Service', 'Version')
     count = 0
     for inst in instances:
         if number:
             print '{: <3}'.format(count),
         count += 1
+        running_version = release_for(releases, inst.running_version)
+        if running_version:
+            running_version = '{} ({})'.format(running_version.version, running_version.branch)
+        else:
+            running_version = '(unknown {})'.format(inst.running_version)
         print STATUS_FORMAT.format(
             inst.instance.public_ip_address,
             inst.instance.id,
             inst.instance.state['Name'],
             inst.instance.instance_type,
             inst.elb_health,
-            inst.service_status['SubState'])
+            inst.service_status['SubState'],
+            running_version)
 
 
 def status_cmd(args):
@@ -132,12 +148,12 @@ def sizeof_fmt(num, suffix='B'):
 def list_cmd(args):
     current = get_current_key(args)
     releases = get_releases()
-    RELEASE_FORMAT = '{: <4} {: <10} {: <10} {: <10} {: <14}'
+    RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
     print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
     for branch, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
             print RELEASE_FORMAT.format(
-                '**' if release.key == current else '',
+                ' -->' if release.key == current else '',
                 release.branch, release.version, sizeof_fmt(release.size), release.hash)
 
 
@@ -176,17 +192,23 @@ def set_current_key(args, key):
     )
 
 
+def release_for(releases, s3_key):
+    for r in releases:
+        if r.key == s3_key:
+            return r
+    return None
+
+
 def current_cmd(args):
     current = get_current_key(args)
     if not current:
         print "No current version set"
         return
-    releases = get_releases()
-    for r in releases:
-        if r.key == current:
-            print r
-            return
-    print "Non-standard release with s3 key '{}'".format(current)
+    r = release_for(get_releases(), current)
+    if r:
+        print r
+    else:
+        print "Non-standard release with s3 key '{}'".format(current)
 
 
 def get_releases():
@@ -224,6 +246,8 @@ def find_release(version):
 
 def restart_cmd(args):
     # TODO are you sure in prod
+    # TODO handle "nice" draining instead of just doing them all straight away.
+    # TODO needs to work with load balancers etc.
     for instance in pick_instances(args):
         run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
 
