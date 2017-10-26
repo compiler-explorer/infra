@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os
+import os, sys
 import boto3
 import readline
 from argparse import ArgumentParser
@@ -130,12 +130,63 @@ def sizeof_fmt(num, suffix='B'):
 
 
 def list_cmd(args):
+    current = get_current_key(args)
     releases = get_releases()
-    RELEASE_FORMAT = '{: <10} {: <10} {: <10} {: <14}'
-    print RELEASE_FORMAT.format('Branch', 'Version', 'Size', 'Hash')
+    RELEASE_FORMAT = '{: <4} {: <10} {: <10} {: <10} {: <14}'
+    print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
     for branch, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
-            print RELEASE_FORMAT.format(release.branch, release.version, sizeof_fmt(release.size), release.hash)
+            print RELEASE_FORMAT.format(
+                '**' if release.key == current else '',
+                release.branch, release.version, sizeof_fmt(release.size), release.hash)
+
+
+def branch_for_env(args):
+    if args['env'] == 'prod':
+        return 'release'
+    elif args['env'] == 'beta':
+        return 'beta'
+    else:
+        return 'master'
+
+
+def version_key_for_env(env):
+    return 'version/{}'.format(branch_for_env(env))
+
+
+def get_current_key(args):
+    try:
+        o = s3_client.get_object(
+            Bucket='compiler-explorer',
+            Key=version_key_for_env(args)
+        )
+        return o['Body'].read().strip()
+    except s3_client.exceptions.NoSuchKey:
+        return None
+
+
+def set_current_key(args, key):
+    s3_key = version_key_for_env(args)
+    print 'Setting {} to {}'.format(s3_key, key)
+    s3_client.put_object(
+        Bucket='compiler-explorer',
+        Key=s3_key,
+        Body=key,
+        ACL='public-read'
+    )
+
+
+def current_cmd(args):
+    current = get_current_key(args)
+    if not current:
+        print "No current version set"
+        return
+    releases = get_releases()
+    for r in releases:
+        if r.key == current:
+            print r
+            return
+    print "Non-standard release with s3 key '{}'".format(current)
 
 
 def get_releases():
@@ -164,9 +215,31 @@ def get_releases():
     return releases
 
 
+def find_release(version):
+    for r in get_releases():
+        if r.version == version:
+            return r
+    return None
+
+
 def restart_cmd(args):
+    # TODO are you sure in prod
     for instance in pick_instances(args):
         run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
+
+
+def set_current_cmd(args):
+    if args['raw']:
+        to_set = args['version']
+    else:
+        release = find_release(int(args['version']))
+        if not release:
+            print "Unable to find version " + args.version
+            sys.exit(1)
+        print 'Found release {}'.format(release)
+        to_set = release.key
+    set_current_key(args, to_set)
+    # TODO, ideally sync the versioned directory here, requires remote machine
 
 
 if __name__ == '__main__':
@@ -179,5 +252,9 @@ if __name__ == '__main__':
     start_parser = subparsers.add_parser('start')
     stop_parser = subparsers.add_parser('stop')
     restart_parser = subparsers.add_parser('restart')
+    current_parser = subparsers.add_parser('current')
+    set_current = subparsers.add_parser('set_current')
+    set_current.add_argument('version', help='version to set')
+    set_current.add_argument('--raw', action='store_true', help='set a raw path for a version')
     kwargs = vars(parser.parse_args())
     globals()[kwargs.pop('command') + "_cmd"](kwargs)

@@ -37,31 +37,14 @@ CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
 CFG="${CFG} -v /var/run/docker.sock:/var/run/docker.sock"
 
-get_from_git() {
-    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git $1
-    pushd $1
-    local DIST_CMD="env NODE_ENV=development PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
-    if [[ $UID = 0 ]]; then
-        chown -R ubuntu .
-        su -c "${DIST_CMD}" ubuntu
-    else
-        ${DIST_CMD}
-    fi
-    popd
-}
-
 get_released_code() {
-    local HASH=$(git ls-remote https://github.com/mattgodbolt/compiler-explorer.git refs/heads/${BRANCH} | awk '{ print $1 }')
-    local TEMPFILE=/tmp/ce-release.tar.xz
-    aws s3 cp s3://compiler-explorer/dist/${HASH}.tar.xz ${TEMPFILE} || true
-    if [[ ! -f ${TEMPFILE} ]]; then
-        get_from_git $1
-        return
-    fi
+    local S3_KEY=$(curl -sL https://s3.amazonaws.com/compiler-explorer/version/${BRANCH})
+    local URL=https://s3.amazonaws.com/compiler-explorer/${S3_KEY}
+    echo "Unpacking build from ${URL}"
     mkdir -p $1
     pushd $1
-    tar Jxf ${TEMPFILE}
-    rm ${TEMPFILE}
+    echo ${URL} > s3_key
+    curl -sL ${URL} | tar Jxf -
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
     fi
@@ -74,6 +57,7 @@ update_code() {
     get_released_code ${DEPLOY_DIR}
     CFG="${CFG} -v${DEPLOY_DIR}:/compiler-explorer:ro"
     # Back up the 'v' directory to the long-term archive
+    # TODO; have the `ce` script do this and then we can mount the nfs drive readonly
     mkdir -p ${ARCHIVE_DIR}
     rsync -av ${DEPLOY_DIR}/out/dist/v/ ${ARCHIVE_DIR}
     CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
