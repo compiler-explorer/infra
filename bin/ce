@@ -6,12 +6,15 @@ import readline
 from argparse import ArgumentParser
 import subprocess
 import itertools
+import logging
+import time
 
 ec2 = boto3.resource('ec2')
 as_client = boto3.client('autoscaling')
 elb_client = boto3.client('elbv2')
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
+as_client = boto3.client('autoscaling')
 
 
 # TODO document aws policy needed.
@@ -42,7 +45,8 @@ def exec_remote(instance, command):
 
 
 class Instance(object):
-    def __init__(self, health):
+    def __init__(self, health, group_arn):
+        self.group_arn = group_arn
         self.instance = ec2.Instance(id=health['Target']['Id'])
         self.instance.load()
         self.elb_health = health['TargetHealth']['State']
@@ -58,9 +62,19 @@ class Instance(object):
     def __str__(self):
         return '%s' % self.instance
 
+    def describe_autoscale(self):
+        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
+        return results['AutoScalingInstances'][0]
+
+    def update_elb_health(self):
+        health = elb_client.describe_target_health(
+            TargetGroupArn=self.group_arn,
+            Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
+        self.elb_health = health['TargetHealth']['State']
+
     @staticmethod
     def elb_instances(group_arn):
-        return [Instance(health) for health in
+        return [Instance(health, group_arn) for health in
                 elb_client.describe_target_health(TargetGroupArn=group_arn)['TargetHealthDescriptions']]
 
 
@@ -247,12 +261,55 @@ def find_release(version):
     return None
 
 
+def wait_for_autoscale_state(instance, state):
+    logging.info("Waiting for {} to reach autoscale lifecycle '{}'...".format(instance, state))
+    while True:
+        cur_state = instance.describe_autoscale()['LifecycleState']
+        logging.debug("State is {}".format(cur_state));
+        if cur_state == state:
+            logging.info("...done")
+            return
+        time.sleep(5)
+
+
+def wait_for_elb_state(instance, state):
+    logging.info("Waiting for {} to reach ELB state '{}'...".format(instance, state))
+    while True:
+        instance.update_elb_health()
+        logging.debug("State is {}".format(instance.elb_health));
+        if instance.elb_health == state:
+            logging.info("...done")
+            return
+        time.sleep(5)
+
+
 def restart_cmd(args):
     # TODO are you sure in prod
     # TODO handle "nice" draining instead of just doing them all straight away.
     # TODO needs to work with load balancers etc.
     for instance in pick_instances(args):
+        logging.info("Restarting {}...".format(instance))
+        instance_id = instance.instance.instance_id
+        as_group = instance.describe_autoscale()
+        if as_group['LifecycleState'] != 'InService':
+            logging.error("Skipping {} as it is not InService ({})".format(instance, as_group))
+            continue
+        logging.info("Putting {} into standby".format(instance))
+        # TODO decrement desired capacity if wouldn't go below minimum?
+        as_client.enter_standby(
+            InstanceIds=[instance_id],
+            AutoScalingGroupName=as_group['AutoScalingGroupName'],
+            ShouldDecrementDesiredCapacity=True)
+        wait_for_autoscale_state(instance, 'Standby')
+        logging.info("Restarting service on {}".format(instance))
         run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
+        logging.info("Moving {} out of standby".format(instance))
+        as_client.exit_standby(
+            InstanceIds=[instance_id],
+            AutoScalingGroupName=as_group['AutoScalingGroupName'])
+        wait_for_autoscale_state(instance, 'InService')
+        wait_for_elb_state(instance, 'healthy')
+        # maybe use instance protection?
 
 
 def set_current_cmd(args):
@@ -272,6 +329,7 @@ def set_current_cmd(args):
 if __name__ == '__main__':
     parser = ArgumentParser(description='Administrate Compiler Explorer instances')
     parser.add_argument('--env', choices=['prod', 'beta'], default='prod')
+    parser.add_argument('--debug', action='store_true')
     subparsers = parser.add_subparsers(dest='command')
     list_parser = subparsers.add_parser('list')
     status_parser = subparsers.add_parser('status')
@@ -284,4 +342,8 @@ if __name__ == '__main__':
     set_current.add_argument('version', help='version to set')
     set_current.add_argument('--raw', action='store_true', help='set a raw path for a version')
     kwargs = vars(parser.parse_args())
+    if kwargs['debug']:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
     globals()[kwargs.pop('command') + "_cmd"](kwargs)
