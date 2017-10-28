@@ -8,6 +8,7 @@ import subprocess
 import itertools
 import logging
 import time
+import pprint
 
 ec2 = boto3.resource('ec2')
 as_client = boto3.client('autoscaling')
@@ -102,6 +103,11 @@ def print_instances(instances, number=False):
             inst.elb_health,
             inst.service_status['SubState'],
             running_version)
+
+
+def get_autoscaling_group(group_name):
+    result = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[group_name])
+    return result['AutoScalingGroups'][0]
 
 
 def status_cmd(args):
@@ -285,31 +291,73 @@ def wait_for_elb_state(instance, state):
 
 def restart_cmd(args):
     # TODO are you sure in prod
-    # TODO handle "nice" draining instead of just doing them all straight away.
-    # TODO needs to work with load balancers etc.
+    # maybe use instance protection?
+    modified_groups = {}
     for instance in pick_instances(args):
         logging.info("Restarting {}...".format(instance))
         instance_id = instance.instance.instance_id
-        as_group = instance.describe_autoscale()
-        if as_group['LifecycleState'] != 'InService':
-            logging.error("Skipping {} as it is not InService ({})".format(instance, as_group))
+        as_instance_status = instance.describe_autoscale()
+        as_group_name = as_instance_status['AutoScalingGroupName']
+        if as_instance_status['LifecycleState'] != 'InService':
+            logging.error("Skipping {} as it is not InService ({})".format(instance, as_instance_status))
             continue
+
+        logging.info("Enabling instance protection for {}".format(instance))
+        as_client.set_instance_protection(AutoScalingGroupName=as_group_name,
+                                          InstanceIds=[instance_id],
+                                          ProtectedFromScaleIn=True)
+
+        as_group = get_autoscaling_group(as_group_name)
+        adjustment_required = as_group['DesiredCapacity'] == as_group['MinSize']
+        if adjustment_required:
+            logging.info("Group '{}' needs to be adjusted to keep enough nodes".format(as_group_name))
+            modified_groups[as_group['AutoScalingGroupName']] = as_group['DesiredCapacity']
         logging.info("Putting {} into standby".format(instance))
-        # TODO decrement desired capacity if wouldn't go below minimum?
         as_client.enter_standby(
             InstanceIds=[instance_id],
-            AutoScalingGroupName=as_group['AutoScalingGroupName'],
-            ShouldDecrementDesiredCapacity=True)
+            AutoScalingGroupName=as_group_name,
+            ShouldDecrementDesiredCapacity=not adjustment_required)
         wait_for_autoscale_state(instance, 'Standby')
         logging.info("Restarting service on {}".format(instance))
         run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
         logging.info("Moving {} out of standby".format(instance))
         as_client.exit_standby(
             InstanceIds=[instance_id],
-            AutoScalingGroupName=as_group['AutoScalingGroupName'])
+            AutoScalingGroupName=as_group_name)
         wait_for_autoscale_state(instance, 'InService')
+        # TODO abort if it hits...'unused' or something else (if it gets killed even with the protection on)
+        """
+        <DescribeTargetHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
+  <DescribeTargetHealthResult>
+    <TargetHealthDescriptions>
+      <member>
+        <TargetHealth>
+          <Reason>Target.NotRegistered</Reason>
+          <Description>Target is not registered to the target group</Description>
+          <State>unused</State>
+        </TargetHealth>
+        <Target>
+          <Id>i-066f76ff8178320c7</Id>
+          <Port>80</Port>
+        </Target>
+      </member>
+    </TargetHealthDescriptions>
+  </DescribeTargetHealthResult>
+  <ResponseMetadata>
+    <RequestId>38d12de0-bc14-11e7-a254-3782e3a7f02a</RequestId>
+  </ResponseMetadata>
+</DescribeTargetHealthResponse>
+        """
         wait_for_elb_state(instance, 'healthy')
-        # maybe use instance protection?
+
+        logging.info("Disabling instance protection for {}".format(instance))
+        as_client.set_instance_protection(AutoScalingGroupName=as_group_name,
+                                          InstanceIds=[instance_id],
+                                          ProtectedFromScaleIn=False)
+
+    for group, desired in modified_groups.iteritems():
+        logging.info("Putting desired instances for {} back to {}".format(group, desired))
+        as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
 
 
 def set_current_cmd(args):
