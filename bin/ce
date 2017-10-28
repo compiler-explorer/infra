@@ -10,6 +10,8 @@ import logging
 import time
 import pprint
 
+logger = logger.getLogger(__name__)
+
 ec2 = boto3.resource('ec2')
 as_client = boto3.client('autoscaling')
 elb_client = boto3.client('elbv2')
@@ -49,6 +51,20 @@ class Instance(object):
     def __init__(self, health, group_arn):
         self.group_arn = group_arn
         self.instance = ec2.Instance(id=health['Target']['Id'])
+        self.update(health)
+
+    def __str__(self):
+        return '%s' % self.instance
+
+    def describe_autoscale(self):
+        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
+        return results['AutoScalingInstances'][0]
+
+    def update(self, health=None):
+        if not health:
+            health = elb_client.describe_target_health(
+                TargetGroupArn=self.group_arn,
+                Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
         self.instance.load()
         self.elb_health = health['TargetHealth']['State']
         self.service_status = {key: value for key, value in
@@ -59,19 +75,6 @@ class Instance(object):
             'bash', '-c',
             'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; then cat /compiler-explorer-image/.deploy/s3_key; fi'
         ]).strip()
-
-    def __str__(self):
-        return '%s' % self.instance
-
-    def describe_autoscale(self):
-        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
-        return results['AutoScalingInstances'][0]
-
-    def update_elb_health(self):
-        health = elb_client.describe_target_health(
-            TargetGroupArn=self.group_arn,
-            Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
-        self.elb_health = health['TargetHealth']['State']
 
     @staticmethod
     def elb_instances(group_arn):
@@ -268,23 +271,26 @@ def find_release(version):
 
 
 def wait_for_autoscale_state(instance, state):
-    logging.info("Waiting for {} to reach autoscale lifecycle '{}'...".format(instance, state))
+    logger.info("Waiting for {} to reach autoscale lifecycle '{}'...".format(instance, state))
     while True:
         cur_state = instance.describe_autoscale()['LifecycleState']
-        logging.debug("State is {}".format(cur_state));
+        logger.debug("State is {}".format(cur_state));
         if cur_state == state:
-            logging.info("...done")
+            logger.info("...done")
             return
         time.sleep(5)
 
 
 def wait_for_elb_state(instance, state):
-    logging.info("Waiting for {} to reach ELB state '{}'...".format(instance, state))
+    logger.info("Waiting for {} to reach ELB state '{}'...".format(instance, state))
     while True:
-        instance.update_elb_health()
-        logging.debug("State is {}".format(instance.elb_health));
+        instance.update()
+        instance_state = instance.instance.state['Name']
+        if instance_state != 'running':
+            raise RuntimeError('Instance no longer running (state {})'.format(instance_state))
+        logger.debug("State is {}".format(instance.elb_health));
         if instance.elb_health == state:
-            logging.info("...done")
+            logger.info("...done")
             return
         time.sleep(5)
 
@@ -293,71 +299,58 @@ def restart_cmd(args):
     # TODO are you sure in prod
     # maybe use instance protection?
     modified_groups = {}
+    failed = False
     for instance in pick_instances(args):
-        logging.info("Restarting {}...".format(instance))
-        instance_id = instance.instance.instance_id
+        logger.info("Restarting {}...".format(instance))
         as_instance_status = instance.describe_autoscale()
         as_group_name = as_instance_status['AutoScalingGroupName']
         if as_instance_status['LifecycleState'] != 'InService':
-            logging.error("Skipping {} as it is not InService ({})".format(instance, as_instance_status))
+            logger.error("Skipping {} as it is not InService ({})".format(instance, as_instance_status))
             continue
 
-        logging.info("Enabling instance protection for {}".format(instance))
-        as_client.set_instance_protection(AutoScalingGroupName=as_group_name,
-                                          InstanceIds=[instance_id],
-                                          ProtectedFromScaleIn=True)
-
-        as_group = get_autoscaling_group(as_group_name)
-        adjustment_required = as_group['DesiredCapacity'] == as_group['MinSize']
-        if adjustment_required:
-            logging.info("Group '{}' needs to be adjusted to keep enough nodes".format(as_group_name))
-            modified_groups[as_group['AutoScalingGroupName']] = as_group['DesiredCapacity']
-        logging.info("Putting {} into standby".format(instance))
-        as_client.enter_standby(
-            InstanceIds=[instance_id],
-            AutoScalingGroupName=as_group_name,
-            ShouldDecrementDesiredCapacity=not adjustment_required)
-        wait_for_autoscale_state(instance, 'Standby')
-        logging.info("Restarting service on {}".format(instance))
-        run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
-        logging.info("Moving {} out of standby".format(instance))
-        as_client.exit_standby(
-            InstanceIds=[instance_id],
-            AutoScalingGroupName=as_group_name)
-        wait_for_autoscale_state(instance, 'InService')
-        # TODO abort if it hits...'unused' or something else (if it gets killed even with the protection on)
-        """
-        <DescribeTargetHealthResponse xmlns="http://elasticloadbalancing.amazonaws.com/doc/2015-12-01/">
-  <DescribeTargetHealthResult>
-    <TargetHealthDescriptions>
-      <member>
-        <TargetHealth>
-          <Reason>Target.NotRegistered</Reason>
-          <Description>Target is not registered to the target group</Description>
-          <State>unused</State>
-        </TargetHealth>
-        <Target>
-          <Id>i-066f76ff8178320c7</Id>
-          <Port>80</Port>
-        </Target>
-      </member>
-    </TargetHealthDescriptions>
-  </DescribeTargetHealthResult>
-  <ResponseMetadata>
-    <RequestId>38d12de0-bc14-11e7-a254-3782e3a7f02a</RequestId>
-  </ResponseMetadata>
-</DescribeTargetHealthResponse>
-        """
-        wait_for_elb_state(instance, 'healthy')
-
-        logging.info("Disabling instance protection for {}".format(instance))
-        as_client.set_instance_protection(AutoScalingGroupName=as_group_name,
-                                          InstanceIds=[instance_id],
-                                          ProtectedFromScaleIn=False)
+        try:
+            restart_one_instance(as_group_name, instance, modified_groups)
+        except Exception, e:
+            logger.error("Failed restarting {} - skipping: {}".format(instance, e))
+            failed = True
+            # TODO, what here?
 
     for group, desired in modified_groups.iteritems():
-        logging.info("Putting desired instances for {} back to {}".format(group, desired))
+        logger.info("Putting desired instances for {} back to {}".format(group, desired))
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
+    sys.exit(1 if failed else 0)
+
+
+def restart_one_instance(as_group_name, instance, modified_groups):
+    instance_id = instance.instance.instance_id
+    logger.info("Enabling instance protection for {}".format(instance))
+    as_client.set_instance_protection(AutoScalingGroupName=as_group_name,
+                                      InstanceIds=[instance_id],
+                                      ProtectedFromScaleIn=True)
+    as_group = get_autoscaling_group(as_group_name)
+    adjustment_required = as_group['DesiredCapacity'] == as_group['MinSize']
+    if adjustment_required:
+        logger.info("Group '{}' needs to be adjusted to keep enough nodes".format(as_group_name))
+        modified_groups[as_group['AutoScalingGroupName']] = as_group['DesiredCapacity']
+    logger.info("Putting {} into standby".format(instance))
+    as_client.enter_standby(
+        InstanceIds=[instance_id],
+        AutoScalingGroupName=as_group_name,
+        ShouldDecrementDesiredCapacity=not adjustment_required)
+    wait_for_autoscale_state(instance, 'Standby')
+    logger.info("Restarting service on {}".format(instance))
+    run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
+    logger.info("Moving {} out of standby".format(instance))
+    as_client.exit_standby(
+        InstanceIds=[instance_id],
+        AutoScalingGroupName=as_group_name)
+    wait_for_autoscale_state(instance, 'InService')
+    wait_for_elb_state(instance, 'healthy')
+    logger.info("Disabling instance protection for {}".format(instance))
+    as_client.set_instance_protection(AutoScalingGroupName=as_group_name,
+                                      InstanceIds=[instance_id],
+                                      ProtectedFromScaleIn=False)
+    logger.info("Instance restarted ok")
 
 
 def set_current_cmd(args):
@@ -391,7 +384,7 @@ if __name__ == '__main__':
     set_current.add_argument('--raw', action='store_true', help='set a raw path for a version')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
-        logging.basicConfig(level=logging.DEBUG)
+        logging.basicConfig(level=logger.DEBUG)
     else:
-        logging.basicConfig(level=logging.INFO)
+        logging.basicConfig(level=logger.INFO)
     globals()[kwargs.pop('command') + "_cmd"](kwargs)
