@@ -10,7 +10,7 @@ import logging
 import time
 import pprint
 
-logger = logger.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 ec2 = boto3.resource('ec2')
 as_client = boto3.client('autoscaling')
@@ -384,7 +384,7 @@ if __name__ == '__main__':
     set_current.add_argument('--raw', action='store_true', help='set a raw path for a version')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
-        logging.basicConfig(level=logger.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
     else:
-        logging.basicConfig(level=logger.INFO)
+        logging.basicConfig(level=logging.INFO)
     globals()[kwargs.pop('command') + "_cmd"](kwargs)
