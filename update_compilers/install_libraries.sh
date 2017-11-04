@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script installs all the libraries to be used by
+# This script installs all the libraries to be used by Compiler Explorer
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${DIR}/common.inc
