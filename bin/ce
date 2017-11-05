@@ -51,6 +51,9 @@ class Instance(object):
     def __init__(self, health, group_arn):
         self.group_arn = group_arn
         self.instance = ec2.Instance(id=health['Target']['Id'])
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'unknown'
         self.update(health)
 
     def __str__(self):
@@ -67,14 +70,18 @@ class Instance(object):
                 Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
         self.instance.load()
         self.elb_health = health['TargetHealth']['State']
-        self.service_status = {key: value for key, value in
-                               (s.split("=", 1) for s in
-                                exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
-                                "=" in s)}
-        self.running_version = exec_remote(self, [
-            'bash', '-c',
-            'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; then cat /compiler-explorer-image/.deploy/s3_key; fi'
-        ]).strip()
+        try:
+            self.service_status = {key: value for key, value in
+                                   (s.split("=", 1) for s in
+                                    exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
+                                    "=" in s)}
+            self.running_version = exec_remote(self, [
+                'bash', '-c',
+                'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; '
+                'then cat /compiler-explorer-image/.deploy/s3_key; fi'
+            ]).strip()
+        except subprocess.CalledProcessError, e:
+            logger.warn("Failed to execute on remote host: {}".format(e))
 
     @staticmethod
     def elb_instances(group_arn):
@@ -388,4 +395,6 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
+        logging.getLogger('boto3').setLevel(logging.WARNING)
+        logging.getLogger('botocore').setLevel(logging.WARNING)
     globals()[kwargs.pop('command') + "_cmd"](kwargs)
