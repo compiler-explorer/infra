@@ -8,7 +8,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 #########################
 # node.js
 
-TARGET_NODE_VERSION=v6.11.3
+TARGET_NODE_VERSION=v8.9.0
 CURRENT_NODE_VERSION=""
 if [[ -d node ]]; then
     CURRENT_NODE_VERSION=$(node/bin/node --version)
