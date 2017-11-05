@@ -1,0 +1,75 @@
+import logging
+import subprocess
+
+from lib.amazon import ec2, as_client, elb_client, get_releases, release_for
+from lib.ssh import exec_remote
+
+STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
+logger = logging.getLogger('ssh')
+
+
+class Instance(object):
+    def __init__(self, health, group_arn):
+        self.group_arn = group_arn
+        self.instance = ec2.Instance(id=health['Target']['Id'])
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'unknown'
+        self.update(health)
+
+    def __str__(self):
+        return '{}@{}'.format(self.instance.id, self.instance.public_ip_address)
+
+    def describe_autoscale(self):
+        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
+        return results['AutoScalingInstances'][0]
+
+    def update(self, health=None):
+        if not health:
+            health = elb_client.describe_target_health(
+                TargetGroupArn=self.group_arn,
+                Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
+        self.instance.load()
+        self.elb_health = health['TargetHealth']['State']
+        try:
+            self.service_status = {key: value for key, value in
+                                   (s.split("=", 1) for s in
+                                    exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
+                                    "=" in s)}
+            self.running_version = exec_remote(self, [
+                'bash', '-c',
+                'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; '
+                'then cat /compiler-explorer-image/.deploy/s3_key; fi'
+            ]).strip()
+        except subprocess.CalledProcessError, e:
+            logger.warn("Failed to execute on remote host: {}".format(e))
+
+    @staticmethod
+    def elb_instances(group_arn):
+        return [Instance(health, group_arn) for health in
+                elb_client.describe_target_health(TargetGroupArn=group_arn)['TargetHealthDescriptions']]
+
+
+def print_instances(instances, number=False):
+    if number:
+        print '   ',
+    releases = get_releases()
+    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB', 'Service', 'Version')
+    count = 0
+    for inst in instances:
+        if number:
+            print '{: <3}'.format(count),
+        count += 1
+        running_version = release_for(releases, inst.running_version)
+        if running_version:
+            running_version = '{} ({})'.format(running_version.version, running_version.branch)
+        else:
+            running_version = '(unknown {})'.format(inst.running_version)
+        print STATUS_FORMAT.format(
+            inst.instance.public_ip_address,
+            inst.instance.id,
+            inst.instance.state['Name'],
+            inst.instance.instance_type,
+            inst.elb_health,
+            inst.service_status['SubState'],
+            running_version)

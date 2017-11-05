@@ -1,123 +1,20 @@
 #!/usr/bin/env python
 
-import os, sys
-import boto3
-import readline
-from argparse import ArgumentParser
-import subprocess
-import itertools
 import logging
+from argparse import ArgumentParser
+
+import itertools
+import sys
 import time
-import pprint
 
-logger = logging.getLogger(__name__)
+from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
+    set_current_key, as_client, release_for
+from lib.instance import Instance, print_instances
+from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
-ec2 = boto3.resource('ec2')
-as_client = boto3.client('autoscaling')
-elb_client = boto3.client('elbv2')
-s3 = boto3.resource('s3')
-s3_client = boto3.client('s3')
-as_client = boto3.client('autoscaling')
+logger = logging.getLogger('ce')
 
-
-# TODO document aws policy needed.
-# S3-compiler-explorer-acces seems to be fairly minimal. XaniaBlog seems too open
-# TODO make a Compiler Explorer "organization" and tag things accordingly?
-def target_group_arn_for(args):
-    if args['env'] == 'prod':
-        return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
-    else:
-        return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/Beta/07d45244520b84c4'
-
-
-# TODO handle timeout more gracefully.
-def run_remote_shell(instance):
-    logger.debug("Running remote shell on {}".format(instance))
-    os.system(
-        'ssh -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{}'.format(
-            instance.instance.public_ip_address))
-
-
-# TODO maybe use paramiko?
-def exec_remote(instance, command):
-    logger.debug("Running '{}' on {}".format(" ".join(command), instance))
-    return subprocess.check_output(
-        ['ssh', '-o', 'ConnectTimeout=5', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
-         '-o', 'LogLevel=ERROR',
-         'ubuntu@' + instance.instance.public_ip_address, '--'] + ["'{}'".format(c) for c in command])
-
-
-class Instance(object):
-    def __init__(self, health, group_arn):
-        self.group_arn = group_arn
-        self.instance = ec2.Instance(id=health['Target']['Id'])
-        self.elb_health = 'unknown'
-        self.service_status = {'SubState': 'unknown'}
-        self.running_version = 'unknown'
-        self.update(health)
-
-    def __str__(self):
-        return '{}@{}'.format(self.instance.id, self.instance.public_ip_address)
-
-    def describe_autoscale(self):
-        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
-        return results['AutoScalingInstances'][0]
-
-    def update(self, health=None):
-        if not health:
-            health = elb_client.describe_target_health(
-                TargetGroupArn=self.group_arn,
-                Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
-        self.instance.load()
-        self.elb_health = health['TargetHealth']['State']
-        try:
-            self.service_status = {key: value for key, value in
-                                   (s.split("=", 1) for s in
-                                    exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
-                                    "=" in s)}
-            self.running_version = exec_remote(self, [
-                'bash', '-c',
-                'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; '
-                'then cat /compiler-explorer-image/.deploy/s3_key; fi'
-            ]).strip()
-        except subprocess.CalledProcessError, e:
-            logger.warn("Failed to execute on remote host: {}".format(e))
-
-    @staticmethod
-    def elb_instances(group_arn):
-        return [Instance(health, group_arn) for health in
-                elb_client.describe_target_health(TargetGroupArn=group_arn)['TargetHealthDescriptions']]
-
-
-def print_instances(instances, number=False):
-    STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
-    if number:
-        print '   ',
-    releases = get_releases()
-    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB', 'Service', 'Version')
-    count = 0
-    for inst in instances:
-        if number:
-            print '{: <3}'.format(count),
-        count += 1
-        running_version = release_for(releases, inst.running_version)
-        if running_version:
-            running_version = '{} ({})'.format(running_version.version, running_version.branch)
-        else:
-            running_version = '(unknown {})'.format(inst.running_version)
-        print STATUS_FORMAT.format(
-            inst.instance.public_ip_address,
-            inst.instance.id,
-            inst.instance.state['Name'],
-            inst.instance.instance_type,
-            inst.elb_health,
-            inst.service_status['SubState'],
-            running_version)
-
-
-def get_autoscaling_group(group_name):
-    result = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[group_name])
-    return result['AutoScalingGroups'][0]
+RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
 
 
 def status_cmd(args):
@@ -147,29 +44,6 @@ def login_cmd(args):
     run_remote_shell(instance)
 
 
-class Hash(object):
-    def __init__(self, hash):
-        self.hash = hash
-
-    def __repr__(self):
-        return self.hash
-
-    def __str__(self):
-        return self.hash[:6] + ".." + self.hash[-6:]
-
-
-class Release(object):
-    def __init__(self, version, branch, key, size, hash):
-        self.version = version
-        self.branch = branch
-        self.key = key
-        self.size = size
-        self.hash = hash
-
-    def __repr__(self):
-        return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
-
-
 def sizeof_fmt(num, suffix='B'):
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
@@ -181,7 +55,6 @@ def sizeof_fmt(num, suffix='B'):
 def list_cmd(args):
     current = get_current_key(args)
     releases = get_releases()
-    RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
     print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
     for branch, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
@@ -190,91 +63,19 @@ def list_cmd(args):
                 release.branch, release.version, sizeof_fmt(release.size), release.hash)
 
 
-def branch_for_env(args):
-    if args['env'] == 'prod':
-        return 'release'
-    elif args['env'] == 'beta':
-        return 'beta'
+def describe_current_release(args):
+    current = get_current_key(args)
+    if not current:
+        return "none"
+    r = release_for(get_releases(), current)
+    if r:
+        return str(r)
     else:
-        return 'master'
-
-
-def version_key_for_env(env):
-    return 'version/{}'.format(branch_for_env(env))
-
-
-def get_current_key(args):
-    try:
-        o = s3_client.get_object(
-            Bucket='compiler-explorer',
-            Key=version_key_for_env(args)
-        )
-        return o['Body'].read().strip()
-    except s3_client.exceptions.NoSuchKey:
-        return None
-
-
-def set_current_key(args, key):
-    s3_key = version_key_for_env(args)
-    print 'Setting {} to {}'.format(s3_key, key)
-    s3_client.put_object(
-        Bucket='compiler-explorer',
-        Key=s3_key,
-        Body=key,
-        ACL='public-read'
-    )
-
-
-def release_for(releases, s3_key):
-    for r in releases:
-        if r.key == s3_key:
-            return r
-    return None
+        "non-standard release with s3 key '{}'".format(current)
 
 
 def current_cmd(args):
-    current = get_current_key(args)
-    if not current:
-        print "No current version set"
-        return
-    r = release_for(get_releases(), current)
-    if r:
-        print r
-    else:
-        print "Non-standard release with s3 key '{}'".format(current)
-
-
-def get_releases():
-    paginator = s3_client.get_paginator('list_objects_v2')
-    PREFIX = 'dist/travis/'
-    result_iterator = paginator.paginate(
-        Bucket='compiler-explorer',
-        Prefix=PREFIX
-    )
-    releases = []
-    for result in result_iterator.search('[Contents][]'):
-        key = result['Key']
-        if not key.endswith(".tar.xz"):
-            continue
-        split_key = key.split('/')
-        branch = split_key[-2]
-        version = split_key[-1].split('.')[0]
-        size = result['Size']
-        info_key = "/".join(split_key[:-1]) + "/" + version + ".txt"
-        o = s3_client.get_object(
-            Bucket='compiler-explorer',
-            Key=info_key
-        )
-        hash = o['Body'].read().strip()
-        releases.append(Release(int(version), branch, key, size, Hash(hash)))
-    return releases
-
-
-def find_release(version):
-    for r in get_releases():
-        if r.version == version:
-            return r
-    return None
+    print describe_current_release(args)
 
 
 def wait_for_autoscale_state(instance, state):
@@ -310,24 +111,19 @@ def are_you_sure(name, args):
             return True
 
 
-def exec_remote_all(args, command):
-    for instance in pick_instances(args):
-        result = exec_remote(instance, command)
-        print '{}: {}'.format(instance, result or "(no output)")
-
-
 def start_cmd(args):
-    exec_remote_all(args, ['sudo', 'systemctl', 'start', 'compiler-explorer'])
+    print "Starting version {}".format(describe_current_release(args))
+    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
 
 
 def stop_cmd(args):
     if not are_you_sure('stop', args):
         return
-    exec_remote_all(args, ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
+    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
 
 
 def restart_cmd(args):
-    if not are_you_sure('restart', args):
+    if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
         return
     modified_groups = {}
     failed = False
