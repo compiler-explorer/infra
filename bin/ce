@@ -57,7 +57,7 @@ class Instance(object):
         self.update(health)
 
     def __str__(self):
-        return '%s' % self.instance
+        return '{}@{}'.format(self.instance.id, self.instance.public_ip_address)
 
     def describe_autoscale(self):
         results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
@@ -302,8 +302,33 @@ def wait_for_elb_state(instance, state):
         time.sleep(5)
 
 
+def are_you_sure(name, args):
+    env = args['env']
+    while True:
+        typed = raw_input('Confirm {} in env {} by typing the name of the environment: '.format(name, env))
+        if typed == env:
+            return True
+
+
+def exec_remote_all(args, command):
+    for instance in pick_instances(args):
+        result = exec_remote(instance, command)
+        print '{}: {}'.format(instance, result or "(no output)")
+
+
+def start_cmd(args):
+    exec_remote_all(args, ['sudo', 'systemctl', 'start', 'compiler-explorer'])
+
+
+def stop_cmd(args):
+    if not are_you_sure('stop', args):
+        return
+    exec_remote_all(args, ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
+
+
 def restart_cmd(args):
-    # TODO are you sure in prod
+    if not are_you_sure('restart', args):
+        return
     modified_groups = {}
     failed = False
     for instance in pick_instances(args):
@@ -397,4 +422,5 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO)
         logging.getLogger('boto3').setLevel(logging.WARNING)
         logging.getLogger('botocore').setLevel(logging.WARNING)
+    print "Running in {}".format(kwargs['env'])
     globals()[kwargs.pop('command') + "_cmd"](kwargs)
