@@ -377,7 +377,7 @@ def set_current_cmd(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Administrate Compiler Explorer instances')
-    parser.add_argument('--env', choices=['prod', 'beta'], default='prod')
+    parser.add_argument('--env', choices=['prod', 'beta'], default='beta')
     parser.add_argument('--debug', action='store_true')
     subparsers = parser.add_subparsers(dest='command')
     list_parser = subparsers.add_parser('list')
