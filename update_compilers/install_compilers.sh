@@ -287,7 +287,7 @@ for VERSION in 0.1.33 \
     if [[ -d ${DIR} ]]; then
         echo ${DIR} installed already
     else
-        fetch http://ellcc.org/releases/ellcc-x86_64-linux-${VERSION}.tgz  | tar xzf -
+        fetch http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-${VERSION}.tgz  | tar xzf -
         mv ellcc ${DIR}
         do_strip ${DIR}
     fi
