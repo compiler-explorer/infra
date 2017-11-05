@@ -22,7 +22,7 @@ as_client = boto3.client('autoscaling')
 
 # TODO document aws policy needed.
 # S3-compiler-explorer-acces seems to be fairly minimal. XaniaBlog seems too open
-
+# TODO make a Compiler Explorer "organization" and tag things accordingly?
 def target_group_arn_for(args):
     if args['env'] == 'prod':
         return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
@@ -30,19 +30,19 @@ def target_group_arn_for(args):
         return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/Beta/07d45244520b84c4'
 
 
-# TODO connect timeout on SSH and handle more gracefully
-def run_remote(instance, command):
-    # print "Running '{}' on {}".format(" ".join(command), instance)
+# TODO handle timeout more gracefully.
+def run_remote_shell(instance):
+    logger.debug("Running remote shell on {}".format(instance))
     os.system(
-        'ssh -o ConnectTimeout=2 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{} -- {}'.format(
-            instance.instance.public_ip_address, " ".join(command)))
+        'ssh -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{}'.format(
+            instance.instance.public_ip_address))
 
 
+# TODO maybe use paramiko?
 def exec_remote(instance, command):
-    # TODO properlogging
-    # print "Running '{}' on {}".format(" ".join(command), instance)
+    logger.debug("Running '{}' on {}".format(" ".join(command), instance))
     return subprocess.check_output(
-        ['ssh', '-o', 'ConnectTimeout=2', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
+        ['ssh', '-o', 'ConnectTimeout=5', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
          '-o', 'LogLevel=ERROR',
          'ubuntu@' + instance.instance.public_ip_address, '--'] + ["'{}'".format(c) for c in command])
 
@@ -137,7 +137,7 @@ def pick_instances(args):
 
 def login_cmd(args):
     instance = pick_instance(args)
-    run_remote(instance, [])
+    run_remote_shell(instance)
 
 
 class Hash(object):
@@ -297,7 +297,6 @@ def wait_for_elb_state(instance, state):
 
 def restart_cmd(args):
     # TODO are you sure in prod
-    # maybe use instance protection?
     modified_groups = {}
     failed = False
     for instance in pick_instances(args):
@@ -339,7 +338,9 @@ def restart_one_instance(as_group_name, instance, modified_groups):
         ShouldDecrementDesiredCapacity=not adjustment_required)
     wait_for_autoscale_state(instance, 'Standby')
     logger.info("Restarting service on {}".format(instance))
-    run_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
+    restart_response = exec_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
+    if restart_response:
+        logger.warn("Restart gave some output: {}".format(restart_response))
     logger.info("Moving {} out of standby".format(instance))
     as_client.exit_standby(
         InstanceIds=[instance_id],
@@ -364,7 +365,7 @@ def set_current_cmd(args):
         print 'Found release {}'.format(release)
         to_set = release.key
     set_current_key(args, to_set)
-    # TODO, ideally sync the versioned directory here, requires remote machine
+    # TODO, ideally sync the versioned directory here, requires remote machine, or admin access?
 
 
 if __name__ == '__main__':
