@@ -21,12 +21,15 @@ do
 	fi
 done
 
+for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic; do
+	s3get ${S3URL}/$license ${OPT}/intel/licenses
+done
+
 # Workaround for Intel license
 mkdir -p ${OPT}/composer_xe_2013.1.117/Licenses/
 cp ${OPT}/intel/licenses/* ${OPT}/composer_xe_2013.1.117/Licenses/
 
-# ICCs also UPX'd
-for version in 2016.3.210; do
+for version in 2016.3.210 2018.0.033; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
         s3get ${S3URL}/$compiler ${OPT}/$compiler
