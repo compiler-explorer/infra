@@ -25,10 +25,6 @@ for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic;
 	s3get ${S3URL}/$license ${OPT}/intel/licenses
 done
 
-# Workaround for Intel license
-mkdir -p ${OPT}/composer_xe_2013.1.117/Licenses/
-cp ${OPT}/intel/licenses/* ${OPT}/composer_xe_2013.1.117/Licenses/
-
 for version in 2016.3.210 2018.0.033; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
@@ -37,6 +33,16 @@ for version in 2016.3.210 2018.0.033; do
         rm $compiler
     fi
 done
+
+# Workaround for Intel license
+for license_dir in \
+    composer_xe_2013.1.117 \
+    intel-2018.0.033/compilers_and_libraries_2018.0.128/linux \
+; do
+    mkdir -p ${license_dir}/Licenses
+    cp ${OPT}/intel/licenses/* ${OPT}/${license_dir}/Licenses/
+done
+
 
 ##################################
 # Windows compilers
