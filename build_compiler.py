@@ -25,7 +25,7 @@ parser.add_argument('version', help='Build version')
 parser.add_argument('destination', help='Build destination s3 URL')
 parser.add_argument('--spot-price', help='Set hourly spot price')
 parser.add_argument('--block-duration', default=60, help='duration to reserve, in minutes', type=int)
-parser.add_argument('--key-pair', default='mattgodbolt', metavar='KEYNAME', help='use KEYNAME to authorize')
+parser.add_argument('--key-pair-name', default='mattgodbolt', metavar='KEYNAME', help='use KEYNAME to authorize')
 parser.add_argument('--key-file', required=True, metavar='FILE', help='use FILE as the private key file')
 
 
@@ -78,7 +78,7 @@ if __name__ == '__main__':
             BlockDurationMinutes=args.block_duration,
             LaunchSpecification={
                 'ImageId': IMAGE_ID,
-                'KeyName': args.key_name,
+                'KeyName': args.key_pair_name,
                 'SecurityGroupIds': SECURITY_GROUPS,
                 'SubnetId': SUBNET_ID,
                 'InstanceType': args.instance_type,
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         log("Launching a {} instance...".format(args.instance_type))
         instances = ec2.create_instances(
             ImageId=IMAGE_ID,
-            KeyName=args.key_name,
+            KeyName=args.key_pair_name,
             SecurityGroupIds=SECURITY_GROUPS,
             SubnetId=SUBNET_ID,
             InstanceType=args.instance_type,
