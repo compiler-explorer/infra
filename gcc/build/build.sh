@@ -21,6 +21,7 @@ else
     TARBALL=gcc-${VERSION}.tar.bz2
     if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" = "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" = "5.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
@@ -43,7 +44,7 @@ if echo ${URL} | grep svn://; then
     svn checkout ${URL} gcc-${VERSION}
 else
     if [[ ! -e ${TARBALL} ]]; then
-        echo "Fetching GCC"
+        echo "Fetching GCC" from ${URL}...
         curl -L -O ${URL}
     fi
     rm -rf gcc-${VERSION}
