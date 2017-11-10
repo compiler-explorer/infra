@@ -3,6 +3,8 @@ all: docker-images
 
 DOCKER := sudo docker
 PACKER ?= ../packer
+KEY_FILE ?= $(HOME)/ec2-mattgodbolt.pem
+KEY_PAIR_NAME ?= mattgodbolt
 
 BUILD_OPT = $${https_proxy:+--build-arg https_proxy=$$https_proxy} $${http_proxy:+--build-arg http_proxy=$$http_proxy}
 
@@ -53,7 +55,7 @@ build-compiler-images:
 update-compilers:
 	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder:update update_compilers
 	$(DOCKER) push mattgodbolt/gcc-builder:update
-	python update_efs_compilers.py
+	python update_efs_compilers.py --key-file $(KEY_FILE) --key-pair-name $(KEY_PAIR_NAME)
 
 clean:
 	echo nothing to clean yet

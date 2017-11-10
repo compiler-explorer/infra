@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:17.10
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
 RUN apt update -y && apt upgrade -y

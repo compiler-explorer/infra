@@ -6,19 +6,25 @@ import sys
 from argparse import ArgumentParser
 from build_compiler import connect_ssh, run_command
 
+IMAGE_ID = 'ami-1071ca07'
+SECURITY_GROUPS = ['sg-99df30fd']  # CE's degfault
+SUBNET_ID = 'subnet-690ed81e'
+
 parser = ArgumentParser(description='Update the EFS mount')
 parser.add_argument('-t', '--instance_type', help='Run on instance type TYPE',
                     metavar='TYPE', default='t2.micro')
+parser.add_argument('--key-pair-name', default='mattgodbolt', metavar='KEYNAME', help='use KEYNAME to authorize')
+parser.add_argument('--key-file', required=True, metavar='FILE', help='use FILE as the private key file')
 
 if __name__ == '__main__':
     args = parser.parse_args()
     ec2 = boto3.resource('ec2')
     print "Launching a {} instance...".format(args.instance_type)
     instances = ec2.create_instances(
-        ImageId='ami-1071ca07',
-        KeyName='mattgodbolt',
-        SecurityGroupIds=['sg-99df30fd'],
-        SubnetId='subnet-690ed81e',
+        ImageId=IMAGE_ID,
+        KeyName=args.key_pair_name,
+        SecurityGroupIds=SECURITY_GROUPS,
+        SubnetId=SUBNET_ID,
         InstanceType=args.instance_type,
         MinCount=1,
         MaxCount=1,
@@ -42,7 +48,7 @@ if __name__ == '__main__':
         Resources=[instance.id],
         Tags=[{'Key': 'Name', 'Value': "Update EFS"}])
 
-    ssh = connect_ssh(addr)
+    ssh = connect_ssh(addr, args.key_file)
 
     res = run_command(ssh,
                       "docker run --privileged -i mattgodbolt/gcc-builder:update ./efs_update.sh")
