@@ -439,6 +439,7 @@ get_ispc() {
     fi
 }
 
+get_ispc 1.9.2
 get_ispc 1.9.1
 
 get_ghc() {
