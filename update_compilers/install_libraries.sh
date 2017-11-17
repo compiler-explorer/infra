@@ -78,6 +78,7 @@ get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0
 get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7
+get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 
 # Eigen
 get_if_not_there libs/eigen/v3.3.4 http://bitbucket.org/eigen/eigen/get/3.3.4.tar.gz
