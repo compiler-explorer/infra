@@ -384,9 +384,7 @@ for version in \
 ; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
-        fetch ${S3URL}/$compiler ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
+        fetch ${S3URL}/$compiler | tar Jxf -
     fi
 done
 
