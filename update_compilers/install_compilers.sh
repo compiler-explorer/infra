@@ -474,4 +474,33 @@ get_swift() {
 
 get_swift 3.1.1
 
+
+#########################
+# FPC
+get_fpc() {
+    local VER=$1
+    local DIR=fpc-$VER.x86_64-linux
+
+    if [[ ! -d /tmp/${DIR} ]]; then
+        pushd /tmp
+        fetch https://sourceforge.net/projects/freepascal/files/Linux/${VER}/fpc-${VER}.x86_64-linux.tar | tar xf -
+        cd ${DIR}
+        rm demo.tar.gz
+        rm doc-pdf.tar.gz
+        rm install.sh
+        cp ${SCRIPT_DIR}/custom/install_fpc.sh .
+        . install_fpc.sh $VER ${OPT}/${DIR}
+        popd
+    fi
+}
+
+for version in \
+    2.6.0 \
+    2.6.2 \
+    2.6.4 \
+    3.0.2 \
+; do
+    get_fpc version
+done
+
 #########################
