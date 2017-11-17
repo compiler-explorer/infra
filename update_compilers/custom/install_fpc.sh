@@ -182,7 +182,6 @@ installbinary ()
 # welcome message.
 #
 
-clear
 echo "This shell script will attempt to install the Free Pascal Compiler"
 echo "version $FULLVERSION with the items you select"
 echo
