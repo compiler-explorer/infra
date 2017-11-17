@@ -479,9 +479,9 @@ get_fpc() {
     local VER=$1
     local DIR=fpc-$VER.x86_64-linux
 
-    if [[ ! -d /tmp/${DIR} ]]; then
+    if [[ ! -d ${OPT}/${DIR} ]]; then
         pushd /tmp
-        fetch https://sourceforge.net/projects/freepascal/files/Linux/${VER}/fpc-${VER}.x86_64-linux.tar | tar xf -
+        fetch https://downloads.sourceforge.net/project/freepascal/Linux/${VER}/fpc-${VER}.x86_64-linux.tar | tar xf -
         cd ${DIR}
         rm demo.tar.gz
         rm doc-pdf.tar.gz
@@ -498,7 +498,7 @@ for version in \
     2.6.4 \
     3.0.2 \
 ; do
-    get_fpc version
+    get_fpc $version
 done
 
 #########################

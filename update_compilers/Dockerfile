@@ -14,6 +14,7 @@ RUN apt install -y \
      upx-ucl \
      xz-utils
 
+COPY custom /
 COPY *.sh /
 COPY *.py /
 COPY common.inc /
