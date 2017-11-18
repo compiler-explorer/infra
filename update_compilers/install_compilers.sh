@@ -502,4 +502,9 @@ for version in \
     get_fpc $version
 done
 
+if [[ ! -d ${OPT}/fpc ]]; then
+    mkdir ${OPT}/fpc
+fi
+cp ${SCRIPT_DIR}/custom/fpc.cfg ${OPT}/fpc/fpc.cfg
+
 #########################
