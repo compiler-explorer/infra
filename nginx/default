@@ -136,17 +136,17 @@ server {
     }
 }
 
-server {
-    server_name fpc.godbolt.org fpc.beta.godbolt.org fpc.xania.org fpc.compiler-explorer.com;
-    index index.html;
-    access_log /var/log/nginx/fpc.log;
-    error_log /var/log/nginx/fpc.err;
-
-    location / {
-        rewrite ^/beta$ /beta/ permanent;
-        rewrite ^/beta/(.*) /$1 break;
-        proxy_pass http://fpc:20484;
-        proxy_cache gcc;
-        proxy_cache_valid 200 2m;
-    }
-}
+#server {
+#    server_name fpc.godbolt.org fpc.beta.godbolt.org fpc.xania.org fpc.compiler-explorer.com;
+#    index index.html;
+#    access_log /var/log/nginx/fpc.log;
+#    error_log /var/log/nginx/fpc.err;
+#
+#    location / {
+#        rewrite ^/beta$ /beta/ permanent;
+#        rewrite ^/beta/(.*) /$1 break;
+#        proxy_pass http://fpc:20484;
+#        proxy_cache gcc;
+#        proxy_cache_valid 200 2m;
+#    }
+#}

@@ -133,7 +133,6 @@ start_server C++ 20480 --env cppx
 start_server Ispc 20481
 start_server Haskell 20482
 start_server Swift 20483
-start_server FPC 20484
 
 $SUDO docker stop nginx || true
 $SUDO docker rm nginx || true
