@@ -42,6 +42,9 @@ config.json: make_json.py
 packer: config.json
 	$(PACKER) build -var-file=config.json packer.json 
 
+packer-admin: config.json
+	$(PACKER) build -var-file=config.json packer-admin.json 
+
 publish: docker-images
 	$(DOCKER) push $(BUILD_OPT) mattgodbolt/compiler-explorer
 
