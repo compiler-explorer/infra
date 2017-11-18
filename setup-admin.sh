@@ -5,7 +5,7 @@ set -ex
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [[ "$1" != "--updated" ]]; then
-    git --work-tree ${DIR} pull
+    sudo -u ubuntu git --work-tree ${DIR} pull
     pwd
     exec bash ${BASH_SOURCE[0]} --updated
     exit 0
