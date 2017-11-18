@@ -13,6 +13,8 @@ fi
 
 ${DIR}/setup-common.sh
 
+apt install python2.7 pip
+
 cd /home/ubuntu/compiler-explorer-image
 pip install -r requirements.txt
 if ! grep compiler-explorer/bin /home/ubuntu/.bashrc; then
