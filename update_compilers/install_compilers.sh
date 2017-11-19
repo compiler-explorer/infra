@@ -402,7 +402,7 @@ for version in 12.5; do
     fullname=OracleDeveloperStudio${version}-linux-x86-bin
     if [[ ! -d ${fullname} ]]; then
         compiler=${fullname}.tar.bz2
-        fetch ${S3URL}/$compiler | tar Jxf -
+        fetch ${S3URL}/$compiler | tar jxf -
     fi
 done
 
