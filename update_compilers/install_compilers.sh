@@ -426,15 +426,15 @@ for version in 12.5; do
     fi
 done
 
-# MSP compilers
-if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
-    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/4_01_00_00/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
-    do_strip msp430-gcc-5.3.0.219_linux32
-fi
-if [[ ! -d msp430-gcc-6.2.1.16_linux64 ]]; then
-    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/exports/msp430-gcc-6.2.1.16_linux64.tar.bz2 | tar jxf -
-    do_strip msp430-gcc-6.2.1.16_linux64
-fi
+# MSP compilers. Website is dead. TODO: Find a new source!
+#if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
+#    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/4_01_00_00/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
+#    do_strip msp430-gcc-5.3.0.219_linux32
+#fi
+#if [[ ! -d msp430-gcc-6.2.1.16_linux64 ]]; then
+#    fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/latest/exports/msp430-gcc-6.2.1.16_linux64.tar.bz2 | tar jxf -
+#    do_strip msp430-gcc-6.2.1.16_linux64
+#fi
 
 # GNU ARM Embedded toolchain
 if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
