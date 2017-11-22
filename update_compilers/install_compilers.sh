@@ -147,10 +147,30 @@ install_rust 1.4.0
 
 #########################
 # GO
+
+## Install 1.4.1 the old way...
 if [[ ! -d ${OPT}/go ]]; then
     fetch https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz | tar zxf -
     do_strip ${OPT}/go
 fi
+
+install_golang() {
+    local VERSION=$1
+    local DIR=golang-${VERSION}
+    if [[ -d ${DIR} ]]; then
+        echo Golang $VERSION already intalled, skipping
+        return
+    fi
+    mkdir ${DIR}
+    pushd ${DIR}
+    fetch https://storage.googleapis.com/golang/go${VERSION}.linux-amd64.tar.gz | tar zxf -
+    do_strip ${DIR}
+    popd
+}
+
+install_golang 1.7.2
+install_golang 1.8.5
+install_golang 1.9.2
 #########################
 
 
