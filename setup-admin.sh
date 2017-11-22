@@ -13,11 +13,10 @@ fi
 
 ${DIR}/setup-common.sh
 
-apt -y install python2.7 python-pip
+apt -y install python2.7 python-pip mosh fish
+chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
 pip install -r requirements.txt
-if ! grep compiler-explorer/bin /home/ubuntu/.bashrc; then
-    echo PATH=\${PATH}:/home/ubuntu/compiler-explorer/bin >> /home/ubuntu/.bashrc
-    chown ubuntu:ubuntu /home/ubuntu/.bashrc
-fi
+
+sudo -u ubuntu fish setup.fish
