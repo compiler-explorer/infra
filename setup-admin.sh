@@ -13,7 +13,7 @@ fi
 
 ${DIR}/setup-common.sh
 
-apt install python2.7 python-pip
+apt -y install python2.7 python-pip
 
 cd /home/ubuntu/compiler-explorer-image
 pip install -r requirements.txt
