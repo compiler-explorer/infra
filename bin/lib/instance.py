@@ -50,6 +50,18 @@ class Instance(object):
                 elb_client.describe_target_health(TargetGroupArn=group_arn)['TargetHealthDescriptions']]
 
 
+class AdminInstance(object):
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'admin'
+
+    @staticmethod
+    def instance():
+        return AdminInstance(ec2.Instance(id='i-0309482acdb55e16b'))
+
+
 def print_instances(instances, number=False):
     if number:
         print '   ',
