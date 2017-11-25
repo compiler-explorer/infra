@@ -137,7 +137,7 @@ server {
 }
 
 server {
-    server_name fpc.godbolt.org fpc.beta.godbolt.org fpc.xania.org fpc.compiler-explorer.com;
+    server_name fortran.godbolt.org fpc.godbolt.org fortran.xania.org fortran.compiler-explorer.com;
     index index.html;
     access_log /var/log/nginx/fpc.log;
     error_log /var/log/nginx/fpc.err;
