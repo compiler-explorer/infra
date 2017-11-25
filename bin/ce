@@ -110,7 +110,7 @@ def wait_for_elb_state(instance, state):
 def are_you_sure(name, args):
     env = args['env']
     while True:
-        typed = raw_input('Confirm {} in env {} by typing the name of the environment: '.format(name, env))
+        typed = raw_input('Confirm {} in env {}\nType the name of the environment: '.format(name, env))
         if typed == env:
             return True
 
