@@ -148,7 +148,7 @@ install_rust 1.4.0
 #########################
 # GO
 
-## Install 1.4.1 the old way... Todo: Support it better (Build from source as 1.7.2 & 1.8.5)
+## Install 1.4.1 the old way...
 if [[ ! -d ${OPT}/go ]]; then
     fetch https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz | tar zxf -
     do_strip ${OPT}/go
@@ -168,9 +168,8 @@ install_golang() {
     popd
 }
 
-# 1.7.2 && 1.8.5 need to be built from source: See https://github.com/mattgodbolt/compiler-explorer/issues/640
-#install_golang 1.7.2
-#install_golang 1.8.5
+install_golang 1.7.2
+install_golang 1.8.5
 install_golang 1.9.2
 #########################
 
