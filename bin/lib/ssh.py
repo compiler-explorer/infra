@@ -7,12 +7,15 @@ logger = logging.getLogger('ssh')
 
 # TODO maybe use paramiko?
 
-def run_remote_shell(instance):
+def run_remote_shell(args, instance):
     logger.debug("Running remote shell on {}".format(instance))
-    os.system(
-        'ssh -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null '
-        '-o StrictHostKeyChecking=no -o LogLevel=ERROR ubuntu@{}'.format(
-            instance.instance.public_ip_address))
+    ssh_command = 'ssh -o ConnectTimeout=5 ' \
+                  '-o UserKnownHostsFile=/dev/null ' \
+                  '-o StrictHostKeyChecking=no -o ' \
+                  'LogLevel=ERROR'
+    if args['mosh']:
+        ssh_command = 'mosh --ssh=\'{}\''.format(ssh_command)
+    os.system(ssh_command + ' ubuntu@{}'.format(instance.instance.public_ip_address))
 
 
 def exec_remote(instance, command):

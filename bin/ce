@@ -41,7 +41,7 @@ def pick_instances(args):
 
 def login_cmd(args):
     instance = pick_instance(args)
-    run_remote_shell(instance)
+    run_remote_shell(args, instance)
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -64,7 +64,7 @@ def list_cmd(args):
 
 
 def admin_cmd(args):
-    run_remote_shell(AdminInstance.instance())
+    run_remote_shell(args, AdminInstance.instance())
 
 
 def describe_current_release(args):
@@ -202,8 +202,9 @@ def set_current_cmd(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser(description='Administrate Compiler Explorer instances')
-    parser.add_argument('--env', choices=['prod', 'beta'], default='beta')
-    parser.add_argument('--debug', action='store_true')
+    parser.add_argument('--env', choices=['prod', 'beta'], default='beta', metavar='ENV', help='Select environment ENV')
+    parser.add_argument('--mosh', action='store_true', help='Use mosh for interactive shells')
+    parser.add_argument('--debug', action='store_true', help='Increase debug information')
     subparsers = parser.add_subparsers(dest='command')
     admin_parser = subparsers.add_parser('admin')
     list_parser = subparsers.add_parser('list')
@@ -215,7 +216,7 @@ if __name__ == '__main__':
     current_parser = subparsers.add_parser('current')
     set_current = subparsers.add_parser('set_current')
     set_current.add_argument('version', help='version to set')
-    set_current.add_argument('--raw', action='store_true', help='set a raw path for a version')
+    set_current.add_argument('--raw', action='store_true', help='Set a raw path for a version')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
         logging.basicConfig(level=logging.DEBUG)
