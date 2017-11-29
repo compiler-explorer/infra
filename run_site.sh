@@ -28,7 +28,7 @@ else
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx gcc go dx rust cppx ispc haskell swift fpc"
+ALL="nginx gcc go dx rust cppx ispc haskell swift pascal"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -125,9 +125,9 @@ wait_for_container ${UID_ISPC} ispc 20481
 wait_for_container ${UID_HASKELL} haskell 20482
 
 UID_SWIFT=$(start_container swift 20483)
-UID_FPC=$(start_container fpc 20484)
+UID_PASCAL=$(start_container pascal 20484)
 wait_for_container ${UID_SWIFT} swift 20483
-wait_for_container ${UID_FPC} fpc 20484
+wait_for_container ${UID_PASCAL} pascal 20484
 
 UID_GCC=$(start_container gcc 10240)
 wait_for_container ${UID_GCC} gcc 10240
@@ -141,5 +141,5 @@ $SUDO docker run \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
     --link gcc:gcc --link dx:d --link rust:rust --link go:go --link cppx:cppx \
-    --link ispc:ispc --link haskell:haskell --link swift:swift --link fpc:fpc \
+    --link ispc:ispc --link haskell:haskell --link swift:swift --link pascal:pascal \
     nginx

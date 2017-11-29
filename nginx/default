@@ -139,13 +139,13 @@ server {
 server {
     server_name pascal.godbolt.org fpc.godbolt.org fortran.xania.org fortran.compiler-explorer.com;
     index index.html;
-    access_log /var/log/nginx/fpc.log;
-    error_log /var/log/nginx/fpc.err;
+    access_log /var/log/nginx/pascal.log;
+    error_log /var/log/nginx/pascal.err;
 
     location / {
         rewrite ^/beta$ /beta/ permanent;
         rewrite ^/beta/(.*) /$1 break;
-        proxy_pass http://fpc:20484;
+        proxy_pass http://pascal:20484;
         proxy_cache gcc;
         proxy_cache_valid 200 2m;
     }

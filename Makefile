@@ -27,7 +27,7 @@ $(eval $(call add-image,cppx,cppx-explorer))
 $(eval $(call add-image,ispc,ispc-explorer))
 $(eval $(call add-image,haskell,haskell-explorer))
 $(eval $(call add-image,swift,swift-explorer))
-$(eval $(call add-image,fpc,fpc-explorer))
+$(eval $(call add-image,pascal,pascal-explorer))
 
 exec-image:
 	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:exec" exec
