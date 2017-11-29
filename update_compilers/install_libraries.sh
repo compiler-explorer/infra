@@ -51,6 +51,7 @@ get_or_sync libs/xtensor https://github.com/QuantStack/xtensor.git
 get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
 get_or_sync libs/cctz https://github.com/google/cctz.git
 get_or_sync libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git
+get_or_sync libs/cppcoro https://github.com/lewissbaker/cppcoro.git
 
 get_if_not_there() {
     local DIR=$1
