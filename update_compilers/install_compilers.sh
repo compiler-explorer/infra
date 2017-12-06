@@ -460,6 +460,9 @@ get_ispc() {
 get_ispc 1.9.2
 get_ispc 1.9.1
 
+# PPCI
+pip3 install ppci
+
 get_ghc() {
     local VER=$1
     local DIR=ghc-$VER
