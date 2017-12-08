@@ -39,11 +39,12 @@ if [[ -f /root/.aws ]]; then
 fi
 
 get_conf() {
-    aws ssm get-parameter --name $1 | jq .Parameter.Value
+    aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
 
 if [[ ! -f /etc/newrelic-infra.yml ]]; then
     echo "license_key: $(get_conf /compiler-explorer/newRelicLicense)" > /etc/newrelic-infra.yml
+    chmod 600 /etc/newrelic-infra.yml
     curl https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | apt-key add -
     printf "deb [arch=amd64] http://download.newrelic.com/infrastructure_agent/linux/apt xenial main" > /etc/apt/sources.list.d/newrelic-infra.list
     apt-get update
