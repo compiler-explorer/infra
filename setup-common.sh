@@ -29,6 +29,7 @@ if ! which jq 2>&1 > /dev/null; then
     apt-get -y install jq
 fi
 
+apt remove -y awscli || true
 pip install --upgrade aws
 if ! which aws 2>&1 > /dev/null; then
     apt-get -y install awscli
