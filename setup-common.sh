@@ -7,7 +7,11 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
-    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip
+    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd
+    apt-get -y autoremove
+    pip install --upgrade pip
+    pip install --upgrade awscli
+    wget -qO- https://get.docker.com/ | sh
     curl -sL http://aws-cloudwatch.s3.amazonaws.com/downloads/CloudWatchMonitoringScripts-1.2.1.zip -o /tmp/cwm.zip
     cd /root
     unzip /tmp/cwm.zip
@@ -17,22 +21,7 @@ if [[ ! -f /updated ]]; then
     touch /updated
 fi
 
-if ! which docker 2>&1 > /dev/null; then
-    apt-get -y install wget
-    wget -qO- https://get.docker.com/ | sh
-fi
-
-if ! which pip 2>&1 > /dev/null; then
-    apt-get -y install python-pip
-    pip install --upgrade pip
-fi
-if ! which jq 2>&1 > /dev/null; then
-    apt-get -y install jq
-fi
-
-apt remove -y awscli || true
-pip install --upgrade awscli
-if [[ -f /root/.aws ]]; then
+if [[ ! -f /root/.aws ]]; then
     mkdir -p /root/.aws /home/ubuntu/.aws
     echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
     chown -R ubuntu /home/ubuntu/.aws
@@ -43,7 +32,12 @@ get_conf() {
 }
 
 if [[ ! -f /etc/newrelic-infra.yml ]]; then
-    echo "license_key: $(get_conf /compiler-explorer/newRelicLicense)" > /etc/newrelic-infra.yml
+    NEW_RELIC_LICENSE="$(get_conf /compiler-explorer/newRelicLicense)"
+    if [[ -z $"{NEW_RELIC_LICENSE}" ]]; then
+        echo "Problem getting new relic license"
+        exit 1
+    fi
+    echo "license_key: ${NEW_RELIC_LICENSE}" > /etc/newrelic-infra.yml
     chmod 600 /etc/newrelic-infra.yml
     curl https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | apt-key add -
     printf "deb [arch=amd64] http://download.newrelic.com/infrastructure_agent/linux/apt xenial main" > /etc/apt/sources.list.d/newrelic-infra.list
@@ -78,7 +72,6 @@ docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
 ####### GROTESQUE HACK BEGIN #########
-apt-get install cachefilesd
 /etc/init.d/cachefilesd stop
 sleep 3
 perl -pi -e 's/^#RUN/RUN/' /etc/default/cachefilesd
