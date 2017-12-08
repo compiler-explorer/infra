@@ -46,7 +46,7 @@ if [[ ! -f /etc/newrelic-infra.yml ]]; then
     echo "license_key: $(get_conf /compiler-explorer/newRelicLicense)" > /etc/newrelic-infra.yml
     curl https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | apt-key add -
     printf "deb [arch=amd64] http://download.newrelic.com/infrastructure_agent/linux/apt xenial main" > /etc/apt/sources.list.d/newrelic-infra.list
-    apt-get updatudo apt-get install newrelic-infra -y
+    apt-get update
     apt-get install newrelic-infra -y
 fi
 
