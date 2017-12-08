@@ -7,7 +7,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
-    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common
+    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip
     curl -sL http://aws-cloudwatch.s3.amazonaws.com/downloads/CloudWatchMonitoringScripts-1.2.1.zip -o /tmp/cwm.zip
     cd /root
     unzip /tmp/cwm.zip
@@ -22,11 +22,31 @@ if ! which docker 2>&1 > /dev/null; then
     wget -qO- https://get.docker.com/ | sh
 fi
 
+if ! which pip 2>&1 > /dev/null; then
+    apt-get -y install python-pip
+fi
+if ! which jq 2>&1 > /dev/null; then
+    apt-get -y install jq
+fi
+
+pip install --upgrade aws
 if ! which aws 2>&1 > /dev/null; then
     apt-get -y install awscli
     mkdir -p /root/.aws /home/ubuntu/.aws
     echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
     chown -R ubuntu /home/ubuntu/.aws
+fi
+
+get_conf() {
+    aws ssm get-parameter --name $1 | jq .Parameter.Value
+}
+
+if [[ ! -f /etc/newrelic-infra.yml ]]; then
+    echo "license_key: $(get_conf /compiler-explorer/newRelicLicense)" > /etc/newrelic-infra.yml
+    curl https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | apt-key add -
+    printf "deb [arch=amd64] http://download.newrelic.com/infrastructure_agent/linux/apt xenial main" > /etc/apt/sources.list.d/newrelic-infra.list
+    apt-get updatudo apt-get install newrelic-infra -y
+    apt-get install newrelic-infra -y
 fi
 
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
