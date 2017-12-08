@@ -24,15 +24,15 @@ fi
 
 if ! which pip 2>&1 > /dev/null; then
     apt-get -y install python-pip
+    pip install --upgrade pip
 fi
 if ! which jq 2>&1 > /dev/null; then
     apt-get -y install jq
 fi
 
 apt remove -y awscli || true
-pip install --upgrade aws
-if ! which aws 2>&1 > /dev/null; then
-    apt-get -y install awscli
+pip install --upgrade awscli
+if [[ -f /root/.aws ]]; then
     mkdir -p /root/.aws /home/ubuntu/.aws
     echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
     chown -R ubuntu /home/ubuntu/.aws
