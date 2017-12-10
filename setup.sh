@@ -10,7 +10,7 @@ BRANCH=beta
 fi
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [[ "$1" != "--updated" -o "$2" != "${BRANCH}" ]]; then
+if [[ "$1" != "--updated" || "$2" != "${BRANCH}" ]]; then
     git --work-tree ${DIR} checkout ${BRANCH}
     git --work-tree ${DIR} pull
     exec bash ${BASH_SOURCE[0]} --updated ${BRANCH}
