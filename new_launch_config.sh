@@ -26,5 +26,5 @@ aws autoscaling create-launch-configuration --launch-configuration-name ${BASE_N
     --instance-type c5.large \
     --spot-price 0.05 \
     --ebs-optimized \
-    --user-data "Beta" \
+    --user-data "beta" \
     ${COMMON_ARGS}
