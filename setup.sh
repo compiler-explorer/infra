@@ -5,6 +5,13 @@ set -ex
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 if [[ "$1" != "--updated" ]]; then
+    ENV=$(curl -sf http://169.254.169.254/latest/user-data | tr A-Z a-z || true)
+    ENV=${ENV:-prod}
+    BRANCH=master
+    if [[ "$ENV" = "beta" ]]; then
+        BRANCH=beta
+    fi
+    git --work-tree ${DIR} checkout ${BRANCH}
     git --work-tree ${DIR} pull
     pwd
     exec bash ${BASH_SOURCE[0]} --updated
