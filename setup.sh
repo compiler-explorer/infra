@@ -2,19 +2,18 @@
 
 set -ex
 
+ENV=$(curl -sf http://169.254.169.254/latest/user-data | tr A-Z a-z || true)
+ENV=${ENV:-prod}
+BRANCH=master
+if [[ "$ENV" = "beta" ]]; then
+BRANCH=beta
+fi
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-if [[ "$1" != "--updated" ]]; then
-    ENV=$(curl -sf http://169.254.169.254/latest/user-data | tr A-Z a-z || true)
-    ENV=${ENV:-prod}
-    BRANCH=master
-    if [[ "$ENV" = "beta" ]]; then
-        BRANCH=beta
-    fi
+if [[ "$1" != "--updated" -o "$2" != "${BRANCH}" ]]; then
     git --work-tree ${DIR} checkout ${BRANCH}
     git --work-tree ${DIR} pull
-    pwd
-    exec bash ${BASH_SOURCE[0]} --updated
+    exec bash ${BASH_SOURCE[0]} --updated ${BRANCH}
     exit 0
 fi
 
