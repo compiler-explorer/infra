@@ -461,7 +461,16 @@ get_ispc 1.9.2
 get_ispc 1.9.1
 
 # PPCI
-pip3 install ppci
+get_ppci() {
+  local VER=0.5.4
+  local DIR=ppci-$VER
+
+  if [[ ! -d ${DIR} ]];
+    fetch https://pypi.python.org/packages/4c/e8/fd7241885330ace50d2f7598a2652d4e80c1d922faece7bba88529cf6cfe/ppci-0.5.4.tar.gz | tar xfz
+  fi
+}
+
+get_ppci
 
 get_ghc() {
     local VER=$1
