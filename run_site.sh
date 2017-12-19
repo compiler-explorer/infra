@@ -114,6 +114,7 @@ wait_for_container ${UID_GCC} unified 10240
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
     --name nginx \
+    --volumes-from unified \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
