@@ -28,7 +28,7 @@ else
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx gcc go dx rust cppx ispc haskell swift pascal"
+ALL="nginx unified"
 $SUDO docker stop ${ALL} || true
 $SUDO docker rm ${ALL} || true
 
@@ -108,38 +108,15 @@ trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
 
 update_code
 
-# Batch these a little to get some overlap but hopefully
-# prevent too many compilers from running at once during startup
-UID_D=$(start_container d 10241)
-UID_RUST=$(start_container rust 10242)
-UID_GO=$(start_container go 10243)
-wait_for_container ${UID_D} d 10241
-wait_for_container ${UID_RUST} rust 10242
-wait_for_container ${UID_GO} go 10243
-
-UID_CPPX=$(start_container cppx 20480)
-UID_ISPC=$(start_container ispc 20481)
-UID_HASKELL=$(start_container haskell 20482)
-wait_for_container ${UID_CPPX} cppx 20480
-wait_for_container ${UID_ISPC} ispc 20481
-wait_for_container ${UID_HASKELL} haskell 20482
-
-UID_SWIFT=$(start_container swift 20483)
-UID_PASCAL=$(start_container pascal 20484)
-wait_for_container ${UID_SWIFT} swift 20483
-wait_for_container ${UID_PASCAL} pascal 20484
-
-UID_GCC=$(start_container gcc 10240)
-wait_for_container ${UID_GCC} gcc 10240
+UID_GCC=$(start_container unified 10240)
+wait_for_container ${UID_GCC} unified 10240
 
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
     --name nginx \
-    --volumes-from gcc \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link gcc:gcc --link dx:d --link rust:rust --link go:go --link cppx:cppx \
-    --link ispc:ispc --link haskell:haskell --link swift:swift --link pascal:pascal \
+    --link unified:unified \
     nginx
