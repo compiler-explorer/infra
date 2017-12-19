@@ -3,6 +3,7 @@
 set -ex
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+DEPLOY_DIR=${DIR}/.deploy
 SUDO=sudo
 if [[ $UID = 0 ]]; then
     SUDO=
@@ -23,28 +24,36 @@ ARCHIVE_DIR=/opt/compiler-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
-else
-    $SUDO docker pull -a mattgodbolt/compiler-explorer
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx gcc go dx rust cppx ispc haskell swift pascal"
-$SUDO docker stop ${ALL} || true
-$SUDO docker rm ${ALL} || true
+export GOOGLE_API_KEY
 
-CFG="-v ${CONFIG_FILE}:/site.sh:ro"
-CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
-CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
-CFG="${CFG} -v /var/run/docker.sock:/var/run/docker.sock"
+get_from_git() {
+    git clone --single-branch --branch ${BRANCH} https://github.com/mattgodbolt/compiler-explorer.git $1
+    pushd $1
+    local DIST_CMD="env NODE_ENV=development PATH=/opt/compiler-explorer/gdc5.2.0/x86_64-pc-linux-gnu/bin:/opt/compiler-explorer/rust-1.14.0/bin:/opt/compiler-explorer/node/bin:$PATH make -j$(nproc) dist"
+    if [[ $UID = 0 ]]; then
+        chown -R ubuntu .
+        su -c "${DIST_CMD}" ubuntu
+    else
+        ${DIST_CMD}
+    fi
+    popd
+}
 
 get_released_code() {
-    local S3_KEY=$(curl -sL https://s3.amazonaws.com/compiler-explorer/version/${BRANCH})
-    local URL=https://s3.amazonaws.com/compiler-explorer/${S3_KEY}
-    echo "Unpacking build from ${URL}"
+    local HASH=$(git ls-remote https://github.com/mattgodbolt/compiler-explorer.git refs/heads/${BRANCH} | awk '{ print $1 }')
+    local TEMPFILE=/tmp/ce-release.tar.xz
+    aws s3 cp s3://compiler-explorer/dist/${HASH}.tar.xz ${TEMPFILE} || true
+    if [[ ! -f ${TEMPFILE} ]]; then
+        get_from_git $1
+        return
+    fi
     mkdir -p $1
     pushd $1
-    echo ${S3_KEY} > s3_key
-    curl -sL ${URL} | tar Jxf -
+    tar Jxf ${TEMPFILE}
+    rm ${TEMPFILE}
     if [[ $UID = 0 ]]; then
         chown -R ubuntu .
     fi
@@ -52,94 +61,78 @@ get_released_code() {
 }
 
 update_code() {
-    local DEPLOY_DIR=${DIR}/.deploy
     rm -rf ${DEPLOY_DIR}
     get_released_code ${DEPLOY_DIR}
     CFG="${CFG} -v${DEPLOY_DIR}:/compiler-explorer:ro"
     # Back up the 'v' directory to the long-term archive
-    # TODO; have the `ce` script do this and then we can mount the nfs drive readonly
     mkdir -p ${ARCHIVE_DIR}
     rsync -av ${DEPLOY_DIR}/out/dist/v/ ${ARCHIVE_DIR}
     CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
 }
 
-start_container() {
-    local NAME=$1
-    local PORT=$2
-    shift
-    shift
-    local TAG=${NAME}
-    if [[ "${#NAME}" -eq 1 ]]; then
-    	NAME="${NAME}x"
-    fi
-    local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/compiler-explorer:${TAG}"
-    local CONTAINER_UID=""
-    $SUDO docker stop ${NAME} >&2 || true
-    $SUDO docker rm ${NAME} >&2 || true
-    CONTAINER_UID=$($FULL_COMMAND)
-    sleep 2
-    echo ${CONTAINER_UID}
-}
-
-wait_for_container() {
-    local CONTAINER_UID=$1
-    local NAME=$2
-    local PORT=$3
-    shift
-    shift
-    shift
+wait_for_port() {
+    local PORT=$1
     for tensecond in $(seq 15); do
-        if ! $SUDO docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
-            echo "Container failed to start, logs:"
-            $SUDO docker logs ${NAME}
-            break
-        fi
-        if curl http://localhost:$PORT/ > /dev/null 2>&1; then
-            echo "Server ${NAME} is up and running"
+        if curl http://localhost:$PORT/healthcheck > /dev/null 2>&1; then
+            echo "Server on port ${PORT} is up and running"
             return
         fi
         sleep 10
     done
-    echo "Failed."
-    $SUDO docker logs ${NAME}
+    echo "Failed to wait for port ${PORT}"
+    exit 1
 }
 
-trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
+init_wine() {
+    export WINEPREFIX=/tmp/wine
+    mkdir -p ${WINEPREFIX}
+    # kill any running wineserver...
+    /opt/wine-devel/bin/wineserver -k || true
+    # wait for them to die..
+    /opt/wine-devel/bin/wineserver -w
+    # start a new one
+    /opt/wine-devel/bin/wineserver -p
+    sleep 5 # let it start...
+    # Run something...
+    echo "echo It works; exit" | /opt/wine-devel/bin/wine64 cmd
+    # Hope that that's enough...
+}
 
 update_code
+init_wine
 
-# Batch these a little to get some overlap but hopefully
-# prevent too many compilers from running at once during startup
-UID_D=$(start_container d 10241)
-UID_RUST=$(start_container rust 10242)
-UID_GO=$(start_container go 10243)
-wait_for_container ${UID_D} d 10241
-wait_for_container ${UID_RUST} rust 10242
-wait_for_container ${UID_GO} go 10243
+export LOG_DIR=/tmp/ce-logs
+mkdir -p ${LOG_DIR}
+cd ${DEPLOY_DIR}
 
-UID_CPPX=$(start_container cppx 20480)
-UID_ISPC=$(start_container ispc 20481)
-UID_HASKELL=$(start_container haskell 20482)
-wait_for_container ${UID_CPPX} cppx 20480
-wait_for_container ${UID_ISPC} ispc 20481
-wait_for_container ${UID_HASKELL} haskell 20482
+start_server() {
+    local PORT=$1
+    shift
+    shift
+    env PATH=/opt/compiler-explorer/bin:${PATH} node ./node_modules/.bin/supervisor -s -e node,js,properties -w app.js,etc,lib -- \
+        app.js \
+        --env amazon \
+        --port ${PORT} \
+        --static out/dist \
+        --archivedVersions ${ARCHIVE_DIR} \
+        "$@" >> ${LOG_DIR}/CE-${PORT}.log 2>&1 &
+    wait_for_port $PORT
+}
 
-UID_SWIFT=$(start_container swift 20483)
-UID_PASCAL=$(start_container pascal 20484)
-wait_for_container ${UID_SWIFT} swift 20483
-wait_for_container ${UID_PASCAL} pascal 20484
+trap '$SUDO docker stop nginx' SIGINT SIGTERM SIGPIPE
+# TODO: update /etc/log_files.yml to log outputs, or configure outputs directly somehow?
+# TODO handle being the "right" user (not ubuntu/root)
+# TODO check all the relevant apps work
+start_server 10240
 
-UID_GCC=$(start_container gcc 10240)
-wait_for_container ${UID_GCC} gcc 10240
-
+$SUDO docker stop nginx || true
+$SUDO docker rm nginx || true
 $SUDO docker run \
     -p ${EXTERNAL_PORT}:80 \
     --name nginx \
-    --volumes-from gcc \
+    --network="host" \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
-    -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
-    -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link gcc:gcc --link dx:d --link rust:rust --link go:go --link cppx:cppx \
-    --link ispc:ispc --link haskell:haskell --link swift:swift --link pascal:pascal \
+    -v ${DIR}/nginx.conf:/etc/nginx/nginx.conf:ro \
+    -v ${DIR}/nginx_new:/etc/nginx/sites-enabled:ro \
     nginx
