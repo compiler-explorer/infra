@@ -359,14 +359,18 @@ gcc_arch_install powerpc 4.8.5
 gcc_arch_install powerpc64le 6.3.0
 gcc_arch_install arm 5.4.0
 gcc_arch_install arm 6.3.0
-#gcc_arch_install arm 7.1.0
 gcc_arch_install arm64 5.4.0
 gcc_arch_install arm64 6.3.0
-#gcc_arch_install arm64 7.1.0
 gcc_arch_install mips 5.4.0
 gcc_arch_install mips64 5.4.0
 gcc_arch_install mipsel 5.4.0
 gcc_arch_install mips64el 5.4.0
+
+if [[ ! -d arm/gcc-arm-none-eabi-7-2017-q4-major ]]; then
+    pushd arm
+    curl -sL https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 | tar jxf -
+    popd
+fi
 
 do_nightly_install() {
     local COMPILER_PATTERN="$1"
