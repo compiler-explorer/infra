@@ -5,10 +5,13 @@ set_real_ip_from 172.30.0.0/16;
 real_ip_header X-Forwarded-For;
 
 proxy_cache_path /var/cache/nginx-gcc keys_zone=gcc:10m max_size=200m;
+
 server {
     index index.html;
-    access_log /var/log/nginx/gcc.log;
-    error_log /var/log/nginx/gcc.err;
+    access_log /var/log/nginx/all.log;
+    error_log /var/log/nginx/all.err;
+
+    server_name godbolt.org;
 
     location / {
         rewrite ^/beta$ /beta/ permanent;
@@ -17,4 +20,8 @@ server {
         proxy_cache gcc;
         proxy_cache_valid 200 2m;
     }
+}
+
+server {
+    return 301 https://godbolt.org$request_uri;
 }
