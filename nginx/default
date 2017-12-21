@@ -7,6 +7,10 @@ real_ip_header X-Forwarded-For;
 proxy_cache_path /var/cache/nginx-gcc keys_zone=gcc:10m max_size=200m;
 
 server {
+    return 301 https://godbolt.org$request_uri;
+}
+
+server {
     index index.html;
     access_log /var/log/nginx/all.log;
     error_log /var/log/nginx/all.err;
@@ -20,8 +24,4 @@ server {
         proxy_cache gcc;
         proxy_cache_valid 200 2m;
     }
-}
-
-server {
-    return 301 https://godbolt.org$request_uri;
 }
