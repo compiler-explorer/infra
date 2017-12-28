@@ -15,7 +15,8 @@ server {
     access_log /var/log/nginx/all.log;
     error_log /var/log/nginx/all.err;
 
-    server_name godbolt.org;
+    # localhost so that Amazon healthchecks work too.
+    server_name godbolt.org localhost;
 
     location / {
         rewrite ^/beta$ /beta/ permanent;
