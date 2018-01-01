@@ -72,7 +72,6 @@ update_code() {
 
 wait_for_port() {
     local PORT=$1
-    local LANG=$2
     for tensecond in $(seq 15); do
         if curl http://localhost:$PORT/healthcheck > /dev/null 2>&1; then
             echo "Server on port ${PORT} is up and running"
@@ -80,7 +79,7 @@ wait_for_port() {
         fi
         sleep 10
     done
-    echo "Failed to wait for ${LANG} on port ${PORT}"
+    echo "Failed to wait for port ${PORT}"
     exit 1
 }
 
@@ -107,33 +106,24 @@ mkdir -p ${LOG_DIR}
 cd ${DEPLOY_DIR}
 
 start_server() {
-    local LANG=$1
-    local PORT=$2
+    local PORT=$1
     shift
     shift
     env PATH=/opt/compiler-explorer/bin:${PATH} node ./node_modules/.bin/supervisor -s -e node,js,properties -w app.js,etc,lib -- \
         app.js \
         --env amazon \
         --port ${PORT} \
-        --lang ${LANG} \
         --static out/dist \
         --archivedVersions ${ARCHIVE_DIR} \
-        "$@" >> ${LOG_DIR}/${LANG}-${PORT}.log 2>&1 &
-    wait_for_port $PORT $LANG
+        "$@" >> ${LOG_DIR}/CE-${PORT}.log 2>&1 &
+    wait_for_port $PORT
 }
 
 trap '$SUDO docker stop nginx' SIGINT SIGTERM SIGPIPE
 # TODO: update /etc/log_files.yml to log outputs, or configure outputs directly somehow?
 # TODO handle being the "right" user (not ubuntu/root)
 # TODO check all the relevant apps work
-start_server C++ 10240
-start_server D 10241
-start_server Rust 10242
-start_server C++ 20480 --env cppx
-start_server Ispc 20481
-start_server Haskell 20482
-start_server Swift 20483
-start_server Pascal 20484
+start_server 10240
 
 $SUDO docker stop nginx || true
 $SUDO docker rm nginx || true
