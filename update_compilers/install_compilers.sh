@@ -523,6 +523,7 @@ for version in \
     2.6.2 \
     2.6.4 \
     3.0.2 \
+    3.0.4 \
 ; do
     get_fpc $version
 done
