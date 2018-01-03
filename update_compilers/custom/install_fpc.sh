@@ -307,13 +307,6 @@ done
 echo Done.
 echo
 
-# Install /etc/fpc.cfg, this is done using the samplecfg script
-if [ "$cross" = "" ]; then
-  "$LIBDIR/samplecfg" "$LIBDIR"
-else
-  echo "No fpc.cfg created because a cross installation has been done."
-fi
-
 # The End
 echo
 echo End of installation.
