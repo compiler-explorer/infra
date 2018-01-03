@@ -81,7 +81,8 @@ sleep 3
 /etc/init.d/cachefilesd start || true
 ####### GROTESQUE HACK END #########
 # TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
-mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,fsc,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
+# TODO temporarily disabling fsc to see if this "fixes" issues. NB we _will_ start chewing through EFS burst credits...
+mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
 
 cd /home/ubuntu/
 
