@@ -137,6 +137,8 @@ install_new_rust 1.18.0
 install_new_rust 1.19.0
 install_new_rust 1.20.0
 install_new_rust 1.21.0
+install_new_rust 1.22.0
+install_new_rust 1.23.0
 
 install_rust 1.0.0
 install_rust 1.1.0
