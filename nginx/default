@@ -7,16 +7,9 @@ real_ip_header X-Forwarded-For;
 proxy_cache_path /var/cache/nginx-gcc keys_zone=gcc:10m max_size=200m;
 
 server {
-    return 301 https://godbolt.org$request_uri;
-}
-
-server {
     index index.html;
     access_log /var/log/nginx/all.log;
     error_log /var/log/nginx/all.err;
-
-    # IP range so that Amazon healthchecks work too.
-    server_name godbolt.org 172.*;
 
     location / {
         rewrite ^/beta$ /beta/ permanent;
