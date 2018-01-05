@@ -71,20 +71,8 @@ docker stop logspout || true
 docker rm logspout || true
 docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
 
-####### GROTESQUE HACK BEGIN #########
-/etc/init.d/cachefilesd stop
-sleep 3
-perl -pi -e 's/^#RUN/RUN/' /etc/default/cachefilesd
-sleep 3
-/etc/init.d/cachefilesd start || true # maybe ? ugly!
-sleep 3
-/etc/init.d/cachefilesd start || true
-####### GROTESQUE HACK END #########
 # TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
-# TODO temporarily disabling fsc to see if this "fixes" issues. NB we _will_ start chewing through EFS burst credits...
-# TODO now attempting to use smaller block size to see if this reverts the initial need for caching
-# (see https://www.patreon.com/posts/outage-2017-05-11241143)
-mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=65536,wsize=65536,hard,timeo=600,retrans=2,noatime,nodiratime $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
+mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noatime,nodiratime,nocto $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
 
 cd /home/ubuntu/
 
