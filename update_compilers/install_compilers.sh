@@ -536,3 +536,54 @@ fi
 cp ${SCRIPT_DIR}/custom/fpc.cfg ${OPT}/fpc/fpc.cfg
 
 #########################
+# NASM
+
+get_nasm() {
+    local VER=$1
+    local DIR=nasm-$VER
+
+    if [[ ! -d ${OPT}/${DIR} ]]; then
+        pushd /tmp
+        fetch http://www.nasm.us/pub/nasm/releasebuilds/${VER}/nasm-${VER}.tar.xz | tar Jxf -
+        cd ${DIR}
+        sh configure
+        make
+        mkdir ${OPT}/${DIR}
+        cp nasm ${OPT}/${DIR}
+        popd
+    fi
+}
+
+for version in \
+    2.12.02 \
+    2.13.02 \
+; do
+    get_nasm $version
+done
+
+#########################
+# GNU AS
+
+get_gnuas() {
+    local VER=$1
+    local DIR=gnuas-$VER
+
+    if [[ ! -d ${OPT}/${DIR} ]]; then
+        pushd /tmp
+        fetch http://ftp.gnu.org/gnu/binutils/binutils-${VER}.tar.xz | tar Jxf -
+        cd ${DIR}
+        cd gas
+        ./configure
+        make
+        mkdir ${OPT}/${DIR}
+        cp as-new ${OPT}/${DIR}
+        popd
+    fi
+}
+
+for version in \
+    2.25 \
+    2.29 \
+; do
+    get_gnuas $version
+done
