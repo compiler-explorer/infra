@@ -560,30 +560,3 @@ for version in \
 ; do
     get_nasm $version
 done
-
-#########################
-# GNU AS
-
-get_gnuas() {
-    local VER=$1
-    local DIR=gnuas-$VER
-
-    if [[ ! -d ${OPT}/${DIR} ]]; then
-        pushd /tmp
-        fetch http://ftp.gnu.org/gnu/binutils/binutils-${VER}.tar.xz | tar Jxf -
-        cd ${DIR}
-        cd gas
-        ./configure
-        make
-        mkdir ${OPT}/${DIR}
-        cp as-new ${OPT}/${DIR}
-        popd
-    fi
-}
-
-for version in \
-    2.25 \
-    2.29 \
-; do
-    get_gnuas $version
-done
