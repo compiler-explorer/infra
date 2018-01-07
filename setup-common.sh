@@ -31,18 +31,8 @@ get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
 
-if [[ ! -f /etc/newrelic-infra.yml ]]; then
-    NEW_RELIC_LICENSE="$(get_conf /compiler-explorer/newRelicLicense)"
-    if [[ -z $"{NEW_RELIC_LICENSE}" ]]; then
-        echo "Problem getting new relic license"
-        exit 1
-    fi
-    echo "license_key: ${NEW_RELIC_LICENSE}" > /etc/newrelic-infra.yml
-    chmod 600 /etc/newrelic-infra.yml
-    curl https://download.newrelic.com/infrastructure_agent/gpg/newrelic-infra.gpg | apt-key add -
-    printf "deb [arch=amd64] http://download.newrelic.com/infrastructure_agent/linux/apt xenial main" > /etc/apt/sources.list.d/newrelic-infra.list
-    apt-get update
-    apt-get install newrelic-infra -y
+if [[ -f /etc/newrelic-infra.yml ]]; then
+   apt-get remove -y newrelic-infra
 fi
 
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
