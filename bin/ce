@@ -115,6 +115,12 @@ def are_you_sure(name, args):
             return True
 
 
+def exec_all_cmd(args):
+    remote_cmd = args['remote_cmd']
+    print "Running '{}' on all instances".format(' '.join(remote_cmd))
+    exec_remote_all(pick_instances(args), remote_cmd)
+
+
 def start_cmd(args):
     print "Starting version {}".format(describe_current_release(args))
     exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
@@ -210,6 +216,8 @@ if __name__ == '__main__':
     list_parser = subparsers.add_parser('list')
     status_parser = subparsers.add_parser('status')
     login_parser = subparsers.add_parser('login')
+    exec_all_parser = subparsers.add_parser('exec_all')
+    exec_all_parser.add_argument('remote_cmd', nargs='+', help='command to run on all nodes')
     start_parser = subparsers.add_parser('start')
     stop_parser = subparsers.add_parser('stop')
     restart_parser = subparsers.add_parser('restart')
@@ -224,5 +232,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.INFO)
         logging.getLogger('boto3').setLevel(logging.WARNING)
         logging.getLogger('botocore').setLevel(logging.WARNING)
-    print "Running in {}".format(kwargs['env'])
-    globals()[kwargs.pop('command') + "_cmd"](kwargs)
+    cmd = kwargs.pop('command')
+    if cmd not in ('admin',):
+        print "Running in {}".format(kwargs['env'])
+    globals()[cmd + "_cmd"](kwargs)
