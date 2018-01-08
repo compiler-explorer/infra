@@ -8,7 +8,7 @@ import sys
 import time
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
-    set_current_key, as_client, release_for
+    set_current_key, as_client, release_for, find_latest_release
 from lib.instance import AdminInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
@@ -196,7 +196,7 @@ def set_current_cmd(args):
     if args['raw']:
         to_set = args['version']
     else:
-        release = find_release(int(args['version']))
+        release = find_latest_release() if args['version'] == 'latest' else find_release(int(args['version']))
         if not release:
             print "Unable to find version " + args.version
             sys.exit(1)

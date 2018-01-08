@@ -1,4 +1,5 @@
 import boto3
+from operator import attrgetter
 
 ec2 = boto3.resource('ec2')
 s3 = boto3.resource('s3')
@@ -76,6 +77,11 @@ def find_release(version):
         if r.version == version:
             return r
     return None
+
+
+def find_latest_release():
+    releases = get_releases()
+    return max(releases, key=attrgetter('version'))
 
 
 def branch_for_env(args):
