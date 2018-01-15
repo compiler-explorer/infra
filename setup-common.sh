@@ -23,8 +23,10 @@ fi
 
 if [[ ! -f /updated2 ]]; then
     # TODO fold in with the above
-    curl -sL https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip -o /tmp/acwa.zip
-    pushd /tmp
+    rm -rf /tmp/acwa
+    mkdir -p /tmp/acwa
+    curl -sL https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip -o /tmp/acwa/acwa.zip
+    pushd /tmp/acwa
     unzip acwa.zip
     rm acwa.zip
     rm -rf acwa.zip
