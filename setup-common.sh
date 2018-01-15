@@ -12,12 +12,6 @@ if [[ ! -f /updated ]]; then
     pip install --upgrade pip
     pip install --upgrade awscli
     wget -qO- https://get.docker.com/ | sh
-    curl -sL http://aws-cloudwatch.s3.amazonaws.com/downloads/CloudWatchMonitoringScripts-1.2.1.zip -o /tmp/cwm.zip
-    cd /root
-    unzip /tmp/cwm.zip
-    rm /tmp/cwm.zip
-    echo '*/5 * * * * root /root/aws-scripts-mon/mon-put-instance-data.pl ' \
-         '--mem-util --disk-space-util --disk-path=/ --auto-scaling --from-cron' >> /etc/crontab
     touch /updated
 fi
 
@@ -63,6 +57,9 @@ docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(host
 
 # TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noatime,nodiratime,nocto $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
+
+# Start cloudwatch (NB it's installed on /opt so it's mounted above)
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
 
 cd /home/ubuntu/
 
