@@ -59,7 +59,7 @@ docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(host
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noatime,nodiratime,nocto $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
 
 # Start cloudwatch (NB it's installed on /opt so it's mounted above)
-/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
+#/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
 
 cd /home/ubuntu/
 
