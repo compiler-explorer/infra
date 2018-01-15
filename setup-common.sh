@@ -21,6 +21,20 @@ if [[ ! -f /root/.aws ]]; then
     chown -R ubuntu /home/ubuntu/.aws
 fi
 
+if [[ ! -f /updated2 ]]; then
+    # TODO fold in with the above
+    curl -sL https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip -o /tmp/acwa.zip
+    pushd /tmp
+    unzip acwa.zip
+    rm acwa.zip
+    rm -rf acwa.zip
+    ./install.sh
+    popd
+    /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
+    touch /updated2
+fi
+
+
 get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
@@ -57,9 +71,6 @@ docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(host
 
 # TODO ideally we would mount this readonly but the rsync operation to the versioned directory requires it :/
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noatime,nodiratime,nocto $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
-
-# Start cloudwatch (NB it's installed on /opt so it's mounted above)
-/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
 
 cd /home/ubuntu/
 
