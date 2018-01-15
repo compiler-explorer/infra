@@ -29,9 +29,9 @@ if [[ ! -f /updated2 ]]; then
     pushd /tmp/acwa
     unzip acwa.zip
     rm acwa.zip
-    rm -rf acwa.zip
     ./install.sh
     popd
+    rm -rf /tmp/acwa
     /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
     touch /updated2
 fi
