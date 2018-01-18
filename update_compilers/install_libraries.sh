@@ -32,6 +32,7 @@ install_boost() {
 }
 install_boost 1.64.0
 install_boost 1.65.0
+install_boost 1.66.0
 
 get_or_sync() {
     local DIR=$1
