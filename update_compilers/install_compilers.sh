@@ -470,7 +470,7 @@ get_ppci() {
   fi
 }
 
-get_ppci 0.5.4
+get_ppci 0.5.5
 
 get_ghc() {
     local VER=$1
