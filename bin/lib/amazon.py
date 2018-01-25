@@ -81,7 +81,7 @@ def find_release(version):
 
 def find_latest_release(branch):
     releases = [release for release in get_releases() if branch == '' or release.branch == branch]
-    return max(releases, key=attrgetter('version'))
+    return max(releases, key=attrgetter('version')) if len(releases) > 0 else None
 
 
 def branch_for_env(args):
