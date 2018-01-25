@@ -21,6 +21,7 @@ else
     TARBALL=gcc-${VERSION}.tar.bz2
     if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" = "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" = "7.3" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" = "5.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
