@@ -196,9 +196,12 @@ def set_current_cmd(args):
     if args['raw']:
         to_set = args['version']
     else:
-        release = find_latest_release() if args['version'] == 'latest' else find_release(int(args['version']))
+        setting_latest = args['version'] == 'latest'
+        release = find_latest_release(args['branch']) if setting_latest else find_release(int(args['version']))
         if not release:
-            print "Unable to find version " + args.version
+            print "Unable to find version " + args['version']
+            if setting_latest and args['branch'] != '':
+                print 'Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch'])
             sys.exit(1)
         print 'Found release {}'.format(release)
         to_set = release.key
@@ -224,6 +227,7 @@ if __name__ == '__main__':
     current_parser = subparsers.add_parser('current')
     set_current = subparsers.add_parser('set_current')
     set_current.add_argument('version', help='version to set')
+    set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str, default='')
     set_current.add_argument('--raw', action='store_true', help='Set a raw path for a version')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
