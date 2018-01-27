@@ -467,6 +467,18 @@ get_ispc() {
 get_ispc 1.9.2
 get_ispc 1.9.1
 
+# PPCI
+get_ppci() {
+  local VER=$1
+  local DIR=ppci-$VER
+
+  if [[ ! -d ${DIR} ]];
+    fetch https://pypi.io/packages/source/p/ppci/ppci-$VER.tar.gz | tar xfz
+  fi
+}
+
+get_ppci 0.5.5
+
 get_ghc() {
     local VER=$1
     local DIR=ghc-$VER
