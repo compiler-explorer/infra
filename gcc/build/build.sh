@@ -23,6 +23,7 @@ else
     if [[ "${MAJOR_MINOR}" = "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" = "7.3" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" = "5.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" = "6.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
