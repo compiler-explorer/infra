@@ -113,15 +113,11 @@ else
     BINUTILS_DIR=binutils-${BINUTILS_VERSION}
     rm -rf ${BINUTILS_DIR}
     tar jxf binutils-${BINUTILS_VERSION}.tar.bz2
-    BINUTILS_FILES=$(cd ${BINUTILS_DIR}; ls -1)
-    pushd gcc-${VERSION}
-    for file in ${BINUTILS_FILES}
-    do
-        if [ ! -e "$file" ]
-        then
-            ln -sf "../${BINUTILS_DIR}/${file}"
-        fi
-    done
+    mkdir ${BINUTILS_DIR}/objdir
+    pushd ${BINUTILS_DIR}/objdir
+    ../configure --prefix ${STAGING_DIR} ${CONFIG}
+    make -j$(nproc)
+    make ${INSTALL_TARGET}
     popd
 fi
 
@@ -141,16 +137,6 @@ pushd objdir
 make -j$(nproc)
 make ${INSTALL_TARGET}
 popd
-
-if [[ ! -z "${BINUTILS_VERSION}" ]]; then
-    # Work around insane in-tree built ld issue
-    for bindir in ${STAGING_DIR}/{,x86_64-linux-gnu/}bin
-    do
-        pushd ${bindir}
-        ln -s ld ld-new
-        popd
-    done
-fi
 
 # Compress all the images with upx
 for EXE in $(find ${STAGING_DIR} -type f -executable -not -regex '.*\.so.*'); do
