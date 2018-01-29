@@ -473,7 +473,7 @@ get_ppci() {
   local DIR=ppci-$VER
 
   if [[ ! -d ${DIR} ]]; then
-    fetch https://pypi.io/packages/source/p/ppci/ppci-$VER.tar.gz | tar xfz
+    fetch https://pypi.io/packages/source/p/ppci/ppci-$VER.tar.gz | tar xfz -
   fi
 }
 
