@@ -56,11 +56,6 @@ update_code() {
     rm -rf ${DEPLOY_DIR}
     get_released_code ${DEPLOY_DIR}
     CFG="${CFG} -v${DEPLOY_DIR}:/compiler-explorer:ro"
-    # Back up the 'v' directory to the long-term archive
-    # TODO; have the `ce` script do this and then we can mount the nfs drive readonly
-    mkdir -p ${ARCHIVE_DIR}
-    rsync -av ${DEPLOY_DIR}/out/dist/v/ ${ARCHIVE_DIR}
-    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
 }
 
 start_container() {
