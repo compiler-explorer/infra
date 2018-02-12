@@ -66,13 +66,13 @@ get_if_not_there() {
 get_github_versioned_and_trunk() {
     local DIR=$1
     local URL=https://github.com/$2
-    shift
-    shift
+    local QUIRK=$3
+    shift 3
     mkdir -p $DIR
-    get_or_sync ${DIR}/trunk ${URL}.git
+    get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
     local version
     for tag in "$@"; do
-        get_if_not_there ${DIR}/${tag} ${URL}/archive/${tag}.tar.gz
+        get_if_not_there ${DIR}/${QUIRK}${tag} ${URL}/archive/${tag}.tar.gz
     done
 }
 
@@ -82,9 +82,7 @@ get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
-
-# Eigen
-get_if_not_there libs/eigen/v3.3.4 http://bitbucket.org/eigen/eigen/get/3.3.4.tar.gz
+get_github_versioned_and_trunk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
 
 #########################
 
