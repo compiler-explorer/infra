@@ -44,10 +44,12 @@ get_or_sync() {
     fi
 }
 
-get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git 
+get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 get_or_sync libs/opencv https://github.com/opencv/opencv.git
+get_or_sync libs/xtl https://github.com/QuantStack/xtl.git
+get_or_sync libs/xsimd https://github.com/QuantStack/xsimd.git
 get_or_sync libs/xtensor https://github.com/QuantStack/xtensor.git
 get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
 get_or_sync libs/cctz https://github.com/google/cctz.git
