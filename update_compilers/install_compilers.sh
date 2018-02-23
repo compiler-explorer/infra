@@ -249,6 +249,15 @@ getdmd_2x() {
     popd
 }
 
+getdmd2_nightly() {
+    DIR=dmd2-nightly
+    mkdir ${DIR}
+    pushd ${DIR}
+    fetch https://nightlies.dlang.org/dmd-nightly/dmd.master.linux.tar.xz | tar Jxf -
+    do_strip ${DIR}
+    popd
+}
+
 getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
@@ -264,6 +273,10 @@ getldc 1.7.0
 getldc_latestbeta
 getldc_s3 1.2.0
 getdmd_2x 2.078.3
+if install_nightly; then
+    getdmd2_nightly
+fi
+
 
 #########################
 # C++
