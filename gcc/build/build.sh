@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 ROOT=$(pwd)
 VERSION=$1
@@ -53,6 +53,16 @@ else
     echo "Extracting GCC..."
     tar axf ${TARBALL}
 fi
+
+echo "Downloading prerequisites"
+pushd gcc-${VERSION}
+if [[ -f ./contrib/download_prerequisites ]]; then
+    ./contrib/download_prerequisites
+else
+    # Older GCCs lacked it, so this is one stolen from GCC 4.6.1
+    ../download_prerequisites
+fi
+popd
 
 applyPatchesAndConfig() {
     local PATCH_DIR=${ROOT}/patches/$1
@@ -121,16 +131,6 @@ else
     make ${INSTALL_TARGET}
     popd
 fi
-
-echo "Downloading prerequisites"
-pushd gcc-${VERSION}
-if [[ -f ./contrib/download_prerequisites ]]; then
-    ./contrib/download_prerequisites
-else
-    # Older GCCs lacked it, so this is one stolen from GCC 4.6.1
-    ../download_prerequisites
-fi
-popd
 
 mkdir -p objdir
 pushd objdir

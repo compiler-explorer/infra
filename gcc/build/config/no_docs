@@ -1,1 +1,1 @@
-CONFIG+=" MAKEINFO=missing"
+export MAKEINFO=missing

@@ -1,0 +1,11 @@
+CONFIG+=" --with-gmp-dir=../gcc-${VERSION}/gmp --with-mpfr-dir=../gcc-${VERSION}/mpfr"
+
+pushd ./gcc-${VERSION}/gmp
+./configure
+make -j4
+popd
+
+pushd ./gcc-${VERSION}/mpfr
+./configure --with-gmp-build=../gmp
+make -j4
+popd
