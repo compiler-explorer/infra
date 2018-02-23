@@ -251,6 +251,9 @@ getdmd_2x() {
 
 getdmd2_nightly() {
     DIR=dmd2-nightly
+    if [[ -d ${DIR} ]]; then
+	rm -rf ${DIR}
+    fi
     mkdir ${DIR}
     pushd ${DIR}
     fetch https://nightlies.dlang.org/dmd-nightly/dmd.master.linux.tar.xz | tar Jxf -
