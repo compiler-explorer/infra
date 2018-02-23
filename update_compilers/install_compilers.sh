@@ -254,7 +254,6 @@ getdmd2_nightly() {
     mkdir ${DIR}
     pushd ${DIR}
     fetch https://nightlies.dlang.org/dmd-nightly/dmd.master.linux.tar.xz | tar Jxf -
-    do_strip ${DIR}
     popd
 }
 
