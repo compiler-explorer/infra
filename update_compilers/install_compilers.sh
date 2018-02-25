@@ -173,7 +173,10 @@ install_golang() {
 
 install_golang 1.7.2
 install_golang 1.8.5
+install_golang 1.8.7
 install_golang 1.9.2
+install_golang 1.9.4
+install_golang 1.10
 #########################
 
 
