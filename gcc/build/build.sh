@@ -126,7 +126,7 @@ else
     tar jxf binutils-${BINUTILS_VERSION}.tar.bz2
     mkdir ${BINUTILS_DIR}/objdir
     pushd ${BINUTILS_DIR}/objdir
-    ../configure --prefix ${STAGING_DIR} ${CONFIG}
+    ../configure --prefix=${STAGING_DIR} ${CONFIG}
     make -j$(nproc)
     make ${INSTALL_TARGET}
     popd
@@ -134,7 +134,7 @@ fi
 
 mkdir -p objdir
 pushd objdir
-../gcc-${VERSION}/configure --prefix ${STAGING_DIR} ${CONFIG}
+../gcc-${VERSION}/configure --prefix=${STAGING_DIR} ${CONFIG}
 make -j$(nproc)
 make ${INSTALL_TARGET}
 popd
