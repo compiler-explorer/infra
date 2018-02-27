@@ -85,6 +85,7 @@ get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
 get_github_versioned_and_trunk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
+get_github_versioned_and_trunk libs/fmt fmtlib/fmt 4.1.0 4.0.0
 
 #########################
 
