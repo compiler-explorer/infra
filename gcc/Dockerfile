@@ -7,6 +7,7 @@ RUN apt update -y && apt upgrade -y && apt upgrade -y && apt install -y \
     curl \
     file \
     flex \
+    gawk \
     g++ \
     gcc \
     libc6-dev-i386 \

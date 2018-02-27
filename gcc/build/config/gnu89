@@ -1,0 +1,2 @@
+export CFLAGS='-fgnu89-inline -g -O2'
+export CXXFLAGS='-fgnu89-inline -g -O2'

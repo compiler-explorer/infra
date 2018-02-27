@@ -1,11 +1,13 @@
-CONFIG+=" --with-gmp-dir=../gcc-${VERSION}/gmp --with-mpfr-dir=../gcc-${VERSION}/mpfr"
-
 pushd ./gcc-${VERSION}/gmp
-./configure
-make -j4
+./configure --prefix=${STAGING_DIR}
+make -j$(nproc)
+make install
 popd
 
 pushd ./gcc-${VERSION}/mpfr
-./configure --with-gmp-build=../gmp
-make -j4
+./configure --with-gmp=${STAGING_DIR} --prefix=${STAGING_DIR}
+make -j$(nproc)
+make install
 popd
+
+CONFIG+=" --with-gmp=${STAGING_DIR} --with-mpfr=${STAGING_DIR}"
