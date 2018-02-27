@@ -40,6 +40,7 @@ get_or_sync() {
     if [ ! -d "${DIR}" ]; then
         git clone "${URL}" "${DIR}"
     else
+	    git -C "${DIR}" reset --hard
 	    git -C "${DIR}" pull
     fi
 }
@@ -65,7 +66,7 @@ get_if_not_there() {
     fi
 }
 
-get_github_versioned_and_trunk() {
+get_github_versioned_and_trunk_with_quirk() {
     local DIR=$1
     local URL=https://github.com/$2
     local QUIRK=$3
@@ -78,14 +79,21 @@ get_github_versioned_and_trunk() {
     done
 }
 
+get_github_versioned_and_trunk() {
+    local DIR=$1
+    local URL=$2
+    shift 2
+    get_github_versioned_and_trunk_with_quirk $DIR $URL '' "$@"
+}
+
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0
 get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
-get_github_versioned_and_trunk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
 get_github_versioned_and_trunk libs/fmt fmtlib/fmt 4.1.0 4.0.0
+get_github_versioned_and_trunk_with_quirk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
 
 #########################
 
