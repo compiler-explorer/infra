@@ -1,2 +1,2 @@
-export CFLAGS='-fgnu89-inline -g -O2'
-export CXXFLAGS='-fgnu89-inline -g -O2'
+export CC='gcc -fgnu89-inline'
+export CXX='g++ -fgnu89-inline'
