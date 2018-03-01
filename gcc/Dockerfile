@@ -22,7 +22,11 @@ RUN apt update -y && apt upgrade -y && apt upgrade -y && apt install -y \
     wget \
     xz-utils
 
-RUN mkdir -p /root
-COPY build /root/
+# We build from a directory that must be at least searchable with
+# EPERM on the CE nodes. Older GCCs erroneously search the $prefix
+# used during building, and if they hit a path that gives EPERM they
+# bail out. /opt/compiler-explorer/* is a safe spot to build these.
+RUN mkdir -p /opt/compiler-explorer/gcc-build
+COPY build /opt/compiler-explorer/gcc-build
 
-WORKDIR /root
+WORKDIR /opt/compiler-explorer/gcc-build
