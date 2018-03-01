@@ -358,6 +358,7 @@ done
 #   (which could now be fixed with the unwind patch if I cared to do so)
 # )
 for version in \
+    4.1.2 \
     4.4.7 \
     4.5.3 \
     4.6.4 \
