@@ -530,6 +530,8 @@ get_ghc() {
 }
 
 get_ghc 8.0.2
+get_ghc 8.2.1
+get_ghc 8.2.2
 
 get_swift() {
     local VER=$1
