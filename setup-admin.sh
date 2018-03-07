@@ -11,8 +11,7 @@ if [[ "$1" != "--updated" ]]; then
     exit 0
 fi
 
-EXTRA_NFS_ARGS=""
-${DIR}/setup-common.sh
+env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
 apt -y install python2.7 python-pip mosh fish jq
 chsh ubuntu -s /usr/bin/fish
