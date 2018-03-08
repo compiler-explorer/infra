@@ -134,7 +134,7 @@ install_mir_glas() {
     done
 }
 
-install_mir_glas 0.1.5 0.2.3
+install_mir_glas 0.1.5 0.2.3 0.2.4
 
 if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
     git clone https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
