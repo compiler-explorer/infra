@@ -84,9 +84,9 @@ get_github_versioned_and_trunk() {
 }
 
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
-get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0
+get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0 v1.3.0
 get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5
-get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7
+get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
 get_github_versioned_and_trunk libs/fmt fmtlib/fmt 4.1.0 4.0.0
