@@ -39,6 +39,9 @@ if [[ ! -f $PATCHELF ]]; then
     popd
 fi
 
+
+#########################
+# Rust
 do_rust_install() {
     local DIR=$1
     local INSTALL=$2
@@ -114,8 +117,7 @@ install_new_rust() {
     do_strip ${OPT}/rust-${NAME}
 }
 
-#########################
-# RUST
+
 if install_nightly; then
     install_new_rust nightly '1 day'
     install_new_rust beta '1 week'
@@ -146,10 +148,10 @@ install_rust 1.1.0
 install_rust 1.2.0
 install_rust 1.3.0
 install_rust 1.4.0
-#########################
+
 
 #########################
-# GO
+# Go
 
 ## Install 1.4.1 the old way...
 if [[ ! -d ${OPT}/go ]]; then
@@ -177,7 +179,6 @@ install_golang 1.8.7
 install_golang 1.9.2
 install_golang 1.9.4
 install_golang 1.10
-#########################
 
 
 #########################
@@ -503,7 +504,8 @@ get_ispc() {
 get_ispc 1.9.2
 get_ispc 1.9.1
 
-# PPCI
+#########################
+# C
 get_ppci() {
   local VER=$1
   local DIR=ppci-$VER
@@ -515,6 +517,9 @@ get_ppci() {
 
 get_ppci 0.5.5
 
+
+#########################
+# Haskell
 get_ghc() {
     local VER=$1
     local DIR=ghc-$VER
@@ -533,6 +538,9 @@ get_ghc 8.0.2
 get_ghc 8.2.1
 get_ghc 8.2.2
 
+
+#########################
+# Swift
 get_swift() {
     local VER=$1
     local DIR=swift-${VER}
@@ -549,10 +557,11 @@ get_swift() {
 
 get_swift 3.1.1
 get_swift 4.0.2
+get_swift 4.0.3
 
 
 #########################
-# FPC
+# Pascal
 get_fpc() {
     local VER=$1
     local DIR=fpc-$VER.x86_64-linux
@@ -586,7 +595,7 @@ fi
 cp ${SCRIPT_DIR}/custom/fpc.cfg ${OPT}/fpc/fpc.cfg
 
 #########################
-# NASM
+# Assembly
 
 get_nasm() {
     local VER=$1
