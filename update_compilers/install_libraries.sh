@@ -102,9 +102,9 @@ install_gnu_gsl_versioned_and_latest() {
     local DIR=$1
     shift
     mkdir -p $DIR
-    get_or_sync ${DIR}/trunk/gsl https://git.savannah.gnu.org/git/gsl.git
+    get_or_sync ${DIR}/trunk https://git.savannah.gnu.org/git/gsl.git
     for tag in "$@"; do
-        get_if_not_there ${DIR}/${tag}/gsl ftp://ftp.gnu.org/gnu/gsl/gsl-${tag}.tar.gz
+        get_if_not_there ${DIR}/${tag} ftp://ftp.gnu.org/gnu/gsl/gsl-${tag}.tar.gz
     done
 }
 
