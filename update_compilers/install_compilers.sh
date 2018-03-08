@@ -607,6 +607,7 @@ get_nasm() {
 for version in \
     2.12.02 \
     2.13.02 \
+    2.13.03 \
 ; do
     get_nasm $version
 done
