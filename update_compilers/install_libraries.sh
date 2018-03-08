@@ -96,6 +96,19 @@ get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5
 
 
 #########################
+# C
+install_gnu_gsl_versioned_and_latest() {
+    # We need to build this, I think?
+    local DIR=$1
+    shift
+    mkdir -p $DIR
+    get_or_sync ${DIR}/trunk/gsl https://git.savannah.gnu.org/git/gsl.git
+    for tag in "$@"; do
+        get_if_not_there ${DIR}/${tag}/gsl ftp://ftp.gnu.org/gnu/gsl/gsl-${tag}.tar.gz
+    done
+}
+
+#install_gnu_gsl_versioned_and_latest libs/gnu-gsl 2.3 2.4
 
 #########################
 # D
