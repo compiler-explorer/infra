@@ -28,17 +28,12 @@ ALL_COMPILERS=$(python ${SCRIPT_DIR}/list_compilers.py --s3url https://s3.amazon
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
-    if [[ -f /sbin/apk ]]; then
-        # Assume we're under alpine
-        apk --update add alpine-sdk
-    fi
     fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
     pushd patchelf-0.8
     CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
     make -j$(nproc)
     popd
 fi
-
 
 #########################
 # Rust
@@ -459,6 +454,10 @@ fi
 
 if install_nightly; then
     do_nightly_install clang-cppx-trunk clang-cppx-trunk
+fi
+
+if install_nightly; then
+    do_nightly_install clang-concepts-trunk clang-concepts-trunk
 fi
 
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the
