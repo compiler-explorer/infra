@@ -21,22 +21,6 @@ if [[ ! -f /root/.aws ]]; then
     chown -R ubuntu /home/ubuntu/.aws
 fi
 
-if [[ ! -f /updated2 ]]; then
-    # TODO fold in with the above
-    rm -rf /tmp/acwa
-    mkdir -p /tmp/acwa
-    curl -sL https://s3.amazonaws.com/amazoncloudwatch-agent/linux/amd64/latest/AmazonCloudWatchAgent.zip -o /tmp/acwa/acwa.zip
-    pushd /tmp/acwa
-    unzip acwa.zip
-    rm acwa.zip
-    ./install.sh
-    popd
-    rm -rf /tmp/acwa
-    /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c ssm:agent-config-linux -s
-    touch /updated2
-fi
-
-
 get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
