@@ -348,6 +348,18 @@ for VERSION in 0.1.33 \
     fi
 done
 
+install_ellcc() {
+    for VERSION in "$@"; do
+        local DIR=ellcc-${VERSION}
+        if [[ ! -d ${DIR} ]]; then
+            fetch http://ellcc.org/releases/release-${VERSION}/ellcc-x86_64-linux-${VERSION}.bz2 | tar xjf -
+            mv ellcc ${DIR}
+            do_strip ${DIR}
+        fi
+    done
+}
+
+install_ellcc 2017-07-16
 
 # Custom-built GCCs are already UPX's and stripped
 # (notes on various compiler builds below:
