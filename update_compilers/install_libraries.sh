@@ -55,7 +55,18 @@ install_llvm() {
     done
 }
 
+install_llvm_trunk() {
+    rm -rf /tmp/llvm
+    mkdir -p /tmp/llvm
+    svn co http://llvm.org/svn/llvm-project/llvm/trunk /tmp/llvm
+    mkdir -p libs/llvm/trunk
+    ${OPT}/cmake/bin/cmake /tmp/llvm
+    rsync -av /tmp/llvm/include/ libs/llvm/trunk/include/
+    rm -rf /tmp/llvm
+}
+
 install_llvm 6.0.0 5.0.1 4.0.1
+install_llvm_trunk
 
 get_or_sync() {
     local DIR=$1
@@ -63,8 +74,8 @@ get_or_sync() {
     if [ ! -d "${DIR}" ]; then
         git clone "${URL}" "${DIR}"
     else
-	    git -C "${DIR}" reset --hard
-	    git -C "${DIR}" pull
+    	git -C "${DIR}" reset --hard
+    	git -C "${DIR}" pull
     fi
 }
 
