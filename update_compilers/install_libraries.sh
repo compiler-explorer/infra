@@ -14,6 +14,11 @@ else
     git -C libs/kvasir/mpl/trunk pull origin development
 fi
 
+if [ ! -d cmake ]; then
+    mkdir cmake
+    fetch https://cmake.org/files/v3.11/cmake-3.11.0-rc3-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
+fi
+
 install_boost() {
     for VERSION in "$@"; do
         local VERSION_UNDERSCORE=$(echo ${VERSION} | tr . _)
@@ -37,8 +42,15 @@ install_llvm() {
         local DEST=${OPT}/libs/llvm/${VERSION}
         local URL=http://releases.llvm.org/${VERSION}/llvm-${VERSION}.src.tar.xz
         if [[ ! -d ${DEST} ]]; then
+            rm -rf /tmp/llvm
+            mkdir -p /tmp/llvm
+            fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm
             mkdir -p ${DEST}
-            fetch ${URL} | tar Jxf - --strip-components=1 -C ${DEST}
+            pushd ${DEST}
+            ${OPT}/cmake/bin/cmake /tmp/llvm
+            rsync -av /tmp/llvm/include/ include/
+            popd
+            rm -rf /tmp/llvm
         fi
     done
 }
