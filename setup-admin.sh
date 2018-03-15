@@ -25,5 +25,6 @@ aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value > /h
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
+chown -R ubuntu:ubuntu /home/ubuntu/compiler-explorer-image
 
 sudo -u ubuntu fish setup.fish
