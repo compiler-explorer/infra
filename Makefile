@@ -48,11 +48,6 @@ build-compiler-images:
 	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-cross gcc-cross
 	$(DOCKER) push mattgodbolt/gcc-cross
 
-update-compilers:
-	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder:update update_compilers
-	$(DOCKER) push mattgodbolt/gcc-builder:update
-	python update_efs_compilers.py --key-file $(KEY_FILE) --key-pair-name $(KEY_PAIR_NAME)
-
 clean:
 	echo nothing to clean yet
 
