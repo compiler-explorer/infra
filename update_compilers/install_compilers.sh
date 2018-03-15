@@ -218,7 +218,7 @@ getldc_s3() {
 }
 
 getldc_latestbeta() {
-    vers=$(curl ${https_proxy:+--proxy $https_proxy} https://ldc-developers.github.io/LATEST_BETA)
+    vers=$(fetch https://ldc-developers.github.io/LATEST_BETA)
     if [[ ! -d ldcbeta ]]; then
         mkdir ldcbeta
     fi
@@ -251,7 +251,7 @@ getdmd_2x() {
 getdmd2_nightly() {
     DIR=dmd2-nightly
     if [[ -d ${DIR} ]]; then
-	rm -rf ${DIR}
+        rm -rf ${DIR}
     fi
     mkdir ${DIR}
     pushd ${DIR}
@@ -414,7 +414,7 @@ gcc_arch_install mips64el 5.4.0
 
 if [[ ! -d arm/gcc-arm-none-eabi-7-2017-q4-major ]]; then
     pushd arm
-    curl -sL https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 | tar jxf -
+    fetch https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 | tar jxf -
     popd
 fi
 
