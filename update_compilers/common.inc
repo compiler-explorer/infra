@@ -10,7 +10,7 @@ s3get() {
 
 # Grossly assumes the same proxy for http, https and ftp
 fetch() {
-    curl -v ${http_proxy:+--proxy $http_proxy} -L "$*"
+    curl ${http_proxy:+--proxy $http_proxy} -L "$*"
 }
 
 do_unzip() {
