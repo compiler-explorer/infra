@@ -8,7 +8,7 @@ import sys
 import time
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
-    set_current_key, as_client, release_for, find_latest_release
+    set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release
 from lib.instance import AdminInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
@@ -206,7 +206,25 @@ def set_current_cmd(args):
         print 'Found release {}'.format(release)
         to_set = release.key
     set_current_key(args, to_set)
-    # TODO, ideally sync the versioned directory here, requires remote machine, or admin access?
+
+
+def rm_old_cmd(args):
+    current = get_all_current()
+    all_releases = get_releases()
+    max_build = max(x.version for x in all_releases)
+    for release in get_releases():
+        if release.key in current:
+            print "Skipping {} as it is a current version".format(release)
+        else:
+            age = max_build - release.version
+            if age > args['age']:
+                if args['dry_run']:
+                    print "Would remove build {}".format(release)
+                else:
+                    print "Removing build {}".format(release)
+                    remove_release(release)
+            else:
+                print "Keeping build {}".format(release)
 
 
 if __name__ == '__main__':
@@ -227,8 +245,12 @@ if __name__ == '__main__':
     current_parser = subparsers.add_parser('current')
     set_current = subparsers.add_parser('set_current')
     set_current.add_argument('version', help='version to set')
-    set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str, default='')
+    set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str,
+                             default='')
     set_current.add_argument('--raw', action='store_true', help='Set a raw path for a version')
+    expire = subparsers.add_parser('rm_old', help='delete old versions')
+    expire.add_argument('age', help='keep the most recent AGE builds (as well as current builds)', metavar='AGE', type=int)
+    expire.add_argument('--dry-run', help='dry run only', action='store_true')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
         logging.basicConfig(level=logging.DEBUG)
