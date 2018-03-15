@@ -47,7 +47,7 @@ install_llvm() {
             fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm
             mkdir -p ${DEST}
             pushd ${DEST}
-            ${OPT}/cmake/bin/cmake /tmp/llvm
+            ${OPT}/cmake/bin/cmake /tmp/llvm 2>&1
             rsync -av /tmp/llvm/include/ include/
             popd
             rm -rf /tmp/llvm
@@ -61,7 +61,7 @@ install_llvm_trunk() {
     svn co -q http://llvm.org/svn/llvm-project/llvm/trunk /tmp/llvm
     mkdir -p libs/llvm/trunk
     pushd libs/llvm/trunk
-    ${OPT}/cmake/bin/cmake /tmp/llvm
+    ${OPT}/cmake/bin/cmake /tmp/llvm 2>&1
     rsync -av /tmp/llvm/include/ include/
     popd
     rm -rf /tmp/llvm
@@ -74,10 +74,10 @@ get_or_sync() {
     local DIR=$1
     local URL=$2
     if [ ! -d "${DIR}" ]; then
-        git clone "${URL}" "${DIR}"
+        git clone -q "${URL}" "${DIR}"
     else
-    	git -C "${DIR}" reset --hard
-    	git -C "${DIR}" pull
+    	git -C "${DIR}" reset -q --hard
+    	git -C "${DIR}" pull -q
     fi
 }
 
