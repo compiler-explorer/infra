@@ -60,8 +60,10 @@ install_llvm_trunk() {
     mkdir -p /tmp/llvm
     svn co http://llvm.org/svn/llvm-project/llvm/trunk /tmp/llvm
     mkdir -p libs/llvm/trunk
+    pusdh lib/llvm/trunk
     ${OPT}/cmake/bin/cmake /tmp/llvm
     rsync -av /tmp/llvm/include/ libs/llvm/trunk/include/
+    popd
     rm -rf /tmp/llvm
 }
 

@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 IAM_PROFILE = {'Name': 'GccBuilder'}
 BLOCK_MAPPINGS = [{'DeviceName': '/dev/sda1', 'Ebs': {'VolumeSize': 32, 'DeleteOnTermination': True}}]
 IMAGE_ID = 'ami-dfdff3c8'
-SECURITY_GROUPS = ['sg-99df30fd'] # CE's degfault
+SECURITY_GROUPS = ['sg-99df30fd'] # CE's default
 # was ['sg-cdce6cb7'] which is "known hosts only"
 SUBNET_ID = 'subnet-690ed81e'
 
