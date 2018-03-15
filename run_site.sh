@@ -19,7 +19,6 @@ fi
 
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
-ARCHIVE_DIR=/opt/compiler-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh

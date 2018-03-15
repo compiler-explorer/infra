@@ -20,7 +20,6 @@ fi
 
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
-ARCHIVE_DIR=/opt/compiler-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
@@ -64,10 +63,6 @@ update_code() {
     rm -rf ${DEPLOY_DIR}
     get_released_code ${DEPLOY_DIR}
     CFG="${CFG} -v${DEPLOY_DIR}:/compiler-explorer:ro"
-    # Back up the 'v' directory to the long-term archive
-    mkdir -p ${ARCHIVE_DIR}
-    rsync -av ${DEPLOY_DIR}/out/dist/v/ ${ARCHIVE_DIR}
-    CFG="${CFG} -v${ARCHIVE_DIR}:/opt/compiler-explorer-archive:ro"
 }
 
 wait_for_port() {
@@ -114,7 +109,6 @@ start_server() {
         --env amazon \
         --port ${PORT} \
         --static out/dist \
-        --archivedVersions ${ARCHIVE_DIR} \
         "$@" >> ${LOG_DIR}/CE-${PORT}.log 2>&1 &
     wait_for_port $PORT
 }
