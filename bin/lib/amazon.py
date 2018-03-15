@@ -118,13 +118,13 @@ def get_current_key(args):
 
 def get_all_current():
     versions = []
-    for branch in ['prod', 'beta', 'master']:
+    for branch in ['release', 'beta', 'master']:
         try:
             o = s3_client.get_object(
                 Bucket='compiler-explorer',
                 Key='version/{}'.format(branch)
             )
-            return o['Body'].read().strip()
+            versions.append( o['Body'].read().strip())
         except s3_client.exceptions.NoSuchKey:
             pass
     return versions
