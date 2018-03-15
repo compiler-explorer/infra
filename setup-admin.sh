@@ -13,7 +13,7 @@ fi
 
 env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
-apt -y install python2.7 python-pip mosh fish jq ssmtp cronic
+apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
@@ -29,6 +29,7 @@ chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chown -R ubuntu:ubuntu /home/ubuntu/compiler-explorer-image
 
 sudo -u ubuntu fish setup.fish
+crontab -u ubuntu crontab.admin
 
 # Configure email
 SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
