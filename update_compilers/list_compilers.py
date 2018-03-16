@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 def main(args):
     result = urlopen(args.s3url + "?prefix=" + args.prefix).read()
     root = ET.fromstring(result)
-    print "\n".join(
+    print " ".join(
         sorted(key.text[len(args.prefix):] for key in
                root.findall('.//ns:Key', {'ns': 'http://s3.amazonaws.com/doc/2006-03-01/'})))
 
