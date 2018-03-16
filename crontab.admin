@@ -1,5 +1,4 @@
-#MAILTO=compiler-explorer-admin@googlegroups.com
-MAILTO=matt@godbolt.org
+MAILTO=compiler-explorer-admin@googlegroups.com
 
 # m h  dom mon dow   command
 00 03 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
