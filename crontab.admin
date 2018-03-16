@@ -5,3 +5,4 @@ MAILTO=compiler-explorer-admin@googlegroups.com
 05 03 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
 00 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh"
 15 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
+00 09 * * * cronic /home/ubuntu/compiler-explorer-image/remove_old_compilers.sh
