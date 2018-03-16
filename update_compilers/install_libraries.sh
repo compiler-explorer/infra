@@ -8,10 +8,10 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 #########################
 # C++
 if [ ! -d "libs/kvasir/mpl/trunk" ]; then
-    git clone https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
-    git -C libs/kvasir/mpl/trunk checkout development
+    git clone -q https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
+    git -C libs/kvasir/mpl/trunk checkout -q development
 else
-    git -C libs/kvasir/mpl/trunk pull origin development
+    git -C libs/kvasir/mpl/trunk pull -q origin development
 fi
 
 if [ ! -d cmake ]; then
@@ -151,10 +151,10 @@ install_gnu_gsl_versioned_and_latest() {
 # D
 
 if [ ! -d "${OPT}/libs/d/mir-glas-trunk" ]; then
-    git clone https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
-    git -C ${OPT}/libs/d/mir-glas-trunk checkout master
+    git clone -q https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
+    git -C ${OPT}/libs/d/mir-glas-trunk checkout -q master
 else
-    git -C ${OPT}/libs/d/mir-glas-trunk pull origin master
+    git -C ${OPT}/libs/d/mir-glas-trunk pull -q origin master
 fi
 install_mir_glas() {
     for VERSION in "$@"; do
@@ -174,10 +174,10 @@ install_mir_glas() {
 install_mir_glas 0.1.5 0.2.3 0.2.4
 
 if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
-    git clone https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
-    git -C ${OPT}/libs/d/mir-algorithm-trunk checkout master
+    git clone -q https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
+    git -C ${OPT}/libs/d/mir-algorithm-trunk checkout -q master
 else
-    git -C ${OPT}/libs/d/mir-algorithm-trunk pull origin master
+    git -C ${OPT}/libs/d/mir-algorithm-trunk pull -q origin master
 fi
 install_mir_algorithm() {
     for VERSION in "$@"; do
