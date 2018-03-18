@@ -421,8 +421,12 @@ fi
 do_nightly_install() {
     local COMPILER_PATTERN="$1"
     local DESTINATION="$2"
-    # snapshots/trunk
+    # work around a cronic issue where the execution output is interpreted as error
+    # if it spans multiple lines: assigning output with multiple lines to a variable
+    # fools it.
+    set +x
     compilers=$(echo $ALL_COMPILERS | grep -oE "${COMPILER_PATTERN}-[0-9]+" | sort)
+    set -x
     compiler_array=(${compilers})
     latest=${compiler_array[-1]}
     # Extract the latest...
