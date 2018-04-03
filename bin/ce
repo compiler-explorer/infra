@@ -116,6 +116,8 @@ def are_you_sure(name, args):
 
 
 def exec_all_cmd(args):
+    if not are_you_sure('exec all', args):
+        return
     remote_cmd = args['remote_cmd']
     print "Running '{}' on all instances".format(' '.join(remote_cmd))
     exec_remote_all(pick_instances(args), remote_cmd)
