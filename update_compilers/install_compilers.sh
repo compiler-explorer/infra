@@ -165,8 +165,8 @@ install_golang() {
     mkdir ${DIR}
     pushd ${DIR}
     fetch https://storage.googleapis.com/golang/go${VERSION}.linux-amd64.tar.gz | tar zxf -
-    do_strip ${DIR}
     popd
+    do_strip ${DIR}
 }
 
 install_golang 1.7.2
