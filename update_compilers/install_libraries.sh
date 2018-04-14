@@ -35,7 +35,7 @@ install_boost() {
     done
 }
 
-install_boost 1.64.0 1.65.0 1.66.0
+install_boost 1.64.0 1.65.0 1.66.0 1.67.0
 
 install_llvm() {
     for VERSION in "$@"; do
