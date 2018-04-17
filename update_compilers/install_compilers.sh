@@ -555,7 +555,8 @@ get_ghc() {
 get_ghc 8.0.2
 # Can't install ghc 8.2.1: https://ghc.haskell.org/trac/ghc/ticket/13945
 # get_ghc 8.2.1
-get_ghc 8.2.2
+# get_ghc 8.2.2
+get_ghc 8.4.1
 
 
 #########################
