@@ -131,6 +131,7 @@ get_github_versioned_and_trunk libs/fmt fmtlib/fmt 4.1.0 4.0.0
 get_github_versioned_and_trunk libs/hfsm andrew-gresyk/HFSM 0.8
 get_github_versioned_and_trunk_with_quirk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
 get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5
+get_github_versioned_and_trunk libs/catch2 catchorg/Catch2 v2.2.2
 
 #########################
 # C
