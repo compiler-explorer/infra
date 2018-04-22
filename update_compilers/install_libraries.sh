@@ -182,7 +182,6 @@ else
 fi
 install_mir_algorithm() {
     for VERSION in "$@"; do
-        local VERSION=$1
         local DEST=${OPT}/libs/d/mir-algorithm-v${VERSION}/
         if [[ ! -d ${DEST} ]]; then
             mkdir -p /tmp/mir-algorithm
@@ -196,4 +195,4 @@ install_mir_algorithm() {
     done
 }
 
-install_mir_algorithm 0.5.17 0.6.13 0.6.21
+install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5
