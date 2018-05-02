@@ -102,15 +102,32 @@ get_if_not_there() {
     fi
 }
 
+# Alias for get_if_not_there, but better conveys the intention
+get_git_version() {
+    local DIR=$1
+    local URL=$2
+    get_if_not_there ${DIR} ${URL}
+}
+
+get_github_versions() {
+   local DIR=$1
+   local URL=https://github.com/$2
+   shift 2
+   for tag in "$@"; do
+       get_git_version ${DIR}/${tag} ${URL}/archive/${tag}.tar.gz
+   done
+}
+
 get_github_versioned_and_trunk_with_quirk() {
     local DIR=$1
-    local URL=https://github.com/$2
+    local REPO=$2
+    local URL=https://github.com/${REPO}
     local QUIRK=$3
     shift 3
     mkdir -p $DIR
     get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
     for tag in "$@"; do
-        get_if_not_there ${DIR}/${QUIRK}${tag} ${URL}/archive/${tag}.tar.gz
+        get_git_version ${DIR}/${QUIRK}${tag} ${URL}/archive/${tag}.tar.gz
     done
 }
 
@@ -132,6 +149,8 @@ get_github_versioned_and_trunk libs/hfsm andrew-gresyk/HFSM 0.8
 get_github_versioned_and_trunk_with_quirk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
 get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5
 get_github_versioned_and_trunk libs/catch2 catchorg/Catch2 v2.2.2
+
+get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
 #########################
 # C
