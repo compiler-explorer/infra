@@ -46,6 +46,7 @@ popd
 pushd llvm/projects
 svn co ${LLVM_BASE}/libcxx/${TAG} libcxx
 svn co ${LLVM_BASE}/libcxxabi/${TAG} libcxxabi
+svn co ${LLVM_BASE}/compiler-rt/${TAG} compiler-rt
 popd
 
 mkdir build
