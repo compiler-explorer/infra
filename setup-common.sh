@@ -9,7 +9,8 @@ if [[ ! -f /updated ]]; then
     apt-get -y upgrade --force-yes
     apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd
     apt-get -y autoremove
-    pip install --upgrade pip
+    #Seems to upset pip on Ubuntu 18+
+    #pip install --upgrade pip
     pip install --upgrade awscli
     wget -qO- https://get.docker.com/ | sh
     touch /updated
