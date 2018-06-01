@@ -1,10 +1,12 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN  dpkg --add-architecture i386 && apt-get -y update && \
+# NB wine using artful as there's no bionic repo (yet)
+# was: apt-add-repository 'https://dl.winehq.org/wine-builds/ubuntu/' && \
+RUN dpkg --add-architecture i386 && apt-get -y update && \
     apt-get install -y curl apt-transport-https apt-utils software-properties-common && \
-    apt-add-repository 'https://dl.winehq.org/wine-builds/ubuntu/' && \
-    curl -sL https://repos.wine-staging.com/wine/Release.key | apt-key add - && \
+    curl -sL https://dl.winehq.org/wine-builds/Release.key | apt-key add - && \
+    apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ artful main' && \
     apt-get -y update && \
     apt-get install -y \
         bzip2 \
