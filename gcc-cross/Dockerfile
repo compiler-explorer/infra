@@ -1,10 +1,12 @@
 FROM ubuntu:18.04
 MAINTAINER Matt Godbolt <matt@godbolt.org>
 
-RUN mkdir -p /opt mkdir -p /home/gcc-user && useradd gcc-user && chown gcc-user /opt /home/gcc-user
-RUN apt-get update -y && apt-get upgrade -y && apt-get upgrade -y
+ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get install -y \
+RUN mkdir -p /opt mkdir -p /home/gcc-user && useradd gcc-user && chown gcc-user /opt /home/gcc-user
+RUN apt-get update -y -q && apt-get upgrade -y -q && apt-get upgrade -y -q
+
+RUN apt-get install -y -q \
     autoconf \
     automake \
     libtool \
