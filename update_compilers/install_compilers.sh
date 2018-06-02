@@ -109,7 +109,7 @@ install_new_rust() {
     # Don't need docs
     rm -rf ${OPT}/rust-${NAME}/share
 
-    do_strip ${OPT}/rust-${NAME}
+    # Don't strip (llvm SOs don't seem to like it and segfault during startup)
 }
 
 
