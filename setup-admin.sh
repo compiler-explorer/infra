@@ -17,7 +17,9 @@ apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
-pip install --upgrade pip awscli
+pip install --upgrade pip 
+hash -r pip
+pip install --upgrade awscli
 pip install -r requirements.txt
 
 # Install private and public keys
