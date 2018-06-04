@@ -43,7 +43,7 @@ mkdir -p ${STAGING_DIR}
 
 if echo ${URL} | grep svn://; then
     rm -rf gcc-${VERSION}
-    svn checkout ${URL} gcc-${VERSION}
+    svn checkout -q ${URL} gcc-${VERSION}
 else
     if [[ ! -e ${TARBALL} ]]; then
         echo "Fetching GCC" from ${URL}...
