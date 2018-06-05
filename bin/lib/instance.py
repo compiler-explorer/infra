@@ -59,7 +59,7 @@ class AdminInstance(object):
 
     @staticmethod
     def instance():
-        return AdminInstance(ec2.Instance(id='i-0309482acdb55e16b'))
+        return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
 
 
 def print_instances(instances, number=False):
