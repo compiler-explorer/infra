@@ -51,3 +51,6 @@ EOF
 
 chfn -f 'Compiler Explorer Admin' ubuntu
 chmod 640 /etc/ssmtp/*
+
+hostname admin-node
+perl -pi -e 's/127.0.0.1 localhost/127.0.0.1 localhost admin-node/' /etc/hosts
