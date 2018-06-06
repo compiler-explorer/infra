@@ -79,7 +79,7 @@ def start_builder(instance):
             raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
     for i in range(60):
         try:
-            r = exec_remote(instance, "echo hello")
+            r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
         except Exception, e:
