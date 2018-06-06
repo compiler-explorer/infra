@@ -214,4 +214,4 @@ install_mir_algorithm() {
     done
 }
 
-install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5
+install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5 1.0.0
