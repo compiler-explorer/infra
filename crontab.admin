@@ -1,4 +1,5 @@
 MAILTO=compiler-explorer-admin@googlegroups.com
+PATH=/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # m h  dom mon dow   command
 00 03 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
