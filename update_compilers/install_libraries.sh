@@ -48,7 +48,7 @@ install_llvm() {
             mkdir -p ${DEST}
             pushd ${DEST}
             ${OPT}/cmake/bin/cmake /tmp/llvm 2>&1
-            rsync -av /tmp/llvm/include/ include/
+            rsync -a /tmp/llvm/include/ include/
             popd
             rm -rf /tmp/llvm
         fi
@@ -62,7 +62,7 @@ install_llvm_trunk() {
     mkdir -p libs/llvm/trunk
     pushd libs/llvm/trunk
     ${OPT}/cmake/bin/cmake /tmp/llvm 2>&1
-    rsync -av /tmp/llvm/include/ include/
+    rsync -a /tmp/llvm/include/ include/
     popd
     rm -rf /tmp/llvm
 }
