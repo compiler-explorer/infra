@@ -77,8 +77,18 @@ def start_builder(instance):
             time.sleep(1)
         else:
             raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
-    # TODO: await ssh access
-    # TODO: run setup-admin.sh
+    for i in range(60):
+        try:
+            r = exec_remote(instance, "echo hello")
+            if r.strip() == "hello":
+                break
+        except Exception, e:
+            print "Still waiting for SSH: got: {}".format(e)
+            pass
+    else:
+        raise RuntimeError("Unable to get SSH access")
+    res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && sudo ./setup-admin.sh"])
+    print res
 
 
 def builder_cmd(args):
@@ -87,7 +97,7 @@ def builder_cmd(args):
     if sub == 'login':
         run_remote_shell(args, instance)
     elif sub == 'exec':
-        exec_remote(instance, args['remote_cmd'])
+        print exec_remote(instance, args['remote_cmd'])
     elif sub == 'start':
         start_builder(instance)
     elif sub == 'stop':

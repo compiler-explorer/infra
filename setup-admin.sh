@@ -3,6 +3,7 @@
 set -ex
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd ${DIR}
 
 if [[ "$1" != "--updated" ]]; then
     sudo -u ubuntu git -C ${DIR} pull
