@@ -43,6 +43,7 @@ cmake -G "Unix Makefiles" ../llvm \
 
 make -j$(nproc) install
 
+export XZ_DEFAULTS="-T 0"
 tar Jcf ${OUTPUT} --transform "s,^./,./clang-${VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then

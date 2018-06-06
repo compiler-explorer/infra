@@ -62,6 +62,7 @@ cmake -G "Unix Makefiles" ../ldc \
 make -j$(nproc) install
 cd ..
 
+export XZ_DEFAULTS="-T 0"
 tar Jcf ${OUTPUT} --transform "s,^./,./ldc2-${VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then

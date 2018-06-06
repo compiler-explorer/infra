@@ -61,6 +61,7 @@ make -j$(nproc) install
 
 # Don't try to compress the binaries as they don't like it
 
+export XZ_DEFAULTS="-T 0"
 tar Jcf ${OUTPUT} --transform "s,^./,./clang-${VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then
