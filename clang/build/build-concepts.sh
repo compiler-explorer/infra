@@ -43,9 +43,6 @@ cmake -G "Unix Makefiles" ../llvm \
 
 make -j$(nproc) install
 
-# Compress all the binaries with upx
-upx -4 ${STAGING_DIR}/bin/* || true
-
 tar Jcf ${OUTPUT} --transform "s,^./,./clang-${VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then
