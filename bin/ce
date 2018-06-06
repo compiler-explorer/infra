@@ -85,10 +85,12 @@ def start_builder(instance):
         except Exception, e:
             print "Still waiting for SSH: got: {}".format(e)
             pass
+        time.sleep(1)
     else:
         raise RuntimeError("Unable to get SSH access")
     res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && sudo ./setup-admin.sh"])
     print res
+    print "Builder started OK"
 
 
 def builder_cmd(args):
