@@ -32,6 +32,8 @@ popd
 pushd llvm/projects
 git clone https://github.com/llvm-mirror/libcxx.git
 (cd libcxx && git reset --hard 64182a5877865cde2538c6038f98e3df33c93a03)
+# Hack for new glibc not containing xlocale.h
+perl -pi -e 's/defined\(__GLIBC__\) \|\| defined\(__APPLE__\)/defined(__APPLE__)/' libcxx/include/__locale
 git clone https://github.com/llvm-mirror/libcxxabi.git
 (cd libcxxabi && git reset --hard c515867bc14c433febcc574baedd081c078124d1)
 popd
