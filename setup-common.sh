@@ -19,8 +19,8 @@ if [[ ! -f /updated ]]; then
     apt-get -y upgrade --force-yes
     apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd
     apt-get -y autoremove
-    #Seems to upset pip on Ubuntu 18+
-    #pip install --upgrade pip
+    pip install --upgrade pip
+    hash -r pip
     pip install --upgrade awscli
     wget -qO- https://get.docker.com/ | sh
     touch /updated
@@ -45,7 +45,7 @@ if [[ ! -f "${PTRAIL}" ]]; then
     echo '*.*          @logs2.papertrailapp.com:34474' > "${PTRAIL}"
     service rsyslog restart
     pushd /tmp
-    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.17/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+    curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
     cp remote_syslog/remote_syslog /usr/local/bin/
     docker pull gliderlabs/logspout:latest
     popd
