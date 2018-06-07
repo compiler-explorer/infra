@@ -4,6 +4,16 @@ set -ex
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
+wait_for_apt() {
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+        echo "Waiting for other software managers to finish..."
+        sleep 5
+    done
+}
+
+wait_for_apt
+
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
