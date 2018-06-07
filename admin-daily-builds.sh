@@ -10,18 +10,21 @@ trap finish EXIT
 ce builder status
 ce builder start
 
-FAILED=0
+BUILD_FAILED=0
 run_on_build() {
+    mkdir -p ~/build_logs
+    local log=~/build_logs/$1
+    shift
     set +e
-	if ! ce builder exec "$@"; then
-	    FAILED=1
+	if ! ce builder exec "$@" 2>&1 | tee ${log}; then
+	    BUILD_FAILED=1
     fi
 	set -e
 }
 
-mkdir -p ~/build_logs
-run_on_build sudo compiler-explorer-image/build_and_upload_latest_gcc.sh 2>&1 | tee ~/build_logs/gcc
-run_on_build sudo compiler-explorer-image/build_and_upload_latest_clang.sh 2>&1 | tee ~/build_logs/clang
-run_on_build sudo compiler-explorer-image/build_and_upload_latest_clang_concepts.sh 2>&1 | tee ~/build_logs/clang_concepts
-run_on_build sudo compiler-explorer-image/build_and_upload_latest_clang_cppx.sh 2>&1 | tee ~/build_logs/clang_cppx
-exit ${FAILED}
+run_on_build gcc sudo compiler-explorer-image/build_and_upload_latest_gcc.sh
+run_on_build clang sudo compiler-explorer-image/build_and_upload_latest_clang.sh
+run_on_build clang_concepts sudo compiler-explorer-image/build_and_upload_latest_clang_concepts.sh
+run_on_build clang_cppx sudo compiler-explorer-image/build_and_upload_latest_clang_cppx.sh
+
+exit ${BUILD_FAILED}
