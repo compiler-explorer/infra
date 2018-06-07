@@ -5,13 +5,30 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${DIR}/common.inc
 
+ARG1="$1"
+install_nightly() {
+    if [[ "$ARG1" = "nightly" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+if install_nightly; then
+    echo "Installing trunk versions"
+else
+    echo "Skipping install of trunk versions"
+fi
+
 #########################
 # C++
+if install_nightly; then
 if [ ! -d "libs/kvasir/mpl/trunk" ]; then
     git clone -q https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
     git -C libs/kvasir/mpl/trunk checkout -q development
 else
     git -C libs/kvasir/mpl/trunk pull -q origin development
+fi
 fi
 
 if [ ! -d cmake ]; then
@@ -68,7 +85,10 @@ install_llvm_trunk() {
 }
 
 install_llvm 6.0.0 5.0.1 4.0.1
-install_llvm_trunk
+
+if install_nightly; then
+    install_llvm_trunk
+fi
 
 get_or_sync() {
     local DIR=$1
@@ -124,7 +144,9 @@ get_github_versioned_and_trunk_with_quirk() {
     local QUIRK=$3
     shift 3
     mkdir -p $DIR
-    get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
+    if install_nightly; then
+        get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
+    fi
     for tag in "$@"; do
         get_git_version ${DIR}/${QUIRK}${tag} ${URL}/archive/${tag}.tar.gz
     done
@@ -159,7 +181,9 @@ install_gnu_gsl_versioned_and_latest() {
     local DIR=$1
     shift
     mkdir -p $DIR
-    get_or_sync ${DIR}/trunk https://git.savannah.gnu.org/git/gsl.git
+    if install_nightly; then
+        get_or_sync ${DIR}/trunk https://git.savannah.gnu.org/git/gsl.git
+    fi
     for tag in "$@"; do
         get_if_not_there ${DIR}/${tag} ftp://ftp.gnu.org/gnu/gsl/gsl-${tag}.tar.gz
     done
@@ -169,13 +193,15 @@ install_gnu_gsl_versioned_and_latest() {
 
 #########################
 # D
-
+if install_nightly; then
 if [ ! -d "${OPT}/libs/d/mir-glas-trunk" ]; then
     git clone -q https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
     git -C ${OPT}/libs/d/mir-glas-trunk checkout -q master
 else
     git -C ${OPT}/libs/d/mir-glas-trunk pull -q origin master
 fi
+fi
+
 install_mir_glas() {
     for VERSION in "$@"; do
         local DEST=${OPT}/libs/d/mir-glas-v${VERSION}/
@@ -193,12 +219,15 @@ install_mir_glas() {
 
 install_mir_glas 0.1.5 0.2.3 0.2.4
 
+if install_nightly; then
 if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
     git clone -q https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
     git -C ${OPT}/libs/d/mir-algorithm-trunk checkout -q master
 else
     git -C ${OPT}/libs/d/mir-algorithm-trunk pull -q origin master
 fi
+fi
+
 install_mir_algorithm() {
     for VERSION in "$@"; do
         local DEST=${OPT}/libs/d/mir-algorithm-v${VERSION}/
