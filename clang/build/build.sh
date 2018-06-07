@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 
 # Grab CE's GCC 7.2.0 for its binutils (which is what the site uses to link currently)
 mkdir -p /opt/compiler-explorer
@@ -36,7 +36,7 @@ rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
 svn co -q ${LLVM_BASE}/llvm/${TAG} llvm
-git clone -b ${POLLY_BRANCH} http://llvm.org/git/polly.git llvm/tools/polly
+git clone -b ${POLLY_BRANCH} https://llvm.org/git/polly.git llvm/tools/polly
 pushd llvm/tools
 svn co -q ${LLVM_BASE}/cfe/${TAG} clang
 popd
