@@ -5,6 +5,6 @@ PATH=/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/us
 00 00 * * * cronic /home/ubuntu/compiler-explorer-image/admin-daily-builds.sh
 00 03 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
 05 03 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
-00 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh"
+00 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
 15 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
 00 09 * * * cronic /home/ubuntu/compiler-explorer-image/remove_old_compilers.sh
