@@ -41,10 +41,11 @@ publish: docker-images
 	$(DOCKER) push $(BUILD_OPT) mattgodbolt/compiler-explorer
 
 build-compiler-images:
-	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/clang-builder clang
-	$(DOCKER) push mattgodbolt/clang-builder
-	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder gcc
-	$(DOCKER) push mattgodbolt/gcc-builder
+	@echo clang and gcc images are now built by docker hub https://hub.docker.com/r/mattgodbolt
+	#$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/clang-builder clang
+	#$(DOCKER) push mattgodbolt/clang-builder
+	#$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder gcc
+	#$(DOCKER) push mattgodbolt/gcc-builder
 	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-cross gcc-cross
 	$(DOCKER) push mattgodbolt/gcc-cross
 
