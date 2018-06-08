@@ -39,9 +39,12 @@ done
 fix_up_windows() {
     local file=$1
     if [[ -d ${file}/lib/native/bin/amd64 ]]; then
-        cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_arm/
-        cp ${file}/lib/native/bin/amd64/msvcdis140.dll ${file}/lib/native/bin/amd64_arm/
+        cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64/msvcdis140.dll ${file}/lib/native/bin/amd64_arm/
         cp ${file}/lib/native/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_x86/
+    fi
+    if [[ -d ${file}/bin/amd64 ]]; then
+        cp ${file}/bin/amd64/mspdb140.dll ${file}/bin/amd64/msvcdis140.dll ${file}/bin/amd64_arm/
+        cp ${file}/bin/amd64/mspdb140.dll ${file}/lib/native/bin/amd64_x86/
     fi
 }
 
