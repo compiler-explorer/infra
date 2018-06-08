@@ -48,8 +48,8 @@ fix_up_windows() {
     fi
     if [[ -d ${file}/bin/Hostx64 ]]; then
         cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x86/
-        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x64/msvcdis140.dll ${file}/bin/Host/arm/
-        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x64/msvcdis140.dll ${file}/bin/Host/arm64/
+        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x64/msvcdis140.dll ${file}/bin/Hostx64/arm/
+        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x64/msvcdis140.dll ${file}/bin/Hostx64/arm64/
     fi
 }
 
