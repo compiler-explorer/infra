@@ -46,6 +46,11 @@ fix_up_windows() {
         cp ${file}/bin/amd64/mspdb140.dll ${file}/bin/amd64/msvcdis140.dll ${file}/bin/amd64_arm/
         cp ${file}/bin/amd64/mspdb140.dll ${file}/bin/amd64_x86/
     fi
+    if [[ -d ${file}/bin/Hostx64 ]]; then
+        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Host/x86/
+        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x64/msvcdis140.dll ${file}/bin/Host/arm/
+        cp ${file}/bin/Hostx64/x64/mspdbcore.dll ${file}/bin/Hostx64/x64/msvcdis140.dll ${file}/bin/Host/arm64/
+    fi
 }
 
 mkdir -p windows
@@ -55,26 +60,13 @@ for file in \
     14.0.24224-Pre \
     19.00.24210 \
     19.10.25017 \
+    19.14.26423 \
 ; do
     if [[ ! -d ${file} ]]; then
         s3get ${S3URL}/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
         fix_up_windows ${file}
         rm ${file}.tar.xz
-    fi
-done
-
-for file in \
-    14.0.24629 \
-; do
-    if [[ ! -d ${file} ]]; then
-        mkdir ${file}
-        pushd ${file}
-        fetch http://vcppdogfooding.azurewebsites.net/api/v2/package/visualcpptools/${file} > ${file}.zip
-        do_unzip ${file}.zip
-        rm ${file}.zip
-        popd
-        fix_up_windows ${file}
     fi
 done
 popd
