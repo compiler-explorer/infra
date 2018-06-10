@@ -265,6 +265,7 @@ getdmd2_nightly() {
 getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
+
 getldc 0.17.2
 getldc 1.0.0
 getldc 1.1.0
@@ -276,11 +277,15 @@ getldc 1.6.0
 getldc 1.7.0
 getldc 1.8.0
 getldc 1.9.0
-getldc_latestbeta
+if install_nightly; then
+    getldc_latestbeta
+fi
+
 getldc_s3 1.2.0
 getdmd_2x 2.078.3
 getdmd_2x 2.079.0
 getdmd_2x 2.079.1
+getdmd_2x 2.080.1
 if install_nightly; then
     getdmd2_nightly
 fi
