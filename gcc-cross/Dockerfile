@@ -30,7 +30,6 @@ RUN apt-get install -y -q \
     sed \
     subversion \
     texinfo \
-    upx-ucl \
     wget \
     xz-utils
 

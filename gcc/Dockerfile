@@ -19,7 +19,6 @@ RUN apt update -y -q && apt upgrade -y -q && apt upgrade -y -q&& apt install -y 
     s3cmd \
     subversion \
     texinfo \
-    upx-ucl \
     wget \
     xz-utils
 

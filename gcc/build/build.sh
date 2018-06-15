@@ -139,11 +139,6 @@ make -j$(nproc)
 make ${INSTALL_TARGET}
 popd
 
-# Compress all the images with upx
-for EXE in $(find ${STAGING_DIR} -type f -executable -not -regex '.*\.so.*'); do
-    upx ${EXE} || true
-done
-
 export XZ_DEFAULTS="-T 0"
 tar Jcf ${OUTPUT} --transform "s,^./,./gcc-${VERSION}/," -C ${STAGING_DIR} .
 

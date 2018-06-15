@@ -19,5 +19,4 @@ do_unzip() {
 
 do_strip() {
     find $1 -executable -type f | xargs strip 2>&1 || true
-    find $1 -executable -type f | xargs --max-procs=$(nproc) -n 1 -I '{}' bash -c 'upx {} 2>&1 || true'
 }
