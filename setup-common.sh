@@ -40,10 +40,6 @@ get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
 
-if [[ -f /etc/newrelic-infra.yml ]]; then
-   apt-get remove -y newrelic-infra
-fi
-
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 if [[ ! -f "${PTRAIL}" ]]; then
     echo '*.*          @logs2.papertrailapp.com:34474' > "${PTRAIL}"
