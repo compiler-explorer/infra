@@ -12,6 +12,10 @@ wait_for_apt() {
     done
 }
 
+# Sometimes it seems auto apt takes a while to kick in...
+sleep 5
+wait_for_apt
+sleep 5
 wait_for_apt
 
 if [[ ! -f /updated ]]; then
