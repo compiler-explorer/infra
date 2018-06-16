@@ -590,6 +590,8 @@ get_swift 3.1.1
 get_swift 4.0.2
 get_swift 4.0.3
 get_swift 4.1
+get_swift 4.1.1
+get_swift 4.1.2
 
 
 #########################
