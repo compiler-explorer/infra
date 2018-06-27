@@ -43,7 +43,7 @@ mkdir -p ${STAGING_DIR}
 
 if echo ${URL} | grep svn://; then
     rm -rf gcc-${VERSION}
-    svn checkout ${URL} gcc-${VERSION}
+    svn checkout -q ${URL} gcc-${VERSION}
 else
     if [[ ! -e ${TARBALL} ]]; then
         echo "Fetching GCC" from ${URL}...
@@ -139,11 +139,7 @@ make -j$(nproc)
 make ${INSTALL_TARGET}
 popd
 
-# Compress all the images with upx
-for EXE in $(find ${STAGING_DIR} -type f -executable -not -regex '.*\.so.*'); do
-    upx ${EXE} || true
-done
-
+export XZ_DEFAULTS="-T 0"
 tar Jcf ${OUTPUT} --transform "s,^./,./gcc-${VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then

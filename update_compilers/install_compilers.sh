@@ -28,10 +28,6 @@ ALL_COMPILERS=$(python ${SCRIPT_DIR}/list_compilers.py --s3url https://s3.amazon
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
-    if [[ -f /sbin/apk ]]; then
-        # Assume we're under alpine
-        apk --update add alpine-sdk
-    fi
     fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
     pushd patchelf-0.8
     CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
@@ -39,6 +35,8 @@ if [[ ! -f $PATCHELF ]]; then
     popd
 fi
 
+#########################
+# Rust
 do_rust_install() {
     local DIR=$1
     local INSTALL=$2
@@ -111,11 +109,10 @@ install_new_rust() {
     # Don't need docs
     rm -rf ${OPT}/rust-${NAME}/share
 
-    do_strip ${OPT}/rust-${NAME}
+    # Don't strip (llvm SOs don't seem to like it and segfault during startup)
 }
 
-#########################
-# RUST
+
 if install_nightly; then
     install_new_rust nightly '1 day'
     install_new_rust beta '1 week'
@@ -140,16 +137,18 @@ install_new_rust 1.21.0
 install_new_rust 1.22.0
 install_new_rust 1.23.0
 install_new_rust 1.24.0
+install_new_rust 1.25.0
+install_new_rust 1.26.0
 
 install_rust 1.0.0
 install_rust 1.1.0
 install_rust 1.2.0
 install_rust 1.3.0
 install_rust 1.4.0
-#########################
+
 
 #########################
-# GO
+# Go
 
 ## Install 1.4.1 the old way...
 if [[ ! -d ${OPT}/go ]]; then
@@ -167,8 +166,8 @@ install_golang() {
     mkdir ${DIR}
     pushd ${DIR}
     fetch https://storage.googleapis.com/golang/go${VERSION}.linux-amd64.tar.gz | tar zxf -
-    do_strip ${DIR}
     popd
+    do_strip ${DIR}
 }
 
 install_golang 1.7.2
@@ -177,7 +176,7 @@ install_golang 1.8.7
 install_golang 1.9.2
 install_golang 1.9.4
 install_golang 1.10
-#########################
+install_golang 1.10.1
 
 
 #########################
@@ -222,7 +221,7 @@ getldc_s3() {
 }
 
 getldc_latestbeta() {
-    vers=$(curl ${https_proxy:+--proxy $https_proxy} https://ldc-developers.github.io/LATEST_BETA)
+    vers=$(fetch https://ldc-developers.github.io/LATEST_BETA)
     if [[ ! -d ldcbeta ]]; then
         mkdir ldcbeta
     fi
@@ -255,7 +254,7 @@ getdmd_2x() {
 getdmd2_nightly() {
     DIR=dmd2-nightly
     if [[ -d ${DIR} ]]; then
-	rm -rf ${DIR}
+        rm -rf ${DIR}
     fi
     mkdir ${DIR}
     pushd ${DIR}
@@ -266,6 +265,7 @@ getdmd2_nightly() {
 getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
+
 getldc 0.17.2
 getldc 1.0.0
 getldc 1.1.0
@@ -275,9 +275,18 @@ getldc 1.4.0
 getldc 1.5.0
 getldc 1.6.0
 getldc 1.7.0
-getldc_latestbeta
+getldc 1.8.0
+getldc 1.9.0
+getldc 1.10.0
+if install_nightly; then
+    getldc_latestbeta
+fi
+
 getldc_s3 1.2.0
 getdmd_2x 2.078.3
+getdmd_2x 2.079.0
+getdmd_2x 2.079.1
+getdmd_2x 2.080.1
 if install_nightly; then
     getdmd2_nightly
 fi
@@ -350,6 +359,18 @@ for VERSION in 0.1.33 \
     fi
 done
 
+install_ellcc() {
+    for VERSION in "$@"; do
+        local DIR=ellcc-${VERSION}
+        if [[ ! -d ${DIR} ]]; then
+            fetch http://ellcc.org/releases/release-${VERSION}/ellcc-x86_64-linux-${VERSION}.bz2 | tar xjf -
+            mv ellcc ${DIR}
+            do_strip ${DIR}
+        fi
+    done
+}
+
+install_ellcc 2017-07-16
 
 # Custom-built GCCs are already UPX's and stripped
 # (notes on various compiler builds below:
@@ -368,6 +389,7 @@ for version in \
     5.{1,2,3,4,5}.0 \
     6.{1,2,3,4}.0 \
     7.{1,2,3}.0 \
+    8.1.0 \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
@@ -404,15 +426,19 @@ gcc_arch_install mips64el 5.4.0
 
 if [[ ! -d arm/gcc-arm-none-eabi-7-2017-q4-major ]]; then
     pushd arm
-    curl -sL https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 | tar jxf -
+    fetch https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 | tar jxf -
     popd
 fi
 
 do_nightly_install() {
     local COMPILER_PATTERN="$1"
     local DESTINATION="$2"
-    # snapshots/trunk
+    # work around a cronic issue where the execution output is interpreted as error
+    # if it spans multiple lines: assigning output with multiple lines to a variable
+    # fools it.
+    set +x
     compilers=$(echo $ALL_COMPILERS | grep -oE "${COMPILER_PATTERN}-[0-9]+" | sort)
+    set -x
     compiler_array=(${compilers})
     latest=${compiler_array[-1]}
     # Extract the latest...
@@ -442,6 +468,7 @@ for version in \
     4.0.0 \
     4.0.1 \
     5.0.0 \
+    6.0.0 \
 ; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
@@ -455,6 +482,10 @@ fi
 
 if install_nightly; then
     do_nightly_install clang-cppx-trunk clang-cppx-trunk
+fi
+
+if install_nightly; then
+    do_nightly_install clang-concepts-trunk clang-concepts-trunk
 fi
 
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the
@@ -501,7 +532,8 @@ get_ispc() {
 get_ispc 1.9.2
 get_ispc 1.9.1
 
-# PPCI
+#########################
+# C
 get_ppci() {
   local VER=$1
   local DIR=ppci-$VER
@@ -513,6 +545,9 @@ get_ppci() {
 
 get_ppci 0.5.5
 
+
+#########################
+# Haskell
 get_ghc() {
     local VER=$1
     local DIR=ghc-$VER
@@ -528,7 +563,16 @@ get_ghc() {
 }
 
 get_ghc 8.0.2
+# Can't install ghc 8.2.1: https://ghc.haskell.org/trac/ghc/ticket/13945
+# get_ghc 8.2.1
+get_ghc 8.2.2
+get_ghc 8.4.1
+get_ghc 8.4.2
+get_ghc 8.4.3
 
+
+#########################
+# Swift
 get_swift() {
     local VER=$1
     local DIR=swift-${VER}
@@ -545,10 +589,14 @@ get_swift() {
 
 get_swift 3.1.1
 get_swift 4.0.2
+get_swift 4.0.3
+get_swift 4.1
+get_swift 4.1.1
+get_swift 4.1.2
 
 
 #########################
-# FPC
+# Pascal
 get_fpc() {
     local VER=$1
     local DIR=fpc-$VER.x86_64-linux
@@ -582,7 +630,7 @@ fi
 cp ${SCRIPT_DIR}/custom/fpc.cfg ${OPT}/fpc/fpc.cfg
 
 #########################
-# NASM
+# Assembly
 
 get_nasm() {
     local VER=$1
@@ -603,6 +651,7 @@ get_nasm() {
 for version in \
     2.12.02 \
     2.13.02 \
+    2.13.03 \
 ; do
     get_nasm $version
 done

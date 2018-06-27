@@ -20,10 +20,11 @@ class Hash(object):
 
 
 class Release(object):
-    def __init__(self, version, branch, key, size, hash):
+    def __init__(self, version, branch, key, info_key, size, hash):
         self.version = version
         self.branch = branch
         self.key = key
+        self.info_key = info_key
         self.size = size
         self.hash = hash
 
@@ -44,6 +45,13 @@ def target_group_arn_for(args):
 def get_autoscaling_group(group_name):
     result = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[group_name])
     return result['AutoScalingGroups'][0]
+
+
+def remove_release(release):
+    s3_client.delete_objects(
+        Bucket='compiler-explorer',
+        Delete={'Objects': [{'Key': release.key}, {'Key': release.info_key}]}
+    )
 
 
 def get_releases():
@@ -68,7 +76,7 @@ def get_releases():
             Key=info_key
         )
         hash = o['Body'].read().strip()
-        releases.append(Release(int(version), branch, key, size, Hash(hash)))
+        releases.append(Release(int(version), branch, key, info_key, size, Hash(hash)))
     return releases
 
 
@@ -106,6 +114,20 @@ def get_current_key(args):
         return o['Body'].read().strip()
     except s3_client.exceptions.NoSuchKey:
         return None
+
+
+def get_all_current():
+    versions = []
+    for branch in ['release', 'beta', 'master']:
+        try:
+            o = s3_client.get_object(
+                Bucket='compiler-explorer',
+                Key='version/{}'.format(branch)
+            )
+            versions.append( o['Body'].read().strip())
+        except s3_client.exceptions.NoSuchKey:
+            pass
+    return versions
 
 
 def set_current_key(args, key):

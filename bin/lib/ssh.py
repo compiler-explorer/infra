@@ -4,8 +4,19 @@ import subprocess
 
 logger = logging.getLogger('ssh')
 
-
 # TODO maybe use paramiko?
+
+
+HYPERVISOR_UUID = "/sys/hypervisor/uuid"
+RUNNING_ON_EC2 = os.path.exists(HYPERVISOR_UUID) and open(HYPERVISOR_UUID, "r").read().startswith("ec2")
+
+
+def ssh_address_for(instance):
+    if RUNNING_ON_EC2:
+        return instance.instance.private_ip_address
+    else:
+        return instance.instance.public_ip_address
+
 
 def run_remote_shell(args, instance):
     logger.debug("Running remote shell on {}".format(instance))
@@ -15,7 +26,7 @@ def run_remote_shell(args, instance):
                   'LogLevel=ERROR'
     if args['mosh']:
         ssh_command = 'mosh --ssh=\'{}\''.format(ssh_command)
-    os.system(ssh_command + ' ubuntu@{}'.format(instance.instance.public_ip_address))
+    os.system(ssh_command + ' ubuntu@{}'.format(ssh_address_for(instance)))
 
 
 def exec_remote(instance, command):
@@ -23,7 +34,7 @@ def exec_remote(instance, command):
     return subprocess.check_output(
         ['ssh', '-o', 'ConnectTimeout=5', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
          '-o', 'LogLevel=ERROR',
-         'ubuntu@' + instance.instance.public_ip_address, '--'] + ["'{}'".format(c) for c in command])
+         'ubuntu@' + ssh_address_for(instance), '--'] + ["'{}'".format(c) for c in command])
 
 
 def exec_remote_all(instances, command):

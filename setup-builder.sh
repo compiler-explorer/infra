@@ -3,7 +3,6 @@
 set -ex
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd ${DIR}
 
 if [[ "$1" != "--updated" ]]; then
     sudo -u ubuntu git -C ${DIR} pull
@@ -11,6 +10,30 @@ if [[ "$1" != "--updated" ]]; then
     exec bash ${BASH_SOURCE[0]} --updated
     exit 0
 fi
+
+systemctl stop docker
+umount /ephemeral || true
+sfdisk -f /dev/nvme0n1 <<EOF
+label: dos
+label-id: 0xbebcaa2e
+device: /dev/nvme0n1
+unit: sectors
+
+/dev/nvme0n1p1 : start=        2048, size=   781247952, type=83
+EOF
+sync
+sleep 2 # let the device get registered
+mkfs.ext4 -F /dev/nvme0n1p1
+rm -rf /ephemeral
+mkdir /ephemeral
+mount /dev/nvme0n1p1 /ephemeral
+
+cat > /etc/docker/daemon.json <<EOF
+{
+        "data-root": "/ephemeral/docker"
+}
+EOF
+systemctl start docker
 
 env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
@@ -32,7 +55,6 @@ chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chown -R ubuntu:ubuntu /home/ubuntu/compiler-explorer-image
 
 sudo -u ubuntu fish setup.fish
-crontab -u ubuntu crontab.admin
 
 # Configure email
 SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
@@ -53,5 +75,5 @@ EOF
 chfn -f 'Compiler Explorer Admin' ubuntu
 chmod 640 /etc/ssmtp/*
 
-hostname admin-node
-perl -pi -e 's/127.0.0.1 localhost/127.0.0.1 localhost admin-node/' /etc/hosts
+hostname builder-node
+perl -pi -e 's/127.0.0.1 localhost/127.0.0.1 localhost builder-node/' /etc/hosts

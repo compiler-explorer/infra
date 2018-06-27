@@ -59,7 +59,29 @@ class AdminInstance(object):
 
     @staticmethod
     def instance():
-        return AdminInstance(ec2.Instance(id='i-0309482acdb55e16b'))
+        return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
+
+
+class BuilderInstance(object):
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'builder'
+
+    @staticmethod
+    def instance():
+        return BuilderInstance(ec2.Instance(id='i-016c31c082de09817'))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state['Name']
 
 
 def print_instances(instances, number=False):

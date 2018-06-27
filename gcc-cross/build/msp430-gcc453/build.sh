@@ -54,11 +54,6 @@ make -j$(nproc)
 make install
 popd
 
-# Compress all the images with upx
-for EXE in $(find ${STAGING_DIR} -type f -executable -not -regex '.*\.so.*'); do
-    upx ${EXE} || true
-done
-
 tar Jcf ${OUTPUT} -C ${STAGING_DIR}/.. gcc-4.5.3
 
 if [[ ! -z "${S3OUTPUT}" ]]; then

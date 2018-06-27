@@ -17,7 +17,7 @@ if [[ "$1" != "--updated" || "$2" != "${BRANCH}" ]]; then
     exit 0
 fi
 
-${DIR}/setup-common.sh
+env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 
 cp /compiler-explorer-image/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
 systemctl daemon-reload

@@ -29,11 +29,6 @@ cp ${CONFIG_FILE} .config
 ${CT} oldconfig
 ${CT} build.$(nproc)
 
-# Compress all the images with upx
-for EXE in $(find ${STAGING_DIR} -type f -executable -not -regex '.*\.so.*'); do
-    upx ${EXE} || true
-done
-
 tar Jcf ${OUTPUT} -C ${STAGING_DIR}/.. gcc-${VERSION}
 
 if [[ ! -z "${S3OUTPUT}" ]]; then

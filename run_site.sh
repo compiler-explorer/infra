@@ -19,7 +19,6 @@ fi
 
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
-ARCHIVE_DIR=/opt/compiler-explorer-archive
 if [[ "${DEV_MODE}" != "prod" ]]; then
     EXTERNAL_PORT=7000
     CONFIG_FILE=${DIR}/site-${DEV_MODE}.sh
@@ -35,7 +34,7 @@ $SUDO docker rm ${ALL} || true
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
-CFG="${CFG} -v /var/run/docker.sock:/var/run/docker.sock"
+CFG="${CFG} -v /opt/intel/licenses:/opt/intel/licenses:ro"
 
 get_released_code() {
     local S3_KEY=$(curl -sL https://s3.amazonaws.com/compiler-explorer/version/${BRANCH})

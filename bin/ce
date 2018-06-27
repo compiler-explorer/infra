@@ -8,8 +8,8 @@ import sys
 import time
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
-    set_current_key, as_client, release_for, find_latest_release
-from lib.instance import AdminInstance, Instance, print_instances
+    set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release
+from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
 logger = logging.getLogger('ce')
@@ -67,6 +67,49 @@ def admin_cmd(args):
     run_remote_shell(args, AdminInstance.instance())
 
 
+def start_builder(instance):
+    if instance.status() == 'stopped':
+        print "Starting builder instance..."
+        instance.start()
+        for i in range(60):
+            if instance.status() == 'running':
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
+    for i in range(60):
+        try:
+            r = exec_remote(instance, ["echo", "hello"])
+            if r.strip() == "hello":
+                break
+        except Exception, e:
+            print "Still waiting for SSH: got: {}".format(e)
+            pass
+        time.sleep(1)
+    else:
+        raise RuntimeError("Unable to get SSH access")
+    res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && git pull && sudo ./setup-builder.sh"])
+    print res
+    print "Builder started OK"
+
+
+def builder_cmd(args):
+    sub = args['builder_sub']
+    instance = BuilderInstance.instance()
+    if sub == 'login':
+        run_remote_shell(args, instance)
+    elif sub == 'exec':
+        print exec_remote(instance, args['remote_cmd'])
+    elif sub == 'start':
+        start_builder(instance)
+    elif sub == 'stop':
+        instance.stop()
+    elif sub == 'status':
+        print "Builder status: {}".format(instance.status())
+    else:
+        raise RuntimeError('Unexpected {}'.format(sub))
+
+
 def describe_current_release(args):
     current = get_current_key(args)
     if not current:
@@ -116,6 +159,8 @@ def are_you_sure(name, args):
 
 
 def exec_all_cmd(args):
+    if not are_you_sure('exec all', args):
+        return
     remote_cmd = args['remote_cmd']
     print "Running '{}' on all instances".format(' '.join(remote_cmd))
     exec_remote_all(pick_instances(args), remote_cmd)
@@ -206,7 +251,25 @@ def set_current_cmd(args):
         print 'Found release {}'.format(release)
         to_set = release.key
     set_current_key(args, to_set)
-    # TODO, ideally sync the versioned directory here, requires remote machine, or admin access?
+
+
+def rm_old_cmd(args):
+    current = get_all_current()
+    all_releases = get_releases()
+    max_build = max(x.version for x in all_releases)
+    for release in get_releases():
+        if release.key in current:
+            print "Skipping {} as it is a current version".format(release)
+        else:
+            age = max_build - release.version
+            if age > args['age']:
+                if args['dry_run']:
+                    print "Would remove build {}".format(release)
+                else:
+                    print "Removing build {}".format(release)
+                    remove_release(release)
+            else:
+                print "Keeping build {}".format(release)
 
 
 if __name__ == '__main__':
@@ -216,6 +279,14 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', help='Increase debug information')
     subparsers = parser.add_subparsers(dest='command')
     admin_parser = subparsers.add_parser('admin')
+    builder_parser = subparsers.add_parser('builder')
+    builder_sub = builder_parser.add_subparsers(dest='builder_sub')
+    builder_sub.add_parser('start')
+    builder_sub.add_parser('stop')
+    builder_sub.add_parser('status')
+    builder_sub.add_parser('login')
+    builder_exec = builder_sub.add_parser('exec')
+    builder_exec.add_argument('remote_cmd', nargs='+', help='command to run on builder node')
     list_parser = subparsers.add_parser('list')
     status_parser = subparsers.add_parser('status')
     login_parser = subparsers.add_parser('login')
@@ -227,8 +298,13 @@ if __name__ == '__main__':
     current_parser = subparsers.add_parser('current')
     set_current = subparsers.add_parser('set_current')
     set_current.add_argument('version', help='version to set')
-    set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str, default='')
+    set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str,
+                             default='')
     set_current.add_argument('--raw', action='store_true', help='Set a raw path for a version')
+    expire = subparsers.add_parser('rm_old', help='delete old versions')
+    expire.add_argument('age', help='keep the most recent AGE builds (as well as current builds)', metavar='AGE',
+                        type=int)
+    expire.add_argument('--dry-run', help='dry run only', action='store_true')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
         logging.basicConfig(level=logging.DEBUG)
@@ -237,6 +313,6 @@ if __name__ == '__main__':
         logging.getLogger('boto3').setLevel(logging.WARNING)
         logging.getLogger('botocore').setLevel(logging.WARNING)
     cmd = kwargs.pop('command')
-    if cmd not in ('admin',):
+    if cmd not in ('admin', 'builder'):
         print "Running in {}".format(kwargs['env'])
     globals()[cmd + "_cmd"](kwargs)
