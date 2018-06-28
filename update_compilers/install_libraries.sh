@@ -172,6 +172,7 @@ get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5 0.9.9.0
 get_github_versioned_and_trunk libs/catch2 catchorg/Catch2 v2.2.2 v2.2.3
 get_github_versions libs/expected-lite martinmoene/expected-dark v0.0.1
 get_github_versioned_and_trunk libs/expected-lite martinmoene/expected-lite v0.1.0
+get_github_versioned_and_trunk libs/nlohmann_json nlohmann/json v3.1.2 v2.1.1
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
