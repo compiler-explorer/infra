@@ -165,7 +165,7 @@ get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
-get_github_versioned_and_trunk libs/fmt fmtlib/fmt 5.0.0 4.1.0 4.0.0
+get_github_versioned_and_trunk libs/fmt fmtlib/fmt 5.1.0 5.0.0 4.1.0 4.0.0
 get_github_versioned_and_trunk libs/hfsm andrew-gresyk/HFSM 0.8 0.10
 get_github_versioned_and_trunk_with_quirk libs/eigen eigenteam/eigen-git-mirror v 3.3.4
 get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5 0.9.9.0
