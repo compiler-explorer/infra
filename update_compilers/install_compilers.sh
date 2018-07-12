@@ -478,14 +478,9 @@ done
 
 if install_nightly; then
     do_nightly_install clang-trunk clang-trunk
-fi
-
-if install_nightly; then
     do_nightly_install clang-cppx-trunk clang-cppx-trunk
-fi
-
-if install_nightly; then
     do_nightly_install clang-concepts-trunk clang-concepts-trunk
+    do_nightly_install clang-relocatable-trunk clang-relocatable-trunk
 fi
 
 # Oracle dev studio is stored on s3 only as it's behind a login screen on the

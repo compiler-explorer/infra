@@ -35,5 +35,6 @@ build_latest gcc gcc build.sh
 build_latest clang clang build.sh
 build_latest clang clang_concepts build-concepts.sh
 build_latest clang clang_cppx build-cppx.sh
+build_latest clang clang_relocatable build-relocatable.sh
 
 exit ${BUILD_FAILED}
