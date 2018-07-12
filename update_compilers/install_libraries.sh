@@ -177,6 +177,24 @@ get_github_versioned_and_trunk libs/doctest onqtam/doctest 1.2.9
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
+install_blaze() {
+    for VERSION in "$@"; do
+        local DEST=${OPT}/libs/blaze/v${VERSION}/
+        if [[ ! -d ${DEST} ]]; then
+            mkdir -p /tmp/blaze
+            pushd /tmp/blaze
+            fetch https://bitbucket.org/blaze-lib/blaze/downloads/blaze-${VERSION}.tar.gz | tar zxf -
+            mkdir -p ${DEST}
+            rsync -a blaze-${VERSION}/ ${DEST}
+            popd
+            rm -rf /tmp/blaze
+        fi
+    done
+}
+
+install_blaze 3.3
+get_or_sync libs/blaze/trunk https://bitbucket.org/blaze-lib/blaze.git
+
 #########################
 # C
 install_gnu_gsl_versioned_and_latest() {
