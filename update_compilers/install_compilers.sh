@@ -43,6 +43,7 @@ do_rust_install() {
     pushd /tmp
     fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxvf -
     cd ${DIR}
+    rm -rf ${OPT}/${INSTALL}
     ./install.sh --prefix=${OPT}/${INSTALL} --verbose --without=rust-docs
     rm -rf /tmp/${DIR}
     popd
@@ -88,10 +89,7 @@ install_new_rust() {
     # force install if asked, or if there's no 'cargo' (which used to happen with older builds)
     if [[ -n "${FORCE}" || ! -x rust-${NAME}/bin/cargo ]]; then
         echo Forcing install of $NAME
-        rm -rf rust-${NAME}
-    fi
-
-    if [[ -d rust-${NAME} ]]; then
+    elif [[ -d rust-${NAME} ]]; then
         echo Skipping install of rust $NAME as already installed
         return
     fi
