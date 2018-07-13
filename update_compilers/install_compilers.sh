@@ -64,10 +64,10 @@ install_rust() {
     for to_patch in ${OPT}/rust-${NAME}/lib/*.so; do
         ${PATCHELF} --set-rpath '$ORIGIN' $to_patch
     done
-    
+
     # Don't need docs
     rm -rf ${OPT}/rust-${NAME}/share
-    
+
     do_strip ${OPT}/rust-${NAME}
 }
 
@@ -75,7 +75,7 @@ install_new_rust() {
     local NAME=$1
     local FORCE=$2
     local DIR=rust-${NAME}
-    
+
     if [[ -n "$FORCE" && -d ${DIR} ]]; then
         local time_from=$(date -d "now - $FORCE" +%s)
         local dir_time=$(date -r ${DIR} +%s)
@@ -98,14 +98,14 @@ install_new_rust() {
     echo Installing rust $NAME
 
     do_rust_install rust-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
-    
+
     # workaround for LD_LIBRARY_PATH
     ${PATCHELF} --set-rpath '$ORIGIN/../lib' ${OPT}/rust-${NAME}/bin/rustc
     ${PATCHELF} --set-rpath '$ORIGIN/../lib' ${OPT}/rust-${NAME}/bin/cargo
     for to_patch in ${OPT}/rust-${NAME}/lib/*.so; do
         ${PATCHELF} --set-rpath '$ORIGIN' $to_patch
     done
-    
+
     # Don't need docs
     rm -rf ${OPT}/rust-${NAME}/share
 
@@ -208,7 +208,7 @@ getldc() {
     fi
     mkdir ldc${vers}
     pushd ldc${vers}
-    fetch https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf -    
+    fetch https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf -
     # any kind of stripping upsets ldc
     popd
 }
@@ -219,7 +219,7 @@ getldc_s3() {
         echo LDC ${vers} already installed, skipping
         return
     fi
-    fetch https://s3.amazonaws.com/compiler-explorer/opt/ldc2-${vers}.tar.xz | tar Jxf -    
+    fetch https://s3.amazonaws.com/compiler-explorer/opt/ldc2-${vers}.tar.xz | tar Jxf -
 }
 
 getldc_latestbeta() {
@@ -508,7 +508,7 @@ fi
 # GNU ARM Embedded toolchain
 if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     fetch https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2 | tar jxf -
-    do_strip gcc-arm-none-eabi-5_4-2016q3 
+    do_strip gcc-arm-none-eabi-5_4-2016q3
 fi
 
 # intel ispc
