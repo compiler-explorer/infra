@@ -51,10 +51,10 @@ do_rust_install() {
 install_rust() {
     local NAME=$1
 
-	if [[ -d rust-${NAME} ]]; then
+    if [[ -d rust-${NAME} ]]; then
         echo Skipping install of rust $NAME as already installed
-		return
-	fi
+        return
+    fi
     echo Installing rust $NAME
 
     do_rust_install rustc-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
@@ -91,10 +91,10 @@ install_new_rust() {
         rm -rf rust-${NAME}
     fi
 
-	if [[ -d rust-${NAME} ]]; then
+    if [[ -d rust-${NAME} ]]; then
         echo Skipping install of rust $NAME as already installed
-		return
-	fi
+        return
+    fi
     echo Installing rust $NAME
 
     do_rust_install rust-${NAME}-x86_64-unknown-linux-gnu rust-${NAME}
@@ -301,10 +301,10 @@ for compiler in clang-3.2.tar.gz \
     clang-3.3.tar.gz
 do
     DIR=${compiler%.tar.*}
-	if [[ ! -d ${DIR} ]]; then
-		fetch ${S3URL}/$compiler | tar zxf -
-		do_strip ${DIR}
-	fi
+    if [[ ! -d ${DIR} ]]; then
+        fetch ${S3URL}/$compiler | tar zxf -
+        do_strip ${DIR}
+    fi
 done
 
 # clangs
