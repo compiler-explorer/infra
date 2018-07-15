@@ -1,6 +1,7 @@
 OPT=/opt/compiler-explorer
 
 set -ex
+set -o pipefail
 mkdir -p ${OPT}
 cd ${OPT}
 
