@@ -40,8 +40,10 @@ fi
 do_rust_install() {
     local DIR=$1
     local INSTALL=$2
-    [[ ${DIR} = rust-std-* ]]
-    local IS_STD_LIB=$?
+    local IS_STD_LIB=1
+    if [[ ${DIR} = rust-std-* ]]; then
+        IS_STD_LIB=0
+    fi
     pushd /tmp
     fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxvf - || return ${IS_STD_LIB}
     cd ${DIR}
