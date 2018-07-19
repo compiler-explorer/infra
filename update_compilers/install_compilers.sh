@@ -44,7 +44,7 @@ do_rust_install() {
     if [[ ${DIR} = rust-std-* ]]; then
         IS_STD_LIB=0
     fi
-    fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar -C /tmp zxvf - || return ${IS_STD_LIB}
+    fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxvf - -C /tmp || return ${IS_STD_LIB}
     pushd /tmp/${DIR}
     if [[ ${IS_STD_LIB} -ne 0 ]]; then
         rm -rf ${OPT}/${INSTALL}
