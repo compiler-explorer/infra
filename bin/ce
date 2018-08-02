@@ -298,6 +298,10 @@ def ads_cmd(args):
                     modified_events = True
                     del events['ads'][i]
                 break
+    elif action == 'clear':
+        if are_you_sure('clear all ads (Count: {})'.format(len(events['ads'])), args):
+            events['ads'] = []
+            modified_events = True
     if modified_events:
         save_event_file(args, json.dumps(events))
 
@@ -359,6 +363,7 @@ if __name__ == '__main__':
     ads_add_parser.add_argument('--filter', type=str, help='target languages', default="")
     ads_remove_parser = ads_sub.add_parser('remove')
     ads_remove_parser.add_argument('id', type=int, help='remove ad by id')
+    ads_sub.add_parser('clear')
     motd_parser = subparsers.add_parser('motd')
     motd_sub = motd_parser.add_subparsers(dest='motd_sub')
     motd_sub.add_parser('show')
