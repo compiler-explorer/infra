@@ -124,7 +124,7 @@ def get_all_current():
                 Bucket='compiler-explorer',
                 Key='version/{}'.format(branch)
             )
-            versions.append( o['Body'].read().strip())
+            versions.append(o['Body'].read().strip())
         except s3_client.exceptions.NoSuchKey:
             pass
     return versions
@@ -146,3 +146,25 @@ def release_for(releases, s3_key):
         if r.key == s3_key:
             return r
     return None
+
+
+def get_events_file(args):
+    events_file = 'motd/motd-{}.json'.format(args['env'])
+    try:
+        o = s3_client.get_object(
+            Bucket='compiler-explorer',
+            Key=events_file
+        )
+        return o['Body'].read()
+    except s3_client.exceptions.NoSuchKey:
+        pass
+
+
+def save_event_file(args, contents):
+    events_file = 'motd/motd-{}.json'.format(args['env'])
+    s3_client.put_object(
+        Bucket='compiler-explorer',
+        Key=events_file,
+        Body=contents,
+        ACL='public-read'
+    )

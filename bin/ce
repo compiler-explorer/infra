@@ -6,16 +6,18 @@ from argparse import ArgumentParser
 import itertools
 import sys
 import time
+import json
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
-    set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release
+    set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
+    save_event_file
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
 logger = logging.getLogger('ce')
 
 RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
-
+ADS_FORMAT = '{: <5} {: <20} {: <10}'
 
 def status_cmd(args):
     print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
@@ -272,6 +274,50 @@ def rm_old_cmd(args):
                 print "Keeping build {}".format(release)
 
 
+def ads_cmd(args):
+    action = args['ads_sub']
+    modified_events = False
+    events = json.loads(get_events_file(args))
+    if action == 'list':
+        print ADS_FORMAT.format('ID', 'Contents', 'Filter')
+        for ad in events['ads']:
+            print ADS_FORMAT.format(ad['id'], ad['html'], ad['filter'])
+    elif action == 'add':
+        new_ad = {
+            'html': args['html'],
+            'filter': args['filter'].split(','),
+            'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
+        }
+        if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['html'], new_ad['filter'])), args):
+            modified_events = True
+            events['ads'].append(new_ad)
+    elif action == 'remove':
+        for i, ad in enumerate(events['ads']):
+            if ad['id'] == args['id']:
+                if are_you_sure('remove ad: {}'.format(ad['id']), args):
+                    modified_events = True
+                    del events['ads'][i]
+                break
+    if modified_events:
+        save_event_file(args, json.dumps(events))
+
+
+def motd_cmd(args):
+    action = args['motd_sub']
+    modified_events = False
+    events = json.loads(get_events_file(args))
+    # Show action is handled by the last print
+    if action == 'update':
+        events['motd'] = args['message']
+        modified_events = True
+    elif action == 'clear':
+        events['motd'] = ''
+        modified_events = True
+    print 'Current motd: "{}"'.format(events['motd'])
+    if modified_events:
+        save_event_file(args, json.dumps(events))
+
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='Administrate Compiler Explorer instances')
     parser.add_argument('--env', choices=['prod', 'beta'], default='beta', metavar='ENV', help='Select environment ENV')
@@ -305,6 +351,20 @@ if __name__ == '__main__':
     expire.add_argument('age', help='keep the most recent AGE builds (as well as current builds)', metavar='AGE',
                         type=int)
     expire.add_argument('--dry-run', help='dry run only', action='store_true')
+    ads_parser = subparsers.add_parser('ads')
+    ads_sub = ads_parser.add_subparsers(dest='ads_sub')
+    ads_sub.add_parser('list')
+    ads_add_parser = ads_sub.add_parser('add')
+    ads_add_parser.add_argument('html', type=str, help='message contents')
+    ads_add_parser.add_argument('--filter', type=str, help='target languages', default="")
+    ads_remove_parser = ads_sub.add_parser('remove')
+    ads_remove_parser.add_argument('id', type=int, help='remove ad by id')
+    motd_parser = subparsers.add_parser('motd')
+    motd_sub = motd_parser.add_subparsers(dest='motd_sub')
+    motd_sub.add_parser('show')
+    motd_update_parser = motd_sub.add_parser('update')
+    motd_update_parser.add_argument('message', type=str, help='new motd')
+    motd_sub.add_parser('clear')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
         logging.basicConfig(level=logging.DEBUG)
