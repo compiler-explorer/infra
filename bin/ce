@@ -433,6 +433,6 @@ if __name__ == '__main__':
         logging.getLogger('botocore').setLevel(logging.WARNING)
     cmd = kwargs.pop('command')
     if cmd not in ('admin', 'builder'):
-        if cmd != 'events' and not kwargs['events_sub'].endswith('_raw'):
+        if cmd != 'events' and 'event_sub' in kwargs and not kwargs['events_sub'].endswith('_raw'):
             print "Running in {}".format(kwargs['env'])
     globals()[cmd + "_cmd"](kwargs)
