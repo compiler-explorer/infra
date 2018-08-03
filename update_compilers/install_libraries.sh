@@ -109,7 +109,6 @@ get_or_sync libs/xtl https://github.com/QuantStack/xtl.git
 get_or_sync libs/xsimd https://github.com/QuantStack/xsimd.git
 get_or_sync libs/xtensor https://github.com/QuantStack/xtensor.git
 get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
-get_or_sync libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git
 get_or_sync libs/cppcoro https://github.com/lewissbaker/cppcoro.git
 
 get_if_not_there() {
@@ -265,3 +264,27 @@ install_mir_algorithm() {
 }
 
 install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5 1.0.0 1.1.0
+
+get_or_sync_git_tag() {
+	local DIR=$1
+	local URL=$2
+	local TAG=$3
+	if [ ! -d "${DIR}" ]; then
+		git clone -q "${URL}" "${DIR}"
+		git -C "${DIR}" checkout -q "${TAG}"
+	else
+		git -C "${DIR}" reset -q --hard
+		git -C "${DIR}" pull -q origin "${TAG}"
+	fi
+}
+
+get_or_sync_git_tags() {
+	local DIR=$1
+	local URL=$2
+	shift 2
+	for TAG in "$@"; do
+		get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
+	done
+}
+
+get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2
