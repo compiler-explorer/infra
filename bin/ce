@@ -287,7 +287,7 @@ def ads_cmd(args):
     elif action == 'add':
         new_ad = {
             'html': args['html'],
-            'filter': args['filter'].split(','),
+            'filter': args['filter'].split(',') if len(args['filter']) > 0 else [],
             'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
         }
         if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['filter'], new_ad['html'])), args):
@@ -310,7 +310,7 @@ def ads_cmd(args):
                 old_ad = copy.copy(ad)
                 if are_you_sure('edit ad id: {}'.format(ad['id']), args):
                     events['ads'][i]['html'] = args['html'] or ad['html']
-                    events['ads'][i]['filter'] = args['filter'].split(',') \
+                    events['ads'][i]['filter'] = args['filter'].split(',') if len(args['filter']) > 0 else [] \
                         if args['filter'] is not None else ad['filter']
                     modified_events = True
                     print '{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'Contents'),
