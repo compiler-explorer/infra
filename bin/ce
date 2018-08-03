@@ -59,12 +59,14 @@ def sizeof_fmt(num, suffix='B'):
 def list_cmd(args):
     current = get_current_key(args)
     releases = get_releases()
+    filter_branches = set(args['branch'].split(',') if args['branch'] is not None else [])
     print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
     for branch, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
-            print RELEASE_FORMAT.format(
-                ' -->' if release.key == current else '',
-                release.branch, release.version, sizeof_fmt(release.size), release.hash)
+            if len(filter_branches) == 0 or release.branch in filter_branches:
+                print RELEASE_FORMAT.format(
+                    ' -->' if release.key == current else '',
+                    release.branch, release.version, sizeof_fmt(release.size), release.hash)
 
 
 def admin_cmd(args):
@@ -380,6 +382,7 @@ if __name__ == '__main__':
     builder_exec = builder_sub.add_parser('exec')
     builder_exec.add_argument('remote_cmd', nargs='+', help='command to run on builder node')
     list_parser = subparsers.add_parser('list')
+    list_parser.add_argument('-b', '--branch', type=str, help='show only selected branches')
     status_parser = subparsers.add_parser('status')
     login_parser = subparsers.add_parser('login')
     exec_all_parser = subparsers.add_parser('exec_all')
