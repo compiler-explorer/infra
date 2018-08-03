@@ -7,6 +7,7 @@ import itertools
 import sys
 import time
 import json
+import copy
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
@@ -17,7 +18,8 @@ from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 logger = logging.getLogger('ce')
 
 RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
-ADS_FORMAT = '{: <5} {: <20} {: <10}'
+ADS_FORMAT = '{: <5} {: <10} {: <20}'
+
 
 def status_cmd(args):
     print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
@@ -279,16 +281,16 @@ def ads_cmd(args):
     modified_events = False
     events = json.loads(get_events_file(args))
     if action == 'list':
-        print ADS_FORMAT.format('ID', 'Contents', 'Filter')
+        print ADS_FORMAT.format('ID', 'Filters', 'Content')
         for ad in events['ads']:
-            print ADS_FORMAT.format(ad['id'], ad['html'], ad['filter'])
+            print ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])
     elif action == 'add':
         new_ad = {
             'html': args['html'],
             'filter': args['filter'].split(','),
             'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
         }
-        if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['html'], new_ad['filter'])), args):
+        if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['filter'], new_ad['html'])), args):
             modified_events = True
             events['ads'].append(new_ad)
     elif action == 'remove':
@@ -302,6 +304,20 @@ def ads_cmd(args):
         if are_you_sure('clear all ads (Count: {})'.format(len(events['ads'])), args):
             events['ads'] = []
             modified_events = True
+    elif action == 'edit':
+        for i, ad in enumerate(events['ads']):
+            if ad['id'] == args['id']:
+                old_ad = copy.copy(ad)
+                if are_you_sure('edit ad id: {}'.format(ad['id']), args):
+                    events['ads'][i]['html'] = args['html'] or ad['html']
+                    events['ads'][i]['filter'] = args['filter'].split(',') \
+                        if args['filter'] is not None else ad['filter']
+                    modified_events = True
+                    print '{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'Contents'),
+                                              ADS_FORMAT.format('<FROM', old_ad['filter'], old_ad['html']),
+                                              ADS_FORMAT.format('>TO', events['ads'][i]['filter'],
+                                                                events['ads'][i]['html']))
+                break
     if modified_events:
         save_event_file(args, json.dumps(events))
 
@@ -312,12 +328,38 @@ def motd_cmd(args):
     events = json.loads(get_events_file(args))
     # Show action is handled by the last print
     if action == 'update':
-        events['motd'] = args['message']
-        modified_events = True
+        if are_you_sure('update motd:\nfrom: "{}"\nto: "{}"'.format(events['motd'], args['message']), args):
+            events['motd'] = args['message']
+            modified_events = True
     elif action == 'clear':
-        events['motd'] = ''
-        modified_events = True
+        if are_you_sure('clear current motd: "{}"'.format(events['motd']), args):
+            events['motd'] = ''
+            modified_events = True
     print 'Current motd: "{}"'.format(events['motd'])
+    if modified_events:
+        save_event_file(args, json.dumps(events))
+
+
+def events_cmd(args):
+    action = args['events_sub']
+    file_contents = get_events_file(args)
+    events = {}
+    modified_events = False
+    if action == 'to_raw':
+        print file_contents
+    elif action == 'from_raw':
+        raw = raw_input()
+        decoded_raw = json.loads(raw)
+        events = decoded_raw
+        modified_events = True
+    elif action == 'to_file':
+        with open(args['path'], mode='w') as f:
+            f.write(file_contents)
+    elif action == 'from_file':
+        with open(args['path'], mode='r') as f:
+            new_contents = f.read()
+            if are_you_sure('load from file "{}"', args):
+                events = json.loads(new_contents)
     if modified_events:
         save_event_file(args, json.dumps(events))
 
@@ -364,12 +406,24 @@ if __name__ == '__main__':
     ads_remove_parser = ads_sub.add_parser('remove')
     ads_remove_parser.add_argument('id', type=int, help='remove ad by id')
     ads_sub.add_parser('clear')
+    ads_edit_parser = ads_sub.add_parser('edit')
+    ads_edit_parser.add_argument('id', type=int, help='event to edit')
+    ads_edit_parser.add_argument('--html', type=str, help='new ad contents')
+    ads_edit_parser.add_argument('--filter', type=str, help='new ad filter(s)')
     motd_parser = subparsers.add_parser('motd')
     motd_sub = motd_parser.add_subparsers(dest='motd_sub')
     motd_sub.add_parser('show')
     motd_update_parser = motd_sub.add_parser('update')
     motd_update_parser.add_argument('message', type=str, help='new motd')
     motd_sub.add_parser('clear')
+    events_parser = subparsers.add_parser('events')
+    events_sub = events_parser.add_subparsers(dest='events_sub')
+    events_from_file_parser = events_sub.add_parser('from_file')
+    events_from_file_parser.add_argument('path', type=str, help='location of file to load from')
+    events_to_file_parser = events_sub.add_parser('to_file')
+    events_to_file_parser.add_argument('path', type=str, help='location of file to save to')
+    events_sub.add_parser('from_raw')
+    events_sub.add_parser('to_raw')
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
         logging.basicConfig(level=logging.DEBUG)
