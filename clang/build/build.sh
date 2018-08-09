@@ -55,7 +55,7 @@ cmake -G "Unix Makefiles" ../llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
     -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-7.2.0/lib/gcc/x86_64-linux-gnu/7.2.0/plugin/include/ \
-    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="RISCV,WebAssembly"
+    -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="RISCV;WebAssembly"
 
 make -j$(nproc) install
 
