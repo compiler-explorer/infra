@@ -6,6 +6,7 @@ s3 = boto3.resource('s3')
 as_client = boto3.client('autoscaling')
 elb_client = boto3.client('elbv2')
 s3_client = boto3.client('s3')
+dynamodb_client = boto3.client('dynamodb')
 
 
 class Hash(object):
@@ -168,3 +169,15 @@ def save_event_file(args, contents):
         Body=contents,
         ACL='public-read'
     )
+
+
+def get_short_link(short_id):
+    result = dynamodb_client.get_item(TableName='links', Key={
+        'prefix': {'S': short_id[:6]},
+        'unique_subhash': {'S': short_id}
+    }, ConsistentRead=True)
+    return result.get('Item')
+
+
+def put_short_link(item):
+    dynamodb_client.put_item(TableName='links', Item=item)
