@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding=utf-8
 
 import logging
 from argparse import ArgumentParser
@@ -412,6 +413,16 @@ def links_name_cmd(args):
             base_link['prefix'] = {'S': args['to'][0:6]}
             base_link['unique_subhash'] = {'S': args['to']}
             base_link['clicks'] = {'N': '0'}
+            title = raw_input('Link title: ')
+            author = raw_input('Author(s): ')
+            project = raw_input('Project: ')
+            description = raw_input('Description: ')
+            base_link['named_metadata'] = {'M': {
+                'title': {'S': title},
+                'author': {'S': author},
+                'project': {'S': project},
+                'description': {'S': description}
+            }}
             print('New link: {}'.format(base_link))
             if are_you_sure('create new link named {}'.format(args['to']), args):
                 put_short_link(base_link)
