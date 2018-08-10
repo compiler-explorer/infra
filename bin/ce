@@ -20,8 +20,8 @@ RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
 ADS_FORMAT = '{: <5} {: <10} {: <20}'
 
 
-def status_cmd(args):
-    print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
+def dispatch_global(sub, args):
+    globals()['{}_{}_cmd'.format(sub, args['{}_sub'.format(sub)])](args)
 
 
 def pick_instance(args):
@@ -42,77 +42,12 @@ def pick_instances(args):
     return Instance.elb_instances(target_group_arn_for(args))
 
 
-def login_cmd(args):
-    instance = pick_instance(args)
-    run_remote_shell(args, instance)
-
-
 def sizeof_fmt(num, suffix='B'):
     for unit in ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']:
         if abs(num) < 1024.0:
             return "%3.1f%s%s" % (num, unit, suffix)
         num /= 1024.0
     return "%.1f%s%s" % (num, 'Yi', suffix)
-
-
-def list_cmd(args):
-    current = get_current_key(args)
-    releases = get_releases()
-    filter_branches = set(args['branch'].split(',') if args['branch'] is not None else [])
-    print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
-    for branch, releases in itertools.groupby(releases, lambda r: r.branch):
-        for release in releases:
-            if len(filter_branches) == 0 or release.branch in filter_branches:
-                print RELEASE_FORMAT.format(
-                    ' -->' if release.key == current else '',
-                    release.branch, release.version, sizeof_fmt(release.size), release.hash)
-
-
-def admin_cmd(args):
-    run_remote_shell(args, AdminInstance.instance())
-
-
-def start_builder(instance):
-    if instance.status() == 'stopped':
-        print "Starting builder instance..."
-        instance.start()
-        for i in range(60):
-            if instance.status() == 'running':
-                break
-            time.sleep(1)
-        else:
-            raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
-    for i in range(60):
-        try:
-            r = exec_remote(instance, ["echo", "hello"])
-            if r.strip() == "hello":
-                break
-        except Exception, e:
-            print "Still waiting for SSH: got: {}".format(e)
-            pass
-        time.sleep(1)
-    else:
-        raise RuntimeError("Unable to get SSH access")
-    res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && git pull && sudo ./setup-builder.sh"])
-    print res
-    print "Builder started OK"
-
-
-def builder_cmd(args):
-    sub = args['builder_sub']
-    instance = BuilderInstance.instance()
-    if sub == 'login':
-        run_remote_shell(args, instance)
-    elif sub == 'exec':
-        print exec_remote(instance, args['remote_cmd'])
-    elif sub == 'start':
-        start_builder(instance)
-    elif sub == 'stop':
-        instance.stop()
-    elif sub == 'status':
-        print "Builder status: {}".format(instance.status())
-    else:
-        raise RuntimeError('Unexpected {}'.format(sub))
 
 
 def describe_current_release(args):
@@ -126,15 +61,11 @@ def describe_current_release(args):
         "non-standard release with s3 key '{}'".format(current)
 
 
-def current_cmd(args):
-    print describe_current_release(args)
-
-
 def wait_for_autoscale_state(instance, state):
     logger.info("Waiting for {} to reach autoscale lifecycle '{}'...".format(instance, state))
     while True:
         cur_state = instance.describe_autoscale()['LifecycleState']
-        logger.debug("State is {}".format(cur_state));
+        logger.debug("State is {}".format(cur_state))
         if cur_state == state:
             logger.info("...done")
             return
@@ -148,7 +79,7 @@ def wait_for_elb_state(instance, state):
         instance_state = instance.instance.state['Name']
         if instance_state != 'running':
             raise RuntimeError('Instance no longer running (state {})'.format(instance_state))
-        logger.debug("State is {}".format(instance.elb_health));
+        logger.debug("State is {}".format(instance.elb_health))
         if instance.elb_health == state:
             logger.info("...done")
             return
@@ -161,51 +92,6 @@ def are_you_sure(name, args):
         typed = raw_input('Confirm {} in env {}\nType the name of the environment: '.format(name, env))
         if typed == env:
             return True
-
-
-def exec_all_cmd(args):
-    if not are_you_sure('exec all', args):
-        return
-    remote_cmd = args['remote_cmd']
-    print "Running '{}' on all instances".format(' '.join(remote_cmd))
-    exec_remote_all(pick_instances(args), remote_cmd)
-
-
-def start_cmd(args):
-    print "Starting version {}".format(describe_current_release(args))
-    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
-
-
-def stop_cmd(args):
-    if not are_you_sure('stop', args):
-        return
-    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
-
-
-def restart_cmd(args):
-    if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
-        return
-    modified_groups = {}
-    failed = False
-    for instance in pick_instances(args):
-        logger.info("Restarting {}...".format(instance))
-        as_instance_status = instance.describe_autoscale()
-        as_group_name = as_instance_status['AutoScalingGroupName']
-        if as_instance_status['LifecycleState'] != 'InService':
-            logger.error("Skipping {} as it is not InService ({})".format(instance, as_instance_status))
-            continue
-
-        try:
-            restart_one_instance(as_group_name, instance, modified_groups)
-        except Exception, e:
-            logger.error("Failed restarting {} - skipping: {}".format(instance, e))
-            failed = True
-            # TODO, what here?
-
-    for group, desired in modified_groups.iteritems():
-        logger.info("Putting desired instances for {} back to {}".format(group, desired))
-        as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
-    sys.exit(1 if failed else 0)
 
 
 def restart_one_instance(as_group_name, instance, modified_groups):
@@ -242,7 +128,126 @@ def restart_one_instance(as_group_name, instance, modified_groups):
     logger.info("Instance restarted ok")
 
 
-def set_current_cmd(args):
+def admin_cmd(args):
+    run_remote_shell(args, AdminInstance.instance())
+
+
+def builder_cmd(args):
+    dispatch_global('builder', args)
+
+
+def builder_login_cmd(args):
+    instance = BuilderInstance.instance()
+    run_remote_shell(args, instance)
+
+
+def builder_exec_cmd(args):
+    instance = BuilderInstance.instance()
+    exec_remote(instance, args['remote_cmd'])
+
+
+def builder_start_cmd(args):
+    instance = BuilderInstance.instance()
+    if instance.status() == 'stopped':
+        print "Starting builder instance..."
+        instance.start()
+        for i in range(60):
+            if instance.status() == 'running':
+                break
+            time.sleep(1)
+        else:
+            raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
+    for i in range(60):
+        try:
+            r = exec_remote(instance, ["echo", "hello"])
+            if r.strip() == "hello":
+                break
+        except Exception, e:
+            print "Still waiting for SSH: got: {}".format(e)
+            pass
+        time.sleep(1)
+    else:
+        raise RuntimeError("Unable to get SSH access")
+    res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && git pull && sudo ./setup-builder.sh"])
+    print res
+    print "Builder started OK"
+
+
+def builder_stop_cmd(args):
+    BuilderInstance.instance().stop()
+
+
+def builder_status_cmd(args):
+    print "Builder status: {}".format(BuilderInstance.instance().status())
+
+
+def instances_cmd(args):
+    dispatch_global('instances', args)
+
+
+def instances_exec_all_cmd(args):
+    if not are_you_sure('exec all', args):
+        return
+    remote_cmd = args['remote_cmd']
+    print "Running '{}' on all instances".format(' '.join(remote_cmd))
+    exec_remote_all(pick_instances(args), remote_cmd)
+
+
+def instances_login_cmd(args):
+    instance = pick_instance(args)
+    run_remote_shell(args, instance)
+
+
+def instances_start_cmd(args):
+    print "Starting version {}".format(describe_current_release(args))
+    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
+
+
+def instances_stop_cmd(args):
+    if not are_you_sure('stop', args):
+        return
+    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
+
+
+def instances_restart_cmd(args):
+    if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
+        return
+    modified_groups = {}
+    failed = False
+    for instance in pick_instances(args):
+        logger.info("Restarting {}...".format(instance))
+        as_instance_status = instance.describe_autoscale()
+        as_group_name = as_instance_status['AutoScalingGroupName']
+        if as_instance_status['LifecycleState'] != 'InService':
+            logger.error("Skipping {} as it is not InService ({})".format(instance, as_instance_status))
+            continue
+
+        try:
+            restart_one_instance(as_group_name, instance, modified_groups)
+        except Exception, e:
+            logger.error("Failed restarting {} - skipping: {}".format(instance, e))
+            failed = True
+            # TODO, what here?
+
+    for group, desired in modified_groups.iteritems():
+        logger.info("Putting desired instances for {} back to {}".format(group, desired))
+        as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
+    sys.exit(1 if failed else 0)
+
+
+def instances_status_cmd(args):
+    print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
+
+
+def builds_cmd(args):
+    dispatch_global('builds', args)
+
+
+def builds_current_cmd(args):
+    print describe_current_release(args)
+
+
+def builds_set_current_cmd(args):
     if args['raw']:
         to_set = args['version']
     else:
@@ -258,7 +263,7 @@ def set_current_cmd(args):
     set_current_key(args, to_set)
 
 
-def rm_old_cmd(args):
+def builds_rm_old_cmd(args):
     current = get_all_current()
     all_releases = get_releases()
     max_build = max(x.version for x in all_releases)
@@ -277,112 +282,139 @@ def rm_old_cmd(args):
                 print "Keeping build {}".format(release)
 
 
+def builds_list_cmd(args):
+    current = get_current_key(args)
+    releases = get_releases()
+    filter_branches = set(args['branch'].split(',') if args['branch'] is not None else [])
+    print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
+    for branch, releases in itertools.groupby(releases, lambda r: r.branch):
+        for release in releases:
+            if len(filter_branches) == 0 or release.branch in filter_branches:
+                print RELEASE_FORMAT.format(
+                    ' -->' if release.key == current else '',
+                    release.branch, release.version, sizeof_fmt(release.size), release.hash)
+
+
 def ads_cmd(args):
-    action = args['ads_sub']
-    modified_events = False
+    dispatch_global('ads', args)
+
+
+def ads_list_cmd(args):
     events = json.loads(get_events_file(args))
-    if action == 'list':
-        print ADS_FORMAT.format('ID', 'Filters', 'Content')
-        for ad in events['ads']:
-            print ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])
-    elif action == 'add':
-        new_ad = {
-            'html': args['html'],
-            'filter': args['filter'].split(',') if len(args['filter']) > 0 else [],
-            'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
-        }
-        if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['filter'], new_ad['html'])), args):
-            modified_events = True
-            events['ads'].append(new_ad)
-    elif action == 'remove':
-        for i, ad in enumerate(events['ads']):
-            if ad['id'] == args['id']:
-                if args['force'] or are_you_sure('remove ad: {}'.format(ad['id']), args):
-                    modified_events = True
-                    del events['ads'][i]
-                break
-    elif action == 'clear':
-        if are_you_sure('clear all ads (Count: {})'.format(len(events['ads'])), args):
-            events['ads'] = []
-            modified_events = True
-    elif action == 'edit':
-        for i, ad in enumerate(events['ads']):
-            if ad['id'] == args['id']:
-                new_ad = {
-                    'id': ad['id'],
-                    'filter': (args['filter'].split(',') if len(args['filter']) > 0 else [])
-                    if args['filter'] is not None else ad['filter'],
-                    'html': args['html'] or ad['html']
-                }
-                print '{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'Contents'),
-                                          ADS_FORMAT.format('<FROM', ad['filter'], ad['html']),
-                                          ADS_FORMAT.format('>TO', new_ad['filter'], new_ad['html']))
-                if are_you_sure('edit ad id: {}'.format(ad['id']), args):
-                    events['ads'][i] = new_ad
-                    modified_events = True
-                break
-    if modified_events:
+    print ADS_FORMAT.format('ID', 'Filters', 'HTML')
+    for ad in events['ads']:
+        print ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])
+
+
+def ads_add_cmd(args):
+    events = json.loads(get_events_file(args))
+    new_ad = {
+        'html': args['html'],
+        'filter': args['filter'].split(',') if len(args['filter']) > 0 else [],
+        'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
+    }
+    if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['filter'], new_ad['html'])), args):
+        events['ads'].append(new_ad)
         save_event_file(args, json.dumps(events))
 
 
-def motd_cmd(args):
-    action = args['motd_sub']
-    modified_events = False
+def ads_remove_cmd(args):
     events = json.loads(get_events_file(args))
-    # Show action is handled by the last print
-    if action == 'update':
-        if are_you_sure('update motd:\nfrom: "{}"\nto: "{}"'.format(events['motd'], args['message']), args):
-            events['motd'] = args['message']
-            modified_events = True
-    elif action == 'clear':
-        if are_you_sure('clear current motd: "{}"'.format(events['motd']), args):
-            events['motd'] = ''
-            modified_events = True
-    print 'Current motd: "{}"'.format(events['motd'])
-    if modified_events:
+    for i, ad in enumerate(events['ads']):
+        if ad['id'] == args['id']:
+            if args['force'] or are_you_sure('remove ad: {}'.format(ad['id']), args):
+                del events['ads'][i]
+                save_event_file(args, json.dumps(events))
+            break
+
+
+def ads_clear_cmd(args):
+    events = json.loads(get_events_file(args))
+    if are_you_sure('clear all ads (Count: {})'.format(len(events['ads'])), args):
+        events['ads'] = []
+        save_event_file(args, json.dumps(events))
+
+
+def ads_edit_cmd(args):
+    events = json.loads(get_events_file(args))
+    for i, ad in enumerate(events['ads']):
+        if ad['id'] == args['id']:
+            new_ad = {
+                'id': ad['id'],
+                'filter': (args['filter'].split(',') if len(args['filter']) > 0 else [])
+                if args['filter'] is not None else ad['filter'],
+                'html': args['html'] or ad['html']
+            }
+            print '{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'HTML'),
+                                      ADS_FORMAT.format('<FROM', ad['filter'], ad['html']),
+                                      ADS_FORMAT.format('>TO', new_ad['filter'], new_ad['html']))
+            if are_you_sure('edit ad id: {}'.format(ad['id']), args):
+                events['ads'][i] = new_ad
+                save_event_file(args, json.dumps(events))
+            break
+
+
+def motd_cmd(args):
+    dispatch_global('motd', args)
+
+
+def motd_update_cmd(args):
+    events = json.loads(get_events_file(args))
+    if are_you_sure('update motd:\nfrom: "{}"\nto: "{}"'.format(events['motd'], args['message']), args):
+        events['motd'] = args['message']
+        save_event_file(args, json.dumps(events))
+
+
+def motd_clear_cmd(args):
+    events = json.loads(get_events_file(args))
+    if are_you_sure('clear current motd: "{}"'.format(events['motd']), args):
+        events['motd'] = ''
         save_event_file(args, json.dumps(events))
 
 
 def events_cmd(args):
-    action = args['events_sub']
-    file_contents = get_events_file(args)
-    events = {}
-    modified_events = False
-    if action == 'to_raw':
-        print file_contents
-    elif action == 'from_raw':
-        raw = raw_input()
-        decoded_raw = json.loads(raw)
-        events = decoded_raw
-        modified_events = True
-    elif action == 'to_file':
-        with open(args['path'], mode='w') as f:
-            f.write(file_contents)
-    elif action == 'from_file':
-        with open(args['path'], mode='r') as f:
-            new_contents = f.read()
-            if are_you_sure('load from file "{}"', args):
-                events = json.loads(new_contents)
-    if modified_events:
-        save_event_file(args, json.dumps(events))
+    dispatch_global('events', args)
+
+
+def events_to_raw_cmd(args):
+    print get_events_file(args)
+
+
+def events_from_raw_cmd(args):
+    raw = raw_input()
+    save_event_file(args, json.dumps(json.loads(raw)))
+
+
+def events_to_file_cmd(args):
+    with open(args['path'], mode='w') as f:
+        f.write(get_events_file(args))
+
+
+def events_from_file_cmd(args):
+    with open(args['path'], mode='r') as f:
+        new_contents = f.read()
+        if are_you_sure('load from file "{}"', args):
+            save_event_file(args, json.loads(new_contents))
 
 
 def links_cmd(args):
-    action = args['links_sub']
-    if action == 'name':
-        if len(args['from']) < 6:
-            print('from length must be at least 6')
-        elif len(args['to']) < 6:
-            print('to length must be at least 6')
-        else:
-            base_link = get_short_link(args['from'])
-            if base_link is not None:
-                base_link['prefix'] = {'S': args['to'][0:6]}
-                base_link['unique_subhash'] = {'S': args['to']}
-                base_link['clicks'] = {'N': '0'}
-                print('New link: {}'.format(base_link))
-                if are_you_sure('create new link named {}'.format(args['to']), args):
-                    put_short_link(base_link)
+    dispatch_global('links', args)
+
+
+def links_name_cmd(args):
+    if len(args['from']) < 6:
+        print('from length must be at least 6')
+    elif len(args['to']) < 6:
+        print('to length must be at least 6')
+    else:
+        base_link = get_short_link(args['from'])
+        if base_link is not None:
+            base_link['prefix'] = {'S': args['to'][0:6]}
+            base_link['unique_subhash'] = {'S': args['to']}
+            base_link['clicks'] = {'N': '0'}
+            print('New link: {}'.format(base_link))
+            if are_you_sure('create new link named {}'.format(args['to']), args):
+                put_short_link(base_link)
 
 
 if __name__ == '__main__':
@@ -392,6 +424,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action='store_true', help='Increase debug information')
     subparsers = parser.add_subparsers(dest='command')
     admin_parser = subparsers.add_parser('admin')
+
     builder_parser = subparsers.add_parser('builder')
     builder_sub = builder_parser.add_subparsers(dest='builder_sub')
     builder_sub.add_parser('start')
@@ -400,25 +433,32 @@ if __name__ == '__main__':
     builder_sub.add_parser('login')
     builder_exec = builder_sub.add_parser('exec')
     builder_exec.add_argument('remote_cmd', nargs='+', help='command to run on builder node')
-    list_parser = subparsers.add_parser('list')
+
+    builds_parser = subparsers.add_parser('builds')
+    builds_sub = builds_parser.add_subparsers(dest='builds_sub')
+    list_parser = builds_sub.add_parser('list')
     list_parser.add_argument('-b', '--branch', type=str, help='show only selected branches')
-    status_parser = subparsers.add_parser('status')
-    login_parser = subparsers.add_parser('login')
-    exec_all_parser = subparsers.add_parser('exec_all')
-    exec_all_parser.add_argument('remote_cmd', nargs='+', help='command to run on all nodes')
-    start_parser = subparsers.add_parser('start')
-    stop_parser = subparsers.add_parser('stop')
-    restart_parser = subparsers.add_parser('restart')
-    current_parser = subparsers.add_parser('current')
-    set_current = subparsers.add_parser('set_current')
+    builds_sub.add_parser('current')
+    set_current = builds_sub.add_parser('set_current')
     set_current.add_argument('version', help='version to set')
     set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str,
                              default='')
     set_current.add_argument('--raw', action='store_true', help='Set a raw path for a version')
-    expire = subparsers.add_parser('rm_old', help='delete old versions')
+    expire = builds_sub.add_parser('rm_old', help='delete old versions')
     expire.add_argument('age', help='keep the most recent AGE builds (as well as current builds)', metavar='AGE',
                         type=int)
     expire.add_argument('--dry-run', help='dry run only', action='store_true')
+
+    instances_parser = subparsers.add_parser('instances')
+    instances_sub = instances_parser.add_subparsers(dest='instances_sub')
+    instances_sub.add_parser('status')
+    instances_sub.add_parser('login')
+    exec_all_parser = instances_sub.add_parser('exec_all')
+    exec_all_parser.add_argument('remote_cmd', nargs='+', help='command to run on all nodes')
+    instances_sub.add_parser('start')
+    instances_sub.add_parser('stop')
+    instances_sub.add_parser('restart')
+
     ads_parser = subparsers.add_parser('ads')
     ads_sub = ads_parser.add_subparsers(dest='ads_sub')
     ads_sub.add_parser('list')
@@ -433,12 +473,14 @@ if __name__ == '__main__':
     ads_edit_parser.add_argument('id', type=int, help='event to edit')
     ads_edit_parser.add_argument('--html', type=str, help='new ad contents')
     ads_edit_parser.add_argument('--filter', type=str, help='new ad filter(s)')
+
     motd_parser = subparsers.add_parser('motd')
     motd_sub = motd_parser.add_subparsers(dest='motd_sub')
     motd_sub.add_parser('show')
     motd_update_parser = motd_sub.add_parser('update')
     motd_update_parser.add_argument('message', type=str, help='new motd')
     motd_sub.add_parser('clear')
+
     events_parser = subparsers.add_parser('events')
     events_sub = events_parser.add_subparsers(dest='events_sub')
     events_from_file_parser = events_sub.add_parser('from_file')
@@ -447,11 +489,13 @@ if __name__ == '__main__':
     events_to_file_parser.add_argument('path', type=str, help='location of file to save to')
     events_sub.add_parser('from_raw')
     events_sub.add_parser('to_raw')
+
     links_parser = subparsers.add_parser('links')
     links_sub = links_parser.add_subparsers(dest='links_sub')
     links_name_parser = links_sub.add_parser('name')
-    links_name_parser.add_argument('from')
-    links_name_parser.add_argument('to')
+    links_name_parser.add_argument('from', type=str, help='unique subhash to base the link from')
+    links_name_parser.add_argument('to', type=str, help='name of the link')
+
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
         logging.basicConfig(level=logging.DEBUG)
@@ -461,6 +505,6 @@ if __name__ == '__main__':
         logging.getLogger('botocore').setLevel(logging.WARNING)
     cmd = kwargs.pop('command')
     if cmd not in ('admin', 'builder'):
-        if cmd != 'events' and 'event_sub' in kwargs and not kwargs['events_sub'].endswith('_raw'):
+        if cmd != 'events' or not kwargs['events_sub'].endswith('_raw'):
             print "Running in {}".format(kwargs['env'])
     globals()[cmd + "_cmd"](kwargs)
