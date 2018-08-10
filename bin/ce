@@ -415,6 +415,9 @@ def links_name_cmd(args):
             base_link['clicks'] = {'N': '0'}
             title = raw_input('Link title: ')
             author = raw_input('Author(s): ')
+            if len(author) == 0:
+                # We explicitly ignore author = . in the site code
+                author = '.'
             project = raw_input('Project: ')
             description = raw_input('Description: ')
             base_link['named_metadata'] = {'M': {
