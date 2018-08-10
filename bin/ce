@@ -377,7 +377,7 @@ def links_cmd(args):
         else:
             base_link = get_short_link(args['from'])
             if base_link is not None:
-                # base_link['prefix'] = {'S': args['to'][0:6]}
+                base_link['prefix'] = {'S': args['to'][0:6]}
                 base_link['unique_subhash'] = {'S': args['to']}
                 base_link['clicks'] = {'N': '0'}
                 print('New link: {}'.format(base_link))
