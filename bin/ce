@@ -213,6 +213,11 @@ def instances_stop_cmd(args):
 def instances_restart_cmd(args):
     if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
         return
+    # Store old motd
+    events = get_events_file(args)
+    old_motd = events['motd']
+    events['motd'] = old_motd if args['motd'] == '' else args['motd']
+    save_event_file(args, events)
     modified_groups = {}
     failed = False
     for instance in pick_instances(args):
@@ -233,6 +238,10 @@ def instances_restart_cmd(args):
     for group, desired in modified_groups.iteritems():
         logger.info("Putting desired instances for {} back to {}".format(group, desired))
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
+    # Events might have changed, re-fetch
+    events = get_events_file(args)
+    events['motd'] = old_motd
+    save_event_file(args, events)
     sys.exit(1 if failed else 0)
 
 
@@ -471,7 +480,8 @@ if __name__ == '__main__':
     exec_all_parser.add_argument('remote_cmd', nargs='+', help='command to run on all nodes')
     instances_sub.add_parser('start')
     instances_sub.add_parser('stop')
-    instances_sub.add_parser('restart')
+    instances_restart_parser = instances_sub.add_parser('restart')
+    instances_restart_parser.add_argument('--motd', type=str, default='Site is being updated')
 
     ads_parser = subparsers.add_parser('ads')
     ads_sub = ads_parser.add_subparsers(dest='ads_sub')
