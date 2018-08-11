@@ -73,6 +73,14 @@ def wait_for_autoscale_state(instance, state):
         time.sleep(5)
 
 
+def get_events(args):
+    return json.loads(get_events_file(args))
+
+
+def save_events(args, events):
+    save_event_file(args, json.dumps(events))
+
+
 def wait_for_elb_state(instance, state):
     logger.info("Waiting for {} to reach ELB state '{}'...".format(instance, state))
     while True:
@@ -214,10 +222,10 @@ def instances_restart_cmd(args):
     if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
         return
     # Store old motd
-    events = get_events_file(args)
+    events = get_events(args)
     old_motd = events['motd']
     events['motd'] = old_motd if args['motd'] == '' else args['motd']
-    save_event_file(args, events)
+    save_events(args, events)
     modified_groups = {}
     failed = False
     for instance in pick_instances(args):
@@ -239,9 +247,9 @@ def instances_restart_cmd(args):
         logger.info("Putting desired instances for {} back to {}".format(group, desired))
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
     # Events might have changed, re-fetch
-    events = get_events_file(args)
+    events = get_events(args)
     events['motd'] = old_motd
-    save_event_file(args, events)
+    save_events(args, events)
     sys.exit(1 if failed else 0)
 
 
@@ -368,18 +376,23 @@ def motd_cmd(args):
     dispatch_global('motd', args)
 
 
+def motd_show_cmd(args):
+    events = get_events(args)
+    print events['motd']
+
+
 def motd_update_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     if are_you_sure('update motd:\nfrom: "{}"\nto: "{}"'.format(events['motd'], args['message']), args):
         events['motd'] = args['message']
         save_event_file(args, json.dumps(events))
 
 
 def motd_clear_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     if are_you_sure('clear current motd: "{}"'.format(events['motd']), args):
         events['motd'] = ''
-        save_event_file(args, json.dumps(events))
+        save_events(args, events)
 
 
 def events_cmd(args):
