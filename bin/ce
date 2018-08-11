@@ -378,7 +378,7 @@ def motd_cmd(args):
 
 def motd_show_cmd(args):
     events = get_events(args)
-    print events['motd']
+    print('Current motd: "{}"'.format(events['motd']))
 
 
 def motd_update_cmd(args):
