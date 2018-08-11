@@ -150,11 +150,10 @@ def release_for(releases, s3_key):
 
 
 def get_events_file(args):
-    events_file = 'motd/motd-{}.json'.format(args['env'])
     try:
         o = s3_client.get_object(
             Bucket='compiler-explorer',
-            Key=events_file
+            Key=events_file_for(args)
         )
         return o['Body'].read()
     except s3_client.exceptions.NoSuchKey:
@@ -162,13 +161,18 @@ def get_events_file(args):
 
 
 def save_event_file(args, contents):
-    events_file = 'motd/motd-{}.json'.format(args['env'])
     s3_client.put_object(
         Bucket='compiler-explorer',
-        Key=events_file,
+        Key=events_file_for(args),
         Body=contents,
-        ACL='public-read'
+        ACL='public-read',
+        CacheControl='public, max-age=60'
     )
+
+
+def events_file_for(args):
+    events_file = 'motd/motd-{}.json'.format(args['env'])
+    return events_file
 
 
 def get_short_link(short_id):
@@ -177,7 +181,6 @@ def get_short_link(short_id):
         'unique_subhash': {'S': short_id}
     }, ConsistentRead=True)
     return result.get('Item')
-
 
 
 def put_short_link(item):
