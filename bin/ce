@@ -433,12 +433,12 @@ def links_name_cmd(args):
     else:
         base_link = get_short_link(args['from'])
         if base_link is not None:
-            base_link['prefix'] = {'S': args['to'][0:6]}
-            base_link['unique_subhash'] = {'S': args['to']}
+            base_link['prefix']['S'] = args['to'][0:6]
+            base_link['unique_subhash']['S'] = args['to']
             base_link['stats']['M']['clicks']['N'] = '0'
-            base_link['metadata']['M']['ip_creator']['S'] = '0.0.0.0'
+            base_link['creation_ip']['S'] = '0.0.0.0'
             # It's us, so we don't care about "anonymizing" the time
-            base_link['metadata']['M']['date_creation']['S'] = datetime.datetime.utcnow().isoformat()
+            base_link['creation_date']['S'] = datetime.datetime.utcnow().isoformat()
             title = raw_input('Link title: ')
             author = raw_input('Author(s): ')
             if len(author) == 0:
