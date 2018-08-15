@@ -1,16 +1,51 @@
 <!DOCTYPE HTML>
 <html>
+<head>
+    <script src="knockout-3.4.2.js"></script>
+</head>
 <body>
 <h1>World's worst build status</h1>
 
 <table>
-    <thead>
     <tr>
         <th>Build type</th>
+        <th>Build started</th>
+        <th>Build finished</th>
+        <th>Build status</th>
     </tr>
-    </thead>
+    <tr data-bind="foreach: status">
+        <td data-bind="text: key"></td>
+        <td data-bind="text: begin"></td>
+        <td data-bind="text: end"></td>
+        <td data-bind="text: status"></td>
+    </tr>
 </table>
+
 <script>
+    let Model = {};
+
+    function refreshTable() {
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', 'buildLogs.json');
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onload = function () {
+            if (xhr.status === 200) {
+                const info = JSON.parse(xhr.responseText);
+                console.log(info); // TODO parse etc
+            }
+            ko.applyBindings(Model);
+        };
+        xhr.send();
+    }
+
+    window.onload = () => {
+        refreshTable();
+    };
+    // TODO basically everything...why did I start this so late?
+    // Intention is to load buildLogs.json, parse and populate the table with it.
+    // Periodic reload too. Fun to use http://knockoutjs.com/ to do the work I guess :)
+    // This really is a terrible idea. the log itself needs to NOT be in the bloody JSON object...
+    // TODO: rethink and try again. JSON for statuses, and then log as a separate artifact.
 </script>
 </body>
 </html>
