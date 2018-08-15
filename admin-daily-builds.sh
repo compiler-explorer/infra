@@ -10,16 +10,22 @@ trap finish EXIT
 ce builder status
 ce builder start
 
+LOG_DIR=~/build_logs
 BUILD_FAILED=0
 run_on_build() {
-    mkdir -p ~/build_logs
-    local log=~/build_logs/$1
+    local logdir=${LOG_DIR}/$1
+    mkdir -p ${logdir}
     shift
     set +e
-	if ! ce builder exec -- "$@" 2>&1 | tee ${log}; then
-	    BUILD_FAILED=1
+    date > ${logdir}/begin
+    if ! ce builder exec -- "$@" 2>&1 | tee ${logdir}/log; then
+        BUILD_FAILED=1
+        echo FAILED > ${logdir}/status
+    else
+        echo OK > ${logdir}/status
     fi
-	set -e
+    date > ${logdir}/end
+    set -e
 }
 
 build_latest() {
@@ -37,5 +43,7 @@ build_latest clang clang_concepts build-concepts.sh
 build_latest clang clang_cppx build-cppx.sh
 build_latest clang clang_relocatable build-relocatable.sh
 build_latest clang clang_autonsdmi build-autonsdmi.sh
+
+log_to_json ${LOG_DIR} admin/buildStatus.json
 
 exit ${BUILD_FAILED}

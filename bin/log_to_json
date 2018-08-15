@@ -1,0 +1,35 @@
+#!/usr/bin/env python
+# coding=utf-8
+
+import logging
+from argparse import ArgumentParser
+import boto3
+import os
+import json
+
+s3_client = boto3.client('s3')
+
+logger = logging.getLogger('log_to_json')
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='Copy a directory of outputs to a json file on an s3 bucket')
+    parser.add_argument('dir')
+    parser.add_argument('key')
+    args = parser.parse_args()
+    rootObj = {}
+    for root, dirs, files in os.walk(args.dir, topdown=True):
+        objPath = root[len(args.dir):]
+        obj = rootObj
+        for sub in objPath.split('/'):
+            if sub:
+                obj = obj[sub]
+        for d in dirs:
+            obj[d] = {}
+        for f in files:
+            obj[f] = open(os.path.join(root, f)).read()
+    s3_client.put_object(
+        Bucket='compiler-explorer',
+        Key=args.key,
+        Body=json.dumps(rootObj),
+        ACL='public-read'
+    )

@@ -52,4 +52,7 @@ build-compiler-images:
 clean:
 	echo nothing to clean yet
 
-.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) publish packer update-compilers build-compiler-images
+update-admin:
+	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
+
+.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) publish packer update-compilers build-compiler-images update-admin
