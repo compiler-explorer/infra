@@ -105,7 +105,6 @@ def are_you_sure(name, args):
 
 
 def confirm_branch(release):
-
     branch = release.branch
     while True:
         typed = raw_input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
