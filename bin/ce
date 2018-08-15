@@ -104,6 +104,15 @@ def are_you_sure(name, args):
             return True
 
 
+def confirm_branch(release):
+
+    branch = release.branch
+    while True:
+        typed = raw_input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
+        if typed == branch:
+            return True
+
+
 def restart_one_instance(as_group_name, instance, modified_groups):
     instance_id = instance.instance.instance_id
     logger.info("Enabling instance protection for {}".format(instance))
@@ -267,6 +276,7 @@ def builds_current_cmd(args):
 
 
 def builds_set_current_cmd(args):
+    to_set = None
     if args['raw']:
         to_set = args['version']
     else:
@@ -276,10 +286,11 @@ def builds_set_current_cmd(args):
             print "Unable to find version " + args['version']
             if setting_latest and args['branch'] != '':
                 print 'Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch'])
-            sys.exit(1)
-        print 'Found release {}'.format(release)
-        to_set = release.key
-    set_current_key(args, to_set)
+        elif confirm_branch(release):
+            print 'Found release {}'.format(release)
+            to_set = release.key
+    if to_set is not None:
+        set_current_key(args, to_set)
 
 
 def builds_rm_old_cmd(args):
