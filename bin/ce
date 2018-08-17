@@ -480,6 +480,7 @@ def links_maintenance_cmd(args):
                 missing_storage.append(item['unique_subhash']['S'])
     if are_you_sure('delete {} elements:\n{}\n'.format(len(missing_storage), missing_storage), args) and not args['dry_run']:
         for item in missing_storage:
+            print('Deleting {}'.format(item))
             delete_short_link(item)
 
 
