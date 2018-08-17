@@ -12,7 +12,7 @@ import json
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
-    save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links
+    save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_link
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
@@ -470,18 +470,38 @@ def links_name_cmd(args):
 def links_maintenance_cmd(args):
     s3links, dblinks = list_short_links()
     s3keys_set = set()
+    dbkeys_set = set()
+    dbhashes_set = set()
+    s3dirty_set = set()
+    dbdirty_set = set()
     for page in s3links:
         for state in page['Contents']:
-            s3keys_set.add(state['Key'][6:])
-    missing_storage = []
+            if len(state['Key'][6:]) > 1:
+                s3keys_set.add(state['Key'][6:])
     for page in dblinks:
         for item in page['Items']:
-            if item['full_hash']['S'] not in s3keys_set:
-                missing_storage.append(item['unique_subhash']['S'])
-    if are_you_sure('delete {} elements:\n{}\n'.format(len(missing_storage), missing_storage), args) and not args['dry_run']:
-        for item in missing_storage:
+            unique_subhash = item['unique_subhash']['S']
+            full_hash = item['full_hash']['S']
+            dbkeys_set.add((unique_subhash, full_hash))
+            dbhashes_set.add(full_hash)
+            if item['creation_ip']['S'] == '::1':
+                dbdirty_set.add((unique_subhash, full_hash))
+                s3dirty_set.add(full_hash)
+    for dbkey in dbkeys_set:
+        if dbkey[1] not in s3keys_set:
+            dbdirty_set.add(dbkey)
+    for s3key in s3keys_set:
+        if s3key not in dbhashes_set:
+            s3dirty_set.add(s3key)
+
+    if are_you_sure('delete {} db elements:\n{}\n'.format(len(dbdirty_set), dbdirty_set), args) and not args['dry_run']:
+        for item in dbdirty_set:
             print('Deleting {}'.format(item))
             delete_short_link(item)
+    if are_you_sure('delete {} s3 elements:\n{}\n'.format(len(s3dirty_set), s3dirty_set), args) and not args['dry_run']:
+        for item in s3dirty_set:
+            print('Deleting {}'.format(item))
+            delete_s3_link('state/' + item)
 
 
 if __name__ == '__main__':
