@@ -7,7 +7,7 @@ as_client = boto3.client('autoscaling')
 elb_client = boto3.client('elbv2')
 s3_client = boto3.client('s3')
 dynamodb_client = boto3.client('dynamodb')
-
+LINKS_TABLE = 'links'
 
 class Hash(object):
     def __init__(self, hash):
@@ -176,7 +176,7 @@ def events_file_for(args):
 
 
 def get_short_link(short_id):
-    result = dynamodb_client.get_item(TableName='links', Key={
+    result = dynamodb_client.get_item(TableName=LINKS_TABLE, Key={
         'prefix': {'S': short_id[:6]},
         'unique_subhash': {'S': short_id}
     }, ConsistentRead=True)
@@ -184,4 +184,15 @@ def get_short_link(short_id):
 
 
 def put_short_link(item):
-    dynamodb_client.put_item(TableName='links', Item=item)
+    dynamodb_client.put_item(TableName=LINKS_TABLE, Item=item)
+
+
+def delete_short_link(item):
+    dynamodb_client.delete_item(TableName=LINKS_TABLE, Key={'prefix': {'S': item[0:6]}, 'unique_subhash': {'S': item}})
+
+
+def list_short_links():
+    s3_paginator = s3_client.get_paginator('list_objects_v2')
+    db_paginator = dynamodb_client.get_paginator('scan')
+    return (s3_paginator.paginate(Bucket='storage.godbolt.org', Prefix='state/'),
+            db_paginator.paginate(TableName=LINKS_TABLE, ProjectionExpression='unique_subhash, full_hash'))

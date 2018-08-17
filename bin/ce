@@ -12,7 +12,7 @@ import json
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
-    save_event_file, get_short_link, put_short_link
+    save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
 
@@ -467,6 +467,22 @@ def links_name_cmd(args):
                 put_short_link(base_link)
 
 
+def links_maintenance_cmd(args):
+    s3links, dblinks = list_short_links()
+    s3keys_set = set()
+    for page in s3links:
+        for state in page['Contents']:
+            s3keys_set.add(state['Key'][6:])
+    missing_storage = []
+    for page in dblinks:
+        for item in page['Items']:
+            if item['full_hash']['S'] not in s3keys_set:
+                missing_storage.append(item['unique_subhash']['S'])
+    if are_you_sure('delete {} elements:\n{}\n'.format(len(missing_storage), missing_storage), args) and not args['dry_run']:
+        for item in missing_storage:
+            delete_short_link(item)
+
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='Administrate Compiler Explorer instances')
     parser.add_argument('--env', choices=['prod', 'beta'], default='beta', metavar='ENV', help='Select environment ENV')
@@ -546,6 +562,8 @@ if __name__ == '__main__':
     links_name_parser = links_sub.add_parser('name')
     links_name_parser.add_argument('from', type=str, help='unique subhash to base the link from')
     links_name_parser.add_argument('to', type=str, help='name of the link')
+    links_maintenance_parser = links_sub.add_parser('maintenance')
+    links_maintenance_parser.add_argument('--dry-run', action='store_true', help='dry run')
 
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
