@@ -484,9 +484,9 @@ def links_maintenance_cmd(args):
             full_hash = item['full_hash']['S']
             dbkeys_set.add((unique_subhash, full_hash))
             dbhashes_set.add(full_hash)
-            if item['creation_ip']['S'] == '::1':
-                dbdirty_set.add((unique_subhash, full_hash))
-                s3dirty_set.add(full_hash)
+            # if item['creation_ip']['S'] == '::1' and False:
+            #    dbdirty_set.add((unique_subhash, full_hash))
+            #    s3dirty_set.add(full_hash)
     for dbkey in dbkeys_set:
         if dbkey[1] not in s3keys_set:
             dbdirty_set.add(dbkey)
