@@ -191,11 +191,12 @@ def delete_short_link(item):
     dynamodb_client.delete_item(TableName=LINKS_TABLE, Key={'prefix': {'S': item[:6]}, 'unique_subhash': {'S': item}})
 
 
-def delete_s3_link(item):
+def delete_s3_links(items):
     s3_client.delete_objects(
         Bucket='storage.godbolt.org',
-        Key=item
+        Key=[{'Key': item} for item in items]
     )
+
 
 def list_short_links():
     s3_paginator = s3_client.get_paginator('list_objects_v2')
