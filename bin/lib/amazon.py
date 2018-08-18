@@ -194,7 +194,7 @@ def delete_short_link(item):
 def delete_s3_links(items):
     s3_client.delete_objects(
         Bucket='storage.godbolt.org',
-        Key=[{'Key': item} for item in items]
+        Delete={'Objects': [{'Key': item} for item in items]}
     )
 
 
