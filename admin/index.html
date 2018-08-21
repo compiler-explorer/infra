@@ -7,6 +7,11 @@
     <link rel="icon" type="image/png"
           href="https://github.com/mattgodbolt/compiler-explorer-image/blob/master/logo/favicon.png?raw=true"/>
     <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
+
         body {
             background-color: #FFFCF1;
         }
@@ -53,9 +58,16 @@
 
         #log {
             width: 100%;
-            max-height: 200px;
+            max-height: 55%;
             overflow: auto;
             background-color: #f2f2f2;
+        }
+
+        #last {
+            background-color: rgba(215, 215, 225, 0.5);
+            position: absolute;
+            bottom: 0;
+            left: 0;
         }
     </style>
 </head>
@@ -65,6 +77,7 @@
 </div>
 <button style="display:none;float:right" id="hidder">Hide</button>
 <pre id="log"></pre>
+<small id="last"></small>
 <script>
     document.getElementById('hidder').addEventListener('click', (event) => {
         document.getElementById('log').innerText = '';
@@ -173,6 +186,7 @@
         xhr.onload = () => {
             if (xhr.status === 200) {
                 const info = JSON.parse(xhr.responseText);
+                document.getElementById('last').innerText = `Last update - ${new Date(Date.now()).toString()}`;
                 Object.keys(info).map(buildKey => {
                     const build = info[buildKey];
                     gird.addItem({
