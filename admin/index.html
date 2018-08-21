@@ -1,45 +1,199 @@
 <!DOCTYPE HTML>
 <html>
 <head>
+    <title>World's worst build status</title>
     <script src="knockout-3.4.2.js"></script>
+    <script src="knockout.simpleGrid.3.0.js"></script>
+    <link rel="icon" type="image/png"
+          href="https://github.com/mattgodbolt/compiler-explorer-image/blob/master/logo/favicon.png?raw=true"/>
+    <style>
+        body {
+            background-color: #FFFCF1;
+        }
+
+        .container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ko-grid thead th {
+            border-bottom: 1px solid black;
+        }
+
+        .ko-grid tbody tr:nth-child(odd),
+        .ko-grid thead th:nth-child(odd) {
+            background-color: #EEEEEE;
+        }
+
+        .ko-grid tbody tr:nth-child(even),
+        .ko-grid thead th:nth-child(even) {
+            background-color: #DDDDDD;
+        }
+
+        .ko-grid tbody td:nth-child(odd),
+        .ko-grid thead th:nth-child(odd) {
+            background-color: rgba(220, 220, 220, 0.5);
+        }
+
+        .ko-grid tbody td:nth-child(even),
+        .ko-grid thead th:nth-child(even) {
+            background-color: rgba(200, 200, 200, 0.5);
+        }
+
+        .ko-grid tbody td {
+            text-align: center;
+            width: 200px;
+        }
+
+        .ko-grid-pageLinks {
+            background-color: #EEEEAA;
+            border-top: 1px solid #f3f3f3;
+        }
+
+        #log {
+            width: 100%;
+            max-height: 200px;
+            overflow: auto;
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
-<h1>World's worst build status</h1>
-
-<table>
-    <tr>
-        <th>Build type</th>
-        <th>Build started</th>
-        <th>Build finished</th>
-        <th>Build status</th>
-    </tr>
-    <tr data-bind="foreach: status">
-        <td data-bind="text: key"></td>
-        <td data-bind="text: begin"></td>
-        <td data-bind="text: end"></td>
-        <td data-bind="text: status"></td>
-    </tr>
-</table>
-
+<div class="container" style="max-height: 45%">
+    <div data-bind="simpleGrid: gridViewModel"></div>
+</div>
+<button style="display:none;float:right" id="hidder">Hide</button>
+<pre id="log"></pre>
 <script>
-    let Model = {};
+    document.getElementById('hidder').addEventListener('click', (event) => {
+        document.getElementById('log').innerText = '';
+        event.target.style.display = 'none';
+    });
+    function formatDate(date) {
+        const minutes = date.getUTCMinutes() < 10 ? `0${date.getUTCMinutes()}` : date.getUTCMinutes();
+        return `${date.getUTCHours()}:${minutes}  ${date.getUTCDate()}/${date.toLocaleString("en-us", {month: "short"})}`
+    }
+
+    function formatStartDate(item) {
+        return formatDate(item.start);
+    }
+
+    function formatEndDate(item) {
+        return formatDate(item.end);
+    }
+
+    function styleStatus(item) {
+        const style = {
+            color: 'black'
+        };
+        if (item.status !== 'OK') {
+            style.color = 'red';
+        }
+        return style;
+    }
+
+    function formatStatus(item) {
+        let millis = (item.end - item.start);
+        let text = '';
+        const hours = Math.floor(millis / 1000 / 60 / 60);
+        millis -= hours * 1000 * 60 * 60;
+        if (hours > 0) {
+            text += `${hours}h `;
+        }
+        const mins = Math.floor(millis / 1000 / 60);
+        millis -= mins * 1000 * 60;
+        if (mins > 0 || hours > 0) {
+            text += `${mins < 10 ? `0${mins}` : mins}min `;
+        }
+        const seconds = Math.floor(millis / 1000);
+        text += `${seconds < 10 ? `0${seconds}` : seconds}sec`;
+        return `${item.status} (${text})`
+    }
+
+    function styleHeaderTimes() {
+        return {cursor: 'pointer'};
+    }
+
+    function openLog(item) {
+        document.getElementById('hidder').style.display = 'block';
+        document.getElementById('log').innerText = item.log;
+    }
+
+    class PagedGirdModel {
+        constructor(items) {
+            this.startSortToggle = -1;
+            this.endSortToggle = -1;
+            this.items = ko.observableArray(items);
+            this.gridViewModel = new ko.simpleGrid.viewModel({
+                data: this.items,
+                columns: [
+                    {headerText: "Build Name", rowText: "name"},
+                    {headerText: "Build Start (UTC)", rowText: formatStartDate, headerClick: this.sortStartToggle.bind(this), headerStyle: styleHeaderTimes},
+                    {headerText: "Build End (UTC)", rowText: formatEndDate, headerClick: this.sortEndToggle.bind(this), headerStyle: styleHeaderTimes},
+                    {headerText: "Build Status", rowText: formatStatus, style: styleStatus},
+                    {headerText: "Build Log", rowText: () => "&#x1f4f0;", style: () => {return {cursor: 'pointer'}}, click: openLog}
+                ],
+                pageSize: 7
+            });
+        }
+
+        sortStartToggle() {
+            this.startSortToggle *= -1;
+            this.items.sort((lhi, rhi) => {
+                return this.startSortToggle * (lhi.start < rhi.start ? -1 : 1);
+            });
+        }
+
+        sortEndToggle() {
+            this.endSortToggle *= -1;
+            this.items.sort((lhi, rhi) => {
+                return this.endSortToggle * (lhi.start < rhi.start ? -1 : 1);
+            });
+        }
+
+        clear() {
+            this.items.removeAll();
+        }
+
+        addItem(item) {
+            this.items.push(item);
+        }
+
+    }
+
+    const gird = new PagedGirdModel([]);
+    ko.applyBindings(gird);
 
     function refreshTable() {
+        gird.clear();
         const xhr = new XMLHttpRequest();
-        xhr.open('GET', 'buildLogs.json');
+        xhr.open('GET', 'buildStatus.json');
         xhr.setRequestHeader('Content-Type', 'application/json');
-        xhr.onload = function () {
+        xhr.onload = () => {
             if (xhr.status === 200) {
                 const info = JSON.parse(xhr.responseText);
-                console.log(info); // TODO parse etc
+                Object.keys(info).map(buildKey => {
+                    const build = info[buildKey];
+                    gird.addItem({
+                        name: buildKey,
+                        start: new Date(build.begin),
+                        end: new Date(build.end),
+                        status: build.status.endsWith('\n') ? build.status.substring(0, build.status.length - 1) : build.status,
+                        log: build.log,
+                        icon: ''
+                    });
+                });
+
             }
-            ko.applyBindings(Model);
         };
         xhr.send();
     }
 
     window.onload = () => {
         refreshTable();
+        // 30 mins
+        setInterval(refreshTable, 1800000);
     };
     // TODO basically everything...why did I start this so late?
     // Intention is to load buildLogs.json, parse and populate the table with it.
