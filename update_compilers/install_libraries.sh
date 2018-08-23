@@ -173,6 +173,7 @@ get_github_versions libs/expected-lite martinmoene/expected-dark v0.0.1
 get_github_versioned_and_trunk libs/expected-lite martinmoene/expected-lite v0.1.0
 get_github_versioned_and_trunk libs/nlohmann_json nlohmann/json v3.1.2 v2.1.1
 get_github_versioned_and_trunk libs/doctest onqtam/doctest 1.2.9
+get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
