@@ -280,6 +280,7 @@ install_golang 1.9.2
 install_golang 1.9.4
 install_golang 1.10
 install_golang 1.10.1
+install_golang 1.11
 
 
 #########################
