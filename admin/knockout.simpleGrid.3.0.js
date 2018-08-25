@@ -17,7 +17,7 @@
             this.data = configuration.data;
             this.currentPageIndex = ko.observable(0);
             this.pageSize = configuration.pageSize || 5;
-
+            this.update = configuration.update;
             // If you don't specify columns configuration, we'll use scaffolding
             this.columns = configuration.columns || getColumnsForScaffolding(ko.unwrap(this.data));
 
@@ -58,6 +58,7 @@
                     </table>");
     templateEngine.addTemplate("ko_simpleGrid_pageLinks", "\
                     <div class=\"ko-grid-pageLinks\">\
+                        <span data-bind=\"click: update\">&#8635;</span>\
                         <span>Page:</span>\
                         <!-- ko foreach: ko.utils.range(0, maxPageIndex) -->\
                                <a href=\"#\" data-bind=\"text: $data + 1, click: function() { $root.currentPageIndex($data) }, css: { selected: $data == $root.currentPageIndex() }\">\
