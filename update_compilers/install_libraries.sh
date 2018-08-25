@@ -177,6 +177,8 @@ get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
+get_github_versions libs/vcl darealshinji/vectorclass v1.30
+
 install_blaze() {
     for VERSION in "$@"; do
         local DEST=${OPT}/libs/blaze/v${VERSION}/
