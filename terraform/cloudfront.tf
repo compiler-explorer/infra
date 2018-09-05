@@ -130,7 +130,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 }
 
 # TODO - the duplication is rubbish
-# Though note the differences: viewer certificate, logging and aliases (at least).
+# Though note the differences: viewer certificate, logging, origin protocol policy and aliases (at least).
 resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
@@ -142,7 +142,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     custom_origin_config {
       http_port = 80
       https_port = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = "http-only" # Certificate on the endpoint is godbolt.org
       origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
