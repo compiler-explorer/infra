@@ -16,6 +16,18 @@ resource "aws_s3_bucket" "compiler-explorer" {
     ]
     max_age_seconds = 3000
   }
+  # Keep only two years of cloudfront logs
+  lifecycle_rule {
+    enabled = true
+    expiration {
+      days = 1
+    }
+    noncurrent_version_expiration {
+      days = 1825 # 5 years
+    }
+    # Covers both cloudfront-logs and cloudfront-logs-ce:
+    prefix = "cloudfront-logs"
+  }
 }
 
 resource "aws_s3_bucket_policy" "compiler-explorer" {
