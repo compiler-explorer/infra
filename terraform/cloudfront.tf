@@ -130,7 +130,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 }
 
 # TODO - the duplication is rubbish
-# Though note the differences: viewer certificate and aliases (at least).
+# Though note the differences: viewer certificate, logging and aliases (at least).
 resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
@@ -168,7 +168,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   logging_config {
     include_cookies = false
     bucket = "compiler-explorer.s3.amazonaws.com"
-    prefix = "cloudfront-logs"
+    prefix = "cloudfront-logs-ce"
   }
 
   http_version = "http2"
