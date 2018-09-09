@@ -351,7 +351,8 @@ def ads_remove_cmd(args):
     events = json.loads(get_events_file(args))
     for i, ad in enumerate(events['ads']):
         if ad['id'] == args['id']:
-            if args['force'] or are_you_sure('remove ad: {}'.format(ad['id']), args):
+            if args['force'] or \
+                    are_you_sure('remove ad: {}'.format(ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])), args):
                 del events['ads'][i]
                 save_event_file(args, json.dumps(events))
             break
