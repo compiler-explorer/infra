@@ -393,9 +393,10 @@ getdmd_2x 2.079.1
 getdmd_2x 2.080.1
 getdmd_2x 2.081.2
 getdmd_2x 2.082.0
-if install_nightly; then
-    getdmd2_nightly
-fi
+# dmd nightly disabled: server seems to be down/hanging since at least second week of September 2018
+#if install_nightly; then
+#    getdmd2_nightly
+#fi
 
 
 #########################
