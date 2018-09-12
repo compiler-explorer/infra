@@ -44,7 +44,7 @@ cd /home/ubuntu/compiler-explorer-image
 pip install --upgrade pip 
 hash -r pip
 pip install --upgrade awscli
-pip install -r requirements.txt
+pip install --upgrade -r requirements.txt
 
 # Install private and public keys
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value > /home/ubuntu/.ssh/id_rsa
