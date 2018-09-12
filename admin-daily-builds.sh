@@ -35,6 +35,7 @@ build_latest() {
     run_on_build ${BUILD_NAME} \
       sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro mattgodbolt/${IMAGE}-builder \
       bash "$@" trunk s3://compiler-explorer/opt/
+    log_to_json ${LOG_DIR} admin/buildStatus.json
 }
 
 build_latest gcc gcc build.sh
@@ -43,7 +44,5 @@ build_latest clang clang_concepts build-concepts.sh
 build_latest clang clang_cppx build-cppx.sh
 build_latest clang clang_relocatable build-relocatable.sh
 build_latest clang clang_autonsdmi build-autonsdmi.sh
-
-log_to_json ${LOG_DIR} admin/buildStatus.json
 
 exit ${BUILD_FAILED}
