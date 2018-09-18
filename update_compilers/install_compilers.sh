@@ -24,11 +24,11 @@ fi
 
 #########################
 # Rust
-#. ${SCRIPT_DIR}/install_rust_compilers.sh ${ARG1}
+. ${SCRIPT_DIR}/install_rust_compilers.sh ${ARG1}
 
 #########################
 # Go
-#. ${SCRIPT_DIR}/install_go_compilers.sh ${ARG1}
+. ${SCRIPT_DIR}/install_go_compilers.sh ${ARG1}
 
 #########################
 # D
@@ -40,19 +40,19 @@ fi
 
 #########################
 # C
-#. ${SCRIPT_DIR}/install_c_compilers.sh ${ARG1}
+. ${SCRIPT_DIR}/install_c_compilers.sh ${ARG1}
 
 #########################
 # Haskell
-#. ${SCRIPT_DIR}/install_haskell_compilers.sh ${ARG1}
+. ${SCRIPT_DIR}/install_haskell_compilers.sh ${ARG1}
 
 #########################
 # Swift
-#. ${SCRIPT_DIR}/install_swift_compilers.sh ${ARG1}
+. ${SCRIPT_DIR}/install_swift_compilers.sh ${ARG1}
 
 #########################
 # Pascal
-#. ${SCRIPT_DIR}/install_pascal_compilers.sh ${ARG1}
+. ${SCRIPT_DIR}/install_pascal_compilers.sh ${ARG1}
 
 #########################
 # Assembly
