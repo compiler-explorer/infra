@@ -48,3 +48,7 @@ fi
 #########################
 # Assembly
 . ${SCRIPT_DIR}/install_assembly_compilers.sh ${ARG1}
+
+#########################
+# Zig
+. ${SCRIPT_DIR}/install_zig_compilers.sh ${ARG1}
