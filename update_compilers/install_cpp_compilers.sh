@@ -195,6 +195,7 @@ for version in \
     4.0.1 \
     5.0.0 \
     6.0.0 \
+    7.0.0 \
 ; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
