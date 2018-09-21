@@ -2,19 +2,10 @@
 
 # This script installs all the free compilers from s3 into a dir in /opt.
 # On EC2 this location is on an EFS drive.
-
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${SCRIPT_DIR}/common.inc
-
 ARG1="$1"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. ${SCRIPT_DIR}/common.inc ${ARG1}
 
-install_nightly() {
-    if [[ "$ARG1" = "nightly" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
 
 if install_nightly; then
     echo "Installing nightly builds"

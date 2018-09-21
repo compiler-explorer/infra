@@ -1,17 +1,10 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${SCRIPT_DIR}/common.inc
-
 ARG1="$1"
 
-install_nightly() {
-    if [[ "$ARG1" = "nightly" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. ${SCRIPT_DIR}/common.inc ${ARG1}
+
 
 get_ghc() {
     local VER=$1

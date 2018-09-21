@@ -21,3 +21,13 @@ do_unzip() {
 do_strip() {
     find $1 -executable -type f | xargs strip 2>&1 || true
 }
+
+ARG1="$1"
+
+install_nightly() {
+    if [[ "$ARG1" = "nightly" ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
