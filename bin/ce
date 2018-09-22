@@ -9,6 +9,7 @@ import itertools
 import sys
 import time
 import json
+from pprint import pprint
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
@@ -437,35 +438,55 @@ def links_cmd(args):
 
 
 def links_name_cmd(args):
-    if len(args['from']) < 6:
-        print('from length must be at least 6')
-    elif len(args['to']) < 6:
-        print('to length must be at least 6')
-    else:
-        base_link = get_short_link(args['from'])
-        if base_link is not None:
-            base_link['prefix']['S'] = args['to'][0:6]
-            base_link['unique_subhash']['S'] = args['to']
-            base_link['stats']['M']['clicks']['N'] = '0'
-            base_link['creation_ip']['S'] = '0.0.0.0'
-            # It's us, so we don't care about "anonymizing" the time
-            base_link['creation_date']['S'] = datetime.datetime.utcnow().isoformat()
-            title = raw_input('Link title: ')
-            author = raw_input('Author(s): ')
-            if len(author) == 0:
-                # We explicitly ignore author = . in the site code
-                author = '.'
-            project = raw_input('Project: ')
-            description = raw_input('Description: ')
-            base_link['named_metadata'] = {'M': {
-                'title': {'S': title},
-                'author': {'S': author},
-                'project': {'S': project},
-                'description': {'S': description}
-            }}
-            print('New link: {}'.format(base_link))
-            if are_you_sure('create new link named {}'.format(args['to']), args):
-                put_short_link(base_link)
+    link_from = args['from']
+    if len(link_from) < 6:
+        raise RuntimeError('from length must be at least 6')
+    if len(args['to']) < 6:
+        raise RuntimeError('to length must be at least 6')
+    base_link = get_short_link(link_from)
+    if not base_link:
+        raise RuntimeError('Couldn\'t find base link {}'.format(link_from))
+    base_link['prefix']['S'] = args['to'][0:6]
+    base_link['unique_subhash']['S'] = args['to']
+    base_link['stats']['M']['clicks']['N'] = '0'
+    base_link['creation_ip']['S'] = '0.0.0.0'
+    # It's us, so we don't care about "anonymizing" the time
+    base_link['creation_date']['S'] = datetime.datetime.utcnow().isoformat()
+    title = raw_input('Link title: ')
+    author = raw_input('Author(s): ')
+    if len(author) == 0:
+        # We explicitly ignore author = . in the site code
+        author = '.'
+    project = raw_input('Project: ')
+    description = raw_input('Description: ')
+    base_link['named_metadata'] = {'M': {
+        'title': {'S': title},
+        'author': {'S': author},
+        'project': {'S': project},
+        'description': {'S': description}
+    }}
+    print('New link: {}'.format(pprint(base_link)))
+    if are_you_sure('create new link named {}'.format(args['to']), args):
+        put_short_link(base_link)
+
+
+def links_update_cmd(args):
+    link_to = args['to']
+    link_from = args['from']
+    if len(link_from) < 6:
+        raise RuntimeError('from length must be at least 6')
+    if len(args['to']) < 6:
+        raise RuntimeError('to length must be at least 6')
+    base_link = get_short_link(link_from)
+    if not base_link:
+        raise RuntimeError('Couldn\'t find base link {}'.format(link_from))
+    link_to_update = get_short_link(link_to)
+    if not link_to_update:
+        raise RuntimeError('Couldn\'t find existing short link {}'.format(link_to))
+    link_to_update['full_hash'] = base_link['full_hash']
+    print('New link: {}'.format(pprint(link_to_update)))
+    if are_you_sure('update link named {}'.format(link_to), args):
+        put_short_link(link_to_update)
 
 
 def links_maintenance_cmd(args):
@@ -579,6 +600,9 @@ if __name__ == '__main__':
     links_name_parser = links_sub.add_parser('name')
     links_name_parser.add_argument('from', type=str, help='unique subhash to base the link from')
     links_name_parser.add_argument('to', type=str, help='name of the link')
+    links_update_parser = links_sub.add_parser('update')
+    links_update_parser.add_argument('from', type=str, help='short link to copy from')
+    links_update_parser.add_argument('to', type=str, help='named short link to update')
     links_maintenance_parser = links_sub.add_parser('maintenance')
     links_maintenance_parser.add_argument('--dry-run', action='store_true', help='dry run')
 
@@ -590,7 +614,7 @@ if __name__ == '__main__':
         logging.getLogger('boto3').setLevel(logging.WARNING)
         logging.getLogger('botocore').setLevel(logging.WARNING)
     cmd = kwargs.pop('command')
-    if cmd not in ('admin', 'builder'):
+    if cmd not in ('admin', 'builder', 'links'):
         if cmd != 'events' or not kwargs['events_sub'].endswith('_raw'):
             print "Running in {}".format(kwargs['env'])
     globals()[cmd + "_cmd"](kwargs)
