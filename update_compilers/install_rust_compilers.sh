@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${SCRIPT_DIR}/common.inc "$@"
+. ${SCRIPT_DIR}/common.inc
 
 
 do_rust_install() {

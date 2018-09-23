@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${SCRIPT_DIR}/common.inc "$@"
+. ${SCRIPT_DIR}/common.inc
 
 
 ## Install 1.4.1 the old way...

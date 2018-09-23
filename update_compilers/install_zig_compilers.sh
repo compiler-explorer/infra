@@ -1,7 +1,8 @@
 #!/bin/bash
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${SCRIPT_DIR}/common.inc "$@"
+. ${SCRIPT_DIR}/common.inc
+
 
 install_zig() {
     local VERSION=$1
