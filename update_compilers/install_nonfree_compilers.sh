@@ -4,7 +4,7 @@
 # On EC2 this location is on an EFS drive.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${DIR}/common.inc
+. ${DIR}/common.inc "$@"
 S3URL=s3://compiler-explorer/opt-nonfree
 
 ##################################
