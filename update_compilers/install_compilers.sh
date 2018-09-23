@@ -570,6 +570,16 @@ if install_nightly; then
     do_nightly_install gcc-trunk gcc-snapshot
 fi
 
+# Advance Toolchain (By IBM for POWER)
+
+git clone --single-branch  --branch master https://github.com/advancetoolchain/advance-toolchain.git
+for version in 12.0 \
+; do
+    make -C advance-toolchain -j $(nproc) AT_MAKE_CHECK=silent_fail AT_CONFIGSET=${version} DESTDIR=${OPT} toolchain
+    do_strip ${OPT}/at${version}
+done
+
+
 # Custom-built clangs also stripped and UPX'd
 for version in \
     3.9.1 \
