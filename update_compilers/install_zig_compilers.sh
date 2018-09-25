@@ -3,10 +3,8 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc
 
-
 install_zig() {
     local VERSION=$1
-    local AUTOMATED_BUILD=$2
     local DIR=zig-${VERSION}
     if [[ -d ${DIR} ]]; then
         echo Zig $VERSION already installed, skipping
@@ -15,18 +13,34 @@ install_zig() {
     mkdir ${DIR}
     pushd ${DIR}
 
-    if [ -z "$AUTOMATED_BUILD" ]; then
-        fetch https://ziglang.org/download/${VERSION}/zig-linux-x86_64-${VERSION}.tar.xz | tar Jxf - --strip-components 1
-    else
-        fetch https://ziglang.org/builds/zig-linux-x86_64-${VERSION}.tar.xz | tar Jxf - --strip-components 1
-    fi
-
+    fetch https://ziglang.org/download/${VERSION}/zig-linux-x86_64-${VERSION}.tar.xz | tar Jxf - --strip-components 1
     rm -f langref.html
 
     popd
     do_strip ${DIR}
 }
 
+
+install_zig_nightly() {
+    local VERSION=$1
+    local DIR=zig-${VERSION}
+
+    if [[ -d ${DIR} ]]; then
+        rm -rf ${DIR}
+    fi
+
+    mkdir ${DIR}
+    pushd ${DIR}
+
+    fetch https://ziglang.org/builds/zig-linux-x86_64-${VERSION}.tar.xz | tar Jxf - --strip-components 1
+    rm -f langref.html
+
+    popd
+    do_strip ${DIR}
+}
+
+install_zig 0.2.0
+
 if install_nightly; then
-    install_zig master 1
+    install_zig_nightly master
 fi
