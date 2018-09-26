@@ -16,4 +16,5 @@ remove_older clang-cppx-trunk
 remove_older clang-concepts-trunk
 remove_older clang-relocatable-trunk
 remove_older clang-autonsdmi-trunk
+remove_older clang-lifetime-trunk
 remove_older gcc
