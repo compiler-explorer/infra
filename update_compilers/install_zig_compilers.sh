@@ -40,6 +40,7 @@ install_zig_nightly() {
 }
 
 install_zig 0.2.0
+install_zig 0.3.0
 
 if install_nightly; then
     install_zig_nightly master
