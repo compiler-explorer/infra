@@ -142,7 +142,8 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     custom_origin_config {
       http_port = 80
       https_port = 443
-      origin_protocol_policy = "http-only" # Certificate on the endpoint is godbolt.org
+      # Certificate on the endpoint is godbolt.org
+      origin_protocol_policy = "http-only"
       origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
