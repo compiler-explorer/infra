@@ -95,3 +95,52 @@ resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
   protocol = "-1"
   description = "Allow egress to anywhere"
 }
+
+resource "aws_security_group" "AdminNode" {
+  vpc_id = "${aws_vpc.CompilerExplorer.id}"
+  name = "AdminNodeSecGroup"
+  description = "Security for the admin node"
+  tags = {
+    Name = "AdminNode"
+    Site = "CompilerExplorer"
+  }
+}
+
+resource "aws_security_group_rule" "Admin_Mosh" {
+  security_group_id = "${aws_security_group.AdminNode.id}"
+  type = "ingress"
+  from_port = 60000
+  to_port = 61000
+  cidr_blocks = [
+    "0.0.0.0/0"]
+  ipv6_cidr_blocks = [
+    "::/0"]
+  protocol = "udp"
+  description = "Allow MOSH from anywhere"
+}
+
+resource "aws_security_group_rule" "Admin_SSH" {
+  security_group_id = "${aws_security_group.AdminNode.id}"
+  type = "ingress"
+  from_port = 22
+  to_port = 22
+  cidr_blocks = [
+    "0.0.0.0/0"]
+  ipv6_cidr_blocks = [
+    "::/0"]
+  protocol = "tcp"
+  description = "Allow SSH from anywhere"
+}
+
+resource "aws_security_group_rule" "Admin_EgressToAnywhere" {
+  security_group_id = "${aws_security_group.AdminNode.id}"
+  type = "egress"
+  from_port = 0
+  to_port = 65535
+  cidr_blocks = [
+    "0.0.0.0/0"]
+  ipv6_cidr_blocks = [
+    "::/0"]
+  protocol = "-1"
+  description = "Allow egress to anywhere"
+}
