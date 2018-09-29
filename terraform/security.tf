@@ -69,19 +69,6 @@ resource "aws_security_group" "CompilerExplorerAlb" {
     Site = "CompilerExplorer"
   }
 }
-/*
-resource "aws_security_group_rule" "ALB_WebFromAnywhere" {
-  security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
-  type = "ingress"
-  from_port = 80
-  to_port = 80
-  cidr_blocks = [
-    "0.0.0.0/0"]
-  ipv6_cidr_blocks = [
-    "::/0"]
-  protocol = "tcp"
-  description = "Allow HTTP access from anywhere"
-}*/
 
 resource "aws_security_group_rule" "ALB_HttpsFromAnywhere" {
   security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
