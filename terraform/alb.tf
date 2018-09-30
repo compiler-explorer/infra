@@ -7,7 +7,11 @@ resource "aws_alb" "GccExplorerApp" {
   subnets = [
     "${aws_subnet.ce-1a.id}",
     "${aws_subnet.ce-1b.id}",
-    "${aws_subnet.ce-1d.id}"]
+    "${aws_subnet.ce-1c.id}",
+    "${aws_subnet.ce-1d.id}",
+    "${aws_subnet.ce-1e.id}",
+    "${aws_subnet.ce-1f.id}"
+  ]
 
   enable_deletion_protection = false
 

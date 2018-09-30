@@ -34,6 +34,18 @@ resource "aws_subnet" "ce-1b" {
   }
 }
 
+resource "aws_subnet" "ce-1c" {
+  vpc_id = "${aws_vpc.CompilerExplorer.id}"
+  cidr_block = "172.30.4.0/24"
+  availability_zone = "us-east-1c"
+  map_public_ip_on_launch = true
+
+  tags {
+    Name = "CompilerExplorer1c"
+    Site = "CompilerExplorer"
+  }
+}
+
 resource "aws_subnet" "ce-1d" {
   vpc_id = "${aws_vpc.CompilerExplorer.id}"
   cidr_block = "172.30.2.0/24"
@@ -42,6 +54,18 @@ resource "aws_subnet" "ce-1d" {
 
   tags {
     Name = "CompilerExplorer1d"
+    Site = "CompilerExplorer"
+  }
+}
+
+resource "aws_subnet" "ce-1e" {
+  vpc_id = "${aws_vpc.CompilerExplorer.id}"
+  cidr_block = "172.30.6.0/24"
+  availability_zone = "us-east-1e"
+  map_public_ip_on_launch = true
+
+  tags {
+    Name = "CompilerExplorer1e"
     Site = "CompilerExplorer"
   }
 }
