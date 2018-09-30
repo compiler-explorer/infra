@@ -8,7 +8,10 @@ resource "aws_security_group" "CompilerExplorer" {
   }
 }
 
-# Temporary bodge until I work out what's going on
+# Compiler explorer nodes do things like `git pull` and `docker pull` at startup,
+# so need to be able to talk to the outside world. Ideally they'd be locked down
+# completely (with access only to admin node and the ALB); but this would require
+# some work to remove the git/docker pull.
 resource "aws_security_group_rule" "CE_EgressToAll" {
   security_group_id = "${aws_security_group.CompilerExplorer.id}"
   type = "egress"
@@ -19,27 +22,7 @@ resource "aws_security_group_rule" "CE_EgressToAll" {
   ipv6_cidr_blocks = [
     "::/0"]
   protocol = "-1"
-  description = "Temporary hack to see if ALB works"
-}
-
-resource "aws_security_group_rule" "CE_EgressToAdminNode" {
-  security_group_id = "${aws_security_group.CompilerExplorer.id}"
-  type = "egress"
-  from_port = 0
-  to_port = 65535
-  source_security_group_id = "${aws_security_group.AdminNode.id}"
-  protocol = "-1"
-  description = "Allow egress to the admin node"
-}
-
-resource "aws_security_group_rule" "CE_EgressToAlb" {
-  security_group_id = "${aws_security_group.CompilerExplorer.id}"
-  type = "egress"
-  from_port = 0
-  to_port = 65535
-  source_security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
-  protocol = "-1"
-  description = "Allow egress to the ALB"
+  description = "Unfettered outbound access"
 }
 
 resource "aws_security_group_rule" "CE_SshFromAdminNode" {
