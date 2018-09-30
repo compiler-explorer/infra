@@ -5,7 +5,7 @@ resource "aws_instance" "AdminNode" {
   instance_type = "t2.nano"
   monitoring = false
   key_name = "mattgodbolt"
-  subnet_id = "subnet-690ed81e"
+  subnet_id = "${aws_subnet.ce-1a.id}"
   vpc_security_group_ids = [
     "${aws_security_group.AdminNode.id}"]
   associate_public_ip_address = true

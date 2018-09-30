@@ -5,9 +5,9 @@ resource "aws_alb" "GccExplorerApp" {
   security_groups = [
     "${aws_security_group.CompilerExplorerAlb.id}"]
   subnets = [
-    "subnet-1bed1d42",
-    "subnet-1df1e135",
-    "subnet-690ed81e"]
+    "${aws_subnet.ce-1a.id}",
+    "${aws_subnet.ce-1b.id}",
+    "${aws_subnet.ce-1d.id}"]
 
   enable_deletion_protection = false
 
