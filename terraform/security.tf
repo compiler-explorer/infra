@@ -34,30 +34,24 @@ resource "aws_security_group_rule" "CE_SshFromAnywhere" {
   description = "Allow SSH access from anywhere"
 }
 
-resource "aws_security_group_rule" "CE_WebFromAnywhere" {
+resource "aws_security_group_rule" "CE_HttpFromAlb" {
   security_group_id = "${aws_security_group.CompilerExplorer.id}"
   type = "ingress"
   from_port = 80
   to_port = 80
-  cidr_blocks = [
-    "0.0.0.0/0"]
-  ipv6_cidr_blocks = [
-    "::/0"]
+  source_security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
   protocol = "tcp"
-  description = "Allow WWW access from anywhere"
+  description = "Allow HTTP access from the ALB"
 }
 
-resource "aws_security_group_rule" "CE_HttpsFromAnywhere" {
+resource "aws_security_group_rule" "CE_HttpsFromAlb" {
   security_group_id = "${aws_security_group.CompilerExplorer.id}"
   type = "ingress"
   from_port = 443
   to_port = 443
-  cidr_blocks = [
-    "0.0.0.0/0"]
-  ipv6_cidr_blocks = [
-    "::/0"]
+  source_security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
   protocol = "tcp"
-  description = "Allow WWW access from anywhere"
+  description = "Allow HTTPS access from the ALB"
 }
 
 resource "aws_security_group" "CompilerExplorerAlb" {
