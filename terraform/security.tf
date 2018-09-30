@@ -21,17 +21,14 @@ resource "aws_security_group_rule" "CE_EgressToAnywhere" {
   description = "Allow egress to anywhere"
 }
 
-resource "aws_security_group_rule" "CE_SshFromAnywhere" {
+resource "aws_security_group_rule" "CE_SshFromAdminNode" {
   security_group_id = "${aws_security_group.CompilerExplorer.id}"
   type = "ingress"
   from_port = 22
   to_port = 22
-  cidr_blocks = [
-    "0.0.0.0/0"]
-  ipv6_cidr_blocks = [
-    "::/0"]
+  source_security_group_id = "${aws_security_group.AdminNode.id}"
   protocol = "tcp"
-  description = "Allow SSH access from anywhere"
+  description = "Allow SSH access from the admin node only"
 }
 
 resource "aws_security_group_rule" "CE_HttpFromAlb" {
