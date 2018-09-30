@@ -8,17 +8,24 @@ resource "aws_security_group" "CompilerExplorer" {
   }
 }
 
-resource "aws_security_group_rule" "CE_EgressToAnywhere" {
+resource "aws_security_group_rule" "CE_EgressToAdminNode" {
   security_group_id = "${aws_security_group.CompilerExplorer.id}"
   type = "egress"
   from_port = 0
   to_port = 65535
-  cidr_blocks = [
-    "0.0.0.0/0"]
-  ipv6_cidr_blocks = [
-    "::/0"]
+  source_security_group_id = "${aws_security_group.AdminNode.id}"
   protocol = "-1"
-  description = "Allow egress to anywhere"
+  description = "Allow egress to the admin node"
+}
+
+resource "aws_security_group_rule" "CE_EgressToAlb" {
+  security_group_id = "${aws_security_group.CompilerExplorer.id}"
+  type = "egress"
+  from_port = 0
+  to_port = 65535
+  source_security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
+  protocol = "-1"
+  description = "Allow egress to the ALB"
 }
 
 resource "aws_security_group_rule" "CE_SshFromAdminNode" {
