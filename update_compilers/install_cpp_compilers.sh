@@ -9,7 +9,6 @@ SUBDIR=opt
 S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
 ALL_COMPILERS=$(python ${SCRIPT_DIR}/list_compilers.py --s3url https://s3.amazonaws.com/${S3BUCKET} --prefix ${SUBDIR}/)
 
-PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 if [[ ! -f $PATCHELF ]]; then
     fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
     pushd patchelf-0.8

@@ -31,3 +31,5 @@ install_nightly() {
         return 1
     fi
 }
+
+PATCHELF=${OPT}/patchelf-0.8/src/patchelf
