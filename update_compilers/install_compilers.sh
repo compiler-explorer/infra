@@ -52,3 +52,8 @@ fi
 #########################
 # Zig
 . ${SCRIPT_DIR}/install_zig_compilers.sh ${ARG1}
+
+#########################
+# Clean
+. ${SCRIPT_DIR}/install_clean_compilers.sh ${ARG1}
+
