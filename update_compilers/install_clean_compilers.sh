@@ -6,7 +6,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 get_clean32_old() {
 	local VER=$1
 	local VERNODOTS=$2
-	local DIR=clean64-$VER
+	local DIR=clean32-$VER
 
 	if [[ ! -d ${DIR} ]]; then
 		mkdir ${DIR}
@@ -19,7 +19,7 @@ get_clean32_old() {
 get_clean32_new() {
 	local VER=$1
 	local VERNODOTS=$2
-	local DIR=clean64-$VER
+	local DIR=clean32-$VER
 
 	if [[ ! -d ${DIR} ]]; then
 		mkdir ${DIR}
@@ -32,7 +32,7 @@ get_clean32_new() {
 get_clean64() {
 	local VER=$1
 	local VERNODOTS=$2
-	local DIR=clean32-$VER
+	local DIR=clean64-$VER
 
 	if [[ ! -d ${DIR} ]]; then
 		mkdir ${DIR}
