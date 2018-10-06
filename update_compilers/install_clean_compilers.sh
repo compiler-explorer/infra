@@ -3,7 +3,20 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc
 
-get_clean32() {
+get_clean32_old() {
+	local VER=$1
+	local VERNODOTS=$2
+	local DIR=clean64-$VER
+
+	if [[ ! -d ${DIR} ]]; then
+		mkdir ${DIR}
+		pushd ${DIR}
+		fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}.tar.gz | tar xzf - --strip-components 1
+		popd
+	fi
+}
+
+get_clean32_new() {
 	local VER=$1
 	local VERNODOTS=$2
 	local DIR=clean64-$VER
@@ -29,8 +42,8 @@ get_clean64() {
 	fi
 }
 
-get_clean32 2.4 24
-get_clean32 3.0 30
+get_clean32_old 2.4 24
+get_clean32_new 3.0 30
 
 get_clean64 2.4 24
 get_clean64 3.0 30
