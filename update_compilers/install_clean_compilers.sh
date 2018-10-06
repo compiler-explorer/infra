@@ -11,7 +11,7 @@ get_clean() {
 	if [[ ! -d ${DIR} ]]; then
 		mkdir ${DIR}
 		pushd ${DIR}
-		fetch http://clean.cs.ru.nl/download/Clean${VERNODOTS}/linux/clean${VER}_64.tar.gz | tar xzf - --strip-components 1
+		fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}_64.tar.gz | tar xzf - --strip-components 1
 		popd
 	fi
 }
