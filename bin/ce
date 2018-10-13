@@ -286,7 +286,7 @@ def builds_set_current_cmd(args):
             print "Unable to find version " + args['version']
             if setting_latest and args['branch'] != '':
                 print 'Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch'])
-        elif are_you_sure('change current version to {}'.format(to_set), release.key) and confirm_branch(release):
+        elif are_you_sure('change current version to {}'.format(release.key), args) and confirm_branch(release):
             print 'Found release {}'.format(release)
             to_set = release.key
     if to_set is not None:
