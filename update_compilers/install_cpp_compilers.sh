@@ -166,7 +166,9 @@ do_nightly_install() {
     latest=${compiler_array[-1]}
     # Extract the latest...
     if [[ ! -d ${latest} ]]; then
-        fetch ${S3URL}/${latest}.tar.xz | tar Jxf -
+        fetch ${S3URL}/${latest}.tar.xz > latest.xz
+        tar Jxf latest.xz
+        rm latest.xz
     fi
     # Ensure the symlink points at the latest
     rm -f ${OPT}/${DESTINATION}
