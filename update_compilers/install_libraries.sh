@@ -112,6 +112,7 @@ get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
 get_or_sync libs/cppcoro https://github.com/lewissbaker/cppcoro.git
 get_or_sync libs/ctbignum https://github.com/niekbouman/ctbignum.git
 get_or_sync libs/outcome https://github.com/ned14/outcome.git
+get_or_sync libs/cnl https://github.com/johnmcfarlane/cnl.git
 
 get_if_not_there() {
     local DIR=$1
