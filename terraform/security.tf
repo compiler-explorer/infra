@@ -78,6 +78,20 @@ resource "aws_security_group_rule" "ALB_HttpsFromAnywhere" {
   description = "Allow HTTPS access from anywhere"
 }
 
+# Only needed because compiler-explorer.com uses http...cos the cert on the ALB is for godbolt.org
+resource "aws_security_group_rule" "ALB_HttpFromAnywhere" {
+  security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
+  type = "ingress"
+  from_port = 80
+  to_port = 80
+  cidr_blocks = [
+    "0.0.0.0/0"]
+  ipv6_cidr_blocks = [
+    "::/0"]
+  protocol = "tcp"
+  description = "Allow HTTP access from anywhere"
+}
+
 resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
   security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
   type = "egress"
