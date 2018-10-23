@@ -20,10 +20,10 @@ resource "aws_s3_bucket" "compiler-explorer" {
   lifecycle_rule {
     enabled = true
     expiration {
-      days = 1
+      days = 32
     }
     noncurrent_version_expiration {
-      days = 1825 # 5 years
+      days = 1
     }
     # Covers both cloudfront-logs and cloudfront-logs-ce:
     prefix = "cloudfront-logs"
