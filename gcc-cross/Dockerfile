@@ -38,6 +38,11 @@ RUN apt-get install -y -q \
     unzip
 
 WORKDIR /opt
+RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.23.0.tar.xz | tar Jxf - && \
+    cd crosstool-ng-1.23.0 && \
+    ./configure --enable-local && \
+    make -j$(nproc)
+
 RUN git clone https://github.com/crosstool-ng/crosstool-ng && \
     cd crosstool-ng && \
     ./bootstrap && \
