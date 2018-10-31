@@ -46,8 +46,10 @@ RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.23.0.t
 RUN git clone https://github.com/crosstool-ng/crosstool-ng && \
     cd crosstool-ng && \
     ./bootstrap && \
-    ./configure --enable-local && \
-    make -j$(nproc)
+    ./configure --prefix=/opt/crosstool-ng-git && \
+    make -j$(nproc) && \
+    make install && \
+    export PATH=${PATH}:/opt/crosstool-ng-git/bin
 
 COPY build /opt/
 RUN chown -R gcc-user /opt
