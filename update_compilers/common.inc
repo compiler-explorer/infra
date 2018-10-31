@@ -11,7 +11,13 @@ s3get() {
 
 # Grossly assumes the same proxy for http, https and ftp
 fetch() {
-    curl -s ${http_proxy:+--proxy $http_proxy} -L "$*"
+    # We've had so many problems with pipes on the admin box. This is terrible,
+    # but is reliable. I tried using buffer(1) and mbuffer(1), but they didn't
+    # work either.
+    local temp="$(mktemp)"
+    curl -s ${http_proxy:+--proxy $http_proxy} -L "$*" -o "$temp"
+    cat "$temp"
+    rm "$temp"
 }
 
 do_unzip() {
