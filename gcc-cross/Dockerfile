@@ -4,6 +4,7 @@ MAINTAINER Matt Godbolt <matt@godbolt.org>
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN mkdir -p /opt mkdir -p /home/gcc-user && useradd gcc-user && chown gcc-user /opt /home/gcc-user
+RUN apt-get clean -y && apt-get check -y
 RUN apt-get update -y -q && apt-get upgrade -y -q && apt-get upgrade -y -q
 
 RUN apt-get install -y -q \
@@ -31,16 +32,15 @@ RUN apt-get install -y -q \
     subversion \
     texinfo \
     wget \
-    xz-utils
+    xz-utils \
+    git \
+    python-dev \
+    unzip
 
 WORKDIR /opt
-RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.22.0.tar.xz | tar Jxf - && \
+RUN git clone https://github.com/crosstool-ng/crosstool-ng && \
     cd crosstool-ng && \
-    ./configure --enable-local && \
-    make -j$(nproc)
-
-RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.23.0.tar.xz | tar Jxf - && \
-    cd crosstool-ng-1.23.0 && \
+    ./bootstrap && \
     ./configure --enable-local && \
     make -j$(nproc)
 
