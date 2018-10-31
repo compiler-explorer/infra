@@ -19,12 +19,12 @@ fi
 
 CONFIG_FILE=${ARCHITECTURE}-${VERSION}.config
 if [[ -f even_older/${CONFIG_FILE} ]]; then
-    CONFIG_FILE=old/${CONFIG_FILE}
+    CONFIG_FILE=even_older/${CONFIG_FILE}
     CT=${ROOT}/crosstool-ng/ct-ng
-elif
+elif [[ -f old/${CONFIG_FILE} ]]; then
     CONFIG_FILE=old/${CONFIG_FILE}
     CT=${ROOT}/crosstool-ng-1.23.0/ct-ng
- else
+else
     CONFIG_FILE=new/${CONFIG_FILE}
     CT=${ROOT}/crosstool-ng/ct-ng
 fi
