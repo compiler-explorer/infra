@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -e -x
 
 ROOT=$(pwd)
 
@@ -18,13 +18,23 @@ else
 fi
 
 CONFIG_FILE=${ARCHITECTURE}-${VERSION}.config
-if [[ -f old/${CONFIG_FILE} ]]; then
-    CONFIG_FILE=old/${CONFIG_FILE}
-    CT=${ROOT}/crosstool-ng/ct-ng
-else
-    CONFIG_FILE=new/${CONFIG_FILE}
-    CT=${ROOT}/crosstool-ng-1.23.0/ct-ng
-fi
+for version in latest 1.23.0 1.22.0
+do
+    if [[ -f ${version}/${CONFIG_FILE} ]]; then
+        CONFIG_FILE=${version}/${CONFIG_FILE}
+        CT=${ROOT}/crosstool-ng-$version/ct-ng
+        if [[ ! -x ${CT} ]]; then
+            # installed version rather than ct-ng configured with --enable-local
+            CT=${ROOT}/crosstool-ng-$version/bin/ct-ng
+            if [[ ! -x ${CT} ]]; then
+                echo "ct-ng $CT is either not found or not executable, also checked ${ROOT}/crosstool-ng-$version/ct-ng"
+                exit 1
+            fi
+        fi 
+        break
+    fi
+done
+
 cp ${CONFIG_FILE} .config
 ${CT} oldconfig
 ${CT} build.$(nproc)

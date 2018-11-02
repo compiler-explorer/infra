@@ -31,11 +31,17 @@ RUN apt-get install -y -q \
     subversion \
     texinfo \
     wget \
+    unzip \
+    autopoint \
+    gettext \
     xz-utils
 
 WORKDIR /opt
+COPY build/patches/cross-tool-ng/cross-tool-ng-1.22.0.patch ./
 RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.22.0.tar.xz | tar Jxf - && \
-    cd crosstool-ng && \
+    mv crosstool-ng crosstool-ng-1.22.0 && \
+    cd crosstool-ng-1.22.0 && \
+    patch -p1 < ../cross-tool-ng-1.22.0.patch && \
     ./configure --enable-local && \
     make -j$(nproc)
 
@@ -43,6 +49,14 @@ RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.23.0.t
     cd crosstool-ng-1.23.0 && \
     ./configure --enable-local && \
     make -j$(nproc)
+
+RUN curl -sL https://github.com/crosstool-ng/crosstool-ng/archive/master.zip --output crosstool-ng-master.zip  && \
+    unzip crosstool-ng-master.zip && \
+    cd crosstool-ng-master && \
+    ./bootstrap && \
+    ./configure --prefix=/opt/crosstool-ng-latest && \
+    make -j$(nproc) && \
+    make install
 
 COPY build /opt/
 RUN chown -R gcc-user /opt

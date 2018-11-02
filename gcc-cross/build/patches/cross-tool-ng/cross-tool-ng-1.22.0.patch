@@ -1,0 +1,21 @@
+commit 9f83a56a3a3354fd05d86e444014a9279dd73d5e
+Author: Daniel Black <daniel@linux.ibm.com>
+Date:   Thu Nov 1 07:23:45 2018 +1100
+
+    fix prototype of kconf_id_lookup for gperf function signature
+    
+    Simplified version of upstream commit 3bb2bcd2a328fb56332398783e91899ce3bc3556
+
+diff --git a/kconfig/zconf.gperf b/kconfig/zconf.gperf
+index ac498f01..49bc69a1 100644
+--- a/kconfig/zconf.gperf
++++ b/kconfig/zconf.gperf
+@@ -9,7 +9,7 @@
+ 
+ struct kconf_id;
+ 
+-static const struct kconf_id *kconf_id_lookup(register const char *str, register unsigned int len);
++static const struct kconf_id *kconf_id_lookup(register const char *str, register size_t len);
+ 
+ %%
+ mainmenu,	T_MAINMENU,	TF_COMMAND
