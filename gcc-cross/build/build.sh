@@ -10,10 +10,11 @@ OUTPUT=/home/gcc-user/${ARCHITECTURE}-gcc-${VERSION}.tar.xz
 STAGING_DIR=/opt/compiler-explorer/${ARCHITECTURE}/gcc-${VERSION}
 export CT_PREFIX=${STAGING_DIR}
 
-S3OUTPUT=""
-if echo $3 | grep s3://; then
-    S3OUTPUT=$3
+ARG3=${3:-}
+if [[ $ARG3 =~ s3:// ]]; then
+    S3OUTPUT=$ARG3
 else
+    S3OUTPUT=""
     OUTPUT=${3-/home/gcc-user/${ARCHITECTURE}-gcc-${VERSION}.tar.xz}
 fi
 
