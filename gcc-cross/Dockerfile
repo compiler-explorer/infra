@@ -58,6 +58,7 @@ RUN curl -sL https://github.com/crosstool-ng/crosstool-ng/archive/master.zip --o
     make -j$(nproc) && \
     make install
 
+RUN mkdir -p /opt/.build/tarballs
 COPY build /opt/
 RUN chown -R gcc-user /opt
 USER gcc-user
