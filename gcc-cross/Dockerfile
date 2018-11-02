@@ -4,6 +4,9 @@ MAINTAINER Matt Godbolt <matt@godbolt.org>
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN mkdir -p /opt mkdir -p /home/gcc-user && useradd gcc-user && chown gcc-user /opt /home/gcc-user
+
+RUN apt-get clean -y && apt-get check -y
+
 RUN apt-get update -y -q && apt-get upgrade -y -q && apt-get upgrade -y -q
 
 RUN apt-get install -y -q \
