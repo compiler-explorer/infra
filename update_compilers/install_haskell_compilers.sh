@@ -25,3 +25,5 @@ get_ghc 8.2.2
 get_ghc 8.4.1
 get_ghc 8.4.2
 get_ghc 8.4.3
+get_ghc 8.4.4
+get_ghc 8.6.1
