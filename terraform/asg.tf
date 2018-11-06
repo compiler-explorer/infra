@@ -12,7 +12,7 @@ locals {
 resource "aws_autoscaling_group" "nonspot-prod" {
   health_check_grace_period = 500
   health_check_type = "ELB"
-  launch_configuration = "${aws_launch_configuration.CompilerExplorer-prod-t2.id}"
+  launch_configuration = "${aws_launch_configuration.CompilerExplorer-prod-t3.id}"
   max_size = 6
   min_size = 1
   name = "prod"
