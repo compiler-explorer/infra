@@ -1,6 +1,6 @@
-# Config from environment
 provider "aws" {
   region = "us-east-1"
+  version = "~> 1.42"
 }
 
 terraform {
