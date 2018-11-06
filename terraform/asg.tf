@@ -1,10 +1,10 @@
 locals {
+  // 1e seems to be lacking many instance types..so I ignore it here
   subnets = [
     "${aws_subnet.ce-1a.id}",
     "${aws_subnet.ce-1b.id}",
     "${aws_subnet.ce-1c.id}",
     "${aws_subnet.ce-1d.id}",
-    "${aws_subnet.ce-1e.id}",
     "${aws_subnet.ce-1f.id}"
   ]
 }
@@ -42,64 +42,18 @@ resource "aws_autoscaling_group" "nonspot-prod" {
   ]
 }
 
-// TODO: consider a new scaling policy. e.g. "target tracking"
-//resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod-scale-up" {
-//  autoscaling_group_name = "${aws_autoscaling_group.nonspot-prod.name}"
-//  name = "ce-increase-nonspot"
-//  scaling_adjustment = 1
-//  adjustment_type = "SimpleScaling"
-//  estimated_instance_warmup = 1000
-//  cooldown = 500
-//}
-//
-//resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod-scale-down" {
-//  autoscaling_group_name = "${aws_autoscaling_group.nonspot-prod.name}"
-//  name = "ce-increase-nonspot"
-//  scaling_adjustment = -1
-//  adjustment_type = "SimpleScaling"
-//  estimated_instance_warmup = 1000
-//  cooldown = 500
-//}
-//
-//resource "aws_cloudwatch_metric_alarm" "compiler-explorer-cpu-load-high" {
-//  alarm_name = "compiler-explorer-cpu-load-high"
-//  comparison_operator = "GreaterThanOrEqualToThreshold"
-//  threshold = 40
-//  evaluation_periods = 4
-//  metric_name = "CPUUtilization"
-//  namespace = "AWS/EC2"
-//  period = 300
-//  statistic = "Average"
-//
-//  dimensions {
-//    AutoScalingGroupName = "${aws_autoscaling_group.nonspot-prod.arn}"
-//  }
-//
-//  alarm_description = "Scale up Compiler Explorer when CPU load is high"
-//  alarm_actions = [
-//    "${aws_autoscaling_policy.compiler-explorer-nonspot-prod-scale-down.arn}"]
-//}
-//
-//// This is actually an alarm on >= 10%, with an "if it's ok" setting to reduce the group size.
-//// This gives us some hysteresis between scaling up and scaling down.
-//resource "aws_cloudwatch_metric_alarm" "compiler-explorer-cpu-load-low" {
-//  alarm_name = "compiler-explorer-cpu-load-low"
-//  comparison_operator = "GreaterThanOrEqualToThreshold"
-//  threshold = 10
-//  evaluation_periods = 1
-//  metric_name = "CPUUtilization"
-//  namespace = "AWS/EC2"
-//  period = 900
-//  statistic = "Average"
-//
-//  dimensions {
-//    AutoScalingGroupName = "${aws_autoscaling_group.nonspot-prod.arn}"
-//  }
-//
-//  alarm_description = "Scale down Compiler Explorer when load returns to normal"
-//  ok_actions = [
-//    "${aws_autoscaling_policy.compiler-explorer-nonspot-prod-scale-down.arn}"]
-//}
+resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod" {
+  autoscaling_group_name = "${aws_autoscaling_group.nonspot-prod.name}"
+  name = "cpu-tracker"
+  policy_type = "TargetTrackingScaling"
+  estimated_instance_warmup = 1000
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 20.0
+  }
+}
 
 resource "aws_autoscaling_group" "spot-beta" {
   desired_capacity = 1
