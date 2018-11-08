@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+    - docker pull mattgodbolt/${IMAGE}-builder
+  pre_build:
+    commands:
+    - mkdir -p dist
+  build:
+    commands:
+    - docker run -v$(pwd)/dist:/dist mattgodbolt/${IMAGE}-builder /bin/bash -c "bash ${COMMAND} ${VERSION}; cp /root/*.tar.xz /dist/"
+artifacts:
+  files:
+  - 'dist/*'
+  discard-paths: yes
