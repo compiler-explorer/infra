@@ -245,9 +245,8 @@ def instances_test_standby_cmd(args):
         InstanceIds=[instance_id],
         AutoScalingGroupName=as_group_name,
         ShouldDecrementDesiredCapacity=not adjustment_required)
-    logger.info("Done")
-    wait_for_autoscale_state(instance, 'Standby')
     logger.info("Waiting for standby")
+    wait_for_autoscale_state(instance, 'Standby')
     logger.info("Moving {} out of standby".format(instance))
     as_client.exit_standby(
         InstanceIds=[instance_id],
