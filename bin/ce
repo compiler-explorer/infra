@@ -121,7 +121,7 @@ def wait_for_healthok(instance):
         except Exception, e:
             print "Waiting..."
             pass
-        time.sleep(10);
+        time.sleep(10)
     print "Ok, Everything is awesome!"
 
 def restart_one_instance(as_group_name, instance, modified_groups):
@@ -228,29 +228,6 @@ def instances_login_cmd(args):
     instance = pick_instance(args)
     run_remote_shell(args, instance)
 
-
-def instances_test_standby_cmd(args):
-    instance = pick_instance(args)
-    instance_id = instance.instance.instance_id
-    as_instance_status = instance.describe_autoscale()
-    as_group_name = as_instance_status['AutoScalingGroupName']
-    as_group = get_autoscaling_group(as_group_name)
-    adjustment_required = as_group['DesiredCapacity'] == as_group['MinSize']
-    if adjustment_required:
-        logger.info("Group '{}' needs to be adjusted to keep enough nodes".format(as_group_name))
-        modified_groups[as_group['AutoScalingGroupName']] = as_group['DesiredCapacity']
-    logger.info("Putting {} into standby".format(instance))
-    as_client.enter_standby(
-        InstanceIds=[instance_id],
-        AutoScalingGroupName=as_group_name,
-        ShouldDecrementDesiredCapacity=not adjustment_required)
-    logger.info("Waiting for standby")
-    wait_for_autoscale_state(instance, 'Standby')
-    logger.info("Moving {} out of standby".format(instance))
-    as_client.exit_standby(
-        InstanceIds=[instance_id],
-        AutoScalingGroupName=as_group_name)
-    logger.info("Done")
 
 def instances_restart_one_cmd(args):
     instance = pick_instance(args)
@@ -602,7 +579,6 @@ if __name__ == '__main__':
     instances_parser = subparsers.add_parser('instances')
     instances_sub = instances_parser.add_subparsers(dest='instances_sub')
     instances_sub.add_parser('status')
-    instances_sub.add_parser('test_standby')
     instances_sub.add_parser('restart_one')
     instances_sub.add_parser('login')
     exec_all_parser = instances_sub.add_parser('exec_all')
