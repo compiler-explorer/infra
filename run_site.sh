@@ -27,10 +27,6 @@ else
 fi
 . ${CONFIG_FILE}
 
-ALL="nginx unified"
-$SUDO docker stop ${ALL} || true
-$SUDO docker rm ${ALL} || true
-
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
@@ -98,7 +94,7 @@ wait_for_container() {
     $SUDO docker logs ${NAME}
 }
 
-trap "$SUDO docker stop ${ALL}" SIGINT SIGTERM SIGPIPE
+trap "$SUDO docker stop ${CE_ALL_CONTAINERS}" SIGINT SIGTERM SIGPIPE
 
 update_code
 
