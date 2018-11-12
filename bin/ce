@@ -142,7 +142,6 @@ def restart_one_instance(as_group_name, instance, modified_groups):
         ShouldDecrementDesiredCapacity=not adjustment_required)
     wait_for_autoscale_state(instance, 'Standby')
     logger.info("Restarting service on {}".format(instance))
-    exec_remote(instance, ['sudo', 'docker', 'stop', 'nginx', 'unified'])
     restart_response = exec_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
     if restart_response:
         logger.warn("Restart gave some output: {}".format(restart_response))
