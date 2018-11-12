@@ -11,4 +11,5 @@ cd /compiler-explorer-image
 ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
 ENV=${ENV:-prod}
 echo Running in environment ${ENV}
+. /compiler-explorer-image/init/shared.sh
 exec ./run_site.sh ${ENV} 2>&1
