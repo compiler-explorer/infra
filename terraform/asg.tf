@@ -43,6 +43,10 @@ resource "aws_autoscaling_group" "nonspot-prod" {
 }
 
 resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
   autoscaling_group_name = "${aws_autoscaling_group.nonspot-prod.name}"
   name = "cpu-tracker"
   policy_type = "TargetTrackingScaling"
@@ -56,10 +60,14 @@ resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod" {
 }
 
 resource "aws_autoscaling_group" "spot-beta" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
   desired_capacity = 1
   health_check_grace_period = 500
   health_check_type = "EC2"
-  launch_configuration = "${aws_launch_configuration.CompilerExplorer-beta-c5.id}"
+  launch_configuration = "${aws_launch_configuration.CompilerExplorer-beta-large.id}"
   max_size = 4
   min_size = 0
   name = "spot-beta"
@@ -89,10 +97,14 @@ resource "aws_autoscaling_group" "spot-beta" {
 }
 
 resource "aws_autoscaling_group" "spot-prod" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
   desired_capacity = 1
   health_check_grace_period = 500
   health_check_type = "ELB"
-  launch_configuration = "${aws_launch_configuration.CompilerExplorer-prod-c5.id}"
+  launch_configuration = "${aws_launch_configuration.CompilerExplorer-prod-spot-large.id}"
   max_size = 4
   min_size = 0
   name = "spot-prod"
