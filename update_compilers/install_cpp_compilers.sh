@@ -138,6 +138,8 @@ gcc_arch_install avr 4.6.4
 gcc_arch_install msp430 4.5.3
 gcc_arch_install powerpc 4.8.5
 gcc_arch_install powerpc64le 6.3.0
+gcc_arch_install powerpc64le at12
+gcc_arch_install powerpc64 at12
 gcc_arch_install arm 5.4.0
 gcc_arch_install arm 6.3.0
 gcc_arch_install arm 6.4.0
