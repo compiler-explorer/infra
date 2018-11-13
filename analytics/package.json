@@ -8,7 +8,7 @@
         "type": "git",
         "url": "mattgodbolt/compiler-explorer-image/analytics"
     },
-    "version": "0.1",
+    "version": "0.1.0",
     "engines": {
         "node": ">=8"
     },

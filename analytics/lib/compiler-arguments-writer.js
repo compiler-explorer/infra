@@ -63,7 +63,7 @@ class CompilerArgumentsWriter {
     }
 
     saveToStorage(s3, compilerId, stats) {
-        return s3.put(compilerId + ".json", stats, this.prefix);
+        return s3.put(compilerId + ".json", stats, this.prefix, {});
     }
 
     save(region, bucket) {
