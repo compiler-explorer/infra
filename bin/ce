@@ -112,6 +112,17 @@ def confirm_branch(release):
         if typed == branch:
             return True
 
+def wait_for_healthok(instance):
+    logger.info("Waiting for instance to be Online {}".format(instance))
+    response = ""
+    while response != "Everything is awesome":
+        try:
+            response = exec_remote(instance, ['curl', '-s', 'http://127.0.0.1/healthcheck'])
+        except Exception, e:
+            print "Waiting..."
+            pass
+        time.sleep(10)
+    print "Ok, Everything is awesome!"
 
 def restart_one_instance(as_group_name, instance, modified_groups):
     instance_id = instance.instance.instance_id
@@ -134,6 +145,7 @@ def restart_one_instance(as_group_name, instance, modified_groups):
     restart_response = exec_remote(instance, ['sudo', 'systemctl', 'restart', 'compiler-explorer'])
     if restart_response:
         logger.warn("Restart gave some output: {}".format(restart_response))
+    wait_for_healthok(instance)
     logger.info("Moving {} out of standby".format(instance))
     as_client.exit_standby(
         InstanceIds=[instance_id],
@@ -217,10 +229,21 @@ def instances_login_cmd(args):
     run_remote_shell(args, instance)
 
 
+def instances_restart_one_cmd(args):
+    instance = pick_instance(args)
+    as_instance_status = instance.describe_autoscale()
+    as_group_name = as_instance_status['AutoScalingGroupName']
+    modified_groups = {}
+    failed = False
+    try:
+        restart_one_instance(as_group_name, instance, modified_groups)
+    except Exception, e:
+        logger.error("Failed restarting {} - skipping: {}".format(instance, e))
+        failed = True
+
 def instances_start_cmd(args):
     print "Starting version {}".format(describe_current_release(args))
     exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
-
 
 def instances_stop_cmd(args):
     if not are_you_sure('stop', args):
@@ -556,6 +579,7 @@ if __name__ == '__main__':
     instances_parser = subparsers.add_parser('instances')
     instances_sub = instances_parser.add_subparsers(dest='instances_sub')
     instances_sub.add_parser('status')
+    instances_sub.add_parser('restart_one')
     instances_sub.add_parser('login')
     exec_all_parser = instances_sub.add_parser('exec_all')
     exec_all_parser.add_argument('remote_cmd', nargs='+', help='command to run on all nodes')
