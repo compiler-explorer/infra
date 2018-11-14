@@ -35,3 +35,16 @@ if [[ "$TARGET_YARN_VERSION" != "$CURRENT_YARN_VERSION" ]]; then
     mkdir yarn
     fetch "https://github.com/yarnpkg/yarn/releases/download/${TARGET_YARN_VERSION}/yarn-${TARGET_YARN_VERSION}.tar.gz" | tar zxf - -C yarn --strip-components=1
 fi
+
+#########################
+# pahole
+
+if [[ ! -d /opt/compiler-explorer/pahole ]]; then
+    mkdir /opt/compiler-explorer/pahole
+    fetch https://git.kernel.org/pub/scm/devel/pahole/pahole.git/snapshot/pahole-1.12.tar.gz | tar zxf -
+    pushd pahole-1.12
+    cmake -D CMAKE_INSTALL_PREFIX:PATH=/opt/compiler-explorer/pahole -D__LIB=lib .
+    make -j$(nproc)
+    make install
+    popd
+fi
