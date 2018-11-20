@@ -43,7 +43,7 @@ if [[ ! -d /opt/compiler-explorer/pahole ]]; then
     mkdir /opt/compiler-explorer/pahole
 
     # Install elfutils for libelf and libdwarf
-    fetch https://sourceware.org/elfutils/ftp/0.175/elfutils-0.175.tar.bz2 | tar zxf -
+    fetch https://sourceware.org/elfutils/ftp/0.175/elfutils-0.175.tar.bz2 | tar jxf -
     pushd elfutils-0.175
     ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives
     make -j$(nproc)
