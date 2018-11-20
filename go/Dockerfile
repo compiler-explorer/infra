@@ -7,6 +7,7 @@ RUN apt update -y -q && apt upgrade -y -q && apt update -y -q && \
     curl \
     gcc \
     git \
+    s3cmd \
     xz-utils
 
 ARG BOOTSTRAP_VERSION=1.11.2
