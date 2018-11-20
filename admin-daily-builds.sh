@@ -45,5 +45,6 @@ build_latest clang clang_cppx build-cppx.sh
 build_latest clang clang_relocatable build-relocatable.sh
 build_latest clang clang_autonsdmi build-autonsdmi.sh
 build_latest clang clang_lifetime build-lifetime.sh
+build_latest go go build.sh
 
 exit ${BUILD_FAILED}
