@@ -36,7 +36,7 @@ rm -rf \
 popd
 
 export XZ_DEFAULTS="-T 0"
-tar Jcf ${OUTPUT} -C ${BRANCH} .
+tar Jcf ${OUTPUT} --transform "s,^./go,./go-${VERSION}/," -C ${BRANCH} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then
     s3cmd put --rr ${OUTPUT} ${S3OUTPUT}
