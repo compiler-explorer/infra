@@ -42,6 +42,7 @@ fi
 if [[ ! -d /opt/compiler-explorer/pahole ]]; then
     mkdir /opt/compiler-explorer/pahole
 
+    mkdir -p /tmp/build
     pushd /tmp/build
 
     # Install elfutils for libelf and libdwarf
@@ -54,7 +55,11 @@ if [[ ! -d /opt/compiler-explorer/pahole ]]; then
 
     fetch https://git.kernel.org/pub/scm/devel/pahole/pahole.git/snapshot/pahole-1.12.tar.gz | tar zxf -
     pushd pahole-1.12
-    /opt/compiler-explorer/cmake/bin/cmake -D CMAKE_INSTALL_PREFIX:PATH=/opt/compiler-explorer/pahole -D__LIB=lib .
+    /opt/compiler-explorer/cmake/bin/cmake \
+        -D CMAKE_INSTALL_PREFIX:PATH=/opt/compiler-explorer/pahole \
+        -D__LIB=lib \
+        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
+        .
     make -j$(nproc)
     make install
     popd
