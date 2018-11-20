@@ -42,6 +42,8 @@ fi
 if [[ ! -d /opt/compiler-explorer/pahole ]]; then
     mkdir /opt/compiler-explorer/pahole
 
+    pushd /tmp/build
+
     # Install elfutils for libelf and libdwarf
     fetch https://sourceware.org/elfutils/ftp/0.175/elfutils-0.175.tar.bz2 | tar jxf -
     pushd elfutils-0.175
@@ -56,4 +58,7 @@ if [[ ! -d /opt/compiler-explorer/pahole ]]; then
     make -j$(nproc)
     make install
     popd
+
+    popd
+    rm -rf /tmp/build
 fi

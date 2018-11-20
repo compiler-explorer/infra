@@ -14,7 +14,7 @@ fi
 
 env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
-apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb autojump
+apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
