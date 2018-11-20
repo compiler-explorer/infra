@@ -35,3 +35,25 @@ if [[ "$TARGET_YARN_VERSION" != "$CURRENT_YARN_VERSION" ]]; then
     mkdir yarn
     fetch "https://github.com/yarnpkg/yarn/releases/download/${TARGET_YARN_VERSION}/yarn-${TARGET_YARN_VERSION}.tar.gz" | tar zxf - -C yarn --strip-components=1
 fi
+
+#########################
+# pahole
+
+if [[ ! -d /opt/compiler-explorer/pahole ]]; then
+    mkdir /opt/compiler-explorer/pahole
+
+    # Install elfutils for libelf and libdwarf
+    fetch https://sourceware.org/elfutils/ftp/0.175/elfutils-0.175.tar.bz2 | tar jxf -
+    pushd elfutils-0.175
+    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives
+    make -j$(nproc)
+    make install
+    popd
+
+    fetch https://git.kernel.org/pub/scm/devel/pahole/pahole.git/snapshot/pahole-1.12.tar.gz | tar zxf -
+    pushd pahole-1.12
+    /opt/compiler-explorer/cmake/bin/cmake -D CMAKE_INSTALL_PREFIX:PATH=/opt/compiler-explorer/pahole -D__LIB=lib .
+    make -j$(nproc)
+    make install
+    popd
+fi
