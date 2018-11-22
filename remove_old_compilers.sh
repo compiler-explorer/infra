@@ -12,9 +12,10 @@ remove_older() {
 }
 
 remove_older clang
-remove_older clang-cppx-trunk
-remove_older clang-concepts-trunk
-remove_older clang-relocatable-trunk
-remove_older clang-autonsdmi-trunk
-remove_older clang-lifetime-trunk
+remove_older clang-cppx
+remove_older clang-concepts
+remove_older clang-relocatable
+remove_older clang-autonsdmi
+remove_older clang-lifetime
 remove_older gcc
+remove_older go
