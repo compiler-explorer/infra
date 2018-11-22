@@ -40,6 +40,16 @@ resource "aws_autoscaling_group" "nonspot-prod" {
   target_group_arns = [
     "${aws_alb_target_group.prod.arn}"
   ]
+  enabled_metrics = [
+    "GroupStandbyInstances",
+    "GroupTotalInstances",
+    "GroupPendingInstances",
+    "GroupTerminatingInstances",
+    "GroupDesiredCapacity",
+    "GroupInServiceInstances",
+    "GroupMinSize",
+    "GroupMaxSize"
+  ]
 }
 
 resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod" {
