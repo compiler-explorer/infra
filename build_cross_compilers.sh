@@ -45,5 +45,12 @@ build_cross() {
 
 
 build_cross powerpc64le at12
+build_cross powerpc64 at12
+build_cross arm 6.4.0
+build_cross arm 7.3.0
+build_cross arm 8.2.0
+build_cross arm64 6.4.0
+build_cross arm64 7.3.0
+build_cross arm64 8.2.0
 
 exit ${BUILD_FAILED}
