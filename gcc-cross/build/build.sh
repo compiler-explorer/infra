@@ -40,6 +40,7 @@ cp ${CONFIG_FILE} .config
 ${CT} oldconfig
 ${CT} build.$(nproc)
 
+export XZ_DEFAULTS="-T 0"
 tar Jcf ${OUTPUT} -C ${STAGING_DIR}/.. gcc-${VERSION}
 
 if [[ ! -z "${S3OUTPUT}" ]]; then

@@ -40,15 +40,6 @@ packer-admin: config.json
 publish: docker-images
 	$(DOCKER) push $(BUILD_OPT) mattgodbolt/compiler-explorer
 
-build-compiler-images:
-	@echo clang and gcc images are now built by docker hub https://hub.docker.com/r/mattgodbolt
-	#$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/clang-builder clang
-	#$(DOCKER) push mattgodbolt/clang-builder
-	#$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-builder gcc
-	#$(DOCKER) push mattgodbolt/gcc-builder
-	$(DOCKER) build $(BUILD_OPT) -t mattgodbolt/gcc-cross gcc-cross
-	$(DOCKER) push mattgodbolt/gcc-cross
-
 clean:
 	echo nothing to clean yet
 
