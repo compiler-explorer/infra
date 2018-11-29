@@ -10,3 +10,4 @@ PATH=/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/us
 00 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
 15 04 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
 00 09 * * * cronic /home/ubuntu/compiler-explorer-image/remove_old_compilers.sh
+05 09 * * * cronic bash -c "ce builds rm_old 7"
