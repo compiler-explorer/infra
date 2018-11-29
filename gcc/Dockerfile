@@ -11,6 +11,7 @@ RUN apt update -y -q && apt upgrade -y -q && apt upgrade -y -q&& apt install -y 
     gawk \
     g++ \
     gcc \
+    gnat \
     libc6-dev-i386 \
     libelf-dev \
     linux-libc-dev \
