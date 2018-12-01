@@ -1,5 +1,5 @@
 locals {
-  image_id = "ami-04cdfbf03ad8d818a"
+  image_id = "ami-08cc6413e0c30e9a4"
   beta_image_id = "ami-08cc6413e0c30e9a4"
   // "beta"
   beta_user_data = "YmV0YQ=="
