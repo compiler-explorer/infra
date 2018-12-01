@@ -103,11 +103,12 @@ wait_for_container ${UID_UNIFIED} unified 10240
 
 ${SUDO} docker run \
     -p ${EXTERNAL_PORT}:80 \
+    --rm \
     --name nginx \
     --volumes-from unified \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link unified:unified \
+    --link unified:unified${CONTAINER_SUFFIX} \
     nginx
