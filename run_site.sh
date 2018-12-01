@@ -61,9 +61,6 @@ start_container() {
     shift
     local TAG=${NAME}
     NAME="${NAME}${CONTAINER_SUFFIX}"
-    if [[ "${#NAME}" -eq 1 ]]; then
-    	NAME="${NAME}x"
-    fi
     local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/compiler-explorer:${TAG}"
     local CONTAINER_UID=""
     ${SUDO} docker stop ${NAME} >&2 || true
@@ -75,7 +72,7 @@ start_container() {
 
 wait_for_container() {
     local CONTAINER_UID=$1
-    local NAME=$2
+    local NAME="$2${CONTAINER_SUFFIX}"
     local PORT=$3
     shift
     shift
@@ -86,7 +83,7 @@ wait_for_container() {
             ${SUDO} docker logs ${NAME}
             break
         fi
-        if curl http://localhost:$PORT/ > /dev/null 2>&1; then
+        if curl http://localhost:${PORT}/ > /dev/null 2>&1; then
             echo "Server ${NAME} is up and running"
             return
         fi
@@ -96,6 +93,7 @@ wait_for_container() {
     ${SUDO} docker logs ${NAME}
 }
 
+UID_UNIFIED=""
 trap "${SUDO} docker stop ${UID_UNIFIED}" SIGINT SIGTERM SIGPIPE
 
 update_code
