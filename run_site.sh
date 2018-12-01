@@ -13,6 +13,7 @@ if [[ "x${DEV_MODE}x" = "xx" ]]; then
     DEV_MODE="dev"
 fi
 
+CONTAINER_SUFFIX=""
 EXTERNAL_PORT=80
 CONFIG_FILE=${DIR}/site-prod.sh
 if [[ "${DEV_MODE}" != "prod" ]]; then
@@ -59,14 +60,15 @@ start_container() {
     shift
     shift
     local TAG=${NAME}
+    NAME="${NAME}${CONTAINER_SUFFIX}"
     if [[ "${#NAME}" -eq 1 ]]; then
     	NAME="${NAME}x"
     fi
     local FULL_COMMAND="${SUDO} docker run --name ${NAME} ${CFG} -d -p ${PORT}:${PORT} $* mattgodbolt/compiler-explorer:${TAG}"
     local CONTAINER_UID=""
-    $SUDO docker stop ${NAME} >&2 || true
-    $SUDO docker rm ${NAME} >&2 || true
-    CONTAINER_UID=$($FULL_COMMAND)
+    ${SUDO} docker stop ${NAME} >&2 || true
+    ${SUDO} docker rm ${NAME} >&2 || true
+    CONTAINER_UID=$(${FULL_COMMAND})
     sleep 2
     echo ${CONTAINER_UID}
 }
@@ -79,9 +81,9 @@ wait_for_container() {
     shift
     shift
     for tensecond in $(seq 15); do
-        if ! $SUDO docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
+        if ! ${SUDO} docker ps -q --no-trunc | grep ${CONTAINER_UID}; then
             echo "Container failed to start, logs:"
-            $SUDO docker logs ${NAME}
+            ${SUDO} docker logs ${NAME}
             break
         fi
         if curl http://localhost:$PORT/ > /dev/null 2>&1; then
@@ -91,17 +93,17 @@ wait_for_container() {
         sleep 10
     done
     echo "Failed."
-    $SUDO docker logs ${NAME}
+    ${SUDO} docker logs ${NAME}
 }
 
-trap "$SUDO docker stop ${CE_ALL_CONTAINERS}" SIGINT SIGTERM SIGPIPE
+trap "${SUDO} docker stop ${UID_UNIFIED}" SIGINT SIGTERM SIGPIPE
 
 update_code
 
-UID_GCC=$(start_container unified 10240)
-wait_for_container ${UID_GCC} unified 10240
+UID_UNIFIED=$(start_container unified 10240)
+wait_for_container ${UID_UNIFIED} unified 10240
 
-$SUDO docker run \
+${SUDO} docker run \
     -p ${EXTERNAL_PORT}:80 \
     --name nginx \
     --volumes-from unified \
