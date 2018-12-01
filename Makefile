@@ -1,7 +1,7 @@
 .NOTPARALLEL: 
 all: docker-images
 
-DOCKER := sudo docker
+DOCKER := docker
 PACKER ?= ../packer
 KEY_FILE ?= $(HOME)/ec2-mattgodbolt.pem
 KEY_PAIR_NAME ?= mattgodbolt
@@ -20,11 +20,6 @@ base-image:
 	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:base" docker/base
 
 $(eval $(call add-image,unified,unified-explorer))
-
-exec-image:
-	$(DOCKER) build $(BUILD_OPT) -t "mattgodbolt/compiler-explorer:exec" exec
-
-DOCKER_IMAGES += exec-image
 
 docker-images: $(DOCKER_IMAGES)
 
