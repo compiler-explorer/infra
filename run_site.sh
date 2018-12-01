@@ -110,5 +110,5 @@ ${SUDO} docker run \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
     -v $(pwd)/nginx:/etc/nginx/sites-enabled:ro \
-    --link unified:unified${CONTAINER_SUFFIX} \
+    --link unified${CONTAINER_SUFFIX}:unified \
     nginx
