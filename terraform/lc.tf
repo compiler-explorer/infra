@@ -1,5 +1,6 @@
 locals {
   image_id = "ami-04cdfbf03ad8d818a"
+  beta_image_id = "ami-08cc6413e0c30e9a4"
   // "beta"
   beta_user_data = "YmV0YQ=="
   // Current c5 on-demand price is 0.085. Yearly pre-pay is 0.05 (so this is same as prepaying a year)
@@ -13,7 +14,7 @@ resource "aws_launch_configuration" "CompilerExplorer-beta-large" {
   }
 
   name_prefix = "compiler-explorer-beta-large"
-  image_id = "${local.image_id}"
+  image_id = "${local.beta_image_id}"
   instance_type = "c5.large"
   iam_instance_profile = "XaniaBlog"
   key_name = "mattgodbolt"

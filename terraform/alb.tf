@@ -3,7 +3,8 @@ resource "aws_alb" "GccExplorerApp" {
   internal = false
   name = "GccExplorerApp"
   security_groups = [
-    "${aws_security_group.CompilerExplorerAlb.id}"]
+    "${aws_security_group.CompilerExplorerAlb.id}"
+  ]
   subnets = [
     "${aws_subnet.ce-1a.id}",
     "${aws_subnet.ce-1b.id}",
