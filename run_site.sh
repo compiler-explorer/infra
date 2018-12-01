@@ -8,10 +8,6 @@ if [[ $UID = 0 ]]; then
     SUDO=
 fi
 
-if [[ -f /env ]]; then
-    source /env
-fi
-
 DEV_MODE=$1
 if [[ "x${DEV_MODE}x" = "xx" ]]; then
     DEV_MODE="dev"
@@ -27,8 +23,12 @@ else
 fi
 . ${CONFIG_FILE}
 
+get_conf() {
+    aws ssm get-parameter --name $1 | jq -r .Parameter.Value
+}
+
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
-CFG="${CFG} -e GOOGLE_API_KEY=${GOOGLE_API_KEY}"
+CFG="${CFG} -e GOOGLE_API_KEY=$(get_conf /compiler-explorer/googleApiKey)"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
 CFG="${CFG} -v /opt/intel/licenses:/opt/intel/licenses:ro"
 
