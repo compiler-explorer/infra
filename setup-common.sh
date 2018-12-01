@@ -40,9 +40,11 @@ get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
 
+LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
+LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 if [[ ! -f "${PTRAIL}" ]]; then
-    echo '*.*          @logs2.papertrailapp.com:34474' > "${PTRAIL}"
+    echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" > "${PTRAIL}"
     service rsyslog restart
     pushd /tmp
     curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
@@ -54,17 +56,17 @@ fi
 killall remote_syslog || true
 cat > /etc/log_files.yml << EOF
 files:
-    - /var/log/nginx/xania.*
+    - /var/log/nginx/*.err
 destination:
-    host: logs2.papertrailapp.com
-    port: 34474
+    host: ${LOG_DEST_HOST}
+    port: ${LOG_DEST_PORT}
     protocol: tls
 EOF
 remote_syslog
 
 docker stop logspout || true
 docker rm logspout || true
-docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog://logs2.papertrailapp.com:34474
+docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog+tls://${LOG_DEST_HOST}:${LOG_DEST_PORT}
 
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
 
