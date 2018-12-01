@@ -66,7 +66,11 @@ remote_syslog
 
 docker stop logspout || true
 docker rm logspout || true
-docker run --name logspout -d -v=/var/run/docker.sock:/tmp/docker.sock -h $(hostname) gliderlabs/logspout syslog+tls://${LOG_DEST_HOST}:${LOG_DEST_PORT}
+docker run --name logspout \
+    -d \
+    -v=/var/run/docker.sock:/tmp/docker.sock \
+    -e SYSLOG_HOSTNAME=$(hostname) \
+    gliderlabs/logspout syslog+tls://${LOG_DEST_HOST}:${LOG_DEST_PORT}
 
 mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
 
