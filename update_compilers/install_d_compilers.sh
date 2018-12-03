@@ -74,13 +74,20 @@ getdmd_2x() {
 }
 
 getdmd2_nightly() {
+    # Use dlang's install.sh script to get the latest trunk build.
+    # See: https://dlang.org/install.html
     DIR=dmd2-nightly
     if [[ -d ${DIR} ]]; then
         rm -rf ${DIR}
     fi
     mkdir ${DIR}
     pushd ${DIR}
-    fetch https://nightlies.dlang.org/dmd-nightly/dmd.master.linux.tar.xz | tar Jxf -
+    wget https://dlang.org/install.sh
+    chmod +x install.sh
+    # Download and unpack dmd-nightly into current directory
+    ./install.sh install dmd-nightly -p `pwd`
+    # Rename the downloaded package directory to a constant "dmd2" name
+    mv dmd-master-* dmd2
     popd
 }
 
@@ -108,6 +115,6 @@ getdmd_2x 2.081.2
 getdmd_2x 2.082.0
 
 # dmd nightly disabled: server seems to be down/hanging since at least second week of September 2018
-#if install_nightly; then
-#    getdmd2_nightly
-#fi
+if install_nightly; then
+    getdmd2_nightly
+fi
