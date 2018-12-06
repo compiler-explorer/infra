@@ -105,7 +105,7 @@ ${SUDO} docker run \
     -p ${EXTERNAL_PORT}:80 \
     --rm \
     --name nginx \
-    --volumes-from unified \
+    --volumes-from unified${CONTAINER_SUFFIX} \
     -v /var/log/nginx:/var/log/nginx \
     -v /home/ubuntu:/var/www:ro \
     -v $(pwd)/nginx.conf:/etc/nginx/nginx.conf:ro \
