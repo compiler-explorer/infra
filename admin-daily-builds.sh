@@ -33,7 +33,8 @@ build_latest() {
     local BUILD_NAME=$2
     shift 2
     run_on_build ${BUILD_NAME} \
-      sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro mattgodbolt/${IMAGE}-builder \
+      sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
+      mattgodbolt/${IMAGE}-builder \
       bash "$@" trunk s3://compiler-explorer/opt/
     log_to_json ${LOG_DIR} admin/buildStatus.json
 }
