@@ -88,6 +88,8 @@ getdmd2_nightly() {
     ./install.sh install dmd-nightly -p `pwd`
     # Rename the downloaded package directory to a constant "dmd2" name
     mv dmd-master-* dmd2
+    # Make directory readable for other users too
+    chmod +rx dmd2
     popd
 }
 
