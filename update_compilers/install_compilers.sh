@@ -38,6 +38,10 @@ fi
 . ${SCRIPT_DIR}/install_haskell_compilers.sh ${ARG1}
 
 #########################
+# OCaml
+. ${SCRIPT_DIR}/install_ocaml_compilers.sh ${ARG1}
+
+#########################
 # Swift
 . ${SCRIPT_DIR}/install_swift_compilers.sh ${ARG1}
 
