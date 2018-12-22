@@ -74,6 +74,7 @@ getldc_latest_ci() {
     ./install.sh install ldc-latest-ci -p `pwd`
     # Rename the downloaded package directory to a constant "ldc" name
     mv ldc-* ldc
+    chmod +rx ldc
     popd
 }
 
