@@ -60,6 +60,24 @@ getldc_latestbeta() {
     popd
 }
 
+
+getldc_latest_ci() {
+    # Use dlang's install.sh script to get the latest master CI build.
+    DIR=ldc-latest-ci
+    if [[ -d ${DIR} ]]; then
+        rm -rf ${DIR}
+    fi
+    mkdir ${DIR}
+    pushd ${DIR}
+    wget https://dlang.org/install.sh
+    chmod +x install.sh
+    ./install.sh install ldc-latest-ci -p `pwd`
+    # Rename the downloaded package directory to a constant "ldc" name
+    mv ldc-* ldc
+    chmod +rx ldc
+    popd
+}
+
 getdmd_2x() {
     VER=$1
     DIR=dmd-${VER}
@@ -106,6 +124,7 @@ for version in \
 done
 if install_nightly; then
     getldc_latestbeta
+    getldc_latest_ci
 fi
 
 getldc_s3 1.2.0
