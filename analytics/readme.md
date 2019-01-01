@@ -11,6 +11,12 @@ data will be stored in an Compiler Explorer S3 bucket for later usage.
 We can use this data to suggest commonly used Compiler arguments to users.
 
 
+On the Admin server
+===================
+
+Run `sh install.sh` first
+
+
 How to run
 ==========
 
@@ -24,4 +30,4 @@ the API Query URI box. It is this token that we can use for this script for abou
 
 And then we can run:
 
-`yarn start --region us-east-1 --bucket storage.godbolt.org --accesstoken ouraccesstoken123`
+`node compilestats.js --region us-east-1 --bucket storage.godbolt.org --accesstoken ouraccesstoken123`
