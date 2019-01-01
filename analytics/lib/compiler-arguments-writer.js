@@ -35,8 +35,14 @@ class CompilerArgumentsWriter {
     constructor() {
         this.arguments = {};
         this.prefix = "compargs";
+        this.minimumUse = 100;
 
         this.promiseList = [];
+
+        this.unwantedArguments = [
+            "-i", "-I", "/i", "/I",
+            "-d", "-D", "/d", "/D"
+        ];
     }
 
     addOptionsToStatistics(compilerId, args, times) {
@@ -66,7 +72,30 @@ class CompilerArgumentsWriter {
         return s3.put(compilerId + ".json", stats, this.prefix, {});
     }
 
+    isUnwantedArgumentType(arg) {
+        if (!arg.startsWith("-") && !arg.startsWith("/")) return true;
+
+        for (var idx in this.unwantedArguments) {
+            if (arg.startsWith(this.unwantedArguments[idx])) return true;
+        }
+
+        return false;
+    }
+
+    filterOnTimesUsedAndExcludeUnwantedArgs() {
+        _.each(this.arguments, (args, compilerId) => {
+            this.arguments[compilerId] = 
+                _.each(this.arguments[compilerId], (times, arg) => {
+                    if ((times < this.minimumUse) || this.isUnwantedArgumentType(arg)) {
+                        delete this.arguments[compilerId][arg];
+                    }
+                });
+        });
+    }
+
     save(region, bucket) {
+        this.filterOnTimesUsedAndExcludeUnwantedArgs();
+
         AWS.config.update({ region: region });
         const s3 = new S3Bucket(bucket, region);
 
