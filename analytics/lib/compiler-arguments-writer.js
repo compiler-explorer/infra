@@ -101,7 +101,9 @@ class CompilerArgumentsWriter {
 
         return new Promise((resolve) => {
             const list = _.keys(this.arguments).map((compilerId) => {
-                this.saveToStorage(s3, compilerId, this.arguments[compilerId]);
+                if (typeof this.arguments[compilerId] === 'object' && this.arguments[compilerId] !== null) {
+                    this.saveToStorage(s3, compilerId, this.arguments[compilerId]);
+                }
             });
 
             resolve(Promise.all(list));
