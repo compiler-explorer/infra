@@ -54,7 +54,7 @@ const baseUrl =
     "&metrics=ga:totalEvents" +
     "&sort=-ga:totalEvents" +
     "&filters=ga:eventCategory%3D%3DCompile;ga:eventLabel!%3D(not+set)" +
-    "&start-date=30daysAgo" +
+    "&start-date=128daysAgo" +
     "&end-date=yesterday";
 
 const writer = new CompilerArgumentsWriter();
