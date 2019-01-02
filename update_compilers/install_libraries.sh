@@ -23,7 +23,7 @@ fi
 #########################
 # C++
 if install_nightly; then
-if [ ! -d "libs/kvasir/mpl/trunk" ]; then
+if [[ ! -d "libs/kvasir/mpl/trunk" ]]; then
     git clone -q https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
     git -C libs/kvasir/mpl/trunk checkout -q development
 else
@@ -31,7 +31,7 @@ else
 fi
 fi
 
-if [ ! -d cmake ]; then
+if [[ ! -d cmake ]]; then
     mkdir cmake
     fetch https://cmake.org/files/v3.11/cmake-3.11.0-rc3-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
 fi
@@ -93,11 +93,11 @@ fi
 get_or_sync() {
     local DIR=$1
     local URL=$2
-    if [ ! -d "${DIR}" ]; then
+    if [[ ! -d "${DIR}" ]]; then
         git clone -q "${URL}" "${DIR}"
     else
-    	git -C "${DIR}" reset -q --hard
-    	git -C "${DIR}" pull -q
+    	git -C "${DIR}" fetch -q
+    	git -C "${DIR}" reset -q --hard origin
     fi
 }
 
@@ -145,7 +145,7 @@ get_github_versioned_and_trunk_with_quirk() {
     local URL=https://github.com/${REPO}
     local QUIRK=$3
     shift 3
-    mkdir -p $DIR
+    mkdir -p ${DIR}
     if install_nightly; then
         get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
     fi
@@ -158,7 +158,7 @@ get_github_versioned_and_trunk() {
     local DIR=$1
     local URL=$2
     shift 2
-    get_github_versioned_and_trunk_with_quirk $DIR $URL '' "$@"
+    get_github_versioned_and_trunk_with_quirk ${DIR} ${URL} '' "$@"
 }
 
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
