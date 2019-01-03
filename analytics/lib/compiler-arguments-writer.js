@@ -69,7 +69,7 @@ class CompilerArgumentsWriter {
     }
 
     saveToStorage(s3, compilerId, stats) {
-        return s3.put(compilerId + ".json", stats, this.prefix, {});
+        return s3.put(compilerId + ".json", JSON.stringify(stats), this.prefix, {});
     }
 
     isUnwantedArgumentType(arg) {
@@ -102,7 +102,9 @@ class CompilerArgumentsWriter {
         return new Promise((resolve) => {
             const list = _.keys(this.arguments).map((compilerId) => {
                 if (typeof this.arguments[compilerId] === 'object' && this.arguments[compilerId] !== null) {
-                    this.saveToStorage(s3, compilerId, this.arguments[compilerId]);
+                    return this.saveToStorage(s3, compilerId, this.arguments[compilerId]);
+                } else {
+                    return null;
                 }
             });
 
