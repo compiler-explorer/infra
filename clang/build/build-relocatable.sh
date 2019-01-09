@@ -26,13 +26,13 @@ mkdir -p ${STAGING_DIR}
 
 git clone https://github.com/llvm-mirror/llvm
 pushd llvm/tools
-git clone --depth 1 --single-branch -b trivially-relocatable https://github.com/Quuxplusone/clang
+git clone --depth 20 --single-branch -b trivially-relocatable https://github.com/Quuxplusone/clang
 source ./clang/compiler-explorer-llvm-commit.sh
 cd clang && git log HEAD~10...HEAD --oneline
 popd
 pushd llvm/projects
-git clone --depth 1 --single-branch -b trivially-relocatable https://github.com/Quuxplusone/libcxx
-git clone --depth 1 --single-branch -b master https://github.com/llvm-mirror/libcxxabi
+git clone --depth 20 --single-branch -b trivially-relocatable https://github.com/Quuxplusone/libcxx
+git clone --depth 20 --single-branch -b master https://github.com/llvm-mirror/libcxxabi
 popd
 
 mkdir build
