@@ -262,3 +262,32 @@ get_ispc() {
 
 get_ispc 1.9.2
 get_ispc 1.9.1
+
+# djgpp
+get_djgpp() {
+    local VER=$1
+    local DIR=djgpp-$VER
+
+    declare -A TAG=([5.5.0]=v2.9 \
+                    [7.2.0]=v2.8 \
+                    [6.4.0]=v2.7 \
+                    [7.1.0]=v2.6 \
+                    [6.3.0]=v2.6 \
+                    [5.4.0]=v2.6 \
+                    [4.9.4]=v2.6 \
+                    [6.2.0]=v2.1)
+
+    if [[ ! -d ${DIR} ]]; then
+        mkdir $DIR
+        pushd $DIR
+        fetch https://github.com/andrewwutw/build-djgpp/releases/download/${TAG[$VER]}/djgpp-linux64-gcc${VER//.}.tar.bz2 \
+            | tar jxf - --strip-components 1
+        popd
+        do_strip $DIR
+    fi
+}
+
+get_djgpp 7.2.0
+get_djgpp 6.4.0
+get_djgpp 5.5.0
+get_djgpp 4.9.4
