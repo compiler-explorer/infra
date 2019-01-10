@@ -17,5 +17,6 @@ remove_older clang-concepts
 remove_older clang-relocatable
 remove_older clang-autonsdmi
 remove_older clang-lifetime
+remove_older clang-parmexpr
 remove_older gcc
 remove_older go
