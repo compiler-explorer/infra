@@ -28,7 +28,7 @@ git clone https://github.com/llvm-mirror/llvm.git
 (cd llvm && git reset --hard 7175874d889263bcf034ea35884eed73c51b003e)
 pushd llvm/tools
 git clone https://gitlab.com/lock3/clang.git
-git checkout feature/metaprogramming
+(cd clang && git checkout feature/metaprogramming)
 popd
 pushd llvm/projects
 git clone https://github.com/llvm-mirror/libcxx.git
