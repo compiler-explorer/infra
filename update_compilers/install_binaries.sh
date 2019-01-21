@@ -23,7 +23,7 @@ fi
 #########################
 # yarn
 
-TARGET_YARN_VERSION=v1.6.0
+TARGET_YARN_VERSION=v1.13.0
 CURRENT_YARN_VERSION=""
 if [[ -d yarn/bin/yarn.js ]]; then
     CURRENT_YARN_VERSION="v$(node/bin/node yarn/bin/yarn.js --version)"
