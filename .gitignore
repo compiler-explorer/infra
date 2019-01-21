@@ -8,3 +8,4 @@ config.json
 .idea
 /.deploy
 .nfs*
+node_modules
