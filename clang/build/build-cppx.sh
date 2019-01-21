@@ -2,10 +2,10 @@
 
 set -e
 
-# Grab CE's GCC 7.2.0 for its binutils (which is what the site uses to link currently)
+# Grab CE's GCC 8.2.0 for its binutils
 mkdir -p /opt/compiler-explorer
 pushd /opt/compiler-explorer
-curl -sL https://s3.amazonaws.com/compiler-explorer/opt/gcc-7.2.0.tar.xz | tar Jxf -
+curl -sL https://s3.amazonaws.com/compiler-explorer/opt/gcc-8.2.0.tar.xz | tar Jxf -
 popd
 
 ROOT=$(pwd)
@@ -25,17 +25,17 @@ rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
 git clone https://github.com/llvm-mirror/llvm.git
-(cd llvm && git reset --hard 40b1e969f9cb2a0c697e247435193fb006ef1311)
+(cd llvm && git reset --hard 7175874d889263bcf034ea35884eed73c51b003e)
 pushd llvm/tools
-git clone https://github.com/asutton/clang.git
+git clone https://gitlab.com/lock3/clang.git
 popd
 pushd llvm/projects
 git clone https://github.com/llvm-mirror/libcxx.git
-(cd libcxx && git reset --hard 64182a5877865cde2538c6038f98e3df33c93a03)
+(cd libcxx && git reset --hard 2917004aedb591cb697af2de6482e4544bee1e4b)
 # Hack for new glibc not containing xlocale.h
 perl -pi -e 's/defined\(__GLIBC__\) \|\| defined\(__APPLE__\)/defined(__APPLE__)/' libcxx/include/__locale
 git clone https://github.com/llvm-mirror/libcxxabi.git
-(cd libcxxabi && git reset --hard c515867bc14c433febcc574baedd081c078124d1)
+(cd libcxxabi && git reset --hard 2ecedcc0a1605ebeaa0afe3ab6fabe5dc8d5a2f8)
 popd
 
 mkdir build
@@ -43,7 +43,7 @@ cd build
 cmake -G "Unix Makefiles" ../llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
-    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-7.2.0/lib/gcc/x86_64-linux-gnu/7.2.0/plugin/include/
+    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-8.2.0/lib/gcc/x86_64-linux-gnu/8.2.0/plugin/include/
 
 make -j$(nproc) install
 
