@@ -15,7 +15,7 @@ if echo ${VERSION} | grep 'trunk'; then
     exit 1
 fi
 
-OUTPUT=/root/ocaml-${VERSION}.tar.xz
+OUTPUT=/root/ocaml-${FULL_VERSION}.tar.xz
 S3OUTPUT=""
 if echo $2 | grep s3://; then
     S3OUTPUT=$2
