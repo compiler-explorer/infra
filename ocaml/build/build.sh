@@ -2,7 +2,8 @@
 
 set -ex
 
-VERSION=$1
+FULL_VERSION=$1
+VERSION=${FULL_VERSION}
 FLAGS=
 if echo ${VERSION} | grep -- '-flambda'; then
     FLAGS=-flambda
@@ -22,7 +23,9 @@ else
     OUTPUT=${2-/root/ocaml-${VERSION}.tar.xz}
 fi
 
-STAGING_DIR=$(pwd)/staging
+# Ocaml likes to put shebang lines of the form #!/path/to/ocamlrun which is set during build.
+# We can't reolcate ocaml after the build, so we build it here in its presumed final destination location
+STAGING_DIR=/opt/compiler-explorer/ocaml-${FULL_VERSION}
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
@@ -33,7 +36,7 @@ make -j$(nproc) world.opt
 make -j$(nproc) install
 
 export XZ_DEFAULTS="-T 0"
-tar Jcf ${OUTPUT} --transform "s,^./,./ocaml-${VERSION}/," -C ${STAGING_DIR} .
+tar Jcf ${OUTPUT} --transform "s,^./,./ocaml-${FULL_VERSION}/," -C ${STAGING_DIR} .
 
 if [[ ! -z "${S3OUTPUT}" ]]; then
     s3cmd put --rr ${OUTPUT} ${S3OUTPUT}
