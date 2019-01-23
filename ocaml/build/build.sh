@@ -1,0 +1,40 @@
+#!/bin/bash
+
+set -ex
+
+VERSION=$1
+FLAGS=
+if echo ${VERSION} | grep -- '-flambda'; then
+    FLAGS=-flambda
+    VERSION=${VERSION%-flambda}
+fi
+
+if echo ${VERSION} | grep 'trunk'; then
+    echo Not supported at present
+    exit 1
+fi
+
+OUTPUT=/root/ocaml-${VERSION}.tar.xz
+S3OUTPUT=""
+if echo $2 | grep s3://; then
+    S3OUTPUT=$2
+else
+    OUTPUT=${2-/root/ocaml-${VERSION}.tar.xz}
+fi
+
+STAGING_DIR=$(pwd)/staging
+rm -rf ${STAGING_DIR}
+mkdir -p ${STAGING_DIR}
+
+curl -L https://github.com/ocaml/ocaml/archive/${VERSION}.tar.gz | tar zxf -
+cd ocaml-${VERSION}
+./configure ${FLAGS} -prefix ${STAGING_DIR}
+make -j$(nproc) world.opt
+make -j$(nproc) install
+
+export XZ_DEFAULTS="-T 0"
+tar Jcf ${OUTPUT} --transform "s,^./,./ocaml-${VERSION}/," -C ${STAGING_DIR} .
+
+if [[ ! -z "${S3OUTPUT}" ]]; then
+    s3cmd put --rr ${OUTPUT} ${S3OUTPUT}
+fi
