@@ -114,6 +114,7 @@ get_or_sync libs/ctbignum https://github.com/niekbouman/ctbignum.git
 get_or_sync libs/outcome https://github.com/ned14/outcome.git
 get_or_sync libs/cnl https://github.com/johnmcfarlane/cnl.git
 get_or_sync libs/googletest https://github.com/google/googletest.git
+get_or_sync libs/tbb https://github.com/01org/tbb.git
 
 get_if_not_there() {
     local DIR=$1
