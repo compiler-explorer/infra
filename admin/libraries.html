@@ -1,0 +1,177 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Libraries</title>
+    <script src="knockout-3.4.2.js"></script>
+    <script src="knockout.simpleGrid.3.0.js"></script>
+    <link rel="icon" type="image/png"
+          href="https://github.com/mattgodbolt/compiler-explorer-image/blob/master/logo/favicon.png?raw=true"/>
+    <style>
+        html, body {
+            background-color: #EEEEEE;
+        }
+        .ko-grid {
+            width: 100%;
+        }
+
+        .ko-grid thead th {
+            border-bottom: 1px solid black;
+            user-select: none;
+        }
+
+        .ko-grid tbody tr:nth-child(odd),
+        .ko-grid thead th:nth-child(odd) {
+            background-color: #EEEEEE;
+        }
+
+        .ko-grid tbody tr:nth-child(even),
+        .ko-grid thead th:nth-child(even) {
+            background-color: #DDDDDD;
+        }
+
+        .ko-grid tbody td:nth-child(odd),
+        .ko-grid thead th:nth-child(odd) {
+            background-color: rgba(220, 220, 220, 0.5);
+        }
+
+        .ko-grid tbody td:nth-child(even),
+        .ko-grid thead th:nth-child(even) {
+            background-color: rgba(200, 200, 200, 0.5);
+        }
+
+        .ko-grid tbody td {
+            text-align: center;
+        }
+
+        .ko-grid-pageLinks {
+            background-color: #EEEEAA;
+            border-top: 1px solid #f3f3f3;
+        }
+
+        #log {
+            background-color: #f2f2f2;
+            box-sizing: border-box;
+            width: 100%;
+            height: 350px;
+        }
+    </style>
+</head>
+<body>
+<div data-bind="simpleGrid: gridViewModel"></div>
+<div class="log-wrapper">
+    <textarea id="log" data-bind="visible: isLogVisible, text: selectedLog" readonly></textarea>
+</div>
+<script>
+    function toLink(url) {
+        return `<a href="${url}" target="_blank">${url}</a>`;
+    }
+</script>
+<script>
+    class BuildsViewModel {
+        constructor() {
+            this.toggles = {
+                name: -1,
+                start: 1,
+                end: 1
+            };
+            this.isLogVisible = ko.observable(false);
+            this.lastUpdate = ko.observable();
+            this.nextUpdate = ko.observable();
+            this.items = ko.observableArray([]);
+            this.selectedLog = ko.observable();
+            this.firstUpdate = true;
+            this.gridViewModel = new ko.simpleGrid.viewModel({
+                data: this.items,
+                columns: [
+                    {
+                        headerText: "Library name",
+                        rowText: "name",
+                        headerClick: () => {},
+                        click: () => {}
+                    },
+                    {
+                        headerText: "Language",
+                        rowText: "lang",
+                        headerClick: () => {},
+                        click: () => {}
+                    },
+                    {
+                        headerText: "Version",
+                        rowText: "version",
+                        headerClick: () => {},
+                        click: () => {}
+
+                    },
+                    {
+                        headerText: "URL",
+                        rowText: "url",
+                        headerClick: () => {},
+                        click: (item) => {
+                            window.open(item.link, '_blank')
+                        }
+                    }
+                ],
+                pageSize: 20,
+                update: this.update.bind(this)
+            });
+        }
+
+        clear() {
+            this.items.removeAll();
+        }
+
+        addItem(item) {
+            this.items.push(item);
+        }
+
+        update() {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'https://godbolt.org/api/libraries/');
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.onload = () => {
+                const info = JSON.parse(xhr.responseText);
+                this.clear();
+                Object.keys(info).forEach(langId => {
+                    const libLangs = info[langId];
+                    Object.keys(libLangs).forEach(libId => {
+                        const lib = libLangs[libId];
+                        let versions = [];
+                        Object.keys(lib.versions).forEach(versionId => {
+                            versions.push(lib.versions[versionId].version);
+                        });
+                        this.addItem({
+                            name: lib.name,
+                            lang: langId,
+                            url: toLink(lib.url),
+                            link: lib.url,
+                            version: versions.join(', ')
+                        })
+                    });
+                });
+                this.sortNameBuild(!this.firstUpdate);
+                if (this.firstUpdate) {
+                    this.firstUpdate = false;
+                }
+            };
+            xhr.send();
+        }
+
+        sortNameBuild(skipToggle) {
+            // Negative logic to avoid .apply, which I'm not too familiar with
+            if (!skipToggle) {
+                this.toggles.name *= -1;
+            }
+            this.items.sort((lhi, rhi) => {
+                return this.toggles.name * (lhi.name < rhi.name ? -1 : 1);
+            });
+        }
+    }
+
+    const buildsView = new BuildsViewModel();
+    ko.applyBindings(buildsView);
+
+    buildsView.update();
+</script>
+</body>
+</html>
