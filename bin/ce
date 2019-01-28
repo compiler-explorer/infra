@@ -115,11 +115,14 @@ def confirm_branch(release):
 def wait_for_healthok(instance):
     logger.info("Waiting for instance to be Online {}".format(instance))
     response = ""
+    sys.stdout.write('Waiting')
     while response != "Everything is awesome":
         try:
             response = exec_remote(instance, ['curl', '-s', 'http://127.0.0.1/healthcheck'])
         except Exception, e:
-            print "Waiting..."
+            sys.stdout.write('.')
+            # Flush stdout so tmux updates
+            sys.stdout.flush()
             pass
         time.sleep(10)
     print "Ok, Everything is awesome!"
