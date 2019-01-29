@@ -3,7 +3,6 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc
 
-
 install_nightly() {
     if [[ "$ARG1" = "nightly" ]]; then
         return 0
@@ -22,3 +21,12 @@ get_ppci() {
 }
 
 get_ppci 0.5.5
+
+for version in \
+    1.27 \
+; do
+    if [[ ! -d gcc-${version} ]]; then
+        compiler=gcc-${version}.tar.xz
+        fetch ${S3URL}/$compiler | tar Jxf -
+    fi
+done

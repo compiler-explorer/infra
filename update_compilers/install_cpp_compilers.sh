@@ -4,11 +4,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc
 
 
-S3BUCKET=compiler-explorer
-SUBDIR=opt
-S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
-ALL_COMPILERS=$(python ${SCRIPT_DIR}/list_compilers.py --s3url https://s3.amazonaws.com/${S3BUCKET} --prefix ${SUBDIR}/)
-
 if [[ ! -f $PATCHELF ]]; then
     fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
     pushd patchelf-0.8

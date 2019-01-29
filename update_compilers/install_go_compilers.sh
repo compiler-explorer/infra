@@ -3,11 +3,6 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc
 
-S3BUCKET=compiler-explorer
-SUBDIR=opt
-S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
-ALL_COMPILERS=$(python ${SCRIPT_DIR}/list_compilers.py --s3url https://s3.amazonaws.com/${S3BUCKET} --prefix ${SUBDIR}/)
-
 ## Install 1.4.1 the old way...
 if [[ ! -d ${OPT}/go ]]; then
     fetch https://storage.googleapis.com/golang/go1.4.1.linux-amd64.tar.gz | tar zxf -
