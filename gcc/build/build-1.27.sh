@@ -65,7 +65,7 @@ sed -i "s|^libdir =.*|libdir = /opt/compiler-explorer/gcc-${VERSION}/lib|g" Make
 
 make -j$(nproc)
 make -j$(nproc) stage1
-make -j$(nproc) CC=stage1/gcc CFLAGS="-O -Bstage1/ -Iinclude"
+make -j$(nproc) CC=stage1/gcc CFLAGS="-Bstage1/ -Iinclude"
 make -j$(nproc) install
 popd
 
