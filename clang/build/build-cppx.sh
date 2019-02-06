@@ -24,19 +24,31 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-git clone https://github.com/llvm-mirror/llvm.git
-(cd llvm && git reset --hard 7175874d889263bcf034ea35884eed73c51b003e)
+# Setup llvm root directory
+git clone --single-branch https://github.com/llvm-mirror/llvm.git
+
+# Checkout & configure clang
 pushd llvm/tools
-git clone https://gitlab.com/lock3/clang.git
-(cd clang && git checkout feature/metaprogramming)
+git clone --depth 1 --single-branch -b feature/metaprogramming https://gitlab.com/lock3/clang.git
+
+# Load llvm revisions for this compiler build
+pushd clang
+source compiler-explorer-llvm-commits.sh
 popd
+
+popd
+
+# Adjust llvm revision to match the cppx compiler's specified revision
+(cd llvm && git reset --hard ${CE_LLVM_COMMIT})
+
+# Checkout and configure libcxx
 pushd llvm/projects
-git clone https://github.com/llvm-mirror/libcxx.git
-(cd libcxx && git reset --hard 2917004aedb591cb697af2de6482e4544bee1e4b)
+git clone --single-branch https://github.com/llvm-mirror/libcxx.git
+(cd libcxx && git reset --hard ${CE_LIBCXX_COMMIT})
 # Hack for new glibc not containing xlocale.h
 perl -pi -e 's/defined\(__GLIBC__\) \|\| defined\(__APPLE__\)/defined(__APPLE__)/' libcxx/include/__locale
-git clone https://github.com/llvm-mirror/libcxxabi.git
-(cd libcxxabi && git reset --hard 2ecedcc0a1605ebeaa0afe3ab6fabe5dc8d5a2f8)
+git clone --single-branch https://github.com/llvm-mirror/libcxxabi.git
+(cd libcxxabi && git reset --hard ${CE_LIBCXXABI_COMMIT})
 popd
 
 mkdir build
