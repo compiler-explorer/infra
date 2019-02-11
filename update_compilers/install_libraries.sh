@@ -2,8 +2,8 @@
 
 # This script installs all the libraries to be used by Compiler Explorer
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-. ${DIR}/common.inc
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+. ${SCRIPT_DIR}/common.inc
 
 ARG1="$1"
 install_nightly() {
