@@ -31,6 +31,7 @@ get_conf() {
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=$(get_conf /compiler-explorer/googleApiKey)"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
+CFG="${CFG} -v /celibs:/celibs:ro"
 CFG="${CFG} -v /opt/intel/licenses:/opt/intel/licenses:ro"
 
 get_released_code() {
