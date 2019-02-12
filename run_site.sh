@@ -28,6 +28,13 @@ get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
 
+rsync_boost() {
+    $SUDO mkdir /celibs
+    $SUDO rsync -a --exclude=.git /opt/compiler-explorer/libs/boost_* /celibs/ &
+}
+
+rsync_boost
+
 CFG="-v ${CONFIG_FILE}:/site.sh:ro"
 CFG="${CFG} -e GOOGLE_API_KEY=$(get_conf /compiler-explorer/googleApiKey)"
 CFG="${CFG} -v /opt/compiler-explorer:/opt/compiler-explorer:ro"
