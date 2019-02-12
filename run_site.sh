@@ -29,7 +29,7 @@ get_conf() {
 }
 
 rsync_boost() {
-    $SUDO mkdir /celibs
+    $SUDO mkdir -p /celibs
     $SUDO rsync -a --exclude=.git /opt/compiler-explorer/libs/boost_* /celibs/ &
 }
 
