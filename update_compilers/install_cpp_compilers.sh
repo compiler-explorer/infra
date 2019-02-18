@@ -163,7 +163,7 @@ do_nightly_install() {
     # if it spans multiple lines: assigning output with multiple lines to a variable
     # fools it.
     set +x
-    compilers=$(echo $ALL_COMPILERS | grep -oE "${COMPILER_PATTERN}-[0-9]+" | sort)
+    compilers=$(echo ${ALL_COMPILERS} | grep -oE "${COMPILER_PATTERN}-[0-9]+" | sort)
     set -x
     compiler_array=(${compilers})
     latest=${compiler_array[-1]}
@@ -188,6 +188,7 @@ do_nightly_install() {
 
 if install_nightly; then
     do_nightly_install gcc-trunk gcc-snapshot
+    do_nightly_install gcc-lock3-contracts-trunk gcc-lock3-contracts-trunk
 fi
 
 # Custom-built clangs also stripped and UPX'd
