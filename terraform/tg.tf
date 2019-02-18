@@ -4,7 +4,7 @@ resource "aws_alb_target_group" "beta" {
   vpc_id = "${aws_vpc.CompilerExplorer.id}"
   deregistration_delay = 15
   health_check {
-    path = "/beta/healthcheck"
+    path = "/healthcheck"
     timeout = 5
     unhealthy_threshold = 2
     healthy_threshold = 5
