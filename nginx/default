@@ -12,8 +12,6 @@ server {
     error_log /var/log/nginx/all.err;
 
     location / {
-        rewrite ^/beta$ /beta/ permanent;
-        rewrite ^/beta/(.*) /$1 break;
         proxy_pass http://unified:10240;
         proxy_cache gcc;
         proxy_cache_valid 200 2m;
