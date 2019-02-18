@@ -105,6 +105,16 @@ resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
   description = "Allow egress to anywhere"
 }
 
+resource "aws_security_group_rule" "ALB_IngressFromCE" {
+  security_group_id = "${aws_security_group.CompilerExplorerAlb.id}"
+  type = "ingress"
+  from_port = 0
+  to_port = 65535
+  source_security_group_id = "${aws_security_group.CompilerExplorer.id}"
+  protocol = "tcp"
+  description = "Allow ingress from CE nodes"
+}
+
 resource "aws_security_group" "AdminNode" {
   vpc_id = "${aws_vpc.CompilerExplorer.id}"
   name = "AdminNodeSecGroup"
@@ -152,4 +162,14 @@ resource "aws_security_group_rule" "Admin_EgressToAnywhere" {
     "::/0"]
   protocol = "-1"
   description = "Allow egress to anywhere"
+}
+
+resource "aws_security_group_rule" "Admin_IngressFromCE" {
+  security_group_id = "${aws_security_group.AdminNode.id}"
+  type = "egress"
+  from_port = 0
+  to_port = 65535
+  source_security_group_id = "${aws_security_group.CompilerExplorer.id}"
+  protocol = "tcp"
+  description = "Allow ingress from CE nodes"
 }
