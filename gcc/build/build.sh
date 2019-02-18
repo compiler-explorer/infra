@@ -4,11 +4,19 @@ set -ex
 
 ROOT=$(pwd)
 VERSION=$1
-if echo ${VERSION} | grep 'trunk'; then
+LANGUAGES=c,c++,fortran,ada
+if echo ${VERSION} | grep 'lock3-contracts-trunk'; then
+    VERSION=lock3-contracts-trunk-$(date +%Y%m%d)
+    URL=https://gitlab.com/lock3/gcc-new.git/
+    BRANCH=contracts-jac-kona
+    MAJOR=9
+    MAJOR_MINOR=9-trunk
+    LANGUAGES=c,c++
+elif echo ${VERSION} | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/trunk 
-    MAJOR=8
-    MAJOR_MINOR=8-trunk
+    MAJOR=9
+    MAJOR_MINOR=9-trunk
 elif echo ${VERSION} | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
     TARBALL=gcc-${VERSION}.tar.xz
@@ -45,6 +53,12 @@ mkdir -p ${STAGING_DIR}
 if echo ${URL} | grep svn://; then
     rm -rf gcc-${VERSION}
     svn checkout -q ${URL} gcc-${VERSION}
+elif echo ${URL} | grep .git; then
+    rm -rf gcc-${VERSION}
+    git clone -q ${URL} gcc-${VERSION}
+    pushd gcc-${VERSION}
+    git checkout ${BRANCH}
+    popd
 else
     if [[ ! -e ${TARBALL} ]]; then
         echo "Fetching GCC" from ${URL}...
@@ -97,7 +111,7 @@ CONFIG+=" --with-abi=m64"
 CONFIG+=" --with-multilib-list=m32,m64,mx32"
 CONFIG+=" --enable-multilib"
 CONFIG+=" --enable-clocale=gnu"
-CONFIG+=" --enable-languages=c,c++,fortran,ada" # used to have go, but is incompatible with m32/mx32
+CONFIG+=" --enable-languages=${LANGUAGES}"
 CONFIG+=" --enable-ld=yes"
 CONFIG+=" --enable-gold=yes"
 CONFIG+=" --enable-libstdcxx-debug"
