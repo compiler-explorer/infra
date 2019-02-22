@@ -12,6 +12,12 @@ if echo ${VERSION} | grep 'lock3-contracts-trunk'; then
     MAJOR=9
     MAJOR_MINOR=9-trunk
     LANGUAGES=c,c++
+elif echo ${VERSION} | grep 'cxx-modules-trunk'; then
+    VERSION=cxx-modules-trunk-$(date +%Y%m%d)
+    URL=svn://gcc.gnu.org/svn/gcc/branches/c++-modules
+    MAJOR=9
+    MAJOR_MINOR=9-trunk
+    LANGUAGES=c,c++
 elif echo ${VERSION} | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/trunk 
@@ -120,7 +126,7 @@ CONFIG+=" --enable-linker-build-id"
 CONFIG+=" --enable-lto"
 CONFIG+=" --enable-plugins"
 CONFIG+=" --enable-threads=posix"
-CONFIG+=" --with-pkgversion=GCC-Explorer-Build"
+CONFIG+=" --with-pkgversion=Compiler-Explorer-Build"
 BINUTILS_VERSION=2.29.1
 
 applyPatchesAndConfig gcc${MAJOR}
