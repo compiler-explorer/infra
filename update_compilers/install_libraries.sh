@@ -200,6 +200,8 @@ install_blaze() {
 }
 
 install_blaze 3.3
+install_blaze 3.4
+install_blaze 3.5
 get_or_sync libs/blaze/trunk https://bitbucket.org/blaze-lib/blaze.git
 
 #########################
