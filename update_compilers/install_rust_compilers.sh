@@ -205,6 +205,7 @@ install_new_rust 1.29.0 RUST_TARGETS[@]
 install_new_rust 1.30.0 RUST_TARGETS[@]
 install_new_rust 1.31.0 RUST_TARGETS[@]
 install_new_rust 1.32.0 RUST_TARGETS[@]
+install_new_rust 1.33.0 RUST_TARGETS[@]
 if install_nightly; then
     RUST_TARGETS+=(
         riscv32imac-unknown-none-elf
