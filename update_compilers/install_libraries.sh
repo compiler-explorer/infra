@@ -295,6 +295,6 @@ get_or_sync_git_tags() {
 	done
 }
 
-get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2
+get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode
 
 get_or_sync_git_tags libs/cub https://github.com/NVlabs/cub.git 1.8.0
