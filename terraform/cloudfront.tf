@@ -113,7 +113,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       "cookies" {
         forward = "none"
       }
-      query_string = false
+      query_string = true
       headers = [
         "Accept",
         "Host"
@@ -247,7 +247,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       "cookies" {
         forward = "none"
       }
-      query_string = false
+      query_string = true
       headers = [
         "Accept",
         "Host"
