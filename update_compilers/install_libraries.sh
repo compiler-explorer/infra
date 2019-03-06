@@ -105,9 +105,6 @@ get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 get_or_sync libs/opencv https://github.com/opencv/opencv.git
-get_or_sync libs/xtl https://github.com/QuantStack/xtl.git
-get_or_sync libs/xsimd https://github.com/QuantStack/xsimd.git
-get_or_sync libs/xtensor https://github.com/QuantStack/xtensor.git
 get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
 get_or_sync libs/cppcoro https://github.com/lewissbaker/cppcoro.git
 get_or_sync libs/ctbignum https://github.com/niekbouman/ctbignum.git
@@ -179,6 +176,9 @@ get_github_versioned_and_trunk libs/expected-lite martinmoene/expected-lite v0.1
 get_github_versioned_and_trunk libs/nlohmann_json nlohmann/json v3.1.2 v2.1.1
 get_github_versioned_and_trunk libs/doctest onqtam/doctest 1.2.9 2.0.0 2.0.1 2.1.0 2.2.0 2.2.1 2.2.2 2.2.3
 get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01
+get_github_versioned_and_trunk libs/xtl QuantStack/xtl 0.5.3 0.4.16
+get_github_versioned_and_trunk libs/xsimd QuantStack/xsimd 7.0.0 6.1.4
+get_github_versioned_and_trunk libs/xtensor QuantStack/xtensor 0.19.4 0.18.2 0.17.4
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
