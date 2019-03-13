@@ -5,6 +5,18 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${DIR}/common.inc
 
+
+#########################
+# patchelf
+if [[ ! -f ${PATCHELF} ]]; then
+    fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
+    pushd patchelf-0.8
+    CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
+    make -j$(nproc)
+    popd
+fi
+
+
 #########################
 # node.js
 
