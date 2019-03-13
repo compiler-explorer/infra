@@ -165,7 +165,7 @@ get_github_versioned_and_trunk() {
 
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0 v1.3.0 v1.4.0
-get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6
+get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
@@ -203,6 +203,8 @@ install_blaze 3.3
 install_blaze 3.4
 install_blaze 3.5
 get_or_sync libs/blaze/trunk https://bitbucket.org/blaze-lib/blaze.git
+
+get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode
 
 #########################
 # C
@@ -297,6 +299,7 @@ get_or_sync_git_tags() {
 	done
 }
 
-get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode
 
+#########################
+# CUDA
 get_or_sync_git_tags libs/cub https://github.com/NVlabs/cub.git 1.8.0
