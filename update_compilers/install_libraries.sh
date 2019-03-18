@@ -101,6 +101,28 @@ get_or_sync() {
     fi
 }
 
+get_or_sync_git_tag() {
+	local DIR=$1
+	local URL=$2
+	local TAG=$3
+	if [[ ! -d "${DIR}" ]]; then
+		git clone -q "${URL}" "${DIR}"
+		git -C "${DIR}" checkout -q "${TAG}"
+	else
+		git -C "${DIR}" reset -q --hard
+		git -C "${DIR}" pull -q origin "${TAG}"
+	fi
+}
+
+get_or_sync_git_tags() {
+	local DIR=$1
+	local URL=$2
+	shift 2
+	for TAG in "$@"; do
+		get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
+	done
+}
+
 get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
@@ -276,28 +298,6 @@ install_mir_algorithm() {
 }
 
 install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5 1.0.0 1.1.0
-
-get_or_sync_git_tag() {
-	local DIR=$1
-	local URL=$2
-	local TAG=$3
-	if [ ! -d "${DIR}" ]; then
-		git clone -q "${URL}" "${DIR}"
-		git -C "${DIR}" checkout -q "${TAG}"
-	else
-		git -C "${DIR}" reset -q --hard
-		git -C "${DIR}" pull -q origin "${TAG}"
-	fi
-}
-
-get_or_sync_git_tags() {
-	local DIR=$1
-	local URL=$2
-	shift 2
-	for TAG in "$@"; do
-		get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
-	done
-}
 
 
 #########################
