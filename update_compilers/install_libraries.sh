@@ -101,13 +101,32 @@ get_or_sync() {
     fi
 }
 
+get_or_sync_git_tag() {
+	local DIR=$1
+	local URL=$2
+	local TAG=$3
+	if [[ ! -d "${DIR}" ]]; then
+		git clone -q "${URL}" "${DIR}"
+		git -C "${DIR}" checkout -q "${TAG}"
+	else
+		git -C "${DIR}" reset -q --hard
+		git -C "${DIR}" pull -q origin "${TAG}"
+	fi
+}
+
+get_or_sync_git_tags() {
+	local DIR=$1
+	local URL=$2
+	shift 2
+	for TAG in "$@"; do
+		get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
+	done
+}
+
 get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 get_or_sync libs/opencv https://github.com/opencv/opencv.git
-get_or_sync libs/xtl https://github.com/QuantStack/xtl.git
-get_or_sync libs/xsimd https://github.com/QuantStack/xsimd.git
-get_or_sync libs/xtensor https://github.com/QuantStack/xtensor.git
 get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
 get_or_sync libs/cppcoro https://github.com/lewissbaker/cppcoro.git
 get_or_sync libs/ctbignum https://github.com/niekbouman/ctbignum.git
@@ -165,7 +184,7 @@ get_github_versioned_and_trunk() {
 
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0 v1.3.0 v1.4.0
-get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6
+get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
@@ -179,6 +198,9 @@ get_github_versioned_and_trunk libs/expected-lite martinmoene/expected-lite v0.1
 get_github_versioned_and_trunk libs/nlohmann_json nlohmann/json v3.1.2 v2.1.1
 get_github_versioned_and_trunk libs/doctest onqtam/doctest 1.2.9 2.0.0 2.0.1 2.1.0 2.2.0 2.2.1 2.2.2 2.2.3
 get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01
+get_github_versioned_and_trunk libs/xtl QuantStack/xtl 0.5.3 0.4.16
+get_github_versioned_and_trunk libs/xsimd QuantStack/xsimd 7.0.0 6.1.4
+get_github_versioned_and_trunk libs/xtensor QuantStack/xtensor 0.19.4 0.18.2 0.17.4
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0
 
@@ -203,6 +225,8 @@ install_blaze 3.3
 install_blaze 3.4
 install_blaze 3.5
 get_or_sync libs/blaze/trunk https://bitbucket.org/blaze-lib/blaze.git
+
+get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode
 
 #########################
 # C
@@ -275,28 +299,7 @@ install_mir_algorithm() {
 
 install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5 1.0.0 1.1.0
 
-get_or_sync_git_tag() {
-	local DIR=$1
-	local URL=$2
-	local TAG=$3
-	if [ ! -d "${DIR}" ]; then
-		git clone -q "${URL}" "${DIR}"
-		git -C "${DIR}" checkout -q "${TAG}"
-	else
-		git -C "${DIR}" reset -q --hard
-		git -C "${DIR}" pull -q origin "${TAG}"
-	fi
-}
 
-get_or_sync_git_tags() {
-	local DIR=$1
-	local URL=$2
-	shift 2
-	for TAG in "$@"; do
-		get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
-	done
-}
-
-get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode
-
+#########################
+# CUDA
 get_or_sync_git_tags libs/cub https://github.com/NVlabs/cub.git 1.8.0

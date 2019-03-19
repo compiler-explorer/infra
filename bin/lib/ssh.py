@@ -31,10 +31,18 @@ def run_remote_shell(args, instance):
 
 def exec_remote(instance, command):
     logger.debug("Running '{}' on {}".format(" ".join(command), instance))
-    return subprocess.check_output(
-        ['ssh', '-o', 'ConnectTimeout=5', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
-         '-o', 'LogLevel=ERROR',
-         'ubuntu@' + ssh_address_for(instance), '--'] + ["'{}'".format(c) for c in command])
+    return subprocess.check_output(ssh_args_for(command, instance))
+
+
+def exec_remote_to_stdout(instance, command):
+    logger.debug("Running '{}' on {}".format(" ".join(command), instance))
+    subprocess.check_call(ssh_args_for(command, instance))
+
+
+def ssh_args_for(command, instance):
+    return ['ssh', '-o', 'ConnectTimeout=5', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
+            '-o', 'LogLevel=ERROR',
+            'ubuntu@' + ssh_address_for(instance), '--'] + ["'{}'".format(c) for c in command]
 
 
 def exec_remote_all(instances, command):

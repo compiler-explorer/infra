@@ -6,8 +6,7 @@ resource "aws_dynamodb_table" "links" {
       "write_capacity"
     ]
   }
-  // TODO: change once terraform supports on-demand pricing. We are currently set to use
-  // on-demand in the UI only.
+  billing_mode = "PAY_PER_REQUEST"
   read_capacity = 1
   write_capacity = 1
   hash_key = "prefix"

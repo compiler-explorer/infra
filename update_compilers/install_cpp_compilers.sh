@@ -4,14 +4,6 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc
 
 
-if [[ ! -f $PATCHELF ]]; then
-    fetch http://nixos.org/releases/patchelf/patchelf-0.8/patchelf-0.8.tar.gz | tar zxf -
-    pushd patchelf-0.8
-    CFLAGS=-static LDFLAGS=-static CXXFLAGS=-static ./configure
-    make -j$(nproc)
-    popd
-fi
-
 # 12.04 compilers (mostly)
 for compiler in clang-3.2.tar.gz \
     clang-3.3.tar.gz

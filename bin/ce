@@ -15,7 +15,7 @@ from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
     save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
-from lib.ssh import run_remote_shell, exec_remote, exec_remote_all
+from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
 logger = logging.getLogger('ce')
 
@@ -112,6 +112,7 @@ def confirm_branch(release):
         if typed == branch:
             return True
 
+
 def wait_for_healthok(instance):
     logger.info("Waiting for instance to be Online {}".format(instance))
     response = ""
@@ -126,6 +127,7 @@ def wait_for_healthok(instance):
             pass
         time.sleep(10)
     print "Ok, Everything is awesome!"
+
 
 def restart_one_instance(as_group_name, instance, modified_groups):
     instance_id = instance.instance.instance_id
@@ -177,7 +179,7 @@ def builder_login_cmd(args):
 
 def builder_exec_cmd(args):
     instance = BuilderInstance.instance()
-    exec_remote(instance, args['remote_cmd'])
+    exec_remote_to_stdout(instance, args['remote_cmd'])
 
 
 def builder_start_cmd(args):
@@ -244,9 +246,11 @@ def instances_restart_one_cmd(args):
         logger.error("Failed restarting {} - skipping: {}".format(instance, e))
         failed = True
 
+
 def instances_start_cmd(args):
     print "Starting version {}".format(describe_current_release(args))
     exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
+
 
 def instances_stop_cmd(args):
     if not are_you_sure('stop', args):

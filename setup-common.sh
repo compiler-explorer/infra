@@ -72,7 +72,11 @@ docker run --name logspout \
     -e SYSLOG_HOSTNAME=$(hostname) \
     gliderlabs/logspout syslog+tls://${LOG_DEST_HOST}:${LOG_DEST_PORT}
 
-mountpoint -q /opt || mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} $(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt
+if ! grep /opt /etc/fstab; then
+    echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >> /etc/fstab
+fi
+
+mount -a
 
 cd /home/ubuntu/
 

@@ -18,7 +18,7 @@ run_on_build() {
     shift
     set +e
     date > ${logdir}/begin
-    if ! ce builder exec -- "$@" 2>&1 | tee ${logdir}/log; then
+    if ! ce builder exec -- "$@" |& tee ${logdir}/log; then
         BUILD_FAILED=1
         echo FAILED > ${logdir}/status
     else
