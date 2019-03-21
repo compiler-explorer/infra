@@ -17,6 +17,7 @@ done
 
 # clangs
 for clang in \
+    2.{0,1,2,3,4,5,6,7,8,9}-x86_64-linux.tar.bz2 \
     3.0-x86_64-linux-Ubuntu-11_10 \
     3.1-x86_64-linux-ubuntu_12.04 \
 ; do
@@ -192,6 +193,7 @@ for version in \
     5.0.0 \
     6.0.0 \
     7.0.0 \
+    8.0.0 \
 ; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
