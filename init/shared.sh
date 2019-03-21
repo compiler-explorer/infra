@@ -1,3 +1,3 @@
 #!/bin/sh
 
-export CE_ALL_CONTAINERS="nginx unified"
+export CE_ALL_CONTAINERS="nginx unified unified-beta"
