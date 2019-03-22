@@ -37,7 +37,7 @@ fi
 
 TARGET_YARN_VERSION=v1.13.0
 CURRENT_YARN_VERSION=""
-if [[ -d yarn/bin/yarn.js ]]; then
+if [[ -f yarn/bin/yarn.js ]]; then
     CURRENT_YARN_VERSION="v$(node/bin/node yarn/bin/yarn.js --version)"
 fi
 
