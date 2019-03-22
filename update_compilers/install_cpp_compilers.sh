@@ -141,6 +141,7 @@ gcc_arch_install mips 5.4.0
 gcc_arch_install mips64 5.4.0
 gcc_arch_install mipsel 5.4.0
 gcc_arch_install mips64el 5.4.0
+gcc_arch_install riscv64 8.2.0
 
 if [[ ! -d arm/gcc-arm-none-eabi-7-2017-q4-major ]]; then
     pushd arm
