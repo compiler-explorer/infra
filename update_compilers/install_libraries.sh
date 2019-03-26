@@ -84,7 +84,7 @@ install_llvm_trunk() {
     rm -rf /tmp/llvm
 }
 
-install_llvm 6.0.0 5.0.1 4.0.1
+install_llvm 4.0.1 5.0.0 5.0.1 5.0.2 6.0.0 6.0.1 7.0.0 7.0.1 8.0.0
 
 if install_nightly; then
     install_llvm_trunk
