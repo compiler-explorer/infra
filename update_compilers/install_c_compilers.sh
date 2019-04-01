@@ -42,8 +42,8 @@ do_nightly_install() {
         fetch ${S3URL}/${latest}.tar.xz | tar Jxf -
     fi
     # Ensure the symlink points at the latest
-    rm -f ${OPT}/${DESTINATION}
-    ln -s ${latest} ${OPT}/${DESTINATION}
+    rm -f ${DESTINATION}
+    ln -s ${latest} ${DESTINATION}
     # Clean up any old snapshots
     for compiler in ${COMPILER_PATTERN}-[0-9]*; do
         if [[ -d ${compiler} ]]; then
