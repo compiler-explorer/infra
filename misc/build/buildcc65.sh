@@ -22,7 +22,8 @@ PREFIX=$(pwd)/prefix
 DIR=$(pwd)/cc65
 git clone --depth 1 -b ${BRANCH} https://github.com/cc65/cc65.git ${DIR}
 
-make -C ${DIR} -j$(nproc)
+# no -j (maybe breaks?)
+make -C ${DIR}
 make -C ${DIR} PREFIX=${PREFIX} install
 
 export XZ_DEFAULTS="-T 0"
