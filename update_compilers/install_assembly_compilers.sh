@@ -24,6 +24,7 @@ for version in \
     2.12.02 \
     2.13.02 \
     2.13.03 \
+    2.14.02 \
 ; do
     get_nasm $version
 done
