@@ -6,6 +6,7 @@ ARG1="$1"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 . ${SCRIPT_DIR}/common.inc ${ARG1}
 
+echo "Starting installation at $(date)"
 
 if install_nightly; then
     echo "Installing nightly builds"
