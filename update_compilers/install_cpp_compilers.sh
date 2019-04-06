@@ -250,6 +250,7 @@ get_ispc() {
     fi
 }
 
+get_ispc 1.10.0
 get_ispc 1.9.2
 get_ispc 1.9.1
 
