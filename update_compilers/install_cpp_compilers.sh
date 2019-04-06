@@ -238,21 +238,22 @@ fi
 # intel ispc
 get_ispc() {
     local VER=$1
+    local STRIP=$2
     local DIR=ispc-$VER
 
     if [[ ! -d ${DIR} ]]; then
         mkdir $DIR
         pushd $DIR
-        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz \
-            | tar zxf - ispc-v$VER-linux/ispc --strip-components 1
+        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz/download \
+            | tar zxf - ispc-v$VER$STRIP --strip-components 1
         popd
         do_strip $DIR
     fi
 }
 
-get_ispc 1.10.0
-get_ispc 1.9.2
-get_ispc 1.9.1
+get_ispc 1.10.0 -Linux
+get_ispc 1.9.2 -linux/ispc
+get_ispc 1.9.1 -linux/isp
 
 # djgpp
 get_djgpp() {
