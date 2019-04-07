@@ -201,6 +201,7 @@ get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01
 get_github_versioned_and_trunk libs/xtl QuantStack/xtl 0.5.3 0.4.16
 get_github_versioned_and_trunk libs/xsimd QuantStack/xsimd 7.0.0 6.1.4
 get_github_versioned_and_trunk libs/xtensor QuantStack/xtensor 0.19.4 0.18.2 0.17.4
+get_github_versioned_and_trunk libs/seastar scylladb/seastar seastar-18.08.0
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0 v2.0.0
 
