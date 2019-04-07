@@ -133,7 +133,7 @@ def get_all_current():
 
 def set_current_key(args, key):
     s3_key = version_key_for_env(args)
-    print 'Setting {} to {}'.format(s3_key, key)
+    print('Setting {} to {}'.format(s3_key, key))
     s3_client.put_object(
         Bucket='compiler-explorer',
         Key=s3_key,

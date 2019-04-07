@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+# coding=utf-8
+import os
+import tempfile
+from argparse import ArgumentParser
+import subprocess
+
+import requests
+
+
+class InstallationContext(object):
+    def __init__(self, destination, s3_url, dry_run):
+        self.destination = destination
+        self.s3_url = s3_url
+        self.dry_run = dry_run
+
+    def debug(self, installable, message):
+        print(f"{installable}: {message}")
+
+    def info(self, installable, message):
+        print(f"{installable}: {message}")
+
+    def warn(self, installable, message):
+        print(f"{installable}: {message}")
+
+    def error(self, installable, message):
+        print(f"{installable}: {message}")
+
+    def fetch_to(self, url, fd):
+        installable = 'TODO'
+        self.debug(installable, f'Fetching {url}')
+        request = requests.get(url, stream=True)
+        if not request.ok:
+            self.error(installable, f'Failed to fetch {url}: {request}')
+            raise RuntimeError('Fetch failure')
+        fetched = 0
+        length = int(request.headers['content-length'])
+        self.info(installable, f'Fetching {url} ({length} bytes)')
+        for chunk in request.iter_content(chunk_size=16 * 1024 * 1024):
+            fd.write(chunk)
+            fetched += len(chunk)
+            self.info(installable, f'{100.0 * fetched / length:.1f}% of {url}...')
+        fd.flush()
+
+    def fetch_url_and_pipe_to(self, url, command):
+        # TODO dry run...
+        installable = 'TODO'
+        # We stream to a temporary file first before then piping this to the command
+        # as sometimes the command can take so long the URL endpoint closes the door on us
+        with tempfile.TemporaryFile() as fd:
+            self.fetch_to(url, fd)
+            fd.seek(0)
+            self.info(installable, f'Piping to {" ".join(command)}')
+            subprocess.check_call(command, stdin=fd)
+
+    def fetch_s3_and_pipe_to(self, s3, command):
+        return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
+
+
+class Installable(object):
+    def __init__(self, context, name, depends):
+        self.context = context
+        self.name = name
+        self.depends = depends
+
+    def debug(self, message):
+        self.context.debug(self, message)
+
+    def info(self, message):
+        self.context.info(self, message)
+
+    def warn(self, message):
+        self.context.warn(self, message)
+
+    def error(self, message):
+        self.context.error(self, message)
+
+    def verify(self):
+        raise RuntimeError("needs to be implemented")
+
+    def is_installed(self):
+        raise RuntimeError("needs to be implemented")
+
+    def install(self):
+        self.debug("Ensuring dependees are installed")
+        any_missing = False
+        for dependee in self.depends:
+            if not dependee.is_installed():
+                self.warn("Required dependee {} not installed".format(dependee))
+                any_missing = True
+        if any_missing:
+            return False
+        self.debug("Dependees ok")
+
+    def install_internal(self):
+        raise RuntimeError("needs to be implemented")
+
+
+class TarballInstallable(Installable):
+    def __init__(self, context, name, depends):
+        super(TarballInstallable, self).__init__(context, name, depends)
+
+    def verify(self):
+        return super(TarballInstallable, self).verify()
+
+    def is_installed(self):
+        return super(TarballInstallable, self).is_installed()
+
+    def install(self, dry_run):
+        return super(TarballInstallable, self).install(dry_run)
+
+
+if __name__ == '__main__':
+    parser = ArgumentParser(description='Install binaries, libraries and compilers for Compiler Explorer')
+    parser.add_argument('--root', default='/opt/compiler-explorer', metavar='DEST',
+                        help='install with DEST as the installation root (default %(default)s)')
+
+    parser.add_argument('--s3_bucket', default='compiler-explorer', metavar='BUCKET',
+                        help='look for S3 resources in BUCKET (default %(default)s)')
+    parser.add_argument('--s3_dir', default='opt', metavar='DIR',
+                        help='look for S3 resources in the bucket\'s subdirectory DIR (default %(default)s)')
+    parser.add_argument('--dry_run', default=False, action='store_true', help='dry run only')
+
+    args = parser.parse_args()
+    s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
+    test = InstallationContext(args.root, s3_url, args.dry_run)
+    os.chdir('/tmp')
+    test.fetch_s3_and_pipe_to('gcc-8.3.0.tar.xz', ['tar', 'Jxf', '-'])

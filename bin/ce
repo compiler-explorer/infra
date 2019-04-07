@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding=utf-8
 
 import logging
@@ -33,7 +33,7 @@ def pick_instance(args):
         return instances[0]
     while True:
         print_instances(instances, number=True)
-        inst = raw_input('Which instance? ')
+        inst = input('Which instance? ')
         try:
             return instances[int(inst)]
         except:
@@ -100,7 +100,7 @@ def wait_for_elb_state(instance, state):
 def are_you_sure(name, args):
     env = args['env']
     while True:
-        typed = raw_input('Confirm {} in env {}\nType the name of the environment: '.format(name, env))
+        typed = input('Confirm {} in env {}\nType the name of the environment: '.format(name, env))
         if typed == env:
             return True
 
@@ -108,7 +108,7 @@ def are_you_sure(name, args):
 def confirm_branch(release):
     branch = release.branch
     while True:
-        typed = raw_input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
+        typed = input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
         if typed == branch:
             return True
 
@@ -120,13 +120,13 @@ def wait_for_healthok(instance):
     while response != "Everything is awesome":
         try:
             response = exec_remote(instance, ['curl', '-s', 'http://127.0.0.1/healthcheck'])
-        except Exception, e:
+        except Exception:
             sys.stdout.write('.')
             # Flush stdout so tmux updates
             sys.stdout.flush()
             pass
         time.sleep(10)
-    print "Ok, Everything is awesome!"
+    print("Ok, Everything is awesome!")
 
 
 def restart_one_instance(as_group_name, instance, modified_groups):
@@ -185,7 +185,7 @@ def builder_exec_cmd(args):
 def builder_start_cmd(args):
     instance = BuilderInstance.instance()
     if instance.status() == 'stopped':
-        print "Starting builder instance..."
+        print("Starting builder instance...")
         instance.start()
         for i in range(60):
             if instance.status() == 'running':
@@ -198,15 +198,15 @@ def builder_start_cmd(args):
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except Exception, e:
-            print "Still waiting for SSH: got: {}".format(e)
+        except Exception as e:
+            print("Still waiting for SSH: got: {}".format(e))
             pass
         time.sleep(1)
     else:
         raise RuntimeError("Unable to get SSH access")
     res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && git pull && sudo ./setup-builder.sh"])
-    print res
-    print "Builder started OK"
+    print(res)
+    print("Builder started OK")
 
 
 def builder_stop_cmd(args):
@@ -214,7 +214,7 @@ def builder_stop_cmd(args):
 
 
 def builder_status_cmd(args):
-    print "Builder status: {}".format(BuilderInstance.instance().status())
+    print("Builder status: {}".format(BuilderInstance.instance().status()))
 
 
 def instances_cmd(args):
@@ -225,7 +225,7 @@ def instances_exec_all_cmd(args):
     if not are_you_sure('exec all', args):
         return
     remote_cmd = args['remote_cmd']
-    print "Running '{}' on all instances".format(' '.join(remote_cmd))
+    print("Running '{}' on all instances".format(' '.join(remote_cmd)))
     exec_remote_all(pick_instances(args), remote_cmd)
 
 
@@ -239,16 +239,14 @@ def instances_restart_one_cmd(args):
     as_instance_status = instance.describe_autoscale()
     as_group_name = as_instance_status['AutoScalingGroupName']
     modified_groups = {}
-    failed = False
     try:
         restart_one_instance(as_group_name, instance, modified_groups)
-    except Exception, e:
+    except Exception as e:
         logger.error("Failed restarting {} - skipping: {}".format(instance, e))
-        failed = True
 
 
 def instances_start_cmd(args):
-    print "Starting version {}".format(describe_current_release(args))
+    print("Starting version {}".format(describe_current_release(args)))
     exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
 
 
@@ -278,7 +276,7 @@ def instances_restart_cmd(args):
 
         try:
             restart_one_instance(as_group_name, instance, modified_groups)
-        except Exception, e:
+        except Exception as e:
             logger.error("Failed restarting {} - skipping: {}".format(instance, e))
             failed = True
             # TODO, what here?
@@ -302,7 +300,8 @@ def builds_cmd(args):
 
 
 def builds_current_cmd(args):
-    print describe_current_release(args)
+    print
+    describe_current_release(args)
 
 
 def builds_set_current_cmd(args):
@@ -313,11 +312,11 @@ def builds_set_current_cmd(args):
         setting_latest = args['version'] == 'latest'
         release = find_latest_release(args['branch']) if setting_latest else find_release(int(args['version']))
         if not release:
-            print "Unable to find version " + args['version']
+            print("Unable to find version " + args['version'])
             if setting_latest and args['branch'] != '':
-                print 'Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch'])
+                print('Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch']))
         elif are_you_sure('change current version to {}'.format(release.key), args) and confirm_branch(release):
-            print 'Found release {}'.format(release)
+            print('Found release {}'.format(release))
             to_set = release.key
     if to_set is not None:
         set_current_key(args, to_set)
@@ -329,28 +328,30 @@ def builds_rm_old_cmd(args):
     max_build = max(x.version for x in all_releases)
     for release in get_releases():
         if release.key in current:
-            print "Skipping {} as it is a current version".format(release)
+            print("Skipping {} as it is a current version".format(release))
         else:
             age = max_build - release.version
             if age > args['age']:
                 if args['dry_run']:
-                    print "Would remove build {}".format(release)
+                    print("Would remove build {}".format(release))
                 else:
-                    print "Removing build {}".format(release)
+                    print("Removing build {}".format(release))
                     remove_release(release)
             else:
-                print "Keeping build {}".format(release)
+                print("Keeping build {}".format(release))
 
 
 def builds_list_cmd(args):
     current = get_current_key(args)
     releases = get_releases()
     filter_branches = set(args['branch'].split(',') if args['branch'] is not None else [])
-    print RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
+    print
+    RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
     for branch, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
             if len(filter_branches) == 0 or release.branch in filter_branches:
-                print RELEASE_FORMAT.format(
+                print
+                RELEASE_FORMAT.format(
                     ' -->' if release.key == current else '',
                     release.branch, release.version, sizeof_fmt(release.size), release.hash)
 
@@ -361,9 +362,11 @@ def ads_cmd(args):
 
 def ads_list_cmd(args):
     events = json.loads(get_events_file(args))
-    print ADS_FORMAT.format('ID', 'Filters', 'HTML')
+    print
+    ADS_FORMAT.format('ID', 'Filters', 'HTML')
     for ad in events['ads']:
-        print ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])
+        print
+        ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])
 
 
 def ads_add_cmd(args):
@@ -406,9 +409,9 @@ def ads_edit_cmd(args):
                 if args['filter'] is not None else ad['filter'],
                 'html': args['html'] or ad['html']
             }
-            print '{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'HTML'),
+            print('{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'HTML'),
                                       ADS_FORMAT.format('<FROM', ad['filter'], ad['html']),
-                                      ADS_FORMAT.format('>TO', new_ad['filter'], new_ad['html']))
+                                      ADS_FORMAT.format('>TO', new_ad['filter'], new_ad['html'])))
             if are_you_sure('edit ad id: {}'.format(ad['id']), args):
                 events['ads'][i] = new_ad
                 save_event_file(args, json.dumps(events))
@@ -443,7 +446,8 @@ def events_cmd(args):
 
 
 def events_to_raw_cmd(args):
-    print get_events_file(args)
+    print
+    get_events_file(args)
 
 
 def events_from_raw_cmd(args):
@@ -482,13 +486,13 @@ def links_name_cmd(args):
     base_link['creation_ip']['S'] = '0.0.0.0'
     # It's us, so we don't care about "anonymizing" the time
     base_link['creation_date']['S'] = datetime.datetime.utcnow().isoformat()
-    title = raw_input('Link title: ')
-    author = raw_input('Author(s): ')
+    title = input('Link title: ')
+    author = input('Author(s): ')
     if len(author) == 0:
         # We explicitly ignore author = . in the site code
         author = '.'
-    project = raw_input('Project: ')
-    description = raw_input('Description: ')
+    project = input('Project: ')
+    description = input('Description: ')
     base_link['named_metadata'] = {'M': {
         'title': {'S': title},
         'author': {'S': author},
@@ -551,16 +555,24 @@ def links_maintenance_cmd(args):
         delete_s3_links(s3dirty_set)
 
 
+def add_required_sub_parsers(parser, dest):
+    sub_parser = parser.add_subparsers(dest=dest)
+    sub_parser.required = True  # docs say I can pass required=True in add_subparsers but that seems to be a lie
+    return sub_parser
+
+
 if __name__ == '__main__':
     parser = ArgumentParser(description='Administrate Compiler Explorer instances')
     parser.add_argument('--env', choices=['prod', 'beta'], default='beta', metavar='ENV', help='Select environment ENV')
     parser.add_argument('--mosh', action='store_true', help='Use mosh for interactive shells')
     parser.add_argument('--debug', action='store_true', help='Increase debug information')
-    subparsers = parser.add_subparsers(dest='command')
+
+    subparsers = add_required_sub_parsers(parser, 'command')
     admin_parser = subparsers.add_parser('admin')
 
     builder_parser = subparsers.add_parser('builder')
-    builder_sub = builder_parser.add_subparsers(dest='builder_sub')
+    builder_sub = add_required_sub_parsers(builder_parser, 'builder_sub')
+    builder_sub.required = True
     builder_sub.add_parser('start')
     builder_sub.add_parser('stop')
     builder_sub.add_parser('status')
@@ -569,7 +581,7 @@ if __name__ == '__main__':
     builder_exec.add_argument('remote_cmd', nargs='+', help='command to run on builder node')
 
     builds_parser = subparsers.add_parser('builds')
-    builds_sub = builds_parser.add_subparsers(dest='builds_sub')
+    builds_sub = add_required_sub_parsers(builds_parser, 'builds_sub')
     list_parser = builds_sub.add_parser('list')
     list_parser.add_argument('-b', '--branch', type=str, help='show only selected branches')
     builds_sub.add_parser('current')
@@ -584,7 +596,7 @@ if __name__ == '__main__':
     expire.add_argument('--dry-run', help='dry run only', action='store_true')
 
     instances_parser = subparsers.add_parser('instances')
-    instances_sub = instances_parser.add_subparsers(dest='instances_sub')
+    instances_sub = add_required_sub_parsers(instances_parser, 'instances_sub')
     instances_sub.add_parser('status')
     instances_sub.add_parser('restart_one')
     instances_sub.add_parser('login')
@@ -596,7 +608,7 @@ if __name__ == '__main__':
     instances_restart_parser.add_argument('--motd', type=str, default='Site is being updated')
 
     ads_parser = subparsers.add_parser('ads')
-    ads_sub = ads_parser.add_subparsers(dest='ads_sub')
+    ads_sub = add_required_sub_parsers(ads_parser, 'ads_sub')
     ads_sub.add_parser('list')
     ads_add_parser = ads_sub.add_parser('add')
     ads_add_parser.add_argument('html', type=str, help='message contents')
@@ -611,14 +623,14 @@ if __name__ == '__main__':
     ads_edit_parser.add_argument('--filter', type=str, help='new ad filter(s)')
 
     motd_parser = subparsers.add_parser('motd')
-    motd_sub = motd_parser.add_subparsers(dest='motd_sub')
+    motd_sub = add_required_sub_parsers(motd_parser, 'motd_sub')
     motd_sub.add_parser('show')
     motd_update_parser = motd_sub.add_parser('update')
     motd_update_parser.add_argument('message', type=str, help='new motd')
     motd_sub.add_parser('clear')
 
     events_parser = subparsers.add_parser('events')
-    events_sub = events_parser.add_subparsers(dest='events_sub')
+    events_sub = add_required_sub_parsers(events_parser, 'events_sub')
     events_from_file_parser = events_sub.add_parser('from_file')
     events_from_file_parser.add_argument('path', type=str, help='location of file to load from')
     events_to_file_parser = events_sub.add_parser('to_file')
@@ -627,7 +639,7 @@ if __name__ == '__main__':
     events_sub.add_parser('to_raw')
 
     links_parser = subparsers.add_parser('links')
-    links_sub = links_parser.add_subparsers(dest='links_sub')
+    links_sub = add_required_sub_parsers(links_parser, 'links_sub')
     links_name_parser = links_sub.add_parser('name')
     links_name_parser.add_argument('from', type=str, help='unique subhash to base the link from')
     links_name_parser.add_argument('to', type=str, help='name of the link')
@@ -647,5 +659,5 @@ if __name__ == '__main__':
     cmd = kwargs.pop('command')
     if cmd not in ('admin', 'builder', 'links'):
         if cmd != 'events' or not kwargs['events_sub'].endswith('_raw'):
-            print "Running in {}".format(kwargs['env'])
+            print("Running in {}".format(kwargs['env']))
     globals()[cmd + "_cmd"](kwargs)

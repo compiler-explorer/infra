@@ -36,4 +36,13 @@ clean:
 update-admin:
 	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
 
-.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer update-compilers build-compiler-images update-admin
+VIRTUALENV?=.env
+
+$(VIRTUALENV): requirements.txt
+	rm -rf $(VIRTUALENV)
+	virtualenv --python=python3 $(VIRTUALENV)	
+	$(VIRTUALENV)/bin/pip install -r requirements.txt
+
+ce: $(VIRTUALENV)
+
+.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer update-compilers build-compiler-images update-admin ce

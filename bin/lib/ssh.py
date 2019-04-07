@@ -19,33 +19,33 @@ def ssh_address_for(instance):
 
 
 def run_remote_shell(args, instance):
-    logger.debug("Running remote shell on {}".format(instance))
+    logger.debug(f"Running remote shell on {instance}")
     ssh_command = 'ssh -o ConnectTimeout=5 ' \
                   '-o UserKnownHostsFile=/dev/null ' \
                   '-o StrictHostKeyChecking=no -o ' \
                   'LogLevel=ERROR'
     if args['mosh']:
-        ssh_command = 'mosh --ssh=\'{}\''.format(ssh_command)
-    os.system(ssh_command + ' ubuntu@{}'.format(ssh_address_for(instance)))
+        ssh_command = f'mosh --ssh=\'{ssh_command}\''
+    os.system(f'{ssh_command} ubuntu@{ssh_address_for(instance)}')
 
 
 def exec_remote(instance, command):
-    logger.debug("Running '{}' on {}".format(" ".join(command), instance))
-    return subprocess.check_output(ssh_args_for(command, instance))
+    logger.debug(f"Running '{' '.join(command)}' on {instance}")
+    return subprocess.check_output(ssh_args_for(command, instance)).decode('utf-8')
 
 
 def exec_remote_to_stdout(instance, command):
-    logger.debug("Running '{}' on {}".format(" ".join(command), instance))
+    logger.debug(f"Running '{' '.join(command)}' on {instance}")
     subprocess.check_call(ssh_args_for(command, instance))
 
 
 def ssh_args_for(command, instance):
     return ['ssh', '-o', 'ConnectTimeout=5', '-o', 'UserKnownHostsFile=/dev/null', '-o', 'StrictHostKeyChecking=no',
             '-o', 'LogLevel=ERROR',
-            'ubuntu@' + ssh_address_for(instance), '--'] + ["'{}'".format(c) for c in command]
+            'ubuntu@' + ssh_address_for(instance), '--'] + [f"'{c}'" for c in command]
 
 
 def exec_remote_all(instances, command):
     for instance in instances:
         result = exec_remote(instance, command)
-        print '{}: {}'.format(instance, result or "(no output)")
+        print(f'{instance}: {result or "(no output)"}')

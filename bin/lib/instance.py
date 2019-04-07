@@ -41,7 +41,7 @@ class Instance(object):
                 'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; '
                 'then cat /compiler-explorer-image/.deploy/s3_key; fi'
             ]).strip()
-        except subprocess.CalledProcessError, e:
+        except subprocess.CalledProcessError as e:
             logger.warn("Failed to execute on remote host: {}".format(e))
 
     @staticmethod
@@ -86,24 +86,24 @@ class BuilderInstance(object):
 
 def print_instances(instances, number=False):
     if number:
-        print '   ',
+        print('   ', end='')
     releases = get_releases()
-    print STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB', 'Service', 'Version')
+    print(STATUS_FORMAT.format('Address', 'Instance Id', 'State', 'Type', 'ELB', 'Service', 'Version'))
     count = 0
     for inst in instances:
         if number:
-            print '{: <3}'.format(count),
+            print('{: <3}'.format(count), end='')
         count += 1
         running_version = release_for(releases, inst.running_version)
         if running_version:
             running_version = '{} ({})'.format(running_version.version, running_version.branch)
         else:
             running_version = '(unknown {})'.format(inst.running_version)
-        print STATUS_FORMAT.format(
+        print(STATUS_FORMAT.format(
             inst.instance.public_ip_address,
             inst.instance.id,
             inst.instance.state['Name'],
             inst.instance.instance_type,
             inst.elb_health,
             inst.service_status['SubState'],
-            running_version)
+            running_version))
