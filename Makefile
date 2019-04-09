@@ -40,7 +40,7 @@ VIRTUALENV?=.env
 
 $(VIRTUALENV): requirements.txt
 	rm -rf $(VIRTUALENV)
-	virtualenv --python=python3 $(VIRTUALENV)	
+	pythoa3n -mvenv $(VIRTUALENV)	
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
 ce: $(VIRTUALENV)
