@@ -14,14 +14,13 @@ fi
 
 env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
-apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4
+apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3-pip
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
-pip install --upgrade pip 
-hash -r pip
-pip install --upgrade awscli
-pip install -r requirements.txt
+pip3 install --upgrade pip3
+hash -r pip3
+pip3 install --upgrade awscli
 
 # Install private and public keys
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value > /home/ubuntu/.ssh/id_rsa

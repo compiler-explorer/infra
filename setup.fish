@@ -13,3 +13,7 @@ echo   if test -e \$AUTOJUMP_PATH >> ~/.config/fish/config.fish
 echo     source \$AUTOJUMP_PATH >> ~/.config/fish/config.fish
 echo   end >> ~/.config/fish/config.fish
 echo end >> ~/.config/fish/config.fish
+echo set VIRTUAL_ENV_DISABLE_PROMPT yes >> ~/.config/fish/config.fish
+echo if test -e ~/compiler-explorer-image/bin/activate-fish >> ~/.config/fish/config.fish
+echo   source ~/compiler-explorer-image/bin/activate.fish >> ~/.config/fish/config.fish
+echo end >> ~/.config/fish/config.fish
