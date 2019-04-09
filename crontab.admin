@@ -2,7 +2,7 @@ MAILTO=compiler-explorer-admin@googlegroups.com
 PATH=/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # m h  dom mon dow   command
-00 00 * * * cronic bash -c "git -C /home/ubuntu/compiler-explorer-image pull"
+00 00 * * * cronic bash -c "git -C /home/ubuntu/compiler-explorer-image pull && make -C /home/ubuntu/compiler-explorer-image ce"
 05 00 * * * cronic bash -c "crontab < /home/ubuntu/compiler-explorer-image/crontab.admin"
 10 00 * * * cronic /home/ubuntu/compiler-explorer-image/admin-daily-builds.sh
 00 03 * * * cronic bash -c "sudo /home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
