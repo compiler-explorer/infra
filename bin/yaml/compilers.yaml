@@ -39,15 +39,45 @@ compilers:
         - 8.2.0
         - 8.3.0
     clang:
-      type: s3tarballs
-      check_exe: bin/clang++ --version
-      targets:
-        - 3.2.tar.gz # do_strip? also name is "3.2.tar.gz" which is fugly
-        - 3.3.tar.gz # do_strip?
-        - 3.9.1
-        - 4.0.0
-        - 4.0.1
-        - 5.0.0
-        - 6.0.0
-        - 7.0.0
-        - 8.0.0
+      - type: tarballs
+        check_exe: bin/clang++ --version
+        dir: clang+llvm-{name}-{suffix}
+        url: https://llvm.org/releases/{name}/clang+llvm-{name}-{suffix}.tar.gz
+        compression: gz
+        # do_strip?
+        targets:
+          - name: 3.0
+            suffix: x86_64-linux-Ubuntu-11_10
+          - name: 3.1
+            suffix: x86_64-linux-ubuntu_12.04
+      - type: tarballs
+        check_exe: bin/clang++ --version
+        dir: clang+llvm-{name}-{suffix}
+        url: https://llvm.org/releases/{name}/clang+llvm-{name}-{suffix}.tar.xz
+        compression: xz
+        # do_strip?
+        targets:
+          - name: 3.4.1
+            suffix: x86_64-unknown-ubuntu12.04
+          - name: 3.5.0
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+            dir: clang+llvm-3.5.0-x86_64-linux-gnu  # handle packaging error
+          - name: 3.5.1
+            suffix: x86_64-linux-gnu
+          - name: 3.5.2
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+            dir: clang+llvm-3.5.2-x86_64-linux-gnu  # handle packaging error
+      - type: s3tarballs
+        check_exe: bin/clang++ --version
+        targets:
+          - name: 3.2
+            compression: gz # do_strip?
+          - name: 3.3
+            compression: gz # do_strip?
+          - 3.9.1
+          - 4.0.0
+          - 4.0.1
+          - 5.0.0
+          - 6.0.0
+          - 7.0.0
+          - 8.0.0
