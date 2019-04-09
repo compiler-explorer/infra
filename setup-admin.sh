@@ -18,7 +18,7 @@ apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
-pip3 install --upgrade pip3
+pip3 install --upgrade pip
 hash -r pip3
 pip3 install --upgrade awscli
 
