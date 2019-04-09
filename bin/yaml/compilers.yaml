@@ -42,6 +42,8 @@ compilers:
       type: s3tarballs
       check_exe: bin/clang++ --version
       targets:
+        - 3.2.tar.gz # do_strip? also name is "3.2.tar.gz" which is fugly
+        - 3.3.tar.gz # do_strip?
         - 3.9.1
         - 4.0.0
         - 4.0.1

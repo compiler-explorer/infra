@@ -160,12 +160,24 @@ class Installable(object):
 class S3TarballInstallable(Installable):
     def __init__(self, context, name, path_name, check_call, depends=None):
         super(S3TarballInstallable, self).__init__(context, name, depends)
+        self.suffix = '.tar.xz'
         self.path_name = path_name
-        self.check_call = check_call
+        if '.tar' in path_name:
+            dot_pos = path_name.index('.tar')
+            self.suffix = path_name[dot_pos:]
+            self.path_name = path_name[:dot_pos]
+        if self.suffix == '.tar.xz':
+            self.decompress_flag = 'J'
+        elif self.suffix == '.tar.gz':
+            self.decompress_flag = 'z'
+        else:
+            raise RuntimeError(f'Unknown tar suffix {self.suffix}')
+        self.check_call = check_call[:]
+        self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
 
     def stage(self):
         self.context.clean_staging()
-        self.context.fetch_s3_and_pipe_to(f'{self.path_name}.tar.xz', ['tar', 'Jxf', '-'])
+        self.context.fetch_s3_and_pipe_to(f'{self.path_name}{self.suffix}', ['tar', f'{self.decompress_flag}xf', '-'])
 
     def verify(self):
         if not super(S3TarballInstallable, self).verify():
@@ -203,11 +215,9 @@ def parse(install_context, installables, context, nodes):
             return parse(install_context, installables, node_context, node)
         type = node['type']
         if type == 's3tarballs':
-            check_exe_base = node['check_exe'].split(" ")
+            check_exe = node['check_exe'].split(" ")
             for target in node['targets']:
                 path_name = f'{name}-{target}'
-                check_exe = check_exe_base[:]
-                check_exe[0] = os.path.join(path_name, check_exe[0])
                 installables.append(
                     S3TarballInstallable(install_context, f'{node_context} {target}', path_name, check_exe))
         else:
