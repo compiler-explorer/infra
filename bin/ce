@@ -300,8 +300,7 @@ def builds_cmd(args):
 
 
 def builds_current_cmd(args):
-    print
-    describe_current_release(args)
+    print(describe_current_release(args))
 
 
 def builds_set_current_cmd(args):
@@ -345,15 +344,15 @@ def builds_list_cmd(args):
     current = get_current_key(args)
     releases = get_releases()
     filter_branches = set(args['branch'].split(',') if args['branch'] is not None else [])
-    print
-    RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash')
+    print(RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash'))
     for branch, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
             if len(filter_branches) == 0 or release.branch in filter_branches:
-                print
-                RELEASE_FORMAT.format(
-                    ' -->' if release.key == current else '',
-                    release.branch, release.version, sizeof_fmt(release.size), release.hash)
+                print(
+                    RELEASE_FORMAT.format(
+                        ' -->' if release.key == current else '',
+                        release.branch, release.version, sizeof_fmt(release.size), str(release.hash))
+                )
 
 
 def ads_cmd(args):
@@ -362,11 +361,9 @@ def ads_cmd(args):
 
 def ads_list_cmd(args):
     events = json.loads(get_events_file(args))
-    print
-    ADS_FORMAT.format('ID', 'Filters', 'HTML')
+    print(ADS_FORMAT.format('ID', 'Filters', 'HTML'))
     for ad in events['ads']:
-        print
-        ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])
+        print(ADS_FORMAT.format(ad['id'], str(ad['filter']), ad['html']))
 
 
 def ads_add_cmd(args):
@@ -376,7 +373,7 @@ def ads_add_cmd(args):
         'filter': args['filter'].split(',') if len(args['filter']) > 0 else [],
         'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
     }
-    if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], new_ad['filter'], new_ad['html'])), args):
+    if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], str(new_ad['filter']), new_ad['html'])), args):
         events['ads'].append(new_ad)
         save_event_file(args, json.dumps(events))
 
@@ -386,7 +383,7 @@ def ads_remove_cmd(args):
     for i, ad in enumerate(events['ads']):
         if ad['id'] == args['id']:
             if args['force'] or \
-                    are_you_sure('remove ad: {}'.format(ADS_FORMAT.format(ad['id'], ad['filter'], ad['html'])), args):
+                    are_you_sure('remove ad: {}'.format(ADS_FORMAT.format(ad['id'], str(ad['filter']), ad['html'])), args):
                 del events['ads'][i]
                 save_event_file(args, json.dumps(events))
             break
@@ -410,8 +407,8 @@ def ads_edit_cmd(args):
                 'html': args['html'] or ad['html']
             }
             print('{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'HTML'),
-                                      ADS_FORMAT.format('<FROM', ad['filter'], ad['html']),
-                                      ADS_FORMAT.format('>TO', new_ad['filter'], new_ad['html'])))
+                                      ADS_FORMAT.format('<FROM', str(ad['filter']), ad['html']),
+                                      ADS_FORMAT.format('>TO', str(new_ad['filter']), new_ad['html'])))
             if are_you_sure('edit ad id: {}'.format(ad['id']), args):
                 events['ads'][i] = new_ad
                 save_event_file(args, json.dumps(events))
@@ -446,12 +443,11 @@ def events_cmd(args):
 
 
 def events_to_raw_cmd(args):
-    print
-    get_events_file(args)
+    print(get_events_file(args))
 
 
 def events_from_raw_cmd(args):
-    raw = raw_input()
+    raw = input()
     save_event_file(args, json.dumps(json.loads(raw)))
 
 

@@ -9,6 +9,7 @@ s3_client = boto3.client('s3')
 dynamodb_client = boto3.client('dynamodb')
 LINKS_TABLE = 'links'
 
+
 class Hash(object):
     def __init__(self, hash):
         self.hash = hash
@@ -17,7 +18,7 @@ class Hash(object):
         return self.hash
 
     def __str__(self):
-        return self.hash[:6] + ".." + self.hash[-6:]
+        return f'{str(self.hash[:6])}..{str(self.hash[-6:])}'
 
 
 class Release(object):
