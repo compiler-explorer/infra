@@ -281,7 +281,7 @@ def instances_restart_cmd(args):
             failed = True
             # TODO, what here?
 
-    for group, desired in modified_groups.iteritems():
+    for group, desired in iter(modified_groups.items()):
         logger.info("Putting desired instances for {} back to {}".format(group, desired))
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
     # Events might have changed, re-fetch
