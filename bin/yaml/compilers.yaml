@@ -44,7 +44,7 @@ compilers:
         dir: clang+llvm-{name}-{suffix}
         url: https://llvm.org/releases/{name}/clang+llvm-{name}-{suffix}.tar.gz
         compression: gz
-        # do_strip?
+        strip: true
         targets:
           - name: 3.0
             suffix: x86_64-linux-Ubuntu-11_10
@@ -55,7 +55,7 @@ compilers:
         dir: clang+llvm-{name}-{suffix}
         url: https://llvm.org/releases/{name}/clang+llvm-{name}-{suffix}.tar.xz
         compression: xz
-        # do_strip?
+        strip: true
         targets:
           - name: 3.4.1
             suffix: x86_64-unknown-ubuntu12.04
@@ -71,9 +71,11 @@ compilers:
         check_exe: bin/clang++ --version
         targets:
           - name: 3.2
-            compression: gz # do_strip?
+            compression: gz
+            strip: true
           - name: 3.3
-            compression: gz # do_strip?
+            compression: gz
+            strip: true
           - 3.9.1
           - 4.0.0
           - 4.0.1
@@ -81,3 +83,13 @@ compilers:
           - 6.0.0
           - 7.0.0
           - 8.0.0
+    ellccs:
+      type: tarballs
+      check_exe: bin/clang++ --version
+      dir: ellcc-{name}
+      url: http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-${name}.tgz
+      compression: gz
+      strip: true
+      targets:
+        - 0.1.33
+        - 0.1.34
