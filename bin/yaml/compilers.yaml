@@ -87,7 +87,8 @@ compilers:
       type: tarballs
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
-      url: http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-${name}.tgz
+      untar_dir: ellcc
+      url: http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-{name}.tgz
       compression: gz
       strip: true
       targets:

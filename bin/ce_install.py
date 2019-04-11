@@ -230,7 +230,8 @@ class S3TarballInstallable(Installable):
 class TarballInstallable(Installable):
     def __init__(self, context, name, config, depends=None):
         super(TarballInstallable, self).__init__(context, name, depends)
-        self.path_name = config['dir']
+        self.install_path = config['dir']
+        self.untar_path = config.get('untar_dir', self.install_path)
         self.url = config['url']
         if config['compression'] == 'xz':
             self.decompress_flag = 'J'
@@ -240,17 +241,19 @@ class TarballInstallable(Installable):
             raise RuntimeError(f'Unknown compression {config["compression"]}')
         self.strip = config['strip']
         self.check_call = config['check_exe'][:]
-        self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
+        self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
 
     def stage(self):
         self.context.clean_staging()
         self.context.fetch_url_and_pipe_to(f'{self.url}', ['tar', f'{self.decompress_flag}xf', '-'])
+        if not os.path.isdir(os.path.join(self.context.staging, self.untar_path)):
+            raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
 
     def verify(self):
         if not super(TarballInstallable, self).verify():
             return False
         self.stage()
-        return self.context.compare_against_staging(self.path_name)
+        return self.context.compare_against_staging(self.untar_path, self.install_path)
 
     def is_installed(self):
         try:
@@ -268,57 +271,63 @@ class TarballInstallable(Installable):
         if not super(TarballInstallable, self).install():
             return False
         self.stage()
-        self.context.move_from_staging(self.path_name)
+        self.context.move_from_staging(self.untar_path, self.install_path)
         return True
 
     def __repr__(self) -> str:
-        return f'TarballInstallable({self.name}, {self.path_name})'
-
-
-def nodes_from(name, node_context, nodes):
-    if isinstance(nodes, list):
-        for node in nodes:
-            yield (name, node_context, node)
-    else:
-        for name, node in nodes.items():
-            yield (name, f'{node_context}/{name}', node)
+        return f'TarballInstallable({self.name}, {self.install_path})'
 
 
 def parse(install_context, installables, name, context, nodes):
-    for name, node_context, node in nodes_from(name, context, nodes):
-        if 'type' not in node:
-            return parse(install_context, installables, name, node_context, node)
-        type = node['type']
-        if type == 's3tarballs':
-            base_config = {
-                'check_exe': node['check_exe'].split(" "),
-                'strip': node.get('strip', False),
-                'compression': node.get('compression', 'xz')
-            }
-            for config in node['targets']:
-                if isinstance(config, str):
-                    config = {'name': config}
-                config['path_name'] = f'{name}-{config["name"]}'
-                config = dict(base_config, **config)
-                installables.append(
-                    S3TarballInstallable(install_context, f'{node_context} {config["name"]}', config))
-        elif type == 'tarballs':
-            base_config = {
-                'dir': node['dir'],
-                'url': node['url'],
-                'compression': node['compression'],
-                'check_exe': node['check_exe'].split(" "),
-                'strip': node.get('strip', False)
-            }
-            for config in node['targets']:
-                config = dict(base_config, **config)
-                for key in config.keys():
-                    if isinstance(config[key], str):
-                        config[key] = config[key].format(**config)
-                installables.append(
-                    TarballInstallable(install_context, f'{node_context} {config["name"]}', config))
-        else:
-            raise RuntimeError(f'Bad type {type} for {node_context}')
+    if isinstance(nodes, list):
+        for node in nodes:
+            parse(install_context, installables, name, context, node)
+        return
+    if name:
+        context = f'{context}/{name}'
+    if not isinstance(nodes, dict):
+        raise RuntimeError("Bad node", nodes)
+    if 'type' not in nodes:
+        for name, node in nodes.items():
+            parse(install_context, installables, name, context, node)
+        return
+
+    node = nodes
+    node_type = node['type']
+    if node_type == 's3tarballs':
+        base_config = {
+            'check_exe': node['check_exe'].split(" "),
+            'strip': node.get('strip', False),
+            'compression': node.get('compression', 'xz')
+        }
+        for config in node['targets']:
+            if isinstance(config, str):
+                config = {'name': config}
+            config['path_name'] = f'{name}-{config["name"]}'
+            config = dict(base_config, **config)
+            installables.append(
+                S3TarballInstallable(install_context, f'{context} {config["name"]}', config))
+    elif node_type == 'tarballs':
+        # TODO move this logic
+        base_config = {
+            'dir': node['dir'],
+            'untar_dir': node.get('untar_dir', node['dir']), # duplicated currently in TarballInstallable
+            'url': node['url'],
+            'compression': node['compression'],
+            'check_exe': node['check_exe'].split(" "),
+            'strip': node.get('strip', False)
+        }
+        for config in node['targets']:
+            if isinstance(config, str):
+                config = {'name': config}
+            config = dict(base_config, **config)
+            for key in config.keys():
+                if isinstance(config[key], str):
+                    config[key] = config[key].format(**config)
+            installables.append(
+                TarballInstallable(install_context, f'{context} {config["name"]}', config))
+    else:
+        raise RuntimeError(f'Bad type {node_type} for {context}')
 
 
 def filter_match(filter, installable):
@@ -425,8 +434,8 @@ def main():
                     else:
                         context.info(f"{installable.name} failed to install")
                         num_failed += 1
-                except Exception:
-                    context.info(f"{installable.name} failed to install")
+                except Exception as e:
+                    context.info(f"{installable.name} failed to install: {e}")
                     num_failed += 1
         print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {num_failed} failed installation')
         if num_failed:
