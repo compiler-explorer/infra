@@ -29,7 +29,7 @@ git clone --single-branch https://github.com/llvm-mirror/llvm.git
 
 # Checkout & configure clang
 pushd llvm/tools
-git clone --depth 1 --single-branch -b feature/metaprogramming https://gitlab.com/lock3/clang.git
+git clone --depth 1 --single-branch -b compiler-explorer https://gitlab.com/lock3/clang.git
 
 # Load llvm revisions for this compiler build
 pushd clang
