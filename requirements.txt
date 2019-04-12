@@ -3,3 +3,4 @@ awscli
 requests
 cachecontrol[filecache]
 pyyaml
+nose

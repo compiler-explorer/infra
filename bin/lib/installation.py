@@ -1,18 +1,12 @@
-#!/usr/bin/env python3
-# coding=utf-8
-import glob
-import os
-import sys
-import shutil
-import tempfile
-from argparse import ArgumentParser
-from cachecontrol import CacheControl
-from cachecontrol.caches.file_cache import FileCache
-import subprocess
-import yaml
-import requests
 import logging
-import logging.config
+import os
+import shutil
+import subprocess
+import tempfile
+
+import requests
+from cachecontrol import CacheControl
+from cachecontrol.caches import FileCache
 
 logger = logging.getLogger(__name__)
 
@@ -134,12 +128,10 @@ class InstallationContext(object):
 
 
 class Installable(object):
-    def __init__(self, context, name, depends):
+    def __init__(self, context, config):
         self.context = context
-        self.name = name
-        if not depends:
-            depends = []
-        self.depends = depends
+        self.name = f'{"/".join(config["context"])} {config["name"]}'
+        self.depends = config.get('depends', [])
 
     def debug(self, message):
         self.context.debug(f'{self.name}: {message}')
@@ -175,21 +167,29 @@ class Installable(object):
         raise RuntimeError("needs to be implemented")
 
 
+def command_config(config):
+    if isinstance(config, str):
+        return config.split(" ")
+    return config[0]
+
+
 class S3TarballInstallable(Installable):
-    def __init__(self, context, name, config, depends=None):
-        super(S3TarballInstallable, self).__init__(context, name, depends)
+    def __init__(self, context, config):
+        super(S3TarballInstallable, self).__init__(context, config)
+        # todo config getter with needed/unneeded? or try/catch at top level to give decent errors if missing
         self.suffix = '.tar.xz'
-        self.path_name = config['path_name']
-        if config['compression'] == 'xz':
+        self.path_name = config.get('path_name', f'{config["context"][-1]}-{config["name"]}')
+        compression = config.get('compression', 'xz')
+        if compression == 'xz':
             self.suffix = '.tar.xz'
             self.decompress_flag = 'J'
-        elif config['compression'] == 'gz':
+        elif compression == 'gz':
             self.suffix = '.tar.gz'
             self.decompress_flag = 'z'
         else:
-            raise RuntimeError(f'Unknown compression {config["compression"]}')
-        self.strip = config['strip']
-        self.check_call = config['check_exe'][:]
+            raise RuntimeError(f'Unknown compression {compression}')
+        self.strip = config.get('strip', False)
+        self.check_call = command_config(config['check_exe'])
         self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
 
     def stage(self):
@@ -228,8 +228,8 @@ class S3TarballInstallable(Installable):
 
 
 class TarballInstallable(Installable):
-    def __init__(self, context, name, config, depends=None):
-        super(TarballInstallable, self).__init__(context, name, depends)
+    def __init__(self, context, config):
+        super(TarballInstallable, self).__init__(context, config)
         self.install_path = config['dir']
         self.untar_path = config.get('untar_dir', self.install_path)
         self.url = config['url']
@@ -240,7 +240,7 @@ class TarballInstallable(Installable):
         else:
             raise RuntimeError(f'Unknown compression {config["compression"]}')
         self.strip = config['strip']
-        self.check_call = config['check_exe'][:]
+        self.check_call = command_config(config['check_exe'])
         self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
 
     def stage(self):
@@ -278,172 +278,59 @@ class TarballInstallable(Installable):
         return f'TarballInstallable({self.name}, {self.install_path})'
 
 
-def parse(install_context, installables, name, context, nodes):
-    if isinstance(nodes, list):
-        for node in nodes:
-            parse(install_context, installables, name, context, node)
+def targets_from(node):
+    return _targets_from(node, [], "", {})
+
+
+def _targets_from(node, context, name, base_config):
+    if not node:
         return
+
+    if isinstance(node, list):
+        for child in node:
+            for target in _targets_from(child, context, name, base_config):
+                yield target
+        return
+
+    if not isinstance(node, dict):
+        return
+
+    context = context[:]
     if name:
-        context = f'{context}/{name}'
-    if not isinstance(nodes, dict):
-        raise RuntimeError("Bad node", nodes)
-    if 'type' not in nodes:
-        for name, node in nodes.items():
-            parse(install_context, installables, name, context, node)
+        context.append(name)
+    base_config = dict(base_config)
+    for key, value in node.items():
+        if isinstance(value, str):
+            base_config[key] = value
+
+    if 'type' not in node:
+        for child_name, child in node.items():
+            for target in _targets_from(child, context, child_name, base_config):
+                yield target
         return
 
-    node = nodes
-    node_type = node['type']
-    if node_type == 's3tarballs':
-        base_config = {
-            'check_exe': node['check_exe'].split(" "),
-            'strip': node.get('strip', False),
-            'compression': node.get('compression', 'xz')
-        }
-        for config in node['targets']:
-            if isinstance(config, str):
-                config = {'name': config}
-            config['path_name'] = f'{name}-{config["name"]}'
-            config = dict(base_config, **config)
-            installables.append(
-                S3TarballInstallable(install_context, f'{context} {config["name"]}', config))
-    elif node_type == 'tarballs':
-        # TODO move this logic
-        base_config = {
-            'dir': node['dir'],
-            'untar_dir': node.get('untar_dir', node['dir']), # duplicated currently in TarballInstallable
-            'url': node['url'],
-            'compression': node['compression'],
-            'check_exe': node['check_exe'].split(" "),
-            'strip': node.get('strip', False)
-        }
-        for config in node['targets']:
-            if isinstance(config, str):
-                config = {'name': config}
-            config = dict(base_config, **config)
-            for key in config.keys():
-                if isinstance(config[key], str):
-                    config[key] = config[key].format(**config)
-            installables.append(
-                TarballInstallable(install_context, f'{context} {config["name"]}', config))
-    else:
-        raise RuntimeError(f'Bad type {node_type} for {context}')
+    base_config['context'] = context
+    for target in node['targets']:
+        if isinstance(target, str):
+            target = {'name': target}
+        target = dict(base_config, **target)
+        for key in target.keys():
+            if isinstance(target[key], str):
+                target[key] = target[key].format(**target)
+        yield target
 
 
-def filter_match(filter, installable):
-    return filter in installable.name
+INSTALLER_TYPES = {
+    'tarballs': TarballInstallable,
+    's3tarballs': S3TarballInstallable
+}
 
 
-def main():
-    parser = ArgumentParser(description='Install binaries, libraries and compilers for Compiler Explorer')
-    parser.add_argument('--dest', default='/opt/compiler-explorer', metavar='DEST',
-                        help='install with DEST as the installation root (default %(default)s)')
-    parser.add_argument('--staging-dir', default='/opt/compiler-explorer/staging', metavar='STAGEDIR',
-                        help='install to STAGEDIR then rename in-place. Must be on the same drive as DEST for atomic'
-                             'rename/replace. Directory will be removed during install (default %(default)s)')
-
-    parser.add_argument('--s3_bucket', default='compiler-explorer', metavar='BUCKET',
-                        help='look for S3 resources in BUCKET (default %(default)s)')
-    parser.add_argument('--s3_dir', default='opt', metavar='DIR',
-                        help='look for S3 resources in the bucket\'s subdirectory DIR (default %(default)s)')
-    parser.add_argument('--yaml_dir', default=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'yaml'),
-                        help='look for installation yaml files in DIR (default %(default)s', metavar='DIR')
-    parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR')
-    parser.add_argument('--dry_run', default=False, action='store_true', help='dry run only')
-    parser.add_argument('--force', default=False, action='store_true', help='force even if would otherwise skip')
-
-    parser.add_argument('--debug', default=False, action='store_true', help='log at debug')
-    parser.add_argument('--log_to_console', default=False, action='store_true',
-                        help='log output to console, even if logging to a file is requested')
-    parser.add_argument('--log', metavar='LOGFILE', help='log to LOGFILE')
-
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify'], default='list',
-                        nargs='?')
-    parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
-
-    args = parser.parse_args()
-    formatter = logging.Formatter(fmt='%(asctime)s %(name)-15s %(levelname)-8s %(message)s')
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
-    if args.log:
-        file_handler = logging.FileHandler(args.log)
-        file_handler.setFormatter(formatter)
-        root_logger.addHandler(file_handler)
-    if not args.log or args.log_to_console:
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
-        root_logger.addHandler(console_handler)
-
-    s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
-    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, args.cache)
-
-    installables = []
-    for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
-        parse(context, installables, "", "", yaml.load(open(yamlfile, 'r'), Loader=yaml.BaseLoader))
-
-    for filt in args.filter:
-        installables = filter(lambda installable: filter_match(filt, installable), installables)
-
-    if args.command == 'list':
-        print("Installation candidates:")
-        for installable in sorted(installables, key=lambda x: x.name):
-            print(installable.name)
-        sys.exit(0)
-    elif args.command == 'verify':
-        num_ok = 0
-        num_not_ok = 0
-        for installable in installables:
-            print(f"Checking {installable.name}")
-            if not installable.is_installed():
-                context.info(f"{installable.name} is not installed")
-                num_not_ok += 1
-            elif not installable.verify():
-                context.info(f"{installable.name} is not OK")
-                num_not_ok += 1
-            else:
-                num_ok += 1
-        print(f'{num_ok} packages OK, {num_not_ok} not OK or not installed')
-        if num_not_ok:
-            sys.exit(1)
-        sys.exit(0)
-    elif args.command == 'check_installed':
-        for installable in installables:
-            if installable.is_installed():
-                print(f"{installable.name}: installed")
-            else:
-                print(f"{installable.name}: not installed")
-        sys.exit(0)
-    elif args.command == 'install':
-        num_installed = 0
-        num_skipped = 0
-        num_failed = 0
-        for installable in installables:
-            print(f"Installing {installable.name}")
-            if installable.is_installed() and not args.force:
-                context.info(f"{installable.name} is already installed, skipping")
-                num_skipped += 1
-            else:
-                try:
-                    if installable.install():
-                        if not installable.is_installed():
-                            context.error(f"{installable.name} installed OK, but doesn't appear as installed after")
-                            num_failed += 1
-                        else:
-                            context.info(f"{installable.name} installed OK")
-                            num_installed += 1
-                    else:
-                        context.info(f"{installable.name} failed to install")
-                        num_failed += 1
-                except Exception as e:
-                    context.info(f"{installable.name} failed to install: {e}")
-                    num_failed += 1
-        print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {num_failed} failed installation')
-        if num_failed:
-            sys.exit(1)
-        sys.exit(0)
-    else:
-        raise RuntimeError("Er, whoops")
-
-
-if __name__ == '__main__':
-    main()
+def installers_for(install_context, nodes):
+    for target in targets_from(nodes):
+        assert 'type' in target
+        target_type = target['type']
+        if target_type not in INSTALLER_TYPES:
+            raise RuntimeError(f'Unknown installer type {target_type}')
+        installer_type = INSTALLER_TYPES[target_type]
+        yield installer_type(install_context, target)
