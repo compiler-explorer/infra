@@ -209,6 +209,8 @@ install_new_rust 1.33.0 RUST_TARGETS[@]
 if install_nightly; then
     RUST_TARGETS+=(
         riscv32imac-unknown-none-elf
+        riscv64imac-unknown-none-elf
+        riscv64gc-unknown-none-elf
     )
     install_new_rust nightly RUST_TARGETS[@] '1 day'
     install_new_rust beta RUST_TARGETS[@] '1 week'
