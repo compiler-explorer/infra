@@ -77,7 +77,7 @@ def get_releases():
             Bucket='compiler-explorer',
             Key=info_key
         )
-        hash = o['Body'].read().strip()
+        hash = o['Body'].read().decode("utf-8").strip()
         releases.append(Release(int(version), branch, key, info_key, size, Hash(hash)))
     return releases
 
@@ -113,7 +113,7 @@ def get_current_key(args):
             Bucket='compiler-explorer',
             Key=version_key_for_env(args)
         )
-        return o['Body'].read().strip()
+        return o['Body'].read().decode("utf-8").strip()
     except s3_client.exceptions.NoSuchKey:
         return None
 
@@ -126,7 +126,7 @@ def get_all_current():
                 Bucket='compiler-explorer',
                 Key='version/{}'.format(branch)
             )
-            versions.append(o['Body'].read().strip())
+            versions.append(o['Body'].read().decode("utf-8").strip())
         except s3_client.exceptions.NoSuchKey:
             pass
     return versions
@@ -156,7 +156,7 @@ def get_events_file(args):
             Bucket='compiler-explorer',
             Key=events_file_for(args)
         )
-        return o['Body'].read()
+        return o['Body'].read().decode("utf-8")
     except s3_client.exceptions.NoSuchKey:
         pass
 
