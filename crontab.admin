@@ -5,7 +5,7 @@ ACTIVATE="source /home/ubuntu/compiler-explorer-image/.env/bin/activate"
 # m h  dom mon dow   command
 00 00 * * * cronic bash -c "git -C /home/ubuntu/compiler-explorer-image pull && make -C /home/ubuntu/compiler-explorer-image ce"
 05 00 * * * cronic bash -c "crontab < /home/ubuntu/compiler-explorer-image/crontab.admin"
-10 00 * * * cronic bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/admin-daily-builds.sh
+10 00 * * * cronic bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/admin-daily-builds.sh"
 00 03 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
 05 03 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
 00 04 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
