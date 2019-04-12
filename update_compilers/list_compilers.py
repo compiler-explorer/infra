@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
-from urllib2 import urlopen
+from urllib.request import urlopen
 from argparse import ArgumentParser
 import xml.etree.ElementTree as ET
 
@@ -9,9 +9,9 @@ import xml.etree.ElementTree as ET
 def main(args):
     result = urlopen(args.s3url + "?prefix=" + args.prefix).read()
     root = ET.fromstring(result)
-    print " ".join(
+    print(" ".join(
         sorted(key.text[len(args.prefix):] for key in
-               root.findall('.//ns:Key', {'ns': 'http://s3.amazonaws.com/doc/2006-03-01/'})))
+               root.findall('.//ns:Key', {'ns': 'http://s3.amazonaws.com/doc/2006-03-01/'}))))
 
 
 if __name__ == '__main__':
