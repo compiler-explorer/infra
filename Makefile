@@ -45,4 +45,7 @@ $(VIRTUALENV): requirements.txt
 
 ce: $(VIRTUALENV)
 
-.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer update-compilers build-compiler-images update-admin ce
+test: ce
+	$(VIRTUALENV)/bin/nosetests bin
+
+.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer update-compilers build-compiler-images update-admin ce test
