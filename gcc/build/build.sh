@@ -23,6 +23,12 @@ elif echo ${VERSION} | grep 'trunk'; then
     URL=svn://gcc.gnu.org/svn/gcc/trunk 
     MAJOR=9
     MAJOR_MINOR=9-trunk
+elif echo ${VERSION} | grep 'ce-'; then
+    VERSION_NUM=${VERSION#ce-}
+    MAJOR=$(echo ${VERSION_NUM} | grep -oE '^[0-9]+')
+    MAJOR_MINOR=$(echo ${VERSION_NUM} | grep -oE '^[0-9]+\.[0-9]+')
+    URL=https://github.com/MaxKellermann/gcc.git
+    BRANCH=ce-${VERSION_NUM}
 elif echo ${VERSION} | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
     TARBALL=gcc-${VERSION}.tar.xz
