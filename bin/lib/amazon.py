@@ -204,3 +204,15 @@ def list_short_links():
     db_paginator = dynamodb_client.get_paginator('scan')
     return (s3_paginator.paginate(Bucket='storage.godbolt.org', Prefix='state/'),
             db_paginator.paginate(TableName=LINKS_TABLE, ProjectionExpression='unique_subhash, full_hash, creation_ip'))
+
+
+def list_compilers():
+    s3_paginator = s3_client.get_paginator('list_objects_v2')
+    prefix = 'opt/'
+    for page in s3_paginator.paginate(Bucket='compiler-explorer', Prefix=prefix):
+        for compiler in page['Contents']:
+            name = compiler['Key'][len(prefix):]
+            name = name[:name.find(".tar")]
+            if not name:
+                continue
+            yield name

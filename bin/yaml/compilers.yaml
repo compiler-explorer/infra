@@ -84,13 +84,40 @@ compilers:
           - 7.0.0
           - 8.0.0
     ellccs:
-      type: tarballs
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
       untar_dir: ellcc
-      url: http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-{name}.tgz
-      compression: gz
       strip: true
-      targets:
-        - 0.1.33
-        - 0.1.34
+      older:
+        type: tarballs
+        url: http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-{name}.tgz
+        compression: gz
+        targets:
+          - 0.1.33
+          - 0.1.34
+      newer:
+        type: tarballs
+        url: http://ellcc.org/releases/release-{name}/ellcc-x86_64-linux-{name}.bz2
+        compression: bz2
+        targets:
+          - 2017-07-16
+    nightly:
+      if: nightly
+      gcc:
+        type: nightly
+        check_exe: bin/g++ --version
+        targets:
+          - trunk
+          - lock3-contracts-trunk
+          - cxx-modules-trunk
+      clang:
+        type: nightly
+        check_exe: bin/clang++ --version
+        targets:
+          - trunk
+          - cppx-trunk
+          - concepts-trunk
+          - relocatable-trunk
+          - autonsdmi-trunk
+          - lifetime-trunk
+          - parmexpr-trunk

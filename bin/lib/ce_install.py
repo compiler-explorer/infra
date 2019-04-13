@@ -25,6 +25,7 @@ def main():
                         help='install to STAGEDIR then rename in-place. Must be on the same drive as DEST for atomic'
                              'rename/replace. Directory will be removed during install (default %(default)s)')
 
+    parser.add_argument('--enable', nargs='*', default=[], metavar='TYPE', help='enable targets of type TYPE (e.g. "nightly")')
     parser.add_argument('--s3_bucket', default='compiler-explorer', metavar='BUCKET',
                         help='look for S3 resources in BUCKET (default %(default)s)')
     parser.add_argument('--s3_dir', default='opt', metavar='DIR',
@@ -62,7 +63,7 @@ def main():
 
     installables = []
     for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
-        for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=yaml.BaseLoader)):
+        for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=yaml.BaseLoader), args.enable):
             installables.append(installer)
 
     for filt in args.filter:

@@ -1,14 +1,32 @@
 import logging
 import os
+import re
 import shutil
 import subprocess
 import tempfile
+from collections import defaultdict
 
 import requests
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
+from lib.amazon import list_compilers
+
 logger = logging.getLogger(__name__)
+
+_memoized_compilers = None
+
+
+def s3_available_compilers():
+    global _memoized_compilers
+    if _memoized_compilers is None:
+        splitter = re.compile(r'^(.*)-([0-9.]+)$')
+        _memoized_compilers = defaultdict(lambda: [])
+        for compiler in list_compilers():
+            match = splitter.match(compiler)
+            if match:
+                _memoized_compilers[match.group(1)].append(match.group(2))
+    return _memoized_compilers
 
 
 class InstallationContext(object):
@@ -69,6 +87,16 @@ class InstallationContext(object):
 
     def fetch_s3_and_pipe_to(self, s3, command):
         return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
+
+    def read_link(self, link):
+        return os.readlink(os.path.join(self.destination, link))
+
+    def set_link(self, source, dest):
+        full_dest = os.path.join(self.destination, dest)
+        if os.path.exists(full_dest):
+            os.remove(full_dest)
+        self.info(f'Symlinking {dest} to {source}')
+        os.symlink(source, full_dest)
 
     def move_from_staging(self, source, dest=None):
         if not dest:
@@ -227,6 +255,62 @@ class S3TarballInstallable(Installable):
         return f'S3TarballInstallable({self.name}, {self.path_name})'
 
 
+class NightlyInstallable(Installable):
+    def __init__(self, context, config):
+        super(NightlyInstallable, self).__init__(context, config)
+        self.strip = config.get('strip', False)
+        compiler_name = f'{config["context"][-1]}-{config["name"]}'
+        current = s3_available_compilers()
+        if compiler_name not in current:
+            raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
+        most_recent = max(current[compiler_name])
+        self.context.info(f'Most recent {compiler_name} is {most_recent}')
+        self.path_name = f'{compiler_name}-{most_recent}'
+        self.path_name_symlink = f'{compiler_name}'
+        self.check_call = command_config(config['check_exe'])
+        self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
+
+    def stage(self):
+        self.context.clean_staging()
+        self.context.fetch_s3_and_pipe_to(f'{self.path_name}.tar.xz', ['tar', f'Jxf', '-'])
+        if self.strip:
+            self.context.strip_exes()
+
+    def verify(self):
+        if not super(NightlyInstallable, self).verify():
+            return False
+        self.stage()
+        return self.context.compare_against_staging(self.path_name)
+
+    def is_installed(self):
+        try:
+            link = self.context.read_link(self.path_name_symlink)
+            self.debug(f'readlink returned {link}')
+            if link != self.path_name:
+                return False
+            res = self.context.check_output(self.check_call)
+            self.debug(f'Check call returned {res}')
+            return True
+        except OSError as e:
+            self.debug(f'OS error {e} for {self.check_call}')
+            return False
+        except subprocess.CalledProcessError:
+            self.debug(f'Got an error for {self.check_call}')
+            return False
+
+    def install(self):
+        # TODO: remove older
+        if not super(NightlyInstallable, self).install():
+            return False
+        self.stage()
+        self.context.move_from_staging(self.path_name)
+        self.context.set_link(self.path_name, self.path_name_symlink)
+        return True
+
+    def __repr__(self) -> str:
+        return f'NightlyInstallable({self.name}, {self.path_name})'
+
+
 class TarballInstallable(Installable):
     def __init__(self, context, config):
         super(TarballInstallable, self).__init__(context, config)
@@ -237,6 +321,8 @@ class TarballInstallable(Installable):
             self.decompress_flag = 'J'
         elif config['compression'] == 'gz':
             self.decompress_flag = 'z'
+        elif config['compression'] == 'bz2':
+            self.decompress_flag = 'j'
         else:
             raise RuntimeError(f'Unknown compression {config["compression"]}')
         self.strip = config['strip']
@@ -278,22 +364,27 @@ class TarballInstallable(Installable):
         return f'TarballInstallable({self.name}, {self.install_path})'
 
 
-def targets_from(node):
-    return _targets_from(node, [], "", {})
+def targets_from(node, enabled):
+    return _targets_from(node, enabled, [], "", {})
 
 
-def _targets_from(node, context, name, base_config):
+def _targets_from(node, enabled, context, name, base_config):
     if not node:
         return
 
     if isinstance(node, list):
         for child in node:
-            for target in _targets_from(child, context, name, base_config):
+            for target in _targets_from(child, enabled, context, name, base_config):
                 yield target
         return
 
     if not isinstance(node, dict):
         return
+
+    if 'if' in node:
+        condition = node['if']
+        if condition not in enabled:
+            return
 
     context = context[:]
     if name:
@@ -305,7 +396,7 @@ def _targets_from(node, context, name, base_config):
 
     if 'type' not in node:
         for child_name, child in node.items():
-            for target in _targets_from(child, context, child_name, base_config):
+            for target in _targets_from(child, enabled, context, child_name, base_config):
                 yield target
         return
 
@@ -322,12 +413,13 @@ def _targets_from(node, context, name, base_config):
 
 INSTALLER_TYPES = {
     'tarballs': TarballInstallable,
-    's3tarballs': S3TarballInstallable
+    's3tarballs': S3TarballInstallable,
+    'nightly': NightlyInstallable
 }
 
 
-def installers_for(install_context, nodes):
-    for target in targets_from(nodes):
+def installers_for(install_context, nodes, enabled):
+    for target in targets_from(nodes, enabled):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:

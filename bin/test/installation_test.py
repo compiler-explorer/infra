@@ -4,12 +4,13 @@ from nose.tools import assert_equals
 from lib.installation import targets_from
 
 
-def parse_targets(string_config):
-    return list(targets_from(yaml.load(string_config, Loader=yaml.BaseLoader)))
+def parse_targets(string_config, enabled=None):
+    enabled = enabled if enabled else set()
+    return list(targets_from(yaml.load(string_config, Loader=yaml.BaseLoader), enabled))
 
 
 def test_targets_from_simple_cases():
-    assert list(targets_from({})) == []
+    assert list(targets_from({}, set())) == []
     assert parse_targets("") == []
 
     assert_equals(
@@ -84,4 +85,25 @@ root:
             {'type': 'tip', 'name': 'bob', 'context': ['root', 'child'], 'var': 'The first var',
              'var2': 'the second var',
              'value': 'The first var-the second var'}
+        ])
+
+
+def test_targets_enabled():
+    assert_equals(
+        parse_targets("""
+weasel:
+    if: weasels_allowed
+    type: foo
+    targets:
+    - moo
+    """), [])
+    assert_equals(
+        parse_targets("""
+weasel:
+    if: weasels_allowed
+    type: foo
+    targets:
+    - moo
+    """, ['weasels_allowed']), [
+            {'if': 'weasels_allowed', 'type': 'foo', 'context': ['weasel'], 'name': 'moo'}
         ])
