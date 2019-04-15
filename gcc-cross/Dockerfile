@@ -21,6 +21,7 @@ RUN apt-get install -y -q \
     gawk \
     gcc \
     g++ \
+    binutils-multiarch \
     gperf \
     help2man \
     libc6-dev-i386 \
