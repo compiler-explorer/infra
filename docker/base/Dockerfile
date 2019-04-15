@@ -19,6 +19,7 @@ RUN dpkg --add-architecture i386 && apt-get -y update && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ln -s /usr/include/asm-generic /usr/include/asm
 
+RUN apt-get install binutils-multiarch -y
 RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
