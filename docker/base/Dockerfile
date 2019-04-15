@@ -13,13 +13,13 @@ RUN dpkg --add-architecture i386 && apt-get -y update && \
         libc6-dev-i386 \
         make \
         git \
+        binutils-multiarch \
     && apt-get install -y --install-recommends winehq-devel && \
     apt-get autoremove -y && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     ln -s /usr/include/asm-generic /usr/include/asm
 
-RUN apt-get install binutils-multiarch -y
 RUN mkdir -p /root
 RUN mkdir -p /root/.ssh
 COPY known_hosts /root/.ssh/
