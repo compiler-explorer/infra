@@ -107,3 +107,30 @@ weasel:
     """, ['weasels_allowed']), [
             {'if': 'weasels_allowed', 'type': 'foo', 'context': ['weasel'], 'name': 'moo'}
         ])
+
+
+def test_targets_with_type_in_outer():
+    assert_equals(
+        parse_targets("""
+outer:
+    type: outer
+    inner:
+        targets:
+        - target
+    """), [{'name': 'target', 'type': 'outer', 'context': ['outer', 'inner']}])
+
+
+def test_targets_with_context_and_targets():
+    assert_equals(
+        parse_targets("""
+outer:
+    type: outer
+    targets:
+    - outer_target
+    inner:
+        targets:
+        - inner_target
+    """), [
+            {'name': 'inner_target', 'type': 'outer', 'context': ['outer', 'inner']},
+            {'name': 'outer_target', 'type': 'outer', 'context': ['outer']},
+        ])

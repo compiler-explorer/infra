@@ -88,6 +88,11 @@ class InstallationContext(object):
     def fetch_s3_and_pipe_to(self, s3, command):
         return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
 
+    def make_subdir(self, subdir):
+        full_subdir = os.path.join(self.destination, subdir)
+        if not os.path.isdir(full_subdir):
+            os.mkdir(full_subdir)
+
     def read_link(self, link):
         return os.readlink(os.path.join(self.destination, link))
 
@@ -101,7 +106,7 @@ class InstallationContext(object):
     def move_from_staging(self, source, dest=None):
         if not dest:
             dest = source
-        existing_dir_rename = os.path.join(self.staging, dest + ".orig")
+        existing_dir_rename = os.path.join(self.staging, "temp_orig")
         source = os.path.join(self.staging, source)
         dest = os.path.join(self.destination, dest)
         if self.dry_run:
@@ -110,11 +115,11 @@ class InstallationContext(object):
         self.info(f'Moving from staging ({source}) to final destination ({dest})')
         state = ''
         if os.path.isdir(dest):
-            self.info(f'Destination exists, temporarily moving out of the way (to {existing_dir_rename}')
-            os.rename(dest, existing_dir_rename)
+            self.info(f'Destination {dest} exists, temporarily moving out of the way (to {existing_dir_rename})')
+            os.replace(dest, existing_dir_rename)
             state = 'old_renamed'
         try:
-            os.rename(source, dest)
+            os.replace(source, dest)
             if state == 'old_renamed':
                 state = 'old_needs_remove'
         finally:
@@ -123,7 +128,7 @@ class InstallationContext(object):
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == 'old_renamed':
                 self.warn(f'Moving old destination back')
-                os.rename(existing_dir_rename, dest)
+                os.replace(existing_dir_rename, dest)
 
     def compare_against_staging(self, source, dest=None):
         if not dest:
@@ -141,6 +146,7 @@ class InstallationContext(object):
     def check_output(self, args):
         args = args[:]
         args[0] = os.path.join(self.destination, args[0])
+        logger.debug('Executing %s', args)
         return subprocess.check_output(args).decode('utf-8')
 
     def strip_exes(self):
@@ -205,14 +211,25 @@ class S3TarballInstallable(Installable):
     def __init__(self, context, config):
         super(S3TarballInstallable, self).__init__(context, config)
         # todo config getter with needed/unneeded? or try/catch at top level to give decent errors if missing
-        self.suffix = '.tar.xz'
-        self.path_name = config.get('path_name', f'{config["context"][-1]}-{config["name"]}')
+        self.subdir = config.get("subdir", None)
+        name = config["name"]
+        if self.subdir:
+            default_s3_path_prefix = f'{self.subdir}-{config["context"][-1]}-{name}'
+            default_path_name = f'{self.subdir}/{config["context"][-1]}-{name}'
+            default_untar_dir = f'{config["context"][-1]}-{name}'
+        else:
+            default_s3_path_prefix = f'{config["context"][-1]}-{name}'
+            default_path_name = f'{config["context"][-1]}-{name}'
+            default_untar_dir = default_path_name
+        s3_path_prefix = config.get('s3_path_prefix', default_s3_path_prefix)
+        self.path_name = config.get('path_name', default_path_name)
+        self.untar_dir = config.get("untar_dir", default_untar_dir)
         compression = config.get('compression', 'xz')
         if compression == 'xz':
-            self.suffix = '.tar.xz'
+            self.s3_path = f'{s3_path_prefix}.tar.xz'
             self.decompress_flag = 'J'
         elif compression == 'gz':
-            self.suffix = '.tar.gz'
+            self.s3_path = f'{s3_path_prefix}.tar.gz'
             self.decompress_flag = 'z'
         else:
             raise RuntimeError(f'Unknown compression {compression}')
@@ -222,7 +239,7 @@ class S3TarballInstallable(Installable):
 
     def stage(self):
         self.context.clean_staging()
-        self.context.fetch_s3_and_pipe_to(f'{self.path_name}{self.suffix}', ['tar', f'{self.decompress_flag}xf', '-'])
+        self.context.fetch_s3_and_pipe_to(self.s3_path, ['tar', f'{self.decompress_flag}xf', '-'])
         if self.strip:
             self.context.strip_exes()
 
@@ -230,7 +247,7 @@ class S3TarballInstallable(Installable):
         if not super(S3TarballInstallable, self).verify():
             return False
         self.stage()
-        return self.context.compare_against_staging(self.path_name)
+        return self.context.compare_against_staging(self.untar_dir, self.path_name)
 
     def is_installed(self):
         try:
@@ -248,7 +265,9 @@ class S3TarballInstallable(Installable):
         if not super(S3TarballInstallable, self).install():
             return False
         self.stage()
-        self.context.move_from_staging(self.path_name)
+        if self.subdir:
+            self.context.make_subdir(self.subdir)
+        self.context.move_from_staging(self.untar_dir, self.path_name)
         return True
 
     def __repr__(self) -> str:
@@ -394,21 +413,20 @@ def _targets_from(node, enabled, context, name, base_config):
         if isinstance(value, str):
             base_config[key] = value
 
-    if 'type' not in node:
-        for child_name, child in node.items():
-            for target in _targets_from(child, enabled, context, child_name, base_config):
-                yield target
-        return
+    for child_name, child in node.items():
+        for target in _targets_from(child, enabled, context, child_name, base_config):
+            yield target
 
-    base_config['context'] = context
-    for target in node['targets']:
-        if isinstance(target, str):
-            target = {'name': target}
-        target = dict(base_config, **target)
-        for key in target.keys():
-            if isinstance(target[key], str):
-                target[key] = target[key].format(**target)
-        yield target
+    if 'targets' in node:
+        base_config['context'] = context
+        for target in node['targets']:
+            if isinstance(target, str):
+                target = {'name': target}
+            target = dict(base_config, **target)
+            for key in target.keys():
+                if isinstance(target[key], str):
+                    target[key] = target[key].format(**target)
+            yield target
 
 
 INSTALLER_TYPES = {

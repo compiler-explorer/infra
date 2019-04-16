@@ -73,6 +73,7 @@ def main():
         print("Installation candidates:")
         for installable in sorted(installables, key=lambda x: x.name):
             print(installable.name)
+            logger.debug(installable)
         sys.exit(0)
     elif args.command == 'verify':
         num_ok = 0
