@@ -91,9 +91,11 @@ compilers:
           targets:
             - 8.2.0
         powerpc:
+          check_exe: "{subdir}-unknown-linux-gnu/bin/{subdir}-unknown-linux-gnu-g++ --version"
           targets:
             - name: 4.8.5
               subdir: powerpc
+              check_exe: "powerpc/gcc-4.8.5/powerpc-unknown-linux-gnu/bin/g++ --version" # TODO why doesn't this work? Write test, fix
             - name: at12
               subdir: powerpc64
             - name: 6.3.0

@@ -56,8 +56,9 @@ class InstallationContext(object):
 
     def clean_staging(self):
         self.debug(f"Cleaning staging dir {self.staging}")
-        shutil.rmtree(self.staging, ignore_errors=True)
-        subprocess.check_call(["rm", "-rf", self.staging])
+        if os.path.isdir(self.staging):
+            subprocess.check_call(["chmod", "-R", "u+w", self.staging])
+            shutil.rmtree(self.staging, ignore_errors=True)
         self.debug(f"Recreating staging dir {self.staging}")
         os.makedirs(self.staging)
 
@@ -113,6 +114,8 @@ class InstallationContext(object):
             self.info(f'Would install {source} to {dest} but in dry-run mode')
             return
         self.info(f'Moving from staging ({source}) to final destination ({dest})')
+        # Some tar'd up GCCs are actually marked read-only...
+        subprocess.check_call(["chmod", "u+w", source])
         state = ''
         if os.path.isdir(dest):
             self.info(f'Destination {dest} exists, temporarily moving out of the way (to {existing_dir_rename})')
