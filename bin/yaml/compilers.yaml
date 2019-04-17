@@ -46,14 +46,19 @@ compilers:
         s3_path_prefix: "{subdir}-gcc-{name}"
         path_name: "{subdir}/gcc-{name}"
         untar_dir: "gcc-{name}"
-        check_exe: "bin/{arch_prefix}g++ --version"
+        check_exe: "bin/{arch_prefix}-g++ --version"
         arm:
           - subdir: arm
-            arch_prefix: arm-unknown-linux-gnueabi-
+            arch_prefix: arm-unknown-linux-gnueabi
             targets:
               - 4.5.4
               - 4.6.4
-              - 5.4.0
+          - subdir: arm
+            check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            arch_prefix: arm-unknown-linux-gnueabi
+            targets:
+              - name: 5.4.0
+                arch_prefix: arm-unknown-linux-gnueabihf
               - 6.3.0
               - 6.4.0
               - 7.3.0
@@ -73,20 +78,27 @@ compilers:
               popd
               fi
         avr:
-          arch_prefix: avr-
+          arch_prefix: avr
           subdir: avr
           targets:
             - 4.5.4
             - 4.6.4
         arm64:
+          arch_prefix: aarch64-unknown-linux-gnu
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: arm64
+          eabi:
+            arch_prefix: aarch64-unknown-linux-gnueabi
+            targets:
+              - 5.4.0
+              - 6.3.0
           targets:
-            - 5.4.0
-            - 6.3.0
             - 6.4.0
             - 7.3.0
             - 8.2.0
         mips:
+          arch_prefix: "{subdir}-unknown-linux-gnu"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           targets:
             - name: 5.4.0
               subdir: mips
@@ -97,19 +109,23 @@ compilers:
             - name: 5.4.0
               subdir: mips64el
         msp430:
+          arch_prefix: msp430
           subdir: msp430
           targets:
             - 4.5.3
         riscv64:
+          arch_prefix: "riscv64-unknown-linux-gnu"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: riscv64
           targets:
             - 8.2.0
         powerpc:
-          check_exe: "{subdir}-unknown-linux-gnu/bin/{subdir}-unknown-linux-gnu-g++ --version"
+          arch_prefix: "{subdir}-unknown-linux-gnu"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           targets:
             - name: 4.8.5
               subdir: powerpc
-              check_exe: "powerpc/gcc-4.8.5/powerpc-unknown-linux-gnu/bin/g++ --version" # TODO why doesn't this work? Write test, fix
+              check_exe: "{arch_prefix}/bin/g++ --version"
             - name: at12
               subdir: powerpc64
             - name: 6.3.0

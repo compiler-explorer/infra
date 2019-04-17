@@ -134,3 +134,17 @@ outer:
             {'name': 'inner_target', 'type': 'outer', 'context': ['outer', 'inner']},
             {'name': 'outer_target', 'type': 'outer', 'context': ['outer']},
         ])
+
+
+def test_targets_dependent_expansion():
+    assert_equals(
+        parse_targets("""
+root:
+    arch_prefix: abc
+    check_exe: def
+    arch_prefix: "{subdir}-unknown-linux-gnu"
+    check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+    targets:
+      - name: 5.4.0
+        subdir: mips
+    """)[0]['check_exe'], 'mips-unknown-linux-gnu/bin/mips-unknown-linux-gnu-g++ --version')
