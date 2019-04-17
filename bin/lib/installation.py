@@ -347,7 +347,7 @@ class TarballInstallable(Installable):
             self.decompress_flag = 'j'
         else:
             raise RuntimeError(f'Unknown compression {config["compression"]}')
-        self.strip = config['strip']
+        self.strip = config.get('strip', False)
         self.check_call = command_config(config['check_exe'])
         self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
 

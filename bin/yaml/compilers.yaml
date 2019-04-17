@@ -48,16 +48,30 @@ compilers:
         untar_dir: "gcc-{name}"
         check_exe: "bin/{arch_prefix}g++ --version"
         arm:
-          subdir: arm
-          arch_prefix: arm-unknown-linux-gnueabi-
-          targets:
-            - 4.5.4
-            - 4.6.4
-            - 5.4.0
-            - 6.3.0
-            - 6.4.0
-            - 7.3.0
-            - 8.2.0
+          - subdir: arm
+            arch_prefix: arm-unknown-linux-gnueabi-
+            targets:
+              - 4.5.4
+              - 4.6.4
+              - 5.4.0
+              - 6.3.0
+              - 6.4.0
+              - 7.3.0
+              - 8.2.0
+          - type: tarballs
+            subdir: arm
+            check_exe: bin/clang++ --version
+            dir: arm/gcc-arm-none-eabi-7-2017-q4-major # todo subdir?
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-7-2017-q4-major # name unused in this case
+            comment: | # to remove
+              if [[ ! -d arm/gcc-arm-none-eabi-7-2017-q4-major ]]; then
+              pushd arm
+              fetch https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 | tar jxf -
+              popd
+              fi
         avr:
           arch_prefix: avr-
           subdir: avr
@@ -185,3 +199,9 @@ compilers:
           - autonsdmi-trunk
           - lifetime-trunk
           - parmexpr-trunk
+# TODO
+# Oracle dev studio
+# MSP
+# ARM embedded
+# ispc
+# djgpp
