@@ -22,6 +22,9 @@ pip3 install --upgrade pip
 hash -r pip3
 pip3 install --upgrade awscli
 
+# Setup the fish prompt
+ln -sf admin/fish_prompt.fish ~/.config/fish/fish_prompt.fish
+
 # Install private and public keys
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value > /home/ubuntu/.ssh/id_rsa
 
