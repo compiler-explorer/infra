@@ -47,14 +47,21 @@ compilers:
         path_name: "{subdir}/gcc-{name}"
         untar_dir: "gcc-{name}"
         check_exe: "bin/{arch_prefix}-g++ --version"
+        subdir: arm
+        arm-wince:
+          path_name: "{subdir}/gcc-ce-{name}"
+          arch_prefix: arm-mingw32ce
+          subdir: arm-wince
+          untar_dir: "gcc-ce-{name}"
+          s3_path_prefix: "gcc-ce-{name}"
+          targets:
+            - 8.2.0
         arm:
-          - subdir: arm
-            arch_prefix: arm-unknown-linux-gnueabi
+          - arch_prefix: arm-unknown-linux-gnueabi
             targets:
               - 4.5.4
               - 4.6.4
-          - subdir: arm
-            check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          - check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
             arch_prefix: arm-unknown-linux-gnueabi
             targets:
               - name: 5.4.0
@@ -64,7 +71,6 @@ compilers:
               - 7.3.0
               - 8.2.0
           - type: tarballs
-            subdir: arm
             check_exe: bin/clang++ --version
             dir: arm/gcc-arm-none-eabi-7-2017-q4-major # todo subdir?
             url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2

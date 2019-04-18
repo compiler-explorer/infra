@@ -114,6 +114,10 @@ class InstallationContext(object):
             self.info(f'Would install {source} to {dest} but in dry-run mode')
             return
         self.info(f'Moving from staging ({source}) to final destination ({dest})')
+        if not os.path.isdir(source):
+            staging_contents = subprocess.check_output(['ls', '-l', self.staging]).decode('utf-8')
+            self.info(f"Directory listing of staging:\n{staging_contents}")
+            raise RuntimeError(f"Missing source '{source}'")
         # Some tar'd up GCCs are actually marked read-only...
         subprocess.check_call(["chmod", "u+w", source])
         state = ''
