@@ -4,6 +4,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from collections import defaultdict
 
 import requests
@@ -71,10 +72,16 @@ class InstallationContext(object):
         fetched = 0
         length = int(request.headers['content-length'])
         self.info(f'Fetching {url} ({length} bytes)')
+        report_every_secs = 5
+        report_time = time.time() + report_every_secs
         for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
             fd.write(chunk)
             fetched += len(chunk)
-            self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
+            now = time.time()
+            if now >= report_time:
+                self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
+                report_time = now + report_every_secs
+        self.info(f'100% of {url}')
         fd.flush()
 
     def fetch_url_and_pipe_to(self, url, command):
