@@ -25,7 +25,8 @@ def main():
                         help='install to STAGEDIR then rename in-place. Must be on the same drive as DEST for atomic'
                              'rename/replace. Directory will be removed during install (default %(default)s)')
 
-    parser.add_argument('--enable', nargs='*', default=[], metavar='TYPE', help='enable targets of type TYPE (e.g. "nightly")')
+    parser.add_argument('--enable', nargs='*', default=[], metavar='TYPE',
+                        help='enable targets of type TYPE (e.g. "nightly")')
     parser.add_argument('--s3_bucket', default='compiler-explorer', metavar='BUCKET',
                         help='look for S3 resources in BUCKET (default %(default)s)')
     parser.add_argument('--s3_dir', default='opt', metavar='DIR',

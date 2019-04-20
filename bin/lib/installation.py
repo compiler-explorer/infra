@@ -13,6 +13,8 @@ from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers
 
+NO_DEFAULT = "__no_default__"
+
 logger = logging.getLogger(__name__)
 
 _memoized_compilers = None
@@ -176,22 +178,25 @@ class InstallationContext(object):
 
 
 class Installable(object):
-    def __init__(self, context, config):
-        self.context = context
-        self.name = f'{"/".join(config["context"])} {config["name"]}'
-        self.depends = config.get('depends', [])
+    def __init__(self, install_context, config):
+        self.install_context = install_context
+        self.config = config
+        self.target_name = self.config.get("name", "(unnamed)")
+        self.context = self.config_get("context", [])
+        self.name = f'{"/".join(self.context)} {self.target_name}'
+        self.depends = self.config.get('depends', [])
 
     def debug(self, message):
-        self.context.debug(f'{self.name}: {message}')
+        self.install_context.debug(f'{self.name}: {message}')
 
     def info(self, message):
-        self.context.info(f'{self.name}: {message}')
+        self.install_context.info(f'{self.name}: {message}')
 
     def warn(self, message):
-        self.context.warn(f'{self.name}: {message}')
+        self.install_context.warn(f'{self.name}: {message}')
 
     def error(self, message):
-        self.context.error(f'{self.name}: {message}')
+        self.install_context.error(f'{self.name}: {message}')
 
     def verify(self):
         return True
@@ -214,6 +219,11 @@ class Installable(object):
     def install_internal(self):
         raise RuntimeError("needs to be implemented")
 
+    def config_get(self, config_key, default=None):
+        if config_key not in self.config and default is None:
+            raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
+        return self.config.get(config_key, default)
+
 
 def command_config(config):
     if isinstance(config, str):
@@ -222,23 +232,22 @@ def command_config(config):
 
 
 class S3TarballInstallable(Installable):
-    def __init__(self, context, config):
-        super(S3TarballInstallable, self).__init__(context, config)
-        # todo config getter with needed/unneeded? or try/catch at top level to give decent errors if missing
-        self.subdir = config.get("subdir", None)
-        name = config["name"]
+    def __init__(self, install_context, config):
+        super(S3TarballInstallable, self).__init__(install_context, config)
+        self.subdir = self.config_get("subdir", "")
+        last_context = self.context[-1]
         if self.subdir:
-            default_s3_path_prefix = f'{self.subdir}-{config["context"][-1]}-{name}'
-            default_path_name = f'{self.subdir}/{config["context"][-1]}-{name}'
-            default_untar_dir = f'{config["context"][-1]}-{name}'
+            default_s3_path_prefix = f'{self.subdir}-{last_context}-{self.target_name}'
+            default_path_name = f'{self.subdir}/{last_context}-{self.target_name}'
+            default_untar_dir = f'{last_context}-{self.target_name}'
         else:
-            default_s3_path_prefix = f'{config["context"][-1]}-{name}'
-            default_path_name = f'{config["context"][-1]}-{name}'
+            default_s3_path_prefix = f'{last_context}-{self.target_name}'
+            default_path_name = f'{last_context}-{self.target_name}'
             default_untar_dir = default_path_name
-        s3_path_prefix = config.get('s3_path_prefix', default_s3_path_prefix)
-        self.path_name = config.get('path_name', default_path_name)
-        self.untar_dir = config.get("untar_dir", default_untar_dir)
-        compression = config.get('compression', 'xz')
+        s3_path_prefix = self.config_get('s3_path_prefix', default_s3_path_prefix)
+        self.path_name = self.config_get('path_name', default_path_name)
+        self.untar_dir = self.config_get("untar_dir", default_untar_dir)
+        compression = self.config_get('compression', 'xz')
         if compression == 'xz':
             self.s3_path = f'{s3_path_prefix}.tar.xz'
             self.decompress_flag = 'J'
@@ -247,25 +256,25 @@ class S3TarballInstallable(Installable):
             self.decompress_flag = 'z'
         else:
             raise RuntimeError(f'Unknown compression {compression}')
-        self.strip = config.get('strip', False)
-        self.check_call = command_config(config['check_exe'])
+        self.strip = self.config_get('strip', False)
+        self.check_call = command_config(self.config_get('check_exe'))
         self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
 
     def stage(self):
-        self.context.clean_staging()
-        self.context.fetch_s3_and_pipe_to(self.s3_path, ['tar', f'{self.decompress_flag}xf', '-'])
+        self.install_context.clean_staging()
+        self.install_context.fetch_s3_and_pipe_to(self.s3_path, ['tar', f'{self.decompress_flag}xf', '-'])
         if self.strip:
-            self.context.strip_exes()
+            self.install_context.strip_exes()
 
     def verify(self):
         if not super(S3TarballInstallable, self).verify():
             return False
         self.stage()
-        return self.context.compare_against_staging(self.untar_dir, self.path_name)
+        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
     def is_installed(self):
         try:
-            res = self.context.check_output(self.check_call)
+            res = self.install_context.check_output(self.check_call)
             self.debug(f'Check call returned {res}')
             return True
         except FileNotFoundError:
@@ -280,8 +289,8 @@ class S3TarballInstallable(Installable):
             return False
         self.stage()
         if self.subdir:
-            self.context.make_subdir(self.subdir)
-        self.context.move_from_staging(self.untar_dir, self.path_name)
+            self.install_context.make_subdir(self.subdir)
+        self.install_context.move_from_staging(self.untar_dir, self.path_name)
         return True
 
     def __repr__(self) -> str:
@@ -289,39 +298,39 @@ class S3TarballInstallable(Installable):
 
 
 class NightlyInstallable(Installable):
-    def __init__(self, context, config):
-        super(NightlyInstallable, self).__init__(context, config)
-        self.strip = config.get('strip', False)
-        compiler_name = f'{config["context"][-1]}-{config["name"]}'
+    def __init__(self, install_context, config):
+        super(NightlyInstallable, self).__init__(install_context, config)
+        self.strip = self.config_get('strip', False)
+        compiler_name = f'{self.context[-1]}-{self.target_name}'
         current = s3_available_compilers()
         if compiler_name not in current:
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
-        self.context.info(f'Most recent {compiler_name} is {most_recent}')
+        self.install_context.info(f'Most recent {compiler_name} is {most_recent}')
         self.path_name = f'{compiler_name}-{most_recent}'
         self.path_name_symlink = f'{compiler_name}'
-        self.check_call = command_config(config['check_exe'])
+        self.check_call = command_config(self.config_get('check_exe'))
         self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
 
     def stage(self):
-        self.context.clean_staging()
-        self.context.fetch_s3_and_pipe_to(f'{self.path_name}.tar.xz', ['tar', f'Jxf', '-'])
+        self.install_context.clean_staging()
+        self.install_context.fetch_s3_and_pipe_to(f'{self.path_name}.tar.xz', ['tar', f'Jxf', '-'])
         if self.strip:
-            self.context.strip_exes()
+            self.install_context.strip_exes()
 
     def verify(self):
         if not super(NightlyInstallable, self).verify():
             return False
         self.stage()
-        return self.context.compare_against_staging(self.path_name)
+        return self.install_context.compare_against_staging(self.path_name)
 
     def is_installed(self):
         try:
-            link = self.context.read_link(self.path_name_symlink)
+            link = self.install_context.read_link(self.path_name_symlink)
             self.debug(f'readlink returned {link}')
             if link != self.path_name:
                 return False
-            res = self.context.check_output(self.check_call)
+            res = self.install_context.check_output(self.check_call)
             self.debug(f'Check call returned {res}')
             return True
         except OSError as e:
@@ -336,8 +345,8 @@ class NightlyInstallable(Installable):
         if not super(NightlyInstallable, self).install():
             return False
         self.stage()
-        self.context.move_from_staging(self.path_name)
-        self.context.set_link(self.path_name, self.path_name_symlink)
+        self.install_context.move_from_staging(self.path_name)
+        self.install_context.set_link(self.path_name, self.path_name_symlink)
         return True
 
     def __repr__(self) -> str:
@@ -345,38 +354,42 @@ class NightlyInstallable(Installable):
 
 
 class TarballInstallable(Installable):
-    def __init__(self, context, config):
-        super(TarballInstallable, self).__init__(context, config)
-        self.install_path = config['dir']
-        self.untar_path = config.get('untar_dir', self.install_path)
-        self.url = config['url']
-        if config['compression'] == 'xz':
-            self.decompress_flag = 'J'
-        elif config['compression'] == 'gz':
-            self.decompress_flag = 'z'
-        elif config['compression'] == 'bz2':
-            self.decompress_flag = 'j'
+    def __init__(self, install_context, config):
+        super(TarballInstallable, self).__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self.untar_path = self.config_get('untar_dir', self.install_path)
+        self.url = self.config_get('url')
+        if self.config_get('compression') == 'xz':
+            decompress_flag = 'J'
+        elif self.config_get('compression') == 'gz':
+            decompress_flag = 'z'
+        elif self.config_get('compression') == 'bz2':
+            decompress_flag = 'j'
         else:
-            raise RuntimeError(f'Unknown compression {config["compression"]}')
-        self.strip = config.get('strip', False)
-        self.check_call = command_config(config['check_exe'])
+            raise RuntimeError(f'Unknown compression {self.config_get("compression")}')
+        self.tar_cmd = ['tar', f'{decompress_flag}xf', '-']
+        strip_components = self.config_get("strip_components", 0)
+        if strip_components:
+            self.tar_cmd += ['--strip-components', str(strip_components)]
+        self.strip = self.config_get('strip', False)
+        self.check_call = command_config(self.config_get('check_exe'))
         self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
 
     def stage(self):
-        self.context.clean_staging()
-        self.context.fetch_url_and_pipe_to(f'{self.url}', ['tar', f'{self.decompress_flag}xf', '-'])
-        if not os.path.isdir(os.path.join(self.context.staging, self.untar_path)):
+        self.install_context.clean_staging()
+        self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd)
+        if not os.path.isdir(os.path.join(self.install_context.staging, self.untar_path)):
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
 
     def verify(self):
         if not super(TarballInstallable, self).verify():
             return False
         self.stage()
-        return self.context.compare_against_staging(self.untar_path, self.install_path)
+        return self.install_context.compare_against_staging(self.untar_path, self.install_path)
 
     def is_installed(self):
         try:
-            res = self.context.check_output(self.check_call)
+            res = self.install_context.check_output(self.check_call)
             self.debug(f'Check call returned {res}')
             return True
         except FileNotFoundError:
@@ -390,7 +403,7 @@ class TarballInstallable(Installable):
         if not super(TarballInstallable, self).install():
             return False
         self.stage()
-        self.context.move_from_staging(self.untar_path, self.install_path)
+        self.install_context.move_from_staging(self.untar_path, self.install_path)
         return True
 
     def __repr__(self) -> str:
