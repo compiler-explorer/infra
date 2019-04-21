@@ -115,6 +115,25 @@ compilers:
           subdir: msp430
           targets:
             - 4.5.3
+          older:
+            type: tarballs
+            strip: true
+            url: http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/5_00_00_00/exports/msp430-gcc-{name}_linux64.tar.bz2
+            compression: bz2
+            dir: msp430-gcc-{name}_linux{arch}
+            targets:
+              - 4.1.0.0
+              - 6.2.1.16
+            - # MSP compilers. Website is dead. TODO: Find a new source!
+              if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
+              fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/4_01_00_00/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
+              do_strip msp430-gcc-5.3.0.219_linux32
+              fi
+              if [[ ! -d msp430-gcc-6.2.1.16_linux64 ]]; then
+              fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/5_00_00_00/exports/msp430-gcc-6.2.1.16_linux64.tar.bz2 | tar jxf -
+              do_strip msp430-gcc-6.2.1.16_linux64
+              fi
+
         riscv64:
           arch_prefix: "riscv64-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -217,6 +236,14 @@ compilers:
           - autonsdmi-trunk
           - lifetime-trunk
           - parmexpr-trunk
+    oracle: # NB unused and unsupported at present
+      type: s3tarballs
+      check_exe: developerstudio12.5/bin/CC -V
+      s3_path_prefix: "OracleDeveloperStudio{name}-linux-x86-bin"
+      untar_dir: "OracleDeveloperStudio{name}-linux-x86-bin"
+      compression: bz2
+      targets:
+        - 12.5
   ispc:
     type: tarballs
     compression: gz
@@ -234,7 +261,6 @@ compilers:
         - 1.9.2
         - 1.9.1
 # TODO
-# Oracle dev studio
 # MSP
 # ARM embedded
 # djgpp

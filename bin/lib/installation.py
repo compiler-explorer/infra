@@ -254,6 +254,9 @@ class S3TarballInstallable(Installable):
         elif compression == 'gz':
             self.s3_path = f'{s3_path_prefix}.tar.gz'
             self.decompress_flag = 'z'
+        elif compression == 'bz2':
+            self.s3_path = f'{s3_path_prefix}.tar.bz2'
+            self.decompress_flag = 'j'
         else:
             raise RuntimeError(f'Unknown compression {compression}')
         self.strip = self.config_get('strip', False)
