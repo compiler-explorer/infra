@@ -118,22 +118,19 @@ compilers:
           older:
             type: tarballs
             strip: true
-            url: http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/5_00_00_00/exports/msp430-gcc-{name}_linux64.tar.bz2
             compression: bz2
+            untar_dir: msp430-gcc-{name}_linux{arch}
             dir: msp430-gcc-{name}_linux{arch}
+            check_exe: bin/msp430-elf-g++ --version
             targets:
-              - 4.1.0.0
-              - 6.2.1.16
-            - # MSP compilers. Website is dead. TODO: Find a new source!
-              if [[ ! -d msp430-gcc-5.3.0.219_linux32 ]]; then
-              fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/4_01_00_00/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2 | tar jxf -
-              do_strip msp430-gcc-5.3.0.219_linux32
-              fi
-              if [[ ! -d msp430-gcc-6.2.1.16_linux64 ]]; then
-              fetch http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/5_00_00_00/exports/msp430-gcc-6.2.1.16_linux64.tar.bz2 | tar jxf -
-              do_strip msp430-gcc-6.2.1.16_linux64
-              fi
-
+              - name: 5.3.0.219
+                url: http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/4_01_00_00/exports/msp430-gcc-4.1.0.0_linux32.tar.bz2
+                arch: 32
+                rev: 4_01_00_00
+              - name: 6.2.1.16
+                url: http://software-dl.ti.com/msp430/msp430_public_sw/mcu/msp430/MSPGCC/5_00_00_00/exports/msp430-gcc-6.2.1.16_linux64.tar.bz2
+                arch: 64
+                rev: 5_00_00_00
         riscv64:
           arch_prefix: "riscv64-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"

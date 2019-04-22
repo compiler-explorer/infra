@@ -455,7 +455,10 @@ def _targets_from(node, enabled, context, name, base_config):
             target = dict(base_config, **target)
             for key in target.keys():
                 if isinstance(target[key], str):
-                    target[key] = target[key].format(**target)
+                    try:
+                        target[key] = target[key].format(**target)
+                    except KeyError as ke:
+                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
             yield target
 
 
