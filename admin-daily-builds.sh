@@ -37,7 +37,7 @@ build_latest() {
       sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
       mattgodbolt/${IMAGE}-builder \
       bash "${COMMAND}" ${BUILD} s3://compiler-explorer/opt/
-    log_to_json ${LOG_DIR} admin/buildStatus.json
+    log_to_json ${LOG_DIR} admin
 }
 
 build_latest gcc gcc build.sh trunk
