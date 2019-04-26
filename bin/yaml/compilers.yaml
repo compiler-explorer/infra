@@ -241,6 +241,26 @@ compilers:
       compression: bz2
       targets:
         - 12.5
+    djgpp:
+      type: tarballs
+      check_exe: bin/i586-pc-msdosdjgpp-g++ --version
+      url: https://github.com/andrewwutw/build-djgpp/releases/download/{tag}/djgpp-linux64-gcc{name_no_dots}.tar.bz2
+      compression: bz2
+      untar_dir: djgpp
+      dir: djgpp-{name}
+      targets:
+        - name: 7.2.0
+          tag: v2.8
+          name_no_dots: 720
+        - name: 6.4.0
+          tag: v2.7
+          name_no_dots: 640
+        - name: 5.5.0
+          tag: v2.9
+          name_no_dots: 550
+        - name: 4.9.4
+          tag: v2.6
+          name_no_dots: 494
   ispc:
     type: tarballs
     compression: gz
@@ -257,7 +277,3 @@ compilers:
       targets:
         - 1.9.2
         - 1.9.1
-# TODO
-# MSP
-# ARM embedded
-# djgpp
