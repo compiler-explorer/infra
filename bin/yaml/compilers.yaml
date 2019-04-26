@@ -248,6 +248,7 @@ compilers:
       compression: bz2
       untar_dir: djgpp
       dir: djgpp-{name}
+      strip: true
       targets:
         - name: 7.2.0
           tag: v2.8
