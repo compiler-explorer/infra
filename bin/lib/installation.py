@@ -381,6 +381,8 @@ class TarballInstallable(Installable):
     def stage(self):
         self.install_context.clean_staging()
         self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd)
+        if self.strip:
+            self.install_context.strip_exes()
         if not os.path.isdir(os.path.join(self.install_context.staging, self.untar_path)):
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
 
