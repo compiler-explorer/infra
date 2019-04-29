@@ -18,7 +18,8 @@ def filter_match(filter, installable):
 
 
 def main():
-    parser = ArgumentParser(description='Install binaries, libraries and compilers for Compiler Explorer')
+    parser = ArgumentParser(prog='ce_install',
+                            description='Install binaries, libraries and compilers for Compiler Explorer')
     parser.add_argument('--dest', default='/opt/compiler-explorer', metavar='DEST',
                         help='install with DEST as the installation root (default %(default)s)')
     parser.add_argument('--staging-dir', default='/opt/compiler-explorer/staging', metavar='STAGEDIR',

@@ -309,7 +309,7 @@ class NightlyInstallable(Installable):
         if compiler_name not in current:
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
-        self.install_context.info(f'Most recent {compiler_name} is {most_recent}')
+        self.info(f'Most recent {compiler_name} is {most_recent}')
         self.path_name = f'{compiler_name}-{most_recent}'
         self.path_name_symlink = f'{compiler_name}'
         self.check_call = command_config(self.config_get('check_exe'))

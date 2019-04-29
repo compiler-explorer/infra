@@ -1,14 +1,13 @@
 MAILTO=compiler-explorer-admin@googlegroups.com
 PATH=/home/ubuntu/compiler-explorer-image/.env/bin:/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ACTIVATE="source /home/ubuntu/compiler-explorer-image/.env/bin/activate"
 
 # m h  dom mon dow   command
 00 00 * * * cronic bash -c "git -C /home/ubuntu/compiler-explorer-image pull && make -C /home/ubuntu/compiler-explorer-image ce"
 05 00 * * * cronic bash -c "crontab < /home/ubuntu/compiler-explorer-image/crontab.admin"
 10 00 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/admin-daily-builds.sh"
-00 03 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
-05 03 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
-00 04 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
-15 04 * * * cronic sudo bash -c "$ACTIVATE && /home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
+00 03 * * * cronic sudo bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
+05 03 * * * cronic sudo bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
+00 04 * * * cronic sudo bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
+15 04 * * * cronic sudo bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
 00 09 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/remove_old_compilers.sh"
 05 09 * * * cronic bash -c "ce builds rm_old 7"
