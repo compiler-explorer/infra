@@ -1,6 +1,9 @@
 .NOTPARALLEL: 
 all: docker-images
 
+help: # with thanks to Ben Rady
+	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
 DOCKER := docker
 PACKER ?= ../packer
 
@@ -19,21 +22,21 @@ base-image:
 
 $(eval $(call add-image,unified,unified-explorer))
 
-docker-images: $(DOCKER_IMAGES)
+docker-images: $(DOCKER_IMAGES)  ## Builds all the docker images (deprecated in favour of docker hub)
 
 config.json: make_json.py
 	python make_json.py
 
-packer: config.json
+packer: config.json ## Builds the base image for compiler explorer nodes
 	$(PACKER) build -var-file=config.json packer.json 
 
-packer-admin: config.json
+packer-admin: config.json  ## Builds the base image for the admin server
 	$(PACKER) build -var-file=config.json packer-admin.json 
 
 clean:
 	echo nothing to clean yet
 
-update-admin:
+update-admin:  ## Updates the admin website
 	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
 
 VIRTUALENV?=.env
@@ -43,9 +46,9 @@ $(VIRTUALENV): requirements.txt
 	python3 -mvenv $(VIRTUALENV)	
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
-ce: $(VIRTUALENV)
+ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
 
-test: ce
+test: ce  ## Runs the tests
 	$(VIRTUALENV)/bin/nosetests bin
 
 .PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer update-compilers build-compiler-images update-admin ce test
