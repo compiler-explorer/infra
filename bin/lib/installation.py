@@ -96,7 +96,7 @@ class InstallationContext(object):
             subprocess.check_call(command, stdin=fd, cwd=self.staging)
 
     def stage_command(self, command):
-        self.info(f'Configuring with {" ".join(command)}')
+        self.info(f'Staging with {" ".join(command)}')
         subprocess.check_call(command, cwd=self.staging)
 
     def fetch_s3_and_pipe_to(self, s3, command):
@@ -166,8 +166,8 @@ class InstallationContext(object):
     def check_output(self, args):
         args = args[:]
         args[0] = os.path.join(self.destination, args[0])
-        logger.debug('Executing %s', args)
-        return subprocess.check_output(args).decode('utf-8')
+        logger.debug('Executing %s in %s', args, self.destination)
+        return subprocess.check_output(args, cwd=self.destination).decode('utf-8')
 
     def strip_exes(self):
         to_strip = []
@@ -374,7 +374,7 @@ class TarballInstallable(Installable):
             decompress_flag = 'j'
         else:
             raise RuntimeError(f'Unknown compression {self.config_get("compression")}')
-        self.configure_command = command_config(self.config_get('configure_command', ''))
+        self.configure_command = command_config(self.config_get('configure_command', []))
         self.tar_cmd = ['tar', f'{decompress_flag}xf', '-']
         strip_components = self.config_get("strip_components", 0)
         if strip_components:
