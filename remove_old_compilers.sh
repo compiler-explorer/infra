@@ -19,4 +19,5 @@ remove_older clang-autonsdmi
 remove_older clang-lifetime
 remove_older clang-parmexpr
 remove_older gcc
+remove_older gcc-lock3-contracts
 remove_older go
