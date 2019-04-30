@@ -95,6 +95,10 @@ class InstallationContext(object):
             self.info(f'Piping to {" ".join(command)}')
             subprocess.check_call(command, stdin=fd, cwd=self.staging)
 
+    def stage_command(self, command):
+        self.info(f'Configuring with {" ".join(command)}')
+        subprocess.check_call(command, cwd=self.staging)
+
     def fetch_s3_and_pipe_to(self, s3, command):
         return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
 
@@ -228,7 +232,7 @@ class Installable(object):
 def command_config(config):
     if isinstance(config, str):
         return config.split(" ")
-    return config[0]
+    return config
 
 
 class S3TarballInstallable(Installable):
@@ -370,6 +374,8 @@ class TarballInstallable(Installable):
             decompress_flag = 'j'
         else:
             raise RuntimeError(f'Unknown compression {self.config_get("compression")}')
+        print(self.name, config)
+        self.configure_command = command_config(self.config_get('configure_command', ''))
         self.tar_cmd = ['tar', f'{decompress_flag}xf', '-']
         strip_components = self.config_get("strip_components", 0)
         if strip_components:
@@ -381,6 +387,8 @@ class TarballInstallable(Installable):
     def stage(self):
         self.install_context.clean_staging()
         self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd)
+        if self.configure_command:
+            self.install_context.stage_command(self.configure_command)
         if self.strip:
             self.install_context.strip_exes()
         if not os.path.isdir(os.path.join(self.install_context.staging, self.untar_path)):
@@ -419,6 +427,10 @@ def targets_from(node, enabled):
     return _targets_from(node, enabled, [], "", {})
 
 
+def is_list_of_strings(value):
+    return isinstance(value, list) and all(isinstance(x, str) for x in value)
+
+
 def _targets_from(node, enabled, context, name, base_config):
     if not node:
         return
@@ -442,7 +454,7 @@ def _targets_from(node, enabled, context, name, base_config):
         context.append(name)
     base_config = dict(base_config)
     for key, value in node.items():
-        if isinstance(value, str):
+        if key != 'targets' and (isinstance(value, str) or is_list_of_strings(value)):
             base_config[key] = value
 
     for child_name, child in node.items():
@@ -455,12 +467,14 @@ def _targets_from(node, enabled, context, name, base_config):
             if isinstance(target, str):
                 target = {'name': target}
             target = dict(base_config, **target)
-            for key in target.keys():
-                if isinstance(target[key], str):
-                    try:
+            try:
+                for key in target.keys():
+                    if is_list_of_strings(target[key]):
+                        target[key] = [x.format(**target) for x in target[key]]
+                    elif isinstance(target[key], str):
                         target[key] = target[key].format(**target)
-                    except KeyError as ke:
-                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
+            except KeyError as ke:
+                raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
             yield target
 
 

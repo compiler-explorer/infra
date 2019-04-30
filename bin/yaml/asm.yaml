@@ -1,0 +1,18 @@
+compilers:
+  asm:
+    nasm:
+      type: tarballs
+      check_exe: nasm -v
+      dir: nasm-{name}
+      untar_dir: nasm-install/bin
+      url: https://www.nasm.us/pub/nasm/releasebuilds/{name}/nasm-{name}.tar.xz
+      configure_command:
+        - bash
+        - -c
+        - cd nasm-{name} && ./configure --prefix=$(pwd)/../nasm-install && make -j$(nproc) install
+      compression: xz
+      targets:
+        - 2.12.02
+        - 2.13.02
+        - 2.13.03
+        - 2.14.02

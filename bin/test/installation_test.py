@@ -148,3 +148,17 @@ root:
       - name: 5.4.0
         subdir: mips
     """)[0]['check_exe'], 'mips-unknown-linux-gnu/bin/mips-unknown-linux-gnu-g++ --version')
+
+
+def test_targets_array_expansion():
+    assert_equals(
+        parse_targets("""
+nasm:
+  configure_command:
+    - bash
+    - -c
+    - cd nasm-{name} && sh configure --prefix=/tmp/foo && make -j$(nproc)
+  targets:
+    - 2.12.02
+""")[0]['configure_command'], ['bash', '-c', 'cd nasm-2.12.02 && sh configure --prefix=/tmp/foo && make -j$(nproc)']
+    )

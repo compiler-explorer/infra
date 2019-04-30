@@ -262,19 +262,3 @@ compilers:
         - name: 4.9.4
           tag: v2.6
           name_no_dots: 494
-  ispc:
-    type: tarballs
-    compression: gz
-    url: https://sourceforge.net/projects/ispcmirror/files/v{name}/ispc-v{name}-linux.tar.gz/download
-    dir: ispc-{name}
-    untar_dir: ispc-v{name}-linux
-    check_exe: bin/ispc --version
-    targets:
-      - name: 1.10.0
-        untar_dir: ispc-{name}-Linux
-      - 1.11.0
-    older:
-      check_exe: ispc --version
-      targets:
-        - 1.9.2
-        - 1.9.1
