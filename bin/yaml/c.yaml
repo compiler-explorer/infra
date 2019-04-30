@@ -1,0 +1,15 @@
+compilers:
+  c:
+    ppci:
+      type: tarballs
+      compression: gz
+      check_exe:
+        - /bin/bash
+        - -c
+        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{name} python3 -B -mppci --version"
+      dir: ppci-{name}
+      untar_dir: ppci-{name}
+      url: https://pypi.io/packages/source/p/ppci/ppci-{name}.tar.gz
+      targets:
+        - 0.5.5
+# TODO cc65:
