@@ -100,6 +100,7 @@ for version in \
     6.{1,2,3,4}.0 \
     7.{1,2,3,4}.0 \
     8.{1,2,3}.0 \
+    9.1.0 \
 ; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
