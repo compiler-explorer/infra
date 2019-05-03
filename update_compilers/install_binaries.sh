@@ -33,22 +33,6 @@ if [[ "$TARGET_NODE_VERSION" != "$CURRENT_NODE_VERSION" ]]; then
 fi
 
 #########################
-# yarn
-
-TARGET_YARN_VERSION=v1.13.0
-CURRENT_YARN_VERSION=""
-if [[ -f yarn/bin/yarn.js ]]; then
-    CURRENT_YARN_VERSION="v$(node/bin/node yarn/bin/yarn.js --version)"
-fi
-
-if [[ "$TARGET_YARN_VERSION" != "$CURRENT_YARN_VERSION" ]]; then
-    echo "Installing yarn TARGET_YARN_VERSION"
-    rm -rf yarn
-    mkdir yarn
-    fetch "https://github.com/yarnpkg/yarn/releases/download/${TARGET_YARN_VERSION}/yarn-${TARGET_YARN_VERSION}.tar.gz" | tar zxf - -C yarn --strip-components=1
-fi
-
-#########################
 # pahole
 
 if [[ ! -d /opt/compiler-explorer/pahole ]]; then
