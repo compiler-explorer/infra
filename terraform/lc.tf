@@ -40,7 +40,7 @@ resource "aws_launch_configuration" "CompilerExplorer-prod-spot-large" {
   name_prefix                 = "compiler-explorer-prod-large"
   image_id                    = "${local.image_id}"
   instance_type               = "c5.large"
-  iam_instance_profile        = "XaniaBlog"
+  iam_instance_profile        = "${aws_iam_instance_profile.CompilerExplorerRole.name}"
   key_name                    = "mattgodbolt"
   security_groups             = ["${aws_security_group.CompilerExplorer.id}"]
   associate_public_ip_address = true
@@ -63,7 +63,7 @@ resource "aws_launch_configuration" "CompilerExplorer-prod-t3" {
   name_prefix                 = "compiler-explorer-prod-t3"
   image_id                    = "${local.image_id}"
   instance_type               = "t3.medium"
-  iam_instance_profile        = "XaniaBlog"
+  iam_instance_profile        = "${aws_iam_instance_profile.CompilerExplorerRole.name}"
   key_name                    = "mattgodbolt"
   security_groups             = ["${aws_security_group.CompilerExplorer.id}"]
   associate_public_ip_address = true

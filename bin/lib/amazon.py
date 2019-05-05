@@ -34,9 +34,6 @@ class Release(object):
         return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
 
 
-# TODO document aws policy needed.
-# S3-compiler-explorer-access seems to be fairly minimal. XaniaBlog seems too open
-
 def target_group_arn_for(args):
     if args['env'] == 'prod':
         return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
