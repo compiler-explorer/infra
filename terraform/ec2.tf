@@ -2,7 +2,7 @@ resource "aws_instance" "AdminNode" {
   ami = "ami-0e76b49ef537405f1"
   iam_instance_profile = "CompilerExplorerAdminNode"
   ebs_optimized = false
-  instance_type = "t2.nano"
+  instance_type = "t3.nano"
   monitoring = false
   key_name = "mattgodbolt"
   subnet_id = "${aws_subnet.ce-1a.id}"
