@@ -173,3 +173,133 @@ resource "aws_security_group_rule" "Admin_IngressFromCE" {
   protocol = "tcp"
   description = "Allow ingress from CE nodes"
 }
+
+resource "aws_iam_role" "CompilerExplorerRole" {
+  name = "CompilerExplorerRole"
+  description = "Compiler Explorer node role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
+  tags {
+    "Site" = "CompilerExplorer"
+  }
+}
+
+data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
+  arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentServerPolicy"
+}
+
+resource "aws_iam_policy" "CeModifyStoredState" {
+  name = "CeModifyStoredState"
+  description = "Can create and list short links for compiler explorer"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "DatabaseAccessSid",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DescribeTable",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:Query"
+            ],
+            "Resource": "${aws_dynamodb_table.links.arn}"
+        },
+        {
+            "Sid": "S3AccessSid",
+            "Effect": "Allow",
+            "Action": "s3:*",
+            "Resource": [
+                "${aws_s3_bucket.storage-godbolt-org.arn}/*",
+                "${aws_s3_bucket.storage-godbolt-org.arn}"
+            ]
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "AccessCeParams" {
+  name = "AccessCeParams"
+  description = "Can read Compiler Explorer parameters/secrets"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:Describe*",
+                "ssm:Get*",
+                "ssm:List*"
+            ],
+            "Resource": "arn:aws:ssm:us-east-1:052730242331:parameter/compiler-explorer/*"
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_policy" "ReadS3Minimal" {
+  name = "ReadS3Minimal"
+  description = "Minimum possible read acces to S3 to boot an instance"
+  policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:Get*"
+            ],
+            "Resource": [
+                "${aws_s3_bucket.compiler-explorer.arn}/authorized_keys/*",
+                "${aws_s3_bucket.compiler-explorer.arn}/version/*"
+            ]
+        }
+    ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "CompilerExplorerRole" {
+  name = "CompilerExplorerRole"
+  role = "${aws_iam_role.CompilerExplorerRole.name}"
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CloudWatchAgentServerPolicy" {
+  role = "${aws_iam_role.CompilerExplorerRole.name}"
+  policy_arn = "${data.aws_iam_policy.CloudWatchAgentServerPolicy.arn}"
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CeModifyStoredState" {
+  role = "${aws_iam_role.CompilerExplorerRole.name}"
+  policy_arn = "${aws_iam_policy.CeModifyStoredState.arn}"
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AccessCeParams" {
+  role = "${aws_iam_role.CompilerExplorerRole.name}"
+  policy_arn = "${aws_iam_policy.AccessCeParams.arn}"
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Minimal" {
+  role = "${aws_iam_role.CompilerExplorerRole.name}"
+  policy_arn = "${aws_iam_policy.ReadS3Minimal.arn}"
+}

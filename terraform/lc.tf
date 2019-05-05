@@ -16,7 +16,7 @@ resource "aws_launch_configuration" "CompilerExplorer-beta-large" {
   name_prefix = "compiler-explorer-beta-large"
   image_id = "${local.beta_image_id}"
   instance_type = "c5.large"
-  iam_instance_profile = "XaniaBlog"
+  iam_instance_profile = "${aws_iam_instance_profile.CompilerExplorerRole.name}"
   key_name = "mattgodbolt"
   security_groups = [
     "${aws_security_group.CompilerExplorer.id}"
