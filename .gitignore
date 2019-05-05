@@ -5,7 +5,6 @@
 *.xz
 config.json
 .env
-.idea
 /.deploy
 .nfs*
 node_modules
