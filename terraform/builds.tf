@@ -1,66 +1,45 @@
 resource "aws_iam_role" "compiler-build-service-role" {
   name               = "codebuild-compiler-build-service-role"
   path               = "/service-role/"
-  assume_role_policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "codebuild.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
+  assume_role_policy = "${data.aws_iam_policy_document.InstanceAssumeRolePolicy.json}"
 }
-POLICY
+
+data "aws_iam_policy_document" "compiler-build-service-policy" {
+  statement {
+    resources = ["*"]
+    actions   = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+  }
+  statement {
+    resources = ["*"]
+    actions   = [
+      "ec2:CreateNetworkInterface",
+      "ec2:DescribeDhcpOptions",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DeleteNetworkInterface",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeVpcs"
+    ]
+  }
+  statement {
+    actions   = [
+      "s3:*"
+    ],
+    resources = [
+      "${aws_s3_bucket.compiler-explorer.arn}",
+      "${aws_s3_bucket.compiler-explorer.arn}/*"
+    ]
+  }
 }
 
 resource "aws_iam_role_policy" "compiler-build-service-policy" {
   role = "${aws_iam_role.compiler-build-service-role.name}"
 
-  policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Resource": [
-        "*"
-      ],
-      "Action": [
-        "logs:CreateLogGroup",
-        "logs:CreateLogStream",
-        "logs:PutLogEvents"
-      ]
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ec2:CreateNetworkInterface",
-        "ec2:DescribeDhcpOptions",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:DeleteNetworkInterface",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeSecurityGroups",
-        "ec2:DescribeVpcs"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": [
-        "s3:*"
-      ],
-      "Resource": [
-        "${aws_s3_bucket.compiler-explorer.arn}",
-        "${aws_s3_bucket.compiler-explorer.arn}/*"
-      ]
-    }
-  ]
-}
-POLICY
+  policy = "${data.aws_iam_policy_document.compiler-build-service-policy.json}"
 }
 
 resource "aws_codebuild_project" "build-compilers" {

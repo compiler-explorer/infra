@@ -24,57 +24,57 @@ resource "aws_s3_bucket" "compiler-explorer" {
   }
 }
 
+data "aws_billing_service_account" "main" {}
+
+data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
+  // Allow external (public) access to certain directories on S3
+  statement {
+    sid       = "PublicReadGetObjects"
+    actions   = ["s3:GetObject"]
+    principals {
+      identifiers = ["*"]
+      type        = "*"
+    }
+    resources = [
+      "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
+      "${aws_s3_bucket.compiler-explorer.arn}/admin/*"
+    ]
+  }
+  statement {
+    sid       = "Allow listing of bucket (NB allows listing everything)"
+    actions   = ["s3:ListBucket"]
+    principals {
+      identifiers = ["*"]
+      type        = "*"
+    }
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}"]
+  }
+
+  // AWS billing statements
+  statement {
+    principals {
+      identifiers = ["${data.aws_billing_service_account.main.arn}"]
+      type        = "AWS"
+    }
+    actions   = [
+      "s3:GetBucketAcl",
+      "s3:GetBucketPolicy"
+    ]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}"]
+  }
+  statement {
+    principals {
+      identifiers = ["${data.aws_billing_service_account.main.arn}"]
+      type        = "AWS"
+    }
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}/*"]
+  }
+}
+
 resource "aws_s3_bucket_policy" "compiler-explorer" {
   bucket = "${aws_s3_bucket.compiler-explorer.id}"
-  policy = <<POLICY
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "PublicReadGetObject",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::compiler-explorer/opt/*"
-    },
-    {
-      "Sid": "PublicReadGetObjectForAdmin",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::compiler-explorer/admin/*"
-    },
-    {
-      "Sid": "Allow listing of bucket (NB allows listing everything)",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::compiler-explorer"
-    },
-    {
-      "Sid": "Stmt1335892150622",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::386209384616:root"
-      },
-      "Action": [
-        "s3:GetBucketAcl",
-        "s3:GetBucketPolicy"
-      ],
-      "Resource": "arn:aws:s3:::compiler-explorer"
-    },
-    {
-      "Sid": "Stmt1335892526596",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": "arn:aws:iam::386209384616:root"
-      },
-      "Action": "s3:PutObject",
-      "Resource": "arn:aws:s3:::compiler-explorer/*"
-    }
-  ]
-}
-POLICY
+  policy = "${data.aws_iam_policy_document.compiler-explorer-s3-policy.json}"
 }
 
 resource "aws_s3_bucket" "opt-s3-godbolt-org" {

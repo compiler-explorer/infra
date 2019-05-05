@@ -160,24 +160,20 @@ resource "aws_security_group_rule" "Admin_IngressFromCE" {
   description              = "Allow ingress from CE nodes"
 }
 
+data "aws_iam_policy_document" "InstanceAssumeRolePolicy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      identifiers = ["ec2.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
+
 resource "aws_iam_role" "CompilerExplorerRole" {
   name               = "CompilerExplorerRole"
   description        = "Compiler Explorer node role"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ec2.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
-}
-EOF
+  assume_role_policy = "${data.aws_iam_policy_document.InstanceAssumeRolePolicy.json}"
 
   tags {
     "Site" = "CompilerExplorer"
@@ -188,81 +184,67 @@ data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
   arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentServerPolicy"
 }
 
+data "aws_iam_policy_document" "CeModifyStoredState" {
+  statement {
+    sid       = "DatabaseAccessSid"
+    actions   = [
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DescribeTable",
+      "dynamodb:GetItem",
+      "dynamodb:Scan",
+      "dynamodb:Query"
+    ]
+    resources = ["${aws_dynamodb_table.links.arn}"]
+  }
+  statement {
+    sid       = "S3AccessSid"
+    actions   = ["s3:*"]
+    resources = [
+      "${aws_s3_bucket.storage-godbolt-org.arn}/*",
+      "${aws_s3_bucket.storage-godbolt-org.arn}"
+    ]
+  }
+}
+
 resource "aws_iam_policy" "CeModifyStoredState" {
   name        = "CeModifyStoredState"
   description = "Can create and list short links for compiler explorer"
-  policy      = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "DatabaseAccessSid",
-            "Effect": "Allow",
-            "Action": [
-                "dynamodb:PutItem",
-                "dynamodb:UpdateItem",
-                "dynamodb:DescribeTable",
-                "dynamodb:GetItem",
-                "dynamodb:Scan",
-                "dynamodb:Query"
-            ],
-            "Resource": "${aws_dynamodb_table.links.arn}"
-        },
-        {
-            "Sid": "S3AccessSid",
-            "Effect": "Allow",
-            "Action": "s3:*",
-            "Resource": [
-                "${aws_s3_bucket.storage-godbolt-org.arn}/*",
-                "${aws_s3_bucket.storage-godbolt-org.arn}"
-            ]
-        }
-    ]
+  policy      = "${data.aws_iam_policy_document.CeModifyStoredState.json}"
 }
-EOF
+
+data "aws_iam_policy_document" "AccessCeParams" {
+  statement {
+    actions   = [
+      "ssm:Describe*",
+      "ssm:Get*",
+      "ssm:List*"
+    ]
+    // TODO is there a way to refer to this (external) parameter (CC @Cosaquee)
+    resources = ["arn:aws:ssm:us-east-1:052730242331:parameter/compiler-explorer/*"]
+  }
 }
 
 resource "aws_iam_policy" "AccessCeParams" {
   name        = "AccessCeParams"
   description = "Can read Compiler Explorer parameters/secrets"
-  policy      = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "ssm:Describe*",
-                "ssm:Get*",
-                "ssm:List*"
-            ],
-            "Resource": "arn:aws:ssm:us-east-1:052730242331:parameter/compiler-explorer/*"
-        }
-    ]
+  policy      = "${data.aws_iam_policy_document.AccessCeParams.json}"
 }
-EOF
+
+data "aws_iam_policy_document" "ReadS3Minimal" {
+  statement {
+    actions   = ["s3:Get*"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer.arn}/authorized_keys/*",
+      "${aws_s3_bucket.compiler-explorer.arn}/version/*"
+    ]
+  }
 }
 
 resource "aws_iam_policy" "ReadS3Minimal" {
   name        = "ReadS3Minimal"
   description = "Minimum possible read acces to S3 to boot an instance"
-  policy      = <<EOF
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Action": [
-                "s3:Get*"
-            ],
-            "Resource": [
-                "${aws_s3_bucket.compiler-explorer.arn}/authorized_keys/*",
-                "${aws_s3_bucket.compiler-explorer.arn}/version/*"
-            ]
-        }
-    ]
-}
-EOF
+  policy      = "${data.aws_iam_policy_document.ReadS3Minimal.json}"
 }
 
 resource "aws_iam_instance_profile" "CompilerExplorerRole" {
