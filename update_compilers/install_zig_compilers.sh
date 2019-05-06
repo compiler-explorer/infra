@@ -31,7 +31,9 @@ install_zig_nightly() {
 
     mkdir ${DIR}
     pushd ${DIR}
-    fetch https://ziglang.org/builds/zig-linux-x86_64-${VERSION}.tar.xz | tar Jxf - --strip-components 1
+
+    local MASTER_URL=$(fetch https://ziglang.org/download/index.json | jq -r '.master."x86_64-linux".tarball')
+    fetch $MASTER_URL | tar Jxf - --strip-components 1
     rm -f langref.html
 
     popd
@@ -42,8 +44,6 @@ install_zig 0.2.0
 install_zig 0.3.0
 install_zig 0.4.0
 
-# Disabled, see https://github.com/mattgodbolt/compiler-explorer-image/issues/200
-# The URL has changed and includes a version and SHA now
-#if install_nightly; then
-#    install_zig_nightly master
-#fi
+if install_nightly; then
+    install_zig_nightly master
+fi
