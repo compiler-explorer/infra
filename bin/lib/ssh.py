@@ -1,18 +1,38 @@
 import logging
 import os
 import subprocess
+import requests
+from requests import ConnectTimeout
 
 logger = logging.getLogger('ssh')
 
 # TODO maybe use paramiko?
 
+_running_on_ec2 = None
 
-HYPERVISOR_UUID = "/sys/hypervisor/uuid"
-RUNNING_ON_EC2 = os.path.exists(HYPERVISOR_UUID) and open(HYPERVISOR_UUID, "r").read().startswith("ec2")
+
+def running_on_ec2():
+    global _running_on_ec2
+    if _running_on_ec2 is None:
+        logger.debug("Checking to see if running on ec2...")
+        _running_on_ec2 = False
+        try:
+            result = requests.get(
+                'http://169.254.169.254/latest/dynamic/instance-identity/document',
+                timeout=2)
+            logger.debug(f"Result {result}")
+            if result.ok and result.json():
+                logger.debug("Running on ec2")
+                _running_on_ec2 = True
+            else:
+                logger.debug("Not running on ec2")
+        except ConnectTimeout:
+            logger.debug("Timeout: not running on ec2")
+    return _running_on_ec2
 
 
 def ssh_address_for(instance):
-    if RUNNING_ON_EC2:
+    if running_on_ec2():
         return instance.instance.private_ip_address
     else:
         return instance.instance.public_ip_address
