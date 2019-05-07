@@ -241,7 +241,7 @@ compilers:
       untar_dir: "OracleDeveloperStudio{name}-linux-x86-bin"
       compression: bz2
       targets:
-        - 12.5
+        - "12.5"
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version

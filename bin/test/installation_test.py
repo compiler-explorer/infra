@@ -2,11 +2,12 @@ import yaml
 from nose.tools import assert_equals
 
 from lib.installation import targets_from
+from lib.config_safe_loader import ConfigSafeLoader
 
 
 def parse_targets(string_config, enabled=None):
     enabled = enabled if enabled else set()
-    return list(targets_from(yaml.load(string_config, Loader=yaml.BaseLoader), enabled))
+    return list(targets_from(yaml.load(string_config, Loader=ConfigSafeLoader), enabled))
 
 
 def test_targets_from_simple_cases():
@@ -162,3 +163,34 @@ nasm:
     - 2.12.02
 """)[0]['configure_command'], ['bash', '-c', 'cd nasm-2.12.02 && sh configure --prefix=/tmp/foo && make -j$(nproc)']
     )
+
+
+def test_bools_stay_bool():
+    yaml_test = yaml.load("true1: true", Loader=ConfigSafeLoader)
+    assert_equals(yaml_test['true1'], True)
+    target = parse_targets("""
+moose:
+  true1: true
+  targets:
+    - name: a
+      false1: false
+""")[0]
+    assert_equals(target['true1'], True)
+    assert_equals(target['false1'], False)
+
+
+def test_strings_that_look_datey_stay_stringy():
+    yaml_test = yaml.load("date: 2017-01-01", Loader=ConfigSafeLoader)
+    assert_equals(yaml_test['date'], "2017-01-01")
+
+
+def test_dont_load_floats():
+    target = parse_targets("""
+moose:
+  value1: 0.1
+  targets:
+    - name: a
+      value2: 1.77
+""")[0]
+    assert_equals(target['value1'], "0.1")
+    assert_equals(target['value2'], "1.77")

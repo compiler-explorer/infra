@@ -9,6 +9,7 @@ import logging
 import logging.config
 
 from lib.installation import InstallationContext, installers_for
+from lib.config_safe_loader import ConfigSafeLoader
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,7 @@ def main():
 
     installables = []
     for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
-        for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=yaml.BaseLoader), args.enable):
+        for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=ConfigSafeLoader), args.enable):
             installables.append(installer)
 
     for filt in args.filter:

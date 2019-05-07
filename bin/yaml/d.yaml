@@ -1,0 +1,54 @@
+compilers:
+  d:
+    gdc:
+      type: tarballs
+      build: 2.066.1
+      compression: xz
+      check_exe: "{arch}/bin/gdc --version"
+      url: https://gdcproject.org/downloads/binaries/{name}/x86_64-linux-gnu/gdc-{name}+{build}.tar.xz
+      create_untar_dir: true
+      dir: gdc{name}
+      arch: x86_64-pc-linux-gnu
+      strip: # stripping the D libraries seems to upset them, so just strip the exes
+        - gdc{name}/{arch}/bin
+        - gdc{name}/{arch}/libexec
+      targets:
+        - name: 4.8.2
+          build: 2.064.2
+          arch: x86_64-gdcproject-linux-gnu
+        - 4.9.3
+        - 5.2.0
+    ldc:
+      type: tarballs
+      url: https://github.com/ldc-developers/ldc/releases/download/v{name}/ldc2-{name}-linux-x86_64.tar.xz
+      compression: xz
+      dir: ldc{name}
+      create_untar_dir: true
+      # any kind of stripping upsets ldc
+      strip: false
+      check_exe: ldc2-{name}-linux-x86_64/bin/ldc2 --version
+      targets:
+        - 0.17.2
+        - 1.0.0
+        - 1.1.0
+        - 1.2.0
+        - 1.3.0
+        - 1.4.0
+        - 1.5.0
+        - 1.6.0
+        - 1.7.0
+        - 1.8.0
+        - 1.9.0
+        - 1.10.0
+        - 1.11.0
+        - 1.12.0
+        - 1.13.0
+        - 1.14.0
+        - 1.15.0
+    dmd:
+      todo
+    nightly:
+      ldc:
+        todo
+      dmd: # 2?
+        todo

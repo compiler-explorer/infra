@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import time
-from collections import defaultdict
+from collections import defaultdict, ChainMap
 
 import requests
 from cachecontrol import CacheControl
@@ -86,14 +86,16 @@ class InstallationContext(object):
         self.info(f'100% of {url}')
         fd.flush()
 
-    def fetch_url_and_pipe_to(self, url, command):
+    def fetch_url_and_pipe_to(self, url, command, subdir='.'):
+        untar_dir = os.path.join(self.staging, subdir)
+        os.makedirs(untar_dir, exist_ok=True)
         # We stream to a temporary file first before then piping this to the command
         # as sometimes the command can take so long the URL endpoint closes the door on us
         with tempfile.TemporaryFile() as fd:
             self.fetch_to(url, fd)
             fd.seek(0)
             self.info(f'Piping to {" ".join(command)}')
-            subprocess.check_call(command, stdin=fd, cwd=self.staging)
+            subprocess.check_call(command, stdin=fd, cwd=untar_dir)
 
     def stage_command(self, command):
         self.info(f'Staging with {" ".join(command)}')
@@ -169,13 +171,22 @@ class InstallationContext(object):
         logger.debug('Executing %s in %s', args, self.destination)
         return subprocess.check_output(args, cwd=self.destination).decode('utf-8')
 
-    def strip_exes(self):
+    def strip_exes(self, paths):
+        if isinstance(paths, bool):
+            if not paths:
+                return
+            paths = ['.']
         to_strip = []
-        for dirpath, dirnames, filenames in os.walk(self.staging):
-            for filename in filenames:
-                full_path = os.path.join(dirpath, filename)
-                if os.stat(full_path).st_mode & 0o444:
-                    to_strip.append(full_path)
+        for path in paths:
+            path = os.path.join(self.staging, path)
+            logger.debug(f"Looking for executables to strip in {path}")
+            if not os.path.isdir(path):
+                raise RuntimeError(f"While looking for files to strip, {path} was not a directory")
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    full_path = os.path.join(dirpath, filename)
+                    if os.access(full_path, os.X_OK):
+                        to_strip.append(full_path)
 
         # Deliberately ignore errors
         subprocess.call(['strip'] + to_strip)
@@ -271,7 +282,7 @@ class S3TarballInstallable(Installable):
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(self.s3_path, ['tar', f'{self.decompress_flag}xf', '-'])
         if self.strip:
-            self.install_context.strip_exes()
+            self.install_context.strip_exes(self.strip)
 
     def verify(self):
         if not super(S3TarballInstallable, self).verify():
@@ -323,7 +334,7 @@ class NightlyInstallable(Installable):
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(f'{self.path_name}.tar.xz', ['tar', f'Jxf', '-'])
         if self.strip:
-            self.install_context.strip_exes()
+            self.install_context.strip_exes(self.strip)
 
     def verify(self):
         if not super(NightlyInstallable, self).verify():
@@ -365,6 +376,10 @@ class TarballInstallable(Installable):
         super(TarballInstallable, self).__init__(install_context, config)
         self.install_path = self.config_get('dir')
         self.untar_path = self.config_get('untar_dir', self.install_path)
+        if self.config_get('create_untar_dir', False):
+            self.untar_to = self.untar_path
+        else:
+            self.untar_to = '.'
         self.url = self.config_get('url')
         if self.config_get('compression') == 'xz':
             decompress_flag = 'J'
@@ -385,11 +400,11 @@ class TarballInstallable(Installable):
 
     def stage(self):
         self.install_context.clean_staging()
-        self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd)
+        self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd, self.untar_to)
         if self.configure_command:
             self.install_context.stage_command(self.configure_command)
         if self.strip:
-            self.install_context.strip_exes()
+            self.install_context.strip_exes(self.strip)
         if not os.path.isdir(os.path.join(self.install_context.staging, self.untar_path)):
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
 
@@ -430,6 +445,13 @@ def is_list_of_strings(value):
     return isinstance(value, list) and all(isinstance(x, str) for x in value)
 
 
+def is_value_type(value):
+    return isinstance(value, str) \
+           or isinstance(value, bool) \
+           or isinstance(value, float) \
+           or is_list_of_strings(value)
+
+
 def _targets_from(node, enabled, context, name, base_config):
     if not node:
         return
@@ -453,7 +475,7 @@ def _targets_from(node, enabled, context, name, base_config):
         context.append(name)
     base_config = dict(base_config)
     for key, value in node.items():
-        if key != 'targets' and (isinstance(value, str) or is_list_of_strings(value)):
+        if key != 'targets' and is_value_type(value):
             base_config[key] = value
 
     for child_name, child in node.items():
@@ -465,13 +487,15 @@ def _targets_from(node, enabled, context, name, base_config):
         for target in node['targets']:
             if isinstance(target, str):
                 target = {'name': target}
-            target = dict(base_config, **target)
+            target = ChainMap(target, base_config)
             try:
                 for key in target.keys():
                     if is_list_of_strings(target[key]):
                         target[key] = [x.format(**target) for x in target[key]]
                     elif isinstance(target[key], str):
                         target[key] = target[key].format(**target)
+                    elif isinstance(target[key], float):
+                        target[key] = str(target[key])
             except KeyError as ke:
                 raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
             yield target
