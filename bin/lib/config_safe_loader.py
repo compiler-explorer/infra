@@ -16,7 +16,6 @@ class ConfigSafeLoader(yaml.SafeLoader):
             cls.yaml_implicit_resolvers = cls.yaml_implicit_resolvers.copy()
 
         for first_letter, mappings in cls.yaml_implicit_resolvers.items():
-            print(first_letter, mappings)
             cls.yaml_implicit_resolvers[first_letter] = [(tag, regexp)
                                                          for tag, regexp in mappings
                                                          if tag != tag_to_remove]
