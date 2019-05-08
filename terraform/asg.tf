@@ -125,3 +125,36 @@ resource "aws_autoscaling_group" "spot-prod" {
   }
   target_group_arns = ["${aws_alb_target_group.prod.arn}"]
 }
+
+resource "aws_autoscaling_group" "staging" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  desired_capacity          = 1
+  health_check_grace_period = 500
+  health_check_type         = "EC2"
+  launch_configuration      = "${aws_launch_configuration.CompilerExplorer-staging.id}"
+  max_size                  = 4
+  min_size                  = 0
+  name                      = "staging"
+  vpc_zone_identifier       = ["${local.subnets}"]
+  tag {
+    key                 = "Environment"
+    value               = "Staging"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Name"
+    value               = "Staging"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Site"
+    value               = "CompilerExplorer"
+    propagate_at_launch = true
+  }
+  target_group_arns = ["${aws_alb_target_group.staging.arn}"]
+}

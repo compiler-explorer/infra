@@ -47,6 +47,21 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-beta" {
   listener_arn = "${aws_alb_listener.compiler-explorer-alb-listen-http.arn}"
 }
 
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
+  priority     = 2
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_alb_target_group.staging.arn}"
+  }
+  condition {
+    field  = "path-pattern"
+    values = [
+      "/staging*"
+    ]
+  }
+  listener_arn = "${aws_alb_listener.compiler-explorer-alb-listen-http.arn}"
+}
+
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   default_action {
     type             = "forward"
@@ -69,6 +84,21 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
     field  = "path-pattern"
     values = [
       "/beta*"
+    ]
+  }
+  listener_arn = "${aws_alb_listener.compiler-explorer-alb-listen-https.arn}"
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
+  priority     = 2
+  action {
+    type             = "forward"
+    target_group_arn = "${aws_alb_target_group.staging.arn}"
+  }
+  condition {
+    field  = "path-pattern"
+    values = [
+      "/staging*"
     ]
   }
   listener_arn = "${aws_alb_listener.compiler-explorer-alb-listen-https.arn}"

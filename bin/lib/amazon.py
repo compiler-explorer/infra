@@ -94,10 +94,7 @@ def find_latest_release(branch):
 def branch_for_env(args):
     if args['env'] == 'prod':
         return 'release'
-    elif args['env'] == 'beta':
-        return 'beta'
-    else:
-        return 'master'
+    return args['env']
 
 
 def version_key_for_env(env):
