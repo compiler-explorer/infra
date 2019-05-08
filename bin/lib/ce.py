@@ -13,7 +13,8 @@ from pprint import pprint
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
-    save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links
+    save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links, \
+    get_autoscaling_groups_for
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
@@ -558,6 +559,45 @@ def add_required_sub_parsers(parser, dest):
     return sub_parser
 
 
+def environment_cmd(args):
+    dispatch_global('environment', args)
+
+
+def environment_status_cmd(args):
+    for asg in get_autoscaling_groups_for(args):
+        group_name = asg['AutoScalingGroupName']
+        instances = asg['DesiredCapacity']
+        print(f"Found ASG {group_name} with desired instances {instances}")
+
+
+def environment_start_cmd(args):
+    for asg in get_autoscaling_groups_for(args):
+        group_name = asg['AutoScalingGroupName']
+        if asg['MinSize'] > 0:
+            print(f"Skipping ASG {group_name} as it has a non-zero min size")
+            continue
+        prev = asg['DesiredCapacity']
+        if prev:
+            print(f"Skipping ASG {group_name} as it has non-zero desired capacity")
+            continue
+        print(f"Updating {group_name} to have desired capacity 1 (from {prev})")
+        as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=1)
+
+
+def environment_stop_cmd(args):
+    for asg in get_autoscaling_groups_for(args):
+        group_name = asg['AutoScalingGroupName']
+        if asg['MinSize'] > 0:
+            print(f"Skipping ASG {group_name} as it has a non-zero min size")
+            continue
+        prev = asg['DesiredCapacity']
+        if not prev:
+            print(f"Skipping ASG {group_name} as it already zero desired capacity")
+            continue
+        print(f"Updating {group_name} to have desired capacity 0 (from {prev})")
+        as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=0)
+
+
 def main():
     parser = ArgumentParser(prog='ce', description='Administrate Compiler Explorer instances')
     parser.add_argument('--env', choices=['prod', 'beta', 'staging'], default='staging', metavar='ENV',
@@ -566,7 +606,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Increase debug information')
 
     subparsers = add_required_sub_parsers(parser, 'command')
-    admin_parser = subparsers.add_parser('admin')
+    subparsers.add_parser('admin')
 
     builder_parser = subparsers.add_parser('builder')
     builder_sub = add_required_sub_parsers(builder_parser, 'builder_sub')
@@ -646,6 +686,12 @@ def main():
     links_update_parser.add_argument('to', type=str, help='named short link to update')
     links_maintenance_parser = links_sub.add_parser('maintenance')
     links_maintenance_parser.add_argument('--dry-run', action='store_true', help='dry run')
+
+    env_parser = subparsers.add_parser('environment')
+    env_sub = add_required_sub_parsers(env_parser, 'environment_sub')
+    env_sub.add_parser('start')
+    env_sub.add_parser('stop')
+    env_sub.add_parser('status')
 
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:

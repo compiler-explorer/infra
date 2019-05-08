@@ -70,7 +70,6 @@ resource "aws_autoscaling_group" "spot-beta" {
     create_before_destroy = true
   }
 
-  desired_capacity          = 1
   health_check_grace_period = 500
   health_check_type         = "EC2"
   launch_configuration      = "${aws_launch_configuration.CompilerExplorer-beta-large.id}"
@@ -131,7 +130,6 @@ resource "aws_autoscaling_group" "staging" {
     create_before_destroy = true
   }
 
-  desired_capacity          = 1
   health_check_grace_period = 500
   health_check_type         = "EC2"
   launch_configuration      = "${aws_launch_configuration.CompilerExplorer-staging.id}"

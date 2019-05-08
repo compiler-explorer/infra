@@ -34,16 +34,32 @@ class Release(object):
         return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
 
 
-def target_group_arn_for(args):
+def target_group_for(args):
     result = elb_client.describe_target_groups(Names=[args['env'].title()])
     if len(result['TargetGroups']) != 1:
-        raise RuntimeError(f"Invalid environment ${args['env']}")
-    return result['TargetGroups'][0]['TargetGroupArn']
+        raise RuntimeError(f"Invalid environment {args['env']}")
+    return result['TargetGroups'][0]
+
+
+def target_group_arn_for(args):
+    return target_group_for(args)['TargetGroupArn']
 
 
 def get_autoscaling_group(group_name):
     result = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[group_name])
     return result['AutoScalingGroups'][0]
+
+
+def get_autoscaling_groups_for(args):
+    def finder(r):
+        for k in r['Tags']:
+            if k['Key'] == 'Name' and k['Value'] == args['env'].title():
+                return r
+
+    result = list(filter(finder, as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
+    if not result:
+        raise RuntimeError(f"Invalid environment {args['env']}")
+    return result
 
 
 def remove_release(release):
@@ -55,10 +71,10 @@ def remove_release(release):
 
 def get_releases():
     paginator = s3_client.get_paginator('list_objects_v2')
-    PREFIX = 'dist/travis/'
+    prefix = 'dist/travis/'
     result_iterator = paginator.paginate(
         Bucket='compiler-explorer',
-        Prefix=PREFIX
+        Prefix=prefix
     )
     releases = []
     for result in result_iterator.search('[Contents][]'):
