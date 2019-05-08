@@ -560,7 +560,8 @@ def add_required_sub_parsers(parser, dest):
 
 def main():
     parser = ArgumentParser(prog='ce', description='Administrate Compiler Explorer instances')
-    parser.add_argument('--env', choices=['prod', 'beta'], default='beta', metavar='ENV', help='Select environment ENV')
+    parser.add_argument('--env', choices=['prod', 'beta', 'staging'], default='staging', metavar='ENV',
+                        help='Select environment ENV')
     parser.add_argument('--mosh', action='store_true', help='Use mosh for interactive shells')
     parser.add_argument('--debug', action='store_true', help='Increase debug information')
 

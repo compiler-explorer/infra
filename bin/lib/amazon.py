@@ -35,10 +35,10 @@ class Release(object):
 
 
 def target_group_arn_for(args):
-    if args['env'] == 'prod':
-        return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/GccExplorerNodes/84e7c7626fd50397'
-    else:
-        return 'arn:aws:elasticloadbalancing:us-east-1:052730242331:targetgroup/Beta/07d45244520b84c4'
+    result = elb_client.describe_target_groups(Names=[args['env'].title()])
+    if len(result['TargetGroups']) != 1:
+        raise RuntimeError(f"Invalid environment ${args['env']}")
+    return result['TargetGroups'][0]['TargetGroupArn']
 
 
 def get_autoscaling_group(group_name):
