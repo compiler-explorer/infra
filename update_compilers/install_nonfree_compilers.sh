@@ -22,7 +22,8 @@ do
 done
 
 for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic; do
-	s3get ${S3URL}/$license /opt/intel/licenses # NB not ${OPT} as we need this actually at this absolute path
+    mkdir -p /opt/intel/licenses
+    s3get ${S3URL}/$license /opt/intel/licenses # NB not ${OPT} as we need this actually at this absolute path
 done
 
 for version in 2016.3.210 2018.0.033; do
