@@ -54,8 +54,17 @@ update_code() {
 
 update_code
 
-# TODO - logging!
+get_conf() {
+    aws ssm get-parameter --name $1 | jq -r .Parameter.Value
+}
+
+LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
+LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
+
 cd ${DEPLOY_DIR} && \
     sudo -u ${CE_USER} -H -- \
     /opt/compiler-explorer/node/bin/node \
-    -- app.js --env amazon --port 10240 --static out/dist ${EXTRA_ARGS}
+    -- app.js \
+    --suppressConsoleLog --logHost ${LOG_DEST_HOST} --logPort ${LOG_DEST_PORT} \
+    --env amazon --port 10240 --static out/dist \
+    ${EXTRA_ARGS}
