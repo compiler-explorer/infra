@@ -22,10 +22,6 @@ env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 if [[ ! -f /updated.2 ]]; then
     dpkg --add-architecture i386
     apt-get -y update
-    apt-get install -y curl apt-transport-https apt-utils software-properties-common
-    curl -sL https://dl.winehq.org/wine-builds/Release.key | apt-key add -
-    apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ artful main'
-    apt-get -y update
     apt-get install -y \
         binutils-multiarch \
         bison \
@@ -36,7 +32,6 @@ if [[ ! -f /updated.2 ]]; then
         g++ \
         gawk \
         gcc \
-        git \
         gnat \
         jq \
         libc6-dev-i386 \
@@ -54,9 +49,7 @@ if [[ ! -f /updated.2 ]]; then
         texinfo \
         unzip \
         wget \
-        wget \
         xz-utils
-    apt-get install -y --install-recommends winehq-devel
     touch /updated.2
 fi
 
