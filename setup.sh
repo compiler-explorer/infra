@@ -19,11 +19,50 @@ fi
 
 env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 
+if [[ ! -f /updated.2 ]]; then
+    dpkg --add-architecture i386
+    apt-get -y update
+    apt-get install -y curl apt-transport-https apt-utils software-properties-common
+    curl -sL https://dl.winehq.org/wine-builds/Release.key | apt-key add -
+    apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ artful main'
+    apt-get -y update
+    apt-get install -y \
+        binutils-multiarch \
+        bison \
+        bzip2 \
+        curl \
+        file \
+        flex \
+        g++ \
+        gawk \
+        gcc \
+        git \
+        gnat \
+        jq \
+        libc6-dev-i386 \
+        libdatetime-perl \
+        libelf-dev \
+        libwww-perl \
+        linux-libc-dev \
+        make \
+        nfs-common \
+        nginx \
+        patch \
+        python-pip \
+        s3cmd \
+        subversion \
+        texinfo \
+        unzip \
+        wget \
+        wget \
+        xz-utils
+    apt-get install -y --install-recommends winehq-devel
+    touch /updated.2
+fi
+
+cp nginx/nginx.conf /etc/nginx/nginx.conf
+systemctl restart nginx
+
 cp /compiler-explorer-image/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
 systemctl daemon-reload
 systemctl enable compiler-explorer
-
-[ -n "$PACKER_SETUP" ] && exit
-
-docker pull -a mattgodbolt/compiler-explorer
-docker pull nginx

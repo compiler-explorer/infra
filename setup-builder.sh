@@ -11,6 +11,11 @@ if [[ "$1" != "--updated" ]]; then
     exit 0
 fi
 
+if [[ ! -f /updated.2 ]]; then
+    wget -qO- https://get.docker.com/ | sh
+    touch /updated.2
+fi
+
 systemctl stop docker
 umount /ephemeral || true
 sfdisk -f /dev/nvme0n1 <<EOF

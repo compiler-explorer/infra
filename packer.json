@@ -58,7 +58,6 @@
         "mkdir -p /root/.ssh",
         "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
-        "echo 'GOOGLE_API_KEY={{user `GOOGLE_API_KEY`}}' > /env",
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
