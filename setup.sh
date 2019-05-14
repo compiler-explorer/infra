@@ -34,6 +34,7 @@ if [[ ! -f /updated.2 ]]; then
         gcc \
         gnat \
         jq \
+        libapparmor-dev \
         libc6-dev-i386 \
         libdatetime-perl \
         libelf-dev \
@@ -51,6 +52,14 @@ if [[ ! -f /updated.2 ]]; then
         wine64 \
         wget \
         xz-utils
+    pushd /tmp
+    git clone https://github.com/netblue30/firejail.git
+    cd firejail
+    git checkout 0.9.58.2
+    ./configure --enable-apparmor
+    make -j$(nproc)
+    make install
+    popd
     touch /updated.2
 fi
 

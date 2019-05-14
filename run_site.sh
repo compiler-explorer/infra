@@ -48,14 +48,14 @@ get_released_code() {
 }
 
 update_code() {
-#    rm -rf ${DEPLOY_DIR}
-#    get_released_code ${DEPLOY_DIR}
+    rm -rf ${DEPLOY_DIR}
+    get_released_code ${DEPLOY_DIR}
 }
 
 update_code
 
 # TODO - logging!
 cd ${DEPLOY_DIR} && \
-    ./node_modules/.bin/supervisor -s -e node,js,properties -w app.js,etc,lib \
-    -- app.js --env amazon --port 10240 \
-    --static out/dist ${EXTRA_ARGS}
+    sudo -u ${CE_USER} -H -- \
+    /opt/compiler-explorer/node/bin/node \
+    -- app.js --env amazon --port 10240 --static out/dist ${EXTRA_ARGS}
