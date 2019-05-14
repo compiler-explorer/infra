@@ -48,6 +48,7 @@ if [[ ! -f /updated.2 ]]; then
         subversion \
         texinfo \
         unzip \
+        wine64 \
         wget \
         xz-utils
     touch /updated.2
