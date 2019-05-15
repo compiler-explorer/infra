@@ -2,6 +2,7 @@
 # coding=utf-8
 
 import logging
+import subprocess
 from argparse import ArgumentParser
 import datetime
 
@@ -114,18 +115,21 @@ def confirm_branch(release):
             return True
 
 
+def is_everything_awesome(instance):
+    try:
+        response = exec_remote(instance, ['curl', '-s', '--max-time', '2', 'http://127.0.0.1/healthcheck'])
+        return response.strip() == "Everything is awesome"
+    except subprocess.CalledProcessError:
+        return False
+
+
 def wait_for_healthok(instance):
     logger.info("Waiting for instance to be Online {}".format(instance))
-    response = ""
     sys.stdout.write('Waiting')
-    while response != "Everything is awesome":
-        try:
-            response = exec_remote(instance, ['curl', '-s', 'http://127.0.0.1/healthcheck'])
-        except Exception:
-            sys.stdout.write('.')
-            # Flush stdout so tmux updates
-            sys.stdout.flush()
-            pass
+    while not is_everything_awesome(instance):
+        sys.stdout.write('.')
+        # Flush stdout so tmux updates
+        sys.stdout.flush()
         time.sleep(10)
     print("Ok, Everything is awesome!")
 
