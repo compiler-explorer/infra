@@ -1,7 +1,5 @@
 [Unit]
 Description=Compiler Explorer
-After=docker.target
-Wants=docker.target
 
 [Service]
 Type=simple
@@ -9,7 +7,6 @@ Environment=HOME=/root
 TimeoutStartSec=infinity
 ExecStartPre=/compiler-explorer-image/init/pre-start.sh
 ExecStart=/compiler-explorer-image/init/start.sh
-ExecStop=/compiler-explorer-image/init/stop.sh
 
 [Install]
 WantedBy=multi-user.target
