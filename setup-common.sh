@@ -26,7 +26,6 @@ if [[ ! -f /updated ]]; then
     pip install --upgrade pip
     hash -r pip
     pip install --upgrade awscli
-    wget -qO- https://get.docker.com/ | sh
     touch /updated
 fi
 
@@ -49,7 +48,6 @@ if [[ ! -f "${PTRAIL}" ]]; then
     pushd /tmp
     curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
     cp remote_syslog/remote_syslog /usr/local/bin/
-    docker pull gliderlabs/logspout:latest
     popd
 fi
 
@@ -63,14 +61,6 @@ destination:
     protocol: tls
 EOF
 remote_syslog
-
-docker stop logspout || true
-docker rm logspout || true
-docker run --name logspout \
-    -d \
-    -v=/var/run/docker.sock:/tmp/docker.sock \
-    -e SYSLOG_HOSTNAME=$(hostname) \
-    gliderlabs/logspout syslog+tls://${LOG_DEST_HOST}:${LOG_DEST_PORT}
 
 if ! grep /opt /etc/fstab; then
     echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >> /etc/fstab
@@ -86,7 +76,3 @@ aws s3 sync s3://compiler-explorer/authorized_keys /tmp/auth_keys
 cat /tmp/auth_keys/* >> /home/ubuntu/.ssh/authorized_keys
 rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
-
-if ! egrep '^DOCKER_OPTS' /etc/default/docker.io >/dev/null; then
-    echo 'DOCKER_OPTS="--restart=false"' >> /etc/default/docker.io
-fi

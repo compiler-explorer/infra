@@ -19,11 +19,53 @@ fi
 
 env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 
+if [[ ! -f /updated.2 ]]; then
+    dpkg --add-architecture i386
+    apt-get -y update
+    apt-get install -y \
+        binutils-multiarch \
+        bison \
+        bzip2 \
+        curl \
+        file \
+        flex \
+        g++ \
+        gawk \
+        gcc \
+        gnat \
+        jq \
+        libapparmor-dev \
+        libc6-dev-i386 \
+        libdatetime-perl \
+        libelf-dev \
+        libwww-perl \
+        linux-libc-dev \
+        make \
+        nfs-common \
+        nginx \
+        patch \
+        python-pip \
+        s3cmd \
+        subversion \
+        texinfo \
+        unzip \
+        wine64 \
+        wget \
+        xz-utils
+    pushd /tmp
+    git clone https://github.com/netblue30/firejail.git
+    cd firejail
+    git checkout 0.9.58.2
+    ./configure --enable-apparmor
+    make -j$(nproc)
+    make install
+    popd
+    touch /updated.2
+fi
+
+cp nginx/nginx.conf /etc/nginx/nginx.conf
+systemctl restart nginx
+
 cp /compiler-explorer-image/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
 systemctl daemon-reload
 systemctl enable compiler-explorer
-
-[ -n "$PACKER_SETUP" ] && exit
-
-docker pull -a mattgodbolt/compiler-explorer
-docker pull nginx

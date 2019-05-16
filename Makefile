@@ -28,10 +28,13 @@ config.json: make_json.py
 	python make_json.py
 
 packer: config.json ## Builds the base image for compiler explorer nodes
-	$(PACKER) build -var-file=config.json packer.json 
+	$(PACKER) build -var-file=config.json packer.json
+
+packer-local: config.json ## Builds a local docker version of the compiler explorer node image
+	$(PACKER) build -var-file=config.json packer-local.json
 
 packer-admin: config.json  ## Builds the base image for the admin server
-	$(PACKER) build -var-file=config.json packer-admin.json 
+	$(PACKER) build -var-file=config.json packer-admin.json
 
 clean:
 	echo nothing to clean yet
@@ -51,4 +54,4 @@ ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for 
 test: ce  ## Runs the tests
 	$(VIRTUALENV)/bin/nosetests bin
 
-.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer update-compilers build-compiler-images update-admin ce test
+.PHONY: all clean docker-images base-image $(DOCKER_IMAGES) packer packet-admin packer-local update-compilers build-compiler-images update-admin ce test

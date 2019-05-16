@@ -43,8 +43,7 @@
 
   "variables": {
     "MY_ACCESS_KEY": "",
-    "MY_SECRET_KEY": "",
-    "GOOGLE_API_KEY": ""
+    "MY_SECRET_KEY": ""
   },
 
   "provisioners": [
@@ -57,7 +56,6 @@
     	"while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
-        "echo 'GOOGLE_API_KEY={{user `GOOGLE_API_KEY`}}' > /env",
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
