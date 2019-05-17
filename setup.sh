@@ -22,7 +22,7 @@ env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 # Work around the fact that we need a writeable /opt/wine-stable, whereas /opt lives on EFS.
 if ! grep "/opt/wine-stable" /etc/fstab; then
     mkdir -p /var/opt/wine-stable
-    echo "/var/opt/wine-stable /opt/wine-stable none bind,defaults 0 0" >> /etc/fstab
+    echo "/var/opt/wine-stable /opt/wine-stable none bind,defaults,x-systemd.requires=/opt,_netdev 0 0" >> /etc/fstab
     mount -a
 fi
 
