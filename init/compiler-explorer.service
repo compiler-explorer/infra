@@ -5,7 +5,6 @@ Description=Compiler Explorer
 Type=simple
 Environment=HOME=/root
 TimeoutStartSec=infinity
-ExecStartPre=/compiler-explorer-image/init/pre-start.sh
 ExecStart=/compiler-explorer-image/init/start.sh
 
 [Install]
