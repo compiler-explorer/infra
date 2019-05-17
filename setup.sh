@@ -19,8 +19,17 @@ fi
 
 env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 
+# Work around the fact that we need a writeable /opt/wine-stable, whereas /opt lives on EFS.
+if ! grep "/opt/wine-stable" /etc/fstab; then
+    mkdir -p /var/opt/wine-stable
+    echo "/var/opt/wine-stable /opt/wine-stable none bind,defaults 0 0" >> /etc/fstab
+    mount -a
+fi
+
 if [[ ! -f /updated.2 ]]; then
     dpkg --add-architecture i386
+    curl -s https://dl.winehq.org/wine-builds/winehq.key | apt-key add -
+    apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
     apt-get -y update
     apt-get install -y \
         binutils-multiarch \
@@ -49,7 +58,7 @@ if [[ ! -f /updated.2 ]]; then
         subversion \
         texinfo \
         unzip \
-        wine64 \
+        winehq-stable \
         wget \
         xz-utils
     pushd /tmp
