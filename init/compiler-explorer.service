@@ -1,5 +1,6 @@
 [Unit]
 Description=Compiler Explorer
+After=remote-fs.target
 
 [Service]
 Type=simple
