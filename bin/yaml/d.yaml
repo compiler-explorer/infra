@@ -46,7 +46,19 @@ compilers:
         - 1.14.0
         - 1.15.0
     dmd:
-      todo
+      type: tarballs
+      url: http://downloads.dlang.org/releases/2.x/{name}/dmd.{name}.linux.tar.xz
+      compression: xz
+      dir: dmd-{name}
+      create_untar_dir: true
+      check_exe: dmd2/linux/bin64/dmd --version
+      targets:
+        - 2.078.3
+        - 2.079.0
+        - 2.079.1
+        - 2.080.1
+        - 2.081.2
+        - 2.082.0
     nightly:
       ldc:
         todo
