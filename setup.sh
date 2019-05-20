@@ -62,9 +62,9 @@ if [[ ! -f /updated.2 ]]; then
         wget \
         xz-utils
     pushd /tmp
-    git clone https://github.com/netblue30/firejail.git
+    git clone https://github.com/apmorton/firejail.git
     cd firejail
-    git checkout 0.9.58.2
+    git checkout 0.9.58.2-ce-patch.1
     ./configure --enable-apparmor
     make -j$(nproc)
     make install
