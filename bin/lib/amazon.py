@@ -1,6 +1,9 @@
 import boto3
 from operator import attrgetter
 
+if not boto3.session.Session().region_name:
+    boto3.setup_default_session(region_name='us-east-1')
+
 ec2 = boto3.resource('ec2')
 s3 = boto3.resource('s3')
 as_client = boto3.client('autoscaling')
