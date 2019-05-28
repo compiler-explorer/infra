@@ -10,7 +10,7 @@ resource "aws_s3_bucket" "compiler-explorer" {
     allowed_origins = ["*"]
     max_age_seconds = 3000
   }
-  # Keep only five years of cloudfront logs (See the privacy policy in the compiler explorer project)
+  # Keep only one month of cloudfront logs (See the privacy policy in the compiler explorer project)
   lifecycle_rule {
     enabled = true
     expiration {
