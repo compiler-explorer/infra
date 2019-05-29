@@ -61,7 +61,7 @@ resource "aws_autoscaling_policy" "compiler-explorer-nonspot-prod" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value = 25.0
+    target_value = 30.0
   }
 }
 
