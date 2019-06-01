@@ -11,7 +11,7 @@ get_jdk() {
     if [[ ! -d ${DIR} ]]; then
 		mkdir ${DIR}
 		pushd ${DIR}
-        fetch ${URL} | tar zxf -
+        fetch ${URL} | tar zxf - --strip-components 1
 		popd
 	fi
 }
