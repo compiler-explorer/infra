@@ -236,6 +236,11 @@ if [[ ! -d gcc-arm-none-eabi-5_4-2016q3 ]]; then
     do_strip gcc-arm-none-eabi-5_4-2016q3
 fi
 
+# FIRST Robotics/ NI Real-Time Specific toolchain
+if [[ ! -d gcc-ni-realtime-18 ]]; then
+        fetch https://github.com/wpilibsuite/toolchain-builder/releases/download/v2019-3/FRC-2019-Linux-Toolchain-6.3.0.tar.gz | tar xzf -
+fi
+
 # intel ispc
 get_ispc() {
     local VER=$1
