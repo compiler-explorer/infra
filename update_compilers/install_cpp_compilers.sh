@@ -243,8 +243,8 @@ if [[ ! -d arm/frc2019-6.3.0 ]]; then
 fi
 
 # Raspbian Specific toolchain
-if [[ ! -d gcc-raspbian-stretch ]]; then
-        fetch https://github.com/wpilibsuite/raspbian-toolchain/releases/download/v1.3.0/Raspbian9-Linux-Toolchain-6.3.0.tar.gz | tar xzf -
+if [[ ! -d raspbian9 ]]; then
+    fetch https://github.com/wpilibsuite/raspbian-toolchain/releases/download/v1.3.0/Raspbian9-Linux-Toolchain-6.3.0.tar.gz | tar xzf -
 fi
 
 # intel ispc
