@@ -80,6 +80,17 @@ compilers:
             compression: bz2
             targets:
               - gcc-arm-none-eabi-7-2017-q4-major # name unused in this case
+          - type: tarballs
+            frc:
+              check_exe: roborio/bin/arm-frc{year}-linux-gnueabi-g++ --version
+              compression: gz
+              dir: arm/frc{year}-{name}
+              untar_dir: frc{year}
+              url: https://github.com/wpilibsuite/toolchain-builder/releases/download/v{year}-{build}/FRC-{year}-Linux-Toolchain-{name}.tar.gz
+              targets:
+                - year: 2019
+                  build: 3
+                  name: 6.3.0
         avr:
           arch_prefix: avr
           subdir: avr
