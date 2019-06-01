@@ -1,4 +1,4 @@
-  locals {
+locals {
   image_id          = "ami-097007e7a7c2578b9"
   staging_image_id  = "ami-097007e7a7c2578b9"
   beta_image_id     = "ami-097007e7a7c2578b9"

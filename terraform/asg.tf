@@ -1,16 +1,19 @@
 locals {
   // 1e seems to be lacking many instance types..so I ignore it here
-  subnets = [
+  subnets      = [
     "${aws_subnet.ce-1a.id}",
     "${aws_subnet.ce-1b.id}",
     "${aws_subnet.ce-1c.id}",
     "${aws_subnet.ce-1d.id}",
     "${aws_subnet.ce-1f.id}"
   ]
+  grace_period = 180
+  cooldown     = 180
 }
 
 resource "aws_autoscaling_group" "nonspot-prod" {
-  health_check_grace_period = 500
+  default_cooldown          = "${local.cooldown}"
+  health_check_grace_period = "${local.grace_period}"
   health_check_type         = "ELB"
   launch_configuration      = "${aws_launch_configuration.CompilerExplorer-prod-t3.id}"
   max_size                  = 6
@@ -70,7 +73,8 @@ resource "aws_autoscaling_group" "spot-beta" {
     create_before_destroy = true
   }
 
-  health_check_grace_period = 500
+  default_cooldown          = "${local.cooldown}"
+  health_check_grace_period = "${local.grace_period}"
   health_check_type         = "EC2"
   launch_configuration      = "${aws_launch_configuration.CompilerExplorer-beta-large.id}"
   max_size                  = 4
@@ -103,7 +107,8 @@ resource "aws_autoscaling_group" "spot-prod" {
   }
 
   desired_capacity          = 1
-  health_check_grace_period = 500
+  default_cooldown          = "${local.cooldown}"
+  health_check_grace_period = "${local.grace_period}"
   health_check_type         = "ELB"
   launch_configuration      = "${aws_launch_configuration.CompilerExplorer-prod-spot-large.id}"
   max_size                  = 4
@@ -130,7 +135,8 @@ resource "aws_autoscaling_group" "staging" {
     create_before_destroy = true
   }
 
-  health_check_grace_period = 500
+  default_cooldown          = "${local.cooldown}"
+  health_check_grace_period = "${local.grace_period}"
   health_check_type         = "EC2"
   launch_configuration      = "${aws_launch_configuration.CompilerExplorer-staging.id}"
   max_size                  = 4
