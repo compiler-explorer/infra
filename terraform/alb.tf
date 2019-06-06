@@ -74,6 +74,11 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   certificate_arn   = "arn:aws:iam::052730242331:server-certificate/2016_star_godbolt_org"
 }
 
+resource "aws_lb_listener_certificate" "compiler-explorer-alb-listen-https-ce-cert" {
+  listener_arn    = "${aws_alb_listener.compiler-explorer-alb-listen-https.arn}"
+  certificate_arn = "arn:aws:acm:us-east-1:052730242331:certificate/7abed4ab-ecfc-4020-8f73-f255fd82f079"
+}
+
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
   priority     = 1
   action {
