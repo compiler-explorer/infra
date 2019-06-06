@@ -213,6 +213,12 @@ RUST_TARGETS+=(
     riscv64gc-unknown-none-elf
 )
 install_new_rust 1.34.0 RUST_TARGETS[@]
+RUST_TARGETS+=(
+    armv6-unknown-freebsd-gnueabihf
+    armv7-unknown-freebsd-gnueabihf
+    wasm32-unknown-wasi
+)
+install_new_rust 1.35.0 RUST_TARGETS[@]
 if install_nightly; then
     install_new_rust nightly RUST_TARGETS[@] '1 day'
     install_new_rust beta RUST_TARGETS[@] '1 week'
