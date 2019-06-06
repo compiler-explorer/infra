@@ -58,3 +58,6 @@ fi
 # Clean
 . ${SCRIPT_DIR}/install_clean_compilers.sh ${ARG1}
 
+#########################
+# Java
+. ${SCRIPT_DIR}/install_java_compilers.sh ${ARG1}
