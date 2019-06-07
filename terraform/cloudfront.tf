@@ -143,7 +143,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       http_port              = 80
       https_port             = 443
       # Certificate on the endpoint is godbolt.org
-      origin_protocol_policy = "http-only"
+      origin_protocol_policy = "https-only"
       origin_ssl_protocols   = [
         "TLSv1",
         "TLSv1.2",
