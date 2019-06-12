@@ -1,15 +1,38 @@
-import boto3
 from operator import attrgetter
 
-if not boto3.session.Session().region_name:
-    boto3.setup_default_session(region_name='us-east-1')
 
-ec2 = boto3.resource('ec2')
-s3 = boto3.resource('s3')
-as_client = boto3.client('autoscaling')
-elb_client = boto3.client('elbv2')
-s3_client = boto3.client('s3')
-dynamodb_client = boto3.client('dynamodb')
+class LazyObjectWrapper(object):
+    def __init__(self, fn):
+        self.__fn = fn
+        self.__setup = False
+        self.__obj = None
+
+    def __ensure_setup(self):
+        if not self.__setup:
+            self.__obj = self.__fn()
+            self.__setup = True
+
+    def __getattr__(self, attr):
+        self.__ensure_setup()
+        return getattr(self.__obj, attr)
+
+
+def _import_boto():
+    obj = __import__('boto3')
+
+    if not obj.session.Session().region_name:
+        obj.setup_default_session(region_name='us-east-1')
+
+    return obj
+
+
+boto3 = LazyObjectWrapper(_import_boto)
+ec2 = LazyObjectWrapper(lambda: boto3.resource('ec2'))
+s3 = LazyObjectWrapper(lambda: boto3.resource('s3'))
+as_client = LazyObjectWrapper(lambda: boto3.client('autoscaling'))
+elb_client = LazyObjectWrapper(lambda: boto3.client('elbv2'))
+s3_client = LazyObjectWrapper(lambda: boto3.client('s3'))
+dynamodb_client = LazyObjectWrapper(lambda: boto3.client('dynamodb'))
 LINKS_TABLE = 'links'
 
 
