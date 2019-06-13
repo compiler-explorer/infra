@@ -248,6 +248,12 @@ if [[ ! -d arm/raspbian9-6.3.0 ]]; then
     mv raspbian9 arm/raspbian9-6.3.0
 fi
 
+# Arduino toolset
+if [[ ! -d avr/arduino-1.8.9 ]]; then
+    fetch http://downloads.arduino.cc/arduino-1.8.9-linux64.tar.xz | tar xJf -
+    mv arduino-1.8.9 avr/arduino-1.8.9
+fi
+
 # intel ispc
 get_ispc() {
     local VER=$1
