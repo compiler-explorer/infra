@@ -93,13 +93,13 @@ compilers:
                   name: 6.3.0
           - type: tarballs
             arduino:
-              check_exe: arduino-{version}/hardware/tools/avr/bin/avr-g++ --version
+              check_exe: hardware/tools/avr/bin/avr-g++ --version
               compression: xz
-              dir: avr/arduino-{version}
-              untar_dir: arduino-{version}
-              url: http://downloads.arduino.cc/arduino-{version}-linux64.tar.xz
+              dir: avr/arduino-{name}
+              untar_dir: arduino-{name}
+              url: http://downloads.arduino.cc/arduino-{name}-linux64.tar.xz
               targets:
-                - version: 1.8.9
+                - 1.8.9
           - type: tarballs
             raspbian:
               check_exe: bin/arm-raspbian{dist}-linux-gnueabihf-g++ --version
