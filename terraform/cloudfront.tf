@@ -1,3 +1,13 @@
+data "aws_acm_certificate" "godbolt-org" {
+  domain      = "*.godbolt.org"
+  most_recent = true
+}
+
+data "aws_acm_certificate" "compiler-explorer-com" {
+  domain      = "*.compiler-explorer.com"
+  most_recent = true
+}
+
 resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
@@ -27,7 +37,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   ]
 
   viewer_certificate {
-    acm_certificate_arn      = "arn:aws:acm:us-east-1:052730242331:certificate/9b8deb50-0841-4715-9e12-d7db6551325e"
+    acm_certificate_arn      = data.aws_acm_certificate.godbolt-org.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.1_2016"
   }
@@ -161,7 +171,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   ]
 
   viewer_certificate {
-    acm_certificate_arn      = "arn:aws:acm:us-east-1:052730242331:certificate/7abed4ab-ecfc-4020-8f73-f255fd82f079"
+    acm_certificate_arn      = data.aws_acm_certificate.compiler-explorer-com.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.1_2016"
   }
