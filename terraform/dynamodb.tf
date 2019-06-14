@@ -25,7 +25,7 @@ resource "aws_dynamodb_table" "links" {
     enabled = true
   }
 
-  tags =  {
+  tags = {
     key   = "Site"
     value = "CompilerExplorer"
   }

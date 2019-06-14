@@ -1,7 +1,7 @@
 resource "aws_iam_role" "compiler-build-service-role" {
   name               = "codebuild-compiler-build-service-role"
   path               = "/service-role/"
-  assume_role_policy = "${data.aws_iam_policy_document.InstanceAssumeRolePolicy.json}"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
 }
 
 data "aws_iam_policy_document" "compiler-build-service-policy" {
@@ -30,27 +30,27 @@ data "aws_iam_policy_document" "compiler-build-service-policy" {
       "s3:*"
     ]
     resources = [
-      "${aws_s3_bucket.compiler-explorer.arn}",
+      aws_s3_bucket.compiler-explorer.arn,
       "${aws_s3_bucket.compiler-explorer.arn}/*"
     ]
   }
 }
 
 resource "aws_iam_role_policy" "compiler-build-service-policy" {
-  role = "${aws_iam_role.compiler-build-service-role.name}"
+  role = aws_iam_role.compiler-build-service-role.name
 
-  policy = "${data.aws_iam_policy_document.compiler-build-service-policy.json}"
+  policy = data.aws_iam_policy_document.compiler-build-service-policy.json
 }
 
 resource "aws_codebuild_project" "build-compilers" {
   name          = "build-compilers"
   description   = "Build compilers from a docker image"
   build_timeout = "120"
-  service_role  = "${aws_iam_role.compiler-build-service-role.arn}"
+  service_role  = aws_iam_role.compiler-build-service-role.arn
 
   artifacts {
     type           = "S3"
-    location       = "${aws_s3_bucket.compiler-explorer.bucket}"
+    location       = aws_s3_bucket.compiler-explorer.bucket
     packaging      = "NONE"
     path           = ""
     name           = "test-artifacts"
@@ -59,7 +59,7 @@ resource "aws_codebuild_project" "build-compilers" {
 
   source {
     type      = "NO_SOURCE"
-    buildspec = "${file("build-compilers.yaml")}"
+    buildspec = file("build-compilers.yaml")
   }
 
   environment {

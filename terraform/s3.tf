@@ -1,7 +1,7 @@
 resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
   acl    = "private"
-  tags = {
+  tags   = {
     Site = "CompilerExplorer"
   }
   cors_rule {
@@ -47,24 +47,24 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
       identifiers = ["*"]
       type        = "*"
     }
-    resources = ["${aws_s3_bucket.compiler-explorer.arn}"]
+    resources = [aws_s3_bucket.compiler-explorer.arn]
   }
 
   // AWS billing statements
   statement {
     principals {
-      identifiers = ["${data.aws_billing_service_account.main.arn}"]
+      identifiers = [data.aws_billing_service_account.main.arn]
       type        = "AWS"
     }
     actions   = [
       "s3:GetBucketAcl",
       "s3:GetBucketPolicy"
     ]
-    resources = ["${aws_s3_bucket.compiler-explorer.arn}"]
+    resources = [aws_s3_bucket.compiler-explorer.arn]
   }
   statement {
     principals {
-      identifiers = ["${data.aws_billing_service_account.main.arn}"]
+      identifiers = [data.aws_billing_service_account.main.arn]
       type        = "AWS"
     }
     actions   = ["s3:PutObject"]
@@ -73,14 +73,14 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
 }
 
 resource "aws_s3_bucket_policy" "compiler-explorer" {
-  bucket = "${aws_s3_bucket.compiler-explorer.id}"
-  policy = "${data.aws_iam_policy_document.compiler-explorer-s3-policy.json}"
+  bucket = aws_s3_bucket.compiler-explorer.id
+  policy = data.aws_iam_policy_document.compiler-explorer-s3-policy.json
 }
 
 resource "aws_s3_bucket" "opt-s3-godbolt-org" {
   bucket = "opt-s3.godbolt.org"
   acl    = "private"
-  tags = {
+  tags   = {
     Site = "CompilerExplorer"
   }
 }
@@ -88,7 +88,7 @@ resource "aws_s3_bucket" "opt-s3-godbolt-org" {
 resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
   acl    = "private"
-  tags = {
+  tags   = {
     Site = "CompilerExplorer"
   }
   lifecycle_rule {

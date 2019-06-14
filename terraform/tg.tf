@@ -5,7 +5,7 @@ resource "aws_alb_target_group" "beta" {
   name                 = "Beta"
   port                 = 80
   protocol             = "HTTP"
-  vpc_id               = "${aws_vpc.CompilerExplorer.id}"
+  vpc_id               = aws_vpc.CompilerExplorer.id
   deregistration_delay = 15
   health_check {
     path                = "/healthcheck"
@@ -24,7 +24,7 @@ resource "aws_alb_target_group" "staging" {
   name                 = "Staging"
   port                 = 80
   protocol             = "HTTP"
-  vpc_id               = "${aws_vpc.CompilerExplorer.id}"
+  vpc_id               = aws_vpc.CompilerExplorer.id
   deregistration_delay = 15
   health_check {
     path                = "/healthcheck"
@@ -43,7 +43,7 @@ resource "aws_alb_target_group" "prod" {
   name                 = "Prod"
   port                 = 80
   protocol             = "HTTP"
-  vpc_id               = "${aws_vpc.CompilerExplorer.id}"
+  vpc_id               = aws_vpc.CompilerExplorer.id
   deregistration_delay = 15
   health_check {
     path                = "/healthcheck"

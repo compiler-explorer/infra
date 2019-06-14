@@ -5,8 +5,8 @@ resource "aws_instance" "AdminNode" {
   instance_type               = "t3.nano"
   monitoring                  = false
   key_name                    = "mattgodbolt"
-  subnet_id                   = "${aws_subnet.ce-1a.id}"
-  vpc_security_group_ids      = ["${aws_security_group.AdminNode.id}"]
+  subnet_id                   = aws_subnet.ce-1a.id
+  vpc_security_group_ids      = [aws_security_group.AdminNode.id]
   associate_public_ip_address = true
   source_dest_check           = true
 
