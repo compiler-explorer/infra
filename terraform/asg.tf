@@ -19,7 +19,7 @@ resource "aws_autoscaling_group" "nonspot-prod" {
   max_size                  = 6
   min_size                  = 1
   name                      = "prod"
-  vpc_zone_identifier       = ["${local.subnets}"]
+  vpc_zone_identifier       = local.subnets
 
   tag {
     key                 = "App"
@@ -80,7 +80,7 @@ resource "aws_autoscaling_group" "spot-beta" {
   max_size                  = 4
   min_size                  = 0
   name                      = "spot-beta"
-  vpc_zone_identifier       = ["${local.subnets}"]
+  vpc_zone_identifier       = local.subnets
   tag {
     key                 = "Environment"
     value               = "Beta"
@@ -114,7 +114,7 @@ resource "aws_autoscaling_group" "spot-prod" {
   max_size                  = 4
   min_size                  = 0
   name                      = "spot-prod"
-  vpc_zone_identifier       = ["${local.subnets}"]
+  vpc_zone_identifier       = local.subnets
 
   tag {
     key                 = "Name"
@@ -142,7 +142,7 @@ resource "aws_autoscaling_group" "staging" {
   max_size                  = 4
   min_size                  = 0
   name                      = "staging"
-  vpc_zone_identifier       = ["${local.subnets}"]
+  vpc_zone_identifier       = local.subnets
   tag {
     key                 = "Environment"
     value               = "Staging"

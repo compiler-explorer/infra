@@ -16,8 +16,8 @@ resource "aws_instance" "AdminNode" {
     delete_on_termination = true
   }
 
-  tags {
-    "Site" = "CompilerExplorer"
-    "Name" = "AdminNode"
+  tags = {
+    Site = "CompilerExplorer"
+    Name = "AdminNode"
   }
 }

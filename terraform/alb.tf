@@ -16,8 +16,8 @@ resource "aws_alb" "GccExplorerApp" {
 
   enable_deletion_protection = false
 
-  tags {
-    "Site" = "CompilerExplorer"
+  tags = {
+    Site = "CompilerExplorer"
   }
 }
 

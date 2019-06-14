@@ -12,22 +12,20 @@ resource "aws_dynamodb_table" "links" {
   hash_key       = "prefix"
   range_key      = "unique_subhash"
 
-  attribute = [
-    {
-      name = "prefix"
-      type = "S"
-    },
-    {
-      name = "unique_subhash"
-      type = "S"
-    }
-  ]
+  attribute {
+    name = "prefix"
+    type = "S"
+  }
+  attribute {
+    name = "unique_subhash"
+    type = "S"
+  }
 
   point_in_time_recovery {
     enabled = true
   }
 
-  tags {
+  tags =  {
     key   = "Site"
     value = "CompilerExplorer"
   }

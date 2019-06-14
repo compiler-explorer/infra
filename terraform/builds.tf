@@ -28,7 +28,7 @@ data "aws_iam_policy_document" "compiler-build-service-policy" {
   statement {
     actions   = [
       "s3:*"
-    ],
+    ]
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}",
       "${aws_s3_bucket.compiler-explorer.arn}/*"
@@ -69,8 +69,8 @@ resource "aws_codebuild_project" "build-compilers" {
     privileged_mode = true
 
     environment_variable {
-      "name"  = "IMAGE"
-      "value" = "gcc"
+      name  = "IMAGE"
+      value = "gcc"
     }
 
     environment_variable {
@@ -79,12 +79,12 @@ resource "aws_codebuild_project" "build-compilers" {
     }
 
     environment_variable {
-      "name"  = "VERSION"
-      "value" = "trunk"
+      name  = "VERSION"
+      value = "trunk"
     }
   }
 
-  tags {
-    "Site" = "CompilerExplorer"
+  tags = {
+    Site = "CompilerExplorer"
   }
 }

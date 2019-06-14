@@ -4,7 +4,7 @@ resource "aws_vpc" "CompilerExplorer" {
   enable_dns_support   = true
   instance_tenancy     = "default"
 
-  tags {
+  tags = {
     Name = "CompilerExplorer"
     Site = "CompilerExplorer"
   }
@@ -16,7 +16,7 @@ resource "aws_subnet" "ce-1a" {
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "CompilerExplorer1a"
     Site = "CompilerExplorer"
   }
@@ -28,7 +28,7 @@ resource "aws_subnet" "ce-1b" {
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "CompilerExplorer1b"
     Site = "CompilerExplorer"
   }
@@ -40,7 +40,7 @@ resource "aws_subnet" "ce-1c" {
   availability_zone       = "us-east-1c"
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "CompilerExplorer1c"
     Site = "CompilerExplorer"
   }
@@ -52,7 +52,7 @@ resource "aws_subnet" "ce-1d" {
   availability_zone       = "us-east-1d"
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "CompilerExplorer1d"
     Site = "CompilerExplorer"
   }
@@ -64,7 +64,7 @@ resource "aws_subnet" "ce-1e" {
   availability_zone       = "us-east-1e"
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "CompilerExplorer1e"
     Site = "CompilerExplorer"
   }
@@ -76,7 +76,7 @@ resource "aws_subnet" "ce-1f" {
   availability_zone       = "us-east-1f"
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "CompilerExplorer1f"
     Site = "CompilerExplorer"
   }

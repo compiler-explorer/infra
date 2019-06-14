@@ -175,8 +175,8 @@ resource "aws_iam_role" "CompilerExplorerRole" {
   description        = "Compiler Explorer node role"
   assume_role_policy = "${data.aws_iam_policy_document.InstanceAssumeRolePolicy.json}"
 
-  tags {
-    "Site" = "CompilerExplorer"
+  tags = {
+    Site = "CompilerExplorer"
   }
 }
 

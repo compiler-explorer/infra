@@ -1,10 +1,10 @@
 provider "aws" {
   region  = "us-east-1"
-  version = "~> 1.42"
+  version = "~> 2.15"
 }
 
 terraform {
-  required_version = "~> 0.11"
+  required_version = "~> 0.12"
   backend "s3" {
     bucket = "compiler-explorer"
     key    = "terraform/terraform.tfstate"

@@ -1,7 +1,7 @@
 resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
   acl    = "private"
-  tags {
+  tags = {
     Site = "CompilerExplorer"
   }
   cors_rule {
@@ -80,7 +80,7 @@ resource "aws_s3_bucket_policy" "compiler-explorer" {
 resource "aws_s3_bucket" "opt-s3-godbolt-org" {
   bucket = "opt-s3.godbolt.org"
   acl    = "private"
-  tags {
+  tags = {
     Site = "CompilerExplorer"
   }
 }
@@ -88,7 +88,7 @@ resource "aws_s3_bucket" "opt-s3-godbolt-org" {
 resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
   acl    = "private"
-  tags {
+  tags = {
     Site = "CompilerExplorer"
   }
   lifecycle_rule {

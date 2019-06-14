@@ -41,7 +41,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   http_version = "http2"
 
   restrictions {
-    "geo_restriction" {
+    geo_restriction {
       restriction_type = "blacklist"
       locations        = [
         "CU",
@@ -63,8 +63,8 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       "GET",
       "HEAD"
     ]
-    "forwarded_values" {
-      "cookies" {
+    forwarded_values {
+      cookies {
         forward = "none"
       }
       query_string = false
@@ -84,8 +84,8 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       "GET",
       "HEAD"
     ]
-    "forwarded_values" {
-      "cookies" {
+    forwarded_values {
+      cookies {
         forward = "none"
       }
       query_string = false
@@ -109,8 +109,8 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       "HEAD",
       "GET"
     ]
-    "forwarded_values" {
-      "cookies" {
+    forwarded_values {
+      cookies {
         forward = "none"
       }
       query_string = true
@@ -124,7 +124,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
     compress               = true
   }
 
-  tags {
+  tags = {
     Site = "CompilerExplorer"
   }
 }
@@ -175,7 +175,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   http_version = "http2"
 
   restrictions {
-    "geo_restriction" {
+    geo_restriction {
       restriction_type = "blacklist"
       locations        = [
         "CU",
@@ -197,8 +197,8 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       "GET",
       "HEAD"
     ]
-    "forwarded_values" {
-      "cookies" {
+    forwarded_values {
+      cookies {
         forward = "none"
       }
       query_string = false
@@ -218,8 +218,8 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       "GET",
       "HEAD"
     ]
-    "forwarded_values" {
-      "cookies" {
+    forwarded_values {
+      cookies {
         forward = "none"
       }
       query_string = false
@@ -243,8 +243,8 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       "HEAD",
       "GET"
     ]
-    "forwarded_values" {
-      "cookies" {
+    forwarded_values {
+      cookies {
         forward = "none"
       }
       query_string = true
@@ -258,7 +258,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     compress               = true
   }
 
-  tags {
+  tags = {
     Site = "CompilerExplorer"
   }
 }
