@@ -108,10 +108,7 @@ def main():
         num_failed = 0
         for installable in installables:
             print(f"Installing {installable.name}")
-            if installable.is_installed() and not args.force:
-                context.info(f"{installable.name} is already installed, skipping")
-                num_skipped += 1
-            else:
+            if args.force or installable.should_install():
                 try:
                     if installable.install():
                         if not installable.is_installed():
@@ -126,6 +123,9 @@ def main():
                 except Exception as e:
                     context.info(f"{installable.name} failed to install: {e}")
                     num_failed += 1
+            else:
+                context.info(f"{installable.name} is already installed, skipping")
+                num_skipped += 1
         print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {num_failed} failed installation')
         if num_failed:
             sys.exit(1)

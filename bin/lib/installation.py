@@ -200,6 +200,7 @@ class Installable(object):
         self.context = self.config_get("context", [])
         self.name = f'{"/".join(self.context)} {self.target_name}'
         self.depends = self.config.get('depends', [])
+        self.install_always = self.config.get('install_always', False)
 
     def debug(self, message):
         self.install_context.debug(f'{self.name}: {message}')
@@ -218,6 +219,9 @@ class Installable(object):
 
     def is_installed(self):
         raise RuntimeError("needs to be implemented")
+
+    def should_install(self):
+        return self.install_always or not self.is_installed()
 
     def install(self):
         self.debug("Ensuring dependees are installed")
@@ -342,6 +346,9 @@ class NightlyInstallable(Installable):
         self.stage()
         return self.install_context.compare_against_staging(self.path_name)
 
+    def should_install(self):
+        return True
+
     def is_installed(self):
         try:
             link = self.install_context.read_link(self.path_name_symlink)
@@ -437,6 +444,56 @@ class TarballInstallable(Installable):
         return f'TarballInstallable({self.name}, {self.install_path})'
 
 
+class ScriptInstallable(Installable):
+    def __init__(self, install_context, config):
+        super(ScriptInstallable, self).__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self.fetch = self.config_get('fetch')
+        self.script = self.config_get('script')
+        self.strip = self.config_get('strip', False)
+        self.check_call = command_config(self.config_get('check_exe'))
+        self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
+
+    def stage(self):
+        self.install_context.clean_staging()
+        for url in self.fetch:
+            url, filename = url.split(' ')
+            with open(os.path.join(self.install_context.staging, filename), 'wb') as f:
+                self.install_context.fetch_to(url, f)
+            self.info(f'{url} -> {filename}')
+        self.install_context.stage_command(['bash', '-c', self.script])
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+
+    def verify(self):
+        if not super(ScriptInstallable, self).verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def is_installed(self):
+        try:
+            res = self.install_context.check_output(self.check_call)
+            self.debug(f'Check call returned {res}')
+            return True
+        except FileNotFoundError:
+            self.debug(f'File not found for {self.check_call}')
+            return False
+        except subprocess.CalledProcessError:
+            self.debug(f'Got an error for {self.check_call}')
+            return False
+
+    def install(self):
+        if not super(ScriptInstallable, self).install():
+            return False
+        self.stage()
+        self.install_context.move_from_staging(self.install_path)
+        return True
+
+    def __repr__(self) -> str:
+        return f'ScriptInstallable({self.name}, {self.install_path})'
+
+
 def targets_from(node, enabled):
     return _targets_from(node, enabled, [], "", {})
 
@@ -504,7 +561,8 @@ def _targets_from(node, enabled, context, name, base_config):
 INSTALLER_TYPES = {
     'tarballs': TarballInstallable,
     's3tarballs': S3TarballInstallable,
-    'nightly': NightlyInstallable
+    'nightly': NightlyInstallable,
+    'script': ScriptInstallable
 }
 
 

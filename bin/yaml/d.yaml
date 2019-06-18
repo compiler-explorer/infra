@@ -45,6 +45,7 @@ compilers:
         - 1.13.0
         - 1.14.0
         - 1.15.0
+        # the ldc2 from "getldc_s3" in the install bash scripts is unused (TODO remove once we move over)
     dmd:
       type: tarballs
       url: http://downloads.dlang.org/releases/2.x/{name}/dmd.{name}.linux.tar.xz
@@ -60,7 +61,44 @@ compilers:
         - 2.081.2
         - 2.082.0
     nightly:
+      install_always: true
+      if: nightly
+      type: script
+      fetch:
+        - https://dlang.org/install.sh install.sh
+      dir: "{name}"
+      pre: |
+        mkdir {name}
+        cd {name}
+      script_filename: ../install.sh
+      script: |
+        {pre}
+        chmod +x {script_filename}
+        # Download and unpack into current directory
+        {script_filename} install {target} -p $(pwd)
+        # Rename the downloaded package directory to a constant name
+        mv {from}-* {to}
+        # Make directory readable for other users too
+        chmod +rx {to}
       ldc:
-        todo
-      dmd: # 2?
-        todo
+        targets:
+          - name: ldc-latest-ci
+            target: ldc-latest-ci
+            from: ldc
+            to: ldc
+            check_exe: "ldc/bin/ldc2 --version"
+          - name: ldcbeta
+            target: ldc-beta
+            pre: ""
+            script_filename: "./install.sh"
+            from: ldc
+            to: ldcbeta
+            check_exe: "bin/ldc2 --version"
+      dmd:
+        dir: "{name}"
+        targets:
+          - name: dmd2-nightly
+            target: dmd-nightly
+            from: dmd-master
+            to: dmd2
+            check_exe: "dmd2/linux/bin64/dmd --version"

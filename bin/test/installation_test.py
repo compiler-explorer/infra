@@ -189,8 +189,25 @@ def test_dont_load_floats():
 moose:
   value1: 0.1
   targets:
-    - name: a
+    - name: 1.23
       value2: 1.77
 """)[0]
+    assert_equals(target['name'], "1.23")
     assert_equals(target['value1'], "0.1")
     assert_equals(target['value2'], "1.77")
+
+
+def test_dont_expand_early():
+    target_b, target_a = parse_targets("""
+base:
+  overridden: base
+  uses_overridden: this is the {overridden}
+  targets:
+    - name: a
+  derived:
+      targets:
+        - name: b
+          overridden: derived
+""")
+    assert_equals(target_a['uses_overridden'], "this is the base")
+    assert_equals(target_b['uses_overridden'], "this is the derived")
