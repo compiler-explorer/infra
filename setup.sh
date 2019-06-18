@@ -35,6 +35,7 @@ if [[ ! -f /updated.2 ]]; then
         binutils-multiarch \
         bison \
         bzip2 \
+        cgroup-tools \
         curl \
         file \
         flex \
@@ -53,14 +54,16 @@ if [[ ! -f /updated.2 ]]; then
         nfs-common \
         nginx \
         patch \
+        protobuf-compiler \
         python-pip \
         s3cmd \
         subversion \
         texinfo \
         unzip \
-        winehq-stable \
         wget \
+        winehq-stable \
         xz-utils
+
     pushd /tmp
     git clone https://github.com/apmorton/firejail.git
     cd firejail
@@ -69,6 +72,17 @@ if [[ ! -f /updated.2 ]]; then
     make -j$(nproc)
     make install
     popd
+
+    push /tmp
+    git clone https://github.com/google/nsjail.git
+    cd nsjail
+    git checkout 2.8
+    make -j$(nproc)
+    cp nsjail /usr/local/bin/nsjail
+    popd
+
+    cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-sandbox
+
     touch /updated.2
 fi
 
