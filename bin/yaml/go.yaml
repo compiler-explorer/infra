@@ -1,0 +1,33 @@
+compilers:
+  go:
+    golang:
+      type: tarballs
+      compression: gz
+      url: https://storage.googleapis.com/golang/go{name}.linux-amd64.tar.gz
+      check_env:
+        - GOROOT=%PATH%/go
+      check_exe: go/bin/go version
+      dir: golang-{name}
+      create_untar_dir: true
+      strip: true
+      targets:
+        - "1.7.2"
+        - "1.8.5"
+        - "1.8.7"
+        - "1.9.2"
+        - "1.9.4"
+        - "1.10"
+        - "1.10.1"
+        - "1.11"
+        - "1.12"
+    nightly:
+      if: nightly
+      type: nightly
+      golang:
+        check_env:
+          - GOROOT=%PATH%
+        check_exe: bin/go version
+        targets:
+          - compiler_name: go-trunk
+            name: trunk
+            symlink: go-tip

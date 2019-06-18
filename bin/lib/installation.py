@@ -165,11 +165,11 @@ class InstallationContext(object):
             self.warn('Contents differ')
         return result == 0
 
-    def check_output(self, args):
+    def check_output(self, args, env=None):
         args = args[:]
         args[0] = os.path.join(self.destination, args[0])
         logger.debug('Executing %s in %s', args, self.destination)
-        return subprocess.check_output(args, cwd=self.destination).decode('utf-8')
+        return subprocess.check_output(args, cwd=self.destination, env=env).decode('utf-8')
 
     def strip_exes(self, paths):
         if isinstance(paths, bool):
@@ -202,6 +202,11 @@ class Installable(object):
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
 
+    def _setup_check_exe(self, path_name):
+        self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
+        self.check_call = command_config(self.config_get('check_exe'))
+        self.check_call[0] = os.path.join(path_name, self.check_call[0])
+
     def debug(self, message):
         self.install_context.debug(f'{self.name}: {message}')
 
@@ -216,9 +221,6 @@ class Installable(object):
 
     def verify(self):
         return True
-
-    def is_installed(self):
-        raise RuntimeError("needs to be implemented")
 
     def should_install(self):
         return self.install_always or not self.is_installed()
@@ -237,6 +239,18 @@ class Installable(object):
 
     def install_internal(self):
         raise RuntimeError("needs to be implemented")
+
+    def is_installed(self):
+        try:
+            res = self.install_context.check_output(self.check_call, env=self.check_env)
+            self.debug(f'Check call returned {res}')
+            return True
+        except FileNotFoundError:
+            self.debug(f'File not found for {self.check_call}')
+            return False
+        except subprocess.CalledProcessError:
+            self.debug(f'Got an error for {self.check_call}')
+            return False
 
     def config_get(self, config_key, default=None):
         if config_key not in self.config and default is None:
@@ -279,8 +293,7 @@ class S3TarballInstallable(Installable):
         else:
             raise RuntimeError(f'Unknown compression {compression}')
         self.strip = self.config_get('strip', False)
-        self.check_call = command_config(self.config_get('check_exe'))
-        self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
+        self._setup_check_exe(self.path_name)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -293,18 +306,6 @@ class S3TarballInstallable(Installable):
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
-
-    def is_installed(self):
-        try:
-            res = self.install_context.check_output(self.check_call)
-            self.debug(f'Check call returned {res}')
-            return True
-        except FileNotFoundError:
-            self.debug(f'File not found for {self.check_call}')
-            return False
-        except subprocess.CalledProcessError:
-            self.debug(f'Got an error for {self.check_call}')
-            return False
 
     def install(self):
         if not super(S3TarballInstallable, self).install():
@@ -323,16 +324,15 @@ class NightlyInstallable(Installable):
     def __init__(self, install_context, config):
         super(NightlyInstallable, self).__init__(install_context, config)
         self.strip = self.config_get('strip', False)
-        compiler_name = f'{self.context[-1]}-{self.target_name}'
+        compiler_name = self.config_get('compiler_name', f'{self.context[-1]}-{self.target_name}')
         current = s3_available_compilers()
         if compiler_name not in current:
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
         self.path_name = f'{compiler_name}-{most_recent}'
-        self.path_name_symlink = f'{compiler_name}'
-        self.check_call = command_config(self.config_get('check_exe'))
-        self.check_call[0] = os.path.join(self.path_name, self.check_call[0])
+        self.path_name_symlink = self.config_get('symlink', f'{compiler_name}')
+        self._setup_check_exe(self.path_name)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -350,20 +350,11 @@ class NightlyInstallable(Installable):
         return True
 
     def is_installed(self):
-        try:
-            link = self.install_context.read_link(self.path_name_symlink)
-            self.debug(f'readlink returned {link}')
-            if link != self.path_name:
-                return False
-            res = self.install_context.check_output(self.check_call)
-            self.debug(f'Check call returned {res}')
-            return True
-        except OSError as e:
-            self.debug(f'OS error {e} for {self.check_call}')
+        link = self.install_context.read_link(self.path_name_symlink)
+        self.debug(f'readlink returned {link}')
+        if link != self.path_name:
             return False
-        except subprocess.CalledProcessError:
-            self.debug(f'Got an error for {self.check_call}')
-            return False
+        return super(NightlyInstallable, self).is_installed()
 
     def install(self):
         # TODO: remove older
@@ -402,8 +393,7 @@ class TarballInstallable(Installable):
         if strip_components:
             self.tar_cmd += ['--strip-components', str(strip_components)]
         self.strip = self.config_get('strip', False)
-        self.check_call = command_config(self.config_get('check_exe'))
-        self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
+        self._setup_check_exe(self.untar_path)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -420,18 +410,6 @@ class TarballInstallable(Installable):
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_path, self.install_path)
-
-    def is_installed(self):
-        try:
-            res = self.install_context.check_output(self.check_call)
-            self.debug(f'Check call returned {res}')
-            return True
-        except FileNotFoundError:
-            self.debug(f'File not found for {self.check_call}')
-            return False
-        except subprocess.CalledProcessError:
-            self.debug(f'Got an error for {self.check_call}')
-            return False
 
     def install(self):
         if not super(TarballInstallable, self).install():
@@ -451,8 +429,7 @@ class ScriptInstallable(Installable):
         self.fetch = self.config_get('fetch')
         self.script = self.config_get('script')
         self.strip = self.config_get('strip', False)
-        self.check_call = command_config(self.config_get('check_exe'))
-        self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
+        self._setup_check_exe(self.install_path)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -471,18 +448,6 @@ class ScriptInstallable(Installable):
         self.stage()
         return self.install_context.compare_against_staging(self.install_path)
 
-    def is_installed(self):
-        try:
-            res = self.install_context.check_output(self.check_call)
-            self.debug(f'Check call returned {res}')
-            return True
-        except FileNotFoundError:
-            self.debug(f'File not found for {self.check_call}')
-            return False
-        except subprocess.CalledProcessError:
-            self.debug(f'Got an error for {self.check_call}')
-            return False
-
     def install(self):
         if not super(ScriptInstallable, self).install():
             return False
@@ -494,8 +459,10 @@ class ScriptInstallable(Installable):
         return f'ScriptInstallable({self.name}, {self.install_path})'
 
 
-def targets_from(node, enabled):
-    return _targets_from(node, enabled, [], "", {})
+def targets_from(node, enabled, base_config=None):
+    if base_config is None:
+        base_config = {}
+    return _targets_from(node, enabled, [], "", base_config)
 
 
 def is_list_of_strings(value):
@@ -542,6 +509,8 @@ def _targets_from(node, enabled, context, name, base_config):
     if 'targets' in node:
         base_config['context'] = context
         for target in node['targets']:
+            if isinstance(target, float):
+                raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
                 target = {'name': target}
             target = ChainMap(target, base_config)
@@ -567,7 +536,7 @@ INSTALLER_TYPES = {
 
 
 def installers_for(install_context, nodes, enabled):
-    for target in targets_from(nodes, enabled):
+    for target in targets_from(nodes, enabled, {'staging': install_context.staging}):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:

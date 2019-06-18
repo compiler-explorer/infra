@@ -197,6 +197,18 @@ moose:
     assert_equals(target['value2'], "1.77")
 
 
+def test_throws_if_target_name_is_float():
+    try:
+        parse_targets("""
+moose:
+  targets:
+    - 1.10
+    """)
+        assert False
+    except RuntimeError as e:
+        assert 'parsed as a float' in str(e)
+
+
 def test_dont_expand_early():
     target_b, target_a = parse_targets("""
 base:
