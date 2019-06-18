@@ -61,6 +61,9 @@ get_conf() {
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
+# TODO: remove the `which` once we move to a new distro that has it built in
+which cgcreate && cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-sandbox
+
 cd ${DEPLOY_DIR} && \
     sudo -u ${CE_USER} -H -- \
     /opt/compiler-explorer/node/bin/node \

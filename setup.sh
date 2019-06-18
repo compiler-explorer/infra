@@ -81,8 +81,6 @@ if [[ ! -f /updated.2 ]]; then
     cp nsjail /usr/local/bin/nsjail
     popd
 
-    cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-sandbox
-
     touch /updated.2
 fi
 
