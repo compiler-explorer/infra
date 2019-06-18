@@ -12,4 +12,16 @@ compilers:
       url: https://pypi.io/packages/source/p/ppci/ppci-{name}.tar.gz
       targets:
         - 0.5.5
-# TODO cc65:
+    cc65:
+      type: s3tarballs
+      subdir: 6502
+      check_exe: bin/cc65 --version
+      targets:
+        - "2.17"
+    nightly:
+      if: nightly
+      cc65:
+        check_exe: bin/cc65 --version
+        type: nightly
+        targets:
+          - trunk
