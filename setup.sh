@@ -48,6 +48,7 @@ if [[ ! -f /updated.2 ]]; then
         libc6-dev-i386 \
         libdatetime-perl \
         libelf-dev \
+        libprotobuf-dev \
         libwww-perl \
         linux-libc-dev \
         make \
