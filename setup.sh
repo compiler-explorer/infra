@@ -54,6 +54,7 @@ if [[ ! -f /updated.2 ]]; then
         nfs-common \
         nginx \
         patch \
+        pkg-config \
         protobuf-compiler \
         python-pip \
         s3cmd \
