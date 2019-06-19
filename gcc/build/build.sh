@@ -8,7 +8,7 @@ LANGUAGES=c,c++,fortran,ada
 if echo ${VERSION} | grep 'lock3-contracts-trunk'; then
     VERSION=lock3-contracts-trunk-$(date +%Y%m%d)
     URL=https://gitlab.com/lock3/gcc-new.git/
-    BRANCH=contracts-jac-kona
+    BRANCH=contracts
     MAJOR=9
     MAJOR_MINOR=9-trunk
     LANGUAGES=c,c++
