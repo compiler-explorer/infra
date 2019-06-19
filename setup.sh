@@ -73,10 +73,9 @@ if [[ ! -f /updated.2 ]]; then
     make install
     popd
 
-    push /tmp
-    git clone https://github.com/google/nsjail.git
+    pushd /tmp
+    git clone --recursive --branch 2.8 https://github.com/google/nsjail.git
     cd nsjail
-    git checkout 2.8
     make -j$(nproc)
     cp nsjail /usr/local/bin/nsjail
     popd
