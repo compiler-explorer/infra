@@ -282,9 +282,41 @@ get_ispc_old() {
     fi
 }
 
+do_ispc_nightly_install() {
+    local COMPILER_PATTERN="$1"
+    local DESTINATION="$2"
+
+    # just shell out to the new install system
+    "${SCRIPT_DIR}/../bin/ce_install" --enable=nightly install "compilers/ispc/nightly ${COMPILER_PATTERN}"
+
+    # new systtem doesn't yet clean up old nightly installs, so we have to do it here still
+
+    # work around a cronic issue where the execution output is interpreted as error
+    # if it spans multiple lines: assigning output with multiple lines to a variable
+    # fools it.
+    set +x
+    compilers=$(ls "${OPT}" | grep -oE "${DESTINATION}-[0-9]+" | sort)
+    set -x
+    compiler_array=(${compilers})
+    latest=${compiler_array[-1]}
+
+    # Clean up any old snapshots
+    for compiler in ${DESTINATION}-[0-9]*; do
+        if [[ -d ${compiler} ]]; then
+            if [[ "${compiler}" != "${latest}" ]]; then
+                rm -rf ${compiler}
+            fi
+        fi
+    done
+}
+
 get_ispc 1.10.0
 get_ispc_old 1.9.2
 get_ispc_old 1.9.1
+
+if install_nightly; then
+    do_ispc_nightly_install trunk ispc-trunk
+fi
 
 # djgpp
 get_djgpp() {

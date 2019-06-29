@@ -5,6 +5,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+from datetime import datetime
 from collections import defaultdict, ChainMap
 
 import requests
@@ -119,6 +120,15 @@ class InstallationContext(object):
         self.info(f'Symlinking {dest} to {source}')
         os.symlink(source, full_dest)
 
+    def check_link(self, source, link):
+        try:
+            link = self.read_link(link)
+            self.debug(f'readlink returned {link}')
+            return link == source
+        except FileNotFoundError:
+            self.debug(f'File not found for {link}')
+            return False
+
     def move_from_staging(self, source, dest=None):
         if not dest:
             dest = source
@@ -201,11 +211,15 @@ class Installable(object):
         self.name = f'{"/".join(self.context)} {self.target_name}'
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
+        self._check_link = None
 
     def _setup_check_exe(self, path_name):
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
         self.check_call = command_config(self.config_get('check_exe'))
         self.check_call[0] = os.path.join(path_name, self.check_call[0])
+
+    def _setup_check_link(self, source, link):
+        self._check_link = lambda: self.install_context.check_link(source, link)
 
     def debug(self, message):
         self.install_context.debug(f'{self.name}: {message}')
@@ -241,6 +255,10 @@ class Installable(object):
         raise RuntimeError("needs to be implemented")
 
     def is_installed(self):
+        if self._check_link and not self._check_link():
+            self.debug('Check link returned false')
+            return False
+
         try:
             res = self.install_context.check_output(self.check_call, env=self.check_env)
             self.debug(f'Check call returned {res}')
@@ -333,6 +351,7 @@ class NightlyInstallable(Installable):
         self.path_name = f'{compiler_name}-{most_recent}'
         self.path_name_symlink = self.config_get('symlink', f'{compiler_name}')
         self._setup_check_exe(self.path_name)
+        self._setup_check_link(self.path_name, self.path_name_symlink)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -348,13 +367,6 @@ class NightlyInstallable(Installable):
 
     def should_install(self):
         return True
-
-    def is_installed(self):
-        link = self.install_context.read_link(self.path_name_symlink)
-        self.debug(f'readlink returned {link}')
-        if link != self.path_name:
-            return False
-        return super(NightlyInstallable, self).is_installed()
 
     def install(self):
         # TODO: remove older
@@ -373,6 +385,7 @@ class TarballInstallable(Installable):
     def __init__(self, install_context, config):
         super(TarballInstallable, self).__init__(install_context, config)
         self.install_path = self.config_get('dir')
+        self.install_path_symlink = self.config_get('symlink', False)
         self.untar_path = self.config_get('untar_dir', self.install_path)
         if self.config_get('create_untar_dir', False):
             self.untar_to = self.untar_path
@@ -393,7 +406,9 @@ class TarballInstallable(Installable):
         if strip_components:
             self.tar_cmd += ['--strip-components', str(strip_components)]
         self.strip = self.config_get('strip', False)
-        self._setup_check_exe(self.untar_path)
+        self._setup_check_exe(self.install_path)
+        if self.install_path_symlink:
+            self._setup_check_link(self.install_path, self.install_path_symlink)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -416,6 +431,8 @@ class TarballInstallable(Installable):
             return False
         self.stage()
         self.install_context.move_from_staging(self.untar_path, self.install_path)
+        if self.install_path_symlink:
+            self.install_context.set_link(self.install_path, self.install_path_symlink)
         return True
 
     def __repr__(self) -> str:
@@ -426,10 +443,13 @@ class ScriptInstallable(Installable):
     def __init__(self, install_context, config):
         super(ScriptInstallable, self).__init__(install_context, config)
         self.install_path = self.config_get('dir')
+        self.install_path_symlink = self.config_get('symlink', False)
         self.fetch = self.config_get('fetch')
         self.script = self.config_get('script')
         self.strip = self.config_get('strip', False)
         self._setup_check_exe(self.install_path)
+        if self.install_path_symlink:
+            self._setup_check_link(self.install_path, self.install_path_symlink)
 
     def stage(self):
         self.install_context.clean_staging()
@@ -453,6 +473,8 @@ class ScriptInstallable(Installable):
             return False
         self.stage()
         self.install_context.move_from_staging(self.install_path)
+        if self.install_path_symlink:
+            self.install_context.set_link(self.install_path, self.install_path_symlink)
         return True
 
     def __repr__(self) -> str:
@@ -515,13 +537,13 @@ def _targets_from(node, enabled, context, name, base_config):
                 target = {'name': target}
             target = ChainMap(target, base_config)
             try:
-                for key in target.keys():
-                    if is_list_of_strings(target[key]):
-                        target[key] = [x.format(**target) for x in target[key]]
-                    elif isinstance(target[key], str):
-                        target[key] = target[key].format(**target)
-                    elif isinstance(target[key], float):
-                        target[key] = str(target[key])
+                for key, value in target.items():
+                    if is_list_of_strings(value):
+                        target[key] = [x.format(**target) for x in value]
+                    elif isinstance(value, str):
+                        target[key] = value.format(**target)
+                    elif isinstance(value, float):
+                        target[key] = str(value)
             except KeyError as ke:
                 raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
             yield target
@@ -536,7 +558,7 @@ INSTALLER_TYPES = {
 
 
 def installers_for(install_context, nodes, enabled):
-    for target in targets_from(nodes, enabled, {'staging': install_context.staging}):
+    for target in targets_from(nodes, enabled, {'staging': install_context.staging, 'now': datetime.now()}):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:
