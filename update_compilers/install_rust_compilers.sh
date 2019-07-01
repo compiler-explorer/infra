@@ -16,6 +16,9 @@ do_rust_install() {
     if [[ ${IS_STD_LIB} -ne 0 ]]; then
         rm -rf ${OPT}/${INSTALL}
     fi
+    # TODO: remove once rust fixes nightly builds upstream
+    # workaround line ending issue in certain rust nightly archives
+    dos2unix install.sh
     ./install.sh --prefix=${OPT}/${INSTALL} --verbose --without=rust-docs
     popd
     rm -rf /tmp/${DIR}

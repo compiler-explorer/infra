@@ -37,6 +37,7 @@ if [[ ! -f /updated.2 ]]; then
         bzip2 \
         cgroup-tools \
         curl \
+        dos2unix \
         file \
         flex \
         g++ \
