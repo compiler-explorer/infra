@@ -99,6 +99,7 @@ get_or_sync() {
     	git -C "${DIR}" fetch -q
     	git -C "${DIR}" reset -q --hard origin
     fi
+    git -C "${DIR}" submodule sync
     git -C "${DIR}" submodule update --init
 }
 
