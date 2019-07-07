@@ -226,6 +226,7 @@ RUST_TARGETS+=(
     wasm32-unknown-wasi
 )
 install_new_rust 1.35.0 RUST_TARGETS[@]
+install_new_rust 1.36.0 RUST_TARGETS[@]
 if install_nightly; then
     install_new_rust nightly RUST_TARGETS[@] '1 day'
     install_new_rust beta RUST_TARGETS[@] '1 week'
