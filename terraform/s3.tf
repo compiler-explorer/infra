@@ -24,6 +24,26 @@ resource "aws_s3_bucket" "compiler-explorer" {
   }
 }
 
+resource "aws_s3_bucket" "compiler-explorer-logs" {
+  bucket = "compiler-explorer-logs"
+  acl    = "private"
+  tags   = {
+    Site = "CompilerExplorer"
+  }
+
+  # Keep only one month of elb logs (See the privacy policy in the compiler explorer project)
+  lifecycle_rule {
+    enabled = true
+    expiration {
+      days = 32
+    }
+    noncurrent_version_expiration {
+      days = 1
+    }
+    prefix  = "elb/"
+  }
+}
+
 data "aws_billing_service_account" "main" {}
 
 data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
@@ -72,9 +92,27 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
   }
 }
 
+data "aws_iam_policy_document" "compiler-explorer-logs-s3-policy" {
+  statement {
+    principals {
+      // see https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html#access-logging-bucket-permissions
+      identifiers = ["arn:aws:iam::127311923021:root"]
+      type        = "AWS"
+    }
+    sid       = "Allow ELB to write logs"
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer-logs.arn}/elb/*"]
+  }
+}
+
 resource "aws_s3_bucket_policy" "compiler-explorer" {
   bucket = aws_s3_bucket.compiler-explorer.id
   policy = data.aws_iam_policy_document.compiler-explorer-s3-policy.json
+}
+
+resource "aws_s3_bucket_policy" "compiler-explorer-logs" {
+  bucket = aws_s3_bucket.compiler-explorer-logs.id
+  policy = data.aws_iam_policy_document.compiler-explorer-logs-s3-policy.json
 }
 
 resource "aws_s3_bucket" "opt-s3-godbolt-org" {
