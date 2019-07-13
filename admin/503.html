@@ -1,0 +1,74 @@
+<html>
+<head>
+    <link rel="icon" href="favicon.ico?v=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Compiler Explorer</title>
+    <meta name="description" content="Compiler Explorer is an interactive online compiler which shows the assembly output of compiled C++, Rust, Go (and many more) code.">
+    <meta property="og:title" content="Compiler Explorer">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@CompileExplore">
+    <meta property="og:image" content="https://github.com/mattgodbolt/compiler-explorer-image/blob/master/logo/favicon.png?raw=true">
+    <meta property="og:image:secure_url" content="https://github.com/mattgodbolt/compiler-explorer-image/blob/master/logo/favicon.png?raw=true">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="145">
+    <meta property="og:image:height" content="145">
+    <meta name="author" content="Matt Godbolt">
+    <meta name="google" content="nositelinkssearchbox">
+    <meta name="google" content="notranslate">
+    <meta id="meta-theme" name="theme-color" content="#f2f2f2">
+</head>
+<body>
+<div id="prod">
+    Error in Prod
+</div>
+<div id="staging" style="display:none;">
+    The Staging environment is not currently running
+    <br />
+    <br />
+
+    <div id="staging-try" style="display:none;">
+        <a id="staging-try-link" href="">Try Requested Page on Live Site</a>
+        <br />
+        <br />
+    </div>
+
+    <a href="/">Go Home</a>
+</div>
+<div id="beta" style="display:none;">
+    The Beta environment is not currently running
+    <br />
+    <br />
+
+    <div id="beta-try" style="display:none;">
+        <a id="beta-try-link" href="">Try Requested Page on Live Site</a>
+        <br />
+        <br />
+    </div>
+
+    <a href="/">Go Home</a>
+</div>
+<script>
+    function setEnvironment(env) {
+        document.getElementById("prod").setAttribute("style", "display:none;");
+        document.getElementById(env).removeAttribute("style");
+
+        var envPrefix = "/" + env;
+        var remainingPath = window.location.pathname.substr(envPrefix.length) + window.location.search + window.location.hash;
+        if (remainingPath && !remainingPath.startsWith("/")) {
+            remainingPath = "/" + remainingPath;
+        }
+        document.getElementById(env + "-try-link").setAttribute("href", remainingPath);
+        if (remainingPath && remainingPath !== "/") {
+            document.getElementById(env + "-try").removeAttribute("style");
+        }
+    }
+
+    var env = window.location.pathname.split('/')[1];
+    if (["beta", "staging"].includes(env)) {
+        setEnvironment(env);
+    }
+</script>
+</body>
+</html>

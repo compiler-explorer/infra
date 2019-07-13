@@ -134,6 +134,13 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
     compress               = true
   }
 
+  custom_error_response {
+    error_code            = 503
+    response_code         = 503
+    error_caching_min_ttl = 5
+    response_page_path    = "/admin/503.html"
+  }
+
   tags = {
     Site = "CompilerExplorer"
   }
@@ -266,6 +273,13 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     target_origin_id       = "ALB-compiler-explorer"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
+  }
+
+  custom_error_response {
+    error_code            = 503
+    response_code         = 503
+    error_caching_min_ttl = 5
+    response_page_path    = "/admin/503.html"
   }
 
   tags = {
