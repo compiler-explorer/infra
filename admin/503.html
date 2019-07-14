@@ -1,6 +1,6 @@
 <html>
 <head>
-    <link rel="icon" href="favicon.ico?v=1">
+    <link rel="icon" href="https://godbolt.org/favicon.ico?v=1">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -17,14 +17,34 @@
     <meta name="author" content="Matt Godbolt">
     <meta name="google" content="nositelinkssearchbox">
     <meta name="google" content="notranslate">
-    <meta id="meta-theme" name="theme-color" content="#f2f2f2">
+    <meta id="meta-theme" name="theme-color" content="#eeeeee">
+    <style>
+        body {
+            background-color: #eeeeee;
+            color: #454545;
+            font-size: 18px;
+            line-height: 1.6;
+            margin: 40px auto;
+            padding: 0px 10px;
+        }
+        h1 {
+            line-height: 1.2;
+        }
+	a {
+	    color: #0077aa;
+	}
+	a:visited {
+	    color: #006591;
+	}		
+    </style>
 </head>
 <body>
 <div id="prod">
-    Error in Prod
+    <h1>Error in Prod</h1>
+    <p>If the situation persists please contact us by <a href="https://github.com/mattgodbolt/compiler-explorer/issues/new">rising an issue on GitHub</a>.</p>
 </div>
 <div id="staging" style="display:none;">
-    The Staging environment is not currently running
+    <h1>The Staging environment is not currently running</h1>
     <br />
     <br />
 
@@ -37,7 +57,7 @@
     <a href="/">Go Home</a>
 </div>
 <div id="beta" style="display:none;">
-    The Beta environment is not currently running
+    <h1>The Beta environment is not currently running</h1>
     <br />
     <br />
 
