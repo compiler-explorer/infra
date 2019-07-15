@@ -97,8 +97,13 @@ install_cuda() {
       mkdir /tmp/cuda
       fetch ${URL} > /tmp/cuda/combined.sh
       sh /tmp/cuda/combined.sh --extract=/tmp/cuda
-      local LINUX=$(ls -1 /tmp/cuda/cuda-linux.$2*.run)
-      ${LINUX} --prefix=${DIR} -noprompt -nosymlink -no-man-page
+      local LINUX=$(ls -1 /tmp/cuda/cuda-linux.$2*.run 2>/dev/null || true)
+      if [[ -f ${LINUX} ]]; then
+        ${LINUX} --prefix=${DIR} -noprompt -nosymlink -no-man-page
+      else
+        # As of CUDA 10.1, the toolkit is already extracted here.
+        mv /tmp/cuda/cuda-toolkit ${DIR}
+      fi
       rm -rf /tmp/cuda
     fi
     popd
@@ -107,5 +112,5 @@ install_cuda() {
 install_cuda https://developer.nvidia.com/compute/cuda/9.1/Prod/local_installers/cuda_9.1.85_387.26_linux 9.1.85
 install_cuda https://developer.nvidia.com/compute/cuda/9.2/Prod/local_installers/cuda_9.2.88_396.26_linux 9.2.88
 install_cuda https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_410.48_linux 10.0.130
-#install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.105_418.39_linux.run 10.1.105
-#install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run 10.1.168
+install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.105_418.39_linux.run 10.1.105
+install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run 10.1.168
