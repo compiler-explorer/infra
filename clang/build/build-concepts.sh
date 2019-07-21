@@ -25,7 +25,7 @@ rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
 git clone https://github.com/llvm-mirror/llvm.git
-(cd llvm && git reset --hard b182ab7d784ff9f8da60cc0c1329633043c0485e)
+(cd llvm && git reset --hard d5826c99ce56037aa7a1434717cd291522ec4613)
 pushd llvm/tools
 git clone https://github.com/saarraz/clang-concepts.git clang
 popd
