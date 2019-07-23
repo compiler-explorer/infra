@@ -3,10 +3,15 @@
 set -ex
 
 FULL_VERSION=$1
+IS_AUTOCONF=$3
 VERSION=${FULL_VERSION}
 FLAGS=
 if echo ${VERSION} | grep -- '-flambda'; then
-    FLAGS=-flambda
+    if [[ "x$IS_AUTOCONF" -eq "xyes" ]]; then
+        FLAGS=--enable-flambda
+    else
+        FLAGS=-flambda
+    fi
     VERSION=${VERSION%-flambda}
 fi
 
