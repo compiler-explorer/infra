@@ -51,7 +51,6 @@ if [[ ! -f "${PTRAIL}" ]]; then
     popd
 fi
 
-killall remote_syslog || true
 cat > /etc/log_files.yml << EOF
 files:
     - /var/log/nginx/*.err
@@ -60,7 +59,24 @@ destination:
     port: ${LOG_DEST_PORT}
     protocol: tls
 EOF
-remote_syslog
+
+cat > /lib/systemd/system/remote-syslog.service << EOF
+[Unit]
+Description=remote_syslog2
+Documentation=https://github.com/papertrail/remote_syslog2
+After=network-online.target
+
+[Service]
+ExecStartPre=/usr/bin/test -e /etc/log_files.yml
+ExecStart=/usr/local/bin/remote_syslog -D
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+systemctl enable remote-syslog
 
 if ! grep "/opt nfs" /etc/fstab; then
     echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >> /etc/fstab
