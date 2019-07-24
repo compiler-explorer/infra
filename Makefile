@@ -25,7 +25,7 @@ $(eval $(call add-image,unified,unified-explorer))
 docker-images: $(DOCKER_IMAGES)  ## Builds all the docker images (deprecated in favour of docker hub)
 
 config.json: make_json.py
-	python make_json.py
+	python3 make_json.py
 
 packer: config.json ## Builds the base image for compiler explorer nodes
 	$(PACKER) build -var-file=config.json packer.json
