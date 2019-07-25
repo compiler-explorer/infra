@@ -92,3 +92,8 @@ systemctl restart nginx
 cp /compiler-explorer-image/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
 systemctl daemon-reload
 systemctl enable compiler-explorer
+
+if [[ -f /opt/compiler-explorer/libs/boost.tar.xz ]]; then
+    mkdir -p /celibs
+    tar xf /opt/compiler-explorer/libs/boost.tar.xz -C /celibs
+fi
