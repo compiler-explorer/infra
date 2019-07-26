@@ -63,3 +63,23 @@ if [[ ! -d /opt/compiler-explorer/pahole ]]; then
     popd
     rm -rf /tmp/build
 fi
+
+#########################
+# x86-to-6502
+
+if [[ ! -d /opt/compiler-explorer/x86-to-6502/lefticus ]]; then
+    mkdir -p /opt/compiler-explorer/x86-to-6502/lefticus
+
+    mkdir -p /tmp/build
+    pushd /tmp/build
+
+    git clone https://github.com/lefticus/x86-to-6502.git lefticus
+    pushd lefticus
+    /opt/compiler-explorer/cmake/bin/cmake .
+    make
+    mv x86-to-6502 /opt/compiler-explorer/x86-to-6502/lefticus
+    popd
+
+    popd
+    rm -rf /tmp/build
+fi
