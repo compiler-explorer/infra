@@ -91,6 +91,10 @@ compilers:
                 - year: 2019
                   build: 3
                   name: 6.3.0
+                - year: 2020
+                  build: 1
+                  name: 7.3.0
+                  url: https://github.com/wpilibsuite/roborio-toolchain/releases/download/v{year}-{build}/FRC-{year}-Linux-Toolchain-{name}.tar.gz
           - type: tarballs
             arduino:
               check_exe: hardware/tools/avr/bin/avr-g++ --version
@@ -111,6 +115,9 @@ compilers:
                 - dist: 9
                   build: 1.3.0
                   name: 6.3.0
+                - dist: 10
+                  build: 2.1.0
+                  name: 8.3.0
         avr:
           arch_prefix: avr
           subdir: avr

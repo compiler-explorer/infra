@@ -248,6 +248,18 @@ if [[ ! -d arm/raspbian9-6.3.0 ]]; then
     mv raspbian9 arm/raspbian9-6.3.0
 fi
 
+# FIRST Robotics/ NI Real-Time Specific toolchain 2020
+if [[ ! -d arm/frc2020-7.3.0 ]]; then
+    fetch https://github.com/wpilibsuite/roborio-toolchain/releases/download/v2020-1/FRC-2020-Linux-Toolchain-7.3.0.tar.gz | tar xzf -
+    mv frc2020 arm/frc2020-7.3.0
+fi
+
+# Raspbian Buster Specific toolchain
+if [[ ! -d arm/raspbian10-8.3.0 ]]; then
+    fetch https://github.com/wpilibsuite/raspbian-toolchain/releases/download/v2.1.0/Raspbian10-Linux-Toolchain-8.3.0.tar.gz | tar xzf -
+    mv raspbian10 arm/raspbian10-8.3.0
+fi
+
 # Arduino toolset
 if [[ ! -d avr/arduino-1.8.9 ]]; then
     fetch http://downloads.arduino.cc/arduino-1.8.9-linux64.tar.xz | tar xJf -
