@@ -24,16 +24,13 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-git clone https://github.com/llvm-mirror/llvm
-pushd llvm/tools
-git clone --depth 1 --single-branch -b lifetime https://github.com/mgehre/clang
-source ./clang/compiler-explorer-llvm-commit.sh
-popd
+git clone --depth 1 --single-branch -b lifetime https://github.com/mgehre/llvm-project
 
 mkdir build
 cd build
-cmake -G "Unix Makefiles" ../llvm \
+cmake -G "Unix Makefiles" ../llvm-project/llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
+    -DLLVM_ENABLE_PROJECTS=clang \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
     -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-7.3.0/lib/gcc/x86_64-linux-gnu/7.3.0/plugin/include/
 
