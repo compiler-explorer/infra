@@ -314,6 +314,7 @@ install_openssl() {
     for VERSION in "$@"; do
         local DEST=${OPT}/libs/openssl/openssl_${VERSION}/x86_64/opt
         if [[ ! -d ${DEST} ]]; then
+            rm -rf /tmp/openssl
             mkdir -p /tmp/openssl
             pushd /tmp/openssl
             fetch https://github.com/openssl/openssl/archive/OpenSSL_${VERSION}.tar.gz | tar zxf - --strip-components 1
