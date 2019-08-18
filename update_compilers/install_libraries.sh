@@ -307,3 +307,33 @@ install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5 1.0.0 1.1.0
 #########################
 # CUDA
 get_or_sync_git_tags libs/cub https://github.com/NVlabs/cub.git 1.8.0
+
+
+#########################
+# OpenSSL
+
+install_openssl() {
+    for VERSION in "$@"; do
+        local DEST=${OPT}/libs/openssl/openssl_${VERSION}/x86_64/opt
+        if [[ ! -d ${DEST} ]]; then
+            mkdir -p /tmp/openssl
+            pushd /tmp/openssl
+            fetch https://github.com/openssl/openssl/archive/OpenSSL_${VERSION}.tar.gz | tar zxf - --strip-components 1
+
+            setarch i386 ./config -m32 --prefix=${OPT}/libs/openssl/openssl_${VERSION}/x86/opt --openssldir=${OPT}/libs/openssl/openssl_${VERSION}/x86/ssl
+            make
+            make install
+            rm ${OPT}/libs/openssl/openssl_${VERSION}/x86/opt/lib/*.a
+
+            ./config --prefix=${OPT}/libs/openssl/openssl_${VERSION}/x86_64/opt --openssldir=${OPT}/libs/openssl/openssl_${VERSION}/x86_64/ssl
+            make
+            make install
+            rm ${OPT}/libs/openssl/openssl_${VERSION}/x86_64/opt/lib/*.a
+            popd
+
+            rm -rf /tmp/openssl
+        fi
+    done
+}
+
+install_openssl 1_1_1c
