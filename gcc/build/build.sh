@@ -20,7 +20,7 @@ elif echo ${VERSION} | grep 'cxx-modules-trunk'; then
     LANGUAGES=c,c++
 elif echo ${VERSION} | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
-    URL=svn://gcc.gnu.org/svn/gcc/trunk 
+    URL=svn://gcc.gnu.org/svn/gcc/trunk
     MAJOR=9
     MAJOR_MINOR=9-trunk
 elif echo ${VERSION} | grep 'snapshot-'; then
@@ -34,11 +34,11 @@ else
     MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
     TARBALL=gcc-${VERSION}.tar.bz2
     if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" = "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" = "7.3" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" = "7.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" = "5.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" = "6.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" == "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" == "7.3" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" == "7.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" == "5.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR_MINOR}" == "6.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
@@ -92,7 +92,7 @@ applyPatchesAndConfig() {
         echo "Applying patches from ${PATCH_DIR}"
         pushd gcc-${VERSION}
         for PATCH in ${PATCH_DIR}/*; do
-            patch -p1 < ${PATCH}
+            patch -p1 <${PATCH}
         done
         popd
     fi
@@ -122,7 +122,7 @@ CONFIG+=" --enable-ld=yes"
 CONFIG+=" --enable-gold=yes"
 CONFIG+=" --enable-libstdcxx-debug"
 CONFIG+=" --enable-libstdcxx-time=yes"
-CONFIG+=" --enable-linker-build-id" 
+CONFIG+=" --enable-linker-build-id"
 CONFIG+=" --enable-lto"
 CONFIG+=" --enable-plugins"
 CONFIG+=" --enable-threads=posix"

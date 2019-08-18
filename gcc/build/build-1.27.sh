@@ -36,7 +36,7 @@ applyPatchesAndConfig() {
         pushd gcc-${VERSION}
         for PATCH in ${PATCH_DIR}/*; do
             echo "...${PATCH}"
-            patch -p1 < ${PATCH}
+            patch -p1 <${PATCH}
         done
         popd
     fi

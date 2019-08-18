@@ -1,13 +1,11 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
-
 
 # 12.04 compilers (mostly)
 for compiler in clang-3.2.tar.gz \
-    clang-3.3.tar.gz
-do
+    clang-3.3.tar.gz; do
     DIR=${compiler%.tar.*}
     if [[ ! -d ${DIR} ]]; then
         fetch ${S3URL}/$compiler | tar zxf -
@@ -18,8 +16,7 @@ done
 # clangs
 for clang in \
     3.0-x86_64-linux-Ubuntu-11_10 \
-    3.1-x86_64-linux-ubuntu_12.04 \
-; do
+    3.1-x86_64-linux-ubuntu_12.04; do
     DIR=clang+llvm-${clang}
     VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
     if [[ ! -d ${DIR} ]]; then
@@ -38,15 +35,14 @@ for clang in \
     3.7.1-x86_64-linux-gnu-ubuntu-14.04 \
     3.8.0-x86_64-linux-gnu-ubuntu-14.04 \
     3.8.1-x86_64-linux-gnu-ubuntu-14.04 \
-    3.9.0-x86_64-linux-gnu-ubuntu-16.04 \
-; do
+    3.9.0-x86_64-linux-gnu-ubuntu-16.04; do
     DIR=clang+llvm-${clang}
     VERSION=$(echo ${clang} | grep -oE '^[0-9.]+')
     # stupid naming issues on clang
-    if [[ "${VERSION}" = "3.5.0" ]]; then
+    if [[ "${VERSION}" == "3.5.0" ]]; then
         DIR=clang+llvm-3.5.0-x86_64-linux-gnu
     fi
-    if [[ "${VERSION}" = "3.5.2" ]]; then
+    if [[ "${VERSION}" == "3.5.2" ]]; then
         DIR=clang+llvm-3.5.2-x86_64-linux-gnu
     fi
     if [[ ! -d ${DIR} ]]; then
@@ -57,13 +53,12 @@ done
 
 # ellccs
 for VERSION in 0.1.33 \
-               0.1.34 \
-; do
+    0.1.34; do
     DIR=ellcc-${VERSION}
     if [[ -d ${DIR} ]]; then
         echo ${DIR} installed already
     else
-        fetch http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-${VERSION}.tgz  | tar xzf -
+        fetch http://ellcc.org/releases/older-releases/ellcc-x86_64-linux-${VERSION}.tgz | tar xzf -
         mv ellcc ${DIR}
         do_strip ${DIR}
     fi
@@ -100,8 +95,7 @@ for version in \
     6.{1,2,3,4}.0 \
     7.{1,2,3,4}.0 \
     8.{1,2,3}.0 \
-    9.{1,2}.0 \
-; do
+    9.{1,2}.0; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
         fetch ${S3URL}/$compiler | tar Jxf -
@@ -192,8 +186,7 @@ for version in \
     5.0.0 \
     6.0.0 \
     7.0.0 \
-    8.0.0 \
-; do
+    8.0.0; do
     if [[ ! -d clang-${version} ]]; then
         compiler=clang-${version}.tar.xz
         fetch ${S3URL}/$compiler | tar Jxf -
@@ -274,8 +267,8 @@ get_ispc() {
     if [[ ! -d ${DIR} ]]; then
         mkdir $DIR
         pushd $DIR
-        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz/download \
-            | tar zxf - ispc-$VER-Linux --strip-components 1
+        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz/download |
+            tar zxf - ispc-$VER-Linux --strip-components 1
         popd
         do_strip $DIR
     fi
@@ -287,8 +280,8 @@ get_ispc_old() {
     if [[ ! -d ${DIR} ]]; then
         mkdir $DIR
         pushd $DIR
-        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz/download \
-            | tar zxf - ispc-v$VER-linux-ispc --strip-components 1
+        fetch https://sourceforge.net/projects/ispcmirror/files/v$VER/ispc-v$VER-linux.tar.gz/download |
+            tar zxf - ispc-v$VER-linux-ispc --strip-components 1
         popd
         do_strip $DIR
     fi
@@ -335,20 +328,20 @@ get_djgpp() {
     local VER=$1
     local DIR=djgpp-$VER
 
-    declare -A TAG=([5.5.0]=v2.9 \
-                    [7.2.0]=v2.8 \
-                    [6.4.0]=v2.7 \
-                    [7.1.0]=v2.6 \
-                    [6.3.0]=v2.6 \
-                    [5.4.0]=v2.6 \
-                    [4.9.4]=v2.6 \
-                    [6.2.0]=v2.1)
+    declare -A TAG=([5.5.0]=v2.9
+        [7.2.0]=v2.8
+        [6.4.0]=v2.7
+        [7.1.0]=v2.6
+        [6.3.0]=v2.6
+        [5.4.0]=v2.6
+        [4.9.4]=v2.6
+        [6.2.0]=v2.1)
 
     if [[ ! -d ${DIR} ]]; then
         mkdir $DIR
         pushd $DIR
-        fetch https://github.com/andrewwutw/build-djgpp/releases/download/${TAG[$VER]}/djgpp-linux64-gcc${VER//.}.tar.bz2 \
-            | tar jxf - --strip-components 1
+        fetch https://github.com/andrewwutw/build-djgpp/releases/download/${TAG[$VER]}/djgpp-linux64-gcc${VER//./}.tar.bz2 |
+            tar jxf - --strip-components 1
         popd
         do_strip $DIR
     fi

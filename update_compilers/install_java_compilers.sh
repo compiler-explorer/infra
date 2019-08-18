@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
 get_jdk() {
@@ -9,11 +9,11 @@ get_jdk() {
     local DIR=jdk-${VERSION}
 
     if [[ ! -d ${DIR} ]]; then
-		mkdir ${DIR}
-		pushd ${DIR}
+        mkdir ${DIR}
+        pushd ${DIR}
         fetch ${URL} | tar zxf - --strip-components 1
-		popd
-	fi
+        popd
+    fi
 }
 
 get_jdk1102() {

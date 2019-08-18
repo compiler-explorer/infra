@@ -2,11 +2,11 @@
 
 set -ex
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
 wait_for_apt() {
-    while fuser /var/lib/dpkg/lock >/dev/null 2>&1 ; do
+    while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
         echo "Waiting for other software managers to finish..."
         sleep 5
     done
@@ -43,7 +43,7 @@ LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 if [[ ! -f "${PTRAIL}" ]]; then
-    echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" > "${PTRAIL}"
+    echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
     service rsyslog restart
     pushd /tmp
     curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
@@ -51,7 +51,7 @@ if [[ ! -f "${PTRAIL}" ]]; then
     popd
 fi
 
-cat > /etc/log_files.yml << EOF
+cat >/etc/log_files.yml <<EOF
 files:
     - /var/log/nginx/*.err
 destination:
@@ -60,7 +60,7 @@ destination:
     protocol: tls
 EOF
 
-cat > /lib/systemd/system/remote-syslog.service << EOF
+cat >/lib/systemd/system/remote-syslog.service <<EOF
 [Unit]
 Description=remote_syslog2
 Documentation=https://github.com/papertrail/remote_syslog2
@@ -79,7 +79,7 @@ EOF
 systemctl enable remote-syslog
 
 if ! grep "/opt nfs" /etc/fstab; then
-    echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >> /etc/fstab
+    echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
 fi
 
 mount -a
@@ -89,6 +89,6 @@ cd /home/ubuntu/
 mkdir -p /home/ubuntu/.ssh
 mkdir -p /tmp/auth_keys
 aws s3 sync s3://compiler-explorer/authorized_keys /tmp/auth_keys
-cat /tmp/auth_keys/* >> /home/ubuntu/.ssh/authorized_keys
+cat /tmp/auth_keys/* >>/home/ubuntu/.ssh/authorized_keys
 rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh

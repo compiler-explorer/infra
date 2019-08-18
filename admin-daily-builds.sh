@@ -3,7 +3,7 @@
 set -exuo pipefail
 
 finish() {
-	ce builder stop
+    ce builder stop
 }
 trap finish EXIT
 
@@ -17,14 +17,14 @@ run_on_build() {
     mkdir -p ${logdir}
     shift
     set +e
-    date > ${logdir}/begin
+    date >${logdir}/begin
     if ! ce builder exec -- "$@" |& tee ${logdir}/log; then
         BUILD_FAILED=1
-        echo FAILED > ${logdir}/status
+        echo FAILED >${logdir}/status
     else
-        echo OK > ${logdir}/status
+        echo OK >${logdir}/status
     fi
-    date > ${logdir}/end
+    date >${logdir}/end
     set -e
 }
 
@@ -34,9 +34,9 @@ build_latest() {
     local COMMAND=$3
     local BUILD=$4
     run_on_build ${BUILD_NAME} \
-      sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
-      mattgodbolt/${IMAGE}-builder \
-      bash "${COMMAND}" ${BUILD} s3://compiler-explorer/opt/
+        sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
+        mattgodbolt/${IMAGE}-builder \
+        bash "${COMMAND}" ${BUILD} s3://compiler-explorer/opt/
     log_to_json ${LOG_DIR} admin
 }
 

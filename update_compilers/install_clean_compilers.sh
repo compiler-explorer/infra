@@ -1,45 +1,45 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
 get_clean32_old() {
-	local VER=$1
-	local VERNODOTS=$2
-	local DIR=clean32-$VER
+    local VER=$1
+    local VERNODOTS=$2
+    local DIR=clean32-$VER
 
-	if [[ ! -d ${DIR} ]]; then
-		mkdir ${DIR}
-		pushd ${DIR}
-		fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}.tar.gz | tar xzf - --strip-components 1
-		popd
-	fi
+    if [[ ! -d ${DIR} ]]; then
+        mkdir ${DIR}
+        pushd ${DIR}
+        fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}.tar.gz | tar xzf - --strip-components 1
+        popd
+    fi
 }
 
 get_clean32_new() {
-	local VER=$1
-	local VERNODOTS=$2
-	local DIR=clean32-$VER
+    local VER=$1
+    local VERNODOTS=$2
+    local DIR=clean32-$VER
 
-	if [[ ! -d ${DIR} ]]; then
-		mkdir ${DIR}
-		pushd ${DIR}
-		fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}_32.tar.gz | tar xzf - --strip-components 1
-		popd
-	fi
+    if [[ ! -d ${DIR} ]]; then
+        mkdir ${DIR}
+        pushd ${DIR}
+        fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}_32.tar.gz | tar xzf - --strip-components 1
+        popd
+    fi
 }
 
 get_clean64() {
-	local VER=$1
-	local VERNODOTS=$2
-	local DIR=clean64-$VER
+    local VER=$1
+    local VERNODOTS=$2
+    local DIR=clean64-$VER
 
-	if [[ ! -d ${DIR} ]]; then
-		mkdir ${DIR}
-		pushd ${DIR}
-		fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}_64.tar.gz | tar xzf - --strip-components 1
-		popd
-	fi
+    if [[ ! -d ${DIR} ]]; then
+        mkdir ${DIR}
+        pushd ${DIR}
+        fetch https://ftp.cs.ru.nl/Clean/Clean${VERNODOTS}/linux/clean${VER}_64.tar.gz | tar xzf - --strip-components 1
+        popd
+    fi
 }
 
 get_clean32_old 2.4 24

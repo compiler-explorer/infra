@@ -1,28 +1,26 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
 get_ppci() {
-  local VER=$1
-  local DIR=ppci-${VER}
+    local VER=$1
+    local DIR=ppci-${VER}
 
-  if [[ ! -d ${DIR} ]]; then
-    fetch https://pypi.io/packages/source/p/ppci/ppci-$VER.tar.gz | tar xfz -
-  fi
+    if [[ ! -d ${DIR} ]]; then
+        fetch https://pypi.io/packages/source/p/ppci/ppci-$VER.tar.gz | tar xfz -
+    fi
 }
 
 get_ppci 0.5.5
 
 for version in \
-    1.27 \
-; do
+    1.27; do
     if [[ ! -d gcc-${version} ]]; then
         compiler=gcc-${version}.tar.xz
         fetch ${S3URL}/${compiler} | tar Jxf -
     fi
 done
-
 
 do_nightly_install() {
     local COMPILER_PATTERN="$1"
@@ -55,9 +53,7 @@ do_nightly_install() {
     popd
 }
 
-
-for version in 2.17
-do
+for version in 2.17; do
     DIR=6502/cc65-${version}
     if [[ ! -d ${DIR} ]]; then
         mkdir -p 6502

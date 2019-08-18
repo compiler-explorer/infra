@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 set -e
 
 curl -sL ftp://ftp.gnu.org/pub/gnu/binutils/binutils-2.21.1.tar.bz2 | tar jxf -
@@ -27,7 +27,10 @@ popd
 
 export PATH=/opt/texinfo/bin:${STAGING_DIR}/bin:${PATH}
 
-( cd binutils-2.21.1 ; patch -p1 < ../msp430-binutils-2.21.1-20110716.patch )
+(
+    cd binutils-2.21.1
+    patch -p1 <../msp430-binutils-2.21.1-20110716.patch
+)
 mkdir -p build/binutils
 pushd build/binutils
 ../../binutils-2.21.1/configure --target=msp430 --prefix=${STAGING_DIR} CFLAGS='-O2 -g -Wno-error'
@@ -43,8 +46,8 @@ make install
 popd
 
 pushd gcc-4.5.3
-patch -p1 < ../../patches/gcc/4.5.4/999-inline.patch
-patch -p1 < ../msp430-gcc-4.5.3-20110706.patch
+patch -p1 <../../patches/gcc/4.5.4/999-inline.patch
+patch -p1 <../msp430-gcc-4.5.3-20110706.patch
 ../download_prerequisites
 popd
 mkdir -p build/gcc

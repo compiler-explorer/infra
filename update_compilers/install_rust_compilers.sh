@@ -1,14 +1,13 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
-
 
 do_rust_install() {
     local DIR=$1
     local INSTALL=$2
     local IS_STD_LIB=1
-    if [[ ${DIR} = rust-std-* ]]; then
+    if [[ ${DIR} == rust-std-* ]]; then
         IS_STD_LIB=0
     fi
     fetch http://static.rust-lang.org/dist/${DIR}.tar.gz | tar zxvf - -C /tmp || return ${IS_STD_LIB}
@@ -56,7 +55,7 @@ install_new_rust() {
     if [[ -n "$FORCE" && -d ${DIR} ]]; then
         local time_from=$(date -d "now - $FORCE" +%s)
         local dir_time=$(date -r ${DIR} +%s)
-        if (( dir_time > time_from )); then
+        if ((dir_time > time_from)); then
             echo "Treating ${DIR} as up to date enough, despite force"
             FORCE=""
         fi
@@ -237,4 +236,3 @@ install_rust 1.1.0
 install_rust 1.2.0
 install_rust 1.3.0
 install_rust 1.4.0
-

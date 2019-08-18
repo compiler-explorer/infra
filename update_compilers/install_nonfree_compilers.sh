@@ -3,22 +3,21 @@
 # This script installs all the non-free compilers from s3 into a dir in /opt.
 # On EC2 this location is on an EFS drive.
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${DIR}/common.inc
 S3URL=s3://compiler-explorer/opt-nonfree
 
 ##################################
 # Intel compilers
 for compiler in \
-    intel.tar.gz
-do
+    intel.tar.gz; do
     DIR=${compiler%.tar.*}
-	if [[ ! -d ${DIR} ]]; then
-		s3get ${S3URL}/$compiler ${OPT}/$compiler
-		tar zxf $compiler
-		rm $compiler
-		do_strip ${DIR}
-	fi
+    if [[ ! -d ${DIR} ]]; then
+        s3get ${S3URL}/$compiler ${OPT}/$compiler
+        tar zxf $compiler
+        rm $compiler
+        do_strip ${DIR}
+    fi
 done
 
 for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic; do
@@ -61,8 +60,7 @@ for file in \
     14.0.24224-Pre \
     19.00.24210 \
     19.10.25017 \
-    19.14.26423 \
-; do
+    19.14.26423; do
     if [[ ! -d ${file} ]]; then
         s3get ${S3URL}/${file}.tar.xz ${file}.tar.xz
         tar Jxf ${file}.tar.xz
@@ -93,18 +91,18 @@ install_cuda() {
     pushd cuda
     local DIR=$(pwd)/$2
     if [[ ! -d ${DIR} ]]; then
-      rm -rf /tmp/cuda
-      mkdir /tmp/cuda
-      fetch ${URL} > /tmp/cuda/combined.sh
-      sh /tmp/cuda/combined.sh --extract=/tmp/cuda
-      local LINUX=$(ls -1 /tmp/cuda/cuda-linux.$2*.run 2>/dev/null || true)
-      if [[ -f ${LINUX} ]]; then
-        ${LINUX} --prefix=${DIR} -noprompt -nosymlink -no-man-page
-      else
-        # As of CUDA 10.1, the toolkit is already extracted here.
-        mv /tmp/cuda/cuda-toolkit ${DIR}
-      fi
-      rm -rf /tmp/cuda
+        rm -rf /tmp/cuda
+        mkdir /tmp/cuda
+        fetch ${URL} >/tmp/cuda/combined.sh
+        sh /tmp/cuda/combined.sh --extract=/tmp/cuda
+        local LINUX=$(ls -1 /tmp/cuda/cuda-linux.$2*.run 2>/dev/null || true)
+        if [[ -f ${LINUX} ]]; then
+            ${LINUX} --prefix=${DIR} -noprompt -nosymlink -no-man-page
+        else
+            # As of CUDA 10.1, the toolkit is already extracted here.
+            mv /tmp/cuda/cuda-toolkit ${DIR}
+        fi
+        rm -rf /tmp/cuda
     fi
     popd
 }

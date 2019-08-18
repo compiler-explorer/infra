@@ -28,7 +28,7 @@ get_released_code() {
     echo "Unpacking build from ${URL}"
     mkdir -p "${DEST}"
     pushd "${DEST}"
-    echo ${S3_KEY} > s3_key
+    echo ${S3_KEY} >s3_key
     curl -sL "${URL}" | tar Jxf -
     chown -R ${CE_USER}:${CE_USER} .
     popd

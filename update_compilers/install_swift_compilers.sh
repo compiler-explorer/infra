@@ -1,11 +1,10 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
-
 install_nightly() {
-    if [[ "$ARG1" = "nightly" ]]; then
+    if [[ "$ARG1" == "nightly" ]]; then
         return 0
     else
         return 1

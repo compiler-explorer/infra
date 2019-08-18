@@ -2,9 +2,8 @@
 
 # This script installs all the libraries to be used by Compiler Explorer
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${DIR}/common.inc
-
 
 #########################
 # patchelf
@@ -15,7 +14,6 @@ if [[ ! -f ${PATCHELF} ]]; then
     make -j$(nproc)
     popd
 fi
-
 
 #########################
 # node.js

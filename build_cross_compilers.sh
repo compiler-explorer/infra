@@ -3,7 +3,7 @@
 set -exuo pipefail
 
 finish() {
-	ce builder stop
+    ce builder stop
 }
 trap finish EXIT
 
@@ -17,14 +17,14 @@ run_on_build() {
     mkdir -p ${logdir}
     shift
     set +e
-    date > ${logdir}/begin
+    date >${logdir}/begin
     if ! ce builder exec -- "$@" 2>&1 | tee ${logdir}/log; then
         BUILD_FAILED=1
-        echo FAILED > ${logdir}/status
+        echo FAILED >${logdir}/status
     else
-        echo OK > ${logdir}/status
+        echo OK >${logdir}/status
     fi
-    date > ${logdir}/end
+    date >${logdir}/end
     set -e
 }
 
@@ -39,10 +39,9 @@ build_cross() {
     fi
 
     run_on_build gcc-cross \
-      sudo docker run --rm --name gcc-cross.build -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg:ro mattgodbolt/gcc-cross \
-      bash ./build.sh ${ARCH} ${VERSION} s3://compiler-explorer/opt/
+        sudo docker run --rm --name gcc-cross.build -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg:ro mattgodbolt/gcc-cross \
+        bash ./build.sh ${ARCH} ${VERSION} s3://compiler-explorer/opt/
 }
-
 
 build_cross powerpc64le at12
 build_cross powerpc64 at12

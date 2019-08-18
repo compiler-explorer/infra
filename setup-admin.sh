@@ -2,7 +2,7 @@
 
 set -ex
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${DIR}
 
 if [[ "$1" != "--updated" ]]; then
@@ -26,7 +26,7 @@ pip3 install --upgrade awscli
 ln -sf admin/fish_prompt.fish ~/.config/fish/fish_prompt.fish
 
 # Install private and public keys
-aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value > /home/ubuntu/.ssh/id_rsa
+aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
 
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
@@ -38,7 +38,7 @@ crontab -u ubuntu crontab.admin
 
 # Configure email
 SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
-cat > /etc/ssmtp/ssmtp.conf <<EOF
+cat >/etc/ssmtp/ssmtp.conf <<EOF
 root=postmaster
 mailhub=email-smtp.us-east-1.amazonaws.com
 hostname=compiler-explorer.com
@@ -48,7 +48,7 @@ AuthPass=${SMTP_PASS}
 UseTLS=YES
 UseSTARTTLS=YES
 EOF
-cat > /etc/ssmtp/revaliases <<EOF
+cat >/etc/ssmtp/revaliases <<EOF
 ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
 EOF
 

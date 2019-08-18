@@ -1,8 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
-
 
 getgdc() {
     vers=$1
@@ -48,18 +47,17 @@ getldc_latestbeta() {
         mkdir ldcbeta
     fi
     pushd ldcbeta
-    if [[ "$(cat .version)" = "${vers}" ]]; then
+    if [[ "$(cat .version)" == "${vers}" ]]; then
         echo "LDC beta version ${vers} already installed, skipping"
         popd
         return
     fi
     rm -rf *
     fetch https://github.com/ldc-developers/ldc/releases/download/v${vers}/ldc2-${vers}-linux-x86_64.tar.xz | tar Jxf - --strip-components 1
-    echo "${vers}" > .version
+    echo "${vers}" >.version
     # any kind of stripping upsets ldc
     popd
 }
-
 
 getldc_latest_ci() {
     # Use dlang's install.sh script to get the latest master CI build.
@@ -71,7 +69,7 @@ getldc_latest_ci() {
     pushd ${DIR}
     wget https://dlang.org/install.sh
     chmod +x install.sh
-    ./install.sh install ldc-latest-ci -p `pwd`
+    ./install.sh install ldc-latest-ci -p $(pwd)
     # Rename the downloaded package directory to a constant "ldc" name
     mv ldc-* ldc
     chmod +rx ldc
@@ -103,7 +101,7 @@ getdmd2_nightly() {
     wget https://dlang.org/install.sh
     chmod +x install.sh
     # Download and unpack dmd-nightly into current directory
-    ./install.sh install dmd-nightly -p `pwd`
+    ./install.sh install dmd-nightly -p $(pwd)
     # Rename the downloaded package directory to a constant "dmd2" name
     mv dmd-master-* dmd2
     # Make directory readable for other users too
@@ -115,11 +113,9 @@ getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
 
-
 for version in \
     0.17.2 \
-    1.{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}.0 \
-; do
+    1.{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16}.0; do
     getldc ${version}
 done
 if install_nightly; then

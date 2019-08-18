@@ -1,8 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
-
 
 get_nasm() {
     local VER=$1
@@ -24,7 +23,6 @@ for version in \
     2.12.02 \
     2.13.02 \
     2.13.03 \
-    2.14.02 \
-; do
+    2.14.02; do
     get_nasm $version
 done

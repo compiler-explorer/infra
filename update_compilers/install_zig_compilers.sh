@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
 install_zig() {
@@ -19,7 +19,6 @@ install_zig() {
     popd
     do_strip ${DIR}
 }
-
 
 install_zig_nightly() {
     local VERSION=$1

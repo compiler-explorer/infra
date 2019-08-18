@@ -2,7 +2,7 @@
 
 set -ex
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$1" != "--updated" ]]; then
     sudo -u ubuntu git -C ${DIR} pull
@@ -33,7 +33,7 @@ rm -rf /ephemeral
 mkdir /ephemeral
 mount /dev/nvme0n1p1 /ephemeral
 
-cat > /etc/docker/daemon.json <<EOF
+cat >/etc/docker/daemon.json <<EOF
 {
         "data-root": "/ephemeral/docker"
 }
@@ -46,13 +46,13 @@ apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/compiler-explorer-image
-pip install --upgrade pip 
+pip install --upgrade pip
 hash -r pip
 pip install --upgrade awscli
 pip install --upgrade -r requirements.txt
 
 # Install private and public keys
-aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value > /home/ubuntu/.ssh/id_rsa
+aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
 
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
@@ -63,7 +63,7 @@ sudo -u ubuntu fish setup.fish
 
 # Configure email
 SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
-cat > /etc/ssmtp/ssmtp.conf <<EOF
+cat >/etc/ssmtp/ssmtp.conf <<EOF
 root=postmaster
 mailhub=email-smtp.us-east-1.amazonaws.com
 hostname=compiler-explorer.com
@@ -73,7 +73,7 @@ AuthPass=${SMTP_PASS}
 UseTLS=YES
 UseSTARTTLS=YES
 EOF
-cat > /etc/ssmtp/revaliases <<EOF
+cat >/etc/ssmtp/revaliases <<EOF
 ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
 EOF
 

@@ -1,8 +1,7 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
-
 
 get_fpc() {
     local VER=$1
@@ -26,8 +25,7 @@ for version in \
     2.6.2 \
     2.6.4 \
     3.0.2 \
-    3.0.4 \
-; do
+    3.0.4; do
     get_fpc $version
 done
 
