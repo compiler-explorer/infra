@@ -2,12 +2,12 @@
 
 # This script installs all the libraries to be used by Compiler Explorer
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
 ARG1="$1"
 install_nightly() {
-    if [[ "$ARG1" = "nightly" ]]; then
+    if [[ "$ARG1" == "nightly" ]]; then
         return 0
     else
         return 1
@@ -23,12 +23,12 @@ fi
 #########################
 # C++
 if install_nightly; then
-if [[ ! -d "libs/kvasir/mpl/trunk" ]]; then
-    git clone -q https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
-    git -C libs/kvasir/mpl/trunk checkout -q development
-else
-    git -C libs/kvasir/mpl/trunk pull -q origin development
-fi
+    if [[ ! -d "libs/kvasir/mpl/trunk" ]]; then
+        git clone -q https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
+        git -C libs/kvasir/mpl/trunk checkout -q development
+    else
+        git -C libs/kvasir/mpl/trunk pull -q origin development
+    fi
 fi
 
 if [[ ! -d cmake ]]; then
@@ -96,33 +96,33 @@ get_or_sync() {
     if [[ ! -d "${DIR}" ]]; then
         git clone -q "${URL}" "${DIR}"
     else
-    	git -C "${DIR}" fetch -q
-    	git -C "${DIR}" reset -q --hard origin
+        git -C "${DIR}" fetch -q
+        git -C "${DIR}" reset -q --hard origin
     fi
     git -C "${DIR}" submodule sync
     git -C "${DIR}" submodule update --init
 }
 
 get_or_sync_git_tag() {
-	local DIR=$1
-	local URL=$2
-	local TAG=$3
-	if [[ ! -d "${DIR}" ]]; then
-		git clone -q "${URL}" "${DIR}"
-		git -C "${DIR}" checkout -q "${TAG}"
-	else
-		git -C "${DIR}" reset -q --hard
-		git -C "${DIR}" pull -q origin "${TAG}"
-	fi
+    local DIR=$1
+    local URL=$2
+    local TAG=$3
+    if [[ ! -d "${DIR}" ]]; then
+        git clone -q "${URL}" "${DIR}"
+        git -C "${DIR}" checkout -q "${TAG}"
+    else
+        git -C "${DIR}" reset -q --hard
+        git -C "${DIR}" pull -q origin "${TAG}"
+    fi
 }
 
 get_or_sync_git_tags() {
-	local DIR=$1
-	local URL=$2
-	shift 2
-	for TAG in "$@"; do
-		get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
-	done
+    local DIR=$1
+    local URL=$2
+    shift 2
+    for TAG in "$@"; do
+        get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
+    done
 }
 
 get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
@@ -154,12 +154,12 @@ get_git_version() {
 }
 
 get_github_versions() {
-   local DIR=$1
-   local URL=https://github.com/$2
-   shift 2
-   for tag in "$@"; do
-       get_git_version ${DIR}/${tag} ${URL}/archive/${tag}.tar.gz
-   done
+    local DIR=$1
+    local URL=https://github.com/$2
+    shift 2
+    for tag in "$@"; do
+        get_git_version ${DIR}/${tag} ${URL}/archive/${tag}.tar.gz
+    done
 }
 
 get_github_versioned_and_trunk_with_quirk() {
@@ -252,12 +252,12 @@ install_gnu_gsl_versioned_and_latest() {
 #########################
 # D
 if install_nightly; then
-if [ ! -d "${OPT}/libs/d/mir-glas-trunk" ]; then
-    git clone -q https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
-    git -C ${OPT}/libs/d/mir-glas-trunk checkout -q master
-else
-    git -C ${OPT}/libs/d/mir-glas-trunk pull -q origin master
-fi
+    if [ ! -d "${OPT}/libs/d/mir-glas-trunk" ]; then
+        git clone -q https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
+        git -C ${OPT}/libs/d/mir-glas-trunk checkout -q master
+    else
+        git -C ${OPT}/libs/d/mir-glas-trunk pull -q origin master
+    fi
 fi
 
 install_mir_glas() {
@@ -278,12 +278,12 @@ install_mir_glas() {
 install_mir_glas 0.1.5 0.2.3 0.2.4
 
 if install_nightly; then
-if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
-    git clone -q https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
-    git -C ${OPT}/libs/d/mir-algorithm-trunk checkout -q master
-else
-    git -C ${OPT}/libs/d/mir-algorithm-trunk pull -q origin master
-fi
+    if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
+        git clone -q https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
+        git -C ${OPT}/libs/d/mir-algorithm-trunk checkout -q master
+    else
+        git -C ${OPT}/libs/d/mir-algorithm-trunk pull -q origin master
+    fi
 fi
 
 install_mir_algorithm() {
@@ -303,11 +303,9 @@ install_mir_algorithm() {
 
 install_mir_algorithm 0.5.17 0.6.13 0.6.21 0.9.5 1.0.0 1.1.0
 
-
 #########################
 # CUDA
 get_or_sync_git_tags libs/cub https://github.com/NVlabs/cub.git 1.8.0
-
 
 #########################
 # OpenSSL
@@ -325,6 +323,7 @@ install_openssl() {
             make install
             rm ${OPT}/libs/openssl/openssl_${VERSION}/x86/opt/lib/*.a
 
+            make clean
             ./config --prefix=${OPT}/libs/openssl/openssl_${VERSION}/x86_64/opt --openssldir=${OPT}/libs/openssl/openssl_${VERSION}/x86_64/ssl
             make
             make install

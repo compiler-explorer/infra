@@ -4,5 +4,10 @@
       <option name="PROPERTY_ALIGNMENT" value="2" />
       <option name="ARRAY_WRAPPING" value="5" />
     </HCL-Terraform>
+    <codeStyleSettings language="Shell Script">
+      <indentOptions>
+        <option name="INDENT_SIZE" value="4" />
+      </indentOptions>
+    </codeStyleSettings>
   </code_scheme>
 </component>
