@@ -228,6 +228,7 @@ install_blaze() {
 install_blaze 3.3
 install_blaze 3.4
 install_blaze 3.5
+install_blaze 3.6
 get_or_sync libs/blaze/trunk https://bitbucket.org/blaze-lib/blaze.git
 
 get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode dfa
