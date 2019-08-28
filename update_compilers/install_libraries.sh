@@ -209,6 +209,7 @@ get_github_versioned_and_trunk libs/PEGTL taocpp/PEGTL 2.8.0
 get_github_versions libs/GSL Microsoft/GSL v1.0.0 v2.0.0
 
 get_github_versions libs/vcl darealshinji/vectorclass v1.30
+get_github_versions libs/vcl vectorclass/version2 v2.00.01
 
 install_blaze() {
     for VERSION in "$@"; do
