@@ -19,14 +19,6 @@ fi
 
 env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
 
-# Work around the fact that we need a writeable /opt/wine-stable, whereas /opt lives on EFS.
-# DISABLED due to it causing issues with systemd isolated services (DNS, time etc), which fail with EINVAL during NAMESPACE.
-# After much pain we discovered this was a bind mount in /opt causing issues. Not sure why it started happening..
-#if ! grep "/opt/wine-stable" /etc/fstab; then
-#    mkdir -p /var/opt/wine-stable
-#    echo "/var/opt/wine-stable /opt/wine-stable none bind,defaults,x-systemd.requires=/opt,_netdev 0 0" >> /etc/fstab
-#    mount -a
-#fi
 
 if [[ ! -f /updated.2 ]]; then
     dpkg --add-architecture i386

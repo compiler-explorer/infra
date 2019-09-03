@@ -79,10 +79,13 @@ EOF
 systemctl enable remote-syslog
 
 if ! grep "/opt nfs" /etc/fstab; then
-    echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/ /opt nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
+    echo "$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone).fs-db4c8192.efs.us-east-1.amazonaws.com:/compiler-explorer /opt/compiler-explorer nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
 fi
 
 mount -a
+ln -s /opt/compiler-explorer /opt/gcc-explorer
+ln -s /opt/compiler-explorer/.health /opt/.health
+mkdir -p /opt/wine-stable
 
 cd /home/ubuntu/
 
