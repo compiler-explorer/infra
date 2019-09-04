@@ -89,5 +89,5 @@ systemctl enable compiler-explorer
 
 if [[ -f /opt/compiler-explorer/libs/boost.tar.xz ]]; then
     mkdir -p /celibs
-    tar xf /opt/compiler-explorer/libs/boost.tar.xz -C /celibs
+    tar xf /efs/compiler-explorer/libs/boost.tar.xz -C /celibs
 fi
