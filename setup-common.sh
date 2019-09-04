@@ -90,7 +90,6 @@ ln -s /efs/aws /opt/aws
 ln -s /efs/build_logs /opt/build_logs
 ln -s /opt/compiler-explorer /opt/gcc-explorer
 ln -s /opt/compiler-explorer/.health /opt/.health
-mkdir -p /opt/wine-stable
 
 cd /home/ubuntu/
 
