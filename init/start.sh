@@ -14,6 +14,15 @@ get_conf() {
     aws ssm get-parameter --name $1 | jq -r .Parameter.Value
 }
 
+mount_opt() {
+    mkdir -p /opt/compiler-explorer
+    mount --bind /efs/compiler-explorer /opt/compiler-explorer
+    mkdir -p /opt/intel
+    mount --bind /efs/intel /opt/intel
+    touch /opt/.health
+    mount --bind /efs/.health /opt/.health
+}
+
 rsync_boost() {
     echo rsyncing boost libraries
     mkdir -p /celibs
@@ -55,6 +64,7 @@ LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-compile
 
+mount_opt
 rsync_boost
 update_code
 
