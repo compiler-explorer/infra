@@ -121,6 +121,10 @@ def get_releases():
     return releases
 
 
+def download_release_file(file, destination):
+    s3_client.download_file('compiler-explorer', file, destination)
+
+
 def find_release(version):
     for r in get_releases():
         if r.version == version:
