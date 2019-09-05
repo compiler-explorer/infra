@@ -309,13 +309,15 @@ def builds_current_cmd(args):
     print(describe_current_release(args))
 
 
-def deploy_staticfiles(branch, version):
-    downloadfile = version + '.tar.xz'
+def deploy_staticfiles(branch, versionfile):
+    print("Deploying static files")
+    downloadfile = versionfile
+    filename = 'deploy.tar.xz'
     remotefile = branch + '/' + downloadfile
-    download_release_file(remotefile, downloadfile)
+    download_release_file(remotefile[1:], filename)
     os.mkdir('deploy')
-    subprocess.call(['tar','-C','deploy','-Jxf',downloadfile])
-    os.remove(downloadfile)
+    subprocess.call(['tar','-C','deploy','-Jxf',filename])
+    os.remove(filename)
     subprocess.call(['aws','s3','sync','deploy/out/dist/dist','s3://compiler-explorer/dist/cdn'])
     subprocess.call(['rm','-Rf','deploy'])
 

@@ -122,11 +122,7 @@ def get_releases():
 
 
 def download_release_file(file, destination):
-    s3_client.download_file(
-        Bucket='compiler-explorer',
-        Key=file,
-        destination=destination
-    )
+    s3_client.download_file('compiler-explorer', file, destination)
 
 
 def find_release(version):
