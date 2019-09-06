@@ -27,9 +27,9 @@ mount_opt() {
         mount --bind /efs/intel /opt/intel
     fi
 
-    touch /opt/.health
     M=$(mount | grep -c /opt/.health)
     if [ $M -eq 0 ]; then
+        touch /opt/.health
         mount --bind /efs/.health /opt/.health
     fi
 }
