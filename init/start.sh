@@ -16,11 +16,22 @@ get_conf() {
 
 mount_opt() {
     mkdir -p /opt/compiler-explorer
-    mount --bind /efs/compiler-explorer /opt/compiler-explorer
+    M=$(mount | grep -c /opt/compiler-explorer)
+    if [ $M -eq 0 ]; then
+        mount --bind /efs/compiler-explorer /opt/compiler-explorer
+    fi
+
     mkdir -p /opt/intel
-    mount --bind /efs/intel /opt/intel
+    M=$(mount | grep -c /opt/intel)
+    if [ $M -eq 0 ]; then
+        mount --bind /efs/intel /opt/intel
+    fi
+
     touch /opt/.health
-    mount --bind /efs/.health /opt/.health
+    M=$(mount | grep -c /opt/.health)
+    if [ $M -eq 0 ]; then
+        mount --bind /efs/.health /opt/.health
+    fi
 }
 
 rsync_boost() {
