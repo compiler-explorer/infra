@@ -8,10 +8,10 @@ resource "aws_security_group" "CompilerExplorer" {
   }
 }
 
-# Compiler explorer nodes do things like `git pull` and `docker pull` at startup,
+# It's convenient for Compiler explorer nodes to be able to do things like `git pull` and `docker pull`,
 # so need to be able to talk to the outside world. Ideally they'd be locked down
-# completely (with access only to admin node and the ALB); but this would require
-# some work to remove the git/docker pull.
+# completely (with access only to admin node and the ALB); but this would make diagnosing and fixing
+# issues quickly on-box very difficult.
 resource "aws_security_group_rule" "CE_EgressToAll" {
   security_group_id = aws_security_group.CompilerExplorer.id
   type              = "egress"
