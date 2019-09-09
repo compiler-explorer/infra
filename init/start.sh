@@ -16,18 +16,13 @@ get_conf() {
 
 mount_opt() {
     mkdir -p /opt/compiler-explorer
-    if [ ! mountpoint /opt/compiler-explorer ]; then
-        mount --bind /efs/compiler-explorer /opt/compiler-explorer
-    fi
+    mountpoint /opt/compiler-explorer || mount --bind /efs/compiler-explorer /opt/compiler-explorer
 
     mkdir -p /opt/intel
-    if [ ! mountpoint /opt/intel ]; then
-        mount --bind /efs/intel /opt/intel
-    fi
+    mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
 
-    if [ ! mount --bind /opt/.health ]; then
-        mount --bind /efs/.health /opt/.health
-    fi
+    [ -f /opt/.health ] || touch /opt/.health
+    mountpoint /opt/.heath || mount --bind /efs/.health /opt/.health
 }
 
 rsync_boost() {
