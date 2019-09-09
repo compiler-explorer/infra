@@ -7,6 +7,7 @@ Type=simple
 User=root
 TimeoutStartSec=infinity
 WorkingDirectory=/compiler-explorer-image
+ExecStartPre=bash -c "git pull"
 ExecStart=/compiler-explorer-image/init/start.sh
 StandardOutput=syslog
 StandardError=syslog
