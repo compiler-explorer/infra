@@ -16,20 +16,16 @@ get_conf() {
 
 mount_opt() {
     mkdir -p /opt/compiler-explorer
-    M=$(mount | grep -c /opt/compiler-explorer)
-    if [ $M -eq 0 ]; then
+    if [ ! mountpoint /opt/compiler-explorer ]; then
         mount --bind /efs/compiler-explorer /opt/compiler-explorer
     fi
 
     mkdir -p /opt/intel
-    M=$(mount | grep -c /opt/intel)
-    if [ $M -eq 0 ]; then
+    if [ ! mountpoint /opt/intel ]; then
         mount --bind /efs/intel /opt/intel
     fi
 
-    M=$(mount | grep -c /opt/.health)
-    if [ $M -eq 0 ]; then
-        touch /opt/.health
+    if [ ! mount --bind /opt/.health ]; then
         mount --bind /efs/.health /opt/.health
     fi
 }
