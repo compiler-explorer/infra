@@ -1,4 +1,5 @@
 from operator import attrgetter
+import time
 
 
 class LazyObjectWrapper(object):
@@ -34,6 +35,7 @@ elb_client = LazyObjectWrapper(lambda: boto3.client('elbv2'))
 s3_client = LazyObjectWrapper(lambda: boto3.client('s3'))
 dynamodb_client = LazyObjectWrapper(lambda: boto3.client('dynamodb'))
 LINKS_TABLE = 'links'
+VERSIONS_LOGGING_TABLE = 'versionslog'
 
 
 class Hash(object):
@@ -230,6 +232,17 @@ def put_short_link(item):
 
 def delete_short_link(item):
     dynamodb_client.delete_item(TableName=LINKS_TABLE, Key={'prefix': {'S': item[:6]}, 'unique_subhash': {'S': item}})
+
+
+def log_new_build(args, new_version):
+    current_time = int(time.time())
+    new_item = {
+        'buildId': new_version,
+        'timestamp': current_time,
+        'branch': args['branch'],
+        'env': args['env']
+    }
+    dynamodb_client.put_item(TableName=VERSIONS_LOGGING_TABLE, Item=new_item)
 
 
 def delete_s3_links(items):
