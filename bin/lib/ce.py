@@ -16,7 +16,7 @@ from pprint import pprint
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
     save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links, \
-    get_autoscaling_groups_for, download_release_file, log_new_build
+    get_autoscaling_groups_for, download_release_file, log_new_build, list_all_build_logs, list_period_build_logs
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
@@ -114,6 +114,11 @@ def confirm_branch(release):
         typed = input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
         if typed == branch:
             return True
+
+
+def confirm_action(description):
+    typed = input('{}: [Y/N]\n'.format(description))
+    return typed == 'Y'
 
 
 def is_everything_awesome(instance):
@@ -374,6 +379,17 @@ def builds_list_cmd(args):
                         ' -->' if release.key == current else '',
                         release.branch, release.version, sizeof_fmt(release.size), str(release.hash))
                 )
+
+
+def builds_history_cmd(args):
+    from_time = args['from']
+    until_time = args['until']
+    if from_time is None and until_time is None:
+        if confirm_action(
+                'Do you want list all builds for {}? It might be an expensive operation:'.format(args['env'])):
+            list_all_build_logs(args)
+    else:
+        list_period_build_logs(args, from_time, until_time)
 
 
 def ads_cmd(args):
@@ -652,6 +668,9 @@ def main():
     expire.add_argument('age', help='keep the most recent AGE builds (as well as current builds)', metavar='AGE',
                         type=int)
     expire.add_argument('--dry-run', help='dry run only', action='store_true')
+    history_parser = builds_sub.add_parser('history')
+    history_parser.add_argument('--from', help='timestamp filter')
+    history_parser.add_argument('--until', help='timestamp filter')
 
     instances_parser = subparsers.add_parser('instances')
     instances_sub = add_required_sub_parsers(instances_parser, 'instances_sub')

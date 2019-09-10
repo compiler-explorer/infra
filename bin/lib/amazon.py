@@ -1,5 +1,5 @@
 from operator import attrgetter
-import time
+from datetime import datetime
 
 
 class LazyObjectWrapper(object):
@@ -235,13 +235,56 @@ def delete_short_link(item):
 
 
 def log_new_build(args, new_version):
-    current_time = str(int(time.time()))
+    current_time = datetime.utcnow().isoformat()
     new_item = {
         'buildId': {'S': new_version},
         'timestamp': {'S': current_time},
         'env': {'S': args['env']}
     }
     dynamodb_client.put_item(TableName=VERSIONS_LOGGING_TABLE, Item=new_item)
+
+
+def print_version_logs(items):
+    for item in items:
+        print('{} (from {}) at {}'.format(item['buildId']['S'], item['env']['S'], item['timestamp']['S']))
+
+
+def list_all_build_logs(args):
+    result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
+                                  FilterExpression='env = :environment',
+                                  ExpressionAttributeValues={':environment': {'S': args['env']}})
+    print_version_logs(result.get('Items', []))
+
+
+def list_period_build_logs(args, from_time, until_time):
+    result = None
+    if from_time is None and until_time is None:
+        #  Our only calling site already checks this, but added as fallback just in case
+        list_all_build_logs(args)
+    elif from_time is None:
+        assert (until_time is not None), "Required field --until is missing"
+        result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
+                                      FilterExpression='#ts <= :until and env = :environment',
+                                      ExpressionAttributeValues={':until': {'S': until_time},
+                                                                 ':environment': {'S': args['env']}},
+                                      ExpressionAttributeNames={'#ts': 'timestamp'})
+    elif until_time is None:
+        assert (from_time is not None), "Required field --from is missing"
+        result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
+                                      FilterExpression='#ts >= :from and env = :environment',
+                                      ExpressionAttributeValues={':from': {'S': from_time},
+                                                                 ':environment': {'S': args['env']}},
+                                      ExpressionAttributeNames={'#ts': 'timestamp'})
+    else:
+        assert (until_time is not None and from_time is not None), "Expected both --until and --from to be filled"
+        result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
+                                      FilterExpression='#ts BETWEEN :from AND :until and env = :environment',
+                                      ExpressionAttributeValues={':until': {'S': until_time},
+                                                                 ':from': {'S': from_time},
+                                                                 ':environment': {'S': args['env']}},
+                                      ExpressionAttributeNames={'#ts': 'timestamp'})
+    if result is not None:
+        print_version_logs(result.get('Items', []))
 
 
 def delete_s3_links(items):
