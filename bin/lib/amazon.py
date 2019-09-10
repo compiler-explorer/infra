@@ -235,11 +235,10 @@ def delete_short_link(item):
 
 
 def log_new_build(args, new_version):
-    current_time = int(time.time())
+    current_time = str(int(time.time()))
     new_item = {
         'buildId': {'S': new_version},
-        'timestamp': {'N': current_time},
-        'branch': {'S': args['branch']},
+        'timestamp': {'S': current_time},
         'env': {'S': args['env']}
     }
     dynamodb_client.put_item(TableName=VERSIONS_LOGGING_TABLE, Item=new_item)
