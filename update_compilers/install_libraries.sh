@@ -126,6 +126,7 @@ get_or_sync_git_tags() {
 }
 
 get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
+get_or_sync libs/mp-units https://github.com/mpusz/units.git
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 get_or_sync libs/opencv https://github.com/opencv/opencv.git
