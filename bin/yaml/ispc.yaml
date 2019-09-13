@@ -10,6 +10,7 @@ compilers:
       - name: 1.10.0
         untar_dir: ispc-{name}-Linux
       - 1.11.0
+      - 1.12.0
     older:
       check_exe: ispc --version
       targets:

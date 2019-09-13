@@ -35,6 +35,10 @@ fi
 . ${SCRIPT_DIR}/install_c_compilers.sh ${ARG1}
 
 #########################
+# ISPC
+. ${SCRIPT_DIR}/install_ispc_compilers.sh ${ARG1}
+
+#########################
 # Haskell
 . ${SCRIPT_DIR}/install_haskell_compilers.sh ${ARG1}
 
