@@ -22,7 +22,7 @@ mount_opt() {
     mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
 
     [ -f /opt/.health ] || touch /opt/.health
-    mountpoint /opt/.heath || mount --bind /efs/.health /opt/.health
+    mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 }
 
 rsync_boost() {
