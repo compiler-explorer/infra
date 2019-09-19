@@ -126,7 +126,6 @@ get_or_sync_git_tags() {
 }
 
 get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
-get_or_sync libs/mp-units https://github.com/mpusz/units.git
 get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
 get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
 get_or_sync libs/opencv https://github.com/opencv/opencv.git
@@ -187,7 +186,8 @@ get_github_versioned_and_trunk() {
 
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0 v1.3.0 v1.4.0
-get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0
+get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0 0.9.1
+get_github_versioned_and_trunk libs/mp-units mpusz/units v0.3.1
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
