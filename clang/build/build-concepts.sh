@@ -24,22 +24,16 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-git clone https://github.com/llvm-mirror/llvm.git
-(cd llvm && git reset --hard d5826c99ce56037aa7a1434717cd291522ec4613)
-pushd llvm/tools
-git clone https://github.com/saarraz/clang-concepts.git clang
-popd
-pushd llvm/projects
-git clone https://github.com/llvm-mirror/libcxx.git
-git clone https://github.com/llvm-mirror/libcxxabi.git
-popd
+git clone https://github.com/saarraz/clang-concepts-monorepo.git llvm-project
+
 
 mkdir build
 cd build
-cmake -G "Unix Makefiles" ../llvm \
+cmake -G "Unix Makefiles" ../llvm-project/llvm \
+    -DLLVM_ENABLE_PROJECTS=clang;libcxx;libcxxabi \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
-    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-7.3.0/lib/gcc/x86_64-linux-gnu/7.3.0/plugin/include/
+    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-9.2.0/lib/gcc/x86_64-linux-gnu/9.2.0/plugin/include/
 
 make -j$(nproc) install
 
