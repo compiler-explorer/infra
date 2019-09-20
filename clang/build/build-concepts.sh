@@ -30,7 +30,7 @@ git clone https://github.com/saarraz/clang-concepts-monorepo.git llvm-project
 mkdir build
 cd build
 cmake -G "Unix Makefiles" ../llvm-project/llvm \
-    -DLLVM_ENABLE_PROJECTS=clang;libcxx;libcxxabi \
+    -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
     -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-9.2.0/lib/gcc/x86_64-linux-gnu/9.2.0/plugin/include/
