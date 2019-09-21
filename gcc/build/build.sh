@@ -18,6 +18,12 @@ elif echo ${VERSION} | grep 'cxx-modules-trunk'; then
     MAJOR=9
     MAJOR_MINOR=9-trunk
     LANGUAGES=c,c++
+elif echo ${VERSION} | grep 'cxx-coroutines-trunk'; then
+    VERSION=cxx-coroutines-trunk-$(date +%Y%m%d)
+    URL=https://github.com/iains/gcc-cxx-coroutines
+    MAJOR=9
+    MAJOR_MINOR=9-trunk
+    LANGUAGES=c,c++
 elif echo ${VERSION} | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/trunk
