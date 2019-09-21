@@ -5,39 +5,39 @@ set -ex
 ROOT=$(pwd)
 VERSION=$1
 LANGUAGES=c,c++,fortran,ada
-if echo ${VERSION} | grep 'lock3-contracts-trunk'; then
+if echo "${VERSION}" | grep 'lock3-contracts-trunk'; then
     VERSION=lock3-contracts-trunk-$(date +%Y%m%d)
     URL=https://gitlab.com/lock3/gcc-new.git/
     BRANCH=contracts
-    MAJOR=9
-    MAJOR_MINOR=9-trunk
+    MAJOR=10
+    MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
-elif echo ${VERSION} | grep 'cxx-modules-trunk'; then
+elif echo "${VERSION}" | grep 'cxx-modules-trunk'; then
     VERSION=cxx-modules-trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/branches/c++-modules
-    MAJOR=9
-    MAJOR_MINOR=9-trunk
+    MAJOR=10
+    MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
-elif echo ${VERSION} | grep 'cxx-coroutines-trunk'; then
+elif echo "${VERSION}" | grep 'cxx-coroutines-trunk'; then
     VERSION=cxx-coroutines-trunk-$(date +%Y%m%d)
     URL=https://github.com/iains/gcc-cxx-coroutines
-    MAJOR=9
-    MAJOR_MINOR=9-trunk
+    MAJOR=10
+    MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
-elif echo ${VERSION} | grep 'trunk'; then
+elif echo "${VERSION}" | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/trunk
-    MAJOR=9
-    MAJOR_MINOR=9-trunk
-elif echo ${VERSION} | grep 'snapshot-'; then
+    MAJOR=10
+    MAJOR_MINOR=10-trunk
+elif echo "${VERSION}" | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
     TARBALL=gcc-${VERSION}.tar.xz
     URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/${TARBALL}
-    MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
+    MAJOR=$(echo "${VERSION}" | grep -oE '^[0-9]+')
     MAJOR_MINOR=${MAJOR}-snapshot
 else
-    MAJOR=$(echo ${VERSION} | grep -oE '^[0-9]+')
-    MAJOR_MINOR=$(echo ${VERSION} | grep -oE '^[0-9]+\.[0-9]+')
+    MAJOR=$(echo "${VERSION}" | grep -oE '^[0-9]+')
+    MAJOR_MINOR=$(echo "${VERSION}" | grep -oE '^[0-9]+\.[0-9]+')
     TARBALL=gcc-${VERSION}.tar.bz2
     if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" == "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
