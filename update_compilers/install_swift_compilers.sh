@@ -33,3 +33,4 @@ get_swift 4.1.1
 get_swift 4.1.2
 get_swift 4.2
 get_swift 5.0
+get_swift 5.1
