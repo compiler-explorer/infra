@@ -4,7 +4,7 @@ set -ex
 
 VER_BINUTILS=2.32
 VER_LIBC=2.0.0
-VER_GCC=9.2.0
+VER_GCC=$1
 
 ROOT=$(pwd)
 OUTPUT=/root/avr-gcc-${VER_GCC}.tar.xz
