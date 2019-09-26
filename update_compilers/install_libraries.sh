@@ -341,3 +341,43 @@ install_openssl() {
 }
 
 install_openssl 1_1_1c
+
+
+#########################
+# cs50
+
+install_cs50() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/cs50/${VERSION}/x86_64/lib
+        local DEST2=${OPT}/libs/cs50/${VERSION}/x86/lib
+        local INC=${OPT}/libs/cs50/${VERSION}/include
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/cs50
+            mkdir -p /tmp/cs50
+            pushd /tmp/cs50
+            fetch https://github.com/cs50/libcs50/archive/v${VERSION}.tar.gz | tar zxf - --strip-components 1
+
+            env CFLAGS="-Wall -Wextra -Werror -pedantic -std=c99 -march=native" make -e
+            mkdir -p ${DEST1}
+            mv build/lib/* ${DEST1}
+
+            mkdir -p ${INC}
+            cp -Rf build/include/* ${INC}
+
+            env CFLAGS="-Wall -Wextra -Werror -pedantic -std=c99 -m32" make -e
+            mkdir -p ${DEST2}
+            mv build/lib/* ${DEST2}
+
+            cd ${DEST1}
+            ln -s libcs50.so.9.1.0 libcs50.so.9
+            cd ${DEST2}
+            ln -s libcs50.so.9.1.0 libcs50.so.9
+
+            popd
+
+            rm -rf /tmp/cs50
+        fi
+    done
+}
+
+install_cs50 9.1.0
