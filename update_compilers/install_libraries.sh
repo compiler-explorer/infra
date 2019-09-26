@@ -346,7 +346,7 @@ install_openssl 1_1_1c
 #########################
 # cs50
 
-install_cs50() {
+install_cs50_v9() {
     for VERSION in "$@"; do
         local DEST1=${OPT}/libs/cs50/${VERSION}/x86_64/lib
         local DEST2=${OPT}/libs/cs50/${VERSION}/x86/lib
@@ -369,9 +369,9 @@ install_cs50() {
             mv build/lib/* ${DEST2}
 
             cd ${DEST1}
-            ln -s libcs50.so.9.1.0 libcs50.so.9
+            ln -s libcs50.so.${VERSION} libcs50.so.9
             cd ${DEST2}
-            ln -s libcs50.so.9.1.0 libcs50.so.9
+            ln -s libcs50.so.${VERSION} libcs50.so.9
 
             popd
 
@@ -380,4 +380,4 @@ install_cs50() {
     done
 }
 
-install_cs50 9.1.0
+install_cs50_v9 9.1.0
