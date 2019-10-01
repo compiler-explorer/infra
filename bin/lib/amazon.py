@@ -28,11 +28,19 @@ def _import_boto():
 
 
 boto3 = LazyObjectWrapper(_import_boto)
+
+def _create_anon_s3_client():
+    # https://github.com/boto/botocore/issues/1395
+    obj = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
+    obj._request_signer.sign = (lambda *args, **kwargs: None)
+    return obj
+
 ec2 = LazyObjectWrapper(lambda: boto3.resource('ec2'))
 s3 = LazyObjectWrapper(lambda: boto3.resource('s3'))
 as_client = LazyObjectWrapper(lambda: boto3.client('autoscaling'))
 elb_client = LazyObjectWrapper(lambda: boto3.client('elbv2'))
 s3_client = LazyObjectWrapper(lambda: boto3.client('s3'))
+anon_s3_client = LazyObjectWrapper(_create_anon_s3_client)
 dynamodb_client = LazyObjectWrapper(lambda: boto3.client('dynamodb'))
 LINKS_TABLE = 'links'
 VERSIONS_LOGGING_TABLE = 'versionslog'
@@ -302,7 +310,7 @@ def list_short_links():
 
 
 def list_compilers(with_extension=False):
-    s3_paginator = s3_client.get_paginator('list_objects_v2')
+    s3_paginator = anon_s3_client.get_paginator('list_objects_v2')
     prefix = 'opt/'
     for page in s3_paginator.paginate(Bucket='compiler-explorer', Prefix=prefix):
         for compiler in page['Contents']:
