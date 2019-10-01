@@ -21,7 +21,7 @@ wait_for_apt
 if [[ ! -f /updated ]]; then
     apt-get -y update
     apt-get -y upgrade --force-yes
-    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd
+    apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd qemu-user-static libc6-arm64-cross
     apt-get -y autoremove
     pip install --upgrade pip
     hash -r pip
