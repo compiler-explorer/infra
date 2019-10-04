@@ -7,7 +7,9 @@ mkdir -p ${OPT}
 cd ${OPT}
 
 s3get() {
-    aws s3 cp --force $*
+    local PRESIGNED_URL
+    PRESIGNED_URL=$(aws s3 presign $1)
+    curl -s ${http_proxy:+--proxy $http_proxy} -L "$PRESIGNED_URL" -o "$2"
 }
 
 # Grossly assumes the same proxy for http, https and ftp
