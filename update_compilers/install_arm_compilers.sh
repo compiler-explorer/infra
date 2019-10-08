@@ -41,9 +41,7 @@ install_arm() {
     rm -rf /tmp/arm-install
     mkdir /tmp/arm-install
     pushd /tmp/arm-install || exit 1
-    s3get "${ARMCLANG_S3_URL}" arm.tar
-    tar xf arm.tar
-    rm arm.tar
+    s3fetch "${ARMCLANG_S3_URL}" | tar xf -
     bash ./ARM-Compiler*/*.sh --accept --save-packages-to packages
     local PACKAGE_DIR UARCH COMPILER PACKAGE_NAME CTRL SUMS
     declare -A PACKAGE_DIRS

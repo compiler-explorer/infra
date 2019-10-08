@@ -23,6 +23,13 @@ fetch() {
     rm "$temp"
 }
 
+s3fetch() {
+    local PRESIGNED_URL
+    PRESIGNED_URL=$(aws s3 presign $1)
+    fetch "${PRESIGNED_URL}""
+}
+
+
 do_unzip() {
     unzip "$*"
 }

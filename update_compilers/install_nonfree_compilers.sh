@@ -13,24 +13,20 @@ for compiler in \
     intel.tar.gz; do
     DIR=${compiler%.tar.*}
     if [[ ! -d ${DIR} ]]; then
-        s3get ${S3URL}/$compiler ${OPT}/$compiler
-        tar zxf $compiler
-        rm $compiler
+        s3fetch ${S3URL}/$compiler | tar zxf -
         do_strip ${DIR}
     fi
 done
 
 for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic; do
     mkdir -p /opt/intel/licenses
-    s3get ${S3URL}/$license /opt/intel/licenses # NB not ${OPT} as we need this actually at this absolute path
+    s3get ${S3URL}/$license /opt/intel/licenses/$license # NB not ${OPT} as we need this actually at this absolute path
 done
 
 for version in 2016.3.210 2018.0.033; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
-        s3get ${S3URL}/$compiler ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
+        s3fetch ${S3URL}/$compiler | tar Jxf -
     fi
 done
 
@@ -62,10 +58,8 @@ for file in \
     19.10.25017 \
     19.14.26423; do
     if [[ ! -d ${file} ]]; then
-        s3get ${S3URL}/${file}.tar.xz ${file}.tar.xz
-        tar Jxf ${file}.tar.xz
+        s3fetch ${S3URL}/${file}.tar.xz ${file}.tar.xz | tar Jxf -
         fix_up_windows ${file}
-        rm ${file}.tar.xz
     fi
 done
 popd
@@ -76,9 +70,7 @@ for version in 20170226-190308-1.0; do
     fullname=zapcc-${version}
     if [[ ! -d ${fullname} ]]; then
         compiler=${fullname}.tar.gz
-        s3get ${S3URL}/${compiler} ${OPT}/$compiler
-        tar axf $compiler
-        rm $compiler
+        s3fetch ${S3URL}/${compiler} ${OPT}/$compiler | tar zxf -
         s3get ${S3URL}/zapcc-key.txt ${OPT}/${fullname}/bin/zapcc-key.txt
     fi
 done
