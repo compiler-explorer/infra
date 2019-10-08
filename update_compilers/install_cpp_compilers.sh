@@ -144,6 +144,17 @@ if [[ ! -d arm/gcc-arm-none-eabi-7-2017-q4-major ]]; then
     popd
 fi
 
+if [[ ! -d arm/gcc-arm-none-eabi-8-2019-q3-update ]]; then
+    # note the "RC1.1" part in this url - this link was taken directly from the arm download page at
+    # https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads
+
+    # the expected url "https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/gcc-arm-none-eabi-8-2019-q3-update-linux.tar.bz2"
+    # also works, but is slightly smaller and a day older? ¯\_(ツ)_/¯
+    pushd arm
+    fetch https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-linux.tar.bz2 | tar jxf -
+    popd
+fi
+
 do_nightly_install() {
     local COMPILER_PATTERN="$1"
     local DESTINATION="$2"
