@@ -26,7 +26,7 @@ fetch() {
 s3fetch() {
     local PRESIGNED_URL
     PRESIGNED_URL=$(aws s3 presign $1)
-    fetch "${PRESIGNED_URL}""
+    fetch "${PRESIGNED_URL}"
 }
 
 
