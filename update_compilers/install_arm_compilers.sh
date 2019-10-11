@@ -62,6 +62,19 @@ install_arm() {
             UARCH=$(grep '^Microarch: ' "${CTRL}" | cut -d\  -f2- | tr A-Z a-z)
             COMPILER=$(grep '^Depends: ' "${CTRL}" | cut -d\  -f2- | cut -d, -f1)
             PACKAGE_NAME=$(grep '^Package: ' "${CTRL}" | cut -d\  -f2-)
+            # There's an imperfect mapping between the package names and the
+            # name used by the compiler -mcpu=<uarch> option.  The following
+            # case statement makes that translation, so that the simlinks
+            # created by the postinst script below are correctly named for the
+            # compiler driver
+            case $UARCH in
+                generic-aarch64)
+                UARCH=generic
+                ;;
+                thunderx2cn99)
+                UARCH=thunderx2t99
+                ;;
+            esac
             "$package-control/postinst" \
                 --force-compiler-location "${TEMP_DIR}/${PACKAGE_DIRS[$COMPILER]}" \
                 --force-libraries-location "${TEMP_DIR}/${PACKAGE_DIRS[$PACKAGE_NAME]}" \
