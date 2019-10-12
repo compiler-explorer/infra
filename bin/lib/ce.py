@@ -280,6 +280,7 @@ def instances_restart_cmd(args):
     if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
         return
     # Store old motd
+    begin_time = datetime.datetime.now()
     events = get_events(args)
     old_motd = events['motd']
     events['motd'] = old_motd if args['motd'] == '' else args['motd']
@@ -308,6 +309,9 @@ def instances_restart_cmd(args):
     events = get_events(args)
     events['motd'] = old_motd
     save_events(args, events)
+    end_time = datetime.datetime.now()
+    delta_time = end_time - begin_time
+    print(f'Instances restarted in { delta_time.total_seconds()} seconds')
     sys.exit(1 if failed else 0)
 
 
