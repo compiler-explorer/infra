@@ -3,6 +3,7 @@
 
 import os
 import logging
+import re
 import subprocess
 from argparse import ArgumentParser
 import datetime
@@ -24,6 +25,7 @@ logger = logging.getLogger('ce')
 
 RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
 ADS_FORMAT = '{: <5} {: <10} {: <20}'
+DECORATION_FORMAT = '{: <10} {: <15} {: <30} {: <50}'
 
 
 def dispatch_global(sub, args):
@@ -79,7 +81,14 @@ def wait_for_autoscale_state(instance, state):
 
 
 def get_events(args):
-    return json.loads(get_events_file(args))
+    events = json.loads(get_events_file(args))
+    if 'ads' not in events:
+        events['ads'] = []
+    if 'decorations' not in events:
+        events['decorations'] = []
+    if 'motd' not in events:
+        events['motd'] = ''
+    return events
 
 
 def save_events(args, events):
@@ -397,14 +406,14 @@ def ads_cmd(args):
 
 
 def ads_list_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     print(ADS_FORMAT.format('ID', 'Filters', 'HTML'))
     for ad in events['ads']:
         print(ADS_FORMAT.format(ad['id'], str(ad['filter']), ad['html']))
 
 
 def ads_add_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     new_ad = {
         'html': args['html'],
         'filter': args['filter'].split(',') if len(args['filter']) > 0 else [],
@@ -416,7 +425,7 @@ def ads_add_cmd(args):
 
 
 def ads_remove_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     for i, ad in enumerate(events['ads']):
         if ad['id'] == args['id']:
             if args['force'] or \
@@ -428,14 +437,14 @@ def ads_remove_cmd(args):
 
 
 def ads_clear_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     if are_you_sure('clear all ads (Count: {})'.format(len(events['ads'])), args):
         events['ads'] = []
         save_event_file(args, json.dumps(events))
 
 
 def ads_edit_cmd(args):
-    events = json.loads(get_events_file(args))
+    events = get_events(args)
     for i, ad in enumerate(events['ads']):
         if ad['id'] == args['id']:
             new_ad = {
@@ -449,6 +458,93 @@ def ads_edit_cmd(args):
                                       ADS_FORMAT.format('>TO', str(new_ad['filter']), new_ad['html'])))
             if are_you_sure('edit ad id: {}'.format(ad['id']), args):
                 events['ads'][i] = new_ad
+                save_event_file(args, json.dumps(events))
+            break
+
+
+def decorations_cmd(args):
+    dispatch_global('decorations', args)
+
+
+def decorations_list_cmd(args):
+    events = get_events(args)
+    print(DECORATION_FORMAT.format('Name', 'Filters', 'Regex', 'Decoration'))
+    for dec in events['decorations']:
+        print(DECORATION_FORMAT.format(dec['name'], str(dec['filter']), dec['regex'], json.dumps(dec['decoration'])))
+
+
+def check_dec_args(regex, decoration):
+    try:
+        re.compile(regex)
+    except re.error as re_err:
+        raise RuntimeError(f"Unable to validate regex '{regex}' : {re_err}")
+    try:
+        decoration = json.loads(decoration)
+    except json.decoder.JSONDecodeError as json_err:
+        raise RuntimeError(f"Unable to parse decoration '{decoration}' : {json_err}")
+    return regex, decoration
+
+
+def decorations_add_cmd(args):
+    events = get_events(args)
+    if args['name'] in [d['name'] for d in events['decorations']]:
+        raise RuntimeError(f'Duplicate decoration name {args["name"]}')
+    regex, decoration = check_dec_args(args['regex'], args['decoration'])
+
+    new_decoration = {
+        'name': args['name'],
+        'filter': args['filter'].split(',') if len(args['filter']) > 0 else [],
+        'regex': regex,
+        'decoration': decoration
+    }
+    if are_you_sure('add decoration: {}'.format(
+            DECORATION_FORMAT.format(new_decoration['name'], str(new_decoration['filter']), new_decoration['regex'],
+                                     json.dumps(new_decoration['decoration']))), args):
+        events['decorations'].append(new_decoration)
+        save_event_file(args, json.dumps(events))
+
+
+def decorations_remove_cmd(args):
+    events = get_events(args)
+    for i, dec in enumerate(events['decorations']):
+        if dec['name'] == args['name']:
+            if args['force'] or \
+                    are_you_sure('remove decoration: {}'.format(
+                        DECORATION_FORMAT.format(dec['name'], str(dec['filter']), dec['regex'],
+                                                 json.dumps(dec['decoration']))), args):
+                del events['decorations'][i]
+                save_event_file(args, json.dumps(events))
+            break
+
+
+def decorations_clear_cmd(args):
+    events = get_events(args)
+    if are_you_sure('clear all decorations (Count: {})'.format(len(events['decorations'])), args):
+        events['decorations'] = []
+        save_event_file(args, json.dumps(events))
+
+
+def decorations_edit_cmd(args):
+    events = get_events(args)
+
+    for i, dec in enumerate(events['decorations']):
+        if dec['name'] == args['name']:
+            regex, decoration = check_dec_args(args['regex'] or dec['regex'],
+                                               args['decoration'] or json.dumps(dec['decoration']))
+            new_dec = {
+                'name': dec['name'],
+                'filter': (args['filter'].split(',') if len(args['filter']) > 0 else [])
+                if args['filter'] is not None else dec['filter'],
+                'regex': regex,
+                'decoration': decoration
+            }
+            print('{}\n{}\n{}'.format(DECORATION_FORMAT.format('Name', 'Filters', 'Regex', 'Decoration'),
+                                      DECORATION_FORMAT.format('<FROM', str(dec['filter']), dec['regex'],
+                                                               json.dumps(dec['decoration'])),
+                                      DECORATION_FORMAT.format('>TO', str(new_dec['filter']), new_dec['regex'],
+                                                               json.dumps(new_dec['decoration']))))
+            if are_you_sure('edit decoration: {}'.format(dec['name']), args):
+                events['decoration'][i] = new_dec
                 save_event_file(args, json.dumps(events))
             break
 
@@ -698,6 +794,25 @@ def main():
     ads_edit_parser.add_argument('id', type=int, help='event to edit')
     ads_edit_parser.add_argument('--html', type=str, help='new ad contents')
     ads_edit_parser.add_argument('--filter', type=str, help='new ad filter(s)')
+
+    decorations_parser = subparsers.add_parser('decorations')
+    decorations_sub = add_required_sub_parsers(decorations_parser, 'decorations_sub')
+    decorations_sub.add_parser('list')
+    decorations_add_parser = decorations_sub.add_parser('add')
+    decorations_add_parser.add_argument('name', type=str, help='name')
+    decorations_add_parser.add_argument('regex', type=str, help='regex')
+    decorations_add_parser.add_argument('decoration', type=str, help='decoration (JSON format)')
+    decorations_add_parser.add_argument('--filter', type=str, help='target languages', default="")
+    decorations_remove_parser = decorations_sub.add_parser('remove')
+    decorations_remove_parser.add_argument('name', type=str, help='remove decoration by name')
+    decorations_remove_parser.add_argument('-f', '--force', action='store_true', default=False,
+                                           help='no confirmation needed')
+    decorations_sub.add_parser('clear')
+    decorations_edit_parser = decorations_sub.add_parser('edit')
+    decorations_edit_parser.add_argument('name', type=str, help='decoration to edit')
+    decorations_edit_parser.add_argument('--regex', type=str, help='new regex')
+    decorations_edit_parser.add_argument('--decoration', type=str, help='new decoration')
+    decorations_edit_parser.add_argument('--filter', type=str, help='new decoration filter(s)')
 
     motd_parser = subparsers.add_parser('motd')
     motd_sub = add_required_sub_parsers(motd_parser, 'motd_sub')
