@@ -4,5 +4,5 @@ PATH=/home/ubuntu/compiler-explorer-image/.env/bin:/home/ubuntu/compiler-explore
 # m h  dom mon dow   command
 00 03 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
 05 03 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
-00 04 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
+30 04 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
 15 04 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
