@@ -90,3 +90,22 @@ if [[ ! -d ${OPT}/x86-to-6502/lefticus ]]; then
     popd
     rm -rf /tmp/build
 fi
+
+#########################
+# iwyu - include-what-you-use
+
+if [[ ! -d /opt/compiler-explorer/iwyu/0.12 ]]; then
+    mkdir -p /tmp/build
+    pushd /tmp/build
+
+    curl https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz | tar xzf -
+    cd include-what-you-use/
+    mkdir build
+    cd build
+    cmake .. -DCMAKE_PREFIX_PATH=/opt/compiler-explorer/clang-8.0.0/ -DCMAKE_INSTALL_PREFIX=/opt/compiler-explorer/iwyu/0.12
+    cmake --build . --target install
+    ln -s /opt/compiler-explorer/clang-8.0.0/lib /opt/compiler-explorer/iwyu/0.12/lib
+
+    popd
+    rm -rf /tmp/build
+fi
