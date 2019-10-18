@@ -17,7 +17,7 @@ do_rust_install() {
     fi
     # TODO: remove once rust fixes nightly builds upstream
     # workaround line ending issue in certain rust nightly archives
-    dos2unix install.sh
+    dos2unix -q install.sh
     ./install.sh --prefix=${OPT}/${INSTALL} --verbose --without=rust-docs
     popd
     rm -rf /tmp/${DIR}
@@ -26,7 +26,7 @@ do_rust_install() {
 install_rust() {
     local NAME=$1
 
-    if [[ -d rust-${NAME} ]]; then
+    if [[ -d ${OPT}/rust-${NAME} ]]; then
         echo Skipping install of rust $NAME as already installed
         return
     fi
@@ -62,9 +62,9 @@ install_new_rust() {
     fi
 
     # force install if asked, or if there's no 'cargo' (which used to happen with older builds)
-    if [[ -n "${FORCE}" || ! -x rust-${NAME}/bin/cargo ]]; then
+    if [[ -n "${FORCE}" || ! -x ${OPT}/rust-${NAME}/bin/cargo ]]; then
         echo Forcing install of $NAME
-    elif [[ -d rust-${NAME} ]]; then
+    elif [[ -d ${OPT}/rust-${NAME} ]]; then
         echo Skipping install of rust $NAME as already installed
         return
     fi
@@ -227,7 +227,7 @@ RUST_TARGETS+=(
 install_new_rust 1.35.0 RUST_TARGETS[@]
 install_new_rust 1.36.0 RUST_TARGETS[@]
 install_new_rust 1.37.0 RUST_TARGETS[@]
-# Rust 1.38 adds some Tier 3 targets, skippong those for now
+# Rust 1.38 adds some Tier 3 targets, skipping those for now
 install_new_rust 1.38.0 RUST_TARGETS[@]
 if install_nightly; then
     install_new_rust nightly RUST_TARGETS[@] '1 day'
