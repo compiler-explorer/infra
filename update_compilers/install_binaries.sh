@@ -102,8 +102,8 @@ if [[ ! -d /opt/compiler-explorer/iwyu/0.12 ]]; then
     cd include-what-you-use/
     mkdir build
     cd build
-    cmake .. -DCMAKE_PREFIX_PATH=/opt/compiler-explorer/clang-8.0.0/ -DCMAKE_INSTALL_PREFIX=/opt/compiler-explorer/iwyu/0.12
-    cmake --build . --target install
+    ${OPT}/cmake/bin/cmake .. -DCMAKE_PREFIX_PATH=/opt/compiler-explorer/clang-8.0.0/ -DCMAKE_INSTALL_PREFIX=/opt/compiler-explorer/iwyu/0.12
+    ${OPT}/cmake/bin/cmake --build . --target install
     ln -s /opt/compiler-explorer/clang-8.0.0/lib /opt/compiler-explorer/iwyu/0.12/lib
 
     popd
