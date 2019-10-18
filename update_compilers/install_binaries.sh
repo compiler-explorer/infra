@@ -31,10 +31,19 @@ if [[ "$TARGET_NODE_VERSION" != "$CURRENT_NODE_VERSION" ]]; then
 fi
 
 #########################
+# cmake
+
+if [[ ! -x ${OPT}/cmake/bin/cmake ]]; then
+    mkdir cmake
+    fetch https://cmake.org/files/v3.11/cmake-3.11.0-rc3-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
+fi
+
+
+#########################
 # pahole
 
-if [[ ! -d /opt/compiler-explorer/pahole ]]; then
-    mkdir /opt/compiler-explorer/pahole
+if [[ ! -d ${OPT}/pahole ]]; then
+    mkdir ${OPT}/pahole
 
     mkdir -p /tmp/build
     pushd /tmp/build
@@ -49,8 +58,8 @@ if [[ ! -d /opt/compiler-explorer/pahole ]]; then
 
     fetch https://git.kernel.org/pub/scm/devel/pahole/pahole.git/snapshot/pahole-1.12.tar.gz | tar zxf -
     pushd pahole-1.12
-    /opt/compiler-explorer/cmake/bin/cmake \
-        -D CMAKE_INSTALL_PREFIX:PATH=/opt/compiler-explorer/pahole \
+    ${OPT}/cmake/bin/cmake \
+        -D CMAKE_INSTALL_PREFIX:PATH=${OPT}/pahole \
         -D__LIB=lib \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
         .
@@ -65,17 +74,17 @@ fi
 #########################
 # x86-to-6502
 
-if [[ ! -d /opt/compiler-explorer/x86-to-6502/lefticus ]]; then
-    mkdir -p /opt/compiler-explorer/x86-to-6502/lefticus
+if [[ ! -d ${OPT}/x86-to-6502/lefticus ]]; then
+    mkdir -p ${OPT}/x86-to-6502/lefticus
 
     mkdir -p /tmp/build
     pushd /tmp/build
 
     git clone https://github.com/lefticus/x86-to-6502.git lefticus
     pushd lefticus
-    /opt/compiler-explorer/cmake/bin/cmake .
+    ${OPT}/cmake/bin/cmake .
     make
-    mv x86-to-6502 /opt/compiler-explorer/x86-to-6502/lefticus
+    mv x86-to-6502 ${OPT}/x86-to-6502/lefticus
     popd
 
     popd

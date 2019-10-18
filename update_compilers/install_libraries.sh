@@ -31,11 +31,6 @@ if install_nightly; then
     fi
 fi
 
-if [[ ! -d cmake ]]; then
-    mkdir cmake
-    fetch https://cmake.org/files/v3.11/cmake-3.11.0-rc3-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
-fi
-
 install_boost() {
     for VERSION in "$@"; do
         local VERSION_UNDERSCORE=$(echo ${VERSION} | tr . _)
@@ -57,34 +52,37 @@ install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0
 install_llvm() {
     for VERSION in "$@"; do
         local DEST=${OPT}/libs/llvm/${VERSION}
-        local URL=http://releases.llvm.org/${VERSION}/llvm-${VERSION}.src.tar.xz
+        local URL=https://releases.llvm.org/${VERSION}/llvm-${VERSION}.src.tar.xz
         if [[ ! -d ${DEST} ]]; then
-            rm -rf /tmp/llvm
-            mkdir -p /tmp/llvm
-            fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm
+            rm -rf /tmp/llvm-src /tmp/llvm-build
+            mkdir -p /tmp/llvm-src /tmp/llvm-build
+            fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm-src
+            mkdir -p /tmp/llvm-build
+            pushd /tmp/llvm-build
+            ${OPT}/cmake/bin/cmake /tmp/llvm-src 2>&1
+            rsync -a /tmp/llvm-src/include/ include/
             mkdir -p ${DEST}
-            pushd ${DEST}
-            ${OPT}/cmake/bin/cmake /tmp/llvm 2>&1
-            rsync -a /tmp/llvm/include/ include/
+            rsync -a include/ ${DEST}/include/
             popd
-            rm -rf /tmp/llvm
+            rm -rf /tmp/llvm-src
         fi
     done
 }
 
 install_llvm_trunk() {
-    rm -rf /tmp/llvm
-    mkdir -p /tmp/llvm
-    svn co -q http://llvm.org/svn/llvm-project/llvm/trunk /tmp/llvm
-    mkdir -p libs/llvm/trunk
-    pushd libs/llvm/trunk
-    ${OPT}/cmake/bin/cmake /tmp/llvm 2>&1
-    rsync -a /tmp/llvm/include/ include/
+    rm -rf /tmp/llvm-src /tmp/llvm-build
+    mkdir -p /tmp/llvm-src /tmp/llvm-build
+    svn co -q http://llvm.org/svn/llvm-project/llvm/trunk /tmp/llvm-src
+    pushd /tmp/llvm-build
+    ${OPT}/cmake/bin/cmake /tmp/llvm-src 2>&1
+    rsync -a /tmp/llvm-src/include/ include/
+    rsync -a --delete-after include/ ${OPT}/libs/llvm/trunk/include/
     popd
-    rm -rf /tmp/llvm
+    rm -rf /tmp/llvm-src
+    rm -rf /tmp/llvm-build
 }
 
-install_llvm 4.0.1 5.0.0 5.0.1 5.0.2 6.0.0 6.0.1 7.0.0 7.0.1 8.0.0
+install_llvm 4.0.1 5.0.0 5.0.1 5.0.2 6.0.0 6.0.1 7.0.0 7.0.1 8.0.0 9.0.0
 
 if install_nightly; then
     install_llvm_trunk
@@ -342,7 +340,6 @@ install_openssl() {
 }
 
 install_openssl 1_1_1c
-
 
 #########################
 # cs50
