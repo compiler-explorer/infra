@@ -273,6 +273,7 @@ compilers:
           - lock3-contracts-trunk
           - cxx-modules-trunk
           - cxx-coroutines-trunk
+          - embed-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version

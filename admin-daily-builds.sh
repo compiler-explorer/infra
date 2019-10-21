@@ -14,10 +14,10 @@ LOG_DIR=~/build_logs
 BUILD_FAILED=0
 run_on_build() {
     local logdir=${LOG_DIR}/$1
-    mkdir -p ${logdir}
+    mkdir -p "${logdir}"
     shift
     set +e
-    date >${logdir}/begin
+    date >"${logdir}/begin"
     if ! ce builder exec -- "$@" |& tee ${logdir}/log; then
         BUILD_FAILED=1
         echo FAILED >${logdir}/status
@@ -33,17 +33,18 @@ build_latest() {
     local BUILD_NAME=$2
     local COMMAND=$3
     local BUILD=$4
-    run_on_build ${BUILD_NAME} \
-        sudo docker run --rm --name ${BUILD_NAME}.build -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
-        mattgodbolt/${IMAGE}-builder \
-        bash "${COMMAND}" ${BUILD} s3://compiler-explorer/opt/
+    run_on_build "${BUILD_NAME}" \
+        sudo docker run --rm --name "${BUILD_NAME}.build" -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
+        "mattgodbolt/${IMAGE}-builder" \
+        bash "${COMMAND}" "${BUILD}" s3://compiler-explorer/opt/
     log_to_json ${LOG_DIR} admin
 }
 
 build_latest gcc gcc build.sh trunk
 build_latest gcc gcc_contracts build.sh lock3-contracts-trunk
 build_latest gcc gcc_modules build.sh cxx-modules-trunk
-build_latest gcc gcc_modules build.sh cxx-coroutines-trunk
+build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
+build_latest gcc gcc_embed build.sh embed-trunk
 build_latest clang clang build.sh trunk
 build_latest clang clang_concepts build-concepts.sh trunk
 build_latest clang clang_cppx build-cppx.sh trunk

@@ -188,6 +188,7 @@ if install_nightly; then
     do_nightly_install gcc-lock3-contracts-trunk gcc-lock3-contracts-trunk
     do_nightly_install gcc-cxx-modules-trunk gcc-cxx-modules-trunk
     do_nightly_install gcc-cxx-coroutines-trunk gcc-cxx-coroutines-trunk
+    do_nightly_install gcc-embed-trunk gcc-embed-trunk
 fi
 
 # Custom-built clangs also stripped and UPX'd
