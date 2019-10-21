@@ -5,7 +5,14 @@ set -ex
 ROOT=$(pwd)
 VERSION=$1
 LANGUAGES=c,c++,fortran,ada
-if echo "${VERSION}" | grep 'lock3-contracts-trunk'; then
+if echo "${VERSION}" | grep 'embed-trunk'; then
+    VERSION=embed-trunk-$(date +%Y%m%d)
+    URL=https://github.com/ThePhD/gcc.git
+    BRANCH=feature/embed
+    MAJOR=10
+    MAJOR_MINOR=10-trunk
+    LANGUAGES=c,c++
+elif echo "${VERSION}" | grep 'lock3-contracts-trunk'; then
     VERSION=lock3-contracts-trunk-$(date +%Y%m%d)
     URL=https://gitlab.com/lock3/gcc-new.git/
     BRANCH=contracts
