@@ -8,6 +8,12 @@ ARM_ROOT=/opt/arm
 mkdir -p ${ARM_ROOT}
 
 ##################################
+# Licenses.
+
+# NB LICENSES MUST LIVE IN /opt/arm/... NOT ${S3ROOT}
+aws s3 sync s3://compiler-explorer/opt-nonfree/arm-licenses/ /opt/arm/licenses/
+
+##################################
 # Linaro AArch64 sysroot
 #
 # This is needed for system libraries, in order to build aarch64 binaries on
@@ -68,10 +74,10 @@ install_arm() {
             # created by the postinst script below are correctly named for the
             # compiler driver
             case $UARCH in
-                generic-aarch64)
+            generic-aarch64)
                 UARCH=generic
                 ;;
-                thunderx2cn99)
+            thunderx2cn99)
                 UARCH=thunderx2t99
                 ;;
             esac
