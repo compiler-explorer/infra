@@ -74,7 +74,7 @@ rsync_boost
 update_code
 
 cd "${DEPLOY_DIR}"
-exec sudo -u ${CE_USER} -H -- \
+exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/compiler-explorer/node/bin/node \
     -- app.js \
     --suppressConsoleLog \
