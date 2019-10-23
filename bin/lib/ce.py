@@ -10,6 +10,7 @@ import datetime
 
 import itertools
 import sys
+import tempfile
 import time
 import json
 from pprint import pprint
@@ -17,9 +18,12 @@ from pprint import pprint
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
     save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links, \
-    get_autoscaling_groups_for, download_release_file, log_new_build, list_all_build_logs, list_period_build_logs
+    get_autoscaling_groups_for, download_release_file, download_release_fileobj, log_new_build, list_all_build_logs, \
+    list_period_build_logs
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
+
+from lib.cdn import DeploymentJob
 
 logger = logging.getLogger('ce')
 
@@ -327,21 +331,17 @@ def builds_current_cmd(args):
     print(describe_current_release(args))
 
 
-def deploy_staticfiles(branch, versionfile):
-    print("Deploying static files")
-    downloadfile = versionfile
-    filename = 'deploy.tar.xz'
-    remotefile = branch + '/' + downloadfile
-    download_release_file(remotefile[1:], filename)
-    os.mkdir('deploy')
-    subprocess.call(['tar', '-C', 'deploy', '-Jxf', filename])
-    os.remove(filename)
-    subprocess.call(['aws', 's3', 'sync', 'deploy/out/dist/dist', 's3://compiler-explorer/dist/cdn'])
-    subprocess.call(['rm', '-Rf', 'deploy'])
+def deploy_staticfiles(release):
+    print("Deploying static files to cdn")
+    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
+        download_release_fileobj(release.static_key, f)
+        with DeploymentJob(f.name, 'ce-cdn.net', version=release.version) as job:
+            job.run()
 
 
 def builds_set_current_cmd(args):
     to_set = None
+    release = None
     if args['raw']:
         to_set = args['version']
     else:
@@ -356,7 +356,8 @@ def builds_set_current_cmd(args):
             to_set = release.key
     if to_set is not None:
         log_new_build(args, to_set)
-        deploy_staticfiles(args['branch'], to_set)
+        if release and release.static_key:
+            deploy_staticfiles(release)
         set_current_key(args, to_set)
 
 

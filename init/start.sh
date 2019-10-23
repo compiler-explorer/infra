@@ -83,4 +83,5 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     --env amazon \
     --port 10240 \
     --static out/dist \
+    --dist \
     ${EXTRA_ARGS}

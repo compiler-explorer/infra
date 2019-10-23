@@ -17,6 +17,10 @@ class LazyObjectWrapper(object):
         self.__ensure_setup()
         return getattr(self.__obj, attr)
 
+# this is a free function to avoid potentially shadowing any underlying members
+# which could happen if this was itself placed as a member of LazyObjectWrapper
+def force_lazy_init(lazy):
+    lazy._LazyObjectWrapper__ensure_setup()
 
 def _import_boto():
     obj = __import__('boto3')
@@ -27,6 +31,7 @@ def _import_boto():
     return obj
 
 
+botocore = LazyObjectWrapper(lambda: __import__('botocore'))
 boto3 = LazyObjectWrapper(_import_boto)
 
 def _create_anon_s3_client():
@@ -65,6 +70,7 @@ class Release(object):
         self.info_key = info_key
         self.size = size
         self.hash = hash
+        self.static_key = None
 
     def __repr__(self):
         return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
@@ -112,7 +118,9 @@ def get_releases():
         Bucket='compiler-explorer',
         Prefix=prefix
     )
-    releases = []
+
+    staticfiles = {}
+    releases = {}
     for result in result_iterator.search('[Contents][]'):
         key = result['Key']
         if not key.endswith(".tar.xz"):
@@ -120,6 +128,11 @@ def get_releases():
         split_key = key.split('/')
         branch = split_key[-2]
         version = split_key[-1].split('.')[0]
+
+        if key.endswith('.static.tar.xz'):
+            staticfiles[int(version)] = key
+            continue
+
         size = result['Size']
         info_key = "/".join(split_key[:-1]) + "/" + version + ".txt"
         o = s3_client.get_object(
@@ -127,12 +140,22 @@ def get_releases():
             Key=info_key
         )
         hash = o['Body'].read().decode("utf-8").strip()
-        releases.append(Release(int(version), branch, key, info_key, size, Hash(hash)))
-    return releases
+        releases[int(version)] = Release(int(version), branch, key, info_key, size, Hash(hash))
+
+    for ver, key in staticfiles.items():
+        r = releases.get(ver)
+        if r:
+            r.static_key = key
+
+    return list(releases.values())
 
 
 def download_release_file(file, destination):
     s3_client.download_file('compiler-explorer', file, destination)
+
+
+def download_release_fileobj(key, fobj):
+    s3_client.download_fileobj('compiler-explorer', key, fobj)
 
 
 def find_release(version):
