@@ -102,7 +102,7 @@ compilers:
                   build: 3
                   name: 6.3.0
                 - year: 2020
-                  build: 1
+                  build: 2
                   name: 7.3.0
                   url: https://github.com/wpilibsuite/roborio-toolchain/releases/download/v{year}-{build}/FRC-{year}-Linux-Toolchain-{name}.tar.gz
           - type: tarballs

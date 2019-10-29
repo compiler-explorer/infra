@@ -257,7 +257,7 @@ fi
 
 # FIRST Robotics/ NI Real-Time Specific toolchain 2020
 if [[ ! -d arm/frc2020-7.3.0 ]]; then
-    fetch https://github.com/wpilibsuite/roborio-toolchain/releases/download/v2020-1/FRC-2020-Linux-Toolchain-7.3.0.tar.gz | tar xzf -
+    fetch https://github.com/wpilibsuite/roborio-toolchain/releases/download/v2020-2/FRC-2020-Linux-Toolchain-7.3.0.tar.gz | tar xzf -
     mv frc2020 arm/frc2020-7.3.0
 fi
 
