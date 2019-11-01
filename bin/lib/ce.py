@@ -224,7 +224,8 @@ def builder_start_cmd(args):
         time.sleep(1)
     else:
         raise RuntimeError("Unable to get SSH access")
-    res = exec_remote(instance, ["bash", "-c", "cd compiler-explorer-image && git pull && sudo ./setup-builder.sh"])
+    res = exec_remote(instance,
+                      ["bash", "-c", "cd compiler-explorer-image && git pull && sudo ./setup-builder-startup.sh"])
     print(res)
     print("Builder started OK")
 
@@ -311,7 +312,7 @@ def instances_restart_cmd(args):
     save_events(args, events)
     end_time = datetime.datetime.now()
     delta_time = end_time - begin_time
-    print(f'Instances restarted in { delta_time.total_seconds()} seconds')
+    print(f'Instances restarted in {delta_time.total_seconds()} seconds')
     sys.exit(1 if failed else 0)
 
 
