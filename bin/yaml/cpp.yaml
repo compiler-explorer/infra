@@ -285,6 +285,7 @@ compilers:
           - autonsdmi-trunk
           - lifetime-trunk
           - parmexpr-trunk
+          - embed-trunk
     oracle: # NB unused and unsupported at present
       type: s3tarballs
       check_exe: developerstudio12.5/bin/CC -V
