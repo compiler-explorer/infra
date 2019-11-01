@@ -211,6 +211,7 @@ if install_nightly; then
     do_nightly_install clang-trunk clang-trunk
     do_nightly_install clang-cppx-trunk clang-cppx-trunk
     do_nightly_install clang-concepts-trunk clang-concepts-trunk
+    do_nightly_install clang-embed-trunk clang-embed-trunk
     do_nightly_install clang-relocatable-trunk clang-relocatable-trunk
     do_nightly_install clang-autonsdmi-trunk clang-autonsdmi-trunk
     do_nightly_install clang-lifetime-trunk clang-lifetime-trunk
