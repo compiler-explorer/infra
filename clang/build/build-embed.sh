@@ -11,7 +11,7 @@ popd
 
 ROOT=$(pwd)
 TAG=trunk
-VERSION=embed-$(date +%Y%m%d)
+VERSION=embed-trunk-$(date +%Y%m%d)
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
 S3OUTPUT=""
