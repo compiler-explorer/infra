@@ -24,40 +24,18 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-# Setup llvm root directory
-git clone --single-branch https://github.com/llvm-mirror/llvm.git
+# Setup llvm-project checkout
+git clone --depth 1 --branch compiler-explorer https://gitlab.com/lock3/clang.git llvm-project
 
-# Checkout & configure clang
-pushd llvm/tools
-git clone --depth 1 --single-branch -b compiler-explorer https://gitlab.com/lock3/clang.git
-
-# Load llvm revisions for this compiler build
-pushd clang
-source compiler-explorer-llvm-commits.sh
-popd
-
-popd
-
-# Adjust llvm revision to match the cppx compiler's specified revision
-(cd llvm && git reset --hard ${CE_LLVM_COMMIT})
-
-# Checkout and configure libcxx
-pushd llvm/projects
-git clone --single-branch https://github.com/llvm-mirror/libcxx.git
-(cd libcxx && git reset --hard ${CE_LIBCXX_COMMIT})
-# Hack for new glibc not containing xlocale.h
-perl -pi -e 's/defined\(__GLIBC__\) \|\| defined\(__APPLE__\)/defined(__APPLE__)/' libcxx/include/__locale
-git clone --single-branch https://github.com/llvm-mirror/libcxxabi.git
-(cd libcxxabi && git reset --hard ${CE_LIBCXXABI_COMMIT})
-popd
-
+# Setup build directory and build configuration
 mkdir build
 cd build
-cmake -G "Unix Makefiles" ../llvm \
+cmake -DLLVM_ENABLE_PROJECTS=clang -G "Unix Makefiles" ../llvm-project/llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
     -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-8.2.0/lib/gcc/x86_64-linux-gnu/8.2.0/plugin/include/
 
+# Build and install artifacts
 make -j$(nproc) install
 
 export XZ_DEFAULTS="-T 0"
