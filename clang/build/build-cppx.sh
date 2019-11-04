@@ -30,7 +30,7 @@ git clone --depth 1 --branch compiler-explorer https://gitlab.com/lock3/clang.gi
 # Setup build directory and build configuration
 mkdir build
 cd build
-cmake -DLLVM_ENABLE_PROJECTS=clang -G "Unix Makefiles" ../llvm-project/llvm \
+cmake -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" -G "Unix Makefiles" ../llvm-project/llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
     -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-8.2.0/lib/gcc/x86_64-linux-gnu/8.2.0/plugin/include/
