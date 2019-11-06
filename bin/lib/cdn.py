@@ -153,10 +153,14 @@ class DeploymentJob(object):
 
     def _upload_file(self, file):
         # upload file to s3
+        contenttype='binary/octet-stream'
+        if file['name'].endswith('css'):
+            contenttype='text/css'
+
         self.__s3_upload_file(
             str(file['path']),
             file['name'],
-            ExtraArgs=dict(Metadata=dict(sha256=file['hash']))
+            ExtraArgs=dict(Metadata=dict(sha256=file['hash']), ContentType=contenttype)
         )
 
         tags = dict(FirstDeployDate=self.deploydate, LastDeployDate=self.deploydate)
