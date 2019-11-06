@@ -130,6 +130,7 @@ getdmd_2x 2.079.1
 getdmd_2x 2.080.1
 getdmd_2x 2.081.2
 getdmd_2x 2.082.0
+getdmd_2x 2.089.0
 
 if install_nightly; then
     getdmd2_nightly
