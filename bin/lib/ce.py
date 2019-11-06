@@ -332,6 +332,19 @@ def builds_current_cmd(args):
     print(describe_current_release(args))
 
 
+def old_deploy_staticfiles(branch, versionfile):
+    print("Deploying static files")
+    downloadfile = versionfile
+    filename = 'deploy.tar.xz'
+    remotefile = branch + '/' + downloadfile
+    download_release_file(remotefile[1:], filename)
+    os.mkdir('deploy')
+    subprocess.call(['tar', '-C', 'deploy', '-Jxf', filename])
+    os.remove(filename)
+    subprocess.call(['aws', 's3', 'sync', 'deploy/out/dist/dist', 's3://compiler-explorer/dist/cdn'])
+    subprocess.call(['rm', '-Rf', 'deploy'])
+
+
 def deploy_staticfiles(release):
     print("Deploying static files to cdn")
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
@@ -359,6 +372,8 @@ def builds_set_current_cmd(args):
         log_new_build(args, to_set)
         if release and release.static_key:
             deploy_staticfiles(release)
+        else:
+            old_deploy_staticfiles(args['branch'], to_set)
         set_current_key(args, to_set)
 
 
