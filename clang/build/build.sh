@@ -2,10 +2,11 @@
 
 set -ex
 
-# Grab CE's GCC 7.2.0 for its binutils (which is what the site uses to link currently)
+# Grab CE's GCC for its binutils
+BINUTILS_GCC_VERSION=9.2.0
 mkdir -p /opt/compiler-explorer
 pushd /opt/compiler-explorer
-curl -sL https://s3.amazonaws.com/compiler-explorer/opt/gcc-7.2.0.tar.xz | tar Jxf -
+curl -sL https://s3.amazonaws.com/compiler-explorer/opt/gcc-${BINUTILS_GCC_VERSION}.tar.xz | tar Jxf -
 popd
 
 ROOT=$(pwd)
@@ -14,13 +15,11 @@ LLVM_BASE=http://llvm.org/svn/llvm-project
 if echo ${VERSION} | grep 'trunk'; then
     TAG=trunk
     VERSION=trunk-$(date +%Y%m%d)
-    POLLY_BRANCH=master
 else
     SPLIT=(${VERSION//-/ })
     VERSION=${SPLIT[0]}
     VSN=$(echo ${VERSION} | sed 's/\.//g')
     TAG=tags/RELEASE_${VSN}/${SPLIT[1]-final}
-    POLLY_BRANCH=release_${VSN:0:2}
 fi
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
@@ -35,28 +34,19 @@ STAGING_DIR=$(pwd)/staging
 rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
-svn co -q ${LLVM_BASE}/llvm/${TAG} llvm
-git clone -b ${POLLY_BRANCH} https://llvm.org/git/polly.git llvm/tools/polly
-pushd llvm/tools
-svn co -q ${LLVM_BASE}/cfe/${TAG} clang
-popd
-pushd llvm/tools/clang/tools
-svn co -q ${LLVM_BASE}/clang-tools-extra/${TAG} extra
-popd
-pushd llvm/projects
-svn co -q ${LLVM_BASE}/libcxx/${TAG} libcxx
-svn co -q ${LLVM_BASE}/libcxxabi/${TAG} libcxxabi
-svn co -q ${LLVM_BASE}/compiler-rt/${TAG} compiler-rt
-popd
+# Setup llvm-project checkout
+git clone --depth 1 https://github.com/llvm/llvm-project.git
 
+# Setup build directory and build configuration
 mkdir build
 cd build
-cmake -G "Unix Makefiles" ../llvm \
+cmake -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" -G "Unix Makefiles" ../llvm-project/llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
-    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-7.2.0/lib/gcc/x86_64-linux-gnu/7.2.0/plugin/include/ \
+    -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-${BINUTILS_GCC_VERSION}/lib/gcc/x86_64-linux-gnu/${BINUTILS_GCC_VERSION}/plugin/include \
     -DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD="RISCV;WebAssembly"
 
+# Build and install artifacts
 make -j$(nproc) install
 
 # Don't try to compress the binaries as they don't like it
