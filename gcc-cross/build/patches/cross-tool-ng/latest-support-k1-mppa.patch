@@ -1,0 +1,48 @@
+commit c1cae7ca56f0933186884feacff94da5f5abf010
+Author: Marc Poulhiès <marc.poulhies@kalray.eu>
+Date:   Fri Nov 8 14:34:45 2019 +0100
+
+    Simple initial support for K1 MPPA
+    
+    Adds the strict minimum to build a bare-metal toolchain for K1 MPPA
+    by providing custom git path to Kalray's github repositories.
+
+diff --git a/config/arch/k1.in b/config/arch/k1.in
+new file mode 100644
+index 00000000..4c60c063
+--- /dev/null
++++ b/config/arch/k1.in
+@@ -0,0 +1,10 @@
++# K1 specific config options
++
++## no-package
++## select ARCH_SUPPORTS_32
++## select ARCH_SUPPORTS_64
++## select ARCH_DEFAULT_64
++## select ARCH_REQUIRES_MULTILIB
++##
++## help The K1 MPPA Coolidge architecture, as defined by:
++## help     http://www.kalray.eu
+diff --git a/scripts/build/arch/k1.sh b/scripts/build/arch/k1.sh
+new file mode 100644
+index 00000000..f6430ebf
+--- /dev/null
++++ b/scripts/build/arch/k1.sh
+@@ -0,0 +1,5 @@
++# Compute K1-specific values
++
++CT_DoArchTupleValues() {
++    CT_TARGET_ARCH="${CT_ARCH}"
++}
+diff --git a/scripts/config.sub b/scripts/config.sub
+index 3b4c7624..1a2f2daa 100755
+--- a/scripts/config.sub
++++ b/scripts/config.sub
+@@ -1182,6 +1182,7 @@ case $cpu-$vendor in
+ 			| i370 | i*86 | i860 | i960 | ia16 | ia64 \
+ 			| ip2k | iq2000 \
+ 			| k1om \
++			| k1 \
+ 			| le32 | le64 \
+ 			| lm32 \
+ 			| m32c | m32r | m32rle \
