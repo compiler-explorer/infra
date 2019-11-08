@@ -18,6 +18,7 @@ RUN apt-get install -y -q \
     curl \
     file \
     flex \
+    git \
     gawk \
     gcc \
     g++ \
@@ -42,7 +43,7 @@ RUN apt-get install -y -q \
 
 WORKDIR /opt
 COPY build/patches/cross-tool-ng/cross-tool-ng-1.22.0.patch ./
-COPY build/patches/cross-tool-ng/latest-support-k1-mppa.patch ./
+COPY build/patches/cross-tool-ng/cross-tool-ng-1.24.0.patch ./
 RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.22.0.tar.xz | tar Jxf - && \
     mv crosstool-ng crosstool-ng-1.22.0 && \
     cd crosstool-ng-1.22.0 && \
@@ -59,11 +60,17 @@ RUN TAG=45a88f046d533df256c1af7b8bcd8b0705f745c5 && \
     curl -sL https://github.com/crosstool-ng/crosstool-ng/archive/${TAG}.zip --output crosstool-ng-master.zip  && \
     unzip crosstool-ng-master.zip && \
     cd crosstool-ng-${TAG} && \
-    patch -p1 < ../latest-support-k1-mppa.patch && \
     ./bootstrap && \
     ./configure --prefix=/opt/crosstool-ng-latest && \
     make -j$(nproc) && \
     make install
+
+RUN curl -sL http://crosstool-ng.org/download/crosstool-ng/crosstool-ng-1.24.0.tar.xz | tar Jxf - && \
+    cd crosstool-ng-1.24.0 && \
+    patch -p1 < ../cross-tool-ng-1.24.0.patch && \
+    ./bootstrap && \
+    ./configure --enable-local && \
+    make -j$(nproc)
 
 RUN mkdir -p /opt/.build/tarballs
 COPY build /opt/
