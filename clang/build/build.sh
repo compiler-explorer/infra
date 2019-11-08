@@ -11,7 +11,6 @@ popd
 
 ROOT=$(pwd)
 VERSION=$1
-LLVM_BASE=http://llvm.org/svn/llvm-project
 if echo ${VERSION} | grep 'trunk'; then
     TAG=trunk
     VERSION=trunk-$(date +%Y%m%d)
@@ -40,7 +39,7 @@ git clone --depth 1 https://github.com/llvm/llvm-project.git
 # Setup build directory and build configuration
 mkdir build
 cd build
-cmake -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi" -G "Unix Makefiles" ../llvm-project/llvm \
+cmake -DLLVM_ENABLE_PROJECTS="clang;libcxx;libcxxabi;compiler-rt;lld;polly" -G "Unix Makefiles" ../llvm-project/llvm \
     -DCMAKE_BUILD_TYPE:STRING=Release \
     -DCMAKE_INSTALL_PREFIX:PATH=/root/staging \
     -DLLVM_BINUTILS_INCDIR:PATH=/opt/compiler-explorer/gcc-${BINUTILS_GCC_VERSION}/lib/gcc/x86_64-linux-gnu/${BINUTILS_GCC_VERSION}/plugin/include \
