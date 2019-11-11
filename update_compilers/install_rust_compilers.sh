@@ -226,6 +226,7 @@ install_new_rust 1.36.0 RUST_TARGETS[@]
 install_new_rust 1.37.0 RUST_TARGETS[@]
 # Rust 1.38 adds some Tier 3 targets, skipping those for now
 install_new_rust 1.38.0 RUST_TARGETS[@]
+install_new_rust 1.39.0 RUST_TARGETS[@]
 if install_nightly; then
     install_new_rust nightly RUST_TARGETS[@] '1 day'
     install_new_rust beta RUST_TARGETS[@] '1 week'
