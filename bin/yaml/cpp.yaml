@@ -134,6 +134,8 @@ compilers:
           targets:
             - 4.5.4
             - 4.6.4
+            - name: 9.2.0
+              untar_dir: "avr-gcc-{name}"
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
