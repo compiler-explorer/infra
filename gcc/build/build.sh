@@ -36,16 +36,19 @@ elif echo "${VERSION}" | grep 'trunk'; then
     URL=svn://gcc.gnu.org/svn/gcc/trunk
     MAJOR=10
     MAJOR_MINOR=10-trunk
+    LANGUAGES=${LANGUAGES},d
 elif echo "${VERSION}" | grep 'snapshot-'; then
     VERSION=${VERSION/#snapshot-/}
     TARBALL=gcc-${VERSION}.tar.xz
     URL=ftp://gcc.gnu.org/pub/gcc/snapshots/${VERSION}/${TARBALL}
     MAJOR=$(echo "${VERSION}" | grep -oE '^[0-9]+')
     MAJOR_MINOR=${MAJOR}-snapshot
+    LANGUAGES=${LANGUAGES},d
 else
     MAJOR=$(echo "${VERSION}" | grep -oE '^[0-9]+')
     MAJOR_MINOR=$(echo "${VERSION}" | grep -oE '^[0-9]+\.[0-9]+')
     TARBALL=gcc-${VERSION}.tar.bz2
+    if [[ "${MAJOR}" -gt 8 ]]; then LANGUAGES=${LANGUAGES},d; fi
     if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" == "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
     if [[ "${MAJOR_MINOR}" == "7.3" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
