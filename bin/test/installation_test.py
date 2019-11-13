@@ -72,3 +72,23 @@ compilers:
         assert False
     except RuntimeError as re:
         assert_equals(str(re), "Too many mutual references (in compilers/mips)")
+
+
+def test_numbers_at_root():
+    [target] = parse_targets("""
+compilers:
+  num_to_keep: 2
+  targets:
+    - name: 5.4.0
+    """)
+    assert_equals(target['num_to_keep'], 2)
+
+
+def test_numbers_at_leaf():
+    [target] = parse_targets("""
+compilers:
+  targets:
+    - name: 5.4.0
+      num_to_keep: 2
+    """)
+    assert_equals(target['num_to_keep'], 2)
