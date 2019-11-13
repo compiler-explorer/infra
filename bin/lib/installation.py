@@ -14,6 +14,8 @@ from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers
 
+MAX_ITERS = 5
+
 NO_DEFAULT = "__no_default__"
 
 logger = logging.getLogger(__name__)
@@ -498,6 +500,18 @@ def is_value_type(value):
            or is_list_of_strings(value)
 
 
+def needs_expansion(target):
+    for value in target.values():
+        if is_list_of_strings(value):
+            for v in value:
+                if '{' in v:
+                    return True
+        elif isinstance(value, str):
+            if '{' in value:
+                return True
+    return False
+
+
 def _targets_from(node, enabled, context, name, base_config):
     if not node:
         return
@@ -536,16 +550,21 @@ def _targets_from(node, enabled, context, name, base_config):
             if isinstance(target, str):
                 target = {'name': target}
             target = ChainMap(target, base_config)
-            try:
+            iterations = 0
+            while needs_expansion(target):
+                iterations += 1
+                if iterations > MAX_ITERS:
+                    raise RuntimeError(f"Too many mutual references (in {'/'.join(context)})")
                 for key, value in target.items():
-                    if is_list_of_strings(value):
-                        target[key] = [x.format(**target) for x in value]
-                    elif isinstance(value, str):
-                        target[key] = value.format(**target)
-                    elif isinstance(value, float):
-                        target[key] = str(value)
-            except KeyError as ke:
-                raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
+                    try:
+                        if is_list_of_strings(value):
+                            target[key] = [x.format(**target) for x in value]
+                        elif isinstance(value, str):
+                            target[key] = value.format(**target)
+                        elif isinstance(value, float):
+                            target[key] = str(value)
+                    except KeyError as ke:
+                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
             yield target
 
 

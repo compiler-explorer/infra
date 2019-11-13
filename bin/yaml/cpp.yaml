@@ -86,6 +86,10 @@ compilers:
             subdir: arm
             dir: arm/gcc-arm-none-eabi-8-2019-q3-update
             untar_dir: gcc-arm-none-eabi-8-2019-q3-update
+            # note the "RC1.1" part in this url - this link was taken directly from the arm download page at
+            # https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-rm/downloads
+            # the expected url "https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/gcc-arm-none-eabi-8-2019-q3-update-linux.tar.bz2"
+            # also works, but is slightly smaller and a day older? ¯\_(ツ)_/¯
             url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/8-2019q3/RC1.1/gcc-arm-none-eabi-8-2019-q3-update-linux.tar.bz2
             compression: bz2
             targets:
@@ -283,11 +287,11 @@ compilers:
           - trunk
           - cppx-trunk
           - concepts-trunk
+          - embed-trunk
           - relocatable-trunk
           - autonsdmi-trunk
           - lifetime-trunk
           - parmexpr-trunk
-          - embed-trunk
     oracle: # NB unused and unsupported at present
       type: s3tarballs
       check_exe: developerstudio12.5/bin/CC -V
