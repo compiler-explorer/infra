@@ -95,6 +95,15 @@ compilers:
             targets:
               - gcc-arm-none-eabi-8-2019-q3-update # name unused in this case
           - type: tarballs
+            # Not in a subdir
+            check_exe: bin/arm-none-eabi-g++ --version
+            dir: gcc-arm-none-eabi-5_4-2016q3
+            untar_dir: gcc-arm-none-eabi-5_4-2016q3
+            url: https://launchpad.net/gcc-arm-embedded/5.0/5-2016-q3-update/+download/gcc-arm-none-eabi-5_4-2016q3-20160926-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-5_4-2016q3 # name unused in this case
+          - type: tarballs
             frc:
               check_exe: roborio/bin/arm-frc{year}-linux-gnueabi-g++ --version
               compression: gz
@@ -234,6 +243,18 @@ compilers:
           - name: 3.5.2
             suffix: x86_64-linux-gnu-ubuntu-14.04
             dir: clang+llvm-3.5.2-x86_64-linux-gnu  # handle packaging error
+          - name: 3.6.2
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+          - name: 3.7.0
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+          - name: 3.7.1
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+          - name: 3.8.0
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+          - name: 3.8.1
+            suffix: x86_64-linux-gnu-ubuntu-14.04
+          - name: 3.9.0
+            suffix: x86_64-linux-gnu-ubuntu-16.04
       - type: s3tarballs
         check_exe: bin/clang++ --version
         targets:
@@ -275,7 +296,8 @@ compilers:
         type: nightly
         check_exe: bin/g++ --version
         targets:
-          - trunk
+          - name: trunk
+            symlink: gcc-snapshot
           - lock3-contracts-trunk
           - cxx-modules-trunk
           - cxx-coroutines-trunk
