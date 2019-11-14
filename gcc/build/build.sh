@@ -47,15 +47,19 @@ elif echo "${VERSION}" | grep 'snapshot-'; then
 else
     MAJOR=$(echo "${VERSION}" | grep -oE '^[0-9]+')
     MAJOR_MINOR=$(echo "${VERSION}" | grep -oE '^[0-9]+\.[0-9]+')
+    MINOR=$(echo "${MAJOR_MINOR}" | cut -d. -f2)
     TARBALL=gcc-${VERSION}.tar.bz2
-    if [[ "${MAJOR}" -gt 8 ]]; then LANGUAGES=${LANGUAGES},d; fi
-    if [[ "${MAJOR}" -gt 7 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" == "7.2" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" == "7.3" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" == "7.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" == "7.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" == "5.5" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
-    if [[ "${MAJOR_MINOR}" == "6.4" ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR}" -ge 9 ]]; then LANGUAGES=${LANGUAGES},d; fi
+    if [[ "${MAJOR}" -ge 8 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    if [[ "${MAJOR}" -eq 7 ]]; then
+        if [[ "${MINOR}" -ge 2 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    fi
+    if [[ "${MAJOR}" -eq 6 ]]; then
+        if [[ "${MINOR}" -ge 4 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    fi
+    if [[ "${MAJOR}" -eq 5 ]]; then
+        if [[ "${MINOR}" -ge 5 ]]; then TARBALL=gcc-${VERSION}.tar.xz; fi
+    fi
     URL=ftp://ftp.gnu.org/gnu/gcc/gcc-${VERSION}/${TARBALL}
 fi
 OUTPUT=/root/gcc-${VERSION}.tar.xz
