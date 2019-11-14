@@ -1,6 +1,7 @@
 import hashlib
 import tarfile
 import urllib.parse
+import mimetypes
 
 from base64 import b64encode
 from concurrent import futures
@@ -41,6 +42,28 @@ def get_directory_contents(basedir):
     for f in Path(basedir).rglob('*'):
         name = f.relative_to(basedir).as_posix()
         yield dict(name=name, path=f)
+
+
+# https://github.com/aws/aws-cli/blob/d5c0fce629eca740ed0bbe7e89579baf6a47d982/awscli/customizations/s3/utils.py#L288
+def guess_content_type(filename):
+    """Given a filename, guess it's content type.
+    If the type cannot be guessed, a value of None is returned.
+    """
+    try:
+        return mimetypes.guess_type(filename)[0]
+    # This catches a bug in the mimetype libary where some MIME types
+    # specifically on windows machines cause a UnicodeDecodeError
+    # because the MIME type in the Windows registery has an encoding
+    # that cannot be properly encoded using the default system encoding.
+    # https://bugs.python.org/issue9291
+    #
+    # So instead of hard failing, just log the issue and fall back to the
+    # default guessed content type of None.
+    except UnicodeDecodeError:
+        logger.debug(
+            'Unable to guess content type for %s due to '
+            'UnicodeDecodeError: ', filename, exc_info=True
+        )
 
 
 class DeploymentJob(object):
@@ -152,15 +175,18 @@ class DeploymentJob(object):
         return ret
 
     def _upload_file(self, file):
-        # upload file to s3
-        contenttype='binary/octet-stream'
-        if file['name'].endswith('css'):
-            contenttype='text/css'
+        extra_args = dict(Metadata=dict(sha256=file['hash']))
 
+        # guess content type
+        guessed_type = guess_content_type(file['name'])
+        if guessed_type is not None:
+            extra_args['ContentType'] = guessed_type
+
+        # upload file to s3
         self.__s3_upload_file(
             str(file['path']),
             file['name'],
-            ExtraArgs=dict(Metadata=dict(sha256=file['hash']), ContentType=contenttype)
+            ExtraArgs=extra_args
         )
 
         tags = dict(FirstDeployDate=self.deploydate, LastDeployDate=self.deploydate)
