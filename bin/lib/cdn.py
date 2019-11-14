@@ -69,12 +69,13 @@ def guess_content_type(filename):
 class DeploymentJob(object):
     tmpdir = None
 
-    def __init__(self, tar_file_path, bucket_name, bucket_path='', version=None, max_workers=None):
+    def __init__(self, tar_file_path, bucket_name, bucket_path='', version=None, max_workers=None, cache_control=None):
         self.tar_file_path = tar_file_path
         self.bucket_name = bucket_name
         self.bucket_path = Path(bucket_path)
         self.version = version
         self.max_workers = max_workers or os.cpu_count() or 1
+        self.cache_control = cache_control
         self.deploydate = datetime.utcnow().isoformat(timespec='seconds')
 
     def __enter__(self):
@@ -181,6 +182,9 @@ class DeploymentJob(object):
         guessed_type = guess_content_type(file['name'])
         if guessed_type is not None:
             extra_args['ContentType'] = guessed_type
+
+        if self.cache_control is not None:
+            extra_args['CacheControl'] = self.cache_control
 
         # upload file to s3
         self.__s3_upload_file(

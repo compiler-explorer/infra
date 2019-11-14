@@ -347,9 +347,11 @@ def old_deploy_staticfiles(branch, versionfile):
 
 def deploy_staticfiles(release):
     print("Deploying static files to cdn")
+    cc = f'public, max-age={int(datetime.timedelta(days=365).total_seconds())}'
+
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
-        with DeploymentJob(f.name, 'ce-cdn.net', version=release.version) as job:
+        with DeploymentJob(f.name, 'ce-cdn.net', version=release.version, cache_control=cc) as job:
             job.run()
 
 
