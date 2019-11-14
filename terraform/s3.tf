@@ -141,3 +141,37 @@ resource "aws_s3_bucket" "storage-godbolt-org" {
     prefix                                 = "cache/"
   }
 }
+
+resource "aws_s3_bucket" "ce-cdn-net" {
+  bucket = "ce-cdn.net"
+  acl    = "private"
+  tags   = {
+    Site = "CompilerExplorer"
+  }
+
+  cors_rule {
+    allowed_methods = ["GET"]
+    allowed_origins = ["*"]
+  }
+
+  versioning {
+    enabled = true
+  }
+}
+
+data "aws_iam_policy_document" "ce-cdn-net-s3-policy" {
+  statement {
+    sid       = "PublicReadGetObjects"
+    actions   = ["s3:GetObject"]
+    principals {
+      identifiers = ["*"]
+      type        = "*"
+    }
+    resources = ["${aws_s3_bucket.ce-cdn-net.arn}/*"]
+  }
+}
+
+resource "aws_s3_bucket_policy" "ce-cdn-net" {
+  bucket = aws_s3_bucket.ce-cdn-net.id
+  policy = data.aws_iam_policy_document.ce-cdn-net-s3-policy.json
+}
