@@ -1,3 +1,4 @@
+import glob
 import logging
 import os
 import re
@@ -14,6 +15,8 @@ from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers
 
+VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
+
 MAX_ITERS = 5
 
 NO_DEFAULT = "__no_default__"
@@ -26,10 +29,9 @@ _memoized_compilers = None
 def s3_available_compilers():
     global _memoized_compilers
     if _memoized_compilers is None:
-        splitter = re.compile(r'^(.*)-([0-9.]+)$')
         _memoized_compilers = defaultdict(lambda: [])
         for compiler in list_compilers():
-            match = splitter.match(compiler)
+            match = VERSIONED_RE.match(compiler)
             if match:
                 _memoized_compilers[match.group(1)].append(match.group(2))
     return _memoized_compilers
@@ -116,11 +118,25 @@ class InstallationContext(object):
         return os.readlink(os.path.join(self.destination, link))
 
     def set_link(self, source, dest):
+        if self.dry_run:
+            self.info(f'Would symlink {source} to {dest}')
+            return
+
         full_dest = os.path.join(self.destination, dest)
         if os.path.exists(full_dest):
             os.remove(full_dest)
         self.info(f'Symlinking {dest} to {source}')
         os.symlink(source, full_dest)
+
+    def glob(self, pattern):
+        return [os.path.basename(x) for x in glob.glob(os.path.join(self.destination, pattern))]
+
+    def remove_dir(self, directory):
+        if self.dry_run:
+            self.info(f'Would remove directory {directory} but in dry-run mode')
+        else:
+            shutil.rmtree(os.path.join(self.destination, directory), ignore_errors=True)
+            self.info(f'Removing {directory}')
 
     def check_link(self, source, link):
         try:
@@ -351,7 +367,9 @@ class NightlyInstallable(Installable):
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
         self.path_name = f'{compiler_name}-{most_recent}'
+        self.compiler_pattern = f'{compiler_name}-*'
         self.path_name_symlink = self.config_get('symlink', f'{compiler_name}')
+        self.num_to_keep = self.config_get('num_to_keep', 5)
         self._setup_check_exe(self.path_name)
         self._setup_check_link(self.path_name, self.path_name_symlink)
 
@@ -371,12 +389,19 @@ class NightlyInstallable(Installable):
         return True
 
     def install(self):
-        # TODO: remove older
         if not super(NightlyInstallable, self).install():
             return False
         self.stage()
+
+        # Do this first, and add one for the file we haven't yet installed... (then dry run works)
+        num_to_keep = self.num_to_keep + 1
+        all_versions = list(sorted(self.install_context.glob(self.compiler_pattern)))
+        for to_remove in all_versions[:-num_to_keep]:
+            self.install_context.remove_dir(to_remove)
+
         self.install_context.move_from_staging(self.path_name)
         self.install_context.set_link(self.path_name, self.path_name_symlink)
+
         return True
 
     def __repr__(self) -> str:
@@ -497,6 +522,7 @@ def is_value_type(value):
     return isinstance(value, str) \
            or isinstance(value, bool) \
            or isinstance(value, float) \
+           or isinstance(value, int) \
            or is_list_of_strings(value)
 
 
