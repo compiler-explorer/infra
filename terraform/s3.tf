@@ -10,17 +10,28 @@ resource "aws_s3_bucket" "compiler-explorer" {
     allowed_origins = ["*"]
     max_age_seconds = 3000
   }
-  # Keep only one month of cloudfront logs (See the privacy policy in the compiler explorer project)
+  # Keep only one month (rounding down) of cloudfront logs (See the privacy policy in the compiler explorer project)
   lifecycle_rule {
     enabled = true
     expiration {
-      days = 32
+      days = 28
     }
     noncurrent_version_expiration {
       days = 1
     }
     # Covers both cloudfront-logs and cloudfront-logs-ce:
     prefix  = "cloudfront-logs"
+  }
+  # Keep only a month of request logs (rounding down)
+  lifecycle_rule {
+    enabled = true
+    expiration {
+      days = 28
+    }
+    noncurrent_version_expiration {
+      days = 1
+    }
+    prefix  = "request-logs"
   }
 }
 
