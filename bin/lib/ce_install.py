@@ -57,7 +57,7 @@ def main():
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
     if not args.log or args.log_to_console:
-        console_handler = logging.StreamHandler()
+        console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
 
