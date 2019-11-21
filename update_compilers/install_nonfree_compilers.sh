@@ -83,18 +83,18 @@ install_cuda() {
     pushd cuda
     local DIR=$(pwd)/$2
     if [[ ! -d ${DIR} ]]; then
-        rm -rf /tmp/cuda
-        mkdir /tmp/cuda
-        fetch ${URL} >/tmp/cuda/combined.sh
-        sh /tmp/cuda/combined.sh --extract=/tmp/cuda
-        local LINUX=$(ls -1 /tmp/cuda/cuda-linux.$2*.run 2>/dev/null || true)
+        rm -rf ${OPT}/tmp/cuda
+        mkdir -p ${OPT}/tmp/cuda
+        fetch ${URL} >${OPT}/tmp/cuda/combined.sh
+        sh ${OPT}/tmp/cuda/combined.sh --extract=${OPT}/tmp/cuda
+        local LINUX=$(ls -1 ${OPT}/tmp/cuda/cuda-linux.$2*.run 2>/dev/null || true)
         if [[ -f ${LINUX} ]]; then
             ${LINUX} --prefix=${DIR} -noprompt -nosymlink -no-man-page
         else
             # As of CUDA 10.1, the toolkit is already extracted here.
-            mv /tmp/cuda/cuda-toolkit ${DIR}
+            mv ${OPT}/tmp/cuda/cuda-toolkit ${DIR}
         fi
-        rm -rf /tmp/cuda
+        rm -rf ${OPT}/tmp/cuda
     fi
     popd
 }
