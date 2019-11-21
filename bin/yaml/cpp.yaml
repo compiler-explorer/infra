@@ -303,6 +303,7 @@ compilers:
           - cxx-modules-trunk
           - cxx-coroutines-trunk
           - embed-trunk
+          - static-analysis-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
