@@ -22,17 +22,6 @@ resource "aws_s3_bucket" "compiler-explorer" {
     # Covers both cloudfront-logs and cloudfront-logs-ce:
     prefix  = "cloudfront-logs"
   }
-  # Keep only a month of request logs (rounding down)
-  lifecycle_rule {
-    enabled = true
-    expiration {
-      days = 28
-    }
-    noncurrent_version_expiration {
-      days = 1
-    }
-    prefix  = "request-logs"
-  }
 }
 
 resource "aws_s3_bucket" "compiler-explorer-logs" {
@@ -52,6 +41,18 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
       days = 1
     }
     prefix  = "elb/"
+  }
+
+  # Keep only a month of request logs (rounding down)
+  lifecycle_rule {
+    enabled = true
+    expiration {
+      days = 28
+    }
+    noncurrent_version_expiration {
+      days = 1
+    }
+    prefix  = "debug-request-logs"
   }
 }
 
