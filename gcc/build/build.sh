@@ -5,6 +5,7 @@ set -ex
 ROOT=$(pwd)
 VERSION=$1
 LANGUAGES=c,c++,fortran,ada
+PLUGINS=
 if echo "${VERSION}" | grep 'embed-trunk'; then
     VERSION=embed-trunk-$(date +%Y%m%d)
     URL=https://github.com/ThePhD/gcc.git
@@ -31,6 +32,14 @@ elif echo "${VERSION}" | grep 'cxx-coroutines-trunk'; then
     MAJOR=10
     MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
+elif echo "${VERSION}" | grep 'static-analysis-trunk'; then
+    VERSION=static-analysis-trunk-$(date +%Y%m%d)
+    URL=https://gcc.gnu.org/git/gcc.git/
+    BRANCH=dmalcolm/analyzer
+    MAJOR=10
+    MAJOR_MINOR=10-trunk
+    LANGUAGES=c,c++
+    PLUGINS=analyzer
 elif echo "${VERSION}" | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
     URL=svn://gcc.gnu.org/svn/gcc/trunk
@@ -148,6 +157,10 @@ CONFIG+=" --enable-lto"
 CONFIG+=" --enable-plugins"
 CONFIG+=" --enable-threads=posix"
 CONFIG+=" --with-pkgversion=Compiler-Explorer-Build"
+# The static analyzer branch adds a --enable-plugins configuration option
+if [[ ! -z "${PLUGINS}" ]]; then
+    CONFIG+=" --enable-plugins=${PLUGINS}"
+fi
 BINUTILS_VERSION=2.29.1
 
 applyPatchesAndConfig gcc${MAJOR}
