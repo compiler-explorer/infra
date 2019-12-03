@@ -59,7 +59,7 @@ install_llvm() {
             fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm-src
             mkdir -p /tmp/llvm-build
             pushd /tmp/llvm-build || exit 1
-            "${OPT}"/cmake/bin/cmake -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
+            "${OPT}"/cmake/bin/cmake /tmp/llvm-src -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
             make install-llvm-headers
             mkdir -p "${DEST}"
             rsync -a --delete-after /tmp/llvm-install/include/ "${DEST}"/include/
