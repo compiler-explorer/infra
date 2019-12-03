@@ -60,7 +60,7 @@ install_llvm() {
             mkdir -p /tmp/llvm-build
             pushd /tmp/llvm-build || exit 1
             "${OPT}"/cmake/bin/cmake /tmp/llvm-src -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
-            make install-llvm-headers
+            make -j$(nproc) install-llvm-headers
             mkdir -p "${DEST}"
             rsync -a --delete-after /tmp/llvm-install/include/ "${DEST}"/include/
             popd || exit 1
@@ -75,7 +75,7 @@ install_llvm_trunk() {
     git clone --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-src
     pushd /tmp/llvm-build || exit 1
     "${OPT}"/cmake/bin/cmake /tmp/llvm-src/llvm -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
-    make install-llvm-headers
+    make -j$(nproc) install-llvm-headers
     rsync -a --delete-after /tmp/llvm-install/include/ "${OPT}"/libs/llvm/trunk/include/
     popd || exit 1
     rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
