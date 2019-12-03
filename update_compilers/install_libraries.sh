@@ -54,32 +54,31 @@ install_llvm() {
         local DEST=${OPT}/libs/llvm/${VERSION}
         local URL=https://releases.llvm.org/${VERSION}/llvm-${VERSION}.src.tar.xz
         if [[ ! -d ${DEST} ]]; then
-            rm -rf /tmp/llvm-src /tmp/llvm-build
-            mkdir -p /tmp/llvm-src /tmp/llvm-build
+            rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
+            mkdir -p /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
             fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm-src
             mkdir -p /tmp/llvm-build
-            pushd /tmp/llvm-build
-            ${OPT}/cmake/bin/cmake /tmp/llvm-src 2>&1
-            rsync -a /tmp/llvm-src/include/ include/
-            mkdir -p ${DEST}
-            rsync -a include/ ${DEST}/include/
-            popd
-            rm -rf /tmp/llvm-src
+            pushd /tmp/llvm-build || exit 1
+            "${OPT}"/cmake/bin/cmake -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
+            make install-llvm-headers
+            mkdir -p "${DEST}"
+            rsync -a --delete-after /tmp/llvm-install/include/ "${DEST}"/include/
+            popd || exit 1
+            rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
         fi
     done
 }
 
 install_llvm_trunk() {
-    rm -rf /tmp/llvm-src /tmp/llvm-build
-    mkdir -p /tmp/llvm-src /tmp/llvm-build
-    svn co -q http://llvm.org/svn/llvm-project/llvm/trunk /tmp/llvm-src
-    pushd /tmp/llvm-build
-    ${OPT}/cmake/bin/cmake /tmp/llvm-src 2>&1
-    rsync -a /tmp/llvm-src/include/ include/
-    rsync -a --delete-after include/ ${OPT}/libs/llvm/trunk/include/
-    popd
-    rm -rf /tmp/llvm-src
-    rm -rf /tmp/llvm-build
+    rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
+    mkdir -p /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
+    git clone --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-src
+    pushd /tmp/llvm-build || exit 1
+    "${OPT}"/cmake/bin/cmake /tmp/llvm-src/llvm -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
+    make install-llvm-headers
+    rsync -a --delete-after /tmp/llvm-install/include/ "${OPT}"/libs/llvm/trunk/include/
+    popd || exit 1
+    rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
 }
 
 install_llvm 4.0.1 5.0.0 5.0.1 5.0.2 6.0.0 6.0.1 7.0.0 7.0.1 8.0.0 9.0.0
