@@ -72,3 +72,7 @@ ce_install 'compilers/c++'
 #########################
 # Java
 . ${SCRIPT_DIR}/install_java_compilers.sh ${ARG1}
+
+#########################
+# Circle
+. ${SCRIPT_DIR}/install_circle_compilers.sh ${ARG1}
