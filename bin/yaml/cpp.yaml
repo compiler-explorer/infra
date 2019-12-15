@@ -202,6 +202,12 @@ compilers:
           subdir: riscv64
           targets:
             - 8.2.0
+        k1:
+          arch_prefix: "k1-unknown-elf"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          subdir: k1
+          targets:
+            - 7.4.1
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
