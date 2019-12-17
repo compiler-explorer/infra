@@ -184,12 +184,12 @@ get_github_versioned_and_trunk() {
 
 get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib v1.4.2
 get_github_versioned_and_trunk libs/google-benchmark google/benchmark v1.2.0 v1.3.0 v1.4.0
-get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0 0.9.1
+get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0 0.9.1 0.10.0
 get_github_versioned_and_trunk libs/mp-units mpusz/units v0.3.1 v0.4.0
 get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
 get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
-get_github_versioned_and_trunk libs/fmt fmtlib/fmt 6.0.0 5.3.0 5.2.0 5.1.0 5.0.0 4.1.0 4.0.0
+get_github_versioned_and_trunk libs/fmt fmtlib/fmt 6.1.0 6.0.0 5.3.0 5.2.0 5.1.0 5.0.0 4.1.0 4.0.0
 get_github_versioned_and_trunk libs/hfsm andrew-gresyk/HFSM 0.8 0.10
 get_github_versioned_and_trunk_with_quirk libs/eigen eigenteam/eigen-git-mirror v 3.3.4 3.3.5 3.3.7
 get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5 0.9.9.0 0.9.9.1 0.9.9.2 0.9.9.3 0.9.9.4 0.9.9.5 0.9.9.6
