@@ -76,3 +76,7 @@ ce_install 'compilers/c++'
 #########################
 # Circle
 . ${SCRIPT_DIR}/install_circle_compilers.sh ${ARG1}
+
+#########################
+# Nim
+. ${SCRIPT_DIR}/install_nim_compilers.sh ${ARG1}
