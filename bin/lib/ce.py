@@ -116,7 +116,7 @@ def wait_for_elb_state(instance, state):
 def are_you_sure(name, args):
     env = args['env']
     while True:
-        typed = input('Confirm {} in env {}\nType the name of the environment: '.format(name, env))
+        typed = input('Confirm operation: "{}" in env {}\nType the name of the environment to proceed: '.format(name, env))
         if typed == env:
             return True
 
@@ -247,9 +247,10 @@ def instances_cmd(args):
 
 
 def instances_exec_all_cmd(args):
-    if not are_you_sure('exec all', args):
-        return
     remote_cmd = args['remote_cmd']
+    if not are_you_sure(f'exec command {remote_cmd} in all instances', args):
+        return
+
     print("Running '{}' on all instances".format(' '.join(remote_cmd)))
     exec_remote_all(pick_instances(args), remote_cmd)
 
@@ -276,13 +277,13 @@ def instances_start_cmd(args):
 
 
 def instances_stop_cmd(args):
-    if not are_you_sure('stop', args):
+    if not are_you_sure('stop all instances', args):
         return
     exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
 
 
 def instances_restart_cmd(args):
-    if not are_you_sure('restart version {}'.format(describe_current_release(args)), args):
+    if not are_you_sure('restart all instances with version {}'.format(describe_current_release(args)), args):
         return
     # Store old motd
     begin_time = datetime.datetime.now()
@@ -461,7 +462,7 @@ def ads_remove_cmd(args):
 
 def ads_clear_cmd(args):
     events = get_events(args)
-    if are_you_sure('clear all ads (Count: {})'.format(len(events['ads'])), args):
+    if are_you_sure('clear all ads (count: {})'.format(len(events['ads'])), args):
         events['ads'] = []
         save_event_file(args, json.dumps(events))
 
@@ -542,7 +543,7 @@ def decorations_remove_cmd(args):
 
 def decorations_clear_cmd(args):
     events = get_events(args)
-    if are_you_sure('clear all decorations (Count: {})'.format(len(events['decorations'])), args):
+    if are_you_sure('clear all decorations (count: {})'.format(len(events['decorations'])), args):
         events['decorations'] = []
         save_event_file(args, json.dumps(events))
 
@@ -583,14 +584,14 @@ def motd_show_cmd(args):
 
 def motd_update_cmd(args):
     events = get_events(args)
-    if are_you_sure('update motd:\nfrom: "{}"\nto: "{}"'.format(events['motd'], args['message']), args):
+    if are_you_sure('update motd from: {} to: {}'.format(events['motd'], args['message']), args):
         events['motd'] = args['message']
         save_event_file(args, json.dumps(events))
 
 
 def motd_clear_cmd(args):
     events = get_events(args)
-    if are_you_sure('clear current motd: "{}"'.format(events['motd']), args):
+    if are_you_sure('clear current motd: {}'.format(events['motd']), args):
         events['motd'] = ''
         save_events(args, events)
 
@@ -616,7 +617,7 @@ def events_to_file_cmd(args):
 def events_from_file_cmd(args):
     with open(args['path'], mode='r') as f:
         new_contents = f.read()
-        if are_you_sure('load from file "{}"', args):
+        if are_you_sure('load from file {}', args):
             save_event_file(args, json.loads(new_contents))
 
 
@@ -740,17 +741,18 @@ def environment_start_cmd(args):
 
 
 def environment_stop_cmd(args):
-    for asg in get_autoscaling_groups_for(args):
-        group_name = asg['AutoScalingGroupName']
-        if asg['MinSize'] > 0:
-            print(f"Skipping ASG {group_name} as it has a non-zero min size")
-            continue
-        prev = asg['DesiredCapacity']
-        if not prev:
-            print(f"Skipping ASG {group_name} as it already zero desired capacity")
-            continue
-        print(f"Updating {group_name} to have desired capacity 0 (from {prev})")
-        as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=0)
+    if are_you_sure('stop environment', args):
+        for asg in get_autoscaling_groups_for(args):
+            group_name = asg['AutoScalingGroupName']
+            if asg['MinSize'] > 0:
+                print(f"Skipping ASG {group_name} as it has a non-zero min size")
+                continue
+            prev = asg['DesiredCapacity']
+            if not prev:
+                print(f"Skipping ASG {group_name} as it already zero desired capacity")
+                continue
+            print(f"Updating {group_name} to have desired capacity 0 (from {prev})")
+            as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=0)
 
 
 def main():
