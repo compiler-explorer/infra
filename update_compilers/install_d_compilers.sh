@@ -67,7 +67,7 @@ getldc_latest_ci() {
     fi
     mkdir ${DIR}
     pushd ${DIR}
-    wget https://dlang.org/install.sh
+    fetch https://dlang.org/install.sh > install.sh
     chmod +x install.sh
     ./install.sh install ldc-latest-ci -p $(pwd)
     # Rename the downloaded package directory to a constant "ldc" name
@@ -98,7 +98,7 @@ getdmd2_nightly() {
     fi
     mkdir ${DIR}
     pushd ${DIR}
-    wget https://dlang.org/install.sh
+    fetch https://dlang.org/install.sh > install.sh
     chmod +x install.sh
     # Download and unpack dmd-nightly into current directory
     ./install.sh install dmd-nightly -p $(pwd)

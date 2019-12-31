@@ -72,7 +72,7 @@ install_llvm() {
 install_llvm_trunk() {
     rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
     mkdir -p /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-    git clone --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-src
+    git clone -q --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-src
     pushd /tmp/llvm-build || exit 1
     "${OPT}"/cmake/bin/cmake /tmp/llvm-src/llvm -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
     make -j$(nproc) install-llvm-headers
