@@ -160,19 +160,30 @@ get_github_versions() {
     done
 }
 
-get_github_versioned_and_trunk_with_quirk() {
-    local DIR=$1
-    local REPO=$2
-    local URL=https://github.com/${REPO}
-    local QUIRK=$3
-    shift 3
+get_repo_versioned_and_trunk_with_quirk() {
+    local SITE=$1
+    local ARCHIVE=$2
+    local DIR=$3
+    local REPO=$4
+    local QUIRK=$5
+    local URL=${SITE}/${REPO}
+
+    shift 5
     mkdir -p ${DIR}
     if install_nightly; then
         get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
     fi
     for tag in "$@"; do
-        get_git_version ${DIR}/${QUIRK}${tag} ${URL}/archive/${tag}.tar.gz
+        get_git_version ${DIR}/${QUIRK}${tag} ${URL}/${ARCHIVE}/${tag}.tar.gz
     done
+}
+
+get_gitlab_versioned_and_trunk_with_quirk() {
+    get_repo_versioned_and_trunk_with_quirk https://gitlab.com -/archive "$@"
+}
+
+get_github_versioned_and_trunk_with_quirk() {
+    get_repo_versioned_and_trunk_with_quirk https://github.com archive "$@"
 }
 
 get_github_versioned_and_trunk() {
@@ -191,7 +202,7 @@ get_github_versioned_and_trunk libs/libguarded copperspice/libguarded libguarded
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
 get_github_versioned_and_trunk libs/fmt fmtlib/fmt 6.1.0 6.0.0 5.3.0 5.2.0 5.1.0 5.0.0 4.1.0 4.0.0
 get_github_versioned_and_trunk libs/hfsm andrew-gresyk/HFSM 0.8 0.10
-get_github_versioned_and_trunk_with_quirk libs/eigen eigenteam/eigen-git-mirror v 3.3.4 3.3.5 3.3.7
+get_gitlab_versioned_and_trunk_with_quirk libs/eigen libeigen/eigen v 3.3.4 3.3.5 3.3.7
 get_github_versioned_and_trunk libs/glm g-truc/glm 0.9.8.5 0.9.9.0 0.9.9.1 0.9.9.2 0.9.9.3 0.9.9.4 0.9.9.5 0.9.9.6
 get_github_versioned_and_trunk libs/catch2 catchorg/Catch2 v2.2.2 v2.2.3 v2.3.0 v2.4.0 v2.4.1 v2.4.2 v2.5.0 v2.6.0 v2.6.1 v2.7.0 v2.7.1 v2.7.2 v2.8.0 v2.9.0 v2.9.1 v2.9.2
 get_github_versions libs/expected-lite martinmoene/expected-dark v0.0.1
