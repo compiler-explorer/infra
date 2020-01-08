@@ -2,8 +2,8 @@ resource "aws_dynamodb_table" "links" {
   name           = "links"
   lifecycle {
     ignore_changes = [
-      "read_capacity",
-      "write_capacity"
+      read_capacity,
+      write_capacity
     ]
   }
   billing_mode   = "PAY_PER_REQUEST"

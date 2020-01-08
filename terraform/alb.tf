@@ -17,7 +17,7 @@ resource "aws_alb" "GccExplorerApp" {
   enable_deletion_protection = false
 
   access_logs {
-    bucket  = "${aws_s3_bucket.compiler-explorer-logs.bucket}"
+    bucket  = aws_s3_bucket.compiler-explorer-logs.bucket
     prefix  = "elb"
     enabled = true
   }
