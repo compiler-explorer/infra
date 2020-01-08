@@ -53,9 +53,8 @@ update_boost_archive() {
         pushd ${OPT}/libs
         rm -rf /tmp/boost.tar.xz
         tar -cJf /tmp/boost.tar.xz boost_*
-        cp /tmp/boost.tar.xz boost.tar.xz
+        mv /tmp/boost.tar.xz boost.tar.xz
         popd
-        rm -rf ${DEST}
     fi
 }
 
