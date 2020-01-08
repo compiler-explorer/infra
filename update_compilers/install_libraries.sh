@@ -47,7 +47,37 @@ install_boost() {
     done
 }
 
+update_boost_archive() {
+    local NEWEST=$(find "${OPT}/libs" -maxdepth 1 -name 'boost*' -printf '%T@ %p\n' | sort -k1,1nr | head -n1 | cut -d ' ' -f 2)
+    if [[ "${NEWEST}" != "${OPT}/libs/boost.tar.xz" ]]; then
+        pushd ${OPT}/libs
+        rm -rf /tmp/boost.tar.xz
+        tar -cJf /tmp/boost.tar.xz boost_*
+        cp /tmp/boost.tar.xz boost.tar.xz
+        popd
+        rm -rf ${DEST}
+    fi
+}
+
+###########################################
+# !!!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!
+###########################################
+#
+# When adding a new version of boost you must:
+#  - run `sudo ~/compiler-explorer-image/update_compilers/install_libraries.sh` on the admin node to generate an updated `${OPT}/libs/boost.tar.xz`
+#  - run `make packer` from your own machine to build a new AMI with the new boost version baked in
+#  - update the image_id values in `terraform/lc.tf` and commit/push
+#  - run `terraform apply` from your own machine so the new images are used when launching new nodes
+#  - run `ce --env=prod instances restart` so currently running nodes will rsync the new boost version
+#
+# This rather convoluted process is required because when new nodes start up they attempt to rsync missing boost versions to a local directory
+# and this process can take quite a while, during which compilations using missing boost versions will error out.
+# To mitigate this we bake any known boost versions into the AMIs using packer.
+#
+# See: https://github.com/mattgodbolt/compiler-explorer/issues/1771
+
 install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0
+update_boost_archive
 
 install_llvm() {
     for VERSION in "$@"; do
