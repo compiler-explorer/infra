@@ -485,6 +485,12 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
       cookies {
         forward = "none"
       }
+      headers = [
+        # see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/header-caching.html#header-caching-web-cors
+        "Origin",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method"
+      ]
       query_string = true
       query_string_cache_keys = [
         "v"
