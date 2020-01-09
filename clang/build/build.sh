@@ -12,13 +12,10 @@ popd
 ROOT=$(pwd)
 VERSION=$1
 if echo ${VERSION} | grep 'trunk'; then
-    TAG=trunk
+    TAG=master
     VERSION=trunk-$(date +%Y%m%d)
 else
-    SPLIT=(${VERSION//-/ })
-    VERSION=${SPLIT[0]}
-    VSN=$(echo ${VERSION} | sed 's/\.//g')
-    TAG=tags/RELEASE_${VSN}/${SPLIT[1]-final}
+    TAG=llvmorg-${VERSION}
 fi
 
 OUTPUT=/root/clang-${VERSION}.tar.xz
@@ -34,7 +31,7 @@ rm -rf ${STAGING_DIR}
 mkdir -p ${STAGING_DIR}
 
 # Setup llvm-project checkout
-git clone --depth 1 https://github.com/llvm/llvm-project.git
+git clone --depth 1 --single-branch -b "${TAG}" https://github.com/llvm/llvm-project.git
 
 # Setup build directory and build configuration
 mkdir build
