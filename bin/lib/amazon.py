@@ -17,10 +17,12 @@ class LazyObjectWrapper(object):
         self.__ensure_setup()
         return getattr(self.__obj, attr)
 
+
 # this is a free function to avoid potentially shadowing any underlying members
 # which could happen if this was itself placed as a member of LazyObjectWrapper
 def force_lazy_init(lazy):
     lazy._LazyObjectWrapper__ensure_setup()
+
 
 def _import_boto():
     obj = __import__('boto3')
@@ -34,11 +36,13 @@ def _import_boto():
 botocore = LazyObjectWrapper(lambda: __import__('botocore'))
 boto3 = LazyObjectWrapper(_import_boto)
 
+
 def _create_anon_s3_client():
     # https://github.com/boto/botocore/issues/1395
     obj = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
     obj._request_signer.sign = (lambda *args, **kwargs: None)
     return obj
+
 
 ec2 = LazyObjectWrapper(lambda: boto3.resource('ec2'))
 s3 = LazyObjectWrapper(lambda: boto3.resource('s3'))
@@ -47,6 +51,7 @@ elb_client = LazyObjectWrapper(lambda: boto3.client('elbv2'))
 s3_client = LazyObjectWrapper(lambda: boto3.client('s3'))
 anon_s3_client = LazyObjectWrapper(_create_anon_s3_client)
 dynamodb_client = LazyObjectWrapper(lambda: boto3.client('dynamodb'))
+ssm_client = LazyObjectWrapper(lambda: boto3.client('ssm'))
 LINKS_TABLE = 'links'
 VERSIONS_LOGGING_TABLE = 'versionslog'
 
@@ -345,3 +350,7 @@ def list_compilers(with_extension=False):
                 if not name:
                     continue
                 yield name
+
+
+def get_ssm_param(param):
+    return ssm_client.get_parameter(Name=param)['Parameter']['Value']

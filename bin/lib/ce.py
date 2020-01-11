@@ -15,11 +15,13 @@ import time
 import json
 from pprint import pprint
 
+import requests
+
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
     save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links, \
     get_autoscaling_groups_for, download_release_file, download_release_fileobj, log_new_build, list_all_build_logs, \
-    list_period_build_logs
+    list_period_build_logs, get_ssm_param
 from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
@@ -116,7 +118,8 @@ def wait_for_elb_state(instance, state):
 def are_you_sure(name, args):
     env = args['env']
     while True:
-        typed = input('Confirm operation: "{}" in env {}\nType the name of the environment to proceed: '.format(name, env))
+        typed = input(
+            'Confirm operation: "{}" in env {}\nType the name of the environment to proceed: '.format(name, env))
         if typed == env:
             return True
 
@@ -378,6 +381,16 @@ def builds_set_current_cmd(args):
         else:
             old_deploy_staticfiles(args['branch'], to_set)
         set_current_key(args, to_set)
+        if release:
+            print("Marking as a release in sentry...")
+            token = get_ssm_param("/compiler-explorer/sentryAuthToken")
+            result = requests.post(
+                f"https://sentry.io/api/0/organizations/compiler-explorer/releases/{release.version}/deploys/",
+                data=dict(environment=args['env']),
+                headers=dict(Authorization=f'Bearer {token}'))
+            if not result.ok:
+                raise RuntimeError(f"Failed to send to sentry: {result} {result.content}")
+            print("...done", json.loads(result.content.decode()))
 
 
 def builds_rm_old_cmd(args):
