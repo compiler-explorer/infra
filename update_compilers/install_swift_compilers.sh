@@ -14,14 +14,15 @@ install_nightly() {
 get_swift() {
     local VER=$1
     local DIR=swift-${VER}
-    
+
     local BUILD=swift-${VER}-release
     local TOOLCHAIN=swift-${VER}-RELEASE
-    
+
     if [[ "$VER" == "nightly" ]]; then
-        local $(fetch https://swift.org/builds/development/ubuntu1604/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g' |
-                sed 's/-ubuntu16\.04\.tar\.gz//g')
-        TOOLCHAIN=$download
+        TOOLCHAIN=$(fetch https://swift.org/builds/development/ubuntu1604/latest-build.yml |
+            grep '^download:' |
+            awk '{print $2}' |
+            sed 's/-ubuntu16\.04\.tar\.gz//g')
         BUILD=development
     fi
 
