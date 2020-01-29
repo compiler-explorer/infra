@@ -24,6 +24,7 @@ get_swift() {
             awk '{print $2}' |
             sed 's/-ubuntu16\.04\.tar\.gz//g')
         BUILD=development
+        rm -rf ${DIR}
     fi
 
     if [[ ! -d ${DIR} ]]; then
