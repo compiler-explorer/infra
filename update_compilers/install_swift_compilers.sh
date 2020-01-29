@@ -14,11 +14,21 @@ install_nightly() {
 get_swift() {
     local VER=$1
     local DIR=swift-${VER}
+    
+    local BUILD=swift-${VER}-release
+    local TOOLCHAIN=swift-${VER}-RELEASE
+    
+    if [[ "$VER" == "nightly" ]]; then
+        local $(fetch https://swift.org/builds/development/ubuntu1604/latest-build.yml | grep 'download:' | sed 's/:[^:\/\/]/=/g' |
+                sed 's/-ubuntu16\.04\.tar\.gz//g')
+        TOOLCHAIN=$download
+        BUILD=development
+    fi
 
     if [[ ! -d ${DIR} ]]; then
         mkdir ${DIR}
         pushd ${DIR}
-        fetch https://swift.org/builds/swift-${VER}-release/ubuntu1604/swift-${VER}-RELEASE/swift-${VER}-RELEASE-ubuntu16.04.tar.gz | tar zxf - --strip-components 1
+        fetch https://swift.org/builds/${BUILD}/ubuntu1604/${TOOLCHAIN}/${TOOLCHAIN}-ubuntu16.04.tar.gz | tar zxf - --strip-components 1
         # work around insane installation issue
         chmod og+r ./usr/lib/swift/CoreFoundation/*
         popd
@@ -34,3 +44,7 @@ get_swift 4.1.2
 get_swift 4.2
 get_swift 5.0
 get_swift 5.1
+
+if install_nightly; then
+    get_swift nightly
+fi
