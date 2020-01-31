@@ -8,8 +8,9 @@ data "aws_acm_certificate" "compiler-explorer-com" {
   most_recent = true
 }
 
-data "aws_acm_certificate" "godbol-lt" {
-  domain      = "*.godbo.lt"
+data "aws_acm_certificate" "godbolt-org-et-al" {
+  domain      = "godbolt.org"
+  types       = ["AMAZON_ISSUED"]
   most_recent = true
 }
 
@@ -327,7 +328,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   ]
 
   viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.godbol-lt.arn
+    acm_certificate_arn      = data.aws_acm_certificate.godbolt-org-et-al.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.1_2016"
   }

@@ -77,17 +77,7 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   port              = 443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2015-05"
-  certificate_arn   = data.aws_acm_certificate.godbolt-org.arn
-}
-
-resource "aws_lb_listener_certificate" "compiler-explorer-alb-listen-https-ce-cert" {
-  listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-  certificate_arn = data.aws_acm_certificate.compiler-explorer-com.arn
-}
-
-resource "aws_lb_listener_certificate" "godbo-lt-alb-listen-https-ce-cert" {
-  listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-  certificate_arn = data.aws_acm_certificate.godbol-lt.arn
+  certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
