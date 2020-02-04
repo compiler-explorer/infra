@@ -49,7 +49,7 @@ do_ispc_nightly_install() {
     local DESTINATION="$2"
 
     # just shell out to the new install system
-    "${SCRIPT_DIR}/../bin/ce_install" --enable=nightly install "compilers/ispc/nightly ${COMPILER_PATTERN}"
+    ce_install "compilers/ispc/nightly ${COMPILER_PATTERN}"
 
     # new systtem doesn't yet clean up old nightly installs, so we have to do it here still
 

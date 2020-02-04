@@ -8,18 +8,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "Starting installation at $(date), my pid $$"
 
-CE_INSTALL_ARG=
-
 if install_nightly; then
     echo "Installing nightly builds"
-    CE_INSTALL_ARG=--enable=nightly
 else
     echo "Skipping install of nightly compilers"
 fi
-
-ce_install() {
-    "${SCRIPT_DIR}"/../bin/ce_install ${CE_INSTALL_ARG} install "$*"
-}
 
 #########################
 # Rust

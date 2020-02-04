@@ -48,6 +48,16 @@ install_nightly() {
     fi
 }
 
+CE_INSTALL_ARG=
+
+if install_nightly; then
+    CE_INSTALL_ARG=--enable=nightly
+fi
+
+ce_install() {
+    "${SCRIPT_DIR}/../bin/ce_install" ${CE_INSTALL_ARG} install "$@"
+}
+
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 S3BUCKET=compiler-explorer
 SUBDIR=opt
