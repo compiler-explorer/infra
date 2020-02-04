@@ -129,7 +129,7 @@ class InstallationContext(object):
         os.symlink(source, full_dest)
 
     def glob(self, pattern):
-        return [os.path.basename(x) for x in glob.glob(os.path.join(self.destination, pattern))]
+        return [os.path.relpath(x, self.destination) for x in glob.glob(os.path.join(self.destination, pattern))]
 
     def remove_dir(self, directory):
         if self.dry_run:
@@ -233,8 +233,13 @@ class Installable(object):
 
     def _setup_check_exe(self, path_name):
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
-        self.check_call = command_config(self.config_get('check_exe'))
-        self.check_call[0] = os.path.join(path_name, self.check_call[0])
+
+        self.check_file = self.config_get('check_file', False)
+        if self.check_file:
+            self.check_file = os.path.join(path_name, self.check_file)
+        else:
+            self.check_call = command_config(self.config_get('check_exe'))
+            self.check_call[0] = os.path.join(path_name, self.check_call[0])
 
     def _setup_check_link(self, source, link):
         self._check_link = lambda: self.install_context.check_link(source, link)
@@ -276,6 +281,11 @@ class Installable(object):
         if self._check_link and not self._check_link():
             self.debug('Check link returned false')
             return False
+
+        if self.check_file:
+            res = os.path.isfile(os.path.join(self.install_context.destination, self.check_file))
+            self.debug(f'Check file for "{self.check_file}" returned {res}')
+            return res
 
         try:
             res = self.install_context.check_output(self.check_call, env=self.check_env)
@@ -359,6 +369,7 @@ class S3TarballInstallable(Installable):
 class NightlyInstallable(Installable):
     def __init__(self, install_context, config):
         super(NightlyInstallable, self).__init__(install_context, config)
+        self.subdir = self.config_get("subdir", "")
         self.strip = self.config_get('strip', False)
         compiler_name = self.config_get('compiler_name', f'{self.context[-1]}-{self.target_name}')
         current = s3_available_compilers()
@@ -366,16 +377,17 @@ class NightlyInstallable(Installable):
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
-        self.path_name = f'{compiler_name}-{most_recent}'
-        self.compiler_pattern = f'{compiler_name}-*'
-        self.path_name_symlink = self.config_get('symlink', f'{compiler_name}')
+        self.s3_path = f'{compiler_name}-{most_recent}'
+        self.path_name = os.path.join(self.subdir, f'{compiler_name}-{most_recent}')
+        self.compiler_pattern = os.path.join(self.subdir, f'{compiler_name}-*')
+        self.path_name_symlink = self.config_get('symlink', os.path.join(self.subdir, f'{compiler_name}'))
         self.num_to_keep = self.config_get('num_to_keep', 5)
         self._setup_check_exe(self.path_name)
-        self._setup_check_link(self.path_name, self.path_name_symlink)
+        self._setup_check_link(self.s3_path, self.path_name_symlink)
 
     def stage(self):
         self.install_context.clean_staging()
-        self.install_context.fetch_s3_and_pipe_to(f'{self.path_name}.tar.xz', ['tar', f'Jxf', '-'])
+        self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', f'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
@@ -383,7 +395,7 @@ class NightlyInstallable(Installable):
         if not super(NightlyInstallable, self).verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.path_name)
+        return self.install_context.compare_against_staging(self.s3_path, self.path_name)
 
     def should_install(self):
         return True
@@ -399,8 +411,8 @@ class NightlyInstallable(Installable):
         for to_remove in all_versions[:-num_to_keep]:
             self.install_context.remove_dir(to_remove)
 
-        self.install_context.move_from_staging(self.path_name)
-        self.install_context.set_link(self.path_name, self.path_name_symlink)
+        self.install_context.move_from_staging(self.s3_path, self.path_name)
+        self.install_context.set_link(self.s3_path, self.path_name_symlink)
 
         return True
 

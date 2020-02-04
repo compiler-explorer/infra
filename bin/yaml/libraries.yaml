@@ -1,0 +1,26 @@
+libraries:
+  c++:
+    llvm:
+      type: s3tarballs
+      path_name: libs/llvm/{name}
+      check_file: include/llvm/Config/llvm-config.h
+      targets:
+        - 4.0.1
+        - 5.0.0
+        - 5.0.1
+        - 5.0.2
+        - 6.0.0
+        - 6.0.1
+        - 7.0.0
+        - 7.0.1
+        - 8.0.0
+        - 9.0.0
+    nightly:
+      if: nightly
+      llvm:
+        type: nightly
+        subdir: libs/llvm
+        symlink: libs/llvm/{name}
+        check_file: include/llvm/Config/llvm-config.h
+        targets:
+          - trunk
