@@ -78,42 +78,10 @@ update_boost_archive() {
 install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0
 update_boost_archive
 
-install_llvm() {
-    for VERSION in "$@"; do
-        local DEST=${OPT}/libs/llvm/${VERSION}
-        local URL=https://releases.llvm.org/${VERSION}/llvm-${VERSION}.src.tar.xz
-        if [[ ! -d ${DEST} ]]; then
-            rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-            mkdir -p /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-            fetch ${URL} | tar Jxf - --strip-components=1 -C /tmp/llvm-src
-            mkdir -p /tmp/llvm-build
-            pushd /tmp/llvm-build || exit 1
-            "${OPT}"/cmake/bin/cmake /tmp/llvm-src -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
-            make -j$(nproc) install-llvm-headers
-            mkdir -p "${DEST}"
-            rsync -a --delete-after /tmp/llvm-install/include/ "${DEST}"/include/
-            popd || exit 1
-            rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-        fi
-    done
-}
-
-install_llvm_trunk() {
-    rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-    mkdir -p /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-    git clone -q --depth 1 https://github.com/llvm/llvm-project.git /tmp/llvm-src
-    pushd /tmp/llvm-build || exit 1
-    "${OPT}"/cmake/bin/cmake /tmp/llvm-src/llvm -DCMAKE_INSTALL_PREFIX=/tmp/llvm-install 2>&1
-    make -j$(nproc) install-llvm-headers
-    rsync -a --delete-after /tmp/llvm-install/include/ "${OPT}"/libs/llvm/trunk/include/
-    popd || exit 1
-    rm -rf /tmp/llvm-src /tmp/llvm-build /tmp/llvm-install
-}
-
-install_llvm 4.0.1 5.0.0 5.0.1 5.0.2 6.0.0 6.0.1 7.0.0 7.0.1 8.0.0 9.0.0
+ce_install 'libraries/c++/llvm'
 
 if install_nightly; then
-    install_llvm_trunk
+    ce_install 'libraries/c++/nightly/llvm'
 fi
 
 get_or_sync() {

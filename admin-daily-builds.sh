@@ -40,6 +40,9 @@ build_latest() {
     log_to_json ${LOG_DIR} admin
 }
 
+# llvm build is fast, so lets do it first
+build_latest clang llvm build-llvm.sh trunk
+
 build_latest gcc gcc build.sh trunk
 build_latest gcc gcc_contracts build.sh lock3-contracts-trunk
 build_latest gcc gcc_modules build.sh cxx-modules-trunk
