@@ -131,6 +131,7 @@ get_or_sync libs/cnl https://github.com/johnmcfarlane/cnl.git
 get_or_sync libs/googletest https://github.com/google/googletest.git
 get_or_sync libs/tbb https://github.com/01org/tbb.git
 get_or_sync libs/nanorange https://github.com/tcbrindle/NanoRange.git
+get_or_sync libs/etl https://github.com/ETLCPP/etl.git
 
 get_if_not_there() {
     local DIR=$1
