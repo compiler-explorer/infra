@@ -22,27 +22,30 @@ elif echo "${VERSION}" | grep 'lock3-contracts-trunk'; then
     LANGUAGES=c,c++
 elif echo "${VERSION}" | grep 'cxx-modules-trunk'; then
     VERSION=cxx-modules-trunk-$(date +%Y%m%d)
-    URL=svn://gcc.gnu.org/svn/gcc/branches/c++-modules
+    URL=https://gcc.gnu.org/git/gcc.git
+    BRANCH=devel/c++-modules
     MAJOR=10
     MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
 elif echo "${VERSION}" | grep 'cxx-coroutines-trunk'; then
     VERSION=cxx-coroutines-trunk-$(date +%Y%m%d)
     URL=https://github.com/iains/gcc-cxx-coroutines
+    BRANCH=master
     MAJOR=10
     MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
 elif echo "${VERSION}" | grep 'static-analysis-trunk'; then
     VERSION=static-analysis-trunk-$(date +%Y%m%d)
-    URL=https://gcc.gnu.org/git/gcc.git/
-    BRANCH=dmalcolm/analyzer
+    URL=https://gcc.gnu.org/git/gcc.git
+    BRANCH=devel/analyzer
     MAJOR=10
     MAJOR_MINOR=10-trunk
     LANGUAGES=c,c++
     PLUGINS=analyzer
 elif echo "${VERSION}" | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
-    URL=svn://gcc.gnu.org/svn/gcc/trunk
+    URL=https://gcc.gnu.org/git/gcc.git
+    BRANCH=master
     MAJOR=10
     MAJOR_MINOR=10-trunk
     LANGUAGES=${LANGUAGES},d
@@ -91,10 +94,7 @@ if echo ${URL} | grep svn://; then
     svn checkout -q ${URL} gcc-${VERSION}
 elif echo ${URL} | grep .git; then
     rm -rf gcc-${VERSION}
-    git clone -q ${URL} gcc-${VERSION}
-    pushd gcc-${VERSION}
-    git checkout ${BRANCH}
-    popd
+    git clone -q --depth 1 --single-branch -b "${BRANCH}" ${URL} gcc-${VERSION}
 else
     if [[ ! -e ${TARBALL} ]]; then
         echo "Fetching GCC" from ${URL}...
