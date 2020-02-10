@@ -22,7 +22,7 @@ elif echo "${VERSION}" | grep 'lock3-contracts-trunk'; then
     LANGUAGES=c,c++
 elif echo "${VERSION}" | grep 'cxx-modules-trunk'; then
     VERSION=cxx-modules-trunk-$(date +%Y%m%d)
-    URL=https://gcc.gnu.org/git/gcc.git
+    URL=git://gcc.gnu.org/git/gcc.git
     BRANCH=devel/c++-modules
     MAJOR=10
     MAJOR_MINOR=10-trunk
@@ -36,7 +36,7 @@ elif echo "${VERSION}" | grep 'cxx-coroutines-trunk'; then
     LANGUAGES=c,c++
 elif echo "${VERSION}" | grep 'static-analysis-trunk'; then
     VERSION=static-analysis-trunk-$(date +%Y%m%d)
-    URL=https://gcc.gnu.org/git/gcc.git
+    URL=git://gcc.gnu.org/git/gcc.git
     BRANCH=devel/analyzer
     MAJOR=10
     MAJOR_MINOR=10-trunk
@@ -44,7 +44,7 @@ elif echo "${VERSION}" | grep 'static-analysis-trunk'; then
     PLUGINS=analyzer
 elif echo "${VERSION}" | grep 'trunk'; then
     VERSION=trunk-$(date +%Y%m%d)
-    URL=https://gcc.gnu.org/git/gcc.git
+    URL=git://gcc.gnu.org/git/gcc.git
     BRANCH=master
     MAJOR=10
     MAJOR_MINOR=10-trunk
