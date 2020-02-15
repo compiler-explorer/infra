@@ -113,10 +113,11 @@ getgdc 4.8.2 2.064.2
 getgdc 4.9.3 2.066.1
 getgdc 5.2.0 2.066.1
 
-for version in \
-    0.17.2 \
-    1.{0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19}.0; do
-    getldc ${version}
+getldc 0.17.2
+ldc_latest_ver=$(fetch https://ldc-developers.github.io/LATEST)
+ldc_latest_minor=${ldc_latest_ver:2:2}
+for ldc_minor in $(seq 0 ${ldc_latest_minor}); do
+    getldc 1.${ldc_minor}.0
 done
 if install_nightly; then
     getldc_latestbeta
