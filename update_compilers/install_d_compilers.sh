@@ -115,10 +115,14 @@ getgdc 5.2.0 2.066.1
 
 getldc 0.17.2
 ldc_latest_ver=$(fetch https://ldc-developers.github.io/LATEST)
-ldc_latest_minor=${ldc_latest_ver:2:2}
-for ldc_minor in $(seq 0 ${ldc_latest_minor}); do
-    getldc 1.${ldc_minor}.0
-done
+if [[ "${ldc_latest_ver:0:2}" != "1." || "${ldc_latest_ver:4:1}" != "." ]]; then
+    echo "WARNING: Latest LDC version is '${ldc_latest_ver}', expected '1.xx.*' format. Skipping LDC 1.* installations!"
+else
+    ldc_latest_minor=${ldc_latest_ver:2:2}
+    for ldc_minor in $(seq 0 ${ldc_latest_minor}); do
+        getldc 1.${ldc_minor}.0
+    done
+fi
 if install_nightly; then
     getldc_latestbeta
     getldc_latest_ci
