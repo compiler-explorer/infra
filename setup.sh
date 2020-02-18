@@ -57,7 +57,7 @@ apt-get install -y \
     texinfo \
     unzip \
     wget \
-    winehq-stable \
+    winehq-stable=4.0.3~bionic \
     xz-utils
 
 pushd /tmp
