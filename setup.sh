@@ -58,6 +58,9 @@ apt-get install -y \
     unzip \
     wget \
     winehq-stable=4.0.3~bionic \
+    wine-stable=4.0.3~bionic \
+    wine-stable-amd64=4.0.3~bionic \
+    wine-stable-i386=4.0.3~bionic \
     xz-utils
 
 pushd /tmp
