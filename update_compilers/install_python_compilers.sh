@@ -17,6 +17,8 @@ get_python() {
         ./configure --prefix=${OPT}/python --exec-prefix=${OPT}/python
         make
         make altinstall
+
+        popd
     fi
 }
 
