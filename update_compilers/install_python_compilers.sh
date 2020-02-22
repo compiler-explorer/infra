@@ -26,6 +26,6 @@ for version in \
     3.5.9 \
     3.6.9 \
     3.7.6 \
-    3.8.2; do
+    3.8.1; do
     get_python $version
 done
