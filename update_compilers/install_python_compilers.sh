@@ -11,10 +11,10 @@ get_python() {
         mkdir $DIR
         pushd $DIR
 
-        fetch "https://www.python.org/ftp/python/${VER}/Python-${VER}.tgz" | tar xf -
+        fetch "https://www.python.org/ftp/python/${VER}/Python-${VER}.tgz" | tar xfz -
         cd $DIR
 
-        ./configure --prefix=${OPT}/python --exec-prefix=${OPT}/python
+        ./configure --prefix=${OPT}/python --exec-prefix=${OPT}/python --without-ensurepip
         make
         make altinstall
 
