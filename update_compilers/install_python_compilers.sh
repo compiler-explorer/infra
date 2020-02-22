@@ -19,6 +19,8 @@ get_python() {
         make altinstall
 
         popd
+
+        rm -rf $DIR
     fi
 }
 
