@@ -22,6 +22,7 @@ get_python() {
     fi
 }
 
+# To install another python version, add it to this list. Currently RCs/Alphas aren't supported.
 for version in \
     3.5.9 \
     3.6.9 \
