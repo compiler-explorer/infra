@@ -48,7 +48,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   ]
 
   viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.godbolt-org.arn
+    acm_certificate_arn      = data.aws_acm_certificate.godbolt-org-et-al.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.1_2016"
   }
@@ -158,7 +158,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 }
 
 # TODO - the duplication is rubbish
-# Though note the differences: viewer certificate, logging and aliases (at least).
+# Though note the differences: logging and aliases (at least).
 resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
@@ -189,7 +189,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   ]
 
   viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.compiler-explorer-com.arn
+    acm_certificate_arn      = data.aws_acm_certificate.godbolt-org-et-al.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.1_2016"
   }
