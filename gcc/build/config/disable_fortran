@@ -1,2 +1,0 @@
-# e.g. for https://gcc.gnu.org/bugzilla/show_bug.cgi?id=26893
-CONFIG="$(echo $CONFIG | sed 's/,fortran//')"

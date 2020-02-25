@@ -2,7 +2,7 @@
 
 To build a gcc using the docker image:
 
-    docker run -v $(pwd):/out mattgodbolt/gcc-builder bash build.sh 6.2.0 /out/gcc-6.2.0.tar.gz
+    docker run -v $(pwd):/out compilerexplorer/gcc-builder bash build.sh 6.2.0 /out/gcc-6.2.0.tar.gz
 
 Note you'll need lots of disk space (32GB+).
 

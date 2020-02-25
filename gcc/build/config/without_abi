@@ -1,1 +1,0 @@
-CONFIG="$(echo $CONFIG | sed 's/--with-abi=m64//')"

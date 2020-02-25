@@ -35,7 +35,7 @@ build_latest() {
     local BUILD=$4
     run_on_build "${BUILD_NAME}" \
         sudo docker run --rm --name "${BUILD_NAME}.build" -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
-        "mattgodbolt/${IMAGE}-builder" \
+        "compilerexplorer/${IMAGE}-builder" \
         bash "${COMMAND}" "${BUILD}" s3://compiler-explorer/opt/
     log_to_json ${LOG_DIR} admin
 }

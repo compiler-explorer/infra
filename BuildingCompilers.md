@@ -1,7 +1,6 @@
 # Building compilers
 
-Compiler Explorer builds its compilers using docker images. These are built using the `Dockerfile` in `gcc/` and `clang/`
-directories. The images are auto-built by [Docker Hub](https://hub.docker.com/r/mattgodbolt) on git checkins. 
+Compiler Explorer builds its compilers using docker images. These images are each contained in their own [Git Repos](https://github.com/search?q=topic%3Adocker-images+org%3Acompiler-explorer&type=Repositories). The images are auto-built by [Docker Hub](https://hub.docker.com/u/compilerexplorer) on git checkins.
 
 ## Daily images
 
@@ -19,7 +18,7 @@ Then compilations can be run with commands like:
 ```bash
 ce builder exec -- \
   sudo docker run --rm --name clang.build \
-    -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro mattgodbolt/clang-builder \
+    -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro compilerexplorer/clang-builder \
     bash build.sh 6.0.0 s3://compiler-explorer/opt/
 ```
 

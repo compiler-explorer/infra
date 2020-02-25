@@ -1,1 +1,0 @@
-export CFLAGS="-O2 -fgnu89-inline"

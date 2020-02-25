@@ -1,2 +1,0 @@
-export CC='gcc -fgnu89-inline'
-export CXX='g++ -fgnu89-inline'

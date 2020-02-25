@@ -39,7 +39,7 @@ build_cross() {
     fi
 
     run_on_build gcc-cross \
-        sudo docker run --rm --name gcc-cross.build -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg:ro mattgodbolt/gcc-cross \
+        sudo docker run --rm --name gcc-cross.build -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg:ro compilerexplorer/gcc-cross-builder \
         bash ./build.sh ${ARCH} ${VERSION} s3://compiler-explorer/opt/
 }
 
