@@ -73,3 +73,7 @@ ce_install 'compilers/c++'
 #########################
 # Nim
 . ${SCRIPT_DIR}/install_nim_compilers.sh ${ARG1}
+
+#########################
+# Python
+ce_install 'compilers/python'
