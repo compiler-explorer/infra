@@ -50,7 +50,6 @@ build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
 build_latest gcc gcc_embed build.sh embed-trunk
 build_latest gcc gcc_static_analysis build.sh static-analysis-trunk
 build_latest clang clang build.sh trunk
-build_latest clang clang_concepts build-concepts.sh trunk
 build_latest clang clang_cppx build-cppx.sh trunk
 build_latest clang clang_relocatable build-relocatable.sh trunk
 build_latest clang clang_autonsdmi build-autonsdmi.sh trunk
