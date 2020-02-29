@@ -206,7 +206,7 @@ get_github_versioned_and_trunk libs/catch2 catchorg/Catch2 v2.2.2 v2.2.3 v2.3.0 
 get_github_versions libs/expected-lite martinmoene/expected-dark v0.0.1
 get_github_versioned_and_trunk libs/expected-lite martinmoene/expected-lite v0.1.0
 get_github_versioned_and_trunk libs/nlohmann_json nlohmann/json v3.6.0 v3.1.2 v2.1.1
-get_github_versioned_and_trunk libs/doctest onqtam/doctest 1.2.9 2.0.0 2.0.1 2.1.0 2.2.0 2.2.1 2.2.2 2.2.3 2.3.0 2.3.1 2.3.2 2.3.3 2.3.4 2.3.5 2.3.6
+get_github_versioned_and_trunk libs/doctest onqtam/doctest 1.2.9 2.0.0 2.0.1 2.1.0 2.2.0 2.2.1 2.2.2 2.2.3 2.3.0 2.3.1 2.3.2 2.3.3 2.3.4 2.3.5 2.3.6 2.3.7
 get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01 3.12.04 3.12.07 3.12.08 3.13.00 3.13.02 3.13.03 3.13.04 3.13.05 3.13.06 3.14.00 3.14.01 3.14.02 3.14.03 3.14.06 3.15.00 3.16.01
 get_github_versioned_and_trunk libs/xtl QuantStack/xtl 0.5.3 0.4.16
 get_github_versioned_and_trunk libs/xsimd QuantStack/xsimd 7.0.0 6.1.4
