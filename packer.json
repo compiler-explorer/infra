@@ -14,7 +14,7 @@
           "owners": ["099720109477"],
           "most_recent": true
       },
-      "instance_type": "t2.medium",
+      "instance_type": "c5.xlarge",
       "ssh_username": "ubuntu",
       "ami_name": "compiler-explorer packer 18.04 @ {{timestamp}}",
       "associate_public_ip_address": true,
@@ -27,7 +27,7 @@
           "device_name": "/dev/sda1",
           "volume_size": 6,
           "delete_on_termination": true,
-          "volume_type": "standard"
+          "volume_type": "gp2"
         }
       ],
       "launch_block_device_mappings": [
@@ -35,7 +35,7 @@
           "device_name": "/dev/sda1",
           "volume_size": 10,
           "delete_on_termination": true,
-          "volume_type": "standard"
+          "volume_type": "gp2"
         }
       ]
     }

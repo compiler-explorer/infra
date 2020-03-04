@@ -9,13 +9,13 @@ config.json: make_json.py
 	python3 make_json.py
 
 packer: config.json ## Builds the base image for compiler explorer nodes
-	$(PACKER) build -var-file=config.json packer.json
+	$(PACKER) build -timestamp-ui -var-file=config.json packer.json
 
 packer-local: config.json ## Builds a local docker version of the compiler explorer node image
-	$(PACKER) build -var-file=config.json packer-local.json
+	$(PACKER) build -timestamp-ui -var-file=config.json packer-local.json
 
 packer-admin: config.json  ## Builds the base image for the admin server
-	$(PACKER) build -var-file=config.json packer-admin.json
+	$(PACKER) build -timestamp-ui -var-file=config.json packer-admin.json
 
 clean:
 	echo nothing to clean yet
