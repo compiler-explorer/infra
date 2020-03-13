@@ -231,6 +231,11 @@ install_new_rust 1.40.0 RUST_TARGETS[@]
 RUST_TARGETS=( "${RUST_TARGETS[@]/i686-unknown-dragonfly/}" )
 RUST_TARGETS+=( armv6-unknown-freebsd-gnueabihf )
 install_new_rust 1.41.0 RUST_TARGETS[@]
+RUST_TARGETS+=(
+    armv7a-none-eabi
+    riscv64gc-unknown-linux-gnu
+)
+install_new_rust 1.42.0 RUST_TARGETS[@]
 
 if install_nightly; then
     install_new_rust nightly RUST_TARGETS[@] '1 day'
