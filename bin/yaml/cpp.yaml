@@ -42,6 +42,7 @@ compilers:
           - 8.3.0
           - 9.1.0
           - 9.2.0
+          - 9.3.0
     cross:
       type: s3tarballs
       arch_prefix:
@@ -148,7 +149,7 @@ compilers:
           targets:
             - 4.5.4
             - 4.6.4
-            - name: 9.2.0
+            - name: 9.3.0
               untar_dir: "avr-gcc-{name}"
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
