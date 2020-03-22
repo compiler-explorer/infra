@@ -1,13 +1,3 @@
-data "aws_acm_certificate" "godbolt-org" {
-  domain      = "*.godbolt.org"
-  most_recent = true
-}
-
-data "aws_acm_certificate" "compiler-explorer-com" {
-  domain      = "*.compiler-explorer.com"
-  most_recent = true
-}
-
 data "aws_acm_certificate" "godbolt-org-et-al" {
   domain      = "godbolt.org"
   types       = ["AMAZON_ISSUED"]
