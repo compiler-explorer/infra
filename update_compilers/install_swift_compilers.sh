@@ -46,6 +46,7 @@ get_swift 4.1.2
 get_swift 4.2
 get_swift 5.0
 get_swift 5.1
+get_swift 5.2
 
 if install_nightly; then
     get_swift nightly
