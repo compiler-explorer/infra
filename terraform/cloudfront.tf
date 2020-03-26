@@ -18,10 +18,12 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = [
+      http_port                = 80
+      https_port               = 443
+      origin_read_timeout      = 60
+      origin_keepalive_timeout = 60
+      origin_protocol_policy   = "https-only"
+      origin_ssl_protocols     = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -158,11 +160,12 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      # Certificate on the endpoint is godbolt.org
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = [
+      http_port                = 80
+      https_port               = 443
+      origin_read_timeout      = 60
+      origin_keepalive_timeout = 60
+      origin_protocol_policy   = "https-only"
+      origin_ssl_protocols     = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -297,11 +300,12 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "ALB-compiler-explorer"
     custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      # Certificate on the endpoint is godbolt.org
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = [
+      http_port                = 80
+      https_port               = 443
+      origin_read_timeout      = 60
+      origin_keepalive_timeout = 60
+      origin_protocol_policy   = "https-only"
+      origin_ssl_protocols     = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
