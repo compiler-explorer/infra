@@ -45,10 +45,9 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-beta" {
     target_group_arn = aws_alb_target_group.beta.arn
   }
   condition {
-    field  = "path-pattern"
-    values = [
-      "/beta*"
-    ]
+    path_pattern {
+      values = ["/beta*"]
+    }
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
 }
@@ -60,10 +59,11 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
     target_group_arn = aws_alb_target_group.staging.arn
   }
   condition {
-    field  = "path-pattern"
-    values = [
-      "/staging*"
-    ]
+    path_pattern {
+      values = [
+        "/staging*"
+      ]
+    }
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
 }
@@ -87,10 +87,11 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
     target_group_arn = aws_alb_target_group.beta.arn
   }
   condition {
-    field  = "path-pattern"
-    values = [
-      "/beta*"
-    ]
+    path_pattern {
+      values = [
+        "/beta*"
+      ]
+    }
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
@@ -102,10 +103,11 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
     target_group_arn = aws_alb_target_group.staging.arn
   }
   condition {
-    field  = "path-pattern"
-    values = [
-      "/staging*"
-    ]
+    path_pattern {
+      values = [
+        "/staging*"
+      ]
+    }
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
