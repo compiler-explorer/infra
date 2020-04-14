@@ -349,14 +349,14 @@ def old_deploy_staticfiles(branch, versionfile):
     subprocess.call(['rm', '-Rf', 'deploy'])
 
 
-def deploy_staticfiles(release):
+def deploy_staticfiles(release) -> bool:
     print("Deploying static files to cdn")
     cc = f'public, max-age={int(datetime.timedelta(days=365).total_seconds())}'
 
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
         with DeploymentJob(f.name, 'ce-cdn.net', version=release.version, cache_control=cc) as job:
-            job.run()
+            return job.run()
 
 
 def builds_set_current_cmd(args):
@@ -377,7 +377,9 @@ def builds_set_current_cmd(args):
     if to_set is not None:
         log_new_build(args, to_set)
         if release and release.static_key:
-            deploy_staticfiles(release)
+            if not deploy_staticfiles(release):
+                print("...aborted due to deployment failure!")
+                sys.exit(1)
         else:
             old_deploy_staticfiles(args['branch'], to_set)
         set_current_key(args, to_set)
