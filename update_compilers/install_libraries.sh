@@ -216,6 +216,7 @@ get_github_versioned_and_trunk libs/xtensor QuantStack/xtensor 0.19.4 0.18.2 0.1
 get_github_versioned_and_trunk libs/seastar scylladb/seastar seastar-18.08.0
 get_github_versioned_and_trunk libs/PEGTL taocpp/PEGTL 2.8.0
 get_github_versioned_and_trunk libs/benri jansende/benri v2.0.1 v2.1.1
+get_github_versioned_and_trunk libs/spy jfalcou/spy 0.0.3
 get_github_versions libs/hedley nemequ/hedley v12
 
 get_github_versions libs/GSL Microsoft/GSL v1.0.0 v2.0.0 v2.1.0 v3.0.0
