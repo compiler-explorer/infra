@@ -43,6 +43,7 @@ install_zig 0.2.0
 install_zig 0.3.0
 install_zig 0.4.0
 install_zig 0.5.0
+install_zig 0.6.0
 
 if install_nightly; then
     install_zig_nightly master
