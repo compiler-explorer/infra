@@ -91,4 +91,4 @@ if [[ -f /efs/compiler-explorer/libs/boost.tar.xz ]]; then
     tar xf /efs/compiler-explorer/libs/boost.tar.xz -C /celibs
 fi
 
-adduser --system --no-create-home ce
+adduser --system --group --no-create-home ce
