@@ -97,6 +97,15 @@ compilers:
             targets:
               - gcc-arm-none-eabi-8-2019-q3-update # name unused in this case
           - type: tarballs
+            check_exe: bin/arm-none-eabi-g++ --version
+            subdir: arm
+            dir: arm/gcc-arm-none-eabi-9-2019-q4-major
+            untar_dir: gcc-arm-none-eabi-9-2019-q4-major
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/9-2019q4/gcc-arm-none-eabi-9-2019-q4-major-x86_64-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-9-2019-q4 # name unused in this case
+          - type: tarballs
             # Not in a subdir
             check_exe: bin/arm-none-eabi-g++ --version
             dir: gcc-arm-none-eabi-5_4-2016q3
