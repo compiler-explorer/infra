@@ -4,7 +4,7 @@ set -ex
 
 ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
 ENV=${ENV:-prod}
-CE_USER=ubuntu
+CE_USER=ce
 DEPLOY_DIR=${PWD}/.deploy
 
 echo Running in environment "${ENV}"
