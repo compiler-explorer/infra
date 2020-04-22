@@ -90,3 +90,5 @@ if [[ -f /efs/compiler-explorer/libs/boost.tar.xz ]]; then
     mkdir -p /celibs
     tar xf /efs/compiler-explorer/libs/boost.tar.xz -C /celibs
 fi
+
+adduser --system --no-create-home ce

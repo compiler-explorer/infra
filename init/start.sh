@@ -7,11 +7,12 @@ ENV=${ENV:-prod}
 CE_USER=ubuntu
 DEPLOY_DIR=${PWD}/.deploy
 
-echo Running in environment ${ENV}
+echo Running in environment "${ENV}"
+# shellcheck disable=SC1090
 source "${PWD}/site-${ENV}.sh"
 
 get_conf() {
-    aws ssm get-parameter --name $1 | jq -r .Parameter.Value
+    aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
 
 mount_opt() {
@@ -42,15 +43,16 @@ get_released_code() {
     echo "Unpacking build from ${URL}"
     mkdir -p "${DEST}"
     pushd "${DEST}"
-    echo ${S3_KEY} >s3_key
+    echo "${S3_KEY}" >s3_key
     curl -sL "${URL}" | tar Jxf -
     chown -R ${CE_USER}:${CE_USER} .
     popd
 }
 
 update_code() {
-    local S3_KEY=$(curl -sL https://s3.amazonaws.com/compiler-explorer/version/${BRANCH})
+    local S3_KEY
     local CUR_S3_KEY=""
+    S3_KEY=$(curl -sL "https://s3.amazonaws.com/compiler-explorer/version/${BRANCH}")
     if [[ -f "${DEPLOY_DIR}/s3_key" ]]; then
         CUR_S3_KEY=$(cat "${DEPLOY_DIR}/s3_key")
     fi
@@ -66,20 +68,21 @@ update_code() {
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
-cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-sandbox
-cgcreate -a ubuntu:ubuntu -g memory,pids,cpu,net_cls:ce-compile
+cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
+cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 mount_opt
 rsync_boost
 update_code
 
 cd "${DEPLOY_DIR}"
+# shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/compiler-explorer/node/bin/node \
     -- app.js \
     --suppressConsoleLog \
-    --logHost ${LOG_DEST_HOST} \
-    --logPort ${LOG_DEST_PORT} \
+    --logHost "${LOG_DEST_HOST}" \
+    --logPort "${LOG_DEST_PORT}" \
     --env amazon \
     --port 10240 \
     --static out/dist \
