@@ -54,5 +54,6 @@ build_cross arm64 8.2.0
 build_cross riscv64 8.2.0
 build_cross k1 7.4.1
 build_cross k1 7.5.0
+build_cross kvx 7.5.0
 
 exit ${BUILD_FAILED}
