@@ -25,3 +25,10 @@ libraries:
         check_file: include/llvm/Config/llvm-config.h
         targets:
           - trunk
+    benri:
+      type: git
+      repo: jansende/benri
+      targets:
+        - v2.1.1
+        - v2.0.1
+      build_type: cmake

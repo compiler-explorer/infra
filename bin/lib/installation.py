@@ -1,6 +1,7 @@
 import glob
 import logging
 import os
+import sys
 import re
 import shutil
 import subprocess
@@ -65,7 +66,8 @@ class InstallationContext(object):
     def clean_staging(self):
         self.debug(f"Cleaning staging dir {self.staging}")
         if os.path.isdir(self.staging):
-            subprocess.check_call(["chmod", "-R", "u+w", self.staging])
+            if not sys.platform.startswith('win'):
+                subprocess.check_call(["chmod", "-R", "u+w", self.staging])
             shutil.rmtree(self.staging, ignore_errors=True)
         self.debug(f"Recreating staging dir {self.staging}")
         os.makedirs(self.staging)
@@ -284,7 +286,7 @@ class Installable(object):
 
         if self.check_file:
             res = os.path.isfile(os.path.join(self.install_context.destination, self.check_file))
-            self.debug(f'Check file for "{self.check_file}" returned {res}')
+            self.debug(f'Check file for "{self.install_context.destination}/{self.check_file}" returned {res}')
             return res
 
         try:
@@ -308,6 +310,52 @@ def command_config(config):
     if isinstance(config, str):
         return config.split(" ")
     return config
+
+
+class GitInstallable(Installable):
+    def __init__(self, install_context, config):
+        super(GitInstallable, self).__init__(install_context, config)
+        last_context = self.context[-1]
+        self.path_name = self.config_get('path_name', f'libs/{last_context}/{self.target_name}')
+        self.repo = self.config_get("repo", "")
+        self.build_type = self.config_get("build_type", "")
+        self.decompress_flag = 'z'
+        if self.repo == "":
+            raise RuntimeError(f'Requires repo')
+        check_file = self.config_get("check_file", "")
+        if check_file == "":
+            if self.build_type == "cmake":
+                self.check_file = f'{self.path_name}/CMakeLists.txt'
+            elif self.build_type == "make":
+                self.check_file = f'{self.path_name}/Makefile'
+            else:
+                raise RuntimeError(f'Requires check_file')
+        else:
+            self.check_file = f'{self.path_name}/{check_file}'
+
+    def stage(self):
+        self.install_context.clean_staging()
+        self.install_context.fetch_url_and_pipe_to(f'https://github.com/{self.repo}/archive/{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+
+    def verify(self):
+        if not super(GitInstallable, self).verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
+
+    def install(self):
+        if not super(GitInstallable, self).install():
+            return False
+        self.stage()
+        if self.subdir:
+            self.install_context.make_subdir(self.subdir)
+        self.install_context.move_from_staging(self.untar_dir, self.path_name)
+        return True
+
+    def __repr__(self) -> str:
+        return f'GitInstallable({self.name}, {self.path_name})'
 
 
 class S3TarballInstallable(Installable):
@@ -610,7 +658,8 @@ INSTALLER_TYPES = {
     'tarballs': TarballInstallable,
     's3tarballs': S3TarballInstallable,
     'nightly': NightlyInstallable,
-    'script': ScriptInstallable
+    'script': ScriptInstallable,
+    'git': GitInstallable
 }
 
 
