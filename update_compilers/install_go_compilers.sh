@@ -61,6 +61,7 @@ install_golang 1.10.1
 install_golang 1.11
 install_golang 1.12
 install_golang 1.13
+install_golang 1.14
 
 if install_nightly; then
     do_nightly_install go-trunk go-tip
