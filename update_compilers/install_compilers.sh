@@ -36,7 +36,7 @@ ce_install 'compilers/c++'
 
 #########################
 # ISPC
-. ${SCRIPT_DIR}/install_ispc_compilers.sh ${ARG1}
+ce_install 'compilers/ispc'
 
 #########################
 # Haskell
