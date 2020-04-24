@@ -79,7 +79,10 @@ class InstallationContext(object):
             self.error(f'Failed to fetch {url}: {request}')
             raise RuntimeError(f'Fetch failure for {url}: {request}')
         fetched = 0
-        length = int(request.headers['content-length'])
+        if 'content-length' in request.headers.keys():
+            length = int(request.headers['content-length'])
+        else:
+            length = 0
         self.info(f'Fetching {url} ({length} bytes)')
         report_every_secs = 5
         report_time = time.time() + report_every_secs
@@ -264,6 +267,9 @@ class Installable(object):
     def should_install(self):
         return self.install_always or not self.is_installed()
 
+    def should_build(self):
+        return True
+
     def install(self):
         self.debug("Ensuring dependees are installed")
         any_missing = False
@@ -305,6 +311,22 @@ class Installable(object):
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
 
+    def cmakebuild(self):
+        # create build folder
+        # get a list of all the compilers we can make a build for
+        # get a list of all the variables we support
+        # per compiler and variable -> cmake
+        # introduce conanfile to export_pkg all the .a files
+        return False
+
+    def build(self):
+        if self.build_type == "":
+            raise RuntimeError('No build_type')
+        
+        if self.build_type == "cmake":
+            self.cmakebuild()
+        else:
+            raise RuntimeError('Unsupported build_type')
 
 def command_config(config):
     if isinstance(config, str):
@@ -316,10 +338,15 @@ class GitInstallable(Installable):
     def __init__(self, install_context, config):
         super(GitInstallable, self).__init__(install_context, config)
         last_context = self.context[-1]
-        self.path_name = self.config_get('path_name', f'libs/{last_context}/{self.target_name}')
         self.repo = self.config_get("repo", "")
         self.build_type = self.config_get("build_type", "")
         self.decompress_flag = 'z'
+        self.strip = False
+        self.subdir = f'libs/{last_context}'
+        self.target_prefix = self.config_get("target_prefix", "")
+        self.path_name = self.config_get('path_name', f'{self.subdir}/{self.target_prefix}{self.target_name}')
+        default_untar_dir = f'{last_context}-{self.target_name}'
+        self.untar_dir = self.config_get("untar_dir", default_untar_dir)
         if self.repo == "":
             raise RuntimeError(f'Requires repo')
         check_file = self.config_get("check_file", "")
@@ -335,7 +362,7 @@ class GitInstallable(Installable):
 
     def stage(self):
         self.install_context.clean_staging()
-        self.install_context.fetch_url_and_pipe_to(f'https://github.com/{self.repo}/archive/{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+        self.install_context.fetch_url_and_pipe_to(f'https://github.com/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
