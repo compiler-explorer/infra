@@ -25,6 +25,7 @@ NO_DEFAULT = "__no_default__"
 logger = logging.getLogger(__name__)
 
 _memoized_compilers = None
+_cpp_properties_compilers = None
 
 
 def s3_available_compilers():
@@ -37,6 +38,88 @@ def s3_available_compilers():
                 _memoized_compilers[match.group(1)].append(match.group(2))
     return _memoized_compilers
 
+def getToolchainPathFromOptions(options):
+    match = re.search("--gcc-toolchain=(\S*)", options)
+    if match:
+        return match[1]
+    else:
+        match = re.search("--gxx-name=(\S*)", options)
+        if match:
+            return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
+    return False
+
+def get_cpp_properties_compilers():
+    global _cpp_properties_compilers
+    url = 'https://raw.githubusercontent.com/mattgodbolt/compiler-explorer/master/etc/config/c%2B%2B.amazon.properties'
+    if _cpp_properties_compilers is None:
+        _cpp_properties_compilers = defaultdict(lambda: [])
+        lines = []
+        with tempfile.TemporaryFile() as fd:
+            request = requests.get(url, stream=True)
+            if not request.ok:
+                logger.error(f'Failed to fetch {url}: {request}')
+                raise RuntimeError(f'Fetch failure for {url}: {request}')
+            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
+                fd.write(chunk)
+            fd.flush()
+            fd.seek(0)
+            lines = fd.readlines()
+
+        logger.debug('Reading properties for groups')
+        groups = defaultdict(lambda: [])
+        for line in lines:
+            sline = line.decode('utf-8').rstrip('\n')
+            if sline.startswith('group.'):
+                keyval = sline.split('=', 1)
+                key = keyval[0].split('.')
+                val = keyval[1]
+                group = key[1]
+                if not group in groups:
+                    groups[group] = defaultdict(lambda: [])
+                    groups[group]['options'] = ""
+                    groups[group]['compilerType'] = ""
+                    groups[group]['compilers'] = []
+
+                if key[2] == "compilers":
+                    groups[group]['compilers'] = val.split(':')
+                elif key[2] == "options":
+                    groups[group]['options'] = val
+                elif key[2] == "compilerType":
+                    groups[group]['compilerType'] = val
+
+        logger.debug('Setting default values for compilers')
+        for group in groups:
+            for compiler in groups[group]['compilers']:
+                if not compiler in _cpp_properties_compilers:
+                    _cpp_properties_compilers[compiler] = defaultdict(lambda: [])
+                _cpp_properties_compilers[compiler]['options'] = groups[group]['options']
+                _cpp_properties_compilers[compiler]['compilerType'] = groups[group]['compilerType']
+
+        logger.debug('Reading properties for compilers')
+        for line in lines:
+            sline = line.decode('utf-8').rstrip('\n')
+            if sline.startswith('compiler.'):
+                keyval = sline.split('=', 1)
+                key = keyval[0].split('.')
+                val = keyval[1]
+                if not key[1] in _cpp_properties_compilers:
+                    _cpp_properties_compilers[key[1]] = defaultdict(lambda: [])
+                _cpp_properties_compilers[key[1]][key[2]] = val
+
+        logger.debug('Removing compilers that are not available')
+        keysToRemove = defaultdict(lambda: [])
+        for compiler in _cpp_properties_compilers:
+            if 'exe' in _cpp_properties_compilers[compiler]:
+                exe = _cpp_properties_compilers[compiler]['exe']
+                if not os.path.exists(exe):
+                    keysToRemove[compiler] = True
+            else:
+                keysToRemove[compiler] = True
+
+        for compiler in keysToRemove:
+            del _cpp_properties_compilers[compiler]
+
+    return _cpp_properties_compilers
 
 class InstallationContext(object):
     def __init__(self, destination, staging, s3_url, dry_run, cache):
@@ -312,8 +395,30 @@ class Installable(object):
         return self.config.get(config_key, default)
 
     def cmakebuild(self):
+        compilerprops = get_cpp_properties_compilers()
+        
+        for compiler in compilerprops:
+            exe = compilerprops[compiler]['exe']
+            compilerType = compilerprops[compiler]['compilerType']
+            toolchain = getToolchainPathFromOptions(_cpp_properties_compilers[compiler]['options'])
+            if not toolchain:
+                toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), '..'))
+
+            options = compilerprops[compiler]['options']
+            self.debug(exe)
+            self.debug(compilerType)
+            self.debug(toolchain)
+            if compilerType == "":
+                self.debug('Gcc-like compiler')
+            elif compilerType == "clang":
+                self.debug('Clang-like compiler')
+            else:
+                self.debug('Some other compiler')
+
         # create build folder
-        # get a list of all the compilers we can make a build for
+        # DONE get a list of all the compilers we can make a build for
+        # DONE download https://raw.githubusercontent.com/mattgodbolt/compiler-explorer/master/etc/config/c%2B%2B.amazon.properties
+        # DONE somehow parse it and match it to the list this installer knows
         # get a list of all the variables we support
         # per compiler and variable -> cmake
         # introduce conanfile to export_pkg all the .a files
