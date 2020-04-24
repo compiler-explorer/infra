@@ -21,6 +21,7 @@ compilers:
         - "1.11"
         - "1.12"
         - "1.13"
+        - "1.14"
     nightly:
       if: nightly
       type: nightly
