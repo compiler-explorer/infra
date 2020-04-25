@@ -148,6 +148,8 @@ def get_cpp_properties_compilers():
 
                 if key[2] == 'description':
                     _cpp_properties_libraries[libid]['description'] = val
+                elif key[2] == 'name':
+                    _cpp_properties_libraries[libid]['name'] = val
                 elif key[2] == 'url':
                     _cpp_properties_libraries[libid]['url'] = val
 
@@ -524,7 +526,10 @@ class Installable(object):
 
         f.write(f'libsfound=$(find . -name lib{libname}d.a)\n')
         f.write(f'if [ "$libsfound" = "" ]; then\n')
-        f.write(f'  make\n')
+        f.write(f'  libsfound=$(find . -name lib{libname}.a)\n')
+        f.write(f'  if [ "$libsfound" = "" ]; then\n')
+        f.write(f'    make\n')
+        f.write(f'  fi\n')
         f.write(f'fi\n')
 
         f.write(f'if [ $? -ne 0 ]; then\n')
@@ -532,6 +537,10 @@ class Installable(object):
         f.write(f'fi\n')
 
         f.write(f'libsfound=$(find . -name lib{libname}d.a)\n')
+        f.write(f'if [ "$libsfound" = "" ]; then\n')
+        f.write(f'  libsfound=$(find . -name lib{libname}.a)\n')
+        f.write(f'fi\n')
+
         f.write(f'if [ "$libsfound" != "" ]; then\n')
         f.write(f'  conan export-pkg . {libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
         f.write(f'  conan upload {libname}/{self.target_name} --all -r=myserver -c\n')
@@ -572,6 +581,7 @@ class Installable(object):
         f.write(f'    def package(self):\n')
         for lib in self.staticliblink:
             f.write(f'        self.copy("lib{lib}d.a", dst="lib", keep_path=False)\n')
+            f.write(f'        self.copy("lib{lib}.a", dst="lib", keep_path=False)\n')
         f.write(f'    def package_info(self):\n')
         f.write(f'        self.cpp_info.libs = [{libsum}]\n')
         f.close()
@@ -588,6 +598,8 @@ class Installable(object):
         flagsstr = '|'.join(x for x in flagscombination)
         hasher.update(bytes(f'{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}', 'utf-8'))
         combinedhash = compiler + '_' + hasher.hexdigest()
+
+        self.info(f'Building {self.context[-1]} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]')
 
         buildfolder = os.path.join(self.install_context.destination, self.path_name, combinedhash)
         self.debug(buildfolder)
@@ -611,6 +623,8 @@ class Installable(object):
 
         if 'description' in _cpp_properties_libraries[libname]:
             self.description = _cpp_properties_libraries[libname]['description']
+        if 'name' in _cpp_properties_libraries[libname]:
+            self.description = _cpp_properties_libraries[libname]['name']
         if 'url' in _cpp_properties_libraries[libname]:
             self.url = _cpp_properties_libraries[libname]['url']
 
@@ -699,7 +713,7 @@ class GitInstallable(Installable):
         self.repo = self.config_get("repo", "")
         self.decompress_flag = 'z'
         self.strip = False
-        self.subdir = os.path.join('libs', last_context)
+        self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
         self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
         default_untar_dir = f'{last_context}-{self.target_name}'
