@@ -14,13 +14,21 @@ compilers:
         - 0.5.5
     cc65:
       type: s3tarballs
-      subdir: 6502
+      subdir: '6502'
+      s3_path_prefix: cc65-{name}
       check_exe: bin/cc65 --version
       targets:
         - "2.17"
+    gcc:
+      type: s3tarballs
+      check_exe: bin/gcc -v
+      targets:
+        - '1.27'
     nightly:
       if: nightly
       cc65:
+        subdir: '6502'
+        s3_path_prefix: cc65-{name}
         check_exe: bin/cc65 --version
         type: nightly
         targets:
