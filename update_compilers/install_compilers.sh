@@ -58,8 +58,7 @@ ce_install 'compilers/ispc'
 
 #########################
 # Assembly
-# shellcheck source=install_assembly_compilers.sh
-. "${SCRIPT_DIR}"/install_assembly_compilers.sh "${ARG1}"
+ce_install 'compilers/asm'
 
 #########################
 # Zig
