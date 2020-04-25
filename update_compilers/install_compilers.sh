@@ -26,8 +26,7 @@ ce_install 'compilers/go'
 
 #########################
 # D
-# shellcheck source=install_d_compilers.sh
-. "${SCRIPT_DIR}"/install_d_compilers.sh "${ARG1}"
+ce_install 'compilers/d'
 
 #########################
 # C++
@@ -43,7 +42,7 @@ ce_install 'compilers/ispc'
 
 #########################
 # Haskell
-# shellcheck source=install_d_compilers.sh
+# shellcheck source=install_haskell_compilers.sh
 . "${SCRIPT_DIR}"/install_haskell_compilers.sh "${ARG1}"
 
 #########################
@@ -82,7 +81,7 @@ ce_install 'compilers/circle'
 #########################
 # Nim
 # shellcheck source=install_nim_compilers.sh
-. "${SCRIPT_DIR}"/install_nim_compilers.sh ${ARG1}
+. "${SCRIPT_DIR}"/install_nim_compilers.sh "${ARG1}"
 
 #########################
 # Python
