@@ -499,16 +499,25 @@ class Installable(object):
 
         extraflags = ' '.join(x for x in flagscombination)
 
-        f.write(f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}" ..\n')
-        f.write(f'make\n')
-
         if compilerType == "":
             compilerTypeOrGcc = "gcc"
         else:
             compilerTypeOrGcc = compilerType
 
-        f.write(f'conan export-pkg . {libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
-        f.write(f'conan upload {libname}/{self.target_name} --all -r=myserver -c')
+        f.write(f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}" ..\n')
+        f.write(f'make\n')
+
+        f.write(f'if [ $? -ne 0 ]; then\n')
+        f.write(f'  exit $?\n')
+        f.write(f'fi\n')
+
+        f.write(f'libsfound=$(find . -name lib{libname}d.a)\n')
+        f.write(f'if [ "$libsfound" != "" ]; then\n')
+        f.write(f'  conan export-pkg . {libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
+        f.write(f'  conan upload {libname}/{self.target_name} --all -r=myserver -c\n')
+        f.write(f'else\n')
+        f.write(f'  exit 1\n')
+        f.write(f'fi\n')
 
         f.close()
 
