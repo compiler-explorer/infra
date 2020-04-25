@@ -78,8 +78,7 @@ ce_install 'compilers/ispc'
 
 #########################
 # Circle
-# shellcheck source=install_circle_compilers.sh
-. "${SCRIPT_DIR}"/install_circle_compilers.sh "${ARG1}"
+ce_install 'compilers/circle'
 
 #########################
 # Nim
