@@ -1,21 +1,43 @@
 #!/usr/bin/env python3
 # coding=utf-8
 import glob
+import logging
+import logging.config
 import os
 import sys
 from argparse import ArgumentParser
-import yaml
-import logging
-import logging.config
 
-from lib.installation import InstallationContext, installers_for
+import yaml
+
 from lib.config_safe_loader import ConfigSafeLoader
+from lib.installation import InstallationContext, installers_for, Installable
 
 logger = logging.getLogger(__name__)
 
 
-def filter_match(filter, installable):
-    return filter in installable.name
+def _context_match(context_query: str, installable: Installable) -> bool:
+    context = context_query.split('/')
+    root_only = context[0] == ''
+    if root_only:
+        context = context[1:]
+        return installable.context[:len(context)] == context
+
+    for sub in range(0, len(installable.context) - len(context) + 1):
+        if installable.context[sub:sub + len(context)] == context:
+            return True
+    return False
+
+
+def _target_match(target: str, installable: Installable) -> bool:
+    return target == installable.target_name
+
+
+def filter_match(filter_query: str, installable: Installable) -> bool:
+    split = filter_query.split(' ', 1)
+    if len(split) == 1:
+        # We don't know if this is a target or context, so either work
+        return _context_match(split[0], installable) or _target_match(split[0], installable)
+    return _context_match(split[0], installable) and _target_match(split[1], installable)
 
 
 def main():
