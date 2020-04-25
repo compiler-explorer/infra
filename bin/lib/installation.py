@@ -70,7 +70,10 @@ def does_compiler_support_x86(exe, compilerType):
         folder = os.path.dirname(exe)
         llcexe = os.path.join(folder, 'llc')
         if os.path.exists(llcexe):
-            output = subprocess.check_output([llcexe, '--version']).decode('utf-8')
+            try:
+                output = subprocess.check_output([llcexe, '--version']).decode('utf-8')
+            except subprocess.CalledProcessError as e:
+                output = e.output.decode('utf-8')
         else:
             output = ""
     else:
@@ -504,8 +507,15 @@ class Installable(object):
         else:
             compilerTypeOrGcc = compilerType
 
+        self.debug(compilerTypeOrGcc)
+
         f.write(f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}" ..\n')
-        f.write(f'make\n')
+        f.write(f'make {libname}\n')
+
+        f.write(f'libsfound=$(find . -name lib{libname}d.a)\n')
+        f.write(f'if [ "$libsfound" = "" ]; then\n')
+        f.write(f'  make\n')
+        f.write(f'fi\n')
 
         f.write(f'if [ $? -ne 0 ]; then\n')
         f.write(f'  exit $?\n')
@@ -599,7 +609,12 @@ class Installable(object):
                 continue
 
             exe = compilerprops[compiler]['exe']
-            compilerType = compilerprops[compiler]['compilerType']
+
+            if 'compilerType' in compilerprops[compiler]:
+                compilerType = compilerprops[compiler]['compilerType']
+            else:
+                raise RuntimeError(f'Something is wrong with {compiler}')
+
             group = compilerprops[compiler]['group']
             toolchain = getToolchainPathFromOptions(_cpp_properties_compilers[compiler]['options'])
             fixedStdver = getStdVerFromOptions(_cpp_properties_compilers[compiler]['options'])
