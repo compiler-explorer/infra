@@ -44,6 +44,9 @@ def main():
                         help='log output to console, even if logging to a file is requested')
     parser.add_argument('--log', metavar='LOGFILE', help='log to LOGFILE')
 
+    parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
+                        help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
+
     parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'build'], default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
@@ -135,10 +138,14 @@ def main():
         num_skipped = 0
         num_failed = 0
         for installable in installables:
-            print(f"Building {installable.name}")
+            if args.buildfor:
+                print(f"Building {installable.name} just for {args.buildfor}")
+            else:
+                print(f"Building {installable.name} for all")
+
             if args.force or installable.should_build():
                 try:
-                    if installable.build():
+                    if installable.build(args.buildfor):
                         context.info(f"{installable.name} built OK")
                         num_installed += 1
                     else:

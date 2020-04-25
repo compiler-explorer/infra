@@ -25,11 +25,9 @@ libraries:
         check_file: include/llvm/Config/llvm-config.h
         targets:
           - trunk
-    benri:
+    fmt:
       type: git
-      repo: jansende/benri
-      target_prefix: v
+      repo: fmtlib/fmt
       targets:
-        - 2.1.1
-        - 2.0.1
+        - 5.2.0
       build_type: cmake

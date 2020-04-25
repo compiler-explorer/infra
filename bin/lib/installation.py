@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import hashlib
 from datetime import datetime
 from collections import defaultdict, ChainMap
 
@@ -27,6 +28,13 @@ logger = logging.getLogger(__name__)
 _memoized_compilers = None
 _cpp_properties_compilers = None
 
+build_supported_os = ['linux']
+build_supported_buildtype = ['Debug']
+build_supported_arch = ['x86_64', 'x86']
+build_supported_stdver = ['']
+build_supported_stdlib = ['', 'libc++']
+build_supported_flags = ['']
+build_supported_flagscollection = [['']]
 
 def s3_available_compilers():
     global _memoized_compilers
@@ -47,6 +55,21 @@ def getToolchainPathFromOptions(options):
         if match:
             return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
     return False
+
+def getStdVerFromOptions(options):
+    match = re.search("-std=(\S*)", options)
+    if match:
+        return match[1]
+    return False
+
+def does_compiler_support_x86(exe):
+    output = subprocess.check_output([exe, '--target-help']).decode('utf8')
+    if 'x86' in output:
+        logger.debug(f'Compiler {exe} supports x86')
+        return True
+    else:
+        logger.debug(f'Compiler {exe} does not support x86')
+        return False
 
 def get_cpp_properties_compilers():
     global _cpp_properties_compilers
@@ -79,6 +102,7 @@ def get_cpp_properties_compilers():
                     groups[group]['options'] = ""
                     groups[group]['compilerType'] = ""
                     groups[group]['compilers'] = []
+                    groups[group]['supportsBinary'] = True
 
                 if key[2] == "compilers":
                     groups[group]['compilers'] = val.split(':')
@@ -86,6 +110,8 @@ def get_cpp_properties_compilers():
                     groups[group]['options'] = val
                 elif key[2] == "compilerType":
                     groups[group]['compilerType'] = val
+                elif key[2] == "supportsBinary":
+                    groups[group]['supportsBinary'] = val == 'true'
 
         logger.debug('Setting default values for compilers')
         for group in groups:
@@ -94,6 +120,7 @@ def get_cpp_properties_compilers():
                     _cpp_properties_compilers[compiler] = defaultdict(lambda: [])
                 _cpp_properties_compilers[compiler]['options'] = groups[group]['options']
                 _cpp_properties_compilers[compiler]['compilerType'] = groups[group]['compilerType']
+                _cpp_properties_compilers[compiler]['supportsBinary'] = groups[group]['supportsBinary']
 
         logger.debug('Reading properties for compilers')
         for line in lines:
@@ -106,10 +133,12 @@ def get_cpp_properties_compilers():
                     _cpp_properties_compilers[key[1]] = defaultdict(lambda: [])
                 _cpp_properties_compilers[key[1]][key[2]] = val
 
-        logger.debug('Removing compilers that are not available')
+        logger.debug('Removing compilers that are not available or do not support binaries')
         keysToRemove = defaultdict(lambda: [])
         for compiler in _cpp_properties_compilers:
-            if 'exe' in _cpp_properties_compilers[compiler]:
+            if 'supportsBinary' in _cpp_properties_compilers[compiler] and not _cpp_properties_compilers[compiler]['supportsBinary']:
+                keysToRemove[compiler] = True
+            elif 'exe' in _cpp_properties_compilers[compiler]:
                 exe = _cpp_properties_compilers[compiler]['exe']
                 if not os.path.exists(exe):
                     keysToRemove[compiler] = True
@@ -318,6 +347,7 @@ class Installable(object):
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
+        self.build_type = self.config_get("build_type", "")
 
     def _setup_check_exe(self, path_name):
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
@@ -394,13 +424,78 @@ class Installable(object):
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
 
-    def cmakebuild(self):
+    def writebuildscript(self, buildfolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+        scriptfile = os.path.join(buildfolder, "build.sh")
+
+        f = open(scriptfile, 'w')
+        f.write('#!/bin/sh\n\n')
+        compilerexecc = compilerexe[:-2]
+        if compilerexe.endswith('g++'):
+            compilerexecc = f'{compilerexecc}cc'
+
+        f.write(f'export CC={compilerexecc}\n')
+        f.write(f'export CXX={compilerexe}\n')
+
+        rpathflags = ''
+        archflag = ''
+        if arch == '':
+            # note: native arch for the compiler, so most of the time 64, but not always
+            if os.path.exists(f'{toolchain}/lib64'):
+                rpathflags = f'-Wl,-rpath={toolchain}/lib64'
+            else:
+                rpathflags = f'-Wl,-rpath={toolchain}/lib'
+        elif arch == 'x86':
+            rpathflags = f'-Wl,-rpath={toolchain}/lib32'
+
+            if compilerType == 'clang':
+                archflag = '-m32'
+            elif compilerType == '':
+                archflag = '-march=i386 -m32'
+
+        stdverflag = ''
+        if stdver != '':
+            stdverflag = f'-std={stdver}'
+        
+        stdlibflag = ''
+        if stdlib != '' and compilerType == 'clang':
+            stdlibflag = f'-stdlib={stdlib}'
+        
+        extraflags = ' '.join(x for x in flagscombination)
+
+        f.write(f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}" ..\n')
+        f.write(f'make\n')
+        f.close()
+
+        subprocess.check_call(['/bin/chmod','+x', scriptfile])
+
+    def executebuildscript(self, buildfolder):
+        if subprocess.call(['./build.sh'], cwd=buildfolder) == 0:
+            self.info(f'Build succeeded in {buildfolder}')
+
+    def cmakebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+        hasher = hashlib.sha256()
+        flagsstr = '|'.join(x for x in flagscombination)
+        hasher.update(bytes(f'{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}', 'utf-8'))
+        combinedhash = compiler + '_' + hasher.hexdigest()
+
+        buildfolder = os.path.join(self.install_context.destination, self.path_name, combinedhash)
+        self.debug(buildfolder)
+        os.makedirs(buildfolder, exist_ok=True)
+
+        self.writebuildscript(buildfolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
+        self.executebuildscript(buildfolder)
+
+    def cmakebuild(self, buildfor):
         compilerprops = get_cpp_properties_compilers()
         
         for compiler in compilerprops:
+            if buildfor != "" and compiler != buildfor:
+                continue
+
             exe = compilerprops[compiler]['exe']
             compilerType = compilerprops[compiler]['compilerType']
             toolchain = getToolchainPathFromOptions(_cpp_properties_compilers[compiler]['options'])
+            fixedStdver = getStdVerFromOptions(_cpp_properties_compilers[compiler]['options'])
             if not toolchain:
                 toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), '..'))
 
@@ -415,21 +510,37 @@ class Installable(object):
             else:
                 self.debug('Some other compiler')
 
-        # create build folder
+            archs = build_supported_arch
+            if not does_compiler_support_x86(exe):
+                archs = ['']
+
+            stdvers = build_supported_stdver
+            if fixedStdver:
+                stdvers = [fixedStdver]
+
+            for buildos in build_supported_os:
+                for buildtype in build_supported_buildtype:
+                    for arch in archs:
+                        for stdver in stdvers:
+                            for stdlib in build_supported_stdlib:
+                                for flagscombination in build_supported_flagscollection:
+                                    self.cmakebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
+
+        # WIP create build folder -> should probably be somewhere /staging
         # DONE get a list of all the compilers we can make a build for
         # DONE download https://raw.githubusercontent.com/mattgodbolt/compiler-explorer/master/etc/config/c%2B%2B.amazon.properties
         # DONE somehow parse it and match it to the list this installer knows
-        # get a list of all the variables we support
-        # per compiler and variable -> cmake
+        # DONE get a list of all the variables we support
+        # WIP/DONE per compiler and variable -> cmake
         # introduce conanfile to export_pkg all the .a files
         return False
 
-    def build(self):
+    def build(self, buildfor):
         if self.build_type == "":
             raise RuntimeError('No build_type')
         
         if self.build_type == "cmake":
-            self.cmakebuild()
+            self.cmakebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
 
@@ -444,12 +555,11 @@ class GitInstallable(Installable):
         super(GitInstallable, self).__init__(install_context, config)
         last_context = self.context[-1]
         self.repo = self.config_get("repo", "")
-        self.build_type = self.config_get("build_type", "")
         self.decompress_flag = 'z'
         self.strip = False
-        self.subdir = f'libs/{last_context}'
+        self.subdir = os.path.join('libs', last_context)
         self.target_prefix = self.config_get("target_prefix", "")
-        self.path_name = self.config_get('path_name', f'{self.subdir}/{self.target_prefix}{self.target_name}')
+        self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
         default_untar_dir = f'{last_context}-{self.target_name}'
         self.untar_dir = self.config_get("untar_dir", default_untar_dir)
         if self.repo == "":
@@ -457,9 +567,9 @@ class GitInstallable(Installable):
         check_file = self.config_get("check_file", "")
         if check_file == "":
             if self.build_type == "cmake":
-                self.check_file = f'{self.path_name}/CMakeLists.txt'
+                self.check_file = os.path.join(self.path_name, 'CMakeLists.txt')
             elif self.build_type == "make":
-                self.check_file = f'{self.path_name}/Makefile'
+                self.check_file = os.path.join(self.path_name, 'Makefile')
             else:
                 raise RuntimeError(f'Requires check_file')
         else:
