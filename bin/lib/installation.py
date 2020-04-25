@@ -63,7 +63,17 @@ def getStdVerFromOptions(options):
         return match[1]
     return False
 
-def does_compiler_support_x86(exe, compilerType):
+def getTargetFromOptions(options):
+    match = re.search("-target (\S*)", options)
+    if match:
+        return match[1]
+    return False
+
+def does_compiler_support_x86(exe, compilerType, options):
+    fixedTarget = getTargetFromOptions(options)
+    if fixedTarget:
+        return False
+
     if compilerType == "":
         output = subprocess.check_output([exe, '--target-help']).decode('utf-8')
     elif compilerType == "clang":
@@ -633,7 +643,7 @@ class Installable(object):
                 self.debug('Some other compiler')
 
             archs = build_supported_arch
-            if not does_compiler_support_x86(exe, compilerType):
+            if not does_compiler_support_x86(exe, compilerType, _cpp_properties_compilers[compiler]['options']):
                 archs = ['']
 
             stdvers = build_supported_stdver
