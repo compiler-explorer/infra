@@ -20,7 +20,7 @@ fi
 
 #########################
 # Go
-. ${SCRIPT_DIR}/install_go_compilers.sh ${ARG1}
+ce_install 'compilers/go'
 
 #########################
 # D

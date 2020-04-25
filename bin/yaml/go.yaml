@@ -11,6 +11,7 @@ compilers:
       create_untar_dir: true
       strip: true
       targets:
+        - "1.4.1"
         - "1.7.2"
         - "1.8.5"
         - "1.8.7"
