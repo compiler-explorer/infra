@@ -256,7 +256,8 @@ class InstallationContext(object):
             fetched += len(chunk)
             now = time.time()
             if now >= report_time:
-                self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
+                if length != 0:
+                    self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
                 report_time = now + report_every_secs
         self.info(f'100% of {url}')
         fd.flush()
@@ -407,6 +408,9 @@ class Installable(object):
         self.staticliblink = []
         self.sharedliblink = []
         self.url = "None"
+        self.description = ""
+        self.prebuildscript = self.config_get("prebuildscript", [])
+        self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
 
     def _setup_check_exe(self, path_name):
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
@@ -519,11 +523,16 @@ class Installable(object):
                 archflag = '-march=i386 -m32'
 
         rpathflags = ''
+        ldflags = ''
         for path in ldlibpaths:
             rpathflags += f'-Wl,-rpath={path} '
 
+        for path in ldlibpaths:
+            ldflags += f'-L{path} '
+
         ldlibpathsstr = ':'.join(ldlibpaths)
         f.write(f'export LD_LIBRARY_PATHS="{ldlibpathsstr}"\n')
+        f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
 
         stdverflag = ''
         if stdver != '':
@@ -545,15 +554,24 @@ class Installable(object):
 
         cxx_flags = f'{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}'
 
+        if len(self.prebuildscript) > 0:
+            for line in self.prebuildscript:
+                f.write(line)
+
         if self.build_type == "cmake":
-            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {sourcefolder}\n'
+            extracmakeargs = ' '.join(self.extra_cmake_arg)
+            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder}\n'
             self.debug(cmakeline)
             f.write(cmakeline)
         else:
-            f.write(f'make clean\n')
+            if os.path.exists(os.path.join(buildfolder, 'Makefile')):
+                f.write(f'make clean\n')
             f.write(f'rm *.so*\n')
             f.write(f'rm *.a\n')
             f.write(f'export CXX_FLAGS="{cxx_flags}"\n')
+            if self.build_type == "make":
+                if os.path.exists(os.path.join(buildfolder, 'configure')):
+                    f.write(f'./configure\n')
 
         if len(self.staticliblink) != 0:
             for lib in self.staticliblink:
@@ -576,7 +594,7 @@ class Installable(object):
             f.write(f'find . -iname \'lib{lib}.a\' -type f -exec mv {{}} . \;\n')
 
         for lib in self.sharedliblink:
-            f.write(f'find . -iname \'lib{lib}.so*\' -type f -exec mv {{}} . \;\n')
+            f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \;\n')
 
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
@@ -671,6 +689,7 @@ class Installable(object):
             else:
                 return False
         else:
+            self.info(f'No binaries found to upload')
             return False
 
     def executebuildscript(self, buildfolder):
@@ -706,15 +725,23 @@ class Installable(object):
         self.writeconanfile(buildfolder)
         builtok = self.executebuildscript(buildfolder)
         if builtok:
-            builtok = self.executeconanscript(buildfolder, arch, stdlib)
+            if not self.install_context.dry_run:
+                builtok = self.executeconanscript(buildfolder, arch, stdlib)
 
         if builtok:
             if self.build_type == "cmake":
-                shutil.rmtree(buildfolder, ignore_errors=True)
+                self.build_cleanup(buildfolder)
             elif self.build_type == "make":
                 subprocess.call(['make', 'clean'], cwd=buildfolder)
 
         return builtok
+
+    def build_cleanup(self, buildfolder):
+        if self.install_context.dry_run:
+            self.info(f'Would remove directory {buildfolder} but in dry-run mode')
+        else:
+            shutil.rmtree(buildfolder, ignore_errors=True)
+            self.info(f'Removing {buildfolder}')
 
     def makebuild(self, buildfor):
         builds_failed = 0
@@ -723,8 +750,8 @@ class Installable(object):
         compilerprops = get_cpp_properties_compilers()
 
         libname = self.context[-1]
-        if not libname in _cpp_properties_libraries:
-            raise RuntimeError(f'Library {libname} not found in c++.amazon.properties')
+        #if not libname in _cpp_properties_libraries:
+        #    raise RuntimeError(f'Library {libname} not found in c++.amazon.properties')
 
         if 'description' in _cpp_properties_libraries[libname]:
             self.description = _cpp_properties_libraries[libname]['description']
@@ -822,20 +849,25 @@ def command_config(config):
     return config
 
 
-class GitInstallable(Installable):
+class GitHubInstallable(Installable):
     def __init__(self, install_context, config):
-        super(GitInstallable, self).__init__(install_context, config)
+        super(GitHubInstallable, self).__init__(install_context, config)
         last_context = self.context[-1]
         self.repo = self.config_get("repo", "")
+        self.method = self.config_get("method", "archive")
         self.decompress_flag = 'z'
         self.strip = False
         self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
         self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
-        default_untar_dir = f'{last_context}-{self.target_name}'
-        self.untar_dir = self.config_get("untar_dir", default_untar_dir)
         if self.repo == "":
             raise RuntimeError(f'Requires repo')
+
+        splitrepo = self.repo.split('/')
+        self.reponame = splitrepo[1]
+        default_untar_dir = f'{self.reponame}-{self.target_name}'
+        self.untar_dir = self.config_get("untar_dir", default_untar_dir)
+
         check_file = self.config_get("check_file", "")
         if check_file == "":
             if self.build_type == "cmake":
@@ -847,20 +879,32 @@ class GitInstallable(Installable):
         else:
             self.check_file = f'{self.path_name}/{check_file}'
 
+    def clone(self):
+        clonedpath = os.path.join(self.install_context.staging, self.reponame)
+        subprocess.check_call(['git', 'clone', f'https://github.com/{self.repo}.git', self.reponame], cwd=self.install_context.staging)
+        subprocess.check_call(['git', 'checkout', self.target_name], cwd=clonedpath)
+        subprocess.check_call(['git', 'submodule', 'update', '--init'], cwd=clonedpath)
+
     def stage(self):
         self.install_context.clean_staging()
-        self.install_context.fetch_url_and_pipe_to(f'https://github.com/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+        if self.method == "archive":
+            self.install_context.fetch_url_and_pipe_to(f'https://github.com/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+        elif self.method == "clone":
+            self.clone()
+        else:
+            raise RuntimeError(f'Unknown Github method {self.method}')
+
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
     def verify(self):
-        if not super(GitInstallable, self).verify():
+        if not super(GitHubInstallable, self).verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
     def install(self):
-        if not super(GitInstallable, self).install():
+        if not super(GitHubInstallable, self).install():
             return False
         self.stage()
         if self.subdir:
@@ -869,7 +913,7 @@ class GitInstallable(Installable):
         return True
 
     def __repr__(self) -> str:
-        return f'GitInstallable({self.name}, {self.path_name})'
+        return f'GitHubInstallable({self.name}, {self.path_name})'
 
 
 class S3TarballInstallable(Installable):
@@ -1173,7 +1217,7 @@ INSTALLER_TYPES = {
     's3tarballs': S3TarballInstallable,
     'nightly': NightlyInstallable,
     'script': ScriptInstallable,
-    'git': GitInstallable
+    'github': GitHubInstallable
 }
 
 
