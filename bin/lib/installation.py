@@ -69,10 +69,10 @@ def getTargetFromOptions(options):
         return match[1]
     return False
 
-def does_compiler_support_x86(exe, compilerType, options):
+def does_compiler_support(exe, compilerType, arch, options):
     fixedTarget = getTargetFromOptions(options)
     if fixedTarget:
-        return False
+        return fixedTarget == arch
 
     if compilerType == "":
         output = subprocess.check_output([exe, '--target-help']).decode('utf-8')
@@ -89,12 +89,15 @@ def does_compiler_support_x86(exe, compilerType, options):
     else:
         output = ""
 
-    if 'x86' in output:
-        logger.debug(f'Compiler {exe} supports x86')
+    if arch in output:
+        logger.debug(f'Compiler {exe} supports {arch}')
         return True
     else:
-        logger.debug(f'Compiler {exe} does not support x86')
+        logger.debug(f'Compiler {exe} does not support {arch}')
         return False
+
+def does_compiler_support_x86(exe, compilerType, options):
+    return does_compiler_support(exe, compilerType, 'x86', options)
 
 def get_cpp_properties_compilers():
     global _cpp_properties_compilers, _cpp_properties_libraries
@@ -152,6 +155,10 @@ def get_cpp_properties_compilers():
                     _cpp_properties_libraries[libid]['name'] = val
                 elif key[2] == 'url':
                     _cpp_properties_libraries[libid]['url'] = val
+                elif key[2] == 'liblink':
+                    _cpp_properties_libraries[libid]['liblink'] = val
+                elif key[2] == 'staticliblink':
+                    _cpp_properties_libraries[libid]['staticliblink'] = val
 
         logger.debug('Setting default values for compilers')
         for group in groups:
@@ -172,7 +179,11 @@ def get_cpp_properties_compilers():
                 val = keyval[1]
                 if not key[1] in _cpp_properties_compilers:
                     _cpp_properties_compilers[key[1]] = defaultdict(lambda: [])
-                _cpp_properties_compilers[key[1]][key[2]] = val
+
+                if key[2] == "supportsBinary":
+                    _cpp_properties_compilers[key[1]][key[2]] = val == 'true'
+                else:
+                    _cpp_properties_compilers[key[1]][key[2]] = val
 
         logger.debug('Removing compilers that are not available or do not support binaries')
         keysToRemove = defaultdict(lambda: [])
@@ -221,8 +232,7 @@ class InstallationContext(object):
     def clean_staging(self):
         self.debug(f"Cleaning staging dir {self.staging}")
         if os.path.isdir(self.staging):
-            if not sys.platform.startswith('win'):
-                subprocess.check_call(["chmod", "-R", "u+w", self.staging])
+            subprocess.check_call(["chmod", "-R", "u+w", self.staging])
             shutil.rmtree(self.staging, ignore_errors=True)
         self.debug(f"Recreating staging dir {self.staging}")
         os.makedirs(self.staging)
@@ -391,7 +401,11 @@ class Installable(object):
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
         self.build_type = self.config_get("build_type", "")
+        self.build_fixed_arch = self.config_get("build_fixed_arch", "")
+        self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
+        self.lib_type = self.config_get("lib_type", "static")
         self.staticliblink = []
+        self.sharedliblink = []
         self.url = "None"
 
     def _setup_check_exe(self, path_name):
@@ -469,7 +483,7 @@ class Installable(object):
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
 
-    def writebuildscript(self, buildfolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+    def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
         scriptfile = os.path.join(buildfolder, "build.sh")
 
         libname = self.context[-1]
@@ -519,46 +533,63 @@ class Installable(object):
         else:
             compilerTypeOrGcc = compilerType
 
-        self.debug(compilerTypeOrGcc)
+        cxx_flags = f'{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}'
 
-        f.write(f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}" ..\n')
-        f.write(f'make {libname}\n')
+        if self.build_type == "cmake":
+            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {sourcefolder}\n'
+            self.debug(cmakeline)
+            f.write(cmakeline)
+        else:
+            f.write(f'make clean\n')
+            f.write(f'rm *.so*\n')
+            f.write(f'rm *.a\n')
+            f.write(f'export CXX_FLAGS="{cxx_flags}"\n')
 
-        f.write(f'libsfound=$(find . -name lib{libname}.a)\n')
+        if len(self.staticliblink) != 0:
+            for lib in self.staticliblink:
+                f.write(f'make {lib}\n')
+
+        if len(self.sharedliblink) != 0:
+            for lib in self.sharedliblink:
+                f.write(f'make {lib}\n')
+
+        if len(self.staticliblink) != 0:
+            f.write(f'libsfound=$(find . -iname \'lib*.a\')\n')
+        elif len(self.sharedliblink) != 0:
+            f.write(f'libsfound=$(find . -iname \'lib*.so*\')\n')
+
         f.write(f'if [ "$libsfound" = "" ]; then\n')
-        f.write(f'  make\n')
+        f.write(f'  make all\n')
         f.write(f'fi\n')
 
-        f.write(f'if [ $? -ne 0 ]; then\n')
-        f.write(f'  exit $?\n')
-        f.write(f'fi\n')
+        for lib in self.staticliblink:
+            f.write(f'find . -iname \'lib{lib}.a\' -type f -exec mv {{}} . \;\n')
 
-        f.write(f'find . -iname \'lib{libname}.a\' -type f -exec mv {{}} . \;\n')
-
-        f.write(f'libsfound=$(find . -name lib{libname}.a)\n')
-
-        f.write(f'if [ "$libsfound" != "" ]; then\n')
-        f.write(f'  conan export-pkg . {libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
-        f.write(f'  conan upload {libname}/{self.target_name} --all -r=myserver -c\n')
-        f.write(f'else\n')
-        f.write(f'  exit 1\n')
-        f.write(f'fi\n')
+        for lib in self.sharedliblink:
+            f.write(f'find . -iname \'lib{lib}.so*\' -type f -exec mv {{}} . \;\n')
 
         f.close()
+        subprocess.check_call(['/bin/chmod','+x', scriptfile])
 
+        scriptfile = os.path.join(buildfolder, "conanexport.sh")
+
+        f = open(scriptfile, 'w')
+        f.write('#!/bin/sh\n\n')
+        f.write(f'conan export-pkg . {libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
+        f.write(f'conan upload {libname}/{self.target_name} --all -r=myserver -c\n')
+        f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
 
     def writeconanfile(self, buildfolder):
         scriptfile = os.path.join(buildfolder, "conanfile.py")
 
         libname = self.context[-1]
-        self.debug(libname)
-
-        if self.staticliblink == []:
-            self.staticliblink = [f'{libname}']
 
         libsum = ''
         for lib in self.staticliblink:
+            libsum += f'"{lib}",'
+
+        for lib in self.sharedliblink:
             libsum += f'"{lib}",'
 
         libsum = libsum[:-1]
@@ -577,9 +608,60 @@ class Installable(object):
         f.write(f'    def package(self):\n')
         for lib in self.staticliblink:
             f.write(f'        self.copy("lib{lib}.a", dst="lib", keep_path=False)\n')
+        for lib in self.sharedliblink:
+            f.write(f'        self.copy("lib{lib}.so*", dst="lib", keep_path=False)\n')
         f.write(f'    def package_info(self):\n')
         f.write(f'        self.cpp_info.libs = [{libsum}]\n')
         f.close()
+
+    def follow_so_readelf(self, buildfolder, filepath):
+        if not os.path.exists(filepath):
+            return False
+
+        try:
+            details = subprocess.check_output(['readelf', '-h', filepath]).decode('utf-8')
+            try:
+                details += subprocess.check_output(['ldd', filepath]).decode('utf-8')
+            finally:
+                self.debug(details)
+                return details
+        except subprocess.CalledProcessError:
+            f = open(filepath, 'r')
+            lines = f.readlines()
+            f.close()
+            self.debug(lines)
+            match = re.match("INPUT \((\S*)\)", '\n'.join(lines))
+            if match:
+                return self.follow_so_readelf(buildfolder, os.path.join(buildfolder, match[1]))
+            return False
+
+    def executeconanscript(self, buildfolder, arch, stdlib):
+        filesfound = 0
+
+        for lib in self.staticliblink:
+            if os.path.exists(os.path.join(buildfolder, f'lib{lib}.a')):
+                filesfound+=1
+
+        for lib in self.sharedliblink:
+            filepath = os.path.join(buildfolder, f'lib{lib}.so')
+            details = self.follow_so_readelf(buildfolder, filepath)
+            if details:
+                if (stdlib == "" and 'libstdc++.so' in details) or (stdlib != "" and f'{stdlib}.so' in details):
+                    if arch == "":
+                        filesfound+=1
+                    elif arch == "x86" and 'ELF32' in details:
+                        filesfound+=1
+                    elif arch == "x86_64" and 'ELF64' in details:
+                        filesfound+=1
+
+        if filesfound != 0:
+            if subprocess.call(['./conanexport.sh'], cwd=buildfolder) == 0:
+                self.info(f'Upload succeeded')
+                return True
+            else:
+                return False
+        else:
+            return False
 
     def executebuildscript(self, buildfolder):
         if subprocess.call(['./build.sh'], cwd=buildfolder) == 0:
@@ -588,25 +670,43 @@ class Installable(object):
         else:
             return False
 
-    def cmakebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+    def makebuildhash(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
         hasher = hashlib.sha256()
         flagsstr = '|'.join(x for x in flagscombination)
         hasher.update(bytes(f'{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}', 'utf-8'))
-        combinedhash = compiler + '_' + hasher.hexdigest()
 
         self.info(f'Building {self.context[-1]} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]')
 
-        buildfolder = os.path.join(self.install_context.destination, self.path_name, combinedhash)
-        self.debug(buildfolder)
-        os.makedirs(buildfolder, exist_ok=True)
+        return compiler + '_' + hasher.hexdigest()
 
-        self.writebuildscript(buildfolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
+    def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+        combinedhash = self.makebuildhash(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
+
+        sourcefolder = os.path.join(self.install_context.destination, self.path_name)
+        buildfolder = ""
+        if self.build_type == "cmake":
+            buildfolder = os.path.join(self.install_context.staging, combinedhash)
+            os.makedirs(buildfolder, exist_ok=True)
+        else:
+            buildfolder = sourcefolder
+
+        self.debug(f'Buildfolder: {buildfolder}')
+
+        self.writebuildscript(buildfolder, sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
         self.writeconanfile(buildfolder)
         builtok = self.executebuildscript(buildfolder)
+        if builtok:
+            builtok = self.executeconanscript(buildfolder, arch, stdlib)
+
+        if builtok:
+            if self.build_type == "cmake":
+                shutil.rmtree(buildfolder, ignore_errors=True)
+            elif self.build_type == "make":
+                subprocess.call(['make', 'clean'], cwd=buildfolder)
 
         return builtok
 
-    def cmakebuild(self, buildfor):
+    def makebuild(self, buildfor):
         builds_failed = 0
         builds_succeeded = 0
 
@@ -622,36 +722,59 @@ class Installable(object):
             self.description = _cpp_properties_libraries[libname]['name']
         if 'url' in _cpp_properties_libraries[libname]:
             self.url = _cpp_properties_libraries[libname]['url']
+        if 'staticliblink' in _cpp_properties_libraries[libname]:
+            self.staticliblink = _cpp_properties_libraries[libid]['staticliblink'].split(':')
+        if 'liblink' in _cpp_properties_libraries[libname]:
+            self.sharedliblink = _cpp_properties_libraries[libid]['liblink'].split(':')
+
+        if self.lib_type == "static":
+            if self.staticliblink == []:
+                self.staticliblink = [f'{libname}']
+        elif self.lib_type == "shared":
+            if self.sharedliblink == []:
+                self.sharedliblink = [f'{libname}']
 
         for compiler in compilerprops:
             if buildfor != "" and compiler != buildfor:
                 continue
-
-            exe = compilerprops[compiler]['exe']
 
             if 'compilerType' in compilerprops[compiler]:
                 compilerType = compilerprops[compiler]['compilerType']
             else:
                 raise RuntimeError(f'Something is wrong with {compiler}')
 
+            exe = compilerprops[compiler]['exe']
+            options = compilerprops[compiler]['options']
             group = compilerprops[compiler]['group']
-            toolchain = getToolchainPathFromOptions(_cpp_properties_compilers[compiler]['options'])
-            fixedStdver = getStdVerFromOptions(_cpp_properties_compilers[compiler]['options'])
+
+            toolchain = getToolchainPathFromOptions(options)
+            fixedStdver = getStdVerFromOptions(options)
+
             if not toolchain:
                 toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), '..'))
 
             stdlibs = ['']
 
-            options = compilerprops[compiler]['options']
-            if compilerType == "":
-                self.debug('Gcc-like compiler')
-            elif compilerType == "clang":
-                self.debug('Clang-like compiler')
-                stdlibs = build_supported_stdlib
+            if self.build_fixed_stdlib != "":
+                stdlibs = [self.build_fixed_stdlib]
             else:
-                self.debug('Some other compiler')
+                if compilerType == "":
+                    self.debug('Gcc-like compiler')
+                elif compilerType == "clang":
+                    self.debug('Clang-like compiler')
+                    stdlibs = build_supported_stdlib
+                else:
+                    self.debug('Some other compiler')
 
             archs = build_supported_arch
+
+            if self.build_fixed_arch != "":
+                if not does_compiler_support(exe, compilerType, self.build_fixed_arch, _cpp_properties_compilers[compiler]['options']):
+                    self.debug(f'Compiler {compiler} does not support fixed arch {self.build_fixed_arch}')
+                    return False
+                else:
+                    archs = [self.build_fixed_arch]
+
             if not does_compiler_support_x86(exe, compilerType, _cpp_properties_compilers[compiler]['options']):
                 archs = ['']
 
@@ -659,31 +782,17 @@ class Installable(object):
             if fixedStdver:
                 stdvers = [fixedStdver]
 
-            self.debug(build_supported_os)
-            self.debug(build_supported_buildtype)
-            self.debug(archs)
-            self.debug(stdvers)
-            self.debug(build_supported_stdlib)
-            self.debug(build_supported_flagscollection)
-
             for buildos in build_supported_os:
                 for buildtype in build_supported_buildtype:
                     for arch in archs:
                         for stdver in stdvers:
                             for stdlib in stdlibs:
                                 for flagscombination in build_supported_flagscollection:
-                                    if self.cmakebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+                                    if self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
                                         builds_succeeded = builds_succeeded + 1
                                     else:
                                         builds_failed = builds_failed + 1
 
-        # WIP create build folder -> should probably be somewhere /staging
-        # DONE get a list of all the compilers we can make a build for
-        # DONE download https://raw.githubusercontent.com/mattgodbolt/compiler-explorer/master/etc/config/c%2B%2B.amazon.properties
-        # DONE somehow parse it and match it to the list this installer knows
-        # DONE get a list of all the variables we support
-        # WIP/DONE per compiler and variable -> cmake
-        # introduce conanfile to export_pkg all the .a files
         return builds_failed == 0
 
     def build(self, buildfor):
@@ -691,7 +800,9 @@ class Installable(object):
             raise RuntimeError('No build_type')
         
         if self.build_type == "cmake":
-            return self.cmakebuild(buildfor)
+            return self.makebuild(buildfor)
+        elif self.build_type == "make":
+            return self.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
 
