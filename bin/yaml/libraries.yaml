@@ -49,3 +49,10 @@ libraries:
       build_fixed_arch: x86_64
       build_fixed_stdlib: libstdc++
       lib_type: shared
+    catch2:
+      type: git
+      repo: catchorg/Catch2
+      target_prefix: v
+      targets:
+        - 2.2.2
+      check_file: include/catch.hpp

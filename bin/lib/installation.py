@@ -499,21 +499,31 @@ class Installable(object):
         f.write(f'export CC={compilerexecc}\n')
         f.write(f'export CXX={compilerexe}\n')
 
-        rpathflags = ''
+        ldlibpaths = []
         archflag = ''
         if arch == '':
             # note: native arch for the compiler, so most of the time 64, but not always
             if os.path.exists(f'{toolchain}/lib64'):
-                rpathflags = f'-Wl,-rpath={toolchain}/lib64 -Wl,-rpath={toolchain}/lib'
+                ldlibpaths.append(f'{toolchain}/lib64')
+                ldlibpaths.append(f'{toolchain}/lib')
             else:
-                rpathflags = f'-Wl,-rpath={toolchain}/lib'
+                ldlibpaths.append(f'{toolchain}/lib')
         elif arch == 'x86':
-            rpathflags = f'-Wl,-rpath={toolchain}/lib32 -Wl,-rpath={toolchain}/lib'
+            ldlibpaths.append(f'{toolchain}/lib')
+            if os.path.exists(f'{toolchain}/lib32'):
+                ldlibpaths.append(f'{toolchain}/lib32')
 
             if compilerType == 'clang':
                 archflag = '-m32'
             elif compilerType == '':
                 archflag = '-march=i386 -m32'
+
+        rpathflags = ''
+        for path in ldlibpaths:
+            rpathflags += f'-Wl,-rpath={path} '
+
+        ldlibpathsstr = ':'.join(ldlibpaths)
+        f.write(f'export LD_LIBRARY_PATHS="{ldlibpathsstr}"\n')
 
         stdverflag = ''
         if stdver != '':
