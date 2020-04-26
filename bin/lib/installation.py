@@ -524,22 +524,18 @@ class Installable(object):
         f.write(f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}" ..\n')
         f.write(f'make {libname}\n')
 
-        f.write(f'libsfound=$(find . -name lib{libname}d.a)\n')
+        f.write(f'libsfound=$(find . -name lib{libname}.a)\n')
         f.write(f'if [ "$libsfound" = "" ]; then\n')
-        f.write(f'  libsfound=$(find . -name lib{libname}.a)\n')
-        f.write(f'  if [ "$libsfound" = "" ]; then\n')
-        f.write(f'    make\n')
-        f.write(f'  fi\n')
+        f.write(f'  make\n')
         f.write(f'fi\n')
 
         f.write(f'if [ $? -ne 0 ]; then\n')
         f.write(f'  exit $?\n')
         f.write(f'fi\n')
 
-        f.write(f'libsfound=$(find . -name lib{libname}d.a)\n')
-        f.write(f'if [ "$libsfound" = "" ]; then\n')
-        f.write(f'  libsfound=$(find . -name lib{libname}.a)\n')
-        f.write(f'fi\n')
+        f.write(f'find . -iname \'lib{libname}.a\' -type f -exec mv {{}} . \;\n')
+
+        f.write(f'libsfound=$(find . -name lib{libname}.a)\n')
 
         f.write(f'if [ "$libsfound" != "" ]; then\n')
         f.write(f'  conan export-pkg . {libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
@@ -580,7 +576,6 @@ class Installable(object):
         f.write(f'    topics = None\n')
         f.write(f'    def package(self):\n')
         for lib in self.staticliblink:
-            f.write(f'        self.copy("lib{lib}d.a", dst="lib", keep_path=False)\n')
             f.write(f'        self.copy("lib{lib}.a", dst="lib", keep_path=False)\n')
         f.write(f'    def package_info(self):\n')
         f.write(f'        self.cpp_info.libs = [{libsum}]\n')
