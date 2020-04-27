@@ -1,0 +1,29 @@
+os:
+    Linux:
+
+arch: ANY
+
+arch_build: ANY
+
+os_build: ANY
+
+compiler:
+    gcc:
+        version: ANY
+        libcxx: ANY
+    clang:
+        version: ANY
+        libcxx: ANY
+    ellcc:
+        version: ANY
+        libcxx: ANY
+
+build_type: [Debug]
+
+flagcollection: ANY
+
+stdlib: ['', libc++]
+
+stdver: ['', c++11, c++14, c++17, c++2a, gnu++11, gnu++14, gnu++17, gnu++2a]
+
+toolchain: ANY
