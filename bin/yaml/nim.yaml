@@ -9,6 +9,8 @@ compilers:
     dir: nim-{name}
     targets:
       - 1.0.4
+      - 1.0.6
+      - 1.2.0
 #    nightly:
 #      install_always: true
 #      if: nightly
