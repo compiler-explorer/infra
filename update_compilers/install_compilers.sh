@@ -80,8 +80,7 @@ ce_install 'compilers/circle'
 
 #########################
 # Nim
-# shellcheck source=install_nim_compilers.sh
-. "${SCRIPT_DIR}"/install_nim_compilers.sh "${ARG1}"
+ce_install 'compilers/nim'
 
 #########################
 # Python

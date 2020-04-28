@@ -1,0 +1,19 @@
+compilers:
+  nim:
+    type: tarballs
+    compression: xz
+    check_exe: bin/nim --version
+    url: https://nim-lang.org/download/nim-{name}-linux_x64.tar.xz
+    strip:
+      - nim-{name}/bin
+    dir: nim-{name}
+    targets:
+      - 1.0.4
+#    nightly:
+#      install_always: true
+#      if: nightly
+#      type: script
+# todo: fetch https://api.github.com/repos/nim-lang/nightlies/releases/latest
+# look for [.assets[] | select(.name | contains(\"${target}\"))][0].browser_download_url
+# download and unpack that
+# See issue #31 for details why this isn't working currently.
