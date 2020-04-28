@@ -2,6 +2,8 @@ libraries:
   c++:
     llvm:
       type: s3tarballs
+      s3_path_prefix: llvm-{name}
+      subdir: libs/llvm/{name}
       path_name: libs/llvm/{name}
       check_file: include/llvm/Config/llvm-config.h
       targets:

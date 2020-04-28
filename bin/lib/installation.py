@@ -8,6 +8,7 @@ import tempfile
 import time
 from datetime import datetime
 from collections import defaultdict, ChainMap
+from pathlib import Path
 
 import requests
 from cachecontrol import CacheControl
@@ -110,9 +111,8 @@ class InstallationContext(object):
         return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
 
     def make_subdir(self, subdir):
-        full_subdir = os.path.join(self.destination, subdir)
-        if not os.path.isdir(full_subdir):
-            os.mkdir(full_subdir)
+        full_subdir = Path(self.destination) / subdir
+        full_subdir.mkdir(parents=True, exist_ok=True)
 
     def read_link(self, link):
         return os.readlink(os.path.join(self.destination, link))
