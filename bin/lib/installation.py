@@ -38,7 +38,7 @@ def s3_available_compilers():
     return _memoized_compilers
 
 
-class InstallationContext(object):
+class InstallationContext:
     def __init__(self, destination, staging, s3_url, dry_run, cache):
         self.destination = destination
         self.staging = staging
@@ -220,7 +220,7 @@ class InstallationContext(object):
         subprocess.call(['strip'] + to_strip)
 
 
-class Installable(object):
+class Installable:
     def __init__(self, install_context, config):
         self.install_context = install_context
         self.config = config
