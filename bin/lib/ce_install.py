@@ -6,6 +6,7 @@ import logging.config
 import os
 import sys
 from argparse import ArgumentParser
+from pathlib import Path
 
 import yaml
 
@@ -43,9 +44,9 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
 def main():
     parser = ArgumentParser(prog='ce_install',
                             description='Install binaries, libraries and compilers for Compiler Explorer')
-    parser.add_argument('--dest', default='/opt/compiler-explorer', metavar='DEST',
+    parser.add_argument('--dest', default=Path('/opt/compiler-explorer'), metavar='DEST', type=Path,
                         help='install with DEST as the installation root (default %(default)s)')
-    parser.add_argument('--staging-dir', default='/opt/compiler-explorer/staging', metavar='STAGEDIR',
+    parser.add_argument('--staging-dir', default=Path('/opt/compiler-explorer/staging'), metavar='STAGEDIR', type=Path,
                         help='install to STAGEDIR then rename in-place. Must be on the same drive as DEST for atomic'
                              'rename/replace. Directory will be removed during install (default %(default)s)')
 
@@ -57,7 +58,7 @@ def main():
                         help='look for S3 resources in the bucket\'s subdirectory DIR (default %(default)s)')
     parser.add_argument('--yaml_dir', default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'yaml'),
                         help='look for installation yaml files in DIR (default %(default)s', metavar='DIR')
-    parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR')
+    parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR', type=Path)
     parser.add_argument('--dry_run', default=False, action='store_true', help='dry run only')
     parser.add_argument('--force', default=False, action='store_true', help='force even if would otherwise skip')
 

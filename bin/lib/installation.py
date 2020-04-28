@@ -10,6 +10,7 @@ import time
 from collections import defaultdict, ChainMap
 from datetime import datetime
 from pathlib import Path
+from typing import Optional, BinaryIO, Sequence, Collection, List, Union
 
 import requests
 from cachecontrol import CacheControl
@@ -37,7 +38,7 @@ def s3_available_compilers():
 
 
 class InstallationContext:
-    def __init__(self, destination, staging, s3_url, dry_run, cache):
+    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, cache: Optional[Path]):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -49,27 +50,27 @@ class InstallationContext:
             self.info(f"Making uncached requests")
             self.fetcher = requests
 
-    def debug(self, message):
+    def debug(self, message: str) -> None:
         logger.debug(message)
 
-    def info(self, message):
+    def info(self, message: str) -> None:
         logger.info(message)
 
-    def warn(self, message):
+    def warn(self, message: str) -> None:
         logger.warning(message)
 
-    def error(self, message):
+    def error(self, message: str) -> None:
         logger.error(message)
 
-    def clean_staging(self):
+    def clean_staging(self) -> None:
         self.debug(f"Cleaning staging dir {self.staging}")
-        if os.path.isdir(self.staging):
+        if self.staging.is_dir():
             subprocess.check_call(["chmod", "-R", "u+w", self.staging])
             shutil.rmtree(self.staging, ignore_errors=True)
         self.debug(f"Recreating staging dir {self.staging}")
-        os.makedirs(self.staging)
+        self.staging.mkdir(parents=True)
 
-    def fetch_to(self, url, fd):
+    def fetch_to(self, url: str, fd: BinaryIO) -> None:
         self.debug(f'Fetching {url}')
         request = self.fetcher.get(url, stream=True)
         if not request.ok:
@@ -90,53 +91,52 @@ class InstallationContext:
         self.info(f'100% of {url}')
         fd.flush()
 
-    def fetch_url_and_pipe_to(self, url, command, subdir='.'):
-        untar_dir = os.path.join(self.staging, subdir)
-        os.makedirs(untar_dir, exist_ok=True)
+    def fetch_url_and_pipe_to(self, url: str, command: Sequence[str], subdir: str = '.') -> None:
+        untar_dir = self.staging / subdir
+        untar_dir.mkdir(parents=True, exist_ok=True)
         # We stream to a temporary file first before then piping this to the command
         # as sometimes the command can take so long the URL endpoint closes the door on us
         with tempfile.TemporaryFile() as fd:
             self.fetch_to(url, fd)
             fd.seek(0)
             self.info(f'Piping to {" ".join(command)}')
-            subprocess.check_call(command, stdin=fd, cwd=untar_dir)
+            subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
-    def stage_command(self, command):
+    def stage_command(self, command: Sequence[str]) -> None:
         self.info(f'Staging with {" ".join(command)}')
-        subprocess.check_call(command, cwd=self.staging)
+        subprocess.check_call(command, cwd=str(self.staging))
 
-    def fetch_s3_and_pipe_to(self, s3, command):
+    def fetch_s3_and_pipe_to(self, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
 
-    def make_subdir(self, subdir):
-        full_subdir = Path(self.destination) / subdir
-        full_subdir.mkdir(parents=True, exist_ok=True)
+    def make_subdir(self, subdir: str) -> None:
+        (self.destination / subdir).mkdir(parents=True, exist_ok=True)
 
-    def read_link(self, link):
-        return os.readlink(os.path.join(self.destination, link))
+    def read_link(self, link: str) -> str:
+        return os.readlink(str(self.destination / link))
 
-    def set_link(self, source, dest):
+    def set_link(self, source: Path, dest: str) -> None:
         if self.dry_run:
             self.info(f'Would symlink {source} to {dest}')
             return
 
-        full_dest = os.path.join(self.destination, dest)
-        if os.path.exists(full_dest):
-            os.remove(full_dest)
+        full_dest = self.destination / dest
+        if full_dest.exists():
+            full_dest.unlink()
         self.info(f'Symlinking {dest} to {source}')
-        os.symlink(source, full_dest)
+        os.symlink(str(source), str(full_dest))
 
-    def glob(self, pattern):
-        return [os.path.relpath(x, self.destination) for x in glob.glob(os.path.join(self.destination, pattern))]
+    def glob(self, pattern: str) -> Collection[str]:
+        return [os.path.relpath(x, str(self.destination)) for x in glob.glob(self.destination / pattern)]
 
-    def remove_dir(self, directory):
+    def remove_dir(self, directory: str) -> None:
         if self.dry_run:
             self.info(f'Would remove directory {directory} but in dry-run mode')
         else:
-            shutil.rmtree(os.path.join(self.destination, directory), ignore_errors=True)
+            shutil.rmtree(str(self.destination / directory), ignore_errors=True)
             self.info(f'Removing {directory}')
 
-    def check_link(self, source, link):
+    def check_link(self, source: str, link: str) -> bool:
         try:
             link = self.read_link(link)
             self.debug(f'readlink returned {link}')
@@ -145,29 +145,28 @@ class InstallationContext:
             self.debug(f'File not found for {link}')
             return False
 
-    def move_from_staging(self, source, dest=None):
-        if not dest:
-            dest = source
-        existing_dir_rename = os.path.join(self.staging, "temp_orig")
-        source = os.path.join(self.staging, source)
-        dest = os.path.join(self.destination, dest)
+    def move_from_staging(self, source_str: str, dest_str: Optional[str] = None) -> None:
+        dest_str = dest_str or source_str
+        existing_dir_rename = self.staging / "temp_orig"
+        source = self.staging / source_str
+        dest = self.destination / dest_str
         if self.dry_run:
             self.info(f'Would install {source} to {dest} but in dry-run mode')
             return
         self.info(f'Moving from staging ({source}) to final destination ({dest})')
-        if not os.path.isdir(source):
+        if not source.is_dir():
             staging_contents = subprocess.check_output(['ls', '-l', self.staging]).decode('utf-8')
             self.info(f"Directory listing of staging:\n{staging_contents}")
             raise RuntimeError(f"Missing source '{source}'")
         # Some tar'd up GCCs are actually marked read-only...
         subprocess.check_call(["chmod", "u+w", source])
         state = ''
-        if os.path.isdir(dest):
+        if dest.is_dir():
             self.info(f'Destination {dest} exists, temporarily moving out of the way (to {existing_dir_rename})')
-            os.replace(dest, existing_dir_rename)
+            dest.replace(existing_dir_rename)
             state = 'old_renamed'
         try:
-            os.replace(source, dest)
+            source.replace(dest)
             if state == 'old_renamed':
                 state = 'old_needs_remove'
         finally:
@@ -178,11 +177,10 @@ class InstallationContext:
                 self.warn(f'Moving old destination back')
                 os.replace(existing_dir_rename, dest)
 
-    def compare_against_staging(self, source, dest=None):
-        if not dest:
-            dest = source
-        source = os.path.join(self.staging, source)
-        dest = os.path.join(self.destination, dest)
+    def compare_against_staging(self, source_str: str, dest_str: Optional[str] = None) -> bool:
+        dest_str = dest_str or source_str
+        source = self.staging / source_str
+        dest = self.destination / dest_str
         self.info(f'Comparing {source} vs {dest}...')
         result = subprocess.call(['diff', '-r', source, dest])
         if result == 0:
@@ -191,24 +189,24 @@ class InstallationContext:
             self.warn('Contents differ')
         return result == 0
 
-    def check_output(self, args, env=None):
+    def check_output(self, args: List[str], env: Optional[dict] = None) -> str:
         args = args[:]
-        args[0] = os.path.join(self.destination, args[0])
+        args[0] = str(self.destination / args[0])
         logger.debug('Executing %s in %s', args, self.destination)
-        return subprocess.check_output(args, cwd=self.destination, env=env).decode('utf-8')
+        return subprocess.check_output(args, cwd=str(self.destination), env=env).decode('utf-8')
 
-    def strip_exes(self, paths):
+    def strip_exes(self, paths: Union[bool, List[str]]) -> None:
         if isinstance(paths, bool):
             if not paths:
                 return
             paths = ['.']
         to_strip = []
-        for path in paths:
-            path = os.path.join(self.staging, path)
+        for path_part in paths:
+            path = self.staging / path_part
             logger.debug(f"Looking for executables to strip in {path}")
-            if not os.path.isdir(path):
+            if not path.is_dir():
                 raise RuntimeError(f"While looking for files to strip, {path} was not a directory")
-            for dirpath, dirnames, filenames in os.walk(path):
+            for dirpath, dirnames, filenames in os.walk(str(path)):
                 for filename in filenames:
                     full_path = os.path.join(dirpath, filename)
                     if os.access(full_path, os.X_OK):
