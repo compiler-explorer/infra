@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, ChainMap
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, BinaryIO, Sequence, Collection, List, Union
+from typing import Optional, BinaryIO, Sequence, Collection, List, Union, Dict, Any
 
 import requests
 from cachecontrol import CacheControl
@@ -29,12 +29,12 @@ logger = logging.getLogger(__name__)
 
 @functools.lru_cache(maxsize=1)
 def s3_available_compilers():
-    _memoized_compilers = defaultdict(lambda: [])
+    compilers = defaultdict(lambda: [])
     for compiler in list_compilers():
         match = VERSIONED_RE.match(compiler)
         if match:
-            _memoized_compilers[match.group(1)].append(match.group(2))
-    return _memoized_compilers
+            compilers[match.group(1)].append(match.group(2))
+    return compilers
 
 
 class InstallationContext:
@@ -217,7 +217,7 @@ class InstallationContext:
 
 
 class Installable:
-    def __init__(self, install_context, config):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         self.install_context = install_context
         self.config = config
         self.target_name = self.config.get("name", "(unnamed)")
@@ -227,7 +227,7 @@ class Installable:
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
 
-    def _setup_check_exe(self, path_name):
+    def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
 
         self.check_file = self.config_get('check_file', False)
@@ -237,28 +237,28 @@ class Installable:
             self.check_call = command_config(self.config_get('check_exe'))
             self.check_call[0] = os.path.join(path_name, self.check_call[0])
 
-    def _setup_check_link(self, source, link):
+    def _setup_check_link(self, source: str, link: str) -> None:
         self._check_link = lambda: self.install_context.check_link(source, link)
 
-    def debug(self, message):
+    def debug(self, message: str) -> None:
         self.install_context.debug(f'{self.name}: {message}')
 
-    def info(self, message):
+    def info(self, message: str) -> None:
         self.install_context.info(f'{self.name}: {message}')
 
-    def warn(self, message):
+    def warn(self, message: str) -> None:
         self.install_context.warn(f'{self.name}: {message}')
 
-    def error(self, message):
+    def error(self, message: str) -> None:
         self.install_context.error(f'{self.name}: {message}')
 
-    def verify(self):
+    def verify(self) -> bool:
         return True
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return self.install_always or not self.is_installed()
 
-    def install(self):
+    def install(self) -> bool:
         self.debug("Ensuring dependees are installed")
         any_missing = False
         for dependee in self.depends:
@@ -270,16 +270,13 @@ class Installable:
         self.debug("Dependees ok")
         return True
 
-    def install_internal(self):
-        raise RuntimeError("needs to be implemented")
-
-    def is_installed(self):
+    def is_installed(self) -> bool:
         if self._check_link and not self._check_link():
             self.debug('Check link returned false')
             return False
 
         if self.check_file:
-            res = os.path.isfile(os.path.join(self.install_context.destination, self.check_file))
+            res = (self.install_context.destination / self.check_file).is_file()
             self.debug(f'Check file for "{self.check_file}" returned {res}')
             return res
 
@@ -294,20 +291,20 @@ class Installable:
             self.debug(f'Got an error for {self.check_call}')
             return False
 
-    def config_get(self, config_key, default=None):
+    def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
         if config_key not in self.config and default is None:
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
 
 
-def command_config(config):
+def command_config(config: Union[List[str], str]) -> List[str]:
     if isinstance(config, str):
         return config.split(" ")
     return config
 
 
 class S3TarballInstallable(Installable):
-    def __init__(self, install_context, config):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super(S3TarballInstallable, self).__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         last_context = self.context[-1]
@@ -337,19 +334,19 @@ class S3TarballInstallable(Installable):
         self.strip = self.config_get('strip', False)
         self._setup_check_exe(self.path_name)
 
-    def stage(self):
+    def stage(self) -> None:
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(self.s3_path, ['tar', f'{self.decompress_flag}xf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
-    def verify(self):
+    def verify(self) -> bool:
         if not super(S3TarballInstallable, self).verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
-    def install(self):
+    def install(self) -> bool:
         if not super(S3TarballInstallable, self).install():
             return False
         self.stage()
@@ -363,7 +360,7 @@ class S3TarballInstallable(Installable):
 
 
 class NightlyInstallable(Installable):
-    def __init__(self, install_context, config):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super(NightlyInstallable, self).__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         self.strip = self.config_get('strip', False)
@@ -381,22 +378,22 @@ class NightlyInstallable(Installable):
         self._setup_check_exe(self.path_name)
         self._setup_check_link(self.s3_path, self.path_name_symlink)
 
-    def stage(self):
+    def stage(self) -> None:
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', f'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
-    def verify(self):
+    def verify(self) -> bool:
         if not super(NightlyInstallable, self).verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.s3_path, self.path_name)
 
-    def should_install(self):
+    def should_install(self) -> bool:
         return True
 
-    def install(self):
+    def install(self) -> bool:
         if not super(NightlyInstallable, self).install():
             return False
         self.stage()
@@ -408,7 +405,7 @@ class NightlyInstallable(Installable):
             self.install_context.remove_dir(to_remove)
 
         self.install_context.move_from_staging(self.s3_path, self.path_name)
-        self.install_context.set_link(self.s3_path, self.path_name_symlink)
+        self.install_context.set_link(Path(self.s3_path), self.path_name_symlink)
 
         return True
 
@@ -417,7 +414,7 @@ class NightlyInstallable(Installable):
 
 
 class TarballInstallable(Installable):
-    def __init__(self, install_context, config):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super(TarballInstallable, self).__init__(install_context, config)
         self.install_path = self.config_get('dir')
         self.install_path_symlink = self.config_get('symlink', False)
@@ -445,23 +442,23 @@ class TarballInstallable(Installable):
         if self.install_path_symlink:
             self._setup_check_link(self.install_path, self.install_path_symlink)
 
-    def stage(self):
+    def stage(self) -> None:
         self.install_context.clean_staging()
         self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd, self.untar_to)
         if self.configure_command:
             self.install_context.stage_command(self.configure_command)
         if self.strip:
             self.install_context.strip_exes(self.strip)
-        if not os.path.isdir(os.path.join(self.install_context.staging, self.untar_path)):
+        if not (self.install_context.staging / self.untar_path).is_dir():
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
 
-    def verify(self):
+    def verify(self) -> bool:
         if not super(TarballInstallable, self).verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_path, self.install_path)
 
-    def install(self):
+    def install(self) -> bool:
         if not super(TarballInstallable, self).install():
             return False
         self.stage()
@@ -475,7 +472,7 @@ class TarballInstallable(Installable):
 
 
 class ScriptInstallable(Installable):
-    def __init__(self, install_context, config):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super(ScriptInstallable, self).__init__(install_context, config)
         self.install_path = self.config_get('dir')
         self.install_path_symlink = self.config_get('symlink', False)
@@ -486,24 +483,24 @@ class ScriptInstallable(Installable):
         if self.install_path_symlink:
             self._setup_check_link(self.install_path, self.install_path_symlink)
 
-    def stage(self):
+    def stage(self) -> None:
         self.install_context.clean_staging()
         for url in self.fetch:
             url, filename = url.split(' ')
-            with open(os.path.join(self.install_context.staging, filename), 'wb') as f:
+            with (self.install_context.staging / filename).open('wb') as f:
                 self.install_context.fetch_to(url, f)
             self.info(f'{url} -> {filename}')
         self.install_context.stage_command(['bash', '-c', self.script])
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
-    def verify(self):
+    def verify(self) -> bool:
         if not super(ScriptInstallable, self).verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.install_path)
 
-    def install(self):
+    def install(self) -> bool:
         if not super(ScriptInstallable, self).install():
             return False
         self.stage()
@@ -522,11 +519,11 @@ def targets_from(node, enabled, base_config=None):
     return _targets_from(node, enabled, [], "", base_config)
 
 
-def is_list_of_strings(value):
+def is_list_of_strings(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(x, str) for x in value)
 
 
-def is_value_type(value):
+def is_value_type(value: Any) -> bool:
     return isinstance(value, str) \
            or isinstance(value, bool) \
            or isinstance(value, float) \
