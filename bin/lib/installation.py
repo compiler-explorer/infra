@@ -1,3 +1,4 @@
+import functools
 import glob
 import logging
 import os
@@ -6,8 +7,8 @@ import shutil
 import subprocess
 import tempfile
 import time
-from datetime import datetime
 from collections import defaultdict, ChainMap
+from datetime import datetime
 from pathlib import Path
 
 import requests
@@ -24,17 +25,14 @@ NO_DEFAULT = "__no_default__"
 
 logger = logging.getLogger(__name__)
 
-_memoized_compilers = None
 
-
+@functools.lru_cache(maxsize=1)
 def s3_available_compilers():
-    global _memoized_compilers
-    if _memoized_compilers is None:
-        _memoized_compilers = defaultdict(lambda: [])
-        for compiler in list_compilers():
-            match = VERSIONED_RE.match(compiler)
-            if match:
-                _memoized_compilers[match.group(1)].append(match.group(2))
+    _memoized_compilers = defaultdict(lambda: [])
+    for compiler in list_compilers():
+        match = VERSIONED_RE.match(compiler)
+        if match:
+            _memoized_compilers[match.group(1)].append(match.group(2))
     return _memoized_compilers
 
 
