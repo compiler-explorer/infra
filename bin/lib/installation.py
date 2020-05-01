@@ -127,7 +127,7 @@ class InstallationContext:
         os.symlink(str(source), str(full_dest))
 
     def glob(self, pattern: str) -> Collection[str]:
-        return [os.path.relpath(x, str(self.destination)) for x in glob.glob(self.destination / pattern)]
+        return [os.path.relpath(x, str(self.destination)) for x in glob.glob(str(self.destination / pattern))]
 
     def remove_dir(self, directory: str) -> None:
         if self.dry_run:

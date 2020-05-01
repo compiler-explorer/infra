@@ -13,7 +13,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/bin/lib/ce_install.py" />
-    <option name="PARAMETERS" value="install nim --cache /tmp/cache/ --debug" />
+    <option name="PARAMETERS" value="install &quot;gcc trunk&quot; --enable nightly --cache /tmp/cache/" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

@@ -5,6 +5,7 @@ import logging
 import logging.config
 import os
 import sys
+import traceback
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -144,7 +145,7 @@ def main():
                         context.info(f"{installable.name} failed to install")
                         num_failed += 1
                 except Exception as e:
-                    context.info(f"{installable.name} failed to install: {e}")
+                    context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
                     num_failed += 1
             else:
                 context.info(f"{installable.name} is already installed, skipping")
