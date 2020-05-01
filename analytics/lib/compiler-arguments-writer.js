@@ -61,7 +61,7 @@ class CompilerArgumentsWriter {
             }
 
             if (!this.arguments[compilerId][arg]) {
-                this.arguments[compilerId][arg] = times
+                this.arguments[compilerId][arg] = times;
             } else {
                 this.arguments[compilerId][arg] += times;
             }
