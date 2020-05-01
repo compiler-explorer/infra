@@ -305,7 +305,7 @@ def command_config(config: Union[List[str], str]) -> List[str]:
 
 class S3TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
-        super(S3TarballInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         last_context = self.context[-1]
         if self.subdir:
@@ -341,13 +341,13 @@ class S3TarballInstallable(Installable):
             self.install_context.strip_exes(self.strip)
 
     def verify(self) -> bool:
-        if not super(S3TarballInstallable, self).verify():
+        if not super().verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
     def install(self) -> bool:
-        if not super(S3TarballInstallable, self).install():
+        if not super().install():
             return False
         self.stage()
         if self.subdir:
@@ -361,7 +361,7 @@ class S3TarballInstallable(Installable):
 
 class NightlyInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
-        super(NightlyInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         self.subdir = self.config_get("subdir", "")
         self.strip = self.config_get('strip', False)
         compiler_name = self.config_get('compiler_name', f'{self.context[-1]}-{self.target_name}')
@@ -385,7 +385,7 @@ class NightlyInstallable(Installable):
             self.install_context.strip_exes(self.strip)
 
     def verify(self) -> bool:
-        if not super(NightlyInstallable, self).verify():
+        if not super().verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.s3_path, self.path_name)
@@ -394,7 +394,7 @@ class NightlyInstallable(Installable):
         return True
 
     def install(self) -> bool:
-        if not super(NightlyInstallable, self).install():
+        if not super().install():
             return False
         self.stage()
 
@@ -415,7 +415,7 @@ class NightlyInstallable(Installable):
 
 class TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
-        super(TarballInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         self.install_path = self.config_get('dir')
         self.install_path_symlink = self.config_get('symlink', False)
         self.untar_path = self.config_get('untar_dir', self.install_path)
@@ -453,13 +453,13 @@ class TarballInstallable(Installable):
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
 
     def verify(self) -> bool:
-        if not super(TarballInstallable, self).verify():
+        if not super().verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_path, self.install_path)
 
     def install(self) -> bool:
-        if not super(TarballInstallable, self).install():
+        if not super().install():
             return False
         self.stage()
         self.install_context.move_from_staging(self.untar_path, self.install_path)
@@ -473,7 +473,7 @@ class TarballInstallable(Installable):
 
 class ScriptInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
-        super(ScriptInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         self.install_path = self.config_get('dir')
         self.install_path_symlink = self.config_get('symlink', False)
         self.fetch = self.config_get('fetch')
@@ -495,13 +495,13 @@ class ScriptInstallable(Installable):
             self.install_context.strip_exes(self.strip)
 
     def verify(self) -> bool:
-        if not super(ScriptInstallable, self).verify():
+        if not super().verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.install_path)
 
     def install(self) -> bool:
-        if not super(ScriptInstallable, self).install():
+        if not super().install():
             return False
         self.stage()
         self.install_context.move_from_staging(self.install_path)
