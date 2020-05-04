@@ -242,9 +242,13 @@ compilers:
               check_exe: "{arch_prefix}/bin/g++ --version"
             - name: at12
               subdir: powerpc64
+            - name: at13
+              subdir: powerpc64
             - name: 6.3.0
               subdir: powerpc64le
             - name: at12
+              subdir: powerpc64le
+            - name: at13
               subdir: powerpc64le
     clang:
       - type: tarballs
