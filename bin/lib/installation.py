@@ -397,7 +397,7 @@ class Installable(object):
         self.config = config
         self.target_name = self.config.get("name", "(unnamed)")
         self.context = self.config_get("context", [])
-        self.name = f'{"/".join(self.context)} {self.target_name}'
+        self.name = f'{"/".join(self.context)}/{self.target_name}'
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
