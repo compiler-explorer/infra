@@ -70,6 +70,31 @@ libraries:
       target_prefix: v
       targets:
         - 2.2.2
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.4.0
+        - 2.4.1
+        - 2.4.2
+        - 2.5.0
+        - 2.6.0
+        - 2.6.1
+        - 2.7.0
+        - 2.7.1
+        - 2.7.2
+        - 2.8.0
+        - 2.9.0
+        - 2.9.1
+        - 2.9.2
+        - 2.10.0
+        - 2.10.1
+        - 2.10.2
+        - 2.11.0
+        - 2.11.1
+        - 2.11.2
+        - 2.11.3
+        - 2.12.0
+        - 2.12.1
       check_file: include/catch.hpp
     ulib:
       type: github
@@ -104,7 +129,7 @@ libraries:
       repo: andrew-gresyk/HFSM2
       check_file: README.md
       targets:
-        - 1.2.1
+        - "1_2_1"
     eigen:
       type: gitlab
       repo: libeigen/eigen
@@ -116,7 +141,7 @@ libraries:
     glm:
       type: github
       repo: g-truc/glm
-      check_file: README.md
+      check_file: readme.md
       targets:
         - 0.9.8.5
         - 0.9.9.0
@@ -128,26 +153,37 @@ libraries:
         - 0.9.9.6
         - 0.9.9.7
         - 0.9.9.8
+    expected-dark:
+      type: github
+      subdir: expected-lite
+      repo: martinmoene/expected-dark
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.0.1
     expected-lite:
       type: github
       repo: martinmoene/expected-lite
       check_file: README.md
+      target_prefix: v
       targets:
-        - v0.1.0
-    nlohman_json:
+        - 0.1.0
+    nlohmann_json:
       type: github
-      repo: nlohman/json
+      repo: nlohmann/json
       check_file: README.md
+      target_prefix: v
       targets:
-        - v3.6.0
-        - v3.1.2
-        - v2.1.1
+        - 2.1.1
+        - 3.1.2
+        - 3.6.0
     tomlplusplus:
       type: github
       repo: marzer/tomlplusplus
       check_file: README.md
+      target_prefix: v
       targets:
-        - v1.2.4
+        - 1.2.4
     doctest:
       type: github
       repo: onqtam/doctest
@@ -207,9 +243,10 @@ libraries:
       type: github
       repo: jansende/benri
       check_file: README.md
+      target_prefix: v
       targets:
-        - v2.0.1
-        - v2.1.1
+        - 2.0.1
+        - 2.1.1
     spy:
       type: github
       repo: jfalcou/spy
@@ -220,8 +257,9 @@ libraries:
       type: github
       repo: nemequ/hedley
       check_file: README.md
+      target_prefix: v
       targets:
-        - v12
+        - "12"
     blaze:
       type: bitbucket
       repo: blaze-lib/blaze
@@ -298,3 +336,11 @@ libraries:
       targets:
         - OpenSSL_1_1_1c
         - OpenSSL_1_1_1g
+    cs50:
+      type: github
+      repo: cs50/libcs50
+      target_prefix: v
+      build_type: make
+      lib_type: shared
+      targets:
+        - 9.1.0
