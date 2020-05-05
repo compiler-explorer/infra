@@ -283,7 +283,7 @@ class InstallationContext(object):
     def make_subdir(self, subdir):
         full_subdir = os.path.join(self.destination, subdir)
         if not os.path.isdir(full_subdir):
-            os.mkdir(full_subdir)
+            os.makedirs(full_subdir)
 
     def read_link(self, link):
         return os.readlink(os.path.join(self.destination, link))
@@ -556,7 +556,7 @@ class Installable(object):
 
         if len(self.prebuildscript) > 0:
             for line in self.prebuildscript:
-                f.write(line)
+                f.write(f'{line}\n')
 
         if self.build_type == "cmake":
             extracmakeargs = ' '.join(self.extra_cmake_arg)
@@ -856,14 +856,14 @@ def command_config(config):
         return config.split(" ")
     return config
 
-
 class GitHubInstallable(Installable):
     def __init__(self, install_context, config):
         super(GitHubInstallable, self).__init__(install_context, config)
         last_context = self.context[-1]
         self.repo = self.config_get("repo", "")
+        self.domainurl = self.config_get("domainurl", "https://github.com")
         self.method = self.config_get("method", "archive")
-        self.decompress_flag = 'z'
+        self.decompress_flag = self.config_get("decompress_flag", "z")
         self.strip = False
         self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
@@ -883,20 +883,20 @@ class GitHubInstallable(Installable):
             elif self.build_type == "make":
                 self.check_file = os.path.join(self.path_name, 'Makefile')
             else:
-                raise RuntimeError(f'Requires check_file')
+                raise RuntimeError(f'Requires check_file ({last_context})')
         else:
             self.check_file = f'{self.path_name}/{check_file}'
 
     def clone(self):
         clonedpath = os.path.join(self.install_context.staging, self.reponame)
-        subprocess.check_call(['git', 'clone', f'https://github.com/{self.repo}.git', self.reponame], cwd=self.install_context.staging)
+        subprocess.check_call(['git', 'clone', f'{self.domainurl}/{self.repo}.git', self.reponame], cwd=self.install_context.staging)
         subprocess.check_call(['git', 'checkout', self.target_name], cwd=clonedpath)
         subprocess.check_call(['git', 'submodule', 'update', '--init'], cwd=clonedpath)
 
     def stage(self):
         self.install_context.clean_staging()
         if self.method == "archive":
-            self.install_context.fetch_url_and_pipe_to(f'https://github.com/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+            self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
         elif self.method == "clone":
             self.clone()
         else:
@@ -923,6 +923,45 @@ class GitHubInstallable(Installable):
     def __repr__(self) -> str:
         return f'GitHubInstallable({self.name}, {self.path_name})'
 
+class GitLabInstallable(GitHubInstallable):
+    def __init__(self, install_context, config):
+        super(GitLabInstallable, self).__init__(install_context, config)
+        self.domainurl = self.config_get("domainurl", "https://gitlab.com")
+
+    def stage(self):
+        self.install_context.clean_staging()
+        if self.method == "archive":
+            self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+        elif self.method == "clone":
+            self.clone()
+        else:
+            raise RuntimeError(f'Unknown Gitlab method {self.method}')
+
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+
+    def __repr__(self) -> str:
+        return f'GitLabInstallable({self.name}, {self.path_name})'
+
+class BitbucketInstallable(GitHubInstallable):
+    def __init__(self, install_context, config):
+        super(BitbucketInstallable, self).__init__(install_context, config)
+        self.domainurl = self.config_get("domainurl", "https://bitbucket.org")
+
+    def stage(self):
+        self.install_context.clean_staging()
+        if self.method == "archive":
+            self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+        elif self.method == "clone":
+            self.clone()
+        else:
+            raise RuntimeError(f'Unknown Bitbucket method {self.method}')
+
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+
+    def __repr__(self) -> str:
+        return f'BitbucketInstallable({self.name}, {self.path_name})'
 
 class S3TarballInstallable(Installable):
     def __init__(self, install_context, config):
@@ -971,8 +1010,12 @@ class S3TarballInstallable(Installable):
         if not super(S3TarballInstallable, self).install():
             return False
         self.stage()
+
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
+        elif self.path_name:
+            self.install_context.make_subdir(self.path_name)
+
         self.install_context.move_from_staging(self.untar_dir, self.path_name)
         return True
 
@@ -1225,7 +1268,9 @@ INSTALLER_TYPES = {
     's3tarballs': S3TarballInstallable,
     'nightly': NightlyInstallable,
     'script': ScriptInstallable,
-    'github': GitHubInstallable
+    'github': GitHubInstallable,
+    'gitlab': GitLabInstallable,
+    'bitbucket': BitbucketInstallable,
 }
 
 

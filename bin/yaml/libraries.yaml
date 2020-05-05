@@ -29,6 +29,10 @@ libraries:
       type: github
       repo: fmtlib/fmt
       targets:
+        - 4.0.0
+        - 4.1.0
+        - 5.0.0
+        - 5.1.0 
         - 5.2.0
         - 5.3.0
         - 6.0.0
@@ -43,7 +47,11 @@ libraries:
       subdir: google-benchmark
       target_prefix: v
       targets:
+        - 1.2.0
         - 1.3.0
+        - 1.4.0
+        - 1.4.1
+        - 1.5.0
       build_type: cmake
     tbb:
       type: github
@@ -74,12 +82,6 @@ libraries:
       check_file: configure
       build_fixed_arch: x86_64
       build_fixed_stdlib: libstdc++
-    seastar:
-      type: github
-      repo: scylladb/seastar
-      targets:
-        - seastar-18.08.0
-      check_file: README.md
     cctz:
       type: github
       repo: google/cctz
@@ -90,3 +92,209 @@ libraries:
       lib_type: static
       extra_cmake_arg:
         - -DBUILD_TESTING=OFF
+    hfsm:
+      type: github
+      repo: andrew-gresyk/HFSM
+      check_file: README.md
+      targets:
+        - "0.8"
+        - "0.10"
+    hfsm2:
+      type: github
+      repo: andrew-gresyk/HFSM2
+      check_file: README.md
+      targets:
+        - 1.2.1
+    eigen:
+      type: gitlab
+      repo: libeigen/eigen
+      check_file: README.md
+      targets:
+        - 3.3.4
+        - 3.3.5
+        - 3.3.7
+    glm:
+      type: github
+      repo: g-truc/glm
+      check_file: README.md
+      targets:
+        - 0.9.8.5
+        - 0.9.9.0
+        - 0.9.9.1
+        - 0.9.9.2
+        - 0.9.9.3
+        - 0.9.9.4
+        - 0.9.9.5
+        - 0.9.9.6
+        - 0.9.9.7
+        - 0.9.9.8
+    expected-lite:
+      type: github
+      repo: martinmoene/expected-lite
+      check_file: README.md
+      targets:
+        - v0.1.0
+    nlohman_json:
+      type: github
+      repo: nlohman/json
+      check_file: README.md
+      targets:
+        - v3.6.0
+        - v3.1.2
+        - v2.1.1
+    tomlplusplus:
+      type: github
+      repo: marzer/tomlplusplus
+      check_file: README.md
+      targets:
+        - v1.2.4
+    doctest:
+      type: github
+      repo: onqtam/doctest
+      check_file: README.md
+      targets:
+        - 1.2.9
+        - 2.0.0
+        - 2.0.1
+        - 2.1.0
+        - 2.2.0
+        - 2.2.1
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.3.1
+        - 2.3.2
+        - 2.3.3
+        - 2.3.4
+        - 2.3.5
+        - 2.3.6
+        - 2.3.7
+    xtl:
+      type: github
+      repo: QuantStack/xtl
+      check_file: README.md
+      targets:
+        - 0.4.16
+        - 0.5.3
+    xsimd:
+      type: github
+      repo: QuantStack/xsimd
+      check_file: README.md
+      targets:
+        - 6.1.4
+        - 7.0.0
+    xtensor:
+      type: github
+      repo: QuantStack/xtensor
+      check_file: README.md
+      targets:
+        - 0.17.4
+        - 0.18.2
+        - 0.19.4
+    seastar:
+      type: github
+      repo: scylladb/seastar
+      check_file: README.md
+      targets:
+        - seastar-18.08.0
+    PEGTL:
+      type: github
+      repo: taocpp/PEGTL
+      check_file: README.md
+      targets:
+        - 2.8.0
+    benri:
+      type: github
+      repo: jansende/benri
+      check_file: README.md
+      targets:
+        - v2.0.1
+        - v2.1.1
+    spy:
+      type: github
+      repo: jfalcou/spy
+      check_file: README.md
+      targets:
+        - 0.0.3
+    hedley:
+      type: github
+      repo: nemequ/hedley
+      check_file: README.md
+      targets:
+        - v12
+    blaze:
+      type: bitbucket
+      repo: blaze-lib/blaze
+      check_file: LICENSE
+      targets:
+        - "3.3"
+        - "3.4"
+        - "3.5"
+        - "3.6"
+    blaze_nogzip:
+      type: bitbucket
+      repo: blaze-lib/blaze
+      subdir: blaze
+      check_file: LICENSE
+      decompress_flag: ""
+      targets:
+        - "3.7"
+    GSL:
+      type: github
+      repo: Microsoft/GSL
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 1.0.0
+        - 2.0.0
+        - 2.1.0
+        - 3.0.0
+        - 3.0.1
+    vcl1:
+      type: github
+      repo: darealshinji/vectorclass
+      check_file: vectorclass.h
+      subdir: vcl
+      target_prefix: v
+      targets:
+        - "1.30"
+    vcl:
+      type: github
+      repo: vectorclass/version2
+      check_file: vectorclass.h
+      subdir: vcl
+      target_prefix: v
+      targets:
+        - 2.00.01
+    mir-glas:
+      type: github
+      repo: libmir/mir-glas
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.1.5
+        - 0.2.3
+        - 0.2.4
+    mir-algorithm:
+      type: github
+      repo: libmir/mir-algorithm
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.5.17
+        - 0.6.13
+        - 0.6.21
+        - 0.9.5
+        - 1.0.0
+        - 1.1.0
+    openssl:
+      type: github
+      repo: openssl/openssl
+      build_type: make
+      check_file: config
+      lib_type: shared
+      prebuildscript:
+        - ./config
+      targets:
+        - OpenSSL_1_1_1c
+        - OpenSSL_1_1_1g
