@@ -27,3 +27,471 @@ libraries:
         check_file: include/llvm/Config/llvm-config.h
         targets:
           - trunk
+      ulib:
+        type: github
+        method: nightlyclone
+        repo: stefanocasazza/ULib
+        check_file: configure
+        targets:
+          - trunk
+      benchmark:
+        type: github
+        method: nightlyclone
+        repo: google/benchmark
+        subdir: google-benchmark
+        check_file: README.md
+        targets:
+          - trunk
+      fmt:
+        type: github
+        method: nightlyclone
+        repo: fmtlib/fmt
+        check_file: CMakeLists.txt
+        targets:
+          - trunk
+      eigen:
+        type: gitlab
+        method: nightlyclone
+        repo: libeigen/eigen
+        check_file: README.md
+        targets:
+          - vtrunk
+      glm:
+        type: github
+        method: nightlyclone
+        repo: g-truc/glm
+        check_file: readme.md
+        targets:
+          - trunk
+      catch2:
+        type: github
+        method: nightlyclone
+        repo: catchorg/Catch2
+        check_file: include/catch.hpp
+        targets:
+          - trunk
+      expected-dark:
+        type: github
+        method: nightlyclone
+        subdir: expected-lite
+        repo: martinmoene/expected-dark
+        check_file: README.md
+        targets:
+          - trunk
+      expected-lite:
+        type: github
+        method: nightlyclone
+        repo: martinmoene/expected-lite
+        check_file: README.md
+        targets:
+          - trunk
+      nlohmann_json:
+        type: github
+        method: nightlyclone
+        repo: nlohmann/json
+        check_file: README.md
+        targets:
+          - trunk
+      tomlplusplus:
+        type: github
+        method: nightlyclone
+        repo: marzer/tomlplusplus
+        check_file: README.md
+        targets:
+          - trunk
+      doctest:
+        type: github
+        method: nightlyclone
+        repo: onqtam/doctest
+        check_file: README.md
+        targets:
+          - trunk
+      xtl:
+        type: github
+        method: nightlyclone
+        repo: QuantStack/xtl
+        check_file: README.md
+        targets:
+          - trunk
+      xsimd:
+        type: github
+        method: nightlyclone
+        repo: QuantStack/xsimd
+        check_file: README.md
+        targets:
+          - trunk
+      xtensor:
+        type: github
+        method: nightlyclone
+        repo: QuantStack/xtensor
+        check_file: README.md
+        targets:
+          - trunk
+      seastar:
+        type: github
+        method: nightlyclone
+        repo: scylladb/seastar
+        check_file: README.md
+        targets:
+          - trunk
+      PEGTL:
+        type: github
+        method: nightlyclone
+        repo: taocpp/PEGTL
+        check_file: README.md
+        targets:
+          - trunk
+      benri:
+        type: github
+        method: nightlyclone
+        repo: jansende/benri
+        check_file: README.md
+        targets:
+          - trunk
+      spy:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/spy
+        check_file: README.md
+        targets:
+          - trunk
+      hedley:
+        type: github
+        method: nightlyclone
+        repo: nemequ/hedley
+        check_file: README.md
+        targets:
+          - trunk
+      GSL:
+        type: github
+        method: nightlyclone
+        repo: Microsoft/GSL
+        check_file: README.md
+        targets:
+          - trunk
+      blaze:
+        type: bitbucket
+        method: nightlyclone
+        repo: blaze-lib/blaze
+        check_file: LICENSE
+        targets:
+          - trunk
+    fmt:
+      type: github
+      repo: fmtlib/fmt
+      targets:
+        - 4.0.0
+        - 4.1.0
+        - 5.0.0
+        - 5.1.0 
+        - 5.2.0
+        - 5.3.0
+        - 6.0.0
+        - 6.1.0
+        - 6.1.1
+        - 6.1.2
+        - 6.2.0
+      build_type: cmake
+    benchmark:
+      type: github
+      repo: google/benchmark
+      subdir: google-benchmark
+      target_prefix: v
+      targets:
+        - 1.2.0
+        - 1.3.0
+        - 1.4.0
+        - 1.4.1
+        - 1.5.0
+      build_type: cmake
+    tbb:
+      type: github
+      repo: oneapi-src/oneTBB
+      subdir: tbb
+      target_prefix: v
+      targets:
+        - "2020.2"
+      build_type: make
+      build_fixed_arch: x86_64
+      build_fixed_stdlib: libstdc++
+      lib_type: shared
+    catch2:
+      type: github
+      repo: catchorg/Catch2
+      check_file: include/catch.hpp
+      target_prefix: v
+      targets:
+        - 2.2.2
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.4.0
+        - 2.4.1
+        - 2.4.2
+        - 2.5.0
+        - 2.6.0
+        - 2.6.1
+        - 2.7.0
+        - 2.7.1
+        - 2.7.2
+        - 2.8.0
+        - 2.9.0
+        - 2.9.1
+        - 2.9.2
+        - 2.10.0
+        - 2.10.1
+        - 2.10.2
+        - 2.11.0
+        - 2.11.1
+        - 2.11.2
+        - 2.11.3
+        - 2.12.0
+        - 2.12.1
+    ulib:
+      type: github
+      repo: stefanocasazza/ULib
+      target_prefix: v
+      targets:
+        - 2.4.2
+      build_type: make
+      lib_type: shared
+      check_file: configure
+      build_fixed_arch: x86_64
+      build_fixed_stdlib: libstdc++
+    cctz:
+      type: github
+      repo: google/cctz
+      target_prefix: v
+      targets:
+        - "2.3"
+      build_type: cmake
+      lib_type: static
+      extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+    hfsm:
+      type: github
+      repo: andrew-gresyk/HFSM
+      check_file: README.md
+      targets:
+        - "0.8"
+        - "0.10"
+    hfsm2:
+      type: github
+      repo: andrew-gresyk/HFSM2
+      check_file: README.md
+      targets:
+        - "1_2_1"
+    eigen:
+      type: gitlab
+      repo: libeigen/eigen
+      check_file: README.md
+      targets:
+        - 3.3.4
+        - 3.3.5
+        - 3.3.7
+    glm:
+      type: github
+      repo: g-truc/glm
+      check_file: readme.md
+      targets:
+        - 0.9.8.5
+        - 0.9.9.0
+        - 0.9.9.1
+        - 0.9.9.2
+        - 0.9.9.3
+        - 0.9.9.4
+        - 0.9.9.5
+        - 0.9.9.6
+        - 0.9.9.7
+        - 0.9.9.8
+    expected-dark:
+      type: github
+      subdir: expected-lite
+      repo: martinmoene/expected-dark
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.0.1
+    expected-lite:
+      type: github
+      repo: martinmoene/expected-lite
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.1.0
+    nlohmann_json:
+      type: github
+      repo: nlohmann/json
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 2.1.1
+        - 3.1.2
+        - 3.6.0
+    tomlplusplus:
+      type: github
+      repo: marzer/tomlplusplus
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 1.2.4
+    doctest:
+      type: github
+      repo: onqtam/doctest
+      check_file: README.md
+      targets:
+        - 1.2.9
+        - 2.0.0
+        - 2.0.1
+        - 2.1.0
+        - 2.2.0
+        - 2.2.1
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.3.1
+        - 2.3.2
+        - 2.3.3
+        - 2.3.4
+        - 2.3.5
+        - 2.3.6
+        - 2.3.7
+    xtl:
+      type: github
+      repo: QuantStack/xtl
+      check_file: README.md
+      targets:
+        - 0.4.16
+        - 0.5.3
+    xsimd:
+      type: github
+      repo: QuantStack/xsimd
+      check_file: README.md
+      targets:
+        - 6.1.4
+        - 7.0.0
+    xtensor:
+      type: github
+      repo: QuantStack/xtensor
+      check_file: README.md
+      targets:
+        - 0.17.4
+        - 0.18.2
+        - 0.19.4
+    seastar:
+      type: github
+      repo: scylladb/seastar
+      check_file: README.md
+      targets:
+        - seastar-18.08.0
+    PEGTL:
+      type: github
+      repo: taocpp/PEGTL
+      check_file: README.md
+      targets:
+        - 2.8.0
+    benri:
+      type: github
+      repo: jansende/benri
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 2.0.1
+        - 2.1.1
+    spy:
+      type: github
+      repo: jfalcou/spy
+      check_file: README.md
+      targets:
+        - 0.0.3
+    hedley:
+      type: github
+      repo: nemequ/hedley
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "12"
+    blaze:
+      type: bitbucket
+      repo: blaze-lib/blaze
+      check_file: LICENSE
+      targets:
+        - "3.3"
+        - "3.4"
+        - "3.5"
+        - "3.6"
+    blaze_nogzip:
+      type: bitbucket
+      repo: blaze-lib/blaze
+      subdir: blaze
+      check_file: LICENSE
+      decompress_flag: ""
+      targets:
+        - "3.7"
+    GSL:
+      type: github
+      repo: Microsoft/GSL
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 1.0.0
+        - 2.0.0
+        - 2.1.0
+        - 3.0.0
+        - 3.0.1
+    vcl1:
+      type: github
+      repo: darealshinji/vectorclass
+      check_file: vectorclass.h
+      subdir: vcl
+      target_prefix: v
+      targets:
+        - "1.30"
+    vcl:
+      type: github
+      repo: vectorclass/version2
+      check_file: vectorclass.h
+      subdir: vcl
+      target_prefix: v
+      targets:
+        - 2.00.01
+    mir-glas:
+      type: github
+      repo: libmir/mir-glas
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.1.5
+        - 0.2.3
+        - 0.2.4
+    mir-algorithm:
+      type: github
+      repo: libmir/mir-algorithm
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.5.17
+        - 0.6.13
+        - 0.6.21
+        - 0.9.5
+        - 1.0.0
+        - 1.1.0
+    openssl:
+      type: github
+      repo: openssl/openssl
+      build_type: make
+      check_file: config
+      lib_type: shared
+      prebuildscript:
+        - ./config
+      targets:
+        - OpenSSL_1_1_1c
+        - OpenSSL_1_1_1g
+    cs50:
+      type: github
+      repo: cs50/libcs50
+      target_prefix: v
+      build_type: make
+      lib_type: shared
+      targets:
+        - 9.1.0
