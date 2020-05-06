@@ -8,7 +8,7 @@ STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
 logger = logging.getLogger('ssh')
 
 
-class Instance(object):
+class Instance:
     def __init__(self, health, group_arn):
         self.group_arn = group_arn
         self.instance = ec2.Instance(id=health['Target']['Id'])
@@ -50,7 +50,7 @@ class Instance(object):
                 elb_client.describe_target_health(TargetGroupArn=group_arn)['TargetHealthDescriptions']]
 
 
-class AdminInstance(object):
+class AdminInstance:
     def __init__(self, instance):
         self.instance = instance
         self.elb_health = 'unknown'
@@ -62,7 +62,7 @@ class AdminInstance(object):
         return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
 
 
-class BuilderInstance(object):
+class BuilderInstance:
     def __init__(self, instance):
         self.instance = instance
         self.elb_health = 'unknown'

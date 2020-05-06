@@ -2,7 +2,7 @@ from operator import attrgetter
 from datetime import datetime
 
 
-class LazyObjectWrapper(object):
+class LazyObjectWrapper:
     def __init__(self, fn):
         self.__fn = fn
         self.__setup = False
@@ -56,7 +56,7 @@ LINKS_TABLE = 'links'
 VERSIONS_LOGGING_TABLE = 'versionslog'
 
 
-class Hash(object):
+class Hash:
     def __init__(self, hash):
         self.hash = hash
 
@@ -67,7 +67,7 @@ class Hash(object):
         return f'{str(self.hash[:6])}..{str(self.hash[-6:])}'
 
 
-class Release(object):
+class Release:
     def __init__(self, version, branch, key, info_key, size, hash):
         self.version = version
         self.branch = branch

@@ -66,7 +66,7 @@ def guess_content_type(filename):
         )
 
 
-class DeploymentJob(object):
+class DeploymentJob:
     tmpdir = None
 
     def __init__(self, tar_file_path, bucket_name, bucket_path='', version=None, max_workers=None, cache_control=None):

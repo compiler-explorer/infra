@@ -1,12 +1,18 @@
 .NOTPARALLEL: 
 
+PYTHON:=$(shell which python3.8 || echo .python3.8-not-found)
+
 help: # with thanks to Ben Rady
 	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
 PACKER ?= ../packer
 
-config.json: make_json.py
-	python3 make_json.py
+$(PYTHON):
+	@echo "Python 3.8 not found on path. Please install (sudo apt install python3.8 python3.8-venv or similar)"
+	@exit 1
+
+config.json: make_json.py | $(PYTHON)
+	$(PYTHON) make_json.py
 
 packer: config.json ## Builds the base image for compiler explorer nodes
 	$(PACKER) build -timestamp-ui -var-file=config.json packer.json
@@ -25,9 +31,9 @@ update-admin:  ## Updates the admin website
 
 VIRTUALENV?=.env
 
-$(VIRTUALENV): requirements.txt
+$(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
-	python3 -mvenv $(VIRTUALENV)	
+	$(PYTHON) -mvenv $(VIRTUALENV)	
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
 ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands

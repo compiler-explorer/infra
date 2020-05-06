@@ -14,32 +14,24 @@
     },
     "main": "./compilestats.js",
     "dependencies": {
-        "aws-sdk": "^2.620.0",
+        "aws-sdk": "^2.667.0",
         "fs-extra": "^7.0.0",
         "nopt": "3.0.x",
         "shell-quote": "^1.7.2",
         "underscore": "1.9.1",
         "winston": "^2.4.0",
-        "yarn": "^1.22.0"
+        "yarn": "^1.22.4"
     },
     "devDependencies": {
         "aws-sdk-mock": "^1.7.0",
         "codecov": "^3.6.5",
         "eslint": "^4.17.0",
-        "istanbul": "^0.4.5",
-        "mocha": "^5.2.0",
-        "nock": "^9.1.4",
-        "requirejs": "*",
-        "uglify-js": "^3.7.7"
+        "mocha": "^7.1.1"
     },
     "scripts": {
         "lint": "eslint --config .eslintrc --ignore-path .eslintignore --fix ./*",
         "test": "mocha --recursive",
-        "check": "yarn run lint && yarn run test",
-        "start": "node compilestats.js",
-        "codecov": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --recursive && codecov",
-        "coverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report lcovonly -- -R spec --recursive",
-        "localcoverage": "istanbul cover ./node_modules/mocha/bin/_mocha --report html -- -R spec --recursive"
+        "start": "node compilestats.js"
     },
     "license": "BSD-2-Clause"
 }

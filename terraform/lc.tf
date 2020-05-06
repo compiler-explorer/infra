@@ -1,7 +1,7 @@
 locals {
-  image_id          = "ami-02ac4e107a7ebfd3c"
-  staging_image_id  = "ami-02ac4e107a7ebfd3c"
-  beta_image_id     = "ami-02ac4e107a7ebfd3c"
+  image_id          = "ami-014baecf9dffb89c8"
+  staging_image_id  = "ami-014baecf9dffb89c8"
+  beta_image_id     = "ami-014baecf9dffb89c8"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
   // Current c5 on-demand price is 0.085. Yearly pre-pay is 0.05 (so this is same as prepaying a year)

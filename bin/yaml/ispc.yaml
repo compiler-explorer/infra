@@ -2,20 +2,25 @@ compilers:
   ispc:
     type: tarballs
     compression: gz
-    url: https://sourceforge.net/projects/ispcmirror/files/v{name}/ispc-v{name}-linux.tar.gz/download
+    suffix: ''
+    url: https://github.com/ispc/ispc/releases/download/v{name}/ispc-v{name}{suffix}-linux.tar.gz
     dir: ispc-{name}
     untar_dir: ispc-v{name}-linux
     check_exe: bin/ispc --version
     targets:
-      - name: 1.10.0
-        untar_dir: ispc-{name}-Linux
-      - 1.11.0
-      - 1.12.0
+      - 1.13.0
     older:
-      check_exe: ispc --version
+      # Older ones seem to live at vBLAHb-linux.tar.gz
+      suffix: b
       targets:
-        - 1.9.2
-        - 1.9.1
+        - 1.12.0
+        - 1.11.0
+        - 1.10.0
+      oldest:
+        check_exe: ispc --version
+        targets:
+          - 1.9.2
+          - 1.9.1
     nightly:
       if: nightly
       type: tarballs

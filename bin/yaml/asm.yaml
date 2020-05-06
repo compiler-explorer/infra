@@ -9,7 +9,14 @@ compilers:
       configure_command:
         - bash
         - -c
-        - cd nasm-{name} && ./configure --prefix=$(pwd)/../nasm-install && make -j$(nproc) install
+        - |
+          set -euo pipefail
+          cd nasm-{name}
+          if [[ -e include/nasmlib.h ]]; then
+            sed -i 's/void pure_func seg_init(void);/void seg_init(void);/' include/nasmlib.h
+          fi
+          ./configure --prefix=$(pwd)/../nasm-install
+          make -j$(nproc) install
       compression: xz
       targets:
         - 2.12.02

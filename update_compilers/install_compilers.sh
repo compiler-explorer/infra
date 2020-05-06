@@ -4,7 +4,8 @@
 # On EC2 this location is on an EFS drive.
 ARG1="$1"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-. ${SCRIPT_DIR}/common.inc ${ARG1}
+# shellcheck source=common.inc
+. "${SCRIPT_DIR}/common.inc" "${ARG1}"
 
 echo "Starting installation at $(date), my pid $$"
 
@@ -16,15 +17,16 @@ fi
 
 #########################
 # Rust
-. ${SCRIPT_DIR}/install_rust_compilers.sh ${ARG1}
+# shellcheck source=install_rust_compilers.sh
+. "${SCRIPT_DIR}"/install_rust_compilers.sh "${ARG1}"
 
 #########################
 # Go
-. ${SCRIPT_DIR}/install_go_compilers.sh ${ARG1}
+ce_install 'compilers/go'
 
 #########################
 # D
-. ${SCRIPT_DIR}/install_d_compilers.sh ${ARG1}
+ce_install 'compilers/d'
 
 #########################
 # C++
@@ -32,47 +34,53 @@ ce_install 'compilers/c++'
 
 #########################
 # C
-. ${SCRIPT_DIR}/install_c_compilers.sh ${ARG1}
+ce_install 'compilers/c'
 
 #########################
 # ISPC
-. ${SCRIPT_DIR}/install_ispc_compilers.sh ${ARG1}
+ce_install 'compilers/ispc'
 
 #########################
 # Haskell
-. ${SCRIPT_DIR}/install_haskell_compilers.sh ${ARG1}
+# shellcheck source=install_haskell_compilers.sh
+. "${SCRIPT_DIR}"/install_haskell_compilers.sh "${ARG1}"
 
 #########################
 # Swift
-. ${SCRIPT_DIR}/install_swift_compilers.sh ${ARG1}
+# shellcheck source=install_swift_compilers.sh
+. "${SCRIPT_DIR}"/install_swift_compilers.sh "${ARG1}"
 
 #########################
 # Pascal
-. ${SCRIPT_DIR}/install_pascal_compilers.sh ${ARG1}
+# shellcheck source=install_pascal_compilers.sh
+. "${SCRIPT_DIR}"/install_pascal_compilers.sh "${ARG1}"
 
 #########################
 # Assembly
-. ${SCRIPT_DIR}/install_assembly_compilers.sh ${ARG1}
+ce_install 'compilers/asm'
 
 #########################
 # Zig
-. ${SCRIPT_DIR}/install_zig_compilers.sh ${ARG1}
+# shellcheck source=install_zig_compilers.sh
+. "${SCRIPT_DIR}"/install_zig_compilers.sh "${ARG1}"
 
 #########################
 # Clean
-. ${SCRIPT_DIR}/install_clean_compilers.sh ${ARG1}
+# shellcheck source=install_clean_compilers.sh
+. "${SCRIPT_DIR}"/install_clean_compilers.sh "${ARG1}"
 
 #########################
 # Java
-. ${SCRIPT_DIR}/install_java_compilers.sh ${ARG1}
+# shellcheck source=install_java_compilers.sh
+. "${SCRIPT_DIR}"/install_java_compilers.sh "${ARG1}"
 
 #########################
 # Circle
-. ${SCRIPT_DIR}/install_circle_compilers.sh ${ARG1}
+ce_install 'compilers/circle'
 
 #########################
 # Nim
-. ${SCRIPT_DIR}/install_nim_compilers.sh ${ARG1}
+ce_install 'compilers/nim'
 
 #########################
 # Python
