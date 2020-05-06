@@ -85,6 +85,14 @@ libraries:
         check_file: README.md
         targets:
           - trunk
+      gsl-lite:
+        type: github
+        method: nightlyclone
+        repo: martinmoene/gsl-lite
+        check_file: include/gsl/gsl-lite.hpp
+        path_name: libs/gsl-lite
+        targets:
+          - trunk
       nlohmann_json:
         type: github
         method: nightlyclone
@@ -134,7 +142,7 @@ libraries:
         check_file: README.md
         targets:
           - trunk
-      PEGTL:
+      pegtl:
         type: github
         method: nightlyclone
         repo: taocpp/PEGTL
@@ -145,7 +153,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: jansende/benri
-        check_file: README.md
+        check_file: readme.md
         targets:
           - trunk
       spy:
@@ -162,11 +170,12 @@ libraries:
         check_file: README.md
         targets:
           - trunk
-      GSL:
+      gsl:
         type: github
         method: nightlyclone
         repo: Microsoft/GSL
         check_file: README.md
+        path_name: libs/GSL
         targets:
           - trunk
       blaze:
@@ -174,6 +183,121 @@ libraries:
         method: nightlyclone
         repo: blaze-lib/blaze
         check_file: LICENSE
+        targets:
+          - trunk
+      cmcstl2:
+        type: github
+        method: nightlyclone
+        repo: CaseyCarter/cmcstl2
+        path_name: libs/cmcstl2
+        check_file: README.md
+        targets:
+          - trunk
+      opencv:
+        type: github
+        method: nightlyclone
+        repo: opencv/opencv
+        path_name: libs/opencv
+        build_type: cmake
+        targets:
+          - trunk
+      abseil:
+        type: github
+        method: nightlyclone
+        repo: abseil/abseil-cpp
+        path_name: libs/abseil
+        build_type: cmake
+        targets:
+          - trunk
+      cppcoro:
+        type: github
+        method: nightlyclone
+        repo: lewissbaker/cppcoro
+        path_name: libs/cppcoro
+        build_type: cake
+        targets:
+          - trunk
+      ctbignum:
+        type: github
+        method: nightlyclone
+        repo: niekbouman/ctbignum
+        path_name: libs/ctbignum
+        check_file: README.md
+        targets:
+          - trunk
+      outcome:
+        type: github
+        method: nightlyclone
+        repo: ned14/outcome
+        path_name: libs/outcome
+        check_file: single-header/outcome.hpp
+        targets:
+          - trunk
+      cnl:
+        type: github
+        method: nightlyclone
+        repo: johnmcfarlane/cnl
+        path_name: libs/cnl
+        check_file: include/cnl/all.h
+        targets:
+          - trunk
+      googletest:
+        type: github
+        method: nightlyclone
+        repo: google/googletest
+        path_name: libs/googletest
+        build_type: cmake
+        targets:
+          - trunk
+      tbb:
+        type: github
+        method: nightlyclone
+        repo: oneapi-src/oneTBB
+        path_name: libs/tbb
+        targets:
+          - trunk
+        build_type: make
+        build_fixed_arch: x86_64
+        build_fixed_stdlib: libstdc++
+        lib_type: shared
+      nanorange:
+        type: github
+        method: nightlyclone
+        repo: tcbrindle/NanoRange
+        path_name: libs/nanorange
+        check_file: README.md
+        targets:
+          - trunk
+      etl:
+        type: github
+        method: nightlyclone
+        repo: ETLCPP/etl
+        path_name: libs/etl
+        check_file: README.md
+        targets:
+          - trunk
+      namedtype:
+        type: github
+        method: nightlyclone
+        repo: joboccara/NamedType
+        path_name: libs/NamedType
+        check_file: named_type.hpp
+        targets:
+          - trunk
+      mir-glas:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-glas
+        path_name: libs/d/mir-glas-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir-algorithm:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-algorithm
+        path_name: libs/d/mir-algorithm-trunk
+        check_file: README.md
         targets:
           - trunk
     fmt:
@@ -204,17 +328,6 @@ libraries:
         - 1.4.1
         - 1.5.0
       build_type: cmake
-    tbb:
-      type: github
-      repo: oneapi-src/oneTBB
-      subdir: tbb
-      target_prefix: v
-      targets:
-        - "2020.2"
-      build_type: make
-      build_fixed_arch: x86_64
-      build_fixed_stdlib: libstdc++
-      lib_type: shared
     catch2:
       type: github
       repo: catchorg/Catch2
@@ -384,9 +497,10 @@ libraries:
       check_file: README.md
       targets:
         - seastar-18.08.0
-    PEGTL:
+    pegtl:
       type: github
       repo: taocpp/PEGTL
+      subdir: PEGTL
       check_file: README.md
       targets:
         - 2.8.0
@@ -428,9 +542,10 @@ libraries:
       decompress_flag: ""
       targets:
         - "3.7"
-    GSL:
+    gsl:
       type: github
       repo: Microsoft/GSL
+      subdir: GSL
       check_file: README.md
       target_prefix: v
       targets:

@@ -339,6 +339,8 @@ class GitHubInstallable(Installable):
                 self.check_file = os.path.join(self.path_name, 'CMakeLists.txt')
             elif self.build_type == "make":
                 self.check_file = os.path.join(self.path_name, 'Makefile')
+            elif self.build_type == "cake":
+                self.check_file = os.path.join(self.path_name, 'config.cake')
             else:
                 raise RuntimeError(f'Requires check_file ({last_context})')
         else:

@@ -119,21 +119,6 @@ get_or_sync_git_tags() {
     done
 }
 
-get_or_sync libs/cmcstl2 https://github.com/CaseyCarter/cmcstl2.git
-get_or_sync libs/GSL https://github.com/Microsoft/GSL.git
-get_or_sync libs/gsl-lite https://github.com/martinmoene/gsl-lite.git
-get_or_sync libs/opencv https://github.com/opencv/opencv.git
-get_or_sync libs/abseil https://github.com/abseil/abseil-cpp.git
-get_or_sync libs/cppcoro https://github.com/lewissbaker/cppcoro.git
-get_or_sync libs/ctbignum https://github.com/niekbouman/ctbignum.git
-get_or_sync libs/outcome https://github.com/ned14/outcome.git
-get_or_sync libs/cnl https://github.com/johnmcfarlane/cnl.git
-get_or_sync libs/googletest https://github.com/google/googletest.git
-get_or_sync libs/tbb https://github.com/01org/tbb.git
-get_or_sync libs/nanorange https://github.com/tcbrindle/NanoRange.git
-get_or_sync libs/etl https://github.com/ETLCPP/etl.git
-get_or_sync libs/NamedType https://github.com/joboccara/NamedType.git
-
 get_if_not_there() {
     local DIR=$1
     local URL=$2
@@ -245,26 +230,7 @@ install_gnu_gsl_versioned_and_latest() {
 
 #########################
 # D
-if install_nightly; then
-    if [ ! -d "${OPT}/libs/d/mir-glas-trunk" ]; then
-        git clone -q https://github.com/libmir/mir-glas.git ${OPT}/libs/d/mir-glas-trunk
-        git -C ${OPT}/libs/d/mir-glas-trunk checkout -q master
-    else
-        git -C ${OPT}/libs/d/mir-glas-trunk pull -q origin master
-    fi
-fi
-
 ce_install 'libraries/c++/mir-glas'
-
-if install_nightly; then
-    if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
-        git clone -q https://github.com/libmir/mir-algorithm.git ${OPT}/libs/d/mir-algorithm-trunk
-        git -C ${OPT}/libs/d/mir-algorithm-trunk checkout -q master
-    else
-        git -C ${OPT}/libs/d/mir-algorithm-trunk pull -q origin master
-    fi
-fi
-
 ce_install 'libraries/c++/mir-algorithm'
 
 #########################
