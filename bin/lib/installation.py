@@ -893,12 +893,24 @@ class GitHubInstallable(Installable):
         subprocess.check_call(['git', 'checkout', self.target_name], cwd=clonedpath)
         subprocess.check_call(['git', 'submodule', 'update', '--init'], cwd=clonedpath)
 
+    def nightlyclone(self):
+        dest = os.path.join(self.install_context.destination, self.path_name)
+        if not os.path.exists(dest):
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+        else:
+            subprocess.check_call(['git', '-C', f'{dest}', 'fetch', '-q'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', f'{dest}', 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'sync'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+
     def stage(self):
         self.install_context.clean_staging()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
         elif self.method == "clone":
             self.clone()
+        elif self.method == "nightlyclone":
+            self.nightlyclone()
         else:
             raise RuntimeError(f'Unknown Github method {self.method}')
 
@@ -911,13 +923,17 @@ class GitHubInstallable(Installable):
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
+    def should_install(self):
+        return super(GitHubInstallable, self).should_install() or self.method == "nightlyclone"
+
     def install(self):
         if not super(GitHubInstallable, self).install():
             return False
         self.stage()
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
-        self.install_context.move_from_staging(self.untar_dir, self.path_name)
+        if self.method != "nightlyclone":
+            self.install_context.move_from_staging(self.untar_dir, self.path_name)
         return True
 
     def __repr__(self) -> str:
@@ -928,17 +944,22 @@ class GitLabInstallable(GitHubInstallable):
         super(GitLabInstallable, self).__init__(install_context, config)
         self.domainurl = self.config_get("domainurl", "https://gitlab.com")
 
+    def nightlyclone(self):
+        dest = os.path.join(self.install_context.destination, self.path_name)
+        if not os.path.exists(dest):
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+        else:
+            subprocess.check_call(['git', '-C', f'{dest}', 'fetch', '-q'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', f'{dest}', 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'sync'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+
     def stage(self):
         self.install_context.clean_staging()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
-        elif self.method == "clone":
-            self.clone()
         else:
-            raise RuntimeError(f'Unknown Gitlab method {self.method}')
-
-        if self.strip:
-            self.install_context.strip_exes(self.strip)
+            super(GitLabInstallable, self).stage()
 
     def __repr__(self) -> str:
         return f'GitLabInstallable({self.name}, {self.path_name})'
@@ -952,13 +973,8 @@ class BitbucketInstallable(GitHubInstallable):
         self.install_context.clean_staging()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
-        elif self.method == "clone":
-            self.clone()
         else:
-            raise RuntimeError(f'Unknown Bitbucket method {self.method}')
-
-        if self.strip:
-            self.install_context.strip_exes(self.strip)
+            super(BitbucketInstallable, self).stage()
 
     def __repr__(self) -> str:
         return f'BitbucketInstallable({self.name}, {self.path_name})'

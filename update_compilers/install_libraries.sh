@@ -81,7 +81,7 @@ update_boost_archive
 ce_install 'libraries/c++/llvm'
 
 if install_nightly; then
-    ce_install 'libraries/c++/nightly/llvm'
+    ce_install 'libraries/c++/nightly'
 fi
 
 get_or_sync() {
@@ -192,11 +192,8 @@ get_github_versioned_and_trunk() {
     get_github_versioned_and_trunk_with_quirk ${DIR} ${URL} '' "$@"
 }
 
-ce_install install 'libraries/c++/ulib'
-get_github_versioned_and_trunk libs/ulib stefanocasazza/ULib
-
-ce_install install 'libraries/c++/benchmark'
-get_github_versioned_and_trunk libs/google-benchmark google/benchmark
+ce_install 'libraries/c++/ulib'
+ce_install 'libraries/c++/benchmark'
 
 get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0 0.9.1 0.10.0
 get_github_versioned_and_trunk libs/mp-units mpusz/units v0.3.1 v0.4.0
@@ -204,68 +201,28 @@ get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
 get_github_versioned_and_trunk libs/libguarded copperspice/cs_libguarded libguarded-1.1.0
 get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
 
-ce_install install 'libraries/c++/fmt'
-get_github_versioned_and_trunk libs/fmt fmtlib/fmt
-ce_install install 'libraries/c++/hfsm'
-get_github_versioned_and_trunk libs/hfsm andrew-gresyk/HFSM
-ce_install install 'libraries/c++/eigen'
-get_gitlab_versioned_and_trunk_with_quirk libs/eigen libeigen/eigen v
-ce_install install 'libraries/c++/glm'
-get_github_versioned_and_trunk libs/glm g-truc/glm
-ce_install install 'libraries/c++/catch2'
-get_github_versioned_and_trunk libs/catch2 catchorg/Catch2
-ce_install install 'libraries/c++/expected-dark'
-get_github_versions libs/expected-lite martinmoene/expected-dark
-ce_install install 'libraries/c++/expected-lite'
-get_github_versioned_and_trunk libs/expected-lite martinmoene/expected-lite
-ce_install install 'libraries/c++/nlohmann_json'
-get_github_versioned_and_trunk libs/nlohmann_json nlohmann/json
-ce_install install 'libraries/c++/tomlplusplus'
-get_github_versioned_and_trunk libs/tomlplusplus marzer/tomlplusplus
-ce_install install 'libraries/c++/doctest'
-get_github_versioned_and_trunk libs/doctest onqtam/doctest
+ce_install 'libraries/c++/fmt'
+ce_install 'libraries/c++/hfsm'
+ce_install 'libraries/c++/eigen'
+ce_install 'libraries/c++/glm'
+ce_install 'libraries/c++/catch2'
+ce_install 'libraries/c++/expected-dark'
+ce_install 'libraries/c++/expected-lite'
+ce_install 'libraries/c++/nlohmann_json'
+ce_install 'libraries/c++/tomlplusplus'
+ce_install 'libraries/c++/doctest'
 get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01 3.12.04 3.12.07 3.12.08 3.13.00 3.13.02 3.13.03 3.13.04 3.13.05 3.13.06 3.14.00 3.14.01 3.14.02 3.14.03 3.14.06 3.15.00 3.16.01 3.16.05
-ce_install install 'libraries/c++/xtl'
-get_github_versioned_and_trunk libs/xtl QuantStack/xtl
-ce_install install 'libraries/c++/xsimd'
-get_github_versioned_and_trunk libs/xsimd QuantStack/xsimd
-ce_install install 'libraries/c++/xtensor'
-get_github_versioned_and_trunk libs/xtensor QuantStack/xtensor
-ce_install install 'libraries/c++/seastar'
-get_github_versioned_and_trunk libs/seastar scylladb/seastar
-ce_install install 'libraries/c++/PEGTL'
-get_github_versioned_and_trunk libs/PEGTL taocpp/PEGTL
-ce_install install 'libraries/c++/benri'
-get_github_versioned_and_trunk libs/benri jansende/benri
-ce_install install 'libraries/c++/spy'
-get_github_versioned_and_trunk libs/spy jfalcou/spy
-ce_install install 'libraries/c++/hedley'
-get_github_versions libs/hedley nemequ/hedley
-
-ce_install install 'libraries/c++/GSL'
-get_github_versions libs/GSL Microsoft/GSL
-
-ce_install install 'libraries/c++/vcl'
-get_github_versions libs/vcl darealshinji/vectorclass
-get_github_versions libs/vcl vectorclass/version2
-
-install_blaze() {
-    for VERSION in "$@"; do
-        local DEST=${OPT}/libs/blaze/v${VERSION}/
-        if [[ ! -d ${DEST} ]]; then
-            mkdir -p /tmp/blaze
-            pushd /tmp/blaze
-            fetch https://bitbucket.org/blaze-lib/blaze/downloads/blaze-${VERSION}.tar.gz | tar zxf -
-            mkdir -p ${DEST}
-            rsync -a blaze-${VERSION}/ ${DEST}
-            popd
-            rm -rf /tmp/blaze
-        fi
-    done
-}
-
-ce_install install 'libraries/c++/blaze'
-get_or_sync libs/blaze/trunk https://bitbucket.org/blaze-lib/blaze.git
+ce_install 'libraries/c++/xtl'
+ce_install 'libraries/c++/xsimd'
+ce_install 'libraries/c++/xtensor'
+ce_install 'libraries/c++/seastar'
+ce_install 'libraries/c++/PEGTL'
+ce_install 'libraries/c++/benri'
+ce_install 'libraries/c++/spy'
+ce_install 'libraries/c++/hedley'
+ce_install 'libraries/c++/GSL'
+ce_install 'libraries/c++/vcl'
+ce_install 'libraries/c++/blaze'
 
 get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode dfa
 
@@ -297,7 +254,7 @@ if install_nightly; then
     fi
 fi
 
-ce_install install 'libraries/c++/mir-glas'
+ce_install 'libraries/c++/mir-glas'
 
 if install_nightly; then
     if [ ! -d "${OPT}/libs/d/mir-algorithm-trunk" ]; then
@@ -308,7 +265,7 @@ if install_nightly; then
     fi
 fi
 
-ce_install install 'libraries/c++/mir-algorithm'
+ce_install 'libraries/c++/mir-algorithm'
 
 #########################
 # CUDA

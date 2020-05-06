@@ -25,6 +25,155 @@ libraries:
         check_file: include/llvm/Config/llvm-config.h
         targets:
           - trunk
+      ulib:
+        type: github
+        method: nightlyclone
+        repo: stefanocasazza/ULib
+        check_file: configure
+        targets:
+          - trunk
+      benchmark:
+        type: github
+        method: nightlyclone
+        repo: google/benchmark
+        subdir: google-benchmark
+        check_file: README.md
+        targets:
+          - trunk
+      fmt:
+        type: github
+        method: nightlyclone
+        repo: fmtlib/fmt
+        check_file: CMakeLists.txt
+        targets:
+          - trunk
+      eigen:
+        type: gitlab
+        method: nightlyclone
+        repo: libeigen/eigen
+        check_file: README.md
+        targets:
+          - vtrunk
+      glm:
+        type: github
+        method: nightlyclone
+        repo: g-truc/glm
+        check_file: readme.md
+        targets:
+          - trunk
+      catch2:
+        type: github
+        method: nightlyclone
+        repo: catchorg/Catch2
+        check_file: include/catch.hpp
+        targets:
+          - trunk
+      expected-dark:
+        type: github
+        method: nightlyclone
+        subdir: expected-lite
+        repo: martinmoene/expected-dark
+        check_file: README.md
+        targets:
+          - trunk
+      expected-lite:
+        type: github
+        method: nightlyclone
+        repo: martinmoene/expected-lite
+        check_file: README.md
+        targets:
+          - trunk
+      nlohmann_json:
+        type: github
+        method: nightlyclone
+        repo: nlohmann/json
+        check_file: README.md
+        targets:
+          - trunk
+      tomlplusplus:
+        type: github
+        method: nightlyclone
+        repo: marzer/tomlplusplus
+        check_file: README.md
+        targets:
+          - trunk
+      doctest:
+        type: github
+        method: nightlyclone
+        repo: onqtam/doctest
+        check_file: README.md
+        targets:
+          - trunk
+      xtl:
+        type: github
+        method: nightlyclone
+        repo: QuantStack/xtl
+        check_file: README.md
+        targets:
+          - trunk
+      xsimd:
+        type: github
+        method: nightlyclone
+        repo: QuantStack/xsimd
+        check_file: README.md
+        targets:
+          - trunk
+      xtensor:
+        type: github
+        method: nightlyclone
+        repo: QuantStack/xtensor
+        check_file: README.md
+        targets:
+          - trunk
+      seastar:
+        type: github
+        method: nightlyclone
+        repo: scylladb/seastar
+        check_file: README.md
+        targets:
+          - trunk
+      PEGTL:
+        type: github
+        method: nightlyclone
+        repo: taocpp/PEGTL
+        check_file: README.md
+        targets:
+          - trunk
+      benri:
+        type: github
+        method: nightlyclone
+        repo: jansende/benri
+        check_file: README.md
+        targets:
+          - trunk
+      spy:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/spy
+        check_file: README.md
+        targets:
+          - trunk
+      hedley:
+        type: github
+        method: nightlyclone
+        repo: nemequ/hedley
+        check_file: README.md
+        targets:
+          - trunk
+      GSL:
+        type: github
+        method: nightlyclone
+        repo: Microsoft/GSL
+        check_file: README.md
+        targets:
+          - trunk
+      blaze:
+        type: bitbucket
+        method: nightlyclone
+        repo: blaze-lib/blaze
+        check_file: LICENSE
+        targets:
+          - trunk
     fmt:
       type: github
       repo: fmtlib/fmt
@@ -67,6 +216,7 @@ libraries:
     catch2:
       type: github
       repo: catchorg/Catch2
+      check_file: include/catch.hpp
       target_prefix: v
       targets:
         - 2.2.2
@@ -95,7 +245,6 @@ libraries:
         - 2.11.3
         - 2.12.0
         - 2.12.1
-      check_file: include/catch.hpp
     ulib:
       type: github
       repo: stefanocasazza/ULib
