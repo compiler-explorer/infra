@@ -77,10 +77,7 @@ class InstallationContext:
             self.error(f'Failed to fetch {url}: {request}')
             raise RuntimeError(f'Fetch failure for {url}: {request}')
         fetched = 0
-        if 'content-length' in request.headers.keys():
-            length = int(request.headers['content-length'])
-        else:
-            length = 0
+        length = int(request.headers.get('content-length', 0))
         self.info(f'Fetching {url} ({length} bytes)')
         report_every_secs = 5
         report_time = time.time() + report_every_secs
@@ -318,7 +315,7 @@ def command_config(config: Union[List[str], str]) -> List[str]:
 
 class GitHubInstallable(Installable):
     def __init__(self, install_context, config):
-        super(GitHubInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         last_context = self.context[-1]
         self.repo = self.config_get("repo", "")
         self.domainurl = self.config_get("domainurl", "https://github.com")
@@ -363,10 +360,16 @@ class GitHubInstallable(Installable):
         subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'update', '--init'], cwd=self.install_context.staging)
 
+    def get_archive_url(self):
+        return f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz'
+
+    def get_archive_pipecommand(self):
+        return ['tar', f'{self.decompress_flag}xf', '-']
+
     def stage(self):
         self.install_context.clean_staging()
         if self.method == "archive":
-            self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
+            self.install_context.fetch_url_and_pipe_to(self.get_archive_url(), self.get_archive_pipecommand())
         elif self.method == "clone":
             self.clone()
         elif self.method == "nightlyclone":
@@ -378,16 +381,16 @@ class GitHubInstallable(Installable):
             self.install_context.strip_exes(self.strip)
 
     def verify(self):
-        if not super(GitHubInstallable, self).verify():
+        if not super().verify():
             return False
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
     def should_install(self):
-        return super(GitHubInstallable, self).should_install() or self.method == "nightlyclone"
+        return super().should_install() or self.method == "nightlyclone"
 
     def install(self):
-        if not super(GitHubInstallable, self).install():
+        if not super().install():
             return False
         self.stage()
         if self.subdir:
@@ -401,30 +404,22 @@ class GitHubInstallable(Installable):
 
 class GitLabInstallable(GitHubInstallable):
     def __init__(self, install_context, config):
-        super(GitLabInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         self.domainurl = self.config_get("domainurl", "https://gitlab.com")
 
-    def stage(self):
-        self.install_context.clean_staging()
-        if self.method == "archive":
-            self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
-        else:
-            super(GitLabInstallable, self).stage()
+    def get_archive_url(self):
+        return f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz'
 
     def __repr__(self) -> str:
         return f'GitLabInstallable({self.name}, {self.path_name})'
 
 class BitbucketInstallable(GitHubInstallable):
     def __init__(self, install_context, config):
-        super(BitbucketInstallable, self).__init__(install_context, config)
+        super().__init__(install_context, config)
         self.domainurl = self.config_get("domainurl", "https://bitbucket.org")
 
-    def stage(self):
-        self.install_context.clean_staging()
-        if self.method == "archive":
-            self.install_context.fetch_url_and_pipe_to(f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz', ['tar', f'{self.decompress_flag}xf', '-'])
-        else:
-            super(BitbucketInstallable, self).stage()
+    def get_archive_url(self):
+        return f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz'
 
     def __repr__(self) -> str:
         return f'BitbucketInstallable({self.name}, {self.path_name})'
