@@ -502,7 +502,6 @@ libraries:
         type: github
         method: nightlyclone
         repo: QuantStack/xtl
-        path_name: libs/xtl
         check_file: README.md
         targets:
           - trunk
@@ -510,7 +509,6 @@ libraries:
         type: github
         method: nightlyclone
         repo: QuantStack/xsimd
-        path_name: libs/xsimd
         check_file: README.md
         targets:
           - trunk
@@ -518,7 +516,6 @@ libraries:
         type: github
         method: nightlyclone
         repo: QuantStack/xtensor
-        path_name: libs/xtensor
         check_file: README.md
         targets:
           - trunk
@@ -562,7 +559,6 @@ libraries:
         method: nightlyclone
         repo: Microsoft/GSL
         check_file: README.md
-        path_name: libs/GSL
         targets:
           - trunk
       blaze:
