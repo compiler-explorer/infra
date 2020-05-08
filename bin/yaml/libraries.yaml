@@ -115,6 +115,14 @@ libraries:
       targets:
         - "0.8"
         - "0.10"
+    hfsm_trunk:
+      type: github
+      method: nightlyclone
+      repo: andrew-gresyk/HFSM
+      check_file: README.md
+      path_name: libs/hfsm/trunk
+      targets:
+        - trunk
     hfsm2:
       type: github
       repo: andrew-gresyk/HFSM2
@@ -125,6 +133,7 @@ libraries:
       type: gitlab
       repo: libeigen/eigen
       check_file: README.md
+      target_prefix: v
       targets:
         - 3.3.4
         - 3.3.5
@@ -256,6 +265,7 @@ libraries:
       type: bitbucket
       repo: blaze-lib/blaze
       check_file: LICENSE
+      target_prefix: v
       targets:
         - "3.3"
         - "3.4"
@@ -267,6 +277,7 @@ libraries:
       subdir: blaze
       check_file: LICENSE
       decompress_flag: ""
+      target_prefix: v
       targets:
         - "3.7"
     gsl:
@@ -491,6 +502,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: QuantStack/xtl
+        path_name: libs/xtl
         check_file: README.md
         targets:
           - trunk
@@ -498,6 +510,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: QuantStack/xsimd
+        path_name: libs/xsimd
         check_file: README.md
         targets:
           - trunk
@@ -505,6 +518,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: QuantStack/xtensor
+        path_name: libs/xtensor
         check_file: README.md
         targets:
           - trunk
@@ -721,6 +735,7 @@ libraries:
       repo: libmir/mir-glas
       check_file: README.md
       target_prefix: v
+      path_name: libs/d/mir-glas-v{name}
       targets:
         - 0.1.5
         - 0.2.3
@@ -730,6 +745,7 @@ libraries:
       repo: libmir/mir-algorithm
       check_file: README.md
       target_prefix: v
+      path_name: libs/d/mir-algorithm-v{name}
       targets:
         - 0.5.17
         - 0.6.13
@@ -737,6 +753,7 @@ libraries:
         - 0.9.5
         - 1.0.0
         - 1.1.0
+        - 3.7.17
     nightly:
       if: nightly
       mir_core:
