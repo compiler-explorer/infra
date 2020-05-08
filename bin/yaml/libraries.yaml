@@ -558,6 +558,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: Microsoft/GSL
+        subdir: GSL
         check_file: README.md
         targets:
           - trunk
