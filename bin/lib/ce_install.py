@@ -6,6 +6,7 @@ import logging.config
 import os
 import sys
 import traceback
+from lib.amazon_properties import get_properties_compilers_and_libraries
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -68,7 +69,7 @@ def main():
                         help='log output to console, even if logging to a file is requested')
     parser.add_argument('--log', metavar='LOGFILE', help='log to LOGFILE')
 
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify'], default='list',
+    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck'], default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
 
@@ -86,7 +87,7 @@ def main():
         root_logger.addHandler(console_handler)
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
-    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, args.cache)
+    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable, args.cache)
 
     installables = []
     for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
@@ -126,6 +127,33 @@ def main():
             else:
                 print(f"{installable.name}: not installed")
         sys.exit(0)
+    elif args.command == 'amazoncheck':
+        logger.debug('Starting Amazon Check')
+        languages = ['c','c++','d','cuda']
+
+        for language in languages:
+            logger.info(f'Checking {language} libraries')
+            [compilers, libraries] = get_properties_compilers_and_libraries(language, logger)
+
+            for libraryid in libraries:
+                logger.debug(f'Checking {libraryid}')
+                for version in libraries[libraryid]['versionprops']:
+                    includepaths = libraries[libraryid]['versionprops'][version]['path']
+                    for includepath in includepaths:
+                        logger.debug(f'Checking for library {libraryid} {version}: {includepath}')
+                        if not os.path.exists(includepath):
+                            logger.error(f'Path missing for library {libraryid} {version}: {includepath}')
+                        else:
+                            logger.debug(f'Found path for library {libraryid} {version}: {includepath}')
+
+                    libpaths = libraries[libraryid]['versionprops'][version]['libpath']
+                    for libpath in libpaths:
+                        logger.debug(f'Checking for library {libraryid} {version}: {libpath}')
+                        if not os.path.exists(libpath):
+                            logger.error(f'Path missing for library {libraryid} {version}: {libpath}')
+                        else:
+                            logger.debug(f'Found path for library {libraryid} {version}: {libpath}')
+
     elif args.command == 'install':
         num_installed = 0
         num_skipped = 0

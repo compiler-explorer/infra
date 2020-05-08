@@ -38,11 +38,12 @@ def s3_available_compilers():
 
 
 class InstallationContext:
-    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, cache: Optional[Path]):
+    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool, cache: Optional[Path]):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
         self.dry_run = dry_run
+        self.is_nightly_enabled = is_nightly_enabled
         if cache:
             self.info(f"Using cache {cache}")
             self.fetcher = CacheControl(requests.session(), cache=FileCache(cache))
@@ -77,7 +78,7 @@ class InstallationContext:
             self.error(f'Failed to fetch {url}: {request}')
             raise RuntimeError(f'Fetch failure for {url}: {request}')
         fetched = 0
-        length = int(request.headers['content-length'])
+        length = int(request.headers.get('content-length', 0))
         self.info(f'Fetching {url} ({length} bytes)')
         report_every_secs = 5
         report_time = time.time() + report_every_secs
@@ -86,7 +87,8 @@ class InstallationContext:
             fetched += len(chunk)
             now = time.time()
             if now >= report_time:
-                self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
+                if length != 0:
+                    self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
                 report_time = now + report_every_secs
         self.info(f'100% of {url}')
         fd.flush()
@@ -222,10 +224,20 @@ class Installable:
         self.config = config
         self.target_name = self.config.get("name", "(unnamed)")
         self.context = self.config_get("context", [])
-        self.name = f'{"/".join(self.context)} {self.target_name}'
+        self.name = f'{"/".join(self.context)}/{self.target_name}'
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
+        self.build_type = self.config_get("build_type", "")
+        self.build_fixed_arch = self.config_get("build_fixed_arch", "")
+        self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
+        self.lib_type = self.config_get("lib_type", "static")
+        self.staticliblink = []
+        self.sharedliblink = []
+        self.url = "None"
+        self.description = ""
+        self.prebuildscript = self.config_get("prebuildscript", [])
+        self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
@@ -256,7 +268,7 @@ class Installable:
         return True
 
     def should_install(self) -> bool:
-        return self.install_always or not self.is_installed()
+        return self.install_always or not self.is_installed() or self.install_context.is_nightly_enabled
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")
@@ -302,6 +314,120 @@ def command_config(config: Union[List[str], str]) -> List[str]:
         return config.split(" ")
     return config
 
+class GitHubInstallable(Installable):
+    def __init__(self, install_context, config):
+        super().__init__(install_context, config)
+        last_context = self.context[-1]
+        self.repo = self.config_get("repo", "")
+        self.domainurl = self.config_get("domainurl", "https://github.com")
+        self.method = self.config_get("method", "archive")
+        self.decompress_flag = self.config_get("decompress_flag", "z")
+        self.strip = False
+        self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
+        self.target_prefix = self.config_get("target_prefix", "")
+        self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
+        if self.repo == "":
+            raise RuntimeError(f'Requires repo')
+
+        splitrepo = self.repo.split('/')
+        self.reponame = splitrepo[1]
+        default_untar_dir = f'{self.reponame}-{self.target_name}'
+        self.untar_dir = self.config_get("untar_dir", default_untar_dir)
+
+        check_file = self.config_get("check_file", "")
+        if check_file == "":
+            if self.build_type == "cmake":
+                self.check_file = os.path.join(self.path_name, 'CMakeLists.txt')
+            elif self.build_type == "make":
+                self.check_file = os.path.join(self.path_name, 'Makefile')
+            elif self.build_type == "cake":
+                self.check_file = os.path.join(self.path_name, 'config.cake')
+            else:
+                raise RuntimeError(f'Requires check_file ({last_context})')
+        else:
+            self.check_file = f'{self.path_name}/{check_file}'
+
+    def clone_branch(self):
+        dest = os.path.join(self.install_context.destination, self.path_name)
+        if not os.path.exists(dest):
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+        else:
+            subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+
+    def clone_default(self):
+        dest = os.path.join(self.install_context.destination, self.path_name)
+        if not os.path.exists(dest):
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+        else:
+            subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+
+    def get_archive_url(self):
+        return f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz'
+
+    def get_archive_pipecommand(self):
+        return ['tar', f'{self.decompress_flag}xf', '-']
+
+    def stage(self):
+        self.install_context.clean_staging()
+        if self.method == "archive":
+            self.install_context.fetch_url_and_pipe_to(self.get_archive_url(), self.get_archive_pipecommand())
+        elif self.method == "clone_branch":
+            self.clone_branch()
+        elif self.method == "nightlyclone":
+            self.clone_default()
+        else:
+            raise RuntimeError(f'Unknown Github method {self.method}')
+
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+
+    def verify(self):
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
+
+    def install(self):
+        if not super().install():
+            return False
+        self.stage()
+        if self.subdir:
+            self.install_context.make_subdir(self.subdir)
+        if self.method == "archive":
+            self.install_context.move_from_staging(self.untar_dir, self.path_name)
+        return True
+
+    def __repr__(self) -> str:
+        return f'GitHubInstallable({self.name}, {self.path_name})'
+
+class GitLabInstallable(GitHubInstallable):
+    def __init__(self, install_context, config):
+        super().__init__(install_context, config)
+        self.domainurl = self.config_get("domainurl", "https://gitlab.com")
+
+    def get_archive_url(self):
+        return f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz'
+
+    def __repr__(self) -> str:
+        return f'GitLabInstallable({self.name}, {self.path_name})'
+
+class BitbucketInstallable(GitHubInstallable):
+    def __init__(self, install_context, config):
+        super().__init__(install_context, config)
+        self.domainurl = self.config_get("domainurl", "https://bitbucket.org")
+
+    def get_archive_url(self):
+        return f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz'
+
+    def __repr__(self) -> str:
+        return f'BitbucketInstallable({self.name}, {self.path_name})'
 
 class S3TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
@@ -352,6 +478,9 @@ class S3TarballInstallable(Installable):
         self.stage()
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
+        elif self.path_name:
+            self.install_context.make_subdir(self.path_name)
+
         self.install_context.move_from_staging(self.untar_dir, self.path_name)
         return True
 
@@ -603,7 +732,10 @@ INSTALLER_TYPES = {
     'tarballs': TarballInstallable,
     's3tarballs': S3TarballInstallable,
     'nightly': NightlyInstallable,
-    'script': ScriptInstallable
+    'script': ScriptInstallable,
+    'github': GitHubInstallable,
+    'gitlab': GitLabInstallable,
+    'bitbucket': BitbucketInstallable,
 }
 
 
