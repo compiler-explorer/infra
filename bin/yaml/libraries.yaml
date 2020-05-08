@@ -1,4 +1,13 @@
 libraries:
+  c:
+    cs50:
+      type: github
+      repo: cs50/libcs50
+      target_prefix: v
+      build_type: make
+      lib_type: shared
+      targets:
+        - 9.1.0
   c++:
     llvm:
       type: s3tarballs
@@ -18,6 +27,370 @@ libraries:
         - 8.0.0
         - 9.0.0
         - 10.0.0
+    fmt:
+      type: github
+      repo: fmtlib/fmt
+      targets:
+        - 4.0.0
+        - 4.1.0
+        - 5.0.0
+        - 5.1.0 
+        - 5.2.0
+        - 5.3.0
+        - 6.0.0
+        - 6.1.0
+        - 6.1.1
+        - 6.1.2
+        - 6.2.0
+      build_type: cmake
+    benchmark:
+      type: github
+      repo: google/benchmark
+      subdir: google-benchmark
+      target_prefix: v
+      targets:
+        - 1.2.0
+        - 1.3.0
+        - 1.4.0
+        - 1.4.1
+        - 1.5.0
+      build_type: cmake
+    catch2:
+      type: github
+      repo: catchorg/Catch2
+      check_file: include/catch.hpp
+      target_prefix: v
+      targets:
+        - 2.2.2
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.4.0
+        - 2.4.1
+        - 2.4.2
+        - 2.5.0
+        - 2.6.0
+        - 2.6.1
+        - 2.7.0
+        - 2.7.1
+        - 2.7.2
+        - 2.8.0
+        - 2.9.0
+        - 2.9.1
+        - 2.9.2
+        - 2.10.0
+        - 2.10.1
+        - 2.10.2
+        - 2.11.0
+        - 2.11.1
+        - 2.11.2
+        - 2.11.3
+        - 2.12.0
+        - 2.12.1
+    ulib:
+      type: github
+      repo: stefanocasazza/ULib
+      target_prefix: v
+      targets:
+        - 2.4.2
+      build_type: make
+      lib_type: shared
+      check_file: configure
+      build_fixed_arch: x86_64
+      build_fixed_stdlib: libstdc++
+    cctz:
+      type: github
+      repo: google/cctz
+      target_prefix: v
+      targets:
+        - "2.3"
+      build_type: cmake
+      lib_type: static
+      extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+    hfsm:
+      type: github
+      repo: andrew-gresyk/HFSM
+      check_file: README.md
+      targets:
+        - "0.8"
+        - "0.10"
+    hfsm2:
+      type: github
+      repo: andrew-gresyk/HFSM2
+      check_file: README.md
+      targets:
+        - "1_2_1"
+    eigen:
+      type: gitlab
+      repo: libeigen/eigen
+      check_file: README.md
+      targets:
+        - 3.3.4
+        - 3.3.5
+        - 3.3.7
+    glm:
+      type: github
+      repo: g-truc/glm
+      check_file: readme.md
+      targets:
+        - 0.9.8.5
+        - 0.9.9.0
+        - 0.9.9.1
+        - 0.9.9.2
+        - 0.9.9.3
+        - 0.9.9.4
+        - 0.9.9.5
+        - 0.9.9.6
+        - 0.9.9.7
+        - 0.9.9.8
+    expected-dark:
+      type: github
+      subdir: expected-lite
+      repo: martinmoene/expected-dark
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.0.1
+    expected-lite:
+      type: github
+      repo: martinmoene/expected-lite
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 0.1.0
+    nlohmann_json:
+      type: github
+      repo: nlohmann/json
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 2.1.1
+        - 3.1.2
+        - 3.6.0
+    tomlplusplus:
+      type: github
+      repo: marzer/tomlplusplus
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 1.2.4
+    doctest:
+      type: github
+      repo: onqtam/doctest
+      check_file: README.md
+      targets:
+        - 1.2.9
+        - 2.0.0
+        - 2.0.1
+        - 2.1.0
+        - 2.2.0
+        - 2.2.1
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.3.1
+        - 2.3.2
+        - 2.3.3
+        - 2.3.4
+        - 2.3.5
+        - 2.3.6
+        - 2.3.7
+    xtl:
+      type: github
+      repo: QuantStack/xtl
+      check_file: README.md
+      targets:
+        - 0.4.16
+        - 0.5.3
+    xsimd:
+      type: github
+      repo: QuantStack/xsimd
+      check_file: README.md
+      targets:
+        - 6.1.4
+        - 7.0.0
+    xtensor:
+      type: github
+      repo: QuantStack/xtensor
+      check_file: README.md
+      targets:
+        - 0.17.4
+        - 0.18.2
+        - 0.19.4
+    seastar:
+      type: github
+      repo: scylladb/seastar
+      check_file: README.md
+      targets:
+        - seastar-18.08.0
+    pegtl:
+      type: github
+      repo: taocpp/PEGTL
+      subdir: PEGTL
+      check_file: README.md
+      targets:
+        - 2.8.0
+    benri:
+      type: github
+      repo: jansende/benri
+      check_file: readme.md
+      target_prefix: v
+      targets:
+        - 2.0.1
+        - 2.1.1
+    spy:
+      type: github
+      repo: jfalcou/spy
+      check_file: README.md
+      targets:
+        - 0.0.3
+    hedley:
+      type: github
+      repo: nemequ/hedley
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "12"
+    blaze:
+      type: bitbucket
+      repo: blaze-lib/blaze
+      check_file: LICENSE
+      targets:
+        - "3.3"
+        - "3.4"
+        - "3.5"
+        - "3.6"
+    blaze_nogzip:
+      type: bitbucket
+      repo: blaze-lib/blaze
+      subdir: blaze
+      check_file: LICENSE
+      decompress_flag: ""
+      targets:
+        - "3.7"
+    gsl:
+      type: github
+      repo: Microsoft/GSL
+      subdir: GSL
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 1.0.0
+        - 2.0.0
+        - 2.1.0
+        - 3.0.0
+        - 3.0.1
+    vcl1:
+      type: github
+      repo: darealshinji/vectorclass
+      check_file: vectorclass.h
+      subdir: vcl
+      target_prefix: v
+      targets:
+        - "1.30"
+    vcl:
+      type: github
+      repo: vectorclass/version2
+      check_file: vectorclass.h
+      subdir: vcl
+      target_prefix: v
+      targets:
+        - 2.00.01
+    openssl:
+      type: github
+      repo: openssl/openssl
+      build_type: make
+      check_file: config
+      lib_type: shared
+      prebuildscript:
+        - ./config
+      targets:
+        - OpenSSL_1_1_1c
+        - OpenSSL_1_1_1g
+    kvasir:
+      type: github
+      method: clone_branch
+      repo: kvasir-io/mpl
+      path_name: libs/kvasir/mpl/trunk
+      check_file: README.md
+      targets:
+        - development
+    ctre:
+      type: github
+      method: clone_branch
+      repo: hanickadot/compile-time-regular-expressions
+      check_file: include/ctre.hpp
+      targets:
+        - v2
+        - ecma-unicode
+    rangesv3:
+      type: github
+      method: clone_branch
+      repo: ericniebler/range-v3
+      check_file: README.md
+      targets:
+        - 0.3.0
+        - 0.3.5
+        - 0.3.6
+        - 0.4.0
+        - 0.9.1
+        - 0.10.0
+    mp-units:
+      type: github
+      method: clone_branch
+      repo: mpusz/units
+      check_file: README.md
+      targets:
+        - v0.3.1
+        - v0.4.0
+    dlib:
+      type: github
+      method: clone_branch
+      repo: davisking/dlib
+      build_type: cmake
+      targets:
+        - v19.7
+        - v19.9
+        - v19.10
+    libguarded:
+      type: github
+      method: clone_branch
+      repo: copperspice/cs_libguarded
+      check_file: README
+      targets:
+        - libguarded-1.1.0
+    brigand:
+      type: github
+      method: clone_branch
+      repo: edouarda/brigand
+      check_file: README.md
+      targets:
+        - 1.3.0
+    eastl:
+      type: github
+      method: clone_branch
+      repo: electronicarts/EASTL
+      build_type: cmake
+      targets:
+        - 3.12.01
+        - 3.12.04
+        - 3.12.07
+        - 3.12.08
+        - 3.13.00
+        - 3.13.02
+        - 3.13.03
+        - 3.13.04
+        - 3.13.05
+        - 3.13.06
+        - 3.14.00
+        - 3.14.01
+        - 3.14.02
+        - 3.14.03
+        - 3.14.06
+        - 3.15.00
+        - 3.16.01
+        - 3.16.05
     nightly:
       if: nightly
       llvm:
@@ -284,292 +657,65 @@ libraries:
         check_file: named_type.hpp
         targets:
           - trunk
-      mir-glas:
+      ctre:
+        type: github
+        method: clone_branch
+        repo: hanickadot/compile-time-regular-expressions
+        check_file: include/ctre.hpp
+        targets:
+          - master
+          - dfa
+      rangesv3:
         type: github
         method: nightlyclone
-        repo: libmir/mir-glas
-        path_name: libs/d/mir-glas-trunk
+        repo: ericniebler/range-v3
         check_file: README.md
         targets:
           - trunk
-      mir-algorithm:
+      mp-units:
         type: github
         method: nightlyclone
-        repo: libmir/mir-algorithm
-        path_name: libs/d/mir-algorithm-trunk
+        repo: mpusz/units
         check_file: README.md
         targets:
           - trunk
-    fmt:
+      dlib:
+        type: github
+        method: nightlyclone
+        repo: davisking/dlib
+        build_type: cmake
+        targets:
+          - trunk
+      libguarded:
+        type: github
+        method: nightlyclone
+        repo: copperspice/cs_libguarded
+        check_file: README.md
+        targets:
+          - trunk
+      brigand:
+        type: github
+        method: nightlyclone
+        repo: edouarda/brigand
+        check_file: README.md
+        targets:
+          - trunk
+      eastl:
+        type: github
+        method: nightlyclone
+        repo: electronicarts/EASTL
+        build_type: cmake
+        targets:
+          - trunk
+  cuda:
+    cub:
       type: github
-      repo: fmtlib/fmt
+      method: clone_branch
+      repo: NVlabs/cub
+      check_file: cub/cub.cuh
       targets:
-        - 4.0.0
-        - 4.1.0
-        - 5.0.0
-        - 5.1.0 
-        - 5.2.0
-        - 5.3.0
-        - 6.0.0
-        - 6.1.0
-        - 6.1.1
-        - 6.1.2
-        - 6.2.0
-      build_type: cmake
-    benchmark:
-      type: github
-      repo: google/benchmark
-      subdir: google-benchmark
-      target_prefix: v
-      targets:
-        - 1.2.0
-        - 1.3.0
-        - 1.4.0
-        - 1.4.1
-        - 1.5.0
-      build_type: cmake
-    catch2:
-      type: github
-      repo: catchorg/Catch2
-      check_file: include/catch.hpp
-      target_prefix: v
-      targets:
-        - 2.2.2
-        - 2.2.2
-        - 2.2.3
-        - 2.3.0
-        - 2.4.0
-        - 2.4.1
-        - 2.4.2
-        - 2.5.0
-        - 2.6.0
-        - 2.6.1
-        - 2.7.0
-        - 2.7.1
-        - 2.7.2
-        - 2.8.0
-        - 2.9.0
-        - 2.9.1
-        - 2.9.2
-        - 2.10.0
-        - 2.10.1
-        - 2.10.2
-        - 2.11.0
-        - 2.11.1
-        - 2.11.2
-        - 2.11.3
-        - 2.12.0
-        - 2.12.1
-    ulib:
-      type: github
-      repo: stefanocasazza/ULib
-      target_prefix: v
-      targets:
-        - 2.4.2
-      build_type: make
-      lib_type: shared
-      check_file: configure
-      build_fixed_arch: x86_64
-      build_fixed_stdlib: libstdc++
-    cctz:
-      type: github
-      repo: google/cctz
-      target_prefix: v
-      targets:
-        - "2.3"
-      build_type: cmake
-      lib_type: static
-      extra_cmake_arg:
-        - -DBUILD_TESTING=OFF
-    hfsm:
-      type: github
-      repo: andrew-gresyk/HFSM
-      check_file: README.md
-      targets:
-        - "0.8"
-        - "0.10"
-    hfsm2:
-      type: github
-      repo: andrew-gresyk/HFSM2
-      check_file: README.md
-      targets:
-        - "1_2_1"
-    eigen:
-      type: gitlab
-      repo: libeigen/eigen
-      check_file: README.md
-      targets:
-        - 3.3.4
-        - 3.3.5
-        - 3.3.7
-    glm:
-      type: github
-      repo: g-truc/glm
-      check_file: readme.md
-      targets:
-        - 0.9.8.5
-        - 0.9.9.0
-        - 0.9.9.1
-        - 0.9.9.2
-        - 0.9.9.3
-        - 0.9.9.4
-        - 0.9.9.5
-        - 0.9.9.6
-        - 0.9.9.7
-        - 0.9.9.8
-    expected-dark:
-      type: github
-      subdir: expected-lite
-      repo: martinmoene/expected-dark
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 0.0.1
-    expected-lite:
-      type: github
-      repo: martinmoene/expected-lite
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 0.1.0
-    nlohmann_json:
-      type: github
-      repo: nlohmann/json
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 2.1.1
-        - 3.1.2
-        - 3.6.0
-    tomlplusplus:
-      type: github
-      repo: marzer/tomlplusplus
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 1.2.4
-    doctest:
-      type: github
-      repo: onqtam/doctest
-      check_file: README.md
-      targets:
-        - 1.2.9
-        - 2.0.0
-        - 2.0.1
-        - 2.1.0
-        - 2.2.0
-        - 2.2.1
-        - 2.2.2
-        - 2.2.3
-        - 2.3.0
-        - 2.3.1
-        - 2.3.2
-        - 2.3.3
-        - 2.3.4
-        - 2.3.5
-        - 2.3.6
-        - 2.3.7
-    xtl:
-      type: github
-      repo: QuantStack/xtl
-      check_file: README.md
-      targets:
-        - 0.4.16
-        - 0.5.3
-    xsimd:
-      type: github
-      repo: QuantStack/xsimd
-      check_file: README.md
-      targets:
-        - 6.1.4
-        - 7.0.0
-    xtensor:
-      type: github
-      repo: QuantStack/xtensor
-      check_file: README.md
-      targets:
-        - 0.17.4
-        - 0.18.2
-        - 0.19.4
-    seastar:
-      type: github
-      repo: scylladb/seastar
-      check_file: README.md
-      targets:
-        - seastar-18.08.0
-    pegtl:
-      type: github
-      repo: taocpp/PEGTL
-      subdir: PEGTL
-      check_file: README.md
-      targets:
-        - 2.8.0
-    benri:
-      type: github
-      repo: jansende/benri
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 2.0.1
-        - 2.1.1
-    spy:
-      type: github
-      repo: jfalcou/spy
-      check_file: README.md
-      targets:
-        - 0.0.3
-    hedley:
-      type: github
-      repo: nemequ/hedley
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - "12"
-    blaze:
-      type: bitbucket
-      repo: blaze-lib/blaze
-      check_file: LICENSE
-      targets:
-        - "3.3"
-        - "3.4"
-        - "3.5"
-        - "3.6"
-    blaze_nogzip:
-      type: bitbucket
-      repo: blaze-lib/blaze
-      subdir: blaze
-      check_file: LICENSE
-      decompress_flag: ""
-      targets:
-        - "3.7"
-    gsl:
-      type: github
-      repo: Microsoft/GSL
-      subdir: GSL
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 1.0.0
-        - 2.0.0
-        - 2.1.0
-        - 3.0.0
-        - 3.0.1
-    vcl1:
-      type: github
-      repo: darealshinji/vectorclass
-      check_file: vectorclass.h
-      subdir: vcl
-      target_prefix: v
-      targets:
-        - "1.30"
-    vcl:
-      type: github
-      repo: vectorclass/version2
-      check_file: vectorclass.h
-      subdir: vcl
-      target_prefix: v
-      targets:
-        - 2.00.01
+        - 1.8.0
+  d:
     mir-glas:
       type: github
       repo: libmir/mir-glas
@@ -591,22 +737,102 @@ libraries:
         - 0.9.5
         - 1.0.0
         - 1.1.0
-    openssl:
-      type: github
-      repo: openssl/openssl
-      build_type: make
-      check_file: config
-      lib_type: shared
-      prebuildscript:
-        - ./config
-      targets:
-        - OpenSSL_1_1_1c
-        - OpenSSL_1_1_1g
-    cs50:
-      type: github
-      repo: cs50/libcs50
-      target_prefix: v
-      build_type: make
-      lib_type: shared
-      targets:
-        - 9.1.0
+    nightly:
+      if: nightly
+      mir_core:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-core
+        path_name: libs/d/mir-core-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_algorithm:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-algorithm
+        path_name: libs/d/mir-algorithm-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_glas:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-glas
+        path_name: libs/d/mir-glas-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_random:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-random
+        path_name: libs/d/mir-random-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      cblas:
+        type: github
+        method: nightlyclone
+        repo: DlangScience/cblas
+        path_name: libs/d/cblas-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_blas:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-blas
+        path_name: libs/d/mir-blas-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      lapack:
+        type: github
+        method: nightlyclone
+        repo: libmir/lapack
+        path_name: libs/d/lapack-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_lapack:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-lapack
+        path_name: libs/d/mir-lapack-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_integral:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-integral
+        path_name: libs/d/mir-integral-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      mir_optim:
+        type: github
+        method: nightlyclone
+        repo: libmir/mir-optim
+        path_name: libs/d/mir-optim-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      asdf:
+        type: github
+        method: nightlyclone
+        repo: libmir/asdf
+        path_name: libs/d/asdf-trunk
+        check_file: README.md
+        targets:
+          - trunk
+      dcompute:
+        type: github
+        method: nightlyclone
+        repo: libmir/dcompute
+        path_name: libs/d/dcompute-trunk
+        check_file: README.md
+        targets:
+          - trunk
+

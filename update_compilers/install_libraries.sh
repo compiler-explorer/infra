@@ -22,14 +22,6 @@ fi
 
 #########################
 # C++
-if install_nightly; then
-    if [[ ! -d "libs/kvasir/mpl/trunk" ]]; then
-        git clone -q https://github.com/kvasir-io/mpl.git libs/kvasir/mpl/trunk
-        git -C libs/kvasir/mpl/trunk checkout -q development
-    else
-        git -C libs/kvasir/mpl/trunk pull -q origin development
-    fi
-fi
 
 install_boost() {
     for VERSION in "$@"; do
@@ -78,164 +70,17 @@ update_boost_archive() {
 install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0
 update_boost_archive
 
-ce_install 'libraries/c++/llvm'
-
 if install_nightly; then
+    ce_install 'libraries/c/nightly'
     ce_install 'libraries/c++/nightly'
+    ce_install 'libraries/d/nightly'
+    ce_install 'libraries/cuda/nightly'
+else
+    ce_install 'libraries/c'
+    ce_install 'libraries/c++'
+    ce_install 'libraries/d'
+    ce_install 'libraries/cuda'
 fi
-
-get_or_sync() {
-    local DIR=$1
-    local URL=$2
-    if [[ ! -d "${DIR}" ]]; then
-        git clone -q "${URL}" "${DIR}"
-    else
-        git -C "${DIR}" fetch -q
-        git -C "${DIR}" reset -q --hard origin
-    fi
-    git -C "${DIR}" submodule sync
-    git -C "${DIR}" submodule update --init
-}
-
-get_or_sync_git_tag() {
-    local DIR=$1
-    local URL=$2
-    local TAG=$3
-    if [[ ! -d "${DIR}" ]]; then
-        git clone -q "${URL}" "${DIR}"
-        git -C "${DIR}" checkout -q "${TAG}"
-    else
-        git -C "${DIR}" reset -q --hard
-        git -C "${DIR}" pull -q origin "${TAG}"
-    fi
-}
-
-get_or_sync_git_tags() {
-    local DIR=$1
-    local URL=$2
-    shift 2
-    for TAG in "$@"; do
-        get_or_sync_git_tag ${DIR}/${TAG} ${URL} ${TAG}
-    done
-}
-
-get_if_not_there() {
-    local DIR=$1
-    local URL=$2
-    if [[ ! -d ${DIR} ]]; then
-        mkdir -p ${DIR}
-        fetch ${URL} | tar zxf - --strip-components=1 -C ${DIR}
-    fi
-}
-
-# Alias for get_if_not_there, but better conveys the intention
-get_git_version() {
-    local DIR=$1
-    local URL=$2
-    get_if_not_there ${DIR} ${URL}
-}
-
-get_github_versions() {
-    local DIR=$1
-    local URL=https://github.com/$2
-    shift 2
-    for tag in "$@"; do
-        get_git_version ${DIR}/${tag} ${URL}/archive/${tag}.tar.gz
-    done
-}
-
-get_repo_versioned_and_trunk_with_quirk() {
-    local SITE=$1
-    local ARCHIVE=$2
-    local DIR=$3
-    local REPO=$4
-    local QUIRK=$5
-    local URL=${SITE}/${REPO}
-
-    shift 5
-    mkdir -p ${DIR}
-    if install_nightly; then
-        get_or_sync ${DIR}/${QUIRK}trunk ${URL}.git
-    fi
-    for tag in "$@"; do
-        get_git_version ${DIR}/${QUIRK}${tag} ${URL}/${ARCHIVE}/${tag}.tar.gz
-    done
-}
-
-get_gitlab_versioned_and_trunk_with_quirk() {
-    get_repo_versioned_and_trunk_with_quirk https://gitlab.com -/archive "$@"
-}
-
-get_github_versioned_and_trunk_with_quirk() {
-    get_repo_versioned_and_trunk_with_quirk https://github.com archive "$@"
-}
-
-get_github_versioned_and_trunk() {
-    local DIR=$1
-    local URL=$2
-    shift 2
-    get_github_versioned_and_trunk_with_quirk ${DIR} ${URL} '' "$@"
-}
-
-ce_install 'libraries/c++/ulib'
-ce_install 'libraries/c++/benchmark'
-
-get_github_versioned_and_trunk libs/rangesv3 ericniebler/range-v3 0.3.0 0.3.5 0.3.6 0.4.0 0.9.1 0.10.0
-get_github_versioned_and_trunk libs/mp-units mpusz/units v0.3.1 v0.4.0
-get_github_versioned_and_trunk libs/dlib davisking/dlib v19.7 v19.9 v19.10
-get_github_versioned_and_trunk libs/libguarded copperspice/cs_libguarded libguarded-1.1.0
-get_github_versioned_and_trunk libs/brigand edouarda/brigand 1.3.0
-
-ce_install 'libraries/c++/fmt'
-ce_install 'libraries/c++/hfsm'
-ce_install 'libraries/c++/eigen'
-ce_install 'libraries/c++/glm'
-ce_install 'libraries/c++/catch2'
-ce_install 'libraries/c++/expected-dark'
-ce_install 'libraries/c++/expected-lite'
-ce_install 'libraries/c++/nlohmann_json'
-ce_install 'libraries/c++/tomlplusplus'
-ce_install 'libraries/c++/doctest'
-get_github_versioned_and_trunk libs/eastl electronicarts/EASTL 3.12.01 3.12.04 3.12.07 3.12.08 3.13.00 3.13.02 3.13.03 3.13.04 3.13.05 3.13.06 3.14.00 3.14.01 3.14.02 3.14.03 3.14.06 3.15.00 3.16.01 3.16.05
-ce_install 'libraries/c++/xtl'
-ce_install 'libraries/c++/xsimd'
-ce_install 'libraries/c++/xtensor'
-ce_install 'libraries/c++/seastar'
-ce_install 'libraries/c++/PEGTL'
-ce_install 'libraries/c++/benri'
-ce_install 'libraries/c++/spy'
-ce_install 'libraries/c++/hedley'
-ce_install 'libraries/c++/GSL'
-ce_install 'libraries/c++/vcl'
-ce_install 'libraries/c++/blaze'
-
-get_or_sync_git_tags libs/ctre https://github.com/hanickadot/compile-time-regular-expressions.git master v2 ecma-unicode dfa
-
-#########################
-# C
-install_gnu_gsl_versioned_and_latest() {
-    # We need to build this, I think?
-    local DIR=$1
-    shift
-    mkdir -p $DIR
-    if install_nightly; then
-        get_or_sync ${DIR}/trunk https://git.savannah.gnu.org/git/gsl.git
-    fi
-    for tag in "$@"; do
-        get_if_not_there ${DIR}/${tag} ftp://ftp.gnu.org/gnu/gsl/gsl-${tag}.tar.gz
-    done
-}
-
-#install_gnu_gsl_versioned_and_latest libs/gnu-gsl 2.3 2.4
-
-#########################
-# D
-ce_install 'libraries/c++/mir-glas'
-ce_install 'libraries/c++/mir-algorithm'
-
-#########################
-# CUDA
-get_or_sync_git_tags libs/cub https://github.com/NVlabs/cub.git 1.8.0
 
 #########################
 # OpenSSL

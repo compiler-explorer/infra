@@ -38,11 +38,12 @@ def s3_available_compilers():
 
 
 class InstallationContext:
-    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, cache: Optional[Path]):
+    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool, cache: Optional[Path]):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
         self.dry_run = dry_run
+        self.is_nightly_enabled = is_nightly_enabled
         if cache:
             self.info(f"Using cache {cache}")
             self.fetcher = CacheControl(requests.session(), cache=FileCache(cache))
@@ -267,7 +268,7 @@ class Installable:
         return True
 
     def should_install(self) -> bool:
-        return self.install_always or not self.is_installed()
+        return self.install_always or not self.is_installed() or self.install_context.is_nightly_enabled
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")
@@ -346,21 +347,26 @@ class GitHubInstallable(Installable):
         else:
             self.check_file = f'{self.path_name}/{check_file}'
 
-    def clone(self):
-        clonedpath = os.path.join(self.install_context.staging, self.reponame)
-        subprocess.check_call(['git', 'clone', f'{self.domainurl}/{self.repo}.git', self.reponame], cwd=self.install_context.staging)
-        subprocess.check_call(['git', 'checkout', self.target_name], cwd=clonedpath)
-        subprocess.check_call(['git', 'submodule', 'update', '--init'], cwd=clonedpath)
-
-    def nightlyclone(self):
+    def clone_branch(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
         else:
-            subprocess.check_call(['git', '-C', f'{dest}', 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', f'{dest}', 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', f'{dest}', 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+
+    def clone_default(self):
+        dest = os.path.join(self.install_context.destination, self.path_name)
+        if not os.path.exists(dest):
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+        else:
+            subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
 
     def get_archive_url(self):
         return f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz'
@@ -372,10 +378,10 @@ class GitHubInstallable(Installable):
         self.install_context.clean_staging()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(self.get_archive_url(), self.get_archive_pipecommand())
-        elif self.method == "clone":
-            self.clone()
+        elif self.method == "clone_branch":
+            self.clone_branch()
         elif self.method == "nightlyclone":
-            self.nightlyclone()
+            self.clone_default()
         else:
             raise RuntimeError(f'Unknown Github method {self.method}')
 
@@ -388,16 +394,13 @@ class GitHubInstallable(Installable):
         self.stage()
         return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
 
-    def should_install(self):
-        return super().should_install() or self.method == "nightlyclone"
-
     def install(self):
         if not super().install():
             return False
         self.stage()
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
-        if self.method != "nightlyclone":
+        if self.method == "archive":
             self.install_context.move_from_staging(self.untar_dir, self.path_name)
         return True
 
