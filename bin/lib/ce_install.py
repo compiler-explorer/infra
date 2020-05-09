@@ -69,7 +69,10 @@ def main():
                         help='log output to console, even if logging to a file is requested')
     parser.add_argument('--log', metavar='LOGFILE', help='log to LOGFILE')
 
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck'], default='list',
+    parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
+                        help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
+
+    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build'], default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
 
@@ -179,6 +182,34 @@ def main():
                 context.info(f"{installable.name} is already installed, skipping")
                 num_skipped += 1
         print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {num_failed} failed installation')
+        if num_failed:
+            sys.exit(1)
+        sys.exit(0)
+    elif args.command == 'build':
+        num_installed = 0
+        num_skipped = 0
+        num_failed = 0
+        for installable in installables:
+            if args.buildfor:
+                print(f"Building {installable.name} just for {args.buildfor}")
+            else:
+                print(f"Building {installable.name} for all")
+
+            if args.force or installable.should_build():
+                try:
+                    if installable.build(args.buildfor):
+                        context.info(f"{installable.name} built OK")
+                        num_installed += 1
+                    else:
+                        context.info(f"{installable.name} failed to build")
+                        num_failed += 1
+                except Exception as e:
+                    context.info(f"{installable.name} failed to build: {e}")
+                    num_failed += 1
+            else:
+                context.info(f"{installable.name} is already built, skipping")
+                num_skipped += 1
+        print(f'{num_installed} packages built OK, {num_skipped} skipped, and {num_failed} failed build')
         if num_failed:
             sys.exit(1)
         sys.exit(0)
