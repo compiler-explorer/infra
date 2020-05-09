@@ -1,0 +1,9 @@
+{
+ "remotes": [
+  {
+   "name": "ceserver",
+   "url": "http://ec2-3-120-227-234.eu-central-1.compute.amazonaws.com:9300",
+   "verify_ssl": true
+  }
+ ]
+}
