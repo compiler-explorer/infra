@@ -1,9 +1,12 @@
 import tempfile
+import re
 import requests
 import urllib.parse
 import tempfile
 import os
 from collections import defaultdict
+
+COMPILEROPT_RE = re.compile(r'(\w*)\.(.*)\.(\w*)')
 
 def get_properties_compilers_and_libraries(language, logger):
     _compilers = defaultdict(lambda: [])
@@ -93,7 +96,10 @@ def get_properties_compilers_and_libraries(language, logger):
         sline = line.decode('utf-8').rstrip('\n')
         if sline.startswith('compiler.'):
             keyval = sline.split('=', 1)
-            key = keyval[0].split('.')
+            matches = COMPILEROPT_RE.match(keyval[0])
+            if not matches:
+                raise RuntimeError(f'Not a valid compiler? {keyval}')
+            key = [matches[1], matches[2], matches[3]]
             val = keyval[1]
             if not key[1] in _compilers:
                 _compilers[key[1]] = defaultdict(lambda: [])

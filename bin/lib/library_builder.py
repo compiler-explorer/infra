@@ -1,6 +1,7 @@
 import re
 import os
 import hashlib
+import shutil
 import subprocess
 from lib.amazon_properties import *
 from lib.library_build_config import *
