@@ -275,7 +275,7 @@ class Installable:
         return True
 
     def should_install(self) -> bool:
-        return self.install_always or not self.is_installed() or self.install_context.is_nightly_enabled
+        return self.install_always or not self.is_installed()
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")

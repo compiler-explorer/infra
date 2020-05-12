@@ -404,6 +404,7 @@ libraries:
         - 3.16.01
         - 3.16.05
     nightly:
+      install_always: true
       if: nightly
       llvm:
         type: nightly
@@ -753,6 +754,7 @@ libraries:
         - 1.1.0
         - 3.7.17
     nightly:
+      install_always: true
       if: nightly
       mir_core:
         type: github
