@@ -39,9 +39,10 @@ update-admin:  ## Updates the admin website
 
 $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
-	$(PYTHON) -mvenv $(VIRTUALENV)
-	ls -la $(VIRTUALENV)/bin/
-	$(VIRTUALENV)/bin/pip3 install -r requirements.txt
+	$(PYTHON) -m venv $(VIRTUALENV)
+	if [[ ! -x $(VIRTUALENV)/bin/pip ]]; then $(PYTHON) -m ensurepip --root $(VIRTUALENV); fi
+	ls -l $(VIRTUALENV)/bin
+	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
 .PHONY: ce
 ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
