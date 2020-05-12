@@ -4,3 +4,4 @@ requests
 cachecontrol[filecache]
 pyyaml
 pytest
+mypy

@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 import requests
-from requests import ConnectTimeout
+from requests.exceptions import ConnectTimeout
 
 logger = logging.getLogger('ssh')
 

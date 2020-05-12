@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, ChainMap
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, BinaryIO, Sequence, Collection, List, Union, Dict, Any
+from typing import Optional, Sequence, Collection, List, Union, Dict, Any, IO, Callable
 
 import requests
 from cachecontrol import CacheControl
@@ -72,7 +72,7 @@ class InstallationContext:
         self.debug(f"Recreating staging dir {self.staging}")
         self.staging.mkdir(parents=True)
 
-    def fetch_to(self, url: str, fd: BinaryIO) -> None:
+    def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
         request = self.fetcher.get(url, stream=True)
         if not request.ok:
@@ -220,6 +220,8 @@ class InstallationContext:
 
 
 class Installable:
+    _check_link: Optional[Callable[[], bool]]
+
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         self.install_context = install_context
         self.config = config
@@ -233,8 +235,6 @@ class Installable:
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
         self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
         self.lib_type = self.config_get("lib_type", "static")
-        self.staticliblink = []
-        self.sharedliblink = []
         self.url = "None"
         self.description = ""
         self.prebuildscript = self.config_get("prebuildscript", [])
