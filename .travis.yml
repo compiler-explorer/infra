@@ -1,0 +1,7 @@
+language: python
+python: ["3.8"]
+install:
+  - make ce
+script:
+  - make test
+  - make static-checks
