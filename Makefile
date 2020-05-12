@@ -40,7 +40,7 @@ update-admin:  ## Updates the admin website
 $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
 	$(PYTHON) -m venv $(VIRTUALENV)
-	if [[ ! -x $(VIRTUALENV)/bin/pip ]]; then $(PYTHON) -m ensurepip --root $(VIRTUALENV); fi
+	if ! test -x $(VIRTUALENV)/bin/pip; then $(PYTHON) -m ensurepip --root $(VIRTUALENV); fi
 	ls -l $(VIRTUALENV)/bin
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
