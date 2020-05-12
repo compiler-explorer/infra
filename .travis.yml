@@ -1,6 +1,6 @@
 language: python
 python: ["3.8"]
-before_script: # See https://github.com/travis-ci/travis-ci/issues/8589
+before_install: # See https://github.com/travis-ci/travis-ci/issues/8589
   - type -t deactivate && deactivate || true
   - export PATH=/opt/python/3.8/bin:$PATH
 install:
