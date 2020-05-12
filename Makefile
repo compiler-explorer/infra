@@ -39,7 +39,8 @@ update-admin:  ## Updates the admin website
 
 $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
-	$(PYTHON) -mvenv $(VIRTUALENV)	
+	$(PYTHON) -mvenv $(VIRTUALENV)
+	ls -la $(VIRTUALENV)
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
 .PHONY: ce
