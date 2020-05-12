@@ -1,9 +1,10 @@
-import tempfile
-import requests
-import urllib.parse
-import tempfile
 import os
+import tempfile
+import urllib.parse
 from collections import defaultdict
+
+import requests
+
 
 def get_properties_compilers_and_libraries(language, logger):
     _compilers = defaultdict(lambda: [])

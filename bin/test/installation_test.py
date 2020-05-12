@@ -91,8 +91,8 @@ compilers:
     assert target['num_to_keep'] == 2
 
 
-@pytest.fixture()
-def fake_context():
+@pytest.fixture(name='fake_context')
+def fake_context_fixture():
     return MagicMock(spec=InstallationContext)
 
 

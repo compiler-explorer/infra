@@ -1,0 +1,4 @@
+[MASTER]
+# E0202 is "hidden method" which the instance() method in AdminInstance and BuilderInstance trip TODO fix
+# W0511 is TODOs
+disable=C,R,E0202,W0511

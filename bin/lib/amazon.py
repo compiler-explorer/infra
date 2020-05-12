@@ -21,6 +21,7 @@ class LazyObjectWrapper:
 # this is a free function to avoid potentially shadowing any underlying members
 # which could happen if this was itself placed as a member of LazyObjectWrapper
 def force_lazy_init(lazy):
+    # pylint: disable=W0212
     lazy._LazyObjectWrapper__ensure_setup()
 
 
@@ -40,6 +41,7 @@ boto3 = LazyObjectWrapper(_import_boto)
 def _create_anon_s3_client():
     # https://github.com/boto/botocore/issues/1395
     obj = boto3.client('s3', aws_access_key_id='', aws_secret_access_key='')
+    # pylint: disable=W0212
     obj._request_signer.sign = (lambda *args, **kwargs: None)
     return obj
 
@@ -57,8 +59,8 @@ VERSIONS_LOGGING_TABLE = 'versionslog'
 
 
 class Hash:
-    def __init__(self, hash):
-        self.hash = hash
+    def __init__(self, hash_val):
+        self.hash = hash_val
 
     def __repr__(self):
         return self.hash
@@ -68,13 +70,13 @@ class Hash:
 
 
 class Release:
-    def __init__(self, version, branch, key, info_key, size, hash):
+    def __init__(self, version, branch, key, info_key, size, release_hash):
         self.version = version
         self.branch = branch
         self.key = key
         self.info_key = info_key
         self.size = size
-        self.hash = hash
+        self.hash = release_hash
         self.static_key = None
 
     def __repr__(self):
@@ -144,8 +146,8 @@ def get_releases():
             Bucket='compiler-explorer',
             Key=info_key
         )
-        hash = o['Body'].read().decode("utf-8").strip()
-        releases[int(version)] = Release(int(version), branch, key, info_key, size, Hash(hash))
+        release_hash = o['Body'].read().decode("utf-8").strip()
+        releases[int(version)] = Release(int(version), branch, key, info_key, size, Hash(release_hash))
 
     for ver, key in staticfiles.items():
         r = releases.get(ver)

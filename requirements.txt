@@ -5,3 +5,4 @@ cachecontrol[filecache]
 pyyaml
 pytest
 mypy
+pylint

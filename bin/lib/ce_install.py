@@ -97,7 +97,9 @@ def main():
             installables.append(installer)
 
     for filt in args.filter:
-        installables = filter(lambda installable: filter_match(filt, installable), installables)
+        def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
+            return lambda installable: filter_match(x, installable)
+        installables = filter(make_f(), installables)
     installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
@@ -135,27 +137,27 @@ def main():
         languages = ['c', 'c++', 'd', 'cuda']
 
         for language in languages:
-            logger.info(f'Checking {language} libraries')
-            [compilers, libraries] = get_properties_compilers_and_libraries(language, logger)
+            logger.info('Checking %s libraries', language)
+            [_, libraries] = get_properties_compilers_and_libraries(language, logger)
 
             for libraryid in libraries:
-                logger.debug(f'Checking {libraryid}')
+                logger.debug('Checking %s', libraryid)
                 for version in libraries[libraryid]['versionprops']:
                     includepaths = libraries[libraryid]['versionprops'][version]['path']
                     for includepath in includepaths:
-                        logger.debug(f'Checking for library {libraryid} {version}: {includepath}')
+                        logger.debug('Checking for library %s %s: %s', libraryid, version, includepath)
                         if not os.path.exists(includepath):
-                            logger.error(f'Path missing for library {libraryid} {version}: {includepath}')
+                            logger.error('Path missing for library %s %s: %s', libraryid, version, includepath)
                         else:
-                            logger.debug(f'Found path for library {libraryid} {version}: {includepath}')
+                            logger.debug('Found path for library %s %s: %s', libraryid, version, includepath)
 
                     libpaths = libraries[libraryid]['versionprops'][version]['libpath']
                     for libpath in libpaths:
-                        logger.debug(f'Checking for library {libraryid} {version}: {libpath}')
+                        logger.debug('Checking for library %s %s: %s', libraryid, version, libpath)
                         if not os.path.exists(libpath):
-                            logger.error(f'Path missing for library {libraryid} {version}: {libpath}')
+                            logger.error('Path missing for library %s %s: %s', libraryid, version, libpath)
                         else:
-                            logger.debug(f'Found path for library {libraryid} {version}: {libpath}')
+                            logger.debug('Found path for library %s %s: %s', libraryid, version, libpath)
 
     elif args.command == 'install':
         num_installed = 0
@@ -175,7 +177,7 @@ def main():
                     else:
                         context.info(f"{installable.name} failed to install")
                         num_failed += 1
-                except Exception as e:
+                except RuntimeError as e:
                     context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
                     num_failed += 1
             else:

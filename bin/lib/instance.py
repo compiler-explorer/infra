@@ -42,7 +42,7 @@ class Instance:
                 'then cat /compiler-explorer-image/.deploy/s3_key; fi'
             ]).strip()
         except subprocess.CalledProcessError as e:
-            logger.warn("Failed to execute on remote host: {}".format(e))
+            logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod
     def elb_instances(group_arn):

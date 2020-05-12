@@ -52,3 +52,4 @@ test: ce  ## Runs the tests
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
 	$(VIRTUALENV)/bin/mypy --ignore-missing-imports bin
+	$(VIRTUALENV)/bin/pylint bin
