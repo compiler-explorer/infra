@@ -38,7 +38,8 @@ def s3_available_compilers():
 
 
 class InstallationContext:
-    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool, cache: Optional[Path]):
+    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
+                 cache: Optional[Path]):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -177,7 +178,7 @@ class InstallationContext:
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == 'old_renamed':
                 self.warn(f'Moving old destination back')
-                os.replace(existing_dir_rename, dest)
+                existing_dir_rename.replace(dest)
 
     def compare_against_staging(self, source_str: str, dest_str: Optional[str] = None) -> bool:
         dest_str = dest_str or source_str
@@ -222,7 +223,7 @@ class Installable:
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         self.install_context = install_context
         self.config = config
-        self.target_name = self.config.get("name", "(unnamed)")
+        self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
         self.name = f'{"/".join(self.context)}/{self.target_name}'
         self.depends = self.config.get('depends', [])
@@ -308,11 +309,21 @@ class Installable:
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
 
+    def __repr__(self) -> str:
+        return f'Installable({self.name})'
+
+    @property
+    def sort_key(self):
+        return self.context, [
+            (int(num) if num else 0, non) for num, non in re.findall(r'([0-9]+)|([^0-9]+)', self.target_name)
+        ]
+
 
 def command_config(config: Union[List[str], str]) -> List[str]:
     if isinstance(config, str):
         return config.split(" ")
     return config
+
 
 class GitHubInstallable(Installable):
     def __init__(self, install_context, config):
@@ -350,10 +361,12 @@ class GitHubInstallable(Installable):
     def clone_branch(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
         if not os.path.exists(dest):
-            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
+                                  cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
+                                  cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
@@ -361,10 +374,12 @@ class GitHubInstallable(Installable):
     def clone_default(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
         if not os.path.exists(dest):
-            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
+                                  cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
+                                  cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
 
@@ -407,6 +422,7 @@ class GitHubInstallable(Installable):
     def __repr__(self) -> str:
         return f'GitHubInstallable({self.name}, {self.path_name})'
 
+
 class GitLabInstallable(GitHubInstallable):
     def __init__(self, install_context, config):
         super().__init__(install_context, config)
@@ -418,6 +434,7 @@ class GitLabInstallable(GitHubInstallable):
     def __repr__(self) -> str:
         return f'GitLabInstallable({self.name}, {self.path_name})'
 
+
 class BitbucketInstallable(GitHubInstallable):
     def __init__(self, install_context, config):
         super().__init__(install_context, config)
@@ -428,6 +445,7 @@ class BitbucketInstallable(GitHubInstallable):
 
     def __repr__(self) -> str:
         return f'BitbucketInstallable({self.name}, {self.path_name})'
+
 
 class S3TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):

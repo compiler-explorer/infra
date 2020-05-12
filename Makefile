@@ -1,6 +1,7 @@
 .NOTPARALLEL: 
 
 PYTHON:=$(shell which python3.8 || echo .python3.8-not-found)
+export PYTHONPATH=$(CURDIR)/bin
 
 help: # with thanks to Ben Rady
 	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -39,6 +40,6 @@ $(VIRTUALENV): requirements.txt | $(PYTHON)
 ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
 
 test: ce  ## Runs the tests
-	$(VIRTUALENV)/bin/nosetests bin
+	$(VIRTUALENV)/bin/pytest bin
 
 .PHONY: clean packer packer-admin packer-local update-admin ce test

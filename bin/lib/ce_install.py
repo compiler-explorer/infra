@@ -6,12 +6,12 @@ import logging.config
 import os
 import sys
 import traceback
-from lib.amazon_properties import get_properties_compilers_and_libraries
 from argparse import ArgumentParser
 from pathlib import Path
 
 import yaml
 
+from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
 
@@ -69,7 +69,8 @@ def main():
                         help='log output to console, even if logging to a file is requested')
     parser.add_argument('--log', metavar='LOGFILE', help='log to LOGFILE')
 
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck'], default='list',
+    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck'],
+                        default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
 
@@ -87,7 +88,8 @@ def main():
         root_logger.addHandler(console_handler)
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
-    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable, args.cache)
+    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
+                                  args.cache)
 
     installables = []
     for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
@@ -96,10 +98,11 @@ def main():
 
     for filt in args.filter:
         installables = filter(lambda installable: filter_match(filt, installable), installables)
+    installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
         print("Installation candidates:")
-        for installable in sorted(installables, key=lambda x: x.name):
+        for installable in installables:
             print(installable.name)
             logger.debug(installable)
         sys.exit(0)
@@ -129,7 +132,7 @@ def main():
         sys.exit(0)
     elif args.command == 'amazoncheck':
         logger.debug('Starting Amazon Check')
-        languages = ['c','c++','d','cuda']
+        languages = ['c', 'c++', 'd', 'cuda']
 
         for language in languages:
             logger.info(f'Checking {language} libraries')
