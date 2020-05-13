@@ -6,12 +6,12 @@ import logging.config
 import os
 import sys
 import traceback
-from lib.amazon_properties import get_properties_compilers_and_libraries
 from argparse import ArgumentParser
 from pathlib import Path
 
 import yaml
 
+from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
 
@@ -72,7 +72,8 @@ def main():
     parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
                         help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
 
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build'], default='list',
+    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build'],
+                        default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
 
@@ -90,7 +91,8 @@ def main():
         root_logger.addHandler(console_handler)
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
-    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable, args.cache)
+    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
+                                  args.cache)
 
     installables = []
     for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
@@ -98,11 +100,14 @@ def main():
             installables.append(installer)
 
     for filt in args.filter:
-        installables = filter(lambda installable: filter_match(filt, installable), installables)
+        def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
+            return lambda installable: filter_match(x, installable)
+        installables = filter(make_f(), installables)
+    installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
         print("Installation candidates:")
-        for installable in sorted(installables, key=lambda x: x.name):
+        for installable in installables:
             print(installable.name)
             logger.debug(installable)
         sys.exit(0)
@@ -132,30 +137,30 @@ def main():
         sys.exit(0)
     elif args.command == 'amazoncheck':
         logger.debug('Starting Amazon Check')
-        languages = ['c','c++','d','cuda']
+        languages = ['c', 'c++', 'd', 'cuda']
 
         for language in languages:
-            logger.info(f'Checking {language} libraries')
-            [compilers, libraries] = get_properties_compilers_and_libraries(language, logger)
+            logger.info('Checking %s libraries', language)
+            [_, libraries] = get_properties_compilers_and_libraries(language, logger)
 
             for libraryid in libraries:
-                logger.debug(f'Checking {libraryid}')
+                logger.debug('Checking %s', libraryid)
                 for version in libraries[libraryid]['versionprops']:
                     includepaths = libraries[libraryid]['versionprops'][version]['path']
                     for includepath in includepaths:
-                        logger.debug(f'Checking for library {libraryid} {version}: {includepath}')
+                        logger.debug('Checking for library %s %s: %s', libraryid, version, includepath)
                         if not os.path.exists(includepath):
-                            logger.error(f'Path missing for library {libraryid} {version}: {includepath}')
+                            logger.error('Path missing for library %s %s: %s', libraryid, version, includepath)
                         else:
-                            logger.debug(f'Found path for library {libraryid} {version}: {includepath}')
+                            logger.debug('Found path for library %s %s: %s', libraryid, version, includepath)
 
                     libpaths = libraries[libraryid]['versionprops'][version]['libpath']
                     for libpath in libpaths:
-                        logger.debug(f'Checking for library {libraryid} {version}: {libpath}')
+                        logger.debug('Checking for library %s %s: %s', libraryid, version, libpath)
                         if not os.path.exists(libpath):
-                            logger.error(f'Path missing for library {libraryid} {version}: {libpath}')
+                            logger.error('Path missing for library %s %s: %s', libraryid, version, libpath)
                         else:
-                            logger.debug(f'Found path for library {libraryid} {version}: {libpath}')
+                            logger.debug('Found path for library %s %s: %s', libraryid, version, libpath)
 
     elif args.command == 'install':
         num_installed = 0
@@ -175,7 +180,7 @@ def main():
                     else:
                         context.info(f"{installable.name} failed to install")
                         num_failed += 1
-                except Exception as e:
+                except RuntimeError as e:
                     context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
                     num_failed += 1
             else:

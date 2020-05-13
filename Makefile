@@ -1,7 +1,10 @@
 .NOTPARALLEL: 
 
 PYTHON:=$(shell which python3.8 || echo .python3.8-not-found)
+VIRTUALENV?=.env
+export PYTHONPATH=$(CURDIR)/bin
 
+.PHONY: help
 help: # with thanks to Ben Rady
 	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
@@ -14,31 +17,39 @@ $(PYTHON):
 config.json: make_json.py | $(PYTHON)
 	$(PYTHON) make_json.py
 
+.PHONY: packer
 packer: config.json ## Builds the base image for compiler explorer nodes
 	$(PACKER) build -timestamp-ui -var-file=config.json packer.json
 
+.PHONY: packer-local
 packer-local: config.json ## Builds a local docker version of the compiler explorer node image
 	$(PACKER) build -timestamp-ui -var-file=config.json packer-local.json
 
+.PHONY: packer-admin
 packer-admin: config.json  ## Builds the base image for the admin server
 	$(PACKER) build -timestamp-ui -var-file=config.json packer-admin.json
 
-clean:
-	echo nothing to clean yet
+.PHONY: clean
+clean:  ## Cleans up anything
+	rm -rf $(VIRTUALENV)
 
+.PHONY: update-admin
 update-admin:  ## Updates the admin website
 	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
 
-VIRTUALENV?=.env
-
 $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
-	$(PYTHON) -mvenv $(VIRTUALENV)	
+	$(PYTHON) -m venv $(VIRTUALENV)
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
+.PHONY: ce
 ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
 
+.PHONY: test
 test: ce  ## Runs the tests
-	$(VIRTUALENV)/bin/nosetests bin
+	$(VIRTUALENV)/bin/pytest bin
 
-.PHONY: clean packer packer-admin packer-local update-admin ce test
+.PHONY: static-checks
+static-checks: ce  ## Runs all the static tests
+	$(VIRTUALENV)/bin/mypy --ignore-missing-imports bin
+	$(VIRTUALENV)/bin/pylint bin

@@ -1,10 +1,11 @@
+import os
 import tempfile
 import re
-import requests
 import urllib.parse
-import tempfile
-import os
 from collections import defaultdict
+
+import requests
+
 
 COMPILEROPT_RE = re.compile(r'(\w*)\.(.*)\.(\w*)')
 

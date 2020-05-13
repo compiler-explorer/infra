@@ -10,7 +10,7 @@ import time
 from collections import defaultdict, ChainMap
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, BinaryIO, Sequence, Collection, List, Union, Dict, Any
+from typing import Optional, Sequence, Collection, List, Union, Dict, Any, IO, Callable
 
 import requests
 from cachecontrol import CacheControl
@@ -40,7 +40,8 @@ def s3_available_compilers():
 
 
 class InstallationContext:
-    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool, cache: Optional[Path]):
+    def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
+                 cache: Optional[Path]):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -50,7 +51,7 @@ class InstallationContext:
             self.info(f"Using cache {cache}")
             self.fetcher = CacheControl(requests.session(), cache=FileCache(cache))
         else:
-            self.info(f"Making uncached requests")
+            self.info("Making uncached requests")
             self.fetcher = requests
 
     def debug(self, message: str) -> None:
@@ -73,7 +74,7 @@ class InstallationContext:
         self.debug(f"Recreating staging dir {self.staging}")
         self.staging.mkdir(parents=True)
 
-    def fetch_to(self, url: str, fd: BinaryIO) -> None:
+    def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
         request = self.fetcher.get(url, stream=True)
         if not request.ok:
@@ -178,8 +179,8 @@ class InstallationContext:
                 self.debug(f'Removing temporarily moved {existing_dir_rename}')
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == 'old_renamed':
-                self.warn(f'Moving old destination back')
-                os.replace(existing_dir_rename, dest)
+                self.warn('Moving old destination back')
+                existing_dir_rename.replace(dest)
 
     def compare_against_staging(self, source_str: str, dest_str: Optional[str] = None) -> bool:
         dest_str = dest_str or source_str
@@ -207,10 +208,10 @@ class InstallationContext:
         to_strip = []
         for path_part in paths:
             path = self.staging / path_part
-            logger.debug(f"Looking for executables to strip in {path}")
+            logger.debug("Looking for executables to strip in %s", path)
             if not path.is_dir():
                 raise RuntimeError(f"While looking for files to strip, {path} was not a directory")
-            for dirpath, dirnames, filenames in os.walk(str(path)):
+            for dirpath, _, filenames in os.walk(str(path)):
                 for filename in filenames:
                     full_path = os.path.join(dirpath, filename)
                     if os.access(full_path, os.X_OK):
@@ -221,10 +222,15 @@ class InstallationContext:
 
 
 class Installable:
+    _check_link: Optional[Callable[[], bool]]
+    check_env: Dict
+    check_file: Optional[str]
+    check_call: List[str]
+
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         self.install_context = install_context
         self.config = config
-        self.target_name = self.config.get("name", "(unnamed)")
+        self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
         self.name = f'{"/".join(self.context)}/{self.target_name}'
         self.is_library = self.context[0] == "libraries"
@@ -233,13 +239,16 @@ class Installable:
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
         self.build_config = LibraryBuildConfig(config)
+        self.check_env = {}
+        self.check_file = None
+        self.check_call = []
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
 
-        self.check_file = self.config_get('check_file', False)
-        if self.check_file:
-            self.check_file = os.path.join(path_name, self.check_file)
+        check_file = self.config_get('check_file', '')
+        if check_file:
+            self.check_file = os.path.join(path_name, check_file)
         else:
             self.check_call = command_config(self.config_get('check_exe'))
             self.check_call[0] = os.path.join(path_name, self.check_call[0])
@@ -263,7 +272,7 @@ class Installable:
         return True
 
     def should_install(self) -> bool:
-        return self.install_always or not self.is_installed() or self.install_context.is_nightly_enabled
+        return self.install_always or not self.is_installed()
 
     def should_build(self):
         return self.is_library
@@ -291,8 +300,8 @@ class Installable:
             return res
 
         try:
-            res = self.install_context.check_output(self.check_call, env=self.check_env)
-            self.debug(f'Check call returned {res}')
+            res_call = self.install_context.check_output(self.check_call, env=self.check_env)
+            self.debug(f'Check call returned {res_call}')
             return True
         except FileNotFoundError:
             self.debug(f'File not found for {self.check_call}')
@@ -305,6 +314,15 @@ class Installable:
         if config_key not in self.config and default is None:
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
+
+    def __repr__(self) -> str:
+        return f'Installable({self.name})'
+
+    @property
+    def sort_key(self):
+        return self.context, [
+            (int(num) if num else 0, non) for num, non in re.findall(r'([0-9]+)|([^0-9]+)', self.target_name)
+        ]
 
     def build(self, buildfor):
         if not self.is_library:
@@ -328,6 +346,7 @@ def command_config(config: Union[List[str], str]) -> List[str]:
         return config.split(" ")
     return config
 
+
 class GitHubInstallable(Installable):
     def __init__(self, install_context, config):
         super().__init__(install_context, config)
@@ -341,7 +360,7 @@ class GitHubInstallable(Installable):
         self.target_prefix = self.config_get("target_prefix", "")
         self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
         if self.repo == "":
-            raise RuntimeError(f'Requires repo')
+            raise RuntimeError('Requires repo')
 
         splitrepo = self.repo.split('/')
         self.reponame = splitrepo[1]
@@ -364,10 +383,12 @@ class GitHubInstallable(Installable):
     def clone_branch(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
         if not os.path.exists(dest):
-            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
+                                  cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
+                                  cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
@@ -375,10 +396,12 @@ class GitHubInstallable(Installable):
     def clone_default(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
         if not os.path.exists(dest):
-            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest], cwd=self.install_context.staging)
+            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
+                                  cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
+                                  cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
 
@@ -421,6 +444,7 @@ class GitHubInstallable(Installable):
     def __repr__(self) -> str:
         return f'GitHubInstallable({self.name}, {self.path_name})'
 
+
 class GitLabInstallable(GitHubInstallable):
     def __init__(self, install_context, config):
         super().__init__(install_context, config)
@@ -432,6 +456,7 @@ class GitLabInstallable(GitHubInstallable):
     def __repr__(self) -> str:
         return f'GitLabInstallable({self.name}, {self.path_name})'
 
+
 class BitbucketInstallable(GitHubInstallable):
     def __init__(self, install_context, config):
         super().__init__(install_context, config)
@@ -442,6 +467,7 @@ class BitbucketInstallable(GitHubInstallable):
 
     def __repr__(self) -> str:
         return f'BitbucketInstallable({self.name}, {self.path_name})'
+
 
 class S3TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
@@ -523,7 +549,7 @@ class NightlyInstallable(Installable):
 
     def stage(self) -> None:
         self.install_context.clean_staging()
-        self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', f'Jxf', '-'])
+        self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
 

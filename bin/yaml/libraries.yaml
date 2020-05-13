@@ -42,6 +42,7 @@ libraries:
         - 6.1.1
         - 6.1.2
         - 6.2.0
+        - 6.2.1
       build_type: cmake
     benchmark:
       type: github
@@ -403,6 +404,7 @@ libraries:
         - 3.16.01
         - 3.16.05
     nightly:
+      install_always: true
       if: nightly
       llvm:
         type: nightly
@@ -752,6 +754,7 @@ libraries:
         - 1.1.0
         - 3.7.17
     nightly:
+      install_always: true
       if: nightly
       mir_core:
         type: github

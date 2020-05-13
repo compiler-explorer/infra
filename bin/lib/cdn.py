@@ -1,26 +1,25 @@
 import hashlib
-import tarfile
-import urllib.parse
+import logging
 import mimetypes
-
+import os
+import shutil
+import tarfile
 from base64 import b64encode
 from concurrent import futures
 from datetime import datetime
-from tempfile import mkdtemp
-import os
-import shutil
-import logging
 from pathlib import Path
+from tempfile import mkdtemp
 
 from lib.amazon import botocore, s3_client, force_lazy_init
 
 logger = logging.getLogger('ce-cdn')
 
-def read_file_chunked(fobj, chunk_size=128*1024):
+
+def read_file_chunked(fobj, chunk_size=128 * 1024):
     b = bytearray(chunk_size)
     mv = memoryview(b)
 
-    for n in iter(lambda : fobj.readinto(mv), 0):
+    for n in iter(lambda: fobj.readinto(mv), 0):
         yield mv[:n]
 
 
@@ -90,7 +89,7 @@ class DeploymentJob:
             self.tmpdir = mkdtemp()
 
         # unpack tar contents
-        logger.debug(f'unpacking "{self.tar_file_path}" into "{self.tmpdir}"')
+        logger.debug('unpacking "%s" into "%s"', self.tar_file_path, self.tmpdir)
         with tarfile.open(self.tar_file_path) as tar:
             tar.extractall(self.tmpdir)
 
@@ -109,8 +108,8 @@ class DeploymentJob:
             # maybe a file is still open or something
             # and we can try again later in case of failure
             self.tmpdir = None
-        except:
-            logger.exception(f'failure to cleanup temp directory "{self.tmpdir}"')
+        except RuntimeError:
+            logger.exception('failure to cleanup temp directory "%s"', self.tmpdir)
 
     def __get_bucket_path(self, key):
         return (self.bucket_path / key).as_posix()
@@ -155,7 +154,7 @@ class DeploymentJob:
         return tags
 
     def __s3_put_object_tagging(self, key, tags, **kwargs):
-        tagset = list([dict(Key=k, Value=v) for k,v in tags.items()])
+        tagset = list([dict(Key=k, Value=v) for k, v in tags.items()])
 
         return s3_client.put_object_tagging(
             Bucket=self.bucket_name,
@@ -215,7 +214,7 @@ class DeploymentJob:
         return file
 
     def run(self):
-        logger.debug(f'running with {self.max_workers} workers')
+        logger.debug('running with %d workers', self.max_workers)
 
         # work around race condition with parallel lazy init of boto3
         force_lazy_init(s3_client)
@@ -241,20 +240,20 @@ class DeploymentJob:
                     files_to_upload.append(f)
 
             if files_with_mismatch:
-                logger.error(f'{len(files_with_mismatch)} files have mismatching hashes')
+                logger.error('%d files have mismatching hashes', len(files_with_mismatch))
                 for f in files_with_mismatch:
-                    logger.error(f"{f['name']}: expected hash {f['hash']} != {f['s3hash']}")
+                    logger.error("%s: expected hash %s != %s", f['name'], f['hash'], f['s3hash'])
 
                 logger.error('aborting cdn deployment due to errors')
                 return False
 
-            logger.info(f"will update {len(files_to_update)} file tag{'s' if len(files_to_update) != 1 else ''}")
-            logger.info(f"will upload {len(files_to_upload)} new file{'s' if len(files_to_upload) != 1 else ''}")
+            logger.info("will update %d file tag%s", len(files_to_update), 's' if len(files_to_update) != 1 else '')
+            logger.info("will upload %d file tag%s", len(files_to_upload), 's' if len(files_to_upload) != 1 else '')
 
             for f in executor.map(self._upload_file, files_to_upload):
-                logger.debug(f"uploaded {f['name']}")
+                logger.debug("uploaded %s", f['name'])
 
             for f in executor.map(self._update_tags, files_to_update):
-                logger.debug(f"updated tags on {f['name']}")
+                logger.debug("updated tags on %s", f['name'])
 
             return True
