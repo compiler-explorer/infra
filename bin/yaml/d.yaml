@@ -81,7 +81,7 @@ compilers:
         {pre}
         chmod +x {script_filename}
         # Download and unpack into current directory
-        {script_filename} install {target} -p $(pwd)
+        {script_filename} install {target} -a -p $(pwd)
         # Rename the downloaded package directory to a constant name
         mv {from}-* {to}
         # Make directory readable for other users too
