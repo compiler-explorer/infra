@@ -15,7 +15,7 @@ function styleStatus(item) {
     const style = {
         color: 'black'
     };
-    if (item.status !== 'OK') {
+    if (item.status !== 'OK' && item.status !== 'SKIPPED') {
         style.color = 'red';
     }
     return style;
