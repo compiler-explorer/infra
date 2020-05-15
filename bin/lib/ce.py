@@ -45,7 +45,7 @@ def pick_instance(args):
         inst = input('Which instance? ')
         try:
             return instances[int(inst)]
-        except RuntimeError:
+        except (ValueError, IndexError):
             pass
 
 
@@ -132,7 +132,7 @@ def confirm_branch(release):
 
 def confirm_action(description):
     typed = input('{}: [Y/N]\n'.format(description))
-    return typed == 'Y'
+    return typed.upper() == 'Y'
 
 
 def is_everything_awesome(instance):
@@ -223,7 +223,7 @@ def builder_start_cmd(_):
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except RuntimeError as e:
+        except subprocess.CalledProcessError as e:
             print("Still waiting for SSH: got: {}".format(e))
         time.sleep(1)
     else:
@@ -895,4 +895,9 @@ def main():
     if cmd not in ('admin', 'builder', 'links'):
         if cmd != 'events' or not kwargs['events_sub'].endswith('_raw'):
             print("Running in {}".format(kwargs['env']))
-    globals()[cmd + "_cmd"](kwargs)
+    try:
+        globals()[cmd + "_cmd"](kwargs)
+    except (KeyboardInterrupt, SystemExit):
+        # print empty line so terminal prompt doesn't end up on the end of some
+        # of our own program output
+        print()
