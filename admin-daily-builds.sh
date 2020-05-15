@@ -39,7 +39,7 @@ build_latest() {
     local GITBRANCH=$6
     local SHOULDBUILD=0
     local LATESTREV="Unknown"
-    local FILEWITHHASH="/opt/compiler-explorer/buildrevs/${IMAGE}-${BUILD}.txt"
+    local FILEWITHHASH="/opt/compiler-explorer/buildrevs/${IMAGE}-${BUILD_NAME}-${BUILD}.txt"
 
     if [[ "${GITURL}" != "" ]]; then
         LATESTREV=$(git ls-remote --heads ${GITURL} ${GITBRANCH})
