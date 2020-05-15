@@ -15,4 +15,4 @@ $ ./bin/ce_install compilers
 This will grab all the open source compilers and put them in `/opt/compiler-explorer` (which must be writable by
 the current user).  To get the beta and nightly-built latest compilers, add the parameter `--enable nightly` to the command.
 
-To list installation candidates, use `.bin/ce_install list`. A single installation can be installed by name.
+To list installation candidates, use `./bin/ce_install list`. A single installation can be installed by name.
