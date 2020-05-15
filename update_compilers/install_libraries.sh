@@ -55,7 +55,7 @@ update_boost_archive() {
 ###########################################
 #
 # When adding a new version of boost you must:
-#  - run `sudo ~/compiler-explorer-image/update_compilers/install_libraries.sh` on the admin node to generate an updated `${OPT}/libs/boost.tar.xz`
+#  - run `sudo ~/infra/update_compilers/install_libraries.sh` on the admin node to generate an updated `${OPT}/libs/boost.tar.xz`
 #  - run `make packer` from your own machine to build a new AMI with the new boost version baked in
 #  - update the image_id values in `terraform/lc.tf` and commit/push
 #  - run `terraform apply` from your own machine so the new images are used when launching new nodes

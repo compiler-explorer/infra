@@ -9,6 +9,6 @@ cat >/root/.ssh/known_hosts <<EOF
 EOF
 apt-get -y update
 apt-get -y install git
-git clone https://github.com/mattgodbolt/compiler-explorer-image.git
-cd compiler-explorer-image
+git clone https://github.com/compiler-explorer/infra.git
+cd infra
 bash setup.sh 2>&1 | tee /tmp/setup.log

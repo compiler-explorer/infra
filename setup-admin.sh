@@ -17,7 +17,7 @@ env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3-pip python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
 
-cd /home/ubuntu/compiler-explorer-image
+cd /home/ubuntu/infra
 pip3 install --upgrade pip
 hash -r pip3
 pip3 install --upgrade awscli
@@ -31,7 +31,7 @@ aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/ho
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
-chown -R ubuntu:ubuntu /home/ubuntu/compiler-explorer-image
+chown -R ubuntu:ubuntu /home/ubuntu/infra
 
 sudo -u ubuntu fish setup.fish
 crontab -u ubuntu crontab.admin

@@ -1,6 +1,6 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ce_install" type="PythonConfigurationType" factoryName="Python">
-    <module name="compiler-explorer-image" />
+    <module name="infra" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
     <envs>
