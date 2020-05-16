@@ -49,7 +49,7 @@ build_latest() {
     local COMMAND=$3
     local BUILD=$4
 
-    local REVISION_FILENAME=/opt/compiler-explorer/.buildrevs/${BUILD_NAME}
+    local REVISION_FILENAME=/opt/.buildrevs/${BUILD_NAME}
     local REVISION=""
 
     if [[ -f "${REVISION_FILENAME}" ]]; then
