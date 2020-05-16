@@ -15,7 +15,7 @@ function styleStatus(item) {
     const style = {
         color: 'black'
     };
-    if (item.status !== 'OK') {
+    if (item.status !== 'OK' && item.status !== 'SKIPPED') {
         style.color = 'red';
     }
     return style;
@@ -36,6 +36,10 @@ function formatStatus(item) {
     }
     const seconds = Math.floor(millis / 1000);
     text += `${seconds < 10 ? `0${seconds}` : seconds}sec`;
+
+    if (item.status === 'SKIPPED' && item.last_success) {
+        return `${item.status} (${text}) | since ${formatDate(item.last_success)}`
+    }
     return `${item.status} (${text})`
 }
 

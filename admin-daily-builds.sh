@@ -14,15 +14,31 @@ LOG_DIR=~/build_logs
 BUILD_FAILED=0
 run_on_build() {
     local logdir=${LOG_DIR}/$1
+    local revisionfile=$2
     mkdir -p "${logdir}"
-    shift
+    shift 2
     set +e
     date >"${logdir}/begin"
+    local CE_BUILD_RESULT=""
     if ! ce builder exec -- "$@" |& tee ${logdir}/log; then
         BUILD_FAILED=1
-        echo FAILED >${logdir}/status
+        CE_BUILD_RESULT=FAILED
     else
-        echo OK >${logdir}/status
+        CE_BUILD_RESULT=OK
+    fi
+
+    local CE_BUILD_STATUS=$(grep -P "^ce-build-status:" "${logdir}/log" | cut -d ':' -f 2-)
+    if [[ -z "${CE_BUILD_STATUS}" ]]; then
+        CE_BUILD_STATUS=${CE_BUILD_RESULT}
+    fi
+    echo "${CE_BUILD_STATUS}" >${logdir}/status
+
+    if [[ "${CE_BUILD_RESULT}" == "OK" ]]; then
+        local REVISION=$(grep -P "^ce-build-revision:" "${LOG_DIR}/${IMAGE}/log" | cut -d ':' -f 2-)
+        if [[ ! -z "${REVISION}"]]; then
+            echo "${REVISION}" > "${revisionfile}"
+        fi
+        date >${logdir}/last_success
     fi
     date >${logdir}/end
     set -e
@@ -33,10 +49,18 @@ build_latest() {
     local BUILD_NAME=$2
     local COMMAND=$3
     local BUILD=$4
-    run_on_build "${BUILD_NAME}" \
+
+    local REVISION_FILENAME=/opt/.buildrevs/${BUILD_NAME}
+    local REVISION=""
+
+    if [[ -f "${REVISION_FILENAME}" ]]; then
+        REVISION=$(cat "${REVISION_FILENAME}")
+    fi
+
+    run_on_build "${BUILD_NAME}" "${REVISION_FILENAME}" \
         sudo docker run --rm --name "${BUILD_NAME}.build" -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro -e 'LOGSPOUT=ignore' \
         "compilerexplorer/${IMAGE}-builder" \
-        bash "${COMMAND}" "${BUILD}" s3://compiler-explorer/opt/
+        bash "${COMMAND}" "${BUILD}" s3://compiler-explorer/opt/ "${REVISION}"
     log_to_json ${LOG_DIR} admin
 }
 
