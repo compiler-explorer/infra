@@ -206,6 +206,13 @@ libraries:
         - 2.3.5
         - 2.3.6
         - 2.3.7
+    libuv:
+      type: github
+      repo: libuv/libuv
+      build_type: make
+      target_prefix: v
+      targets:
+        - 1.37.0
     xtl:
       type: github
       repo: QuantStack/xtl
