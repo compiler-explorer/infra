@@ -14,7 +14,7 @@ def get_properties_compilers_and_libraries(language, logger):
     _libraries = defaultdict(lambda: [])
 
     encoded_language = urllib.parse.quote(language)
-    url = f'https://raw.githubusercontent.com/mattgodbolt/compiler-explorer/master/etc/config/{encoded_language}.amazon.properties'
+    url = f'https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/master/etc/config/{encoded_language}.amazon.properties'
     lines = []
     with tempfile.TemporaryFile() as fd:
         request = requests.get(url, stream=True)

@@ -1,7 +1,7 @@
 set fish_greeting
 
-if not echo $fish_user_paths | grep /home/ubuntu/compiler-explorer-image/bin
-    set -U fish_user_paths $fish_user_paths /home/ubuntu/compiler-explorer-image/bin
+if not echo $fish_user_paths | grep /home/ubuntu/infra/bin
+    set -U fish_user_paths $fish_user_paths /home/ubuntu/infra/bin
 end
 
 set -Ux EDITOR /usr/bin/vim
@@ -14,6 +14,6 @@ echo     source \$AUTOJUMP_PATH >> ~/.config/fish/config.fish
 echo   end >> ~/.config/fish/config.fish
 echo end >> ~/.config/fish/config.fish
 echo set VIRTUAL_ENV_DISABLE_PROMPT yes >> ~/.config/fish/config.fish
-echo if test -e ~/compiler-explorer-image/.env/bin/activate.fish >> ~/.config/fish/config.fish
-echo   source ~/compiler-explorer-image/.env/bin/activate.fish >> ~/.config/fish/config.fish
+echo if test -e ~/infra/.env/bin/activate.fish >> ~/.config/fish/config.fish
+echo   source ~/infra/.env/bin/activate.fish >> ~/.config/fish/config.fish
 echo end >> ~/.config/fish/config.fish

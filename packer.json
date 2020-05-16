@@ -61,8 +61,8 @@
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone https://github.com/mattgodbolt/compiler-explorer-image.git /compiler-explorer-image",
-        "cd /compiler-explorer-image",
+        "git clone https://github.com/compiler-explorer/infra.git /infra",
+        "cd /infra",
         "env PACKER_SETUP=yes bash setup.sh 2>&1 | tee /tmp/setup.log"
       ]
     }

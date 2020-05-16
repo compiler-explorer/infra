@@ -1,8 +1,8 @@
 MAILTO=compiler-explorer-admin@googlegroups.com
-PATH=/home/ubuntu/compiler-explorer-image/.env/bin:/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH=/home/ubuntu/infra/.env/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # m h  dom mon dow   command
-00 03 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_binaries.sh"
-30 05 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_compilers.sh nightly"
-30 04 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_libraries.sh nightly"
-15 04 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/update_compilers/install_nonfree_compilers.sh"
+00 03 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_binaries.sh"
+30 05 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_compilers.sh nightly"
+30 04 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_libraries.sh nightly"
+15 04 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_nonfree_compilers.sh"

@@ -84,7 +84,7 @@ popd
 cp nginx/nginx.conf /etc/nginx/nginx.conf
 systemctl restart nginx
 
-cp /compiler-explorer-image/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
+cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
 systemctl daemon-reload
 systemctl enable compiler-explorer
 

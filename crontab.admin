@@ -1,10 +1,10 @@
 MAILTO=compiler-explorer-admin@googlegroups.com
-PATH=/home/ubuntu/compiler-explorer-image/.env/bin:/home/ubuntu/compiler-explorer-image/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+PATH=/home/ubuntu/infra/.env/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # m h  dom mon dow   command
-00 00 * * * cronic bash -c "git -C /home/ubuntu/compiler-explorer-image pull -q && make -C /home/ubuntu/compiler-explorer-image ce"
-05 00 * * * cronic bash -c "crontab < /home/ubuntu/compiler-explorer-image/crontab.admin"
-05 00 * * * cronic bash -c "sudo crontab < /home/ubuntu/compiler-explorer-image/crontab.root.admin"
-10 00 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/admin-daily-builds.sh"
-00 09 * * * cronic bash -c "/home/ubuntu/compiler-explorer-image/remove_old_compilers.sh"
+00 00 * * * cronic bash -c "git -C /home/ubuntu/infra pull -q && make -C /home/ubuntu/infra ce"
+05 00 * * * cronic bash -c "crontab < /home/ubuntu/infra/crontab.admin"
+05 00 * * * cronic bash -c "sudo crontab < /home/ubuntu/infra/crontab.root.admin"
+10 00 * * * cronic bash -c "/home/ubuntu/infra/admin-daily-builds.sh"
+00 09 * * * cronic bash -c "/home/ubuntu/infra/remove_old_compilers.sh"
 05 09 * * * cronic bash -c "ce builds rm_old 7"

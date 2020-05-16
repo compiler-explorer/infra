@@ -31,7 +31,7 @@
     {
       "type": "file",
       "source": ".",
-      "destination": "/compiler-explorer-image/"
+      "destination": "/infra/"
     },
     {
       "type": "shell",
@@ -39,11 +39,11 @@
         "set -e",
         "export DEBIAN_FRONTEND=noninteractive",
         "mkdir -p /root/.ssh",
-        "cp /compiler-explorer-image/packer/known_hosts /root/.ssh/",
-        "cp /compiler-explorer-image/packer/known_hosts /home/ubuntu/.ssh/",
+        "cp /infra/packer/known_hosts /root/.ssh/",
+        "cp /infra/packer/known_hosts /home/ubuntu/.ssh/",
         "apt-get -y update",
         "apt-get -y install git sudo curl rsyslog psmisc systemd",
-        "cd /compiler-explorer-image",
+        "cd /infra",
         "env PACKER_SETUP=yes bash setup.sh --updated master 2>&1 | tee /tmp/setup.log"
       ]
     }

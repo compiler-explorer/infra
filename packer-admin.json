@@ -59,9 +59,9 @@
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone https://github.com/mattgodbolt/compiler-explorer-image.git /home/ubuntu/compiler-explorer-image",
-        "chown -R ubuntu:ubuntu /home/ubuntu/compiler-explorer-image",
-        "/home/ubuntu/compiler-explorer-image/setup-admin.sh"
+        "git clone https://github.com/compiler-explorer/infra.git /home/ubuntu/infra",
+        "chown -R ubuntu:ubuntu /home/ubuntu/infra",
+        "/home/ubuntu/infra/setup-admin.sh"
       ]
     }
   ]

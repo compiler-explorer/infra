@@ -108,7 +108,7 @@ class DeploymentJob:
             # maybe a file is still open or something
             # and we can try again later in case of failure
             self.tmpdir = None
-        except RuntimeError:
+        except OSError:
             logger.exception('failure to cleanup temp directory "%s"', self.tmpdir)
 
     def __get_bucket_path(self, key):

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/compiler-explorer-image.iml" filepath="$PROJECT_DIR$/.idea/compiler-explorer-image.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/infra.iml" filepath="$PROJECT_DIR$/.idea/infra.iml" />
     </modules>
   </component>
 </project>

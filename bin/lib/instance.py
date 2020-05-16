@@ -38,8 +38,8 @@ class Instance:
                                     "=" in s)}
             self.running_version = exec_remote(self, [
                 'bash', '-c',
-                'if [[ -f /compiler-explorer-image/.deploy/s3_key ]]; '
-                'then cat /compiler-explorer-image/.deploy/s3_key; fi'
+                'if [[ -f /infra/.deploy/s3_key ]]; '
+                'then cat /infra/.deploy/s3_key; fi'
             ]).strip()
         except subprocess.CalledProcessError as e:
             logger.warning("Failed to execute on remote host: %s", e)
