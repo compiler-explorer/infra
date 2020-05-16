@@ -38,6 +38,7 @@ run_on_build() {
         if [[ ! -z "${REVISION}"]]; then
             echo "${REVISION}" > "${revisionfile}"
         fi
+        date >${logdir}/last_success
     fi
     date >${logdir}/end
     set -e
