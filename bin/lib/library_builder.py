@@ -44,10 +44,20 @@ class LibraryBuilder:
             self.buildconfig.description = self.libraryprops[libid]['name']
         if 'url' in self.libraryprops[libid]:
             self.buildconfig.url = self.libraryprops[libid]['url']
+
         if 'staticliblink' in self.libraryprops[libid]:
-            self.buildconfig.staticliblink = self.libraryprops[libid]['staticliblink'].split(':')
+            self.buildconfig.staticliblink = self.libraryprops[libid]['staticliblink']
+
         if 'liblink' in self.libraryprops[libid]:
-            self.buildconfig.sharedliblink = self.libraryprops[libid]['liblink'].split(':')
+            self.buildconfig.sharedliblink = self.libraryprops[libid]['liblink']
+
+        specificVersionDetails = get_specific_library_version_details(self.libraryprops, libid, self.target_name)
+        if specificVersionDetails:
+            if 'staticliblink' in specificVersionDetails:
+                self.buildconfig.staticliblink = specificVersionDetails['staticliblink']
+                
+            if 'liblink' in specificVersionDetails:
+                self.buildconfig.sharedliblink = specificVersionDetails['liblink']
 
         if self.buildconfig.lib_type == "static":
             if self.buildconfig.staticliblink == []:
@@ -200,25 +210,29 @@ class LibraryBuilder:
                 if os.path.exists(os.path.join(buildfolder, 'configure')):
                     f.write(f'./configure\n')
 
-        if len(self.buildconfig.staticliblink) != 0:
-            for lib in self.buildconfig.staticliblink:
-                f.write(f'make {lib}\n')
+        if len(self.buildconfig.make_targets) != 0:
+            for target in self.buildconfig.make_targets:
+                f.write(f'make {target}\n')
+        else:
+            if len(self.buildconfig.staticliblink) != 0:
+                for lib in self.buildconfig.staticliblink:
+                    f.write(f'make {lib}\n')
 
-        if len(self.buildconfig.sharedliblink) != 0:
-            for lib in self.buildconfig.sharedliblink:
-                f.write(f'make {lib}\n')
+            if len(self.buildconfig.sharedliblink) != 0:
+                for lib in self.buildconfig.sharedliblink:
+                    f.write(f'make {lib}\n')
 
-        if len(self.buildconfig.staticliblink) != 0:
-            f.write(f'libsfound=$(find . -iname \'lib*.a\')\n')
-        elif len(self.buildconfig.sharedliblink) != 0:
-            f.write(f'libsfound=$(find . -iname \'lib*.so*\')\n')
+            if len(self.buildconfig.staticliblink) != 0:
+                f.write(f'libsfound=$(find . -iname \'lib*.a\')\n')
+            elif len(self.buildconfig.sharedliblink) != 0:
+                f.write(f'libsfound=$(find . -iname \'lib*.so*\')\n')
 
-        f.write(f'if [ "$libsfound" = "" ]; then\n')
-        f.write(f'  make all\n')
-        f.write(f'fi\n')
+            f.write(f'if [ "$libsfound" = "" ]; then\n')
+            f.write(f'  make all\n')
+            f.write(f'fi\n')
 
         for lib in self.buildconfig.staticliblink:
-            f.write(f'find . -iname \'lib{lib}.a\' -type f -exec mv {{}} . \;\n')
+            f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . \;\n')
 
         for lib in self.buildconfig.sharedliblink:
             f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \;\n')
@@ -231,7 +245,6 @@ class LibraryBuilder:
         f = open(scriptfile, 'w')
         f.write('#!/bin/sh\n\n')
         f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
-        f.write(f'conan upload {self.libname}/{self.target_name} --all -r=ceserver -c\n')
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
 
@@ -260,9 +273,9 @@ class LibraryBuilder:
         f.write(f'    topics = None\n')
         f.write(f'    def package(self):\n')
         for lib in self.buildconfig.staticliblink:
-            f.write(f'        self.copy("lib{lib}.a", dst="lib", keep_path=False)\n')
+            f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
         for lib in self.buildconfig.sharedliblink:
-            f.write(f'        self.copy("lib{lib}.so*", dst="lib", keep_path=False)\n')
+            f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
         f.write(f'    def package_info(self):\n')
         f.write(f'        self.cpp_info.libs = [{libsum}]\n')
         f.close()
@@ -293,7 +306,10 @@ class LibraryBuilder:
 
         for lib in self.buildconfig.staticliblink:
             if os.path.exists(os.path.join(buildfolder, f'lib{lib}.a')):
+                self.logger.debug(f'lib{lib}.a found')
                 filesfound+=1
+            else:
+                self.logger.debug(f'lib{lib}.a not found')
 
         for lib in self.buildconfig.sharedliblink:
             filepath = os.path.join(buildfolder, f'lib{lib}.so')
@@ -347,6 +363,7 @@ class LibraryBuilder:
 
         self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
         self.writeconanfile(buildfolder)
+
         builtok = self.executebuildscript(buildfolder)
         if builtok:
             if not self.install_context.dry_run:
@@ -429,5 +446,9 @@ class LibraryBuilder:
                                         builds_succeeded = builds_succeeded + 1
                                     else:
                                         builds_failed = builds_failed + 1
+
+            if builds_succeeded > 0:
+                self.logger.info('Uploading cached builds')
+                subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
 
         return builds_failed == 0

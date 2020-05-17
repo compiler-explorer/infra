@@ -56,9 +56,10 @@ libraries:
         - 1.4.1
         - 1.5.0
       build_type: cmake
-    catch2:
+    catch2v2:
       type: github
       repo: catchorg/Catch2
+      subdir: catch2
       check_file: include/catch.hpp
       target_prefix: v
       targets:
@@ -88,6 +89,16 @@ libraries:
         - 2.11.3
         - 2.12.0
         - 2.12.1
+    catch2:
+      type: github
+      repo: catchorg/Catch2
+      build_type: cmake
+      make_targets:
+        - Catch2
+        - Catch2WithMain
+      target_prefix: v
+      targets:
+        - 3.0.0-preview2
     ulib:
       type: github
       repo: stefanocasazza/ULib

@@ -13,6 +13,7 @@ class LibraryBuildConfig:
         self.description = ""
         self.prebuildscript = self.config_get("prebuildscript", [])
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
+        self.make_targets = self.config_get("make_targets", [])
 
     def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
         if config_key not in self.config and default is None:
