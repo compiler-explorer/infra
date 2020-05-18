@@ -1,5 +1,6 @@
 import re
 import os
+import json
 import hashlib
 import shutil
 import subprocess
@@ -16,6 +17,12 @@ build_supported_flags = ['']
 build_supported_flagscollection = [['']]
 
 _propsandlibs = defaultdict(lambda: [])
+
+
+GITCOMMITHASH_RE = re.compile(r'^(\w*)\s.*')
+CONANINFOHASH_RE = re.compile(r'\s+ID:\s(\w*)')
+
+conanserver_url = "http://ec2-54-93-113-179.eu-central-1.compute.amazonaws.com:10240"
 
 class LibraryBuilder:
     def __init__(self, logger, language: str, libname: str, target_name: str, sourcefolder: str, install_context, buildconfig: LibraryBuildConfig):
@@ -242,11 +249,24 @@ class LibraryBuilder:
 
         scriptfile = os.path.join(buildfolder, "conanexport.sh")
 
+        self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags)
+        conanparamsstr = ' '.join(self.current_buildparameters)
+
         f = open(scriptfile, 'w')
         f.write('#!/bin/sh\n\n')
-        f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f -s os={buildos} -s build_type={buildtype} -s compiler={compilerTypeOrGcc} -s compiler.version={compiler} -s compiler.libcxx={libcxx} -s arch={arch} -s stdver={stdver} -s "flagcollection={extraflags}"\n')
+        f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n')
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
+
+    def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags):
+        self.current_buildparameters = ['-s', f'os={buildos}',
+                  '-s', f'build_type={buildtype}',
+                  '-s', f'compiler={compilerTypeOrGcc}',
+                  '-s', f'compiler.version={compiler}',
+                  '-s', f'compiler.libcxx={libcxx}',
+                  '-s', f'arch={arch}',
+                  '-s', f'stdver={stdver}',
+                  '-s', f'flagcollection={extraflags}']
 
     def writeconanfile(self, buildfolder):
         scriptfile = os.path.join(buildfolder, "conanfile.py")
@@ -325,12 +345,12 @@ class LibraryBuilder:
 
         if filesfound != 0:
             if subprocess.call(['./conanexport.sh'], cwd=buildfolder) == 0:
-                self.logger.info(f'Upload succeeded')
+                self.logger.info(f'Export succesful')
                 return True
             else:
                 return False
         else:
-            self.logger.info(f'No binaries found to upload')
+            self.logger.info(f'No binaries found to export')
             return False
 
     def executebuildscript(self, buildfolder):
@@ -349,6 +369,68 @@ class LibraryBuilder:
 
         return compiler + '_' + hasher.hexdigest()
 
+    def get_conan_hash(self, buildfolder):
+        conaninfo = subprocess.check_output(['conan', 'info', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8')
+        self.logger.debug(conaninfo)
+        match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
+        if match:
+            return match[1]
+        return None
+
+    def get_build_annotations(self, buildfolder):
+        conanhash = self.get_conan_hash(buildfolder)
+        if conanhash == None:
+            return defaultdict(lambda: [])
+
+        url = f'{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}'
+        lines = []
+        with tempfile.TemporaryFile() as fd:
+            request = requests.get(url, stream=True)
+            if not request.ok:
+                raise RuntimeError(f'Fetch failure for {url}: {request}')
+            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
+                fd.write(chunk)
+            fd.flush()
+            fd.seek(0)
+            buffer = fd.read()
+            return json.loads(buffer)
+
+    def get_commit_hash(self):
+        lastcommitinfo = subprocess.check_output(['git', '-C', self.sourcefolder, 'log', '-1', '--oneline', '--no-color']).decode('utf-8')
+        self.logger.debug(lastcommitinfo)
+        match = GITCOMMITHASH_RE.match(lastcommitinfo)
+        if match:
+            return match[1]
+        else:
+            return self.target_name
+
+    def is_already_uploaded(self, buildfolder):
+        annotations = self.get_build_annotations(buildfolder)
+
+        if 'commithash' in annotations:
+            commithash = self.get_commit_hash()
+
+            return commithash == annotations['commithash']
+        else:
+            return False
+
+    def set_as_uploaded(self, buildfolder):
+        conanhash = self.get_conan_hash(buildfolder)
+        if conanhash == None:
+            raise RuntimeError(f'Error determining conan hash in {buildfolder}')
+
+        annotations = self.get_build_annotations(buildfolder)
+        if not 'commithash' in annotations:
+            self.upload_builds()
+        annotations['commithash'] = self.get_commit_hash()
+
+        self.logger.debug(annotations)
+
+        url = f'{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}'
+        request = requests.post(url, data = json.dumps(annotations), headers={"Content-Type": "application/json"})
+        if not request.ok:
+            raise RuntimeError(f'Post failure for {url}: {request}')
+
     def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
         combinedhash = self.makebuildhash(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
 
@@ -364,10 +446,16 @@ class LibraryBuilder:
         self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
         self.writeconanfile(buildfolder)
 
+        if self.is_already_uploaded(buildfolder):
+            self.logger.info("Build already uploaded")
+            return False
+
         builtok = self.executebuildscript(buildfolder)
         if builtok:
             if not self.install_context.dry_run:
                 builtok = self.executeconanscript(buildfolder, arch, stdlib)
+                if builtok:
+                    self.set_as_uploaded(buildfolder)
 
         if builtok:
             if self.buildconfig.build_type == "cmake":
@@ -383,6 +471,10 @@ class LibraryBuilder:
         else:
             shutil.rmtree(buildfolder, ignore_errors=True)
             self.logger.info(f'Removing {buildfolder}')
+
+    def upload_builds(self):
+        self.logger.info('Uploading cached builds')
+        subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
 
     def makebuild(self, buildfor):
         builds_failed = 0
@@ -448,7 +540,6 @@ class LibraryBuilder:
                                         builds_failed = builds_failed + 1
 
             if builds_succeeded > 0:
-                self.logger.info('Uploading cached builds')
-                subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
+                self.upload_builds()
 
         return builds_failed == 0
