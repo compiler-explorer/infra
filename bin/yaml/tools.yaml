@@ -1,0 +1,11 @@
+tools:
+  pvs-studio:
+    if: non-free
+    type: tarballs
+    url:  https://files.viva64.com/beta/pvs-studio-{name}-x86_64.tgz
+    compression: gz
+    untar_dir: pvs-studio-{name}-x86_64
+    dir: pvs-studio-{name}-x86_64
+    check_exe: bin/pvs-studio --version
+    targets:
+      - 7.07.38572.1003
