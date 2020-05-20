@@ -24,6 +24,15 @@ compilers:
       check_exe: bin/gcc -v
       targets:
         - '1.27'
+    sdcc:
+      type: tarballs
+      compression: bz2
+      dir: sdcc-{name}
+      check_exe: bin/sdcc --version
+      untar_dir: sdcc-{name}
+      url: https://downloads.sourceforge.net/project/sdcc/sdcc-linux-amd64/{name}/sdcc-{name}-amd64-unknown-linux2.5.tar.bz2
+      targets:
+        - 4.0.0
     nightly:
       if: nightly
       cc65:
