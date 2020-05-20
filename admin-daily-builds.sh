@@ -34,7 +34,7 @@ run_on_build() {
     echo "${CE_BUILD_STATUS}" >${logdir}/status
 
     if [[ "${CE_BUILD_RESULT}" == "OK" ]]; then
-        local REVISION=$(grep -P "^ce-build-revision:" "${LOG_DIR}/${IMAGE}/log" | cut -d ':' -f 2-)
+        local REVISION=$(grep -P "^ce-build-revision:" "${logdir}/log" | cut -d ':' -f 2-)
         if [[ ! -z "${REVISION}" ]]; then
             echo "${REVISION}" > "${revisionfile}"
         fi
