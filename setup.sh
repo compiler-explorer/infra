@@ -52,8 +52,6 @@ apt-get install -y \
     pkg-config \
     protobuf-compiler \
     python-pip \
-    python3 \
-    python3-pip \
     s3cmd \
     subversion \
     texinfo \
@@ -94,12 +92,3 @@ if [[ -f /efs/compiler-explorer/libs/boost.tar.xz ]]; then
 fi
 
 adduser --system --group ce
-
-mkdir /home/ce/.conan
-cp /compiler-explorer-image/init/remotes.json /home/ce/.conan
-cp /compiler-explorer-image/init/settings.yml /home/ce/.conan
-chown -Rf ce:ce /home/ce/.conan
-
-sudo -u ce pip3 install conan
-ln -s /home/ce/.local/bin/conan /bin/conan
-sudo -u ce conan user -s
