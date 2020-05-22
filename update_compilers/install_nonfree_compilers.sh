@@ -7,6 +7,12 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${DIR}/common.inc
 S3URL=s3://compiler-explorer/opt-nonfree
 
+CE_INSTALL_ARG+=" --enable=non-free"
+
+##################################
+# Non-free tools
+ce_install tools
+
 ##################################
 # Intel compilers
 for compiler in \

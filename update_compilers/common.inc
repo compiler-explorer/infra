@@ -51,7 +51,7 @@ install_nightly() {
 CE_INSTALL_ARG=
 
 if install_nightly; then
-    CE_INSTALL_ARG=--enable=nightly
+    CE_INSTALL_ARG="--enable=nightly"
 fi
 
 ce_install() {
