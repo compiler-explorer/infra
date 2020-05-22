@@ -8,7 +8,7 @@ tools:
     url:  https://files.viva64.com/pvs-studio-latest.tgz
     compression: gz
     create_untar_dir: true
-    dir: pvs-studio-latest-x86_64
+    dir: pvs-studio-latest
     strip_components: 1
     check_exe: bin/pvs-studio --version
     targets:
