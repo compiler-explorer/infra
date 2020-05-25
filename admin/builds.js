@@ -50,26 +50,28 @@ function styleStatus(item) {
 function formatStatus(item) {
     let millis = (item.end - item.start);
     let text = '';
-    const hours = Math.floor(millis / 1000 / 60 / 60);
-    millis -= hours * 1000 * 60 * 60;
-    if (hours > 0) {
-        text += `${hours}h `;
+    if (item.status !== 'SKIPPED') {
+        text = '(';
+        const hours = Math.floor(millis / 1000 / 60 / 60);
+        millis -= hours * 1000 * 60 * 60;
+        if (hours > 0) {
+            text += `${hours}h `;
+        }
+        const mins = Math.floor(millis / 1000 / 60);
+        millis -= mins * 1000 * 60;
+        if (mins > 0 || hours > 0) {
+            text += `${mins < 10 ? `0${mins}` : mins}min `;
+        }
+        const seconds = Math.floor(millis / 1000);
+        text += `${seconds < 10 ? `0${seconds}` : seconds}sec)`;
     }
-    const mins = Math.floor(millis / 1000 / 60);
-    millis -= mins * 1000 * 60;
-    if (mins > 0 || hours > 0) {
-        text += `${mins < 10 ? `0${mins}` : mins}min `;
-    }
-    const seconds = Math.floor(millis / 1000);
-    text += `${seconds < 10 ? `0${seconds}` : seconds}sec`;
-
-    // TODO: Once last_success is fixed, uncomment this to report when the compiler was last built
-    // Right now it shows the same day for skipped ones, and it's missing for failed ones
+    /* TODO: Once last_success is fixed, uncomment this to report when the compiler was last built
+        Right now it shows the same day for skipped ones, and it's missing for failed ones */
     /*
-    if (item.status === 'SKIPPED' && item.last_success) {
-        return `${item.status} (${text}) | LAST ${formatDate(item.last_success)}`
+    else if (item.last_success) {
+        text = '(LAST ${formatDate(item.last_success)})';
     }*/
-    return `${item.status} (${text})`
+    return `${item.status} ${text}`
 }
 
 function styleHeaderSortables() {
