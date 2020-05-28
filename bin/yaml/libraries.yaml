@@ -357,6 +357,7 @@ libraries:
       targets:
         - v0.3.1
         - v0.4.0
+        - v0.5.0
     dlib:
       type: github
       method: clone_branch
