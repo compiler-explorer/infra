@@ -11,12 +11,39 @@ function formatEndDate(item) {
     return formatDate(item.end);
 }
 
+// currently unused
+function formatHowLongAgo(date) {
+    let difference = new Date() - date;
+    let text = '';
+
+    // More than a day?
+    if (difference > 86400000) {
+        const days = Math.floor(difference / 86400000);
+        text += `${days}day `;
+        difference = difference % 86400000;
+    }
+    // More than an hour?
+    if (difference > 3600000) {
+        const hours = Math.floor(difference / 3600000);
+        text += `${hours}h `;
+        difference = difference % 3600000;
+    }
+    // minutes
+    text += `${Math.floor(difference / 60000)}min ago`;
+
+    return text;
+}
+
 function styleStatus(item) {
     const style = {
         color: 'black'
     };
-    if (item.status !== 'OK' && item.status !== 'SKIPPED') {
+    if (item.status === 'OK') {
+        style.color = 'green';
+    } else if (item.status === 'FAILED') {
         style.color = 'red';
+    } else if (item.status === 'SKIPPED') {
+        style.color = 'blue';
     }
     return style;
 }
@@ -24,6 +51,7 @@ function styleStatus(item) {
 function formatStatus(item) {
     let millis = (item.end - item.start);
     let text = '';
+
     const hours = Math.floor(millis / 1000 / 60 / 60);
     millis -= hours * 1000 * 60 * 60;
     if (hours > 0) {
@@ -37,9 +65,6 @@ function formatStatus(item) {
     const seconds = Math.floor(millis / 1000);
     text += `${seconds < 10 ? `0${seconds}` : seconds}sec`;
 
-    if (item.status === 'SKIPPED' && item.last_success) {
-        return `${item.status} (${text}) | since ${formatDate(item.last_success)}`
-    }
     return `${item.status} (${text})`
 }
 

@@ -726,8 +726,11 @@ def _targets_from(node, enabled, context, name, base_config):
         return
 
     if 'if' in node:
-        condition = node['if']
-        if condition not in enabled:
+        if isinstance(node['if'], list):
+            condition = set(node['if'])
+        else:
+            condition = set([node['if']])
+        if set(enabled).intersection(condition) != condition:
             return
 
     context = context[:]

@@ -1,0 +1,15 @@
+tools:
+  pvs-studio:
+    if: 
+      - non-free
+      - nightly
+    install_always: true
+    type: tarballs
+    url:  https://files.viva64.com/pvs-studio-latest.tgz
+    compression: gz
+    create_untar_dir: true
+    dir: pvs-studio-latest
+    strip_components: 1
+    check_exe: bin/pvs-studio --version
+    targets:
+      - latest

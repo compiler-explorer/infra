@@ -34,7 +34,7 @@ run_on_build() {
     echo "${CE_BUILD_STATUS}" >${logdir}/status
 
     if [[ "${CE_BUILD_RESULT}" == "OK" ]]; then
-        local REVISION=$(grep -P "^ce-build-revision:" "${LOG_DIR}/${IMAGE}/log" | cut -d ':' -f 2-)
+        local REVISION=$(grep -P "^ce-build-revision:" "${logdir}/log" | cut -d ':' -f 2-)
         if [[ ! -z "${REVISION}" ]]; then
             echo "${REVISION}" > "${revisionfile}"
         fi
@@ -65,7 +65,7 @@ build_latest() {
 }
 
 # llvm build is fast, so lets do it first
-build_latest clang llvm build-llvm.sh trunk
+build_latest clang llvm build.sh llvm-trunk
 
 build_latest gcc gcc build.sh trunk
 build_latest gcc gcc_contracts build.sh lock3-contracts-trunk
@@ -74,12 +74,12 @@ build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
 build_latest gcc gcc_embed build.sh embed-trunk
 build_latest gcc gcc_static_analysis build.sh static-analysis-trunk
 build_latest clang clang build.sh trunk
-build_latest clang clang_cppx build-cppx.sh trunk
-build_latest clang clang_relocatable build-relocatable.sh trunk
-build_latest clang clang_autonsdmi build-autonsdmi.sh trunk
-build_latest clang clang_lifetime build-lifetime.sh trunk
+build_latest clang clang_cppx build.sh cppx-trunk
+build_latest clang clang_relocatable build.sh relocatable-trunk
+build_latest clang clang_autonsdmi build.sh autonsdmi-trunk
+build_latest clang clang_lifetime build.sh lifetime-trunk
 build_latest clang clang_parmexpr build-parmexpr.sh trunk
-build_latest clang clang_embed build-embed.sh embed-trunk
+build_latest clang clang_embed build.sh embed-trunk
 build_latest go go build.sh trunk
 
 exit ${BUILD_FAILED}
