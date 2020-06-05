@@ -391,6 +391,17 @@ libraries:
       check_file: README.md
       targets:
         - 1.3.0
+    tbb:
+      type: github
+      method: nightlyclone
+      repo: oneapi-src/oneTBB
+      path_name: libs/tbb
+      targets:
+        - "2020.2"
+      build_type: make
+      build_fixed_arch: x86_64
+      build_fixed_stdlib: libstdc++
+      lib_type: shared
     eastl:
       type: github
       method: clone_branch
@@ -651,17 +662,6 @@ libraries:
         build_type: cmake
         targets:
           - trunk
-      tbb:
-        type: github
-        method: nightlyclone
-        repo: oneapi-src/oneTBB
-        path_name: libs/tbb
-        targets:
-          - trunk
-        build_type: make
-        build_fixed_arch: x86_64
-        build_fixed_stdlib: libstdc++
-        lib_type: shared
       nanorange:
         type: github
         method: nightlyclone
@@ -733,6 +733,13 @@ libraries:
         type: github
         method: nightlyclone
         repo: electronicarts/EASTL
+        build_type: cmake
+        targets:
+          - trunk
+      crosscables:
+        type: github
+        method: nightlyclone
+        repo: partouf/crosscables
         build_type: cmake
         targets:
           - trunk

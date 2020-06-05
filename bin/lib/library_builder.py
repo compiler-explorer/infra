@@ -197,6 +197,7 @@ class LibraryBuilder:
             compilerTypeOrGcc = compilerType
 
         cxx_flags = f'{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}'
+        configure_flags = f''
 
         if len(self.buildconfig.prebuildscript) > 0:
             for line in self.buildconfig.prebuildscript:
@@ -208,14 +209,15 @@ class LibraryBuilder:
             self.logger.debug(cmakeline)
             f.write(cmakeline)
         else:
-            if os.path.exists(os.path.join(buildfolder, 'Makefile')):
+            if os.path.exists(os.path.join(sourcefolder, 'Makefile')):
                 f.write(f'make clean\n')
             f.write(f'rm *.so*\n')
             f.write(f'rm *.a\n')
             f.write(f'export CXX_FLAGS="{cxx_flags}"\n')
             if self.buildconfig.build_type == "make":
-                if os.path.exists(os.path.join(buildfolder, 'configure')):
-                    f.write(f'./configure\n')
+                configurepath = os.path.join(sourcefolder, 'configure')
+                if os.path.exists(configurepath):
+                    f.write(f'./configure {configure_flags}\n')
 
         if len(self.buildconfig.make_targets) != 0:
             for target in self.buildconfig.make_targets:
@@ -396,11 +398,14 @@ class LibraryBuilder:
             return json.loads(buffer)
 
     def get_commit_hash(self):
-        lastcommitinfo = subprocess.check_output(['git', '-C', self.sourcefolder, 'log', '-1', '--oneline', '--no-color']).decode('utf-8')
-        self.logger.debug(lastcommitinfo)
-        match = GITCOMMITHASH_RE.match(lastcommitinfo)
-        if match:
-            return match[1]
+        if os.path.exists(f'{self.sourcefolder}/.git'):
+            lastcommitinfo = subprocess.check_output(['git', '-C', self.sourcefolder, 'log', '-1', '--oneline', '--no-color']).decode('utf-8')
+            self.logger.debug(lastcommitinfo)
+            match = GITCOMMITHASH_RE.match(lastcommitinfo)
+            if match:
+                return match[1]
+            else:
+                return self.target_name
         else:
             return self.target_name
 
