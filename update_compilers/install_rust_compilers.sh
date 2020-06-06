@@ -237,6 +237,12 @@ RUST_TARGETS+=(
 )
 install_new_rust 1.42.0 RUST_TARGETS[@]
 install_new_rust 1.43.0 RUST_TARGETS[@]
+RUST_TARGETS+=(
+    aarch64-unknown-none
+    aarch64-unknown-none-softfloat
+    arm64-apple-tvos
+    x86_64-apple-tvos
+)
 install_new_rust 1.44.0 RUST_TARGETS[@]
 
 if install_nightly; then
