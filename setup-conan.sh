@@ -60,7 +60,7 @@ tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
 mv node-v12.18.0-linux-x64 node
 
 # setup daemon
-cp /infra/init/ce-conan.service /lib/systemd/system/ce-conan.service
+cp /home/ubuntu/infra/init/ce-conan.service /lib/systemd/system/ce-conan.service
 systemctl daemon-reload
 systemctl enable ce-conan
 
