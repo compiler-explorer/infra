@@ -96,6 +96,10 @@ def main():
         for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=ConfigSafeLoader), args.enable):
             installables.append(installer)
 
+    installables_by_name = {installable.name: installable for installable in installables}
+    for installable in installables:
+        installable.link(installables_by_name)
+
     for filt in args.filter:
         def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
             return lambda installable: filter_match(x, installable)
