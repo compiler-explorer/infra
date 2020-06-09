@@ -125,11 +125,6 @@ cat /tmp/auth_keys/* >>/home/ubuntu/.ssh/authorized_keys
 rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
 
-chsh ubuntu -s /usr/bin/fish
-
-
-# Setup the fish prompt
-ln -sf admin/fish_prompt.fish ~/.config/fish/fish_prompt.fish
 
 # Install private and public keys
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
@@ -139,7 +134,6 @@ aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 
-sudo -u ubuntu fish setup.fish
 #crontab -u ubuntu crontab.admin
 
 # Configure email
