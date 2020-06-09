@@ -30,11 +30,9 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd python2.7 python-pip mosh fish jq ssmtp cronic upx autojump zlib1g-dev m4 python3 python3-venv python3-pip python3.8 python3.8-venv
-
+apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump zlib1g-dev python3-pip python3.8 python3.8-venv
 apt-get -y autoremove
-pip install --upgrade pip
-hash -r pip
+
 
 # setup ce_user
 adduser --system --group ${CE_USER}
@@ -46,7 +44,7 @@ echo "/dev/xvdb       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE
 # note: dont mount yet, volume will not be available
 
 # setup latest conan-server
-sudo -u ${CE_USER} pip3 install conan gunicorn
+sudo -u ${CE_USER} -H pip3 install conan gunicorn
 
 # setup conanproxy
 mkdir -p /home/ubuntu/ceconan
