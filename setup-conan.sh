@@ -41,7 +41,7 @@ touch /updated
 adduser --system --group ${CE_USER}
 
 mkdir -p /home/${CE_USER}/.conan_server
-echo "/dev/xvdb       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE_USER}       0 0
+echo "/dev/data/datavol       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE_USER}       0 0
 " >>/etc/fstab
 
 # note: dont mount yet, volume will not be available
