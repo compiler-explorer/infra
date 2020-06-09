@@ -30,9 +30,12 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump zlib1g-dev python3-pip python3.8 python3.8-venv
+apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv
 apt-get -y autoremove
-
+pip install --upgrade pip
+hash -r pip
+pip install --upgrade awscli
+touch /updated
 
 # setup ce_user
 adduser --system --group ${CE_USER}
@@ -66,6 +69,14 @@ systemctl enable ce-conan
 
 
 # setup logging
+mkdir -p /root/.aws /home/ubuntu/.aws
+echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
+chown -R ubuntu /home/ubuntu/.aws
+
+get_conf() {
+    aws ssm get-parameter --name $1 | jq -r .Parameter.Value
+}
+
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
