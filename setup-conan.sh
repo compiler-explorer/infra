@@ -30,7 +30,7 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd qemu-user-static libc6-arm64-cross python2.7 python-pip mosh fish jq ssmtp cronic upx autojump zlib1g-dev m4 python3 python3-venv python3-pip python3.8 python3.8-venv libc6-dev-i386
+apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python-pip wget cachefilesd python2.7 python-pip mosh fish jq ssmtp cronic upx autojump zlib1g-dev m4 python3 python3-venv python3-pip python3.8 python3.8-venv
 
 apt-get -y autoremove
 pip install --upgrade pip
@@ -40,12 +40,10 @@ hash -r pip
 adduser --system --group ${CE_USER}
 
 mkdir -p /home/${CE_USER}/.conan_server
-if ! grep "/home/${CE_USER}/.conan_server" /etc/fstab; then
-    echo "/dev/data/datavol       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE_USER}       0 0
+echo "/dev/xvdb       /home/${CE_USER}/.conan_server   ext4   defaults,user=${CE_USER}       0 0
 " >>/etc/fstab
-fi
 
-mount -a
+# note: dont mount yet, volume will not be available
 
 # setup latest conan-server
 sudo -u ${CE_USER} pip3 install conan gunicorn
@@ -62,6 +60,11 @@ rm -Rf node
 wget https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz
 tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
 mv node-v12.18.0-linux-x64 node
+
+# setup daemon
+cp /infra/init/ce-conan.service /lib/systemd/system/ce-conan.service
+systemctl daemon-reload
+systemctl enable ce-conan
 
 
 # setup logging
