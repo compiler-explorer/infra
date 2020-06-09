@@ -2,6 +2,7 @@ locals {
   image_id          = "ami-08823b7a4d6a7afb1"
   staging_image_id  = "ami-08823b7a4d6a7afb1"
   beta_image_id     = "ami-08823b7a4d6a7afb1"
+  conan_image_id    = "ami-003c4975046bd3840"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
   // Current c5 on-demand price is 0.085. Yearly pre-pay is 0.05 (so this is same as prepaying a year)
@@ -101,3 +102,4 @@ resource "aws_launch_configuration" "CompilerExplorer-prod-t3" {
     delete_on_termination = true
   }
 }
+
