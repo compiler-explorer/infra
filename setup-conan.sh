@@ -32,9 +32,9 @@ apt-get -y update
 apt-get -y upgrade --force-yes
 apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv
 apt-get -y autoremove
-pip install --upgrade pip
-hash -r pip
-pip install --upgrade awscli
+pip3 install --upgrade pip
+hash -r pip3
+pip3 install --upgrade awscli
 touch /updated
 
 # setup ce_user
