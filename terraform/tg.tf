@@ -59,7 +59,7 @@ resource "aws_alb_target_group" "conan" {
   lifecycle {
     create_before_destroy = true
   }
-  name                 = "Prod"
+  name                 = "ConanGroup"
   port                 = 80
   protocol             = "HTTP"
   vpc_id               = aws_vpc.CompilerExplorer.id
@@ -74,3 +74,8 @@ resource "aws_alb_target_group" "conan" {
   }
 }
 
+resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
+  target_group_arn  = aws_alb_target_group.conan.id
+  target_id         = aws_instance.ConanNode.id
+  port              = 80
+}
