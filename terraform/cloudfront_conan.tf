@@ -1,7 +1,11 @@
 resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
   origin {
+    domain_name = "compiler-explorer.s3.amazonaws.com"
+    origin_id   = "S3-compiler-explorer"
+  }
+  origin {
     domain_name = aws_alb.CEConanServerAlb.dns_name
-    origin_id   = "ALB-compiler-explorer-conan"
+    origin_id   = "CEConanServerAlb"
     custom_origin_config {
       http_port                = 80
       https_port               = 443
@@ -74,7 +78,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
         "Host"
       ]
     }
-    target_origin_id       = "ALB-compiler-explorer"
+    target_origin_id       = "CEConanServerAlb"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
   }
