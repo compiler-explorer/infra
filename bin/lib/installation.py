@@ -1,3 +1,4 @@
+from __future__ import annotations
 import functools
 import glob
 import logging
@@ -255,6 +256,13 @@ class Installable:
 
     def _setup_check_link(self, source: str, link: str) -> None:
         self._check_link = lambda: self.install_context.check_link(source, link)
+
+    def link(self, all_installables: Dict[str, Installable]):
+        try:
+            self.depends = [all_installables[dep] for dep in self.depends]
+        except KeyError as ke:
+            self.error(f"Unable to find dependency {ke}")
+            raise
 
     def debug(self, message: str) -> None:
         self.install_context.debug(f'{self.name}: {message}')

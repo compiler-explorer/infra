@@ -38,8 +38,12 @@ run_on_build() {
         if [[ ! -z "${REVISION}" ]]; then
             echo "${REVISION}" > "${revisionfile}"
         fi
+    fi
+
+    if [[ "${CE_BUILD_STATUS}" == "OK" ]]; then
         date >${logdir}/last_success
     fi
+
     date >${logdir}/end
     set -e
 }
