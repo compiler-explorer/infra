@@ -22,7 +22,7 @@ _propsandlibs = defaultdict(lambda: [])
 GITCOMMITHASH_RE = re.compile(r'^(\w*)\s.*')
 CONANINFOHASH_RE = re.compile(r'\s+ID:\s(\w*)')
 
-conanserver_url = "http://ec2-54-93-113-179.eu-central-1.compute.amazonaws.com:10240"
+conanserver_url = "https://conan.compiler-explorer.com"
 
 class LibraryBuilder:
     def __init__(self, logger, language: str, libname: str, target_name: str, sourcefolder: str, install_context, buildconfig: LibraryBuildConfig):
