@@ -4,11 +4,11 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
     origin_id   = "S3-compiler-explorer"
   }
   origin {
-    domain_name = aws_alb.CEConanServerAlb.dns_name
-    origin_id   = "CEConanServerAlb"
+    domain_name = aws_alb.GccExplorerApp.dns_name
+    origin_id   = "GccExplorerApp"
     custom_origin_config {
-      http_port                = 80
-      https_port               = 443
+      http_port                = 1080
+      https_port               = 1443
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
@@ -75,10 +75,11 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
       query_string = true
       headers      = [
         "Accept",
-        "Host"
+        "Host",
+        "Authorization"
       ]
     }
-    target_origin_id       = "CEConanServerAlb"
+    target_origin_id       = "GccExplorerApp"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
   }

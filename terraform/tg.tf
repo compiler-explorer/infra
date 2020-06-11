@@ -60,7 +60,7 @@ resource "aws_alb_target_group" "conan" {
     create_before_destroy = true
   }
   name                 = "ConanGroup"
-  port                 = 80
+  port                 = 1080
   protocol             = "HTTP"
   vpc_id               = aws_vpc.CompilerExplorer.id
   deregistration_delay = 15
@@ -77,5 +77,5 @@ resource "aws_alb_target_group" "conan" {
 resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   target_group_arn  = aws_alb_target_group.conan.id
   target_id         = aws_instance.ConanNode.id
-  port              = 80
+  port              = 1080
 }
