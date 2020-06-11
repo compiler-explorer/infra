@@ -52,7 +52,7 @@ sudo -u ${CE_USER} -H pip3 install conan gunicorn
 # setup conanproxy
 mkdir -p /home/ubuntu/ceconan
 cd /home/ubuntu/ceconan
-git clone https://github.com/partouf/conanproxy.git
+git clone https://github.com/compiler-explorer/conanproxy.git
 
 # setup node
 cd /home/ubuntu
