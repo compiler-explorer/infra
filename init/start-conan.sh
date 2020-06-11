@@ -13,7 +13,7 @@ npm i
 
 sudo -u ce -H /home/${CE_USER}/.local/bin/gunicorn -b 0.0.0.0:9300 -w 4 -t 300 conans.server.server_launcher:app &
 
-exec sudo --preserve-env=NODE_ENV -- \
+exec sudo -u ce -H --preserve-env=NODE_ENV -- \
     /home/ubuntu/node/bin/node \
     -- index.js \
     ${EXTRA_ARGS}
