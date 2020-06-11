@@ -30,7 +30,7 @@ resource "aws_instance" "ConanNode" {
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = aws_subnet.ce-1a.id
-  vpc_security_group_ids      = [aws_security_group.CompilerExplorerConan.id]
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
   associate_public_ip_address = true
   source_dest_check           = false
 
