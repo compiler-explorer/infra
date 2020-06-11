@@ -27,15 +27,15 @@
           "device_name": "/dev/sda1",
           "volume_size": 6,
           "delete_on_termination": true,
-          "volume_type": "standard"
+          "volume_type": "gp2"
         }
       ],
       "launch_block_device_mappings": [
         {
           "device_name": "/dev/sda1",
-          "volume_size": 24,
+          "volume_size": 10,
           "delete_on_termination": true,
-          "volume_type": "standard"
+          "volume_type": "gp2"
         }
       ]
     }
