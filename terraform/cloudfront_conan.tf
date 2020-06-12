@@ -70,7 +70,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
     ]
     forwarded_values {
       cookies {
-        forward = "none"
+        forward = "all"
       }
       query_string = true
       headers      = [
