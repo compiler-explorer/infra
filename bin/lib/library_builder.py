@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from lib.amazon_properties import *
 from lib.library_build_config import *
+from lib.binary_info import *
 from collections import defaultdict, ChainMap
 
 build_supported_os = ['Linux']
@@ -22,6 +23,10 @@ _propsandlibs = defaultdict(lambda: [])
 GITCOMMITHASH_RE = re.compile(r'^(\w*)\s.*')
 CONANINFOHASH_RE = re.compile(r'\s+ID:\s(\w*)')
 
+c_BuildOk = 0
+c_BuildFailed = 1
+c_BuildSkipped = 2
+
 conanserver_url = "https://conan.compiler-explorer.com"
 
 class LibraryBuilder:
@@ -33,6 +38,8 @@ class LibraryBuilder:
         self.install_context = install_context
         self.sourcefolder = sourcefolder
         self.target_name = target_name
+        self.forcebuild = False
+        self.current_buildparameters = []
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -82,23 +89,29 @@ class LibraryBuilder:
         self.buildconfig.staticliblink += alternatelibs
 
     def getToolchainPathFromOptions(self, options):
-        match = re.search("--gcc-toolchain=(\S*)", options)
+        match = re.search(r"--gcc-toolchain=(\S*)", options)
         if match:
             return match[1]
         else:
-            match = re.search("--gxx-name=(\S*)", options)
+            match = re.search(r"--gxx-name=(\S*)", options)
             if match:
                 return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
         return False
 
     def getStdVerFromOptions(self, options):
-        match = re.search("-std=(\S*)", options)
+        match = re.search(r"-std=(\S*)", options)
+        if match:
+            return match[1]
+        return False
+    
+    def getStdLibFromOptions(self, options):
+        match = re.search(r"-stdlib=(\S*)", options)
         if match:
             return match[1]
         return False
 
     def getTargetFromOptions(self, options):
-        match = re.search("-target (\S*)", options)
+        match = re.search(r"-target (\S*)", options)
         if match:
             return match[1]
         return False
@@ -109,15 +122,15 @@ class LibraryBuilder:
             return fixedTarget == arch
 
         if compilerType == "":
-            output = subprocess.check_output([exe, '--target-help']).decode('utf-8')
+            output = subprocess.check_output([exe, '--target-help']).decode('utf-8', 'ignore')
         elif compilerType == "clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, 'llc')
             if os.path.exists(llcexe):
                 try:
-                    output = subprocess.check_output([llcexe, '--version']).decode('utf-8')
+                    output = subprocess.check_output([llcexe, '--version']).decode('utf-8', 'ignore')
                 except subprocess.CalledProcessError as e:
-                    output = e.output.decode('utf-8')
+                    output = e.output.decode('utf-8', 'ignore')
             else:
                 output = ""
         else:
@@ -186,6 +199,8 @@ class LibraryBuilder:
         if stdlib != '' and compilerType == 'clang':
             libcxx = stdlib
             stdlibflag = f'-stdlib={stdlib}'
+            if stdlibflag in compileroptions:
+                stdlibflag = ''
         else:
             libcxx = "libstdc++"
 
@@ -197,7 +212,7 @@ class LibraryBuilder:
             compilerTypeOrGcc = compilerType
 
         cxx_flags = f'{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}'
-        configure_flags = f''
+        configure_flags = ''
 
         if len(self.buildconfig.prebuildscript) > 0:
             for line in self.buildconfig.prebuildscript:
@@ -205,15 +220,19 @@ class LibraryBuilder:
 
         if self.buildconfig.build_type == "cmake":
             extracmakeargs = ' '.join(self.buildconfig.extra_cmake_arg)
-            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} "-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder}\n'
+            if compilerTypeOrGcc == "clang" and "--gcc-toolchain=" not in compileroptions:
+                toolchainparam = ""
+            else:
+                toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
+            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder}\n'
             self.logger.debug(cmakeline)
             f.write(cmakeline)
         else:
             if os.path.exists(os.path.join(sourcefolder, 'Makefile')):
-                f.write(f'make clean\n')
-            f.write(f'rm *.so*\n')
-            f.write(f'rm *.a\n')
-            f.write(f'export CXX_FLAGS="{cxx_flags}"\n')
+                f.write('make clean\n')
+            f.write('rm *.so*\n')
+            f.write('rm *.a\n')
+            f.write(f'export CXXFLAGS="{cxx_flags}"\n')
             if self.buildconfig.build_type == "make":
                 configurepath = os.path.join(sourcefolder, 'configure')
                 if os.path.exists(configurepath):
@@ -232,13 +251,13 @@ class LibraryBuilder:
                     f.write(f'make {lib}\n')
 
             if len(self.buildconfig.staticliblink) != 0:
-                f.write(f'libsfound=$(find . -iname \'lib*.a\')\n')
+                f.write('libsfound=$(find . -iname \'lib*.a\')\n')
             elif len(self.buildconfig.sharedliblink) != 0:
-                f.write(f'libsfound=$(find . -iname \'lib*.so*\')\n')
+                f.write('libsfound=$(find . -iname \'lib*.so*\')\n')
 
-            f.write(f'if [ "$libsfound" = "" ]; then\n')
-            f.write(f'  make all\n')
-            f.write(f'fi\n')
+            f.write('if [ "$libsfound" = "" ]; then\n')
+            f.write('  make all\n')
+            f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
             f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . \;\n')
@@ -249,9 +268,21 @@ class LibraryBuilder:
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
 
-        scriptfile = os.path.join(buildfolder, "conanexport.sh")
+        self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, stdlib, arch, stdver, extraflags)
 
-        self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags)
+    def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, stdlib, arch, stdver, extraflags):
+        self.current_buildparameters = ['-s', f'os={buildos}',
+                  '-s', f'build_type={buildtype}',
+                  '-s', f'compiler={compilerTypeOrGcc}',
+                  '-s', f'compiler.version={compiler}',
+                  '-s', f'compiler.libcxx={libcxx}',
+                  '-s', f'stdlib={stdlib}',
+                  '-s', f'arch={arch}',
+                  '-s', f'stdver={stdver}',
+                  '-s', f'flagcollection={extraflags}']
+
+    def writeconanscript(self, buildfolder):
+        scriptfile = os.path.join(buildfolder, "conanexport.sh")
         conanparamsstr = ' '.join(self.current_buildparameters)
 
         f = open(scriptfile, 'w')
@@ -259,16 +290,6 @@ class LibraryBuilder:
         f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n')
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
-
-    def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags):
-        self.current_buildparameters = ['-s', f'os={buildos}',
-                  '-s', f'build_type={buildtype}',
-                  '-s', f'compiler={compilerTypeOrGcc}',
-                  '-s', f'compiler.version={compiler}',
-                  '-s', f'compiler.libcxx={libcxx}',
-                  '-s', f'arch={arch}',
-                  '-s', f'stdver={stdver}',
-                  '-s', f'flagcollection={extraflags}']
 
     def writeconanfile(self, buildfolder):
         scriptfile = os.path.join(buildfolder, "conanfile.py")
@@ -287,80 +308,64 @@ class LibraryBuilder:
         f.write(f'class {self.libname}Conan(ConanFile):\n')
         f.write(f'    name = "{self.libname}"\n')
         f.write(f'    version = "{self.target_name}"\n')
-        f.write(f'    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
+        f.write('    settings = "os", "compiler", "stdlib", "build_type", "arch", "stdver", "flagcollection"\n')
         f.write(f'    description = "{self.buildconfig.description}"\n')
         f.write(f'    url = "{self.buildconfig.url}"\n')
-        f.write(f'    license = "None"\n')
-        f.write(f'    author = "None"\n')
-        f.write(f'    topics = None\n')
-        f.write(f'    def package(self):\n')
+        f.write('    license = "None"\n')
+        f.write('    author = "None"\n')
+        f.write('    topics = None\n')
+        f.write('    def package(self):\n')
         for lib in self.buildconfig.staticliblink:
             f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
         for lib in self.buildconfig.sharedliblink:
             f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
-        f.write(f'    def package_info(self):\n')
+        f.write('    def package_info(self):\n')
         f.write(f'        self.cpp_info.libs = [{libsum}]\n')
         f.close()
-
-    def follow_so_readelf(self, buildfolder, filepath):
-        if not os.path.exists(filepath):
-            return False
-
-        try:
-            details = subprocess.check_output(['readelf', '-h', filepath]).decode('utf-8')
-            try:
-                details += subprocess.check_output(['ldd', filepath]).decode('utf-8')
-            finally:
-                self.logger.debug(details)
-                return details
-        except subprocess.CalledProcessError:
-            f = open(filepath, 'r')
-            lines = f.readlines()
-            f.close()
-            self.logger.debug(lines)
-            match = re.match("INPUT \((\S*)\)", '\n'.join(lines))
-            if match:
-                return self.follow_so_readelf(buildfolder, os.path.join(buildfolder, match[1]))
-            return False
 
     def executeconanscript(self, buildfolder, arch, stdlib):
         filesfound = 0
 
         for lib in self.buildconfig.staticliblink:
-            if os.path.exists(os.path.join(buildfolder, f'lib{lib}.a')):
-                self.logger.debug(f'lib{lib}.a found')
-                filesfound+=1
+            filepath = os.path.join(buildfolder, f'lib{lib}.a')
+            if os.path.exists(filepath):
+                bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+                cxxinfo = bininfo.cxx_info_from_binary()
+                if (stdlib == "") or (stdlib == "libc++" and not cxxinfo['has_maybecxx11abi']):
+                    if arch == "x86" and 'ELF32' in bininfo.readelf_header_details:
+                        filesfound+=1
+                    elif arch == "x86_64" and 'ELF64' in bininfo.readelf_header_details:
+                        filesfound+=1
             else:
                 self.logger.debug(f'lib{lib}.a not found')
 
         for lib in self.buildconfig.sharedliblink:
             filepath = os.path.join(buildfolder, f'lib{lib}.so')
-            details = self.follow_so_readelf(buildfolder, filepath)
-            if details:
-                if (stdlib == "" and 'libstdc++.so' in details) or (stdlib != "" and f'{stdlib}.so' in details):
-                    if arch == "":
-                        filesfound+=1
-                    elif arch == "x86" and 'ELF32' in details:
-                        filesfound+=1
-                    elif arch == "x86_64" and 'ELF64' in details:
-                        filesfound+=1
+            bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+            if (stdlib == "" and 'libstdc++.so' in bininfo.ldd_details) or (stdlib != "" and f'{stdlib}.so' in bininfo.ldd_details):
+                if arch == "":
+                    filesfound+=1
+                elif arch == "x86" and 'ELF32' in bininfo.readelf_header_details:
+                    filesfound+=1
+                elif arch == "x86_64" and 'ELF64' in bininfo.readelf_header_details:
+                    filesfound+=1
 
         if filesfound != 0:
             if subprocess.call(['./conanexport.sh'], cwd=buildfolder) == 0:
-                self.logger.info(f'Export succesful')
-                return True
+                self.logger.info('Export succesful')
+                return c_BuildOk
             else:
-                return False
+                return c_BuildFailed
         else:
-            self.logger.info(f'No binaries found to export')
-            return False
+            self.logger.info('No binaries found to export')
+            return c_BuildFailed
 
     def executebuildscript(self, buildfolder):
         if subprocess.call(['./build.sh'], cwd=buildfolder) == 0:
             self.logger.info(f'Build succeeded in {buildfolder}')
-            return True
+            return c_BuildOk
         else:
-            return False
+            return c_BuildFailed
 
     def makebuildhash(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
         hasher = hashlib.sha256()
@@ -372,7 +377,8 @@ class LibraryBuilder:
         return compiler + '_' + hasher.hexdigest()
 
     def get_conan_hash(self, buildfolder):
-        conaninfo = subprocess.check_output(['conan', 'info', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8')
+        self.logger.debug(['conan', 'info', '.'] + self.current_buildparameters)
+        conaninfo = subprocess.check_output(['conan', 'info', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8', 'ignore')
         self.logger.debug(conaninfo)
         match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
         if match:
@@ -385,7 +391,6 @@ class LibraryBuilder:
             return defaultdict(lambda: [])
 
         url = f'{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}'
-        lines = []
         with tempfile.TemporaryFile() as fd:
             request = requests.get(url, stream=True)
             if not request.ok:
@@ -399,7 +404,7 @@ class LibraryBuilder:
 
     def get_commit_hash(self):
         if os.path.exists(f'{self.sourcefolder}/.git'):
-            lastcommitinfo = subprocess.check_output(['git', '-C', self.sourcefolder, 'log', '-1', '--oneline', '--no-color']).decode('utf-8')
+            lastcommitinfo = subprocess.check_output(['git', '-C', self.sourcefolder, 'log', '-1', '--oneline', '--no-color']).decode('utf-8', 'ignore')
             self.logger.debug(lastcommitinfo)
             match = GITCOMMITHASH_RE.match(lastcommitinfo)
             if match:
@@ -424,12 +429,32 @@ class LibraryBuilder:
         if conanhash == None:
             raise RuntimeError(f'Error determining conan hash in {buildfolder}')
 
+        self.logger.info(f'commithash: {conanhash}')
+
         annotations = self.get_build_annotations(buildfolder)
         if not 'commithash' in annotations:
             self.upload_builds()
         annotations['commithash'] = self.get_commit_hash()
 
-        self.logger.debug(annotations)
+        for lib in self.buildconfig.staticliblink:
+            if os.path.exists(os.path.join(buildfolder, f'lib{lib}.a')):
+                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f'lib{lib}.a'))
+                libinfo = bininfo.cxx_info_from_binary()
+                archinfo = bininfo.arch_info_from_binary()
+                annotations['cxx11'] = libinfo['has_maybecxx11abi']
+                annotations['machine'] = archinfo['elf_machine']
+                annotations['osabi'] = archinfo['elf_osabi']
+
+        for lib in self.buildconfig.sharedliblink:
+            if os.path.exists(os.path.join(buildfolder, f'lib{lib}.a')):
+                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f'lib{lib}.a'))
+                libinfo = bininfo.cxx_info_from_binary()
+                archinfo = bininfo.arch_info_from_binary()
+                annotations['cxx11'] = libinfo['has_maybecxx11abi']
+                annotations['machine'] = archinfo['elf_machine']
+                annotations['osabi'] = archinfo['elf_osabi']
+
+        self.logger.info(annotations)
 
         url = f'{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}'
         request = requests.post(url, data = json.dumps(annotations), headers={"Content-Type": "application/json"})
@@ -442,6 +467,8 @@ class LibraryBuilder:
         buildfolder = ""
         if self.buildconfig.build_type == "cmake":
             buildfolder = os.path.join(self.install_context.staging, combinedhash)
+            if os.path.exists(buildfolder):
+                shutil.rmtree(buildfolder, ignore_errors=True)
             os.makedirs(buildfolder, exist_ok=True)
         else:
             buildfolder = self.sourcefolder
@@ -453,16 +480,18 @@ class LibraryBuilder:
 
         if self.is_already_uploaded(buildfolder):
             self.logger.info("Build already uploaded")
-            return False
+            if not self.forcebuild:
+                return c_BuildSkipped
 
         builtok = self.executebuildscript(buildfolder)
-        if builtok:
+        if builtok == c_BuildOk:
             if not self.install_context.dry_run:
+                self.writeconanscript(buildfolder)
                 builtok = self.executeconanscript(buildfolder, arch, stdlib)
-                if builtok:
+                if builtok == c_BuildOk:
                     self.set_as_uploaded(buildfolder)
 
-        if builtok:
+        if builtok == c_BuildOk:
             if self.buildconfig.build_type == "cmake":
                 self.build_cleanup(buildfolder)
             elif self.buildconfig.build_type == "make":
@@ -480,10 +509,13 @@ class LibraryBuilder:
     def upload_builds(self):
         self.logger.info('Uploading cached builds')
         subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
+        self.logger.debug('Clearing cache to speed up next upload')
+        subprocess.check_call(['conan', 'remove', '-f', f'{self.libname}/{self.target_name}'])
 
     def makebuild(self, buildfor):
         builds_failed = 0
         builds_succeeded = 0
+        builds_skipped = 0
 
         for compiler in self.compilerprops:
             if buildfor != "" and compiler != buildfor:
@@ -500,22 +532,26 @@ class LibraryBuilder:
 
             toolchain = self.getToolchainPathFromOptions(options)
             fixedStdver = self.getStdVerFromOptions(options)
+            fixedStdlib = self.getStdLibFromOptions(options)
 
             if not toolchain:
                 toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), '..'))
 
             stdlibs = ['']
-
-            if self.buildconfig.build_fixed_stdlib != "":
-                stdlibs = [self.buildconfig.build_fixed_stdlib]
+            if fixedStdlib:
+                self.logger.debug(f'Fixed stdlib {fixedStdlib}')
+                stdlibs = [fixedStdlib]
             else:
-                if compilerType == "":
-                    self.logger.debug('Gcc-like compiler')
-                elif compilerType == "clang":
-                    self.logger.debug('Clang-like compiler')
-                    stdlibs = build_supported_stdlib
+                if self.buildconfig.build_fixed_stdlib != "":
+                    stdlibs = [self.buildconfig.build_fixed_stdlib]
                 else:
-                    self.logger.debug('Some other compiler')
+                    if compilerType == "":
+                        self.logger.debug('Gcc-like compiler')
+                    elif compilerType == "clang":
+                        self.logger.debug('Clang-like compiler')
+                        stdlibs = build_supported_stdlib
+                    else:
+                        self.logger.debug('Some other compiler')
 
             archs = build_supported_arch
 
@@ -539,12 +575,15 @@ class LibraryBuilder:
                         for stdver in stdvers:
                             for stdlib in stdlibs:
                                 for flagscombination in build_supported_flagscollection:
-                                    if self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+                                    buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
+                                    if buildstatus == c_BuildOk:
                                         builds_succeeded = builds_succeeded + 1
+                                    elif buildstatus == c_BuildSkipped:
+                                        builds_skipped = builds_skipped + 1
                                     else:
                                         builds_failed = builds_failed + 1
 
             if builds_succeeded > 0:
                 self.upload_builds()
 
-        return builds_failed == 0
+        return [builds_succeeded, builds_skipped, builds_failed]

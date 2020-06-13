@@ -206,15 +206,17 @@ def main():
 
             if args.force or installable.should_build():
                 try:
-                    if installable.build(args.buildfor):
+                    [num_installed, num_skipped, num_failed] = installable.build(args.buildfor)
+                    if num_installed > 0:
                         context.info(f"{installable.name} built OK")
-                        num_installed += 1
-                    else:
+                    elif num_failed:
                         context.info(f"{installable.name} failed to build")
+                except RuntimeError as e:
+                    if args.buildfor:
+                        raise e
+                    else:
+                        context.info(f"{installable.name} failed to build: {e}")
                         num_failed += 1
-                except Exception as e:
-                    context.info(f"{installable.name} failed to build: {e}")
-                    num_failed += 1
             else:
                 context.info(f"{installable.name} is already built, skipping")
                 num_skipped += 1

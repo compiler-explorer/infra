@@ -1,4 +1,4 @@
-from typing import Optional, BinaryIO, Sequence, Collection, List, Union, Dict, Any
+from typing import Optional, Dict, Any
 
 class LibraryBuildConfig:
     def __init__(self, config: Dict[str, Any]):
@@ -17,5 +17,5 @@ class LibraryBuildConfig:
 
     def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
         if config_key not in self.config and default is None:
-            raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
+            raise RuntimeError(f"Missing required key '{config_key}'")
         return self.config.get(config_key, default)
