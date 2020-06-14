@@ -276,7 +276,6 @@ class LibraryBuilder:
                   '-s', f'compiler={compilerTypeOrGcc}',
                   '-s', f'compiler.version={compiler}',
                   '-s', f'compiler.libcxx={libcxx}',
-                  '-s', f'stdlib={stdlib}',
                   '-s', f'arch={arch}',
                   '-s', f'stdver={stdver}',
                   '-s', f'flagcollection={extraflags}']
@@ -308,7 +307,7 @@ class LibraryBuilder:
         f.write(f'class {self.libname}Conan(ConanFile):\n')
         f.write(f'    name = "{self.libname}"\n')
         f.write(f'    version = "{self.target_name}"\n')
-        f.write('    settings = "os", "compiler", "stdlib", "build_type", "arch", "stdver", "flagcollection"\n')
+        f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
         f.write(f'    description = "{self.buildconfig.description}"\n')
         f.write(f'    url = "{self.buildconfig.url}"\n')
         f.write('    license = "None"\n')
@@ -543,7 +542,8 @@ class LibraryBuilder:
                 stdlibs = [fixedStdlib]
             else:
                 if self.buildconfig.build_fixed_stdlib != "":
-                    stdlibs = [self.buildconfig.build_fixed_stdlib]
+                    if self.buildconfig.build_fixed_stdlib != "libstdc++":
+                        stdlibs = [self.buildconfig.build_fixed_stdlib]
                 else:
                     if compilerType == "":
                         self.logger.debug('Gcc-like compiler')
