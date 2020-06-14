@@ -491,10 +491,10 @@ class LibraryBuilder:
         builtok = self.executebuildscript(buildfolder)
         if builtok == c_BuildOk:
             if not self.install_context.dry_run:
-                self.needs_uploading += 1
                 self.writeconanscript(buildfolder)
                 builtok = self.executeconanscript(buildfolder, arch, stdlib)
                 if builtok == c_BuildOk:
+                    self.needs_uploading += 1
                     self.set_as_uploaded(buildfolder)
 
         if builtok == c_BuildOk:
