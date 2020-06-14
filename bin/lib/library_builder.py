@@ -225,7 +225,7 @@ class LibraryBuilder:
                 toolchainparam = ""
             else:
                 toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
-            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder}\n'
+            cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
             self.logger.debug(cmakeline)
             f.write(cmakeline)
         else:
@@ -237,19 +237,24 @@ class LibraryBuilder:
             if self.buildconfig.build_type == "make":
                 configurepath = os.path.join(sourcefolder, 'configure')
                 if os.path.exists(configurepath):
-                    f.write(f'./configure {configure_flags}\n')
+                    f.write(f'./configure {configure_flags} > ceconfiglog.txt 2>&1\n')
 
         if len(self.buildconfig.make_targets) != 0:
+            lognum = 0 
             for target in self.buildconfig.make_targets:
-                f.write(f'make {target}\n')
+                f.write(f'make {target} > cemakelog_{lognum}.txt 2>&1\n')
+                lognum += 1
         else:
+            lognum = 0 
             if len(self.buildconfig.staticliblink) != 0:
                 for lib in self.buildconfig.staticliblink:
-                    f.write(f'make {lib}\n')
+                    f.write(f'make {lib} > cemakelog_{lognum}.txt 2>&1\n')
+                    lognum += 1
 
             if len(self.buildconfig.sharedliblink) != 0:
                 for lib in self.buildconfig.sharedliblink:
-                    f.write(f'make {lib}\n')
+                    f.write(f'make {lib} > cemakelog_{lognum}.txt 2>&1\n')
+                    lognum += 1
 
             if len(self.buildconfig.staticliblink) != 0:
                 f.write('libsfound=$(find . -iname \'lib*.a\')\n')
@@ -257,7 +262,7 @@ class LibraryBuilder:
                 f.write('libsfound=$(find . -iname \'lib*.so*\')\n')
 
             f.write('if [ "$libsfound" = "" ]; then\n')
-            f.write('  make all\n')
+            f.write('  make all > cemakelog_{lognum}.txt 2>&1\n')
             f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
