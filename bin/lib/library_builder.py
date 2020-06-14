@@ -40,6 +40,7 @@ class LibraryBuilder:
         self.target_name = target_name
         self.forcebuild = False
         self.current_buildparameters = []
+        self.needs_uploading = 0
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -485,6 +486,7 @@ class LibraryBuilder:
         builtok = self.executebuildscript(buildfolder)
         if builtok == c_BuildOk:
             if not self.install_context.dry_run:
+                self.needs_uploading += 1
                 self.writeconanscript(buildfolder)
                 builtok = self.executeconanscript(buildfolder, arch, stdlib)
                 if builtok == c_BuildOk:
@@ -506,10 +508,12 @@ class LibraryBuilder:
             self.logger.info(f'Removing {buildfolder}')
 
     def upload_builds(self):
-        self.logger.info('Uploading cached builds')
-        subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
-        self.logger.debug('Clearing cache to speed up next upload')
-        subprocess.check_call(['conan', 'remove', '-f', f'{self.libname}/{self.target_name}'])
+        if self.needs_uploading > 0:
+            self.logger.info('Uploading cached builds')
+            subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
+            self.logger.debug('Clearing cache to speed up next upload')
+            subprocess.check_call(['conan', 'remove', '-f', f'{self.libname}/{self.target_name}'])
+            self.needs_uploading = 0
 
     def makebuild(self, buildfor):
         builds_failed = 0
