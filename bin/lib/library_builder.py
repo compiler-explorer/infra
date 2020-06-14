@@ -378,7 +378,7 @@ class LibraryBuilder:
 
     def get_conan_hash(self, buildfolder):
         self.logger.debug(['conan', 'info', '.'] + self.current_buildparameters)
-        conaninfo = subprocess.check_output(['conan', 'info', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8', 'ignore')
+        conaninfo = subprocess.check_output(['conan', 'info', '-r', 'ceserver', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8', 'ignore')
         self.logger.debug(conaninfo)
         match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
         if match:
