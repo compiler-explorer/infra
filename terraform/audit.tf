@@ -11,6 +11,7 @@ resource "aws_cloudtrail" "audit" {
     include_management_events = true
   }
   is_multi_region_trail         = true
+  enable_log_file_validation    = true
 }
 
 data "aws_iam_policy_document" "audit-s3-policy" {
@@ -42,6 +43,12 @@ data "aws_iam_policy_document" "audit-s3-policy" {
 resource "aws_s3_bucket" "cloudtrail" {
   bucket        = "cloudtrail.godbolt.org"
   force_destroy = true
+
+  // TODO one day
+  //  versioning {
+  //    mfa_delete = true
+  //  }
+
   lifecycle_rule {
     enabled = true
     expiration {
