@@ -1,0 +1,16 @@
+[Unit]
+Description=CE Conan
+After=remote-fs.target
+
+[Service]
+Type=simple
+User=root
+TimeoutStartSec=infinity
+WorkingDirectory=/home/ubuntu/infra
+ExecStart=/home/ubuntu/infra/init/start-conan.sh
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=ce-conan
+
+[Install]
+WantedBy=multi-user.target
