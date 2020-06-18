@@ -129,7 +129,8 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       query_string = true
       headers      = [
         "Accept",
-        "Host"
+        "Host",
+        "CloudFront-Is-Mobile-Viewer"
       ]
     }
     target_origin_id       = "ALB-compiler-explorer"
@@ -271,7 +272,8 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       query_string = true
       headers      = [
         "Accept",
-        "Host"
+        "Host",
+        "CloudFront-Is-Mobile-Viewer"
       ]
     }
     target_origin_id       = "ALB-compiler-explorer"
@@ -411,7 +413,8 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
       query_string = true
       headers      = [
         "Accept",
-        "Host"
+        "Host",
+        "CloudFront-Is-Mobile-Viewer"
       ]
     }
     target_origin_id       = "ALB-compiler-explorer"
