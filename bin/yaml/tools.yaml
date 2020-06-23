@@ -5,8 +5,7 @@ tools:
       - nightly
     install_always: true
     type: tarballs
-    url:  https://files.viva64.com/pvs-studio-7.08.39365.50-x86_64.tgz
-    # should be https://files.viva64.com/pvs-studio-latest.tgz - see https://github.com/compiler-explorer/compiler-explorer/issues/2043
+    url:  https://files.viva64.com/pvs-studio-latest.tgz
     compression: gz
     create_untar_dir: true
     dir: pvs-studio-latest
