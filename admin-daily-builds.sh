@@ -77,6 +77,7 @@ build_libraries() {
 
     sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
+        -v/opt:/opt:ro \
         -e 'LOGSPOUT=ignore' \
         -e 'CONAN_PASSWORD=${CONAN_PASSWORD}' \
         "compilerexplorer/${IMAGE}-builder" \
