@@ -14,7 +14,7 @@ def get_specific_library_version_details(libraries, libid, libraryVersion):
             if versionProps['version'] == libraryVersion:
                 return versionProps
 
-    return null
+    return False
 
 
 COMPILEROPT_RE = re.compile(r'(\w*)\.(.*)\.(\w*)')

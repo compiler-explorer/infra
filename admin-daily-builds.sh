@@ -68,6 +68,22 @@ build_latest() {
     log_to_json ${LOG_DIR} admin
 }
 
+build_libraries() {
+    local IMAGE=$1
+    local BUILD_NAME=library
+    local COMMAND=build.sh
+
+    local CONAN_PASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .Parameter.Value)
+
+    sudo docker run --rm --name "${BUILD_NAME}.build" \
+        -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
+        -v/opt:/opt:ro \
+        -e 'LOGSPOUT=ignore' \
+        -e 'CONAN_PASSWORD=${CONAN_PASSWORD}' \
+        "compilerexplorer/${IMAGE}-builder" \
+        bash "${COMMAND}"
+}
+
 # llvm build is fast, so lets do it first
 build_latest clang llvm build.sh llvm-trunk
 
@@ -85,5 +101,7 @@ build_latest clang clang_lifetime build.sh lifetime-trunk
 build_latest clang clang_parmexpr build-parmexpr.sh trunk
 build_latest clang clang_embed build.sh embed-trunk
 build_latest go go build.sh trunk
+
+build_libraries library
 
 exit ${BUILD_FAILED}
