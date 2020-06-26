@@ -476,7 +476,10 @@ class LibraryBuilder:
                 shutil.rmtree(buildfolder, ignore_errors=True)
             os.makedirs(buildfolder, exist_ok=True)
         else:
-            buildfolder = self.sourcefolder
+            buildfolder = os.path.join(self.install_context.staging, combinedhash)
+            if os.path.exists(buildfolder):
+                shutil.rmtree(buildfolder, ignore_errors=True)
+            shutil.copytree(self.sourcefolder, buildfolder)
 
         self.logger.debug(f'Buildfolder: {buildfolder}')
 

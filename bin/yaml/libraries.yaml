@@ -424,6 +424,11 @@ libraries:
         check_file: configure
         targets:
           - trunk
+        build_type: make
+        lib_type: shared
+        check_file: configure
+        build_fixed_arch: x86_64
+        build_fixed_stdlib: libstdc++
       benchmark:
         type: github
         method: nightlyclone
