@@ -234,8 +234,11 @@ class Installable:
         self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
         self.name = f'{"/".join(self.context)}/{self.target_name}'
-        self.is_library = self.context[0] == "libraries"
-        self.language = self.context[1]
+        self.is_library = False
+        self.language = False
+        if len(self.context) > 0:
+            self.is_library = self.context[0] == "libraries"
+            self.language = self.context[1]
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
@@ -243,6 +246,7 @@ class Installable:
         self.check_env = {}
         self.check_file = None
         self.check_call = []
+        self.path_name = ''
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
