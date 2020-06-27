@@ -1,5 +1,6 @@
 import re
 import os
+import glob
 import json
 import hashlib
 import shutil
@@ -41,6 +42,7 @@ class LibraryBuilder:
         self.forcebuild = False
         self.current_buildparameters = []
         self.needs_uploading = 0
+        self.libid = self.libname    # TODO: CE libid might be different from yaml libname
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -51,22 +53,20 @@ class LibraryBuilder:
         self.completeBuildConfig()
 
     def completeBuildConfig(self):
-        libid = self.libname    # TODO: CE libid might be different from yaml libname
+        if 'description' in self.libraryprops[self.libid]:
+            self.buildconfig.description = self.libraryprops[self.libid]['description']
+        if 'name' in self.libraryprops[self.libid]:
+            self.buildconfig.description = self.libraryprops[self.libid]['name']
+        if 'url' in self.libraryprops[self.libid]:
+            self.buildconfig.url = self.libraryprops[self.libid]['url']
 
-        if 'description' in self.libraryprops[libid]:
-            self.buildconfig.description = self.libraryprops[libid]['description']
-        if 'name' in self.libraryprops[libid]:
-            self.buildconfig.description = self.libraryprops[libid]['name']
-        if 'url' in self.libraryprops[libid]:
-            self.buildconfig.url = self.libraryprops[libid]['url']
+        if 'staticliblink' in self.libraryprops[self.libid]:
+            self.buildconfig.staticliblink = self.libraryprops[self.libid]['staticliblink']
 
-        if 'staticliblink' in self.libraryprops[libid]:
-            self.buildconfig.staticliblink = self.libraryprops[libid]['staticliblink']
+        if 'liblink' in self.libraryprops[self.libid]:
+            self.buildconfig.sharedliblink = self.libraryprops[self.libid]['liblink']
 
-        if 'liblink' in self.libraryprops[libid]:
-            self.buildconfig.sharedliblink = self.libraryprops[libid]['liblink']
-
-        specificVersionDetails = get_specific_library_version_details(self.libraryprops, libid, self.target_name)
+        specificVersionDetails = get_specific_library_version_details(self.libraryprops, self.libid, self.target_name)
         if specificVersionDetails:
             if 'staticliblink' in specificVersionDetails:
                 self.buildconfig.staticliblink = specificVersionDetails['staticliblink']
@@ -266,10 +266,10 @@ class LibraryBuilder:
             f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
-            f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . \;\n')
+            f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . ;\n')
 
         for lib in self.buildconfig.sharedliblink:
-            f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \;\n')
+            f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . ;\n')
 
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
@@ -277,6 +277,18 @@ class LibraryBuilder:
         self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, stdlib, arch, stdver, extraflags)
 
     def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, stdlib, arch, stdver, extraflags):
+        self.current_buildparameters_obj = defaultdict(lambda: [])
+        self.current_buildparameters_obj['os'] = buildos
+        self.current_buildparameters_obj['buildtype'] = buildtype
+        self.current_buildparameters_obj['compiler'] = compilerTypeOrGcc
+        self.current_buildparameters_obj['compiler_version'] = compiler
+        self.current_buildparameters_obj['libcxx'] = libcxx
+        self.current_buildparameters_obj['arch'] = arch
+        self.current_buildparameters_obj['stdver'] = stdver
+        self.current_buildparameters_obj['flagcollection'] = extraflags
+        self.current_buildparameters_obj['library'] = self.libid
+        self.current_buildparameters_obj['library_version'] = self.install_context.target_name
+
         self.current_buildparameters = ['-s', f'os={buildos}',
                   '-s', f'build_type={buildtype}',
                   '-s', f'compiler={compilerTypeOrGcc}',
@@ -390,6 +402,30 @@ class LibraryBuilder:
             return match[1]
         return None
 
+    def save_build_logging(self, builtok, buildfolder):
+        if builtok == c_BuildFailed:
+            url = f'{conanserver_url}/buildfailed'
+        elif builtok == c_BuildOk:
+            url = f'{conanserver_url}/buildsuccess'
+        else:
+            return
+
+        loggingfiles = []
+        loggingfiles += glob.glob(buildfolder + '/cecmake*.txt')
+        loggingfiles += glob.glob(buildfolder + '/ceconfiglog.txt')
+        loggingfiles += glob.glob(buildfolder + '/cemake*.txt')
+
+        logging_data = ""
+        for logfile in loggingfiles:
+            f = open(logfile, 'r')
+            logging_data = logging_data + '\n'.join(f.readlines())
+            f.close()
+
+        self.current_buildparameters_obj['logging'] = logging_data
+        request = requests.post(url, data = json.dumps(self.current_buildparameters_obj), headers={"Content-Type": "application/json"})
+        if not request.ok:
+            raise RuntimeError(f'Post failure for {url}: {request}')
+
     def get_build_annotations(self, buildfolder):
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash == None:
@@ -499,6 +535,9 @@ class LibraryBuilder:
                 if builtok == c_BuildOk:
                     self.needs_uploading += 1
                     self.set_as_uploaded(buildfolder)
+
+        if not self.install_context.dry_run:
+            self.save_build_logging(builtok, buildfolder)
 
         if builtok == c_BuildOk:
             if self.buildconfig.build_type == "cmake":
