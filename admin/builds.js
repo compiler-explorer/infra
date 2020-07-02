@@ -15,32 +15,36 @@ function styleStatus(item) {
     const style = {
         color: 'black'
     };
-    if (item.status !== 'OK' && item.status !== 'SKIPPED') {
+    if (item.status === 'OK') {
+        style.color = 'green';
+    } else if (item.status === 'FAILED') {
         style.color = 'red';
+    } else if (item.status === 'SKIPPED') {
+        style.color = 'blue';
     }
     return style;
 }
 
-function formatStatus(item) {
-    let millis = (item.end - item.start);
-    let text = '';
-    const hours = Math.floor(millis / 1000 / 60 / 60);
-    millis -= hours * 1000 * 60 * 60;
-    if (hours > 0) {
-        text += `${hours}h `;
-    }
-    const mins = Math.floor(millis / 1000 / 60);
-    millis -= mins * 1000 * 60;
-    if (mins > 0 || hours > 0) {
-        text += `${mins < 10 ? `0${mins}` : mins}min `;
-    }
-    const seconds = Math.floor(millis / 1000);
-    text += `${seconds < 10 ? `0${seconds}` : seconds}sec`;
+function formatDuration(item) {
+    let millis = item.duration;
 
-    if (item.status === 'SKIPPED' && item.last_success) {
-        return `${item.status} (${text}) | since ${formatDate(item.last_success)}`
-    }
-    return `${item.status} (${text})`
+    millis /= 1000;
+    let s = Math.floor(millis % 60);
+    millis /= 60;
+    let m = Math.floor(millis % 60);
+    millis /= 60;
+    let h = Math.floor(millis);
+
+    h = h < 10 ? ("0" + h) : h;
+    m = m < 10 ? ("0" + m) : m;
+    s = s < 10 ? ("0" + s) : s;
+    return `${h}:${m}:${s}`;
+}
+
+function formatLastSuccess(item) {
+    if (item.last_success)
+        return formatDate(item.last_success);
+    return 'UNKNOWN';
 }
 
 function styleHeaderSortables() {
@@ -71,30 +75,44 @@ class BuildsViewModel {
             data: this.sortedItems,
             columns: [
                 {
-                    headerText: "Build Name",
+                    headerText: "Name",
                     rowText: "name",
                     headerClick: () => this.changeSortOrder('name'),
                     headerStyle: styleHeaderSortables
                 },
                 {
-                    headerText: "Build Start (UTC)",
+                    headerText: "Start (UTC)",
                     rowText: formatStartDate,
                     headerClick: () => this.changeSortOrder('start'),
                     headerStyle: styleHeaderSortables
                 },
                 {
-                    headerText: "Build End (UTC)",
+                    headerText: "End (UTC)",
                     rowText: formatEndDate,
                     headerClick: () => this.changeSortOrder('end'),
                     headerStyle: styleHeaderSortables
                 },
                 {
-                    headerText: "Build Status",
-                    rowText: formatStatus,
+                    headerText: "Duration (HH:MM:SS)",
+                    rowText: formatDuration,
+                    headerClick: () => this.changeSortOrder('duration'),
+                    headerStyle: styleHeaderSortables
+                },
+                {
+                    headerText: "Last OK",
+                    rowText: formatLastSuccess,
+                    headerClick: () => this.changeSortOrder('last_success'),
+                    headerStyle: styleHeaderSortables
+                },
+                {
+                    headerText: "Status",
+                    rowText: "status",
+                    headerClick: () => this.changeSortOrder('status'),
+                    headerStyle: styleHeaderSortables,
                     style: styleStatus
                 },
                 {
-                    headerText: "Build Log", rowText: () => "&#x1f4f0;",
+                    headerText: "Log", rowText: () => "&#x1f4f0;",
                     style: () => {
                         return {cursor: 'pointer'}
                     },
@@ -142,6 +160,8 @@ class BuildsViewModel {
                     name: buildKey,
                     start: new Date(build.begin),
                     end: new Date(build.end),
+                    duration: new Date(build.end) - new Date(build.begin),
+                    last_success: build.last_success ? new Date(build.last_success) : null,
                     status: build.status.endsWith('\n') ?
                         build.status.substring(0, build.status.length - 1) :
                         build.status,

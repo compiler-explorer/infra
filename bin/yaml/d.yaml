@@ -50,6 +50,7 @@ compilers:
         - 1.18.0
         - 1.19.0
         - 1.20.0
+        - 1.21.0
         # the ldc2-* files on s3 from "getldc_s3" in the install bash scripts are now unused (TODO remove once we move over and are sure (25/4/2020)
     dmd:
       type: tarballs
@@ -66,6 +67,7 @@ compilers:
         - 2.081.2
         - 2.082.0
         - 2.089.0
+        - 2.092.0
     nightly:
       install_always: true
       if: nightly

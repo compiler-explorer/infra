@@ -29,6 +29,10 @@ packer-local: config.json ## Builds a local docker version of the compiler explo
 packer-admin: config.json  ## Builds the base image for the admin server
 	$(PACKER) build -timestamp-ui -var-file=config.json packer-admin.json
 
+.PHONY: packer-conan
+packer-conan: config.json  ## Builds the base image for the CE conan-server
+	$(PACKER) build -timestamp-ui -var-file=config.json packer-conan.json
+
 .PHONY: clean
 clean:  ## Cleans up anything
 	rm -rf $(VIRTUALENV)

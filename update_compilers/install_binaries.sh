@@ -109,3 +109,22 @@ if [[ ! -d ${OPT}/iwyu/0.12 ]]; then
     popd
     rm -rf /tmp/build
 fi
+
+
+#########################
+# plog-converter
+if [[ ! -x ${OPT}/plog-converter ]]; then
+    mkdir -p /tmp/build
+    pushd /tmp/build
+
+    git clone https://github.com/viva64/plog-converter.git
+    cd plog-converter
+    mkdir build
+    cd build
+    ${OPT}/cmake/bin/cmake ..
+    ${OPT}/cmake/bin/cmake --build .
+    cp plog-converter ${OPT}/plog-converter
+
+    popd
+    rm -rf /tmp/build
+fi
