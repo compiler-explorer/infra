@@ -184,6 +184,7 @@ libraries:
       check_file: README.md
       target_prefix: v
       targets:
+        - 1.3.3
         - 1.2.4
     doctest:
       type: github
