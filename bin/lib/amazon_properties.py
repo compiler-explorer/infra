@@ -47,10 +47,6 @@ def get_properties_compilers_and_libraries(language, logger):
             group = key[1]
             if not group in groups:
                 groups[group] = defaultdict(lambda: [])
-                groups[group]['options'] = ""
-                groups[group]['compilerType'] = ""
-                groups[group]['compilers'] = []
-                groups[group]['supportsBinary'] = True
 
             if key[2] == "compilers":
                 groups[group]['compilers'] = val.split(':')
@@ -101,6 +97,14 @@ def get_properties_compilers_and_libraries(language, logger):
     logger.debug('Setting default values for compilers')
     for group in groups:
         for compiler in groups[group]['compilers']:
+            if '&' in compiler:
+                subgroupname = compiler[1:]
+                if not 'options' in groups[subgroupname]:
+                    groups[subgroupname]['options'] = groups[group]['options']
+                    groups[subgroupname]['compilerType'] = groups[group]['compilerType']
+                    groups[subgroupname]['supportsBinary'] = groups[group]['supportsBinary']
+                    groups[subgroupname]['group'] = group
+
             if not compiler in _compilers:
                 _compilers[compiler] = defaultdict(lambda: [])
             _compilers[compiler]['options'] = groups[group]['options']
@@ -129,16 +133,29 @@ def get_properties_compilers_and_libraries(language, logger):
     logger.debug('Removing compilers that are not available or do not support binaries')
     keysToRemove = defaultdict(lambda: [])
     for compiler in _compilers:
+        doremove = False
         if 'supportsBinary' in _compilers[compiler] and not _compilers[compiler]['supportsBinary']:
             keysToRemove[compiler] = True
-        elif _compilers[compiler] == 'wine-vc':
+            doremove = True
+        elif 'compilerType' in _compilers[compiler] and _compilers[compiler]['compilerType'] == 'wine-vc':
             keysToRemove[compiler] = True
+            doremove = True
         elif 'exe' in _compilers[compiler]:
             exe = _compilers[compiler]['exe']
             if not os.path.exists(exe):
                 keysToRemove[compiler] = True
+                doremove = True
         else:
             keysToRemove[compiler] = True
+            doremove = True
+
+        if not doremove:
+            if not 'options' in _compilers[compiler]:
+                _compilers[compiler]['options'] = ""
+            if not 'compilerType' in _compilers[compiler]:
+                _compilers[compiler]['compilerType'] = ""
+            if not 'supportsBinary' in _compilers[compiler]:
+                _compilers[compiler]['supportsBinary'] = True
 
     for compiler in keysToRemove:
         del _compilers[compiler]
