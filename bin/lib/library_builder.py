@@ -136,7 +136,10 @@ class LibraryBuilder:
                 elif arch == 'x86_64':
                     arch = "-m64"
             else:
-                output = subprocess.check_output([exe, '--target-help']).decode('utf-8', 'ignore')
+                if 'zapcc' in exe:
+                    return arch == 'x86' or arch == 'x86_64'
+                else:
+                    output = subprocess.check_output([exe, '--target-help']).decode('utf-8', 'ignore')
         elif compilerType == "clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, 'llc')
