@@ -79,7 +79,7 @@ build_libraries() {
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
         -e 'LOGSPOUT=ignore' \
-        -e 'CONAN_PASSWORD=${CONAN_PASSWORD}' \
+        -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/${IMAGE}-builder" \
         bash "${COMMAND}"
 }
