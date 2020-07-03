@@ -129,7 +129,14 @@ class LibraryBuilder:
             return fixedTarget == arch
 
         if compilerType == "":
-            output = subprocess.check_output([exe, '--target-help']).decode('utf-8', 'ignore')
+            if 'icc' in exe:
+                output = subprocess.check_output([exe, '--help']).decode('utf-8', 'ignore')
+                if arch == 'x86':
+                    arch = "-m32"
+                elif arch == 'x86_64':
+                    arch = "-m64"
+            else:
+                output = subprocess.check_output([exe, '--target-help']).decode('utf-8', 'ignore')
         elif compilerType == "clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, 'llc')
