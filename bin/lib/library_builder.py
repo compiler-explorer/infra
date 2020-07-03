@@ -279,10 +279,10 @@ class LibraryBuilder:
             f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
-            f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . ;\n')
+            f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . \\;\n')
 
         for lib in self.buildconfig.sharedliblink:
-            f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . ;\n')
+            f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \\;\n')
 
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
