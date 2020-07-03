@@ -75,7 +75,7 @@ build_libraries() {
 
     local CONAN_PASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .Parameter.Value)
 
-    sudo docker run --rm --name "${BUILD_NAME}.build" \
+    ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
         -e 'LOGSPOUT=ignore' \
