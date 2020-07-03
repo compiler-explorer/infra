@@ -411,7 +411,7 @@ class LibraryBuilder:
         url = f'{conanserver_url}/login'
 
         login_body = defaultdict(lambda: [])
-        login_body['password'] = get_ssm_param('/compilerexplorer/conanpwd')
+        login_body['password'] = get_ssm_param('/compiler-explorer/conanpwd')
 
         request = requests.post(url, data = json.dumps(login_body), headers={"Content-Type": "application/json"})
         if not request.ok:
