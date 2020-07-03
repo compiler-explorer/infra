@@ -5,6 +5,7 @@ import json
 import hashlib
 import shutil
 import subprocess
+from lib.amazon import get_ssm_param
 from lib.amazon_properties import *
 from lib.library_build_config import *
 from lib.binary_info import *
@@ -43,6 +44,7 @@ class LibraryBuilder:
         self.current_buildparameters = []
         self.needs_uploading = 0
         self.libid = self.libname    # TODO: CE libid might be different from yaml libname
+        self.conanserverproxy_token = False
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -287,7 +289,7 @@ class LibraryBuilder:
         self.current_buildparameters_obj['stdver'] = stdver
         self.current_buildparameters_obj['flagcollection'] = extraflags
         self.current_buildparameters_obj['library'] = self.libid
-        self.current_buildparameters_obj['library_version'] = self.install_context.target_name
+        self.current_buildparameters_obj['library_version'] = self.target_name
 
         self.current_buildparameters = ['-s', f'os={buildos}',
                   '-s', f'build_type={buildtype}',
@@ -402,6 +404,20 @@ class LibraryBuilder:
             return match[1]
         return None
 
+    def conanproxy_login(self):
+        url = f'{conanserver_url}/login'
+
+        login_body = defaultdict(lambda: [])
+        login_body['password'] = get_ssm_param('/compilerexplorer/conanpwd')
+
+        request = requests.post(url, data = json.dumps(login_body), headers={"Content-Type": "application/json"})
+        if not request.ok:
+            self.logger.info(request.text)
+            raise RuntimeError(f'Post failure for {url}: {request}')
+        else:
+            response = json.loads(request.content)
+            self.conanserverproxy_token = response['token']
+
     def save_build_logging(self, builtok, buildfolder):
         if builtok == c_BuildFailed:
             url = f'{conanserver_url}/buildfailed'
@@ -421,8 +437,12 @@ class LibraryBuilder:
             logging_data = logging_data + '\n'.join(f.readlines())
             f.close()
 
-        self.current_buildparameters_obj['logging'] = logging_data
-        request = requests.post(url, data = json.dumps(self.current_buildparameters_obj), headers={"Content-Type": "application/json"})
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
+
+        buildparameters_copy = self.current_buildparameters_obj 
+        buildparameters_copy['logging'] = logging_data
+
+        request = requests.post(url, data = json.dumps(buildparameters_copy), headers=headers)
         if not request.ok:
             raise RuntimeError(f'Post failure for {url}: {request}')
 
@@ -526,6 +546,9 @@ class LibraryBuilder:
             self.logger.info("Build already uploaded")
             if not self.forcebuild:
                 return c_BuildSkipped
+
+        if not self.install_context.dry_run and not self.conanserverproxy_token:
+            self.conanproxy_login()
 
         builtok = self.executebuildscript(buildfolder)
         if builtok == c_BuildOk:
