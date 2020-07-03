@@ -527,8 +527,10 @@ class LibraryBuilder:
 
         self.logger.info(annotations)
 
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
+
         url = f'{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}'
-        request = requests.post(url, data = json.dumps(annotations), headers={"Content-Type": "application/json"})
+        request = requests.post(url, data = json.dumps(annotations), headers=headers)
         if not request.ok:
             raise RuntimeError(f'Post failure for {url}: {request}')
 
