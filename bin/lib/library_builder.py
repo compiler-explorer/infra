@@ -22,6 +22,8 @@ build_supported_stdlib = ['', 'libc++']
 build_supported_flags = ['']
 build_supported_flagscollection = [['']]
 
+disable_clang_libcpp = ['clang30', 'clang31', 'clang32', 'clang33', 'clang341', 'clang350', 'clang351', 'clang352', 'clang37x', 'clang36x', 'clang371', 'clang380', 'clang381', 'clang390', 'clang391']
+
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 
 
@@ -625,7 +627,9 @@ class LibraryBuilder:
                 toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), '..'))
 
             stdlibs = ['']
-            if fixedStdlib:
+            if compiler in disable_clang_libcpp:
+                stdlibs = ['']
+            elif fixedStdlib:
                 self.logger.debug(f'Fixed stdlib {fixedStdlib}')
                 stdlibs = [fixedStdlib]
             else:
