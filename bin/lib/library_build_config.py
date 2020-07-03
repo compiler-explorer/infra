@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 class LibraryBuildConfig:
     def __init__(self, config: Dict[str, Any]):
@@ -7,8 +7,8 @@ class LibraryBuildConfig:
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
         self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
         self.lib_type = self.config_get("lib_type", "static")
-        self.staticliblink = []
-        self.sharedliblink = []
+        self.staticliblink: List[str] = []
+        self.sharedliblink: List[str] = []
         self.url = "None"
         self.description = ""
         self.prebuildscript = self.config_get("prebuildscript", [])

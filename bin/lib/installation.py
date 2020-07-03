@@ -18,8 +18,8 @@ from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers
-from lib.library_builder import *
-from lib.library_build_config import *
+from lib.library_builder import LibraryBuilder
+from lib.library_build_config import LibraryBuildConfig
 
 VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
 

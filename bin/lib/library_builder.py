@@ -5,11 +5,14 @@ import json
 import hashlib
 import shutil
 import subprocess
+import requests
+import tempfile
 from lib.amazon import get_ssm_param
-from lib.amazon_properties import *
-from lib.library_build_config import *
-from lib.binary_info import *
-from collections import defaultdict, ChainMap
+from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
+from lib.library_build_config import LibraryBuildConfig
+from lib.binary_info import BinaryInfo
+from collections import defaultdict
+from typing import Dict, Any, List
 
 build_supported_os = ['Linux']
 build_supported_buildtype = ['Debug']
@@ -19,7 +22,7 @@ build_supported_stdlib = ['', 'libc++']
 build_supported_flags = ['']
 build_supported_flagscollection = [['']]
 
-_propsandlibs = defaultdict(lambda: [])
+_propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 
 
 GITCOMMITHASH_RE = re.compile(r'^(\w*)\s.*')
@@ -41,7 +44,8 @@ class LibraryBuilder:
         self.sourcefolder = sourcefolder
         self.target_name = target_name
         self.forcebuild = False
-        self.current_buildparameters = []
+        self.current_buildparameters_obj: Dict[str, Any] = defaultdict(lambda: [])
+        self.current_buildparameters: List[str] = []
         self.needs_uploading = 0
         self.libid = self.libname    # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = False
@@ -149,7 +153,7 @@ class LibraryBuilder:
     def does_compiler_support_x86(self, exe, compilerType, options):
         return self.does_compiler_support(exe, compilerType, 'x86', options)
 
-    def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+    def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         scriptfile = os.path.join(buildfolder, "build.sh")
 
         f = open(scriptfile, 'w')
@@ -276,10 +280,9 @@ class LibraryBuilder:
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
 
-        self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, stdlib, arch, stdver, extraflags)
+        self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags)
 
-    def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, stdlib, arch, stdver, extraflags):
-        self.current_buildparameters_obj = defaultdict(lambda: [])
+    def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags):
         self.current_buildparameters_obj['os'] = buildos
         self.current_buildparameters_obj['buildtype'] = buildtype
         self.current_buildparameters_obj['compiler'] = compilerTypeOrGcc
@@ -386,7 +389,7 @@ class LibraryBuilder:
         else:
             return c_BuildFailed
 
-    def makebuildhash(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
+    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         hasher = hashlib.sha256()
         flagsstr = '|'.join(x for x in flagscombination)
         hasher.update(bytes(f'{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}', 'utf-8'))
@@ -437,10 +440,10 @@ class LibraryBuilder:
             logging_data = logging_data + '\n'.join(f.readlines())
             f.close()
 
-        headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
-
-        buildparameters_copy = self.current_buildparameters_obj 
+        buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy['logging'] = logging_data
+
+        headers={"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         request = requests.post(url, data = json.dumps(buildparameters_copy), headers=headers)
         if not request.ok:
@@ -522,8 +525,8 @@ class LibraryBuilder:
         if not request.ok:
             raise RuntimeError(f'Post failure for {url}: {request}')
 
-    def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group):
-        combinedhash = self.makebuildhash(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
+    def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+        combinedhash = self.makebuildhash(compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
 
         buildfolder = ""
         if self.buildconfig.build_type == "cmake":
@@ -539,7 +542,7 @@ class LibraryBuilder:
 
         self.logger.debug(f'Buildfolder: {buildfolder}')
 
-        self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
+        self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
         self.writeconanfile(buildfolder)
 
         if self.is_already_uploaded(buildfolder):
@@ -601,7 +604,6 @@ class LibraryBuilder:
 
             exe = self.compilerprops[compiler]['exe']
             options = self.compilerprops[compiler]['options']
-            group = self.compilerprops[compiler]['group']
 
             toolchain = self.getToolchainPathFromOptions(options)
             fixedStdver = self.getStdVerFromOptions(options)
@@ -649,7 +651,7 @@ class LibraryBuilder:
                         for stdver in stdvers:
                             for stdlib in stdlibs:
                                 for flagscombination in build_supported_flagscollection:
-                                    buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, group)
+                                    buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
                                     if buildstatus == c_BuildOk:
                                         builds_succeeded = builds_succeeded + 1
                                     elif buildstatus == c_BuildSkipped:
