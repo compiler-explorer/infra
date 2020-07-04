@@ -22,7 +22,7 @@ build_supported_stdlib = ['', 'libc++']
 build_supported_flags = ['']
 build_supported_flagscollection = [['']]
 
-disable_clang_libcpp = ['clang30', 'clang31', 'clang32', 'clang33', 'clang341', 'clang350', 'clang351', 'clang352', 'clang37x', 'clang36x', 'clang371', 'clang380', 'clang381', 'clang390', 'clang391']
+disable_clang_libcpp = ['clang30', 'clang31', 'clang32', 'clang33', 'clang341', 'clang350', 'clang351', 'clang352', 'clang37x', 'clang36x', 'clang371', 'clang380', 'clang381', 'clang390', 'clang391', 'clang400', 'clang401']
 
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 
