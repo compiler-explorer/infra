@@ -99,17 +99,31 @@ def get_properties_compilers_and_libraries(language, logger):
         for compiler in groups[group]['compilers']:
             if '&' in compiler:
                 subgroupname = compiler[1:]
-                if not 'options' in groups[subgroupname]:
+                if not 'options' in groups[subgroupname] and 'options' in groups[group]:
                     groups[subgroupname]['options'] = groups[group]['options']
+                if not 'compilerType' in groups[subgroupname] and 'compilerType' in groups[group]:
                     groups[subgroupname]['compilerType'] = groups[group]['compilerType']
+                if not 'supportsBinary' in groups[subgroupname] and 'supportsBinary' in groups[group]:
                     groups[subgroupname]['supportsBinary'] = groups[group]['supportsBinary']
-                    groups[subgroupname]['group'] = group
 
             if not compiler in _compilers:
                 _compilers[compiler] = defaultdict(lambda: [])
-            _compilers[compiler]['options'] = groups[group]['options']
-            _compilers[compiler]['compilerType'] = groups[group]['compilerType']
-            _compilers[compiler]['supportsBinary'] = groups[group]['supportsBinary']
+
+            if 'options' in groups[group]:
+                _compilers[compiler]['options'] = groups[group]['options']
+            else:
+                _compilers[compiler]['options'] = ""
+
+            if 'compilerType' in groups[group]:
+                _compilers[compiler]['compilerType'] = groups[group]['compilerType']
+            else:
+                _compilers[compiler]['compilerType'] = ""
+
+            if 'supportsBinary' in groups[group]:
+                _compilers[compiler]['supportsBinary'] = groups[group]['supportsBinary']
+            else:
+                _compilers[compiler]['supportsBinary'] = True
+
             _compilers[compiler]['group'] = group
 
     logger.debug('Reading properties for compilers')
@@ -133,31 +147,20 @@ def get_properties_compilers_and_libraries(language, logger):
     logger.debug('Removing compilers that are not available or do not support binaries')
     keysToRemove = defaultdict(lambda: [])
     for compiler in _compilers:
-        doremove = False
         if 'supportsBinary' in _compilers[compiler] and not _compilers[compiler]['supportsBinary']:
+            logger.debug(compiler + ' does not supportsBinary')
             keysToRemove[compiler] = True
-            doremove = True
         elif 'compilerType' in _compilers[compiler] and _compilers[compiler]['compilerType'] == 'wine-vc':
             keysToRemove[compiler] = True
-            doremove = True
         elif 'exe' in _compilers[compiler]:
             exe = _compilers[compiler]['exe']
             if not os.path.exists(exe):
                 keysToRemove[compiler] = True
-                doremove = True
         else:
             keysToRemove[compiler] = True
-            doremove = True
-
-        if not doremove:
-            if not 'options' in _compilers[compiler]:
-                _compilers[compiler]['options'] = ""
-            if not 'compilerType' in _compilers[compiler]:
-                _compilers[compiler]['compilerType'] = ""
-            if not 'supportsBinary' in _compilers[compiler]:
-                _compilers[compiler]['supportsBinary'] = True
 
     for compiler in keysToRemove:
+        logger.debug('removing ' + compiler)
         del _compilers[compiler]
 
     return [_compilers, _libraries]
