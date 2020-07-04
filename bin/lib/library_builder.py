@@ -280,7 +280,7 @@ class LibraryBuilder:
                 f.write('libsfound=$(find . -iname \'lib*.so*\')\n')
 
             f.write('if [ "$libsfound" = "" ]; then\n')
-            f.write('  make all > cemakelog_{lognum}.txt 2>&1\n')
+            f.write(f'  make all > cemakelog_{lognum}.txt 2>&1\n')
             f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
