@@ -23,6 +23,7 @@ build_supported_flags = ['']
 build_supported_flagscollection = [['']]
 
 disable_clang_libcpp = ['clang30', 'clang31', 'clang32', 'clang33', 'clang341', 'clang350', 'clang351', 'clang352', 'clang37x', 'clang36x', 'clang371', 'clang380', 'clang381', 'clang390', 'clang391', 'clang400', 'clang401']
+disable_clang_32bit = disable_clang_libcpp
 
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 
@@ -647,15 +648,18 @@ class LibraryBuilder:
 
             archs = build_supported_arch
 
-            if self.buildconfig.build_fixed_arch != "":
-                if not self.does_compiler_support(exe, compilerType, self.buildconfig.build_fixed_arch, self.compilerprops[compiler]['options']):
-                    self.logger.debug(f'Compiler {compiler} does not support fixed arch {self.buildconfig.build_fixed_arch}')
-                    return False
-                else:
-                    archs = [self.buildconfig.build_fixed_arch]
+            if compiler in disable_clang_32bit:
+                archs = ['x86_64']
+            else:
+                if self.buildconfig.build_fixed_arch != "":
+                    if not self.does_compiler_support(exe, compilerType, self.buildconfig.build_fixed_arch, self.compilerprops[compiler]['options']):
+                        self.logger.debug(f'Compiler {compiler} does not support fixed arch {self.buildconfig.build_fixed_arch}')
+                        return False
+                    else:
+                        archs = [self.buildconfig.build_fixed_arch]
 
-            if not self.does_compiler_support_x86(exe, compilerType, self.compilerprops[compiler]['options']):
-                archs = ['']
+                if not self.does_compiler_support_x86(exe, compilerType, self.compilerprops[compiler]['options']):
+                    archs = ['']
 
             stdvers = build_supported_stdver
             if fixedStdver:
