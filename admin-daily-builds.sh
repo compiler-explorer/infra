@@ -81,7 +81,7 @@ build_libraries() {
         -e 'LOGSPOUT=ignore' \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/${IMAGE}-builder" \
-        bash "${COMMAND}"
+        bash "${COMMAND}" "all" "all"
 }
 
 # llvm build is fast, so lets do it first
