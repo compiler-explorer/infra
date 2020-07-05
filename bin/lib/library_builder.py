@@ -368,6 +368,8 @@ class LibraryBuilder:
                 bininfo = BinaryInfo(self.logger, buildfolder, filepath)
                 cxxinfo = bininfo.cxx_info_from_binary()
                 if (stdlib == "") or (stdlib == "libc++" and not cxxinfo['has_maybecxx11abi']):
+                    if arch == "":
+                        filesfound+=1
                     if arch == "x86" and 'ELF32' in bininfo.readelf_header_details:
                         filesfound+=1
                     elif arch == "x86_64" and 'ELF64' in bininfo.readelf_header_details:
