@@ -629,8 +629,14 @@ class LibraryBuilder:
         if buildfor != "":
             self.forcebuild = True
 
+        if buildfor == "nonx86":
+            self.forcebuild = True
+            checkcompiler = ""
+        else:
+            checkcompiler = buildfor
+
         for compiler in self.compilerprops:
-            if buildfor != "" and compiler != buildfor:
+            if checkcompiler != "" and compiler != checkcompiler:
                 continue
 
             if 'compilerType' in self.compilerprops[compiler]:
@@ -681,6 +687,9 @@ class LibraryBuilder:
 
                 if not self.does_compiler_support_x86(exe, compilerType, self.compilerprops[compiler]['options']):
                     archs = ['']
+
+            if buildfor == "nonx86" and archs[0] != "":
+                continue
 
             stdvers = build_supported_stdver
             if fixedStdver:
