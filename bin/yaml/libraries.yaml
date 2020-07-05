@@ -47,6 +47,12 @@ libraries:
         - 1.4.1
         - 1.5.0
       build_type: cmake
+    googletest:
+      type: github
+      repo: google/googletest
+      build_type: cmake
+      targets:
+        - release-1.10.0
     catch2v2:
       type: github
       repo: catchorg/Catch2
@@ -653,7 +659,6 @@ libraries:
         type: github
         method: nightlyclone
         repo: google/googletest
-        path_name: libs/googletest
         build_type: cmake
         targets:
           - trunk
