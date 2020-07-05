@@ -492,6 +492,17 @@ class LibraryBuilder:
         else:
             return self.target_name
 
+    def has_failed_before(self):
+        headers={"Content-Type": "application/json"}
+
+        url = f'{conanserver_url}/hasfailedbefore'
+        request = requests.post(url, data = json.dumps(self.current_buildparameters_obj), headers=headers)
+        if not request.ok:
+            raise RuntimeError(f'Post failure for {url}: {request}')
+        else:
+            response = json.loads(request.content)
+            return response['response']
+
     def is_already_uploaded(self, buildfolder):
         annotations = self.get_build_annotations(buildfolder)
 
@@ -561,6 +572,10 @@ class LibraryBuilder:
         self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
         self.writeconanfile(buildfolder)
 
+        if self.has_failed_before() and not self.forcebuild:
+            self.logger.info("Build has failed before, not re-attempting")
+            return c_BuildSkipped
+
         if self.is_already_uploaded(buildfolder):
             self.logger.info("Build already uploaded")
             if not self.forcebuild:
@@ -608,6 +623,9 @@ class LibraryBuilder:
         builds_failed = 0
         builds_succeeded = 0
         builds_skipped = 0
+
+        if buildfor != "":
+            self.forcebuild = True
 
         for compiler in self.compilerprops:
             if buildfor != "" and compiler != buildfor:
