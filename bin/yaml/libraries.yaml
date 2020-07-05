@@ -51,6 +51,8 @@ libraries:
       type: github
       repo: google/googletest
       build_type: cmake
+      make_targets:
+        - all
       targets:
         - release-1.10.0
     catch2v2:
@@ -660,6 +662,8 @@ libraries:
         method: nightlyclone
         repo: google/googletest
         build_type: cmake
+        make_targets:
+          - all
         targets:
           - trunk
       nanorange:
