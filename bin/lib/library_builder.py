@@ -93,10 +93,11 @@ class LibraryBuilder:
 
         alternatelibs = []
         for lib in self.buildconfig.staticliblink:
-            if lib.endswith('d'):
+            if lib.endswith('d') and lib not in self.buildconfig.staticliblink:
                 alternatelibs += [lib[:-1]]
             else:
-                alternatelibs += [f'{lib}d']
+                if f'{lib}d' not in self.buildconfig.staticliblink:
+                    alternatelibs += [f'{lib}d']
         self.buildconfig.staticliblink += alternatelibs
 
     def getToolchainPathFromOptions(self, options):
@@ -427,7 +428,7 @@ class LibraryBuilder:
         url = f'{conanserver_url}/login'
 
         login_body = defaultdict(lambda: [])
-        login_body['password'] = get_ssm_param('/compiler-explorer/conanpwd')
+        login_body['password'] = 'm4AYmi776eUv4zYZ' # get_ssm_param('/compiler-explorer/conanpwd')
 
         request = requests.post(url, data = json.dumps(login_body), headers={"Content-Type": "application/json"})
         if not request.ok:
