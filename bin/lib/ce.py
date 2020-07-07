@@ -207,9 +207,14 @@ def conan_exec_cmd(args):
     exec_remote_to_stdout(instance, args['remote_cmd'])
 
 
-def conan_reload_cmd(_):
+def conan_restart_cmd(_):
     instance = ConanInstance.instance()
     exec_remote(instance, ["sudo", "service", "ce-conan", "restart"])
+
+
+def conan_reloadwww_cmd(_):
+    instance = ConanInstance.instance()
+    exec_remote(instance, ["sudo", "git", "-C", "/home/ubuntu/ceconan/conanproxy", "pull"])
 
 
 def builder_cmd(args):
@@ -809,7 +814,8 @@ def main():
     conan_parser = subparsers.add_parser('conan')
     conan_sub = add_required_sub_parsers(conan_parser, 'conan_sub')
     conan_sub.required = True
-    conan_sub.add_parser('reload')
+    conan_sub.add_parser('restart')
+    conan_sub.add_parser('reloadwww')
     conan_sub.add_parser('login')
     conan_exec = conan_sub.add_parser('exec')
     conan_exec.add_argument('remote_cmd', nargs='+', help='command to run on conan node')
