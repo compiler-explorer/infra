@@ -27,7 +27,7 @@ disable_clang_32bit = disable_clang_libcpp.copy()
 disable_clang_libcpp += ['clang_lifetime']
 
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
-
+_supports_x86: Dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r'^(\w*)\s.*')
 CONANINFOHASH_RE = re.compile(r'\s+ID:\s(\w*)')
@@ -166,7 +166,10 @@ class LibraryBuilder:
             return False
 
     def does_compiler_support_x86(self, exe, compilerType, options):
-        return self.does_compiler_support(exe, compilerType, 'x86', options)
+        cachekey = f'{exe}|{options}'
+        if cachekey not in _supports_x86:
+            _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, 'x86', options)
+        return _supports_x86[cachekey]
 
     def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         scriptfile = os.path.join(buildfolder, "build.sh")
@@ -428,7 +431,7 @@ class LibraryBuilder:
         url = f'{conanserver_url}/login'
 
         login_body = defaultdict(lambda: [])
-        login_body['password'] = 'm4AYmi776eUv4zYZ' # get_ssm_param('/compiler-explorer/conanpwd')
+        login_body['password'] = get_ssm_param('/compiler-explorer/conanpwd')
 
         request = requests.post(url, data = json.dumps(login_body), headers={"Content-Type": "application/json"})
         if not request.ok:
