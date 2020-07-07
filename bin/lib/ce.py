@@ -193,6 +193,10 @@ def admin_cmd(args):
     run_remote_shell(args, AdminInstance.instance())
 
 
+def conan_cmd(args):
+    dispatch_global('conan', args)
+
+
 def conan_login_cmd(args):
     instance = ConanInstance.instance()
     run_remote_shell(args, instance)
