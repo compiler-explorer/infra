@@ -561,6 +561,13 @@ libraries:
         check_file: README.md
         targets:
           - trunk
+      simde:
+        type: github
+        method: nightlyclone
+        repo: simd-everywhere/simde
+        check_file: README.md
+        targets:
+          - trunk
       hedley:
         type: github
         method: nightlyclone
