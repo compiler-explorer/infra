@@ -61,6 +61,16 @@ class AdminInstance:
     def instance():
         return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
 
+class ConanInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'conan'
+
+    @staticmethod
+    def instance():
+        return ConanInstance(ec2.Instance(id='i-0fbc4d84c0f7994a2'))
 
 class BuilderInstance:
     def __init__(self, instance):

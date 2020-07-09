@@ -22,7 +22,7 @@ from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases
     get_autoscaling_groups_for, download_release_file, download_release_fileobj, log_new_build, list_all_build_logs, \
     list_period_build_logs, get_ssm_param
 from lib.cdn import DeploymentJob
-from lib.instance import AdminInstance, BuilderInstance, Instance, print_instances
+from lib.instance import ConanInstance, AdminInstance, BuilderInstance, Instance, print_instances
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
 logger = logging.getLogger('ce')
@@ -191,6 +191,30 @@ def restart_one_instance(as_group_name, instance, modified_groups):
 
 def admin_cmd(args):
     run_remote_shell(args, AdminInstance.instance())
+
+
+def conan_cmd(args):
+    dispatch_global('conan', args)
+
+
+def conan_login_cmd(args):
+    instance = ConanInstance.instance()
+    run_remote_shell(args, instance)
+
+
+def conan_exec_cmd(args):
+    instance = ConanInstance.instance()
+    exec_remote_to_stdout(instance, args['remote_cmd'])
+
+
+def conan_restart_cmd(_):
+    instance = ConanInstance.instance()
+    exec_remote(instance, ["sudo", "service", "ce-conan", "restart"])
+
+
+def conan_reloadwww_cmd(_):
+    instance = ConanInstance.instance()
+    exec_remote(instance, ["sudo", "git", "-C", "/home/ubuntu/ceconan/conanproxy", "pull"])
 
 
 def builder_cmd(args):
@@ -786,6 +810,15 @@ def main():
     builder_sub.add_parser('login')
     builder_exec = builder_sub.add_parser('exec')
     builder_exec.add_argument('remote_cmd', nargs='+', help='command to run on builder node')
+
+    conan_parser = subparsers.add_parser('conan')
+    conan_sub = add_required_sub_parsers(conan_parser, 'conan_sub')
+    conan_sub.required = True
+    conan_sub.add_parser('restart')
+    conan_sub.add_parser('reloadwww')
+    conan_sub.add_parser('login')
+    conan_exec = conan_sub.add_parser('exec')
+    conan_exec.add_argument('remote_cmd', nargs='+', help='command to run on conan node')
 
     builds_parser = subparsers.add_parser('builds')
     builds_sub = add_required_sub_parsers(builds_parser, 'builds_sub')
