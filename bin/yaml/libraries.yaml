@@ -1,13 +1,4 @@
 libraries:
-  c:
-    cs50:
-      type: github
-      repo: cs50/libcs50
-      target_prefix: v
-      build_type: make
-      lib_type: shared
-      targets:
-        - 9.1.0
   c++:
     llvm:
       type: s3tarballs
@@ -57,9 +48,18 @@ libraries:
         - 1.4.1
         - 1.5.0
       build_type: cmake
-    catch2:
+    googletest:
+      type: github
+      repo: google/googletest
+      build_type: cmake
+      make_targets:
+        - all
+      targets:
+        - release-1.10.0
+    catch2v2:
       type: github
       repo: catchorg/Catch2
+      subdir: catch2
       check_file: include/catch.hpp
       target_prefix: v
       targets:
@@ -89,6 +89,16 @@ libraries:
         - 2.11.3
         - 2.12.0
         - 2.12.1
+    catch2:
+      type: github
+      repo: catchorg/Catch2
+      build_type: cmake
+      make_targets:
+        - Catch2
+        - Catch2WithMain
+      target_prefix: v
+      targets:
+        - 3.0.0-preview2
     ulib:
       type: github
       repo: stefanocasazza/ULib
@@ -320,17 +330,6 @@ libraries:
       target_prefix: v
       targets:
         - 2.00.01
-    openssl:
-      type: github
-      repo: openssl/openssl
-      build_type: make
-      check_file: config
-      lib_type: shared
-      prebuildscript:
-        - ./config
-      targets:
-        - OpenSSL_1_1_1c
-        - OpenSSL_1_1_1g
     kvasir:
       type: github
       method: clone_branch
@@ -391,6 +390,17 @@ libraries:
       check_file: README.md
       targets:
         - 1.3.0
+    tbb:
+      type: github
+      method: nightlyclone
+      repo: oneapi-src/oneTBB
+      path_name: libs/tbb
+      targets:
+        - "2020.2"
+      build_type: make
+      build_fixed_arch: x86_64
+      build_fixed_stdlib: libstdc++
+      lib_type: shared
     eastl:
       type: github
       method: clone_branch
@@ -432,6 +442,11 @@ libraries:
         check_file: configure
         targets:
           - trunk
+        build_type: make
+        lib_type: shared
+        check_file: configure
+        build_fixed_arch: x86_64
+        build_fixed_stdlib: libstdc++
       benchmark:
         type: github
         method: nightlyclone
@@ -444,7 +459,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: fmtlib/fmt
-        check_file: CMakeLists.txt
+        build_type: cmake
         targets:
           - trunk
       eigen:
@@ -464,8 +479,12 @@ libraries:
       catch2:
         type: github
         method: nightlyclone
+        build_type: cmake
         repo: catchorg/Catch2
         check_file: include/catch.hpp
+        make_targets:
+          - Catch2
+          - Catch2WithMain
         targets:
           - trunk
       expected-dark:
@@ -561,13 +580,6 @@ libraries:
         check_file: README.md
         targets:
           - trunk
-      simde:
-        type: github
-        method: nightlyclone
-        repo: simd-everywhere/simde
-        check_file: README.md
-        targets:
-          - trunk
       hedley:
         type: github
         method: nightlyclone
@@ -650,21 +662,11 @@ libraries:
         type: github
         method: nightlyclone
         repo: google/googletest
-        path_name: libs/googletest
         build_type: cmake
+        make_targets:
+          - all
         targets:
           - trunk
-      tbb:
-        type: github
-        method: nightlyclone
-        repo: oneapi-src/oneTBB
-        path_name: libs/tbb
-        targets:
-          - trunk
-        build_type: make
-        build_fixed_arch: x86_64
-        build_fixed_stdlib: libstdc++
-        lib_type: shared
       nanorange:
         type: github
         method: nightlyclone
@@ -736,6 +738,13 @@ libraries:
         type: github
         method: nightlyclone
         repo: electronicarts/EASTL
+        build_type: cmake
+        targets:
+          - trunk
+      crosscables:
+        type: github
+        method: nightlyclone
+        repo: partouf/crosscables
         build_type: cmake
         targets:
           - trunk
@@ -871,4 +880,3 @@ libraries:
         check_file: README.md
         targets:
           - trunk
-
