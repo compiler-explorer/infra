@@ -287,7 +287,7 @@ class Installable:
         return self.install_always or not self.is_installed()
 
     def should_build(self):
-        return self.is_library
+        return self.is_library and self.build_config.build_type != "manual"
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")

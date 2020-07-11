@@ -1,4 +1,14 @@
 libraries:
+  c:
+    cs50:
+      type: github
+      repo: cs50/libcs50
+      target_prefix: v
+      build_type: manual
+      check_file: Makefile
+      lib_type: shared
+      targets:
+        - 9.1.0
   c++:
     llvm:
       type: s3tarballs
@@ -222,11 +232,12 @@ libraries:
     libuv:
       type: github
       repo: libuv/libuv
-      build_type: make
+      build_type: manual
       check_file: include/uv.h
       target_prefix: v
       targets:
         - 1.37.0
+        - 1.38.1
     xtl:
       type: github
       repo: QuantStack/xtl
@@ -330,6 +341,15 @@ libraries:
       target_prefix: v
       targets:
         - 2.00.01
+    openssl:
+      type: github
+      repo: openssl/openssl
+      build_type: manual
+      check_file: config
+      lib_type: shared
+      targets:
+        - OpenSSL_1_1_1c
+        - OpenSSL_1_1_1g
     kvasir:
       type: github
       method: clone_branch
