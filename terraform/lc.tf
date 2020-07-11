@@ -102,4 +102,3 @@ resource "aws_launch_configuration" "CompilerExplorer-prod-t3" {
     delete_on_termination = true
   }
 }
-
