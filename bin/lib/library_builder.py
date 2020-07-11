@@ -561,6 +561,7 @@ class LibraryBuilder:
     def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         combinedhash = self.makebuildhash(compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
 
+        requiresTreeCopy = False
         buildfolder = ""
         if self.buildconfig.build_type == "cmake":
             buildfolder = os.path.join(self.install_context.staging, combinedhash)
@@ -571,7 +572,8 @@ class LibraryBuilder:
             buildfolder = os.path.join(self.install_context.staging, combinedhash)
             if os.path.exists(buildfolder):
                 shutil.rmtree(buildfolder, ignore_errors=True)
-            shutil.copytree(self.sourcefolder, buildfolder)
+            os.makedirs(buildfolder, exist_ok=True)
+            requiresTreeCopy = True
 
         self.logger.debug(f'Buildfolder: {buildfolder}')
 
@@ -586,6 +588,9 @@ class LibraryBuilder:
             self.logger.info("Build already uploaded")
             if not self.forcebuild:
                 return c_BuildSkipped
+
+        if requiresTreeCopy:
+            shutil.copytree(self.sourcefolder, buildfolder, dirs_exist_ok=True)
 
         if not self.install_context.dry_run and not self.conanserverproxy_token:
             self.conanproxy_login()
