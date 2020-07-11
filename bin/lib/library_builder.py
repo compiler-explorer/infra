@@ -93,7 +93,7 @@ class LibraryBuilder:
 
         alternatelibs = []
         for lib in self.buildconfig.staticliblink:
-            if lib.endswith('d') and lib not in self.buildconfig.staticliblink:
+            if lib.endswith('d') and lib[:-1] not in self.buildconfig.staticliblink:
                 alternatelibs += [lib[:-1]]
             else:
                 if f'{lib}d' not in self.buildconfig.staticliblink:
