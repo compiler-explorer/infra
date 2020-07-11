@@ -11,7 +11,7 @@ def get_specific_library_version_details(libraries, libid, libraryVersion):
     if 'versionprops' in libraries[libid]:
         for verid in libraries[libid]['versionprops']:
             versionProps = libraries[libid]['versionprops'][verid]
-            if versionProps['version'] == libraryVersion:
+            if versionProps['version'] == libraryVersion or versionProps['lookupversion'] == libraryVersion:
                 return versionProps
 
     return False
@@ -81,16 +81,19 @@ def get_properties_compilers_and_libraries(language, logger):
                         _libraries[libid]['versionprops'] = defaultdict(lambda: [])
                     if not versionid in _libraries[libid]['versionprops']:
                         _libraries[libid]['versionprops'][versionid] = defaultdict(lambda: [])
-                    if key[4] == 'version':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val
-                    if key[4] == 'path':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
-                    if key[4] == 'libpath':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
-                    if key[4] == 'staticliblink':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
-                    if key[4] == 'liblink':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                    if len(key) > 4:
+                        if key[4] == 'version':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val
+                        if key[4] == 'lookupversion':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val
+                        if key[4] == 'path':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                        if key[4] == 'libpath':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                        if key[4] == 'staticliblink':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                        if key[4] == 'liblink':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
                 else:
                     _libraries[libid]['versions'] = val
 
