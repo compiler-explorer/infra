@@ -33,23 +33,34 @@ class BinaryInfo:
         self.read_symbols_from_binary()
 
     def follow_and_readelf(self):
+        self.logger.info('Readelf on ' + self.filepath)
         if not os.path.exists(self.filepath):
+            self.logger.info('File doesnt exist')
             return False
 
         try:
+            self.logger.info('1')
             self.readelf_header_details = subprocess.check_output(['readelf', '-h', self.filepath]).decode('utf-8', 'replace')
+            self.logger.info('2')
             self.readelf_symbols_details = subprocess.check_output(['readelf', '-W', '-s', self.filepath]).decode('utf-8', 'replace')
+            self.logger.info('3')
             if ".so" in self.filepath:
+                self.logger.info('4')
                 self.ldd_details = subprocess.check_output(['ldd', self.filepath]).decode('utf-8', 'replace')
+            self.logger.info('5')
         except subprocess.CalledProcessError:
+            self.logger.info('e')
             f = open(self.filepath, 'r')
             lines = f.readlines()
             f.close()
 
+            self.logger.info(lines)
             match = SO_STRANGE_SYMLINK.match('\n'.join(lines))
             if match:
+                self.logger.info('follow link')
                 self.filepath = os.path.join(self.buildfolder, match[1])
                 return self.follow_and_readelf()
+            self.logger.info('false?')
             return False
 
     def read_symbols_from_binary(self):
