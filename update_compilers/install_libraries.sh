@@ -5,6 +5,8 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
+export PATH=$PATH:/opt/compiler-explorer/cmake/bin
+
 ARG1="$1"
 install_nightly() {
     if [[ "$ARG1" == "nightly" ]]; then
