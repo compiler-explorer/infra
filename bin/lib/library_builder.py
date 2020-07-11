@@ -384,6 +384,12 @@ class LibraryBuilder:
         for lib in self.buildconfig.sharedliblink:
             filepath = os.path.join(buildfolder, f'lib{lib}.so')
             bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+            self.logger.info('stdlib=' + stdlib)
+            self.logger.info('arch=' + arch)
+            self.logger.info('readelf header')
+            self.logger.info(bininfo.readelf_header_details)
+            self.logger.info('ldd')
+            self.logger.info(bininfo.ldd_details)
             if (stdlib == "" and 'libstdc++.so' in bininfo.ldd_details) or (stdlib != "" and f'{stdlib}.so' in bininfo.ldd_details):
                 if arch == "":
                     filesfound+=1
