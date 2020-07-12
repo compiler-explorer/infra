@@ -695,7 +695,7 @@ class LibraryBuilder:
                 if self.buildconfig.build_fixed_arch != "":
                     if not self.does_compiler_support(exe, compilerType, self.buildconfig.build_fixed_arch, self.compilerprops[compiler]['options']):
                         self.logger.debug(f'Compiler {compiler} does not support fixed arch {self.buildconfig.build_fixed_arch}')
-                        return False
+                        continue
                     else:
                         archs = [self.buildconfig.build_fixed_arch]
 
