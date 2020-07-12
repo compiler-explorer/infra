@@ -417,6 +417,7 @@ libraries:
       path_name: libs/tbb
       targets:
         - "2020.2"
+        - "2020.3"
       build_type: make
       build_fixed_arch: x86_64
       build_fixed_stdlib: libstdc++
