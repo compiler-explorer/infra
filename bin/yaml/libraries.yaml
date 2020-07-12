@@ -414,7 +414,6 @@ libraries:
       type: github
       method: nightlyclone
       repo: oneapi-src/oneTBB
-      path_name: libs/tbb
       targets:
         - "2020.2"
         - "2020.3"
