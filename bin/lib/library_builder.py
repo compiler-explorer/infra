@@ -255,8 +255,8 @@ class LibraryBuilder:
         else:
             if os.path.exists(os.path.join(sourcefolder, 'Makefile')):
                 f.write('make clean\n')
-            f.write('rm *.so*\n')
-            f.write('rm *.a\n')
+            f.write('rm -f *.so*\n')
+            f.write('rm -f *.a\n')
             f.write(f'export CXXFLAGS="{cxx_flags}"\n')
             if self.buildconfig.build_type == "make":
                 configurepath = os.path.join(sourcefolder, 'configure')
