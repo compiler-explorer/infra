@@ -676,6 +676,9 @@ class LibraryBuilder:
         if buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
+        elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc":
+            self.forcebuild = True
+            checkcompiler = ""
         else:
             checkcompiler = buildfor
 
@@ -689,6 +692,15 @@ class LibraryBuilder:
                 raise RuntimeError(f'Something is wrong with {compiler}')
 
             exe = self.compilerprops[compiler]['exe']
+
+            if buildfor == "allclang" and compilerType != "clang":
+                continue
+            elif buildfor == "allicc" and "/icc" not in exe:
+                self.logger.info(exe)
+                continue
+            elif buildfor == "allgcc" and compilerType != "":
+                continue
+
             options = self.compilerprops[compiler]['options']
 
             toolchain = self.getToolchainPathFromOptions(options)
