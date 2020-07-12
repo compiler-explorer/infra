@@ -696,7 +696,6 @@ class LibraryBuilder:
             if buildfor == "allclang" and compilerType != "clang":
                 continue
             elif buildfor == "allicc" and "/icc" not in exe:
-                self.logger.info(exe)
                 continue
             elif buildfor == "allgcc" and compilerType != "":
                 continue
