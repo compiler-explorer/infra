@@ -419,12 +419,13 @@ class LibraryBuilder:
         return compiler + '_' + hasher.hexdigest()
 
     def get_conan_hash(self, buildfolder):
-        self.logger.debug(['conan', 'info', '.'] + self.current_buildparameters)
-        conaninfo = subprocess.check_output(['conan', 'info', '-r', 'ceserver', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8', 'ignore')
-        self.logger.debug(conaninfo)
-        match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
-        if match:
-            return match[1]
+        if not self.install_context.dry_run:
+            self.logger.debug(['conan', 'info', '.'] + self.current_buildparameters)
+            conaninfo = subprocess.check_output(['conan', 'info', '-r', 'ceserver', '.'] + self.current_buildparameters, cwd=buildfolder).decode('utf-8', 'ignore')
+            self.logger.debug(conaninfo)
+            match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
+            if match:
+                return match[1]
         return None
 
     def conanproxy_login(self):
@@ -624,10 +625,11 @@ class LibraryBuilder:
 
     def upload_builds(self):
         if self.needs_uploading > 0:
-            self.logger.info('Uploading cached builds')
-            subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
-            self.logger.debug('Clearing cache to speed up next upload')
-            subprocess.check_call(['conan', 'remove', '-f', f'{self.libname}/{self.target_name}'])
+            if not self.install_context.dry_run:
+                self.logger.info('Uploading cached builds')
+                subprocess.check_call(['conan', 'upload', f'{self.libname}/{self.target_name}', '--all', '-r=ceserver', '-c'])
+                self.logger.debug('Clearing cache to speed up next upload')
+                subprocess.check_call(['conan', 'remove', '-f', f'{self.libname}/{self.target_name}'])
             self.needs_uploading = 0
 
     def makebuild(self, buildfor):
