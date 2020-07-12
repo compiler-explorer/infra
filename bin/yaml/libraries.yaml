@@ -414,12 +414,13 @@ libraries:
       type: github
       method: nightlyclone
       repo: oneapi-src/oneTBB
+      extra_make_arg:
+        - compiler=%compilerTypeOrGcc%
+        - arch=%intelarch?%
       targets:
         - "2020.2"
         - "2020.3"
       build_type: make
-      build_fixed_arch: x86_64
-      build_fixed_stdlib: libstdc++
       lib_type: shared
     eastl:
       type: github

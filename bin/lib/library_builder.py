@@ -171,6 +171,35 @@ class LibraryBuilder:
             _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, 'x86', options)
         return _supports_x86[cachekey]
 
+    def replace_optional_arg(self, arg, name, value):
+        optional = '%' + name + '?%'
+        if optional in arg:
+            if value != '':
+                return arg.replace(optional, value)
+            else:
+                return ''
+        else:
+            return arg.replace('%' + name + '%', value)
+
+    def expand_make_arg(self, arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib):
+        expanded = arg
+
+        expanded = self.replace_optional_arg(expanded, 'compilerTypeOrGcc', compilerTypeOrGcc)
+        expanded = self.replace_optional_arg(expanded, 'buildtype', buildtype)
+        expanded = self.replace_optional_arg(expanded, 'arch', arch)
+        expanded = self.replace_optional_arg(expanded, 'stdver', stdver)
+        expanded = self.replace_optional_arg(expanded, 'stdlib', stdlib)
+
+        intelarch = ''
+        if arch == 'x86':
+            intelarch = 'ia32'
+        elif arch == 'x86_64':
+            intelarch = 'intel64'
+
+        expanded = self.replace_optional_arg(expanded, 'intelarch', intelarch)
+
+        return expanded
+
     def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         scriptfile = os.path.join(buildfolder, "build.sh")
 
@@ -244,7 +273,8 @@ class LibraryBuilder:
                 f.write(f'{line}\n')
 
         if self.buildconfig.build_type == "cmake":
-            extracmakeargs = ' '.join(self.buildconfig.extra_cmake_arg)
+            expanded_cmake_args = [self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib) for arg in self.buildconfig.extra_cmake_arg]
+            extracmakeargs = ' '.join(expanded_cmake_args)
             if compilerTypeOrGcc == "clang" and "--gcc-toolchain=" not in compileroptions:
                 toolchainparam = ""
             else:
@@ -263,21 +293,24 @@ class LibraryBuilder:
                 if os.path.exists(configurepath):
                     f.write(f'./configure {configure_flags} > ceconfiglog.txt 2>&1\n')
 
+        expanded_make_args = [self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib) for arg in self.buildconfig.extra_make_arg]
+        extramakeargs = ' '.join(expanded_make_args)
+
         if len(self.buildconfig.make_targets) != 0:
             lognum = 0 
             for target in self.buildconfig.make_targets:
-                f.write(f'make {target} > cemakelog_{lognum}.txt 2>&1\n')
+                f.write(f'make {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n')
                 lognum += 1
         else:
             lognum = 0 
             if len(self.buildconfig.staticliblink) != 0:
                 for lib in self.buildconfig.staticliblink:
-                    f.write(f'make {lib} > cemakelog_{lognum}.txt 2>&1\n')
+                    f.write(f'make {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
                     lognum += 1
 
             if len(self.buildconfig.sharedliblink) != 0:
                 for lib in self.buildconfig.sharedliblink:
-                    f.write(f'make {lib} > cemakelog_{lognum}.txt 2>&1\n')
+                    f.write(f'make {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
                     lognum += 1
 
             if len(self.buildconfig.staticliblink) != 0:
@@ -286,7 +319,7 @@ class LibraryBuilder:
                 f.write('libsfound=$(find . -iname \'lib*.so*\')\n')
 
             f.write('if [ "$libsfound" = "" ]; then\n')
-            f.write(f'  make all > cemakelog_{lognum}.txt 2>&1\n')
+            f.write(f'  make {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n')
             f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
