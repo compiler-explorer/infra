@@ -266,11 +266,9 @@ class LibraryBuilder:
             compilerTypeOrGcc = compilerType
 
         cxx_flags = f'{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}'
-        configure_flags = ''
 
-        if len(self.buildconfig.prebuildscript) > 0:
-            for line in self.buildconfig.prebuildscript:
-                f.write(f'{line}\n')
+        expanded_configure_flags = [self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib) for arg in self.buildconfig.configure_flags]
+        configure_flags = ' '.join(expanded_configure_flags)
 
         if self.buildconfig.build_type == "cmake":
             expanded_cmake_args = [self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib) for arg in self.buildconfig.extra_cmake_arg]
@@ -292,6 +290,10 @@ class LibraryBuilder:
                 configurepath = os.path.join(sourcefolder, 'configure')
                 if os.path.exists(configurepath):
                     f.write(f'./configure {configure_flags} > ceconfiglog.txt 2>&1\n')
+
+        if len(self.buildconfig.prebuild_script) > 0:
+            for line in self.buildconfig.prebuild_script:
+                f.write(f'{line}\n')
 
         expanded_make_args = [self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib) for arg in self.buildconfig.extra_make_arg]
         extramakeargs = ' '.join(expanded_make_args)
@@ -392,6 +394,8 @@ class LibraryBuilder:
             f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
         for lib in self.buildconfig.sharedliblink:
             f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
+        for copyline in self.buildconfig.package_extra_copy:
+            f.write(f'        {copyline}\n')
         f.write('    def package_info(self):\n')
         f.write(f'        self.cpp_info.libs = [{libsum}]\n')
         f.close()
@@ -631,8 +635,8 @@ class LibraryBuilder:
 
         builtok = self.executebuildscript(buildfolder)
         if builtok == c_BuildOk:
+            self.writeconanscript(buildfolder)
             if not self.install_context.dry_run:
-                self.writeconanscript(buildfolder)
                 builtok = self.executeconanscript(buildfolder, arch, stdlib)
                 if builtok == c_BuildOk:
                     self.needs_uploading += 1
