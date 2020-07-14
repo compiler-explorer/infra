@@ -538,6 +538,13 @@ libraries:
         check_file: README.md
         targets:
           - trunk
+      fastor:
+        type: github
+        method: nightlyclone
+        repo: romeric/Fastor
+        check_file: README.md
+        targets:
+          - trunk
       xtl:
         type: github
         method: nightlyclone
