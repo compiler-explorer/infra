@@ -109,17 +109,6 @@ libraries:
       target_prefix: v
       targets:
         - 3.0.0-preview2
-    ulib:
-      type: github
-      repo: stefanocasazza/ULib
-      target_prefix: v
-      targets:
-        - 2.4.2
-      build_type: make
-      lib_type: shared
-      check_file: configure
-      build_fixed_arch: x86_64
-      build_fixed_stdlib: libstdc++
     cctz:
       type: github
       repo: google/cctz
@@ -457,18 +446,6 @@ libraries:
         build_type: none
         targets:
           - trunk
-      ulib:
-        type: github
-        method: nightlyclone
-        repo: stefanocasazza/ULib
-        check_file: configure
-        targets:
-          - trunk
-        build_type: make
-        lib_type: shared
-        check_file: configure
-        build_fixed_arch: x86_64
-        build_fixed_stdlib: libstdc++
       benchmark:
         type: github
         method: nightlyclone
