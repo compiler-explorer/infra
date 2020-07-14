@@ -5,6 +5,8 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . ${SCRIPT_DIR}/common.inc
 
+export PATH=$PATH:/opt/compiler-explorer/cmake/bin
+
 ARG1="$1"
 install_nightly() {
     if [[ "$ARG1" == "nightly" ]]; then
@@ -101,7 +103,7 @@ install_openssl() {
     done
 }
 
-install_openssl 1_1_1c
+install_openssl 1_1_1c 1_1_1g
 
 #########################
 # cs50
@@ -141,3 +143,47 @@ install_cs50_v9() {
 }
 
 install_cs50_v9 9.1.0
+
+
+#########################
+# libuv
+
+install_libuv() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/libuv/v${VERSION}/x86_64/lib
+        local DEST2=${OPT}/libs/libuv/v${VERSION}/x86/lib
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/libuv
+            mkdir -p /tmp/libuv
+            pushd /tmp/libuv
+
+            fetch https://github.com/libuv/libuv/archive/v${VERSION}.tar.gz | tar zxf - --strip-components 1
+
+            mkdir -p build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=Release ..
+            cd ..
+            cmake --build build --target uv
+
+            mkdir -p ${DEST1}
+            mv build/libuv.so* ${DEST1}
+
+            rm -Rf build
+
+            mkdir -p build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_FLAGS=-m32 ..
+            cd ..
+            cmake --build build --target uv
+
+            mkdir -p ${DEST2}
+            mv build/libuv.so* ${DEST2}
+
+            popd
+
+            rm -rf /tmp/libuv
+        fi
+    done
+}
+
+install_libuv 1.37.0 1.38.1

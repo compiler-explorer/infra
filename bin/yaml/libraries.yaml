@@ -1,4 +1,14 @@
 libraries:
+  c:
+    cs50:
+      type: github
+      repo: cs50/libcs50
+      target_prefix: v
+      build_type: manual
+      check_file: Makefile
+      lib_type: shared
+      targets:
+        - 9.1.0
   c++:
     llvm:
       type: s3tarballs
@@ -99,17 +109,6 @@ libraries:
       target_prefix: v
       targets:
         - 3.0.0-preview2
-    ulib:
-      type: github
-      repo: stefanocasazza/ULib
-      target_prefix: v
-      targets:
-        - 2.4.2
-      build_type: make
-      lib_type: shared
-      check_file: configure
-      build_fixed_arch: x86_64
-      build_fixed_stdlib: libstdc++
     cctz:
       type: github
       repo: google/cctz
@@ -222,11 +221,12 @@ libraries:
     libuv:
       type: github
       repo: libuv/libuv
-      build_type: make
+      build_type: manual
       check_file: include/uv.h
       target_prefix: v
       targets:
         - 1.37.0
+        - 1.38.1
     fastor:
       type: github
       repo: romeric/Fastor
@@ -337,6 +337,15 @@ libraries:
       target_prefix: v
       targets:
         - 2.00.01
+    openssl:
+      type: github
+      repo: openssl/openssl
+      build_type: manual
+      check_file: config
+      lib_type: shared
+      targets:
+        - OpenSSL_1_1_1c
+        - OpenSSL_1_1_1g
     kvasir:
       type: github
       method: clone_branch
@@ -401,12 +410,13 @@ libraries:
       type: github
       method: nightlyclone
       repo: oneapi-src/oneTBB
-      path_name: libs/tbb
+      extra_make_arg:
+        - compiler=%compilerTypeOrGcc%
+        - arch=%intelarch?%
       targets:
         - "2020.2"
+        - "2020.3"
       build_type: make
-      build_fixed_arch: x86_64
-      build_fixed_stdlib: libstdc++
       lib_type: shared
     eastl:
       type: github
@@ -440,26 +450,16 @@ libraries:
         subdir: libs/llvm
         symlink: libs/llvm/{name}
         check_file: include/llvm/Config/llvm-config.h
+        build_type: none
         targets:
           - trunk
-      ulib:
-        type: github
-        method: nightlyclone
-        repo: stefanocasazza/ULib
-        check_file: configure
-        targets:
-          - trunk
-        build_type: make
-        lib_type: shared
-        check_file: configure
-        build_fixed_arch: x86_64
-        build_fixed_stdlib: libstdc++
       benchmark:
         type: github
         method: nightlyclone
         repo: google/benchmark
         subdir: google-benchmark
         check_file: README.md
+        build_type: cmake
         targets:
           - trunk
       fmt:
@@ -474,6 +474,7 @@ libraries:
         method: nightlyclone
         repo: libeigen/eigen
         check_file: README.md
+        build_type: none
         targets:
           - vtrunk
       glm:
@@ -481,12 +482,13 @@ libraries:
         method: nightlyclone
         repo: g-truc/glm
         check_file: readme.md
+        build_type: none
         targets:
           - trunk
       catch2:
         type: github
         method: nightlyclone
-        build_type: cmake
+        build_type: none
         repo: catchorg/Catch2
         check_file: include/catch.hpp
         make_targets:
@@ -500,6 +502,7 @@ libraries:
         subdir: expected-lite
         repo: martinmoene/expected-dark
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       expected-lite:
@@ -507,6 +510,7 @@ libraries:
         method: nightlyclone
         repo: martinmoene/expected-lite
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       gsl-lite:
@@ -515,6 +519,7 @@ libraries:
         repo: martinmoene/gsl-lite
         check_file: include/gsl/gsl-lite.hpp
         path_name: libs/gsl-lite
+        build_type: none
         targets:
           - trunk
       nlohmann_json:
@@ -522,6 +527,7 @@ libraries:
         method: nightlyclone
         repo: nlohmann/json
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       tomlplusplus:
@@ -529,6 +535,7 @@ libraries:
         method: nightlyclone
         repo: marzer/tomlplusplus
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       doctest:
@@ -536,6 +543,7 @@ libraries:
         method: nightlyclone
         repo: onqtam/doctest
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       fastor:
@@ -550,6 +558,7 @@ libraries:
         method: nightlyclone
         repo: QuantStack/xtl
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       xsimd:
@@ -557,6 +566,7 @@ libraries:
         method: nightlyclone
         repo: QuantStack/xsimd
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       xtensor:
@@ -564,6 +574,7 @@ libraries:
         method: nightlyclone
         repo: QuantStack/xtensor
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       seastar:
@@ -571,6 +582,7 @@ libraries:
         method: nightlyclone
         repo: scylladb/seastar
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       pegtl:
@@ -578,6 +590,7 @@ libraries:
         method: nightlyclone
         repo: taocpp/PEGTL
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       benri:
@@ -585,6 +598,7 @@ libraries:
         method: nightlyclone
         repo: jansende/benri
         check_file: readme.md
+        build_type: none
         targets:
           - trunk
       spy:
@@ -592,6 +606,7 @@ libraries:
         method: nightlyclone
         repo: jfalcou/spy
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       hedley:
@@ -599,6 +614,7 @@ libraries:
         method: nightlyclone
         repo: nemequ/hedley
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       gsl:
@@ -607,6 +623,7 @@ libraries:
         repo: Microsoft/GSL
         subdir: GSL
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       blaze:
@@ -614,6 +631,7 @@ libraries:
         method: nightlyclone
         repo: blaze-lib/blaze
         check_file: LICENSE
+        build_type: none
         targets:
           - trunk
       cmcstl2:
@@ -622,6 +640,7 @@ libraries:
         repo: CaseyCarter/cmcstl2
         path_name: libs/cmcstl2
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       opencv:
@@ -629,7 +648,8 @@ libraries:
         method: nightlyclone
         repo: opencv/opencv
         path_name: libs/opencv
-        build_type: cmake
+        check_file: README.md
+        build_type: none
         targets:
           - trunk
       abseil:
@@ -637,7 +657,8 @@ libraries:
         method: nightlyclone
         repo: abseil/abseil-cpp
         path_name: libs/abseil
-        build_type: cmake
+        check_file: README.md
+        build_type: none
         targets:
           - trunk
       cppcoro:
@@ -645,7 +666,8 @@ libraries:
         method: nightlyclone
         repo: lewissbaker/cppcoro
         path_name: libs/cppcoro
-        build_type: cake
+        check_file: README.md
+        build_type: none
         targets:
           - trunk
       ctbignum:
@@ -654,6 +676,7 @@ libraries:
         repo: niekbouman/ctbignum
         path_name: libs/ctbignum
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       outcome:
@@ -662,6 +685,7 @@ libraries:
         repo: ned14/outcome
         path_name: libs/outcome
         check_file: single-header/outcome.hpp
+        build_type: none
         targets:
           - trunk
       cnl:
@@ -670,6 +694,7 @@ libraries:
         repo: johnmcfarlane/cnl
         path_name: libs/cnl
         check_file: include/cnl/all.h
+        build_type: none
         targets:
           - trunk
       googletest:
@@ -687,6 +712,7 @@ libraries:
         repo: tcbrindle/NanoRange
         path_name: libs/nanorange
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       etl:
@@ -695,6 +721,7 @@ libraries:
         repo: ETLCPP/etl
         path_name: libs/etl
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       namedtype:
@@ -703,6 +730,7 @@ libraries:
         repo: joboccara/NamedType
         path_name: libs/NamedType
         check_file: named_type.hpp
+        build_type: none
         targets:
           - trunk
       ctre:
@@ -710,6 +738,7 @@ libraries:
         method: clone_branch
         repo: hanickadot/compile-time-regular-expressions
         check_file: include/ctre.hpp
+        build_type: none
         targets:
           - master
           - dfa
@@ -718,6 +747,7 @@ libraries:
         method: nightlyclone
         repo: ericniebler/range-v3
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       mp-units:
@@ -725,6 +755,7 @@ libraries:
         method: nightlyclone
         repo: mpusz/units
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       dlib:
@@ -739,6 +770,7 @@ libraries:
         method: nightlyclone
         repo: copperspice/cs_libguarded
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       brigand:
@@ -746,13 +778,15 @@ libraries:
         method: nightlyclone
         repo: edouarda/brigand
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       eastl:
         type: github
         method: nightlyclone
         repo: electronicarts/EASTL
-        build_type: cmake
+        check_file: README.md
+        build_type: none
         targets:
           - trunk
       crosscables:

@@ -18,6 +18,8 @@ from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers
+from lib.library_builder import LibraryBuilder
+from lib.library_build_config import LibraryBuildConfig
 
 VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
 
@@ -232,20 +234,19 @@ class Installable:
         self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
         self.name = f'{"/".join(self.context)}/{self.target_name}'
+        self.is_library = False
+        self.language = False
+        if len(self.context) > 0:
+            self.is_library = self.context[0] == "libraries"
+            self.language = self.context[1]
         self.depends = self.config.get('depends', [])
         self.install_always = self.config.get('install_always', False)
         self._check_link = None
-        self.build_type = self.config_get("build_type", "")
-        self.build_fixed_arch = self.config_get("build_fixed_arch", "")
-        self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
-        self.lib_type = self.config_get("lib_type", "static")
-        self.url = "None"
-        self.description = ""
-        self.prebuildscript = self.config_get("prebuildscript", [])
-        self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
+        self.build_config = LibraryBuildConfig(config)
         self.check_env = {}
         self.check_file = None
         self.check_call = []
+        self.path_name = ''
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
@@ -284,6 +285,9 @@ class Installable:
 
     def should_install(self) -> bool:
         return self.install_always or not self.is_installed()
+
+    def should_build(self):
+        return self.is_library and self.build_config.build_type != "manual" and self.build_config.build_type != "none"
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")
@@ -332,6 +336,22 @@ class Installable:
             (int(num) if num else 0, non) for num, non in re.findall(r'([0-9]+)|([^0-9]+)', self.target_name)
         ]
 
+    def build(self, buildfor):
+        if not self.is_library:
+            raise RuntimeError('Nothing to build')
+
+        if self.build_config.build_type == "":
+            raise RuntimeError('No build_type')
+
+        sourcefolder = os.path.join(self.install_context.destination, self.path_name)
+        builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder, self.install_context, self.build_config)
+
+        if self.build_config.build_type == "cmake":
+            return builder.makebuild(buildfor)
+        elif self.build_config.build_type == "make":
+            return builder.makebuild(buildfor)
+        else:
+            raise RuntimeError('Unsupported build_type')
 
 def command_config(config: Union[List[str], str]) -> List[str]:
     if isinstance(config, str):
@@ -361,11 +381,11 @@ class GitHubInstallable(Installable):
 
         check_file = self.config_get("check_file", "")
         if check_file == "":
-            if self.build_type == "cmake":
+            if self.build_config.build_type == "cmake":
                 self.check_file = os.path.join(self.path_name, 'CMakeLists.txt')
-            elif self.build_type == "make":
+            elif self.build_config.build_type == "make":
                 self.check_file = os.path.join(self.path_name, 'Makefile')
-            elif self.build_type == "cake":
+            elif self.build_config.build_type == "cake":
                 self.check_file = os.path.join(self.path_name, 'config.cake')
             else:
                 raise RuntimeError(f'Requires check_file ({last_context})')

@@ -1,10 +1,23 @@
 import os
 import tempfile
+import re
 import urllib.parse
 from collections import defaultdict
 
 import requests
 
+
+def get_specific_library_version_details(libraries, libid, libraryVersion):
+    if 'versionprops' in libraries[libid]:
+        for verid in libraries[libid]['versionprops']:
+            versionProps = libraries[libid]['versionprops'][verid]
+            if versionProps['version'] == libraryVersion or versionProps['lookupversion'] == libraryVersion:
+                return versionProps
+
+    return False
+
+
+COMPILEROPT_RE = re.compile(r'(\w*)\.(.*)\.(\w*)')
 
 def get_properties_compilers_and_libraries(language, logger):
     _compilers = defaultdict(lambda: [])
@@ -34,10 +47,6 @@ def get_properties_compilers_and_libraries(language, logger):
             group = key[1]
             if not group in groups:
                 groups[group] = defaultdict(lambda: [])
-                groups[group]['options'] = ""
-                groups[group]['compilerType'] = ""
-                groups[group]['compilers'] = []
-                groups[group]['supportsBinary'] = True
 
             if key[2] == "compilers":
                 groups[group]['compilers'] = val.split(':')
@@ -62,9 +71,9 @@ def get_properties_compilers_and_libraries(language, logger):
             elif key[2] == 'url':
                 _libraries[libid]['url'] = val
             elif key[2] == 'liblink':
-                _libraries[libid]['liblink'] = val
+                _libraries[libid]['liblink'] = val.split(':')
             elif key[2] == 'staticliblink':
-                _libraries[libid]['staticliblink'] = val
+                _libraries[libid]['staticliblink'] = val.split(':')
             elif key[2] == 'versions':
                 if len(key) > 3:
                     versionid = key[3]
@@ -72,21 +81,52 @@ def get_properties_compilers_and_libraries(language, logger):
                         _libraries[libid]['versionprops'] = defaultdict(lambda: [])
                     if not versionid in _libraries[libid]['versionprops']:
                         _libraries[libid]['versionprops'][versionid] = defaultdict(lambda: [])
-                    if key[4] == 'path':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
-                    if key[4] == 'libpath':
-                        _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                    if len(key) > 4:
+                        if key[4] == 'version':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val
+                        if key[4] == 'lookupversion':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val
+                        if key[4] == 'path':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                        if key[4] == 'libpath':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                        if key[4] == 'staticliblink':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
+                        if key[4] == 'liblink':
+                            _libraries[libid]['versionprops'][versionid][key[4]] = val.split(':')
                 else:
                     _libraries[libid]['versions'] = val
 
     logger.debug('Setting default values for compilers')
     for group in groups:
         for compiler in groups[group]['compilers']:
+            if '&' in compiler:
+                subgroupname = compiler[1:]
+                if not 'options' in groups[subgroupname] and 'options' in groups[group]:
+                    groups[subgroupname]['options'] = groups[group]['options']
+                if not 'compilerType' in groups[subgroupname] and 'compilerType' in groups[group]:
+                    groups[subgroupname]['compilerType'] = groups[group]['compilerType']
+                if not 'supportsBinary' in groups[subgroupname] and 'supportsBinary' in groups[group]:
+                    groups[subgroupname]['supportsBinary'] = groups[group]['supportsBinary']
+
             if not compiler in _compilers:
                 _compilers[compiler] = defaultdict(lambda: [])
-            _compilers[compiler]['options'] = groups[group]['options']
-            _compilers[compiler]['compilerType'] = groups[group]['compilerType']
-            _compilers[compiler]['supportsBinary'] = groups[group]['supportsBinary']
+
+            if 'options' in groups[group]:
+                _compilers[compiler]['options'] = groups[group]['options']
+            else:
+                _compilers[compiler]['options'] = ""
+
+            if 'compilerType' in groups[group]:
+                _compilers[compiler]['compilerType'] = groups[group]['compilerType']
+            else:
+                _compilers[compiler]['compilerType'] = ""
+
+            if 'supportsBinary' in groups[group]:
+                _compilers[compiler]['supportsBinary'] = groups[group]['supportsBinary']
+            else:
+                _compilers[compiler]['supportsBinary'] = True
+
             _compilers[compiler]['group'] = group
 
     logger.debug('Reading properties for compilers')
@@ -94,7 +134,10 @@ def get_properties_compilers_and_libraries(language, logger):
         sline = line.decode('utf-8').rstrip('\n')
         if sline.startswith('compiler.'):
             keyval = sline.split('=', 1)
-            key = keyval[0].split('.')
+            matches = COMPILEROPT_RE.match(keyval[0])
+            if not matches:
+                raise RuntimeError(f'Not a valid compiler? {keyval}')
+            key = [matches[1], matches[2], matches[3]]
             val = keyval[1]
             if not key[1] in _compilers:
                 _compilers[key[1]] = defaultdict(lambda: [])
@@ -108,8 +151,9 @@ def get_properties_compilers_and_libraries(language, logger):
     keysToRemove = defaultdict(lambda: [])
     for compiler in _compilers:
         if 'supportsBinary' in _compilers[compiler] and not _compilers[compiler]['supportsBinary']:
+            logger.debug(compiler + ' does not supportsBinary')
             keysToRemove[compiler] = True
-        elif _compilers[compiler] == 'wine-vc':
+        elif 'compilerType' in _compilers[compiler] and _compilers[compiler]['compilerType'] == 'wine-vc':
             keysToRemove[compiler] = True
         elif 'exe' in _compilers[compiler]:
             exe = _compilers[compiler]['exe']
@@ -119,6 +163,7 @@ def get_properties_compilers_and_libraries(language, logger):
             keysToRemove[compiler] = True
 
     for compiler in keysToRemove:
+        logger.debug('removing ' + compiler)
         del _compilers[compiler]
 
     return [_compilers, _libraries]
