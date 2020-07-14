@@ -475,7 +475,7 @@ libraries:
         repo: libeigen/eigen
         check_file: README.md
         targets:
-          - vtrunk
+          - trunk
       glm:
         type: github
         method: nightlyclone
