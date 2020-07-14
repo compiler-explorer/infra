@@ -227,6 +227,13 @@ libraries:
       targets:
         - 1.37.0
         - 1.38.1
+    fastor:
+      type: github
+      repo: romeric/Fastor
+      check_file: README.md
+      target_prefix: V
+      targets:
+        - 0.6.3
     xtl:
       type: github
       repo: QuantStack/xtl
@@ -537,6 +544,13 @@ libraries:
         repo: onqtam/doctest
         check_file: README.md
         build_type: none
+        targets:
+          - trunk
+      fastor:
+        type: github
+        method: nightlyclone
+        repo: romeric/Fastor
+        check_file: README.md
         targets:
           - trunk
       xtl:

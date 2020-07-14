@@ -98,6 +98,7 @@ build_latest clang clang_cppx build.sh cppx-trunk
 build_latest clang clang_relocatable build.sh relocatable-trunk
 build_latest clang clang_autonsdmi build.sh autonsdmi-trunk
 build_latest clang clang_lifetime build.sh lifetime-trunk
+build_latest clang clang_llvmflang build.sh llvmflang-trunk
 build_latest clang clang_parmexpr build-parmexpr.sh trunk
 build_latest clang clang_embed build.sh embed-trunk
 build_latest go go build.sh trunk
