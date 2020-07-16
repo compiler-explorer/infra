@@ -186,4 +186,58 @@ install_libuv() {
     done
 }
 
-install_libuv 1.37.0 1.38.1
+
+#########################
+# lua
+
+install_lua() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/lua/${VERSION}/lib/x86_64
+        local DEST2=${OPT}/libs/lua/${VERSION}/lib/x86
+        local DEST3=${OPT}/libs/lua/${VERSION}/include
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/lua
+            mkdir -p /tmp/lua
+            pushd /tmp/lua
+
+            git clone -b ${VERSION} https://github.com/lua/lua
+            cd lua
+
+            mkdir -p ${DEST3}
+
+            cp *.h ${DEST3}
+
+            rm onelua.c
+            local cfiles=$(find . -maxdepth 1 -iname '*.c' -o -iname '*.h')
+            echo -e "cmake_minimum_required(VERSION 3.10)\n" > CMakeLists.txt
+            echo -e "project(lua LANGUAGES C)\n" >> CMakeLists.txt
+            echo -e "add_library(lua SHARED\n" >> CMakeLists.txt
+            echo -e ${cfiles} >> CMakeLists.txt
+            echo -e ")\n" >> CMakeLists.txt
+
+            mkdir -p build
+            cd build
+            cmake "-DCMAKE_BUILD_TYPE=Debug" "-DCMAKE_C_FLAGS_DEBUG=-std=gnu99 -O2 -Wall -Wl,-E -ldl -DLUA_USE_LINUX -DLUA_COMPAT_5_3" ..
+            make
+
+            mkdir -p ${DEST1}
+            cp liblua.so ${DEST1}
+
+            cd ..
+            rm -Rf build
+
+            mkdir -p build
+            cd build
+            cmake "-DCMAKE_BUILD_TYPE=Debug" "-DCMAKE_C_FLAGS_DEBUG=-std=gnu99 -O2 -Wall -Wl,-E -ldl -m32 -DLUA_USE_LINUX -DLUA_COMPAT_5_3" ..
+            make
+
+            mkdir -p ${DEST2}
+            cp liblua.so ${DEST2}
+
+            popd
+            rm -rf /tmp/lua
+        fi
+    done
+}
+
+install_lua v5.4.0
