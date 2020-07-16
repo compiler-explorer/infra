@@ -207,7 +207,7 @@ install_lua() {
 
             cp *.h ${DEST3}
 
-            rm onelua.c
+            rm -f onelua.c
             local cfiles=$(find . -maxdepth 1 -iname '*.c' -o -iname '*.h')
             echo -e "cmake_minimum_required(VERSION 3.10)\n" > CMakeLists.txt
             echo -e "project(lua LANGUAGES C)\n" >> CMakeLists.txt
@@ -217,7 +217,7 @@ install_lua() {
 
             mkdir -p build
             cd build
-            cmake "-DCMAKE_BUILD_TYPE=Debug" "-DCMAKE_C_FLAGS_DEBUG=-std=gnu99 -O2 -Wall -Wl,-E -ldl -DLUA_USE_LINUX -DLUA_COMPAT_5_3" ..
+            cmake "-DCMAKE_BUILD_TYPE=Debug" "-DCMAKE_C_FLAGS_DEBUG=-std=gnu99 -O2 -Wall -Wl,-E -ldl -DLUA_USE_POSIX -DLUA_USE_DLOPEN" ..
             make
 
             mkdir -p ${DEST1}
@@ -228,7 +228,7 @@ install_lua() {
 
             mkdir -p build
             cd build
-            cmake "-DCMAKE_BUILD_TYPE=Debug" "-DCMAKE_C_FLAGS_DEBUG=-std=gnu99 -O2 -Wall -Wl,-E -ldl -m32 -DLUA_USE_LINUX -DLUA_COMPAT_5_3" ..
+            cmake "-DCMAKE_BUILD_TYPE=Debug" "-DCMAKE_C_FLAGS_DEBUG=-std=gnu99 -O2 -Wall -Wl,-E -ldl -m32 -DLUA_USE_POSIX -DLUA_USE_DLOPEN" ..
             make
 
             mkdir -p ${DEST2}
@@ -240,4 +240,4 @@ install_lua() {
     done
 }
 
-install_lua v5.4.0
+install_lua v5.3.5 v5.4.0
