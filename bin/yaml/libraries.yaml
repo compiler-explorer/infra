@@ -442,6 +442,14 @@ libraries:
         - 3.15.00
         - 3.16.01
         - 3.16.05
+    sol2:
+      type: github
+      method: clone_branch
+      repo: ThePhD/sol2
+      check_file: include/sol/sol.hpp
+      build_type: none
+      targets:
+        - v3.2.1
     nightly:
       install_always: true
       if: nightly
@@ -795,6 +803,14 @@ libraries:
         method: nightlyclone
         repo: partouf/crosscables
         build_type: cmake
+        targets:
+          - trunk
+      sol2:
+        type: github
+        method: nightlyclone
+        repo: ThePhD/sol2
+        check_file: include/sol/sol.hpp
+        build_type: none
         targets:
           - trunk
   cuda:
