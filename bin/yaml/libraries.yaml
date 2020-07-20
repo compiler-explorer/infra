@@ -422,7 +422,8 @@ libraries:
       type: github
       method: clone_branch
       repo: electronicarts/EASTL
-      build_type: cmake
+      check_file: README.md
+      build_type: none
       targets:
         - 3.12.01
         - 3.12.04
