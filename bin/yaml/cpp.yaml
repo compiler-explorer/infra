@@ -352,7 +352,6 @@ compilers:
           - relocatable-trunk
           - autonsdmi-trunk
           - lifetime-trunk
-          - llvmflang-trunk
           - parmexpr-trunk
     oracle: # NB unused and unsupported at present
       type: s3tarballs
