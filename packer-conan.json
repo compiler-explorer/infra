@@ -59,7 +59,7 @@
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone --single-branch --branch librarybuilding https://github.com/compiler-explorer/infra.git /home/ubuntu/infra",
+        "git clone https://github.com/compiler-explorer/infra.git /home/ubuntu/infra",
         "chown -R ubuntu:ubuntu /home/ubuntu/infra",
         "/home/ubuntu/infra/setup-conan.sh"
       ]
