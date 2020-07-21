@@ -221,6 +221,20 @@ class InstallationContext:
         # Deliberately ignore errors
         subprocess.call(['strip'] + to_strip)
 
+    def run_script(self, frompath: str, lines: List[str]) -> None:
+        if len(lines) > 0:
+            self.info('Running script')
+            scriptfile = os.path.join(frompath, 'ce_script.sh')
+            f = open(scriptfile, 'w')
+            f.write('#!/bin/sh\n\n')
+            for line in lines:
+                f.write(f'{line}\n')
+            f.close()
+
+            subprocess.check_call(['/bin/chmod','+x', scriptfile])
+            subprocess.check_call([scriptfile], cwd=frompath)
+
+            os.remove(scriptfile)
 
 class Installable:
     _check_link: Optional[Callable[[], bool]]
@@ -247,6 +261,7 @@ class Installable:
         self.check_file = None
         self.check_call = []
         self.path_name = ''
+        self.after_stage_script = self.config_get('after_stage_script', [])
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
@@ -437,6 +452,9 @@ class GitHubInstallable(Installable):
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
+        dest = os.path.join(self.install_context.destination, self.path_name)
+        self.install_context.run_script(dest, self.after_stage_script)
+
     def verify(self):
         if not super().verify():
             return False
@@ -518,6 +536,8 @@ class S3TarballInstallable(Installable):
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
+        self.install_context.run_script(self.s3_path, self.after_stage_script)
+
     def verify(self) -> bool:
         if not super().verify():
             return False
@@ -564,6 +584,7 @@ class NightlyInstallable(Installable):
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
+        self.install_context.run_script(os.path.join(self.install_context.staging, self.s3_path), self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
@@ -632,6 +653,7 @@ class TarballInstallable(Installable):
             self.install_context.strip_exes(self.strip)
         if not (self.install_context.staging / self.untar_path).is_dir():
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
+        self.install_context.run_script(self.untar_to, self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
