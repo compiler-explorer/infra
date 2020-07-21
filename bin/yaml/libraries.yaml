@@ -739,7 +739,7 @@ libraries:
         method: nightlyclone
         repo: joboccara/NamedType
         path_name: libs/NamedType
-        check_file: named_type.hpp
+        check_file: include/NamedType/named_type.hpp
         build_type: none
         targets:
           - trunk
