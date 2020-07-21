@@ -354,7 +354,7 @@ compilers:
           - lifetime-trunk
           - parmexpr-trunk
           - name: llvmflang-trunk
-            check_exe: bin/flang --version
+            check_exe: bin/flang -help
             after_stage_script:
               - chmod 0755 bin/flang
     oracle: # NB unused and unsupported at present
