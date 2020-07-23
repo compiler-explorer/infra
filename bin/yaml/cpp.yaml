@@ -44,6 +44,7 @@ compilers:
           - 9.2.0
           - 9.3.0
           - 10.1.0
+          - 10.2.0
     cross:
       type: s3tarballs
       arch_prefix:
