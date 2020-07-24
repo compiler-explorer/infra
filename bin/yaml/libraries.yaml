@@ -300,14 +300,6 @@ libraries:
         - "3.4"
         - "3.5"
         - "3.6"
-    blaze_nogzip:
-      type: bitbucket
-      repo: blaze-lib/blaze
-      subdir: blaze
-      check_file: LICENSE
-      decompress_flag: ""
-      target_prefix: v
-      targets:
         - "3.7"
     gsl:
       type: github
