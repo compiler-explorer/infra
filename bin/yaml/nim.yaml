@@ -12,10 +12,14 @@ compilers:
       - 1.0.6
       - 1.2.0
 #    nightly:
+#      type: restQueryTarballs
 #      install_always: true
 #      if: nightly
-#      type: script
-# todo: fetch https://api.github.com/repos/nim-lang/nightlies/releases/latest
+#      url: https://api.github.com/repos/nim-lang/nightlies/releases/latest
+#      query: ([doc['browser_download_url'] for doc in document['assets'] if 'x86_64' in doc['name']] or [None])[0]
+#      targets:
+#        - linux_x64-nightlies
+# todo: fetch 
 # look for [.assets[] | select(.name | contains(\"${target}\"))][0].browser_download_url
 # download and unpack that
 # See issue #31 for details why this isn't working currently.

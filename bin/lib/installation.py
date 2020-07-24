@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import functools
 import glob
 import logging
@@ -18,8 +19,8 @@ from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers
-from lib.library_builder import LibraryBuilder
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_builder import LibraryBuilder
 
 VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
 
@@ -74,6 +75,10 @@ class InstallationContext:
             shutil.rmtree(self.staging, ignore_errors=True)
         self.debug(f"Recreating staging dir {self.staging}")
         self.staging.mkdir(parents=True)
+
+    def fetch_json(self, url: str) -> Dict:
+        self.debug(f'Fetching {url}')
+        return self.fetcher.get(url).json()
 
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
@@ -232,10 +237,11 @@ class InstallationContext:
                 f.write(f'{line}\n')
             f.close()
 
-            subprocess.check_call(['/bin/chmod','+x', scriptfile])
+            subprocess.check_call(['/bin/chmod', '+x', scriptfile])
             subprocess.check_call([scriptfile], cwd=frompath)
 
             os.remove(scriptfile)
+
 
 class Installable:
     _check_link: Optional[Callable[[], bool]]
@@ -360,7 +366,8 @@ class Installable:
             raise RuntimeError('No build_type')
 
         sourcefolder = os.path.join(self.install_context.destination, self.path_name)
-        builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder, self.install_context, self.build_config)
+        builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
+                                 self.install_context, self.build_config)
 
         if self.build_config.build_type == "cmake":
             return builder.makebuild(buildfor)
@@ -368,6 +375,7 @@ class Installable:
             return builder.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
+
 
 def command_config(config: Union[List[str], str]) -> List[str]:
     if isinstance(config, str):
@@ -585,7 +593,8 @@ class NightlyInstallable(Installable):
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
-        self.install_context.run_script(os.path.join(self.install_context.staging, self.s3_path), self.after_stage_script)
+        self.install_context.run_script(os.path.join(self.install_context.staging, self.s3_path),
+                                        self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
@@ -673,6 +682,23 @@ class TarballInstallable(Installable):
 
     def __repr__(self) -> str:
         return f'TarballInstallable({self.name}, {self.install_path})'
+
+
+class RestQueryTarballInstallable(TarballInstallable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        document = self.install_context.fetch_json(self.config_get('url'))
+        self.config['url'] = eval(self.config_get('query'), {}, dict(document=document))
+        if not self.config['url']:
+            self.warn('No installation candidate found')
+
+    def should_install(self) -> bool:
+        if not self.config['url']:
+            return False
+        return super().should_install()
+
+    def __repr__(self) -> str:
+        return f'GithubTarballInstallable({self.name}, {self.install_path})'
 
 
 class ScriptInstallable(Installable):
@@ -808,6 +834,7 @@ def _targets_from(node, enabled, context, name, base_config):
 
 INSTALLER_TYPES = {
     'tarballs': TarballInstallable,
+    'restQueryTarballs': RestQueryTarballInstallable,
     's3tarballs': S3TarballInstallable,
     'nightly': NightlyInstallable,
     'script': ScriptInstallable,
