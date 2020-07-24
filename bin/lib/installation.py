@@ -688,6 +688,7 @@ class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         document = self.install_context.fetch_json(self.config_get('url'))
+        # pylint: disable=eval-used
         self.config['url'] = eval(self.config_get('query'), {}, dict(document=document))
         if not self.config['url']:
             self.warn('No installation candidate found')
