@@ -159,6 +159,7 @@ class InstallationContext:
         if self.dry_run:
             self.info(f'Would install {source} to {dest} but in dry-run mode')
             return
+        dest.parent.mkdir(parents=True, exist_ok=True)
         self.info(f'Moving from staging ({source}) to final destination ({dest})')
         if not source.is_dir():
             staging_contents = subprocess.check_output(['ls', '-l', self.staging]).decode('utf-8')
