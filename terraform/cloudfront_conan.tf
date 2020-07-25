@@ -35,8 +35,8 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
 
   logging_config {
     include_cookies = false
-    bucket          = "compiler-explorer.s3.amazonaws.com"
-    prefix          = "cloudfront-logs-ce/"
+    bucket          = "compiler-explorer-logs.s3.amazonaws.com"
+    prefix          = "cloudfront/"
   }
 
   http_version = "http2"

@@ -47,8 +47,8 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 
   logging_config {
     include_cookies = false
-    bucket          = "compiler-explorer.s3.amazonaws.com"
-    prefix          = "cloudfront-logs/"
+    bucket          = "compiler-explorer-logs.s3.amazonaws.com"
+    prefix          = "cloudfront/"
   }
 
   http_version = "http2"
@@ -190,8 +190,8 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
 
   logging_config {
     include_cookies = false
-    bucket          = "compiler-explorer.s3.amazonaws.com"
-    prefix          = "cloudfront-logs-ce/"
+    bucket          = "compiler-explorer-logs.s3.amazonaws.com"
+    prefix          = "cloudfront/"
   }
 
   http_version = "http2"
@@ -331,8 +331,8 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
 
   logging_config {
     include_cookies = false
-    bucket          = "compiler-explorer.s3.amazonaws.com"
-    prefix          = "cloudfront-logs-lt/"
+    bucket          = "compiler-explorer-logs.s3.amazonaws.com"
+    prefix          = "cloudfront/"
   }
 
   http_version = "http2"

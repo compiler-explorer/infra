@@ -26,9 +26,24 @@ resource "aws_s3_bucket" "compiler-explorer" {
 
 resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
-  acl    = "private"
   tags   = {
     Site = "CompilerExplorer"
+  }
+
+  # not sure if we explicitly need to state the bucket owner gets full control
+  # when `acl = private` is not stated, but better safe than sorry
+  grant {
+    id          = data.aws_caller_identity.current.account_id
+    type        = "CanonicalUser"
+    permissions = ["FULL_CONTROL"]
+  }
+
+  # awslogsdelivery account needs full control for cloudfront logging
+  # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
+  grant {
+    id          = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
+    type        = "CanonicalUser"
+    permissions = ["FULL_CONTROL"]
   }
 
   # Keep only one month of elb logs (See the privacy policy in the compiler explorer project)
@@ -43,16 +58,16 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
     prefix  = "elb/"
   }
 
-  # Keep only a month of request logs (rounding down)
+  # Keep only one month of cloudfront logs (See the privacy policy in the compiler explorer project)
   lifecycle_rule {
     enabled = true
     expiration {
-      days = 28
+      days = 32
     }
     noncurrent_version_expiration {
       days = 1
     }
-    prefix  = "debug-request-logs"
+    prefix  = "cloudfront/"
   }
 }
 

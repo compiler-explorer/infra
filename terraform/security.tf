@@ -232,23 +232,6 @@ resource "aws_iam_policy" "CeModifyStoredState" {
   policy      = data.aws_iam_policy_document.CeModifyStoredState.json
 }
 
-data "aws_iam_policy_document" "CeWriteToDebugStore" {
-  statement {
-    sid       = "S3AccessSid"
-    actions   = ["s3:PutItem"]
-    resources = [
-      "${aws_s3_bucket.compiler-explorer-logs.arn}/debug-request-logs/*",
-    ]
-  }
-}
-
-resource "aws_iam_policy" "CeWriteToDebugStore" {
-  name        = "CeWriteToDebugStore"
-  description = "Can write debug request logs"
-  policy      = data.aws_iam_policy_document.CeWriteToDebugStore.json
-}
-
-
 data "aws_iam_policy_document" "AccessCeParams" {
   statement {
     actions   = [
@@ -296,11 +279,6 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CloudWatc
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CeModifyStoredState" {
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = aws_iam_policy.CeModifyStoredState.arn
-}
-
-resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CeWriteToDebugStore" {
-  role       = aws_iam_role.CompilerExplorerRole.name
-  policy_arn = aws_iam_policy.CeWriteToDebugStore.arn
 }
 
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AccessCeParams" {
