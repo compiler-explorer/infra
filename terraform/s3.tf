@@ -24,6 +24,8 @@ resource "aws_s3_bucket" "compiler-explorer" {
   }
 }
 
+data "aws_canonical_user_id" "current" {}
+
 resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
   tags   = {
@@ -33,7 +35,7 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
   # not sure if we explicitly need to state the bucket owner gets full control
   # when `acl = private` is not stated, but better safe than sorry
   grant {
-    id          = data.aws_caller_identity.current.account_id
+    id          = data.aws_canonical_user_id.current.id
     type        = "CanonicalUser"
     permissions = ["FULL_CONTROL"]
   }
