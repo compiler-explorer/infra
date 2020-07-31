@@ -4,7 +4,7 @@ compilers:
     preview:
       type: tarballs
       compression: gz
-      url: http://circle-lang.org/debian/build_{name}.tgz
+      url: http://circle-lang.org/linux/build_{name}.tgz
       check_exe: circle --version
       dir: circle-preview-{name}
       create_untar_dir: true
