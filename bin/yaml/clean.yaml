@@ -1,0 +1,27 @@
+compilers:
+  clean:
+    type: tarballs
+    compression: gz
+    url: https://ftp.cs.ru.nl/Clean/Clean{name_no_dots}/linux/clean{name}{suffix}.tar.gz
+    check_exe: bin/patch_bin /dev/null installation_test
+    dir: clean32-{name}
+    strip_components: 1
+    create_untar_dir: true
+    clean32_old:
+      suffix: ''
+      name_no_dots: 24
+      targets:
+        - '2.4'
+    clean32_new:
+      suffix: _32
+      name_no_dots: 30
+      targets:
+        - '3.0'
+    clean64:
+      dir: clean64-{name}
+      suffix: _64
+      targets:
+        - name: '2.4'
+          name_no_dots: 24
+        - name: '3.0'
+          name_no_dots: 30

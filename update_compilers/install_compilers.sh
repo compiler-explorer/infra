@@ -65,8 +65,7 @@ ce_install 'compilers/zig'
 
 #########################
 # Clean
-# shellcheck source=install_clean_compilers.sh
-. "${SCRIPT_DIR}"/install_clean_compilers.sh "${ARG1}"
+ce_install 'compilers/clean'
 
 #########################
 # Java
