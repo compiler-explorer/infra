@@ -8,6 +8,7 @@ compilers:
     untar_dir: ispc-v{name}-linux
     check_exe: bin/ispc --version
     targets:
+      - 1.14.0
       - 1.13.0
     older:
       # Older ones seem to live at vBLAHb-linux.tar.gz
