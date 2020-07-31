@@ -254,7 +254,7 @@ class Installable:
         self.config = config
         self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
-        self.name = f'{"/".join(self.context)}/{self.target_name}'
+        self.name = f'{"/".join(self.context)} {self.target_name}'
         self.is_library = False
         self.language = False
         if len(self.context) > 0:
