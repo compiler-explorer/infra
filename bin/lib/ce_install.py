@@ -106,6 +106,7 @@ def main():
     for filt in args.filter:
         def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
             return lambda installable: filter_match(x, installable)
+
         installables = filter(make_f(), installables)
     installables = sorted(installables, key=lambda x: x.sort_key)
 
@@ -169,7 +170,7 @@ def main():
     elif args.command == 'install':
         num_installed = 0
         num_skipped = 0
-        num_failed = 0
+        failed = []
         for installable in installables:
             print(f"Installing {installable.name}")
             if args.force or installable.should_install():
@@ -177,21 +178,24 @@ def main():
                     if installable.install():
                         if not installable.is_installed():
                             context.error(f"{installable.name} installed OK, but doesn't appear as installed after")
-                            num_failed += 1
+                            failed.append(installable.name)
                         else:
                             context.info(f"{installable.name} installed OK")
                             num_installed += 1
                     else:
                         context.info(f"{installable.name} failed to install")
-                        num_failed += 1
+                        failed.append(installable.name)
                 except RuntimeError as e:
                     context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
-                    num_failed += 1
+                    failed.append(installable.name)
             else:
                 context.info(f"{installable.name} is already installed, skipping")
                 num_skipped += 1
-        print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {num_failed} failed installation')
-        if num_failed:
+        print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {len(failed)} failed installation')
+        if len(failed):
+            print('Failed:')
+            for f in sorted(failed):
+                print(f'  {f}')
             sys.exit(1)
         sys.exit(0)
     elif args.command == 'build':
