@@ -245,6 +245,7 @@ RUST_TARGETS+=(
 )
 install_new_rust 1.44.0 RUST_TARGETS[@]
 install_new_rust 1.45.0 RUST_TARGETS[@]
+install_new_rust 1.45.2 RUST_TARGETS[@]
 
 if install_nightly; then
     install_new_rust nightly RUST_TARGETS[@] '1 day'
