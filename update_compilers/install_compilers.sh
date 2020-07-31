@@ -41,7 +41,7 @@ ce_install 'compilers/c'
 ce_install 'compilers/ispc'
 
 #########################
-# Haskell
+# Haskelllanguage
 # shellcheck source=install_haskell_compilers.sh
 . "${SCRIPT_DIR}"/install_haskell_compilers.sh "${ARG1}"
 
@@ -61,8 +61,7 @@ ce_install 'compilers/asm'
 
 #########################
 # Zig
-# shellcheck source=install_zig_compilers.sh
-. "${SCRIPT_DIR}"/install_zig_compilers.sh "${ARG1}"
+ce_install 'compilers/zig'
 
 #########################
 # Clean

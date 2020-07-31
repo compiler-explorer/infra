@@ -688,13 +688,15 @@ class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         document = self.install_context.fetch_json(self.config_get('url'))
-        # pylint: disable=eval-used
-        self.config['url'] = eval(self.config_get('query'), {}, dict(document=document))
-        if not self.config['url']:
+        # pylint: disable=eval-usedBut emplace
+        self.url = eval(self.config_get('query'), {}, dict(document=document))
+        if not self.url:
             self.warn('No installation candidate found')
+        else:
+            self.info(f'resolved to {self.url}')
 
     def should_install(self) -> bool:
-        if not self.config['url']:
+        if not self.url:
             return False
         return super().should_install()
 
@@ -791,7 +793,7 @@ def _targets_from(node, enabled, context, name, base_config):
         if isinstance(node['if'], list):
             condition = set(node['if'])
         else:
-            condition = set([node['if']])
+            condition = {node['if']}
         if set(enabled).intersection(condition) != condition:
             return
 

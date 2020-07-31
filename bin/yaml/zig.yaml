@@ -1,0 +1,24 @@
+compilers:
+  zig:
+    type: tarballs
+    compression: xz
+    url: https://ziglang.org/download/{name}/zig-linux-x86_64-{name}.tar.xz
+    check_exe: zig version
+    dir: zig-{name}
+    strip_components: 1
+    create_untar_dir: true
+    strip: true
+    targets:
+      - 0.2.0
+      - 0.3.0
+      - 0.4.0
+      - 0.5.0
+      - 0.6.0
+    nightly:
+      if: nightly
+      type: restQueryTarballs
+      install_always: true
+      url: https://ziglang.org/download/index.json
+      query: document['master']['x86_64-linux']['tarball']
+      targets:
+        - master
