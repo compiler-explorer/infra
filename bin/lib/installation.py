@@ -205,7 +205,7 @@ class InstallationContext:
         args = args[:]
         args[0] = str(self.destination / args[0])
         logger.debug('Executing %s in %s', args, self.destination)
-        return subprocess.check_output(args, cwd=str(self.destination), env=env).decode('utf-8')
+        return subprocess.check_output(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL).decode('utf-8')
 
     def strip_exes(self, paths: Union[bool, List[str]]) -> None:
         if isinstance(paths, bool):
