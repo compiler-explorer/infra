@@ -36,6 +36,20 @@ for version in 2016.3.210 2018.0.033; do
     fi
 done
 
+install_oneapi() {
+    local HPCKIT_URL=$1
+    local TMP_DIR=${OPT}/tmp/oneapi
+    local HPCKIT_PATH=${TMP_DIR}/hpckit.sh
+    local INSTALL_DIR=$(pwd)/$2
+    mkdir -p ${TMP_DIR}
+    fetch ${HPCKIT_URL} > $HPCKIT_PATH
+    bash $HPCKIT_PATH -s -a -s --action install --eula accept --components intel.oneapi.lin.cpp-compiler:intel.oneapi.lin.ifort-compiler --install-dir ${DIR}
+    # to use the compiler, you must 'source ${DIR}/setvars.sh'
+    rm -rf ${TMP_DIR}
+}
+
+install_oneapi https://registrationcenter-download.intel.com/akdlm/irc_nas/16856/l_HPCKit_b_2021.1.8.1883_offline.sh 2021-beta8
+
 ##################################
 # Windows compilers
 fix_up_windows() {
