@@ -18,7 +18,7 @@ import requests
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
-from lib.amazon import list_compilers
+from lib.amazon import list_compilers, list_s3_artifacts
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 
@@ -759,8 +759,11 @@ class ScriptInstallable(Installable):
         return f'ScriptInstallable({self.name}, {self.install_path})'
 
 
-def _flatten(some_list):
-    return sum(map(_flatten, some_list), []) if isinstance(some_list, list) else [some_list]
+@functools.lru_cache(maxsize=512)
+def s3_available_rust_artifacts(prefix):
+    dist_prefix = "dist/"
+    return [compiler[len(dist_prefix):] for compiler in list_s3_artifacts('static-rust-lang-org', dist_prefix + prefix)
+            if compiler.endswith('.tar.gz')]
 
 
 class RustInstallable(Installable):
@@ -768,30 +771,28 @@ class RustInstallable(Installable):
         super().__init__(install_context, config)
         self.install_path = self.config_get('dir')
         self._setup_check_exe(self.install_path)
-        self.architectures = _flatten(self.config_get('architectures', []))
         self.base_package = self.config_get('base_package')
         self.nightly_install_days = self.config_get('nightly_install_days', 0)
 
-    def do_rust_install(self, component: str, install_to: Path, fail_ok: bool) -> None:
+    def do_rust_install(self, component: str, install_to: Path) -> None:
         url = f'https://static.rust-lang.org/dist/{component}.tar.gz'
         untar_to = self.install_context.staging / '__temp_install__'
-        try:
-            self.install_context.fetch_url_and_pipe_to(url, ['tar', 'zxf', '-', '--strip-components=1'], untar_to)
-        except FetchFailure:
-            if fail_ok:
-                return
-            raise
+        self.install_context.fetch_url_and_pipe_to(url, ['tar', 'zxf', '-', '--strip-components=1'], untar_to)
         self.install_context.stage_command(
             ['./install.sh', f'--prefix={install_to}', '--verbose', '--without=rust-docs'], cwd=untar_to)
         self.install_context.remove_dir(untar_to)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
-        self.info(f"Installing for these architectures: {', '.join(self.architectures)}")
+        arch_std_prefix = f'rust-std-{self.target_name}-'
+        suffix = '.tar.gz'
+        architectures = [artifact[len(arch_std_prefix):-len(suffix)] for artifact in
+                         s3_available_rust_artifacts(arch_std_prefix)]
+        self.info(f"Installing for these architectures: {', '.join(architectures or ['none'])}")
         base_path = self.install_context.staging / f'rust-{self.target_name}'
-        self.do_rust_install(self.base_package, base_path, False)
-        for architecture in self.architectures:
-            self.do_rust_install(f'rust-std-{self.target_name}-{architecture}', base_path, True)
+        self.do_rust_install(self.base_package, base_path)
+        for architecture in architectures:
+            self.do_rust_install(f'rust-std-{self.target_name}-{architecture}', base_path)
         for binary in (b for b in (base_path / 'bin').glob('*') if self.install_context.is_elf(b)):
             self.install_context.set_rpath(binary, '$ORIGIN/../lib')
         for shared_object in (base_path / 'lib').glob("*.so"):

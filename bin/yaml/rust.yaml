@@ -13,190 +13,54 @@ compilers:
         - 1.4.0
     newer:
       base_package: rust-{name}-x86_64-unknown-linux-gnu
-      v5to7:
-        architectures: &up-to-7
-          - aarch64-unknown-linux-gnu
-          - arm-linux-androideabi
-          - arm-unknown-linux-gnueabi
-          - arm-unknown-linux-gnueabihf
-          - i686-apple-darwin
-          - i686-pc-windows-gnu
-          - i686-pc-windows-msvc
-          - i686-unknown-linux-gnu
-          - mips-unknown-linux-gnu
-          - mipsel-unknown-linux-gnu
-          - x86_64-apple-darwin
-          - x86_64-pc-windows-gnu
-          - x86_64-pc-windows-msvc
-          - x86_64-unknown-linux-gnu
-          - x86_64-unknown-linux-musl
+      targets:
+        - 1.5.0
+        - 1.6.0
+        - 1.7.0
+        - 1.8.0
+        - 1.9.0
+        - 1.10.0
+        - 1.11.0
+        - 1.12.0
+        - 1.13.0
+        - 1.14.0
+        - 1.15.1
+        - 1.16.0
+        - 1.17.0
+        - 1.18.0
+        - 1.19.0
+        - 1.20.0
+        - 1.21.0
+        - 1.22.0
+        - 1.23.0
+        - 1.24.0
+        - 1.25.0
+        - 1.26.0
+        - 1.27.0
+        - 1.27.1
+        - 1.28.0
+        - 1.29.0
+        - 1.30.0
+        - 1.31.0
+        - 1.32.0
+        - 1.33.0
+        - 1.34.0
+        - 1.35.0
+        - 1.36.0
+        - 1.37.0
+        - 1.38.0
+        - 1.39.0
+        - 1.40.0
+        - 1.41.0
+        - 1.42.0
+        - 1.43.0
+        - 1.44.0
+        - 1.45.0
+        - 1.45.2
+      nightly:
+        if: nightly
         targets:
-          - 1.5.0
-          - 1.6.0
-          - 1.7.0
-          - name: 1.8.0
-            architectures: &up-to-8
-              - *up-to-7
-              - aarch64-apple-ios
-              - armv7-apple-ios
-              - armv7-unknown-linux-gnueabihf
-              - armv7s-apple-ios
-              - i386-apple-ios
-              - powerpc-unknown-linux-gnu
-              - powerpc64-unknown-linux-gnu
-              - powerpc64le-unknown-linux-gnu
-              - x86_64-apple-ios
-              - x86_64-rumprun-netbsd
-          - name: 1.9.0
-            architectures: &up-to-9
-              - *up-to-8
-              - i586-pc-windows-msvc
-              - i686-linux-android
-              - i686-unknown-freebsd
-              - mips-unknown-linux-musl
-              - mipsel-unknown-linux-musl
-              - x86_64-unknown-freebsd
-              - x86_64-unknown-netbsd
-      v10to12:
-        architectures: &up-to-12
-          - *up-to-9
-          - aarch64-linux-android
-          - armv7-linux-androideabi
-          - i586-unknown-linux-gnu
-          - i686-unknown-linux-musl
-        targets:
-          - 1.10.0
-          - 1.11.0
-          - 1.12.0
-          - name: 1.13.0
-            architectures: &up-to-13
-              - *up-to-12
-              - mips64-unknown-linux-gnuabi64
-              - mips64el-unknown-linux-gnuabi64
-              - s390x-unknown-linux-gnu
-      v14to16:
-        architectures: &up-to-16
-          - *up-to-13
-          - arm-unknown-linux-musleabi
-          - arm-unknown-linux-musleabihf
-          - armv7-unknown-linux-musleabihf
-          - asmjs-unknown-emscripten
-          - wasm32-unknown-emscripten
-        targets:
-          - 1.14.0
-          - 1.15.1
-          - 1.16.0
-          - name: 1.17.0
-            architectures: &up-to-17
-              - *up-to-16
-              - aarch64-unknown-fuchsia
-              - sparc64-unknown-linux-gnu
-              - x86_64-unknown-fuchsia
-      v18to20:
-        architectures: &up-to-20
-          - *up-to-17
-          - x86_64-linux-android
-        targets:
-          - 1.18.0
-          - 1.19.0
-          - 1.20.0
-          - name: 1.21.0
-            architectures: &up-to-21
-              - *up-to-20
-              - x86_64-unknown-redox
-          - name: 1.22.0
-            architectures: &up-to-22
-              - *up-to-21
-              - aarch64-unknown-linux-musl
-              - sparcv9-sun-solaris
-              - x86_64-sun-solaris
-          - name: 1.23.0
-            architectures: &up-to-23
-              - *up-to-22
-              - x86_64-unknown-linux-gnux32
-          - name: 1.24.0
-            architectures: &up-to-24
-              - *up-to-23
-              - armv5te-unknown-linux-gnueabi
-              - wasm32-unknown-unknown
-      v25and26:
-        architectures: &up-to-26
-          - *up-to-24
-          - i586-unknown-linux-musl
-          - x86_64-unknown-cloudabi
-        targets:
-          - 1.25.0
-          - 1.26.0
-      v27to32:
-        architectures: &up-to-32
-          - *up-to-26
-          - armv5te-unknown-linux-musleabi
-          - thumbv6m-none-eabi
-          - thumbv7em-none-eabi
-          - thumbv7em-none-eabihf
-          - thumbv7m-none-eabi
-        targets:
-          - 1.27.0
-          - 1.27.1
-          - 1.28.0
-          - 1.29.0
-          - 1.30.0
-          - 1.31.0
-          - 1.32.0
-          - name: 1.33.0
-            architectures: &up-to-33
-              - *up-to-32
-              - thumbv7neon-unknown-linux-gnueabihf
-              - thumbv7neon-linux-androideabi
-          - name: 1.34.0
-            architectures: &up-to-34
-              - *up-to-33
-              - riscv32imac-unknown-none-elf
-              - riscv32imc-unknown-none-elf
-              - riscv64imac-unknown-none-elf
-              - riscv64gc-unknown-none-elf
-      v35to40:
-        architectures: &up-to-40
-          - *up-to-34
-          - armv6-unknown-freebsd-gnueabihf
-          - armv7-unknown-freebsd-gnueabihf
-          - wasm32-unknown-wasi
-        targets:
-          - 1.35.0
-          - 1.36.0
-          - 1.37.0
-          - 1.38.0
-          - 1.39.0
-          - 1.40.0
-          - name: 1.41.0
-            architectures: &up-to-41
-              - *up-to-40
-              - armv6-unknown-freebsd-gnueabihf
-      v42to43:
-        architectures: &up-to-43
-          - *up-to-41
-          - armv7a-none-eabi
-          - riscv64gc-unknown-linux-gnu
-        targets:
-          - 1.42.0
-          - 1.43.0
-      v44tov45:
-        architectures: &up-to-45
-          - *up-to-43
-          - aarch64-unknown-none
-          - aarch64-unknown-none-softfloat
-          - arm64-apple-tvos
-          - x86_64-apple-tvos
-        targets:
-          - 1.44.0
-          - 1.45.0
-          - 1.45.2
-        # Ensure nightly is a child of the most recent versions above so it inherits all the architectures those
-        # versions are using. If we need to enable more then it'll get a bit more complex.
-        nightly:
-          if: nightly
-          targets:
-            - name: nightly
-              nightly_install_days: 1
-            - name: beta
-              nightly_install_days: 7
+          - name: nightly
+            nightly_install_days: 1
+          - name: beta
+            nightly_install_days: 7

@@ -1,5 +1,5 @@
-from operator import attrgetter
 from datetime import datetime
+from operator import attrgetter
 
 
 class LazyObjectWrapper:
@@ -352,6 +352,14 @@ def list_compilers(with_extension=False):
                 if not name:
                     continue
                 yield name
+
+
+def list_s3_artifacts(bucket, prefix):
+    s3_paginator = anon_s3_client.get_paginator('list_objects_v2')
+    for page in s3_paginator.paginate(Bucket=bucket, Prefix=prefix):
+        if page['KeyCount']:
+            for match in page['Contents']:
+                yield match['Key']
 
 
 def get_ssm_param(param):
