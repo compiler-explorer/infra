@@ -235,6 +235,7 @@ compilers:
           subdir: kvx
           targets:
             - 4.1.0-cd1
+            - 4.1.0-rc6
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
