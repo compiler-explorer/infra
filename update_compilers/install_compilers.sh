@@ -17,8 +17,7 @@ fi
 
 #########################
 # Rust
-# shellcheck source=install_rust_compilers.sh
-. "${SCRIPT_DIR}"/install_rust_compilers.sh "${ARG1}"
+ce_install 'compilers/rust'
 
 #########################
 # Go
