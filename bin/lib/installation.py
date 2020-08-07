@@ -31,6 +31,10 @@ NO_DEFAULT = "__no_default__"
 logger = logging.getLogger(__name__)
 
 
+class FetchFailure(RuntimeError):
+    pass
+
+
 @functools.lru_cache(maxsize=1)
 def s3_available_compilers():
     compilers = defaultdict(lambda: [])
@@ -85,7 +89,7 @@ class InstallationContext:
         request = self.fetcher.get(url, stream=True)
         if not request.ok:
             self.error(f'Failed to fetch {url}: {request}')
-            raise RuntimeError(f'Fetch failure for {url}: {request}')
+            raise FetchFailure(f'Fetch failure for {url}: {request}')
         fetched = 0
         length = int(request.headers.get('content-length', 0))
         self.info(f'Fetching {url} ({length} bytes)')
@@ -102,7 +106,7 @@ class InstallationContext:
         self.info(f'100% of {url}')
         fd.flush()
 
-    def fetch_url_and_pipe_to(self, url: str, command: Sequence[str], subdir: str = '.') -> None:
+    def fetch_url_and_pipe_to(self, url: str, command: Sequence[str], subdir: Union[Path, str] = '.') -> None:
         untar_dir = self.staging / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
         # We stream to a temporary file first before then piping this to the command
@@ -113,9 +117,9 @@ class InstallationContext:
             self.info(f'Piping to {" ".join(command)}')
             subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
-    def stage_command(self, command: Sequence[str]) -> None:
+    def stage_command(self, command: Sequence[str], cwd: Optional[Path] = None) -> None:
         self.info(f'Staging with {" ".join(command)}')
-        subprocess.check_call(command, cwd=str(self.staging))
+        subprocess.check_call(command, cwd=str(cwd or self.staging))
 
     def fetch_s3_and_pipe_to(self, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(f'{self.s3_url}/{s3}', command)
@@ -140,7 +144,7 @@ class InstallationContext:
     def glob(self, pattern: str) -> Collection[str]:
         return [os.path.relpath(x, str(self.destination)) for x in glob.glob(str(self.destination / pattern))]
 
-    def remove_dir(self, directory: str) -> None:
+    def remove_dir(self, directory: Union[str, Path]) -> None:
         if self.dry_run:
             self.info(f'Would remove directory {directory} but in dry-run mode')
         else:
@@ -205,7 +209,8 @@ class InstallationContext:
         args = args[:]
         args[0] = str(self.destination / args[0])
         logger.debug('Executing %s in %s', args, self.destination)
-        return subprocess.check_output(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL).decode('utf-8')
+        return subprocess.check_output(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL).decode(
+            'utf-8')
 
     def strip_exes(self, paths: Union[bool, List[str]]) -> None:
         if isinstance(paths, bool):
@@ -241,6 +246,14 @@ class InstallationContext:
             subprocess.check_call([scriptfile], cwd=frompath)
 
             os.remove(scriptfile)
+
+    def is_elf(self, maybe_elf_file: Path):
+        return b'ELF' in subprocess.check_output(['file', maybe_elf_file])
+
+    def set_rpath(self, elf_file: Path, rpath: str):
+        # TODO: sometime we'll need a way of finding patchelf
+        self.info(f'Setting rpath of {elf_file} to {rpath}')
+        subprocess.check_call([self.destination / 'patchelf-0.8' / 'src' / 'patchelf', '--set-rpath', rpath, elf_file])
 
 
 class Installable:
@@ -746,6 +759,73 @@ class ScriptInstallable(Installable):
         return f'ScriptInstallable({self.name}, {self.install_path})'
 
 
+def _flatten(some_list):
+    return sum(map(_flatten, some_list), []) if isinstance(some_list, list) else [some_list]
+
+
+class RustInstallable(Installable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self._setup_check_exe(self.install_path)
+        self.architectures = _flatten(self.config_get('architectures', []))
+        self.base_package = self.config_get('base_package')
+        self.nightly_install_days = self.config_get('nightly_install_days', 0)
+
+    def do_rust_install(self, component: str, install_to: Path, fail_ok: bool) -> None:
+        url = f'https://static.rust-lang.org/dist/{component}.tar.gz'
+        untar_to = self.install_context.staging / '__temp_install__'
+        try:
+            self.install_context.fetch_url_and_pipe_to(url, ['tar', 'zxf', '-', '--strip-components=1'], untar_to)
+        except FetchFailure:
+            if fail_ok:
+                return
+            raise
+        self.install_context.stage_command(
+            ['./install.sh', f'--prefix={install_to}', '--verbose', '--without=rust-docs'], cwd=untar_to)
+        self.install_context.remove_dir(untar_to)
+
+    def stage(self) -> None:
+        self.install_context.clean_staging()
+        self.info(f"Installing for these architectures: {', '.join(self.architectures)}")
+        base_path = self.install_context.staging / f'rust-{self.target_name}'
+        self.do_rust_install(self.base_package, base_path, False)
+        for architecture in self.architectures:
+            self.do_rust_install(f'rust-std-{self.target_name}-{architecture}', base_path, True)
+        for binary in (b for b in (base_path / 'bin').glob('*') if self.install_context.is_elf(b)):
+            self.install_context.set_rpath(binary, '$ORIGIN/../lib')
+        for shared_object in (base_path / 'lib').glob("*.so"):
+            self.install_context.set_rpath(shared_object, '$ORIGIN')
+        self.install_context.remove_dir(base_path / 'share')
+
+    def should_install(self) -> bool:
+        if self.nightly_install_days > 0:
+            dest_dir = self.install_context.destination / self.install_path
+            if os.path.exists(dest_dir):
+                dtime = datetime.fromtimestamp(dest_dir.stat().st_mtime)
+                age = datetime.now() - dtime
+                self.info(f"Nightly build {dest_dir} is {age} old")
+                if age.days > self.nightly_install_days:
+                    return True
+        return super().should_install()
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def install(self) -> bool:
+        if not super().install():
+            return False
+        self.stage()
+        self.install_context.move_from_staging(self.install_path)
+        return True
+
+    def __repr__(self) -> str:
+        return f'RustInstallable({self.name}, {self.install_path})'
+
+
 def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
@@ -756,12 +836,18 @@ def is_list_of_strings(value: Any) -> bool:
     return isinstance(value, list) and all(isinstance(x, str) for x in value)
 
 
+# dear god it's late and this can't really be sensible, right?
+def is_list_of_strings_or_lists(value: Any) -> bool:
+    return isinstance(value, list) and all(isinstance(x, str) or is_list_of_strings_or_lists(x) for x in value)
+
+
 def is_value_type(value: Any) -> bool:
     return isinstance(value, str) \
            or isinstance(value, bool) \
            or isinstance(value, float) \
            or isinstance(value, int) \
-           or is_list_of_strings(value)
+           or is_list_of_strings(value) \
+           or is_list_of_strings_or_lists(value)
 
 
 def needs_expansion(target):
@@ -844,6 +930,7 @@ INSTALLER_TYPES = {
     'github': GitHubInstallable,
     'gitlab': GitLabInstallable,
     'bitbucket': BitbucketInstallable,
+    'rust': RustInstallable
 }
 
 

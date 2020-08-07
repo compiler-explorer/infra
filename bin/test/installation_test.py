@@ -91,6 +91,25 @@ compilers:
     assert target['num_to_keep'] == 2
 
 
+def test_nested_expansion():
+    [first, second] = parse_targets("""
+compilers:
+  v5to7:
+    architectures: &up-to-7
+      - AAA
+    targets:
+      - first
+  v10to12:
+    architectures:
+      - *up-to-7
+      - DDD
+    targets:
+      - second
+""")
+    assert first['architectures'] == ['AAA']
+    assert second['architectures'] == [['AAA'], 'DDD']
+
+
 @pytest.fixture(name='fake_context')
 def fake_context_fixture():
     return MagicMock(spec=InstallationContext)

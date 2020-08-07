@@ -102,9 +102,9 @@ RUST_TARGETS=(
     x86_64-unknown-linux-gnu
     x86_64-unknown-linux-musl
 )
-install_new_rust 1.5.0 RUST_TARGETS[@]
-install_new_rust 1.6.0 RUST_TARGETS[@]
-install_new_rust 1.7.0 RUST_TARGETS[@]
+#install_new_rust 1.5.0 RUST_TARGETS[@]
+#install_new_rust 1.6.0 RUST_TARGETS[@]
+#install_new_rust 1.7.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     aarch64-apple-ios
     armv7-apple-ios
@@ -117,7 +117,7 @@ RUST_TARGETS+=(
     x86_64-apple-ios
     x86_64-rumprun-netbsd
 )
-install_new_rust 1.8.0 RUST_TARGETS[@]
+#install_new_rust 1.8.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     i586-pc-windows-msvc
     i686-linux-android
@@ -127,22 +127,22 @@ RUST_TARGETS+=(
     x86_64-unknown-freebsd
     x86_64-unknown-netbsd
 )
-install_new_rust 1.9.0 RUST_TARGETS[@]
+#install_new_rust 1.9.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     aarch64-linux-android
     armv7-linux-androideabi
     i586-unknown-linux-gnu
     i686-unknown-linux-musl
 )
-install_new_rust 1.10.0 RUST_TARGETS[@]
-install_new_rust 1.11.0 RUST_TARGETS[@]
-install_new_rust 1.12.0 RUST_TARGETS[@]
+#install_new_rust 1.10.0 RUST_TARGETS[@]
+#install_new_rust 1.11.0 RUST_TARGETS[@]
+#install_new_rust 1.12.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     mips64-unknown-linux-gnuabi64
     mips64el-unknown-linux-gnuabi64
     s390x-unknown-linux-gnu
 )
-install_new_rust 1.13.0 RUST_TARGETS[@]
+#install_new_rust 1.13.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     arm-unknown-linux-musleabi
     arm-unknown-linux-musleabihf
@@ -150,46 +150,46 @@ RUST_TARGETS+=(
     asmjs-unknown-emscripten
     wasm32-unknown-emscripten
 )
-install_new_rust 1.14.0 RUST_TARGETS[@]
-install_new_rust 1.15.1 RUST_TARGETS[@]
-install_new_rust 1.16.0 RUST_TARGETS[@]
+#install_new_rust 1.14.0 RUST_TARGETS[@]
+#install_new_rust 1.15.1 RUST_TARGETS[@]
+#install_new_rust 1.16.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     aarch64-unknown-fuchsia
     sparc64-unknown-linux-gnu
     x86_64-unknown-fuchsia
 )
-install_new_rust 1.17.0 RUST_TARGETS[@]
+#install_new_rust 1.17.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     x86_64-linux-android
 )
-install_new_rust 1.18.0 RUST_TARGETS[@]
-install_new_rust 1.19.0 RUST_TARGETS[@]
-install_new_rust 1.20.0 RUST_TARGETS[@]
+#install_new_rust 1.18.0 RUST_TARGETS[@]
+#install_new_rust 1.19.0 RUST_TARGETS[@]
+#install_new_rust 1.20.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     x86_64-unknown-redox
 )
-install_new_rust 1.21.0 RUST_TARGETS[@]
+#install_new_rust 1.21.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     aarch64-unknown-linux-musl
     sparcv9-sun-solaris
     x86_64-sun-solaris
 )
-install_new_rust 1.22.0 RUST_TARGETS[@]
+#install_new_rust 1.22.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     x86_64-unknown-linux-gnux32
 )
-install_new_rust 1.23.0 RUST_TARGETS[@]
+#install_new_rust 1.23.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     armv5te-unknown-linux-gnueabi
     wasm32-unknown-unknown
 )
-install_new_rust 1.24.0 RUST_TARGETS[@]
+#install_new_rust 1.24.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     i586-unknown-linux-musl
     x86_64-unknown-cloudabi
 )
-install_new_rust 1.25.0 RUST_TARGETS[@]
-install_new_rust 1.26.0 RUST_TARGETS[@]
+#install_new_rust 1.25.0 RUST_TARGETS[@]
+#install_new_rust 1.26.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     armv5te-unknown-linux-musleabi
     thumbv6m-none-eabi
@@ -197,53 +197,53 @@ RUST_TARGETS+=(
     thumbv7em-none-eabihf
     thumbv7m-none-eabi
 )
-install_new_rust 1.27.0 RUST_TARGETS[@]
-install_new_rust 1.27.1 RUST_TARGETS[@]
-install_new_rust 1.28.0 RUST_TARGETS[@]
-install_new_rust 1.29.0 RUST_TARGETS[@]
-install_new_rust 1.30.0 RUST_TARGETS[@]
-install_new_rust 1.31.0 RUST_TARGETS[@]
-install_new_rust 1.32.0 RUST_TARGETS[@]
+#install_new_rust 1.27.0 RUST_TARGETS[@]
+#install_new_rust 1.27.1 RUST_TARGETS[@]
+#install_new_rust 1.28.0 RUST_TARGETS[@]
+#install_new_rust 1.29.0 RUST_TARGETS[@]
+#install_new_rust 1.30.0 RUST_TARGETS[@]
+#install_new_rust 1.31.0 RUST_TARGETS[@]
+#install_new_rust 1.32.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     thumbv7neon-unknown-linux-gnueabihf
     thumbv7neon-linux-androideabi
 )
-install_new_rust 1.33.0 RUST_TARGETS[@]
+#install_new_rust 1.33.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     riscv32imac-unknown-none-elf
     riscv32imc-unknown-none-elf
     riscv64imac-unknown-none-elf
     riscv64gc-unknown-none-elf
 )
-install_new_rust 1.34.0 RUST_TARGETS[@]
+#install_new_rust 1.34.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     armv6-unknown-freebsd-gnueabihf
     armv7-unknown-freebsd-gnueabihf
     wasm32-unknown-wasi
 )
-install_new_rust 1.35.0 RUST_TARGETS[@]
-install_new_rust 1.36.0 RUST_TARGETS[@]
-install_new_rust 1.37.0 RUST_TARGETS[@]
+#install_new_rust 1.35.0 RUST_TARGETS[@]
+#install_new_rust 1.36.0 RUST_TARGETS[@]
+#install_new_rust 1.37.0 RUST_TARGETS[@]
 # Rust 1.38 adds some Tier 3 targets, skipping those for now
-install_new_rust 1.38.0 RUST_TARGETS[@]
-install_new_rust 1.39.0 RUST_TARGETS[@]
-install_new_rust 1.40.0 RUST_TARGETS[@]
+#install_new_rust 1.38.0 RUST_TARGETS[@]
+#install_new_rust 1.39.0 RUST_TARGETS[@]
+#install_new_rust 1.40.0 RUST_TARGETS[@]
 RUST_TARGETS=( "${RUST_TARGETS[@]/i686-unknown-dragonfly/}" )
 RUST_TARGETS+=( armv6-unknown-freebsd-gnueabihf )
-install_new_rust 1.41.0 RUST_TARGETS[@]
+#install_new_rust 1.41.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     armv7a-none-eabi
     riscv64gc-unknown-linux-gnu
 )
-install_new_rust 1.42.0 RUST_TARGETS[@]
-install_new_rust 1.43.0 RUST_TARGETS[@]
+#install_new_rust 1.42.0 RUST_TARGETS[@]
+#install_new_rust 1.43.0 RUST_TARGETS[@]
 RUST_TARGETS+=(
     aarch64-unknown-none
     aarch64-unknown-none-softfloat
     arm64-apple-tvos
     x86_64-apple-tvos
 )
-install_new_rust 1.44.0 RUST_TARGETS[@]
+#install_new_rust 1.44.0 RUST_TARGETS[@]
 install_new_rust 1.45.0 RUST_TARGETS[@]
 
 if install_nightly; then
