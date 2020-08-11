@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 from collections import defaultdict, ChainMap
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Sequence, Collection, List, Union, Dict, Any, IO, Callable
 
@@ -804,7 +804,10 @@ class RustInstallable(Installable):
             dest_dir = self.install_context.destination / self.install_path
             if os.path.exists(dest_dir):
                 dtime = datetime.fromtimestamp(dest_dir.stat().st_mtime)
-                age = datetime.now() - dtime
+                # The fudge factor of 30m is to sort of account for the installation time. Else
+                # we start up the same time the next day and we get a 23hr58 minute old build and we
+                # don't reinstall.
+                age = datetime.now() - dtime + timedelta(minutes=30)
                 self.info(f"Nightly build {dest_dir} is {age} old")
                 if age.days > self.nightly_install_days:
                     return True
