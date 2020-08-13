@@ -27,6 +27,8 @@ def running_on_ec2():
             logger.debug("Not running on ec2")
     except ConnectTimeout:
         logger.debug("Timeout: not running on ec2")
+    except OSError:
+        logger.debug("OSError: not running on ec2")
     return False
 
 
