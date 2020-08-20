@@ -350,6 +350,7 @@ compilers:
         targets:
           - trunk
           - cppx-trunk
+          - cppx-ext-trunk
           - concepts-trunk
           - embed-trunk
           - relocatable-trunk
