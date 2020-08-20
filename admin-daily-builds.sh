@@ -95,6 +95,7 @@ build_latest gcc gcc_embed build.sh embed-trunk
 build_latest gcc gcc_static_analysis build.sh static-analysis-trunk
 build_latest clang clang build.sh trunk
 build_latest clang clang_cppx build.sh cppx-trunk
+build_latest clang clang_cppx_ext build.sh cppx-ext-trunk
 build_latest clang clang_relocatable build.sh relocatable-trunk
 build_latest clang clang_autonsdmi build.sh autonsdmi-trunk
 build_latest clang clang_lifetime build.sh lifetime-trunk
