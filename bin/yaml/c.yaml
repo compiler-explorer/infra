@@ -42,3 +42,8 @@ compilers:
         type: nightly
         targets:
           - trunk
+      tendra:
+        type: nightly
+        check_exe: bin/tcc -version
+        targets:
+          - trunk
