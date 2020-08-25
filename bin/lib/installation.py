@@ -921,7 +921,7 @@ def _targets_from(node, enabled, context, name, base_config):
                         elif isinstance(value, float):
                             target[key] = str(value)
                     except KeyError as ke:
-                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})")
+                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})") from ke
             yield target
 
 

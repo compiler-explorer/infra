@@ -537,11 +537,11 @@ def check_dec_args(regex, decoration):
     try:
         re.compile(regex)
     except re.error as re_err:
-        raise RuntimeError(f"Unable to validate regex '{regex}' : {re_err}")
+        raise RuntimeError(f"Unable to validate regex '{regex}' : {re_err}") from re_err
     try:
         decoration = json.loads(decoration)
     except json.decoder.JSONDecodeError as json_err:
-        raise RuntimeError(f"Unable to parse decoration '{decoration}' : {json_err}")
+        raise RuntimeError(f"Unable to parse decoration '{decoration}' : {json_err}") from json_err
     return regex, decoration
 
 
