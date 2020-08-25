@@ -5,18 +5,17 @@ import glob
 import logging
 import os
 import re
+import requests
 import shutil
 import subprocess
 import tempfile
 import time
+from cachecontrol import CacheControl
+from cachecontrol.caches import FileCache
 from collections import defaultdict, ChainMap
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Sequence, Collection, List, Union, Dict, Any, IO, Callable
-
-import requests
-from cachecontrol import CacheControl
-from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers, list_s3_artifacts
 from lib.library_build_config import LibraryBuildConfig
@@ -676,7 +675,7 @@ class TarballInstallable(Installable):
             self.install_context.strip_exes(self.strip)
         if not (self.install_context.staging / self.untar_path).is_dir():
             raise RuntimeError(f"After unpacking, {self.untar_path} was not a directory")
-        self.install_context.run_script(self.untar_to, self.after_stage_script)
+        self.install_context.run_script(self.install_context.staging / self.untar_to, self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
@@ -939,7 +938,9 @@ INSTALLER_TYPES = {
 
 
 def installers_for(install_context, nodes, enabled):
-    for target in targets_from(nodes, enabled, {'staging': install_context.staging, 'now': datetime.now()}):
+    for target in targets_from(nodes, enabled,
+                               {'staging': install_context.staging, 'destination': install_context.destination,
+                                'now': datetime.now()}):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:

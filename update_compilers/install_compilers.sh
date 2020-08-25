@@ -40,9 +40,8 @@ ce_install 'compilers/c'
 ce_install 'compilers/ispc'
 
 #########################
-# Haskelllanguage
-# shellcheck source=install_haskell_compilers.sh
-. "${SCRIPT_DIR}"/install_haskell_compilers.sh "${ARG1}"
+# Haskell
+ce_install 'compilers/haskell'
 
 #########################
 # Swift
