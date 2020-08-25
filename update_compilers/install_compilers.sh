@@ -68,8 +68,7 @@ ce_install 'compilers/clean'
 
 #########################
 # Java
-# shellcheck source=install_java_compilers.sh
-. "${SCRIPT_DIR}"/install_java_compilers.sh "${ARG1}"
+ce_install 'compilers/java'
 
 #########################
 # Circle
