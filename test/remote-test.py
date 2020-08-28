@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import glob
 import json
 import os
@@ -40,7 +40,7 @@ def get(session, url, compiler, options, source, filters):
                 obj['text'] = re.sub(r'/tmp/compiler-explorer-[^/]+', '/tmp', obj['text'])
             return obj
         except:
-            print "Issues with obj '{}'".format(obj)
+            print("Issues with obj '{}'".format(obj))
             raise
 
     result = r.json()
@@ -65,15 +65,15 @@ def main(args):
     if args.update_compilers:
         for compiler in compilers:
             if compiler not in compiler_map:
-                print "New compiler: " + compiler
+                print("New compiler: " + compiler)
                 compiler_map[compiler] = not args.disabled_by_default
         for compiler in list(compiler_map):
             if compiler not in compilers:
-                print "Compiler removed: " + compiler
+                print("Compiler removed: " + compiler)
                 del compiler_map[compiler]
         with open(compiler_json, 'w') as f:
             f.write(json.dumps(compiler_map, indent=2))
-        print "Compilers updated to " + compiler_json
+        print("Compilers updated to " + compiler_json)
         return 0
     else:
         compilers = list(sorted(compilers))
@@ -85,17 +85,17 @@ def main(args):
         for test_dir in glob.glob(os.path.join(args.directory, '*')):
             if not os.path.isdir(test_dir):
                 continue
-            print 'Testing ' + test_dir
+            print('Testing ' + test_dir)
             source_name = glob.glob(os.path.join(test_dir, 'test.*'))[0]
             source = open(source_name).read()
             options = open(os.path.join(test_dir, 'options')).read()
             for compiler, enabled in compiler_map.iteritems():
                 if not enabled:
-                    print ' Skipping compiler ' + compiler
+                    print(' Skipping compiler ' + compiler)
                     continue
-                print ' Compiler ' + compiler
+                print(' Compiler ' + compiler)
                 for filter_set in FILTERS:
-                    print '  Filters ' + '; '.join(filter_set)
+                    print('  Filters ' + '; '.join(filter_set))
                     expected_filename = [compiler]
                     expected_filename.extend(sorted(filter_set))
                     expected_filename.append('json')
