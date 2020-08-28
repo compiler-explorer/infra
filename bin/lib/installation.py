@@ -5,19 +5,23 @@ import glob
 import logging
 import os
 import re
-import requests
 import shutil
 import subprocess
 import tempfile
 import time
-from cachecontrol import CacheControl
-from cachecontrol.caches import FileCache
 from collections import defaultdict, ChainMap
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Sequence, Collection, List, Union, Dict, Any, IO, Callable
 
+import requests
+import requests.adapters
+import yaml
+from cachecontrol import CacheControl
+from cachecontrol.caches import FileCache
+
 from lib.amazon import list_compilers, list_s3_artifacts
+from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 
@@ -52,12 +56,22 @@ class InstallationContext:
         self.s3_url = s3_url
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
+        retry_strategy = requests.adapters.Retry(
+            total=10,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            method_whitelist=["HEAD", "GET", "OPTIONS"]
+        )
+        adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
+        http = requests.Session()
+        http.mount("https://", adapter)
+        http.mount("http://", adapter)
         if cache:
             self.info(f"Using cache {cache}")
-            self.fetcher = CacheControl(requests.session(), cache=FileCache(cache))
+            self.fetcher = CacheControl(http, cache=FileCache(cache))
         else:
             self.info("Making uncached requests")
-            self.fetcher = requests
+            self.fetcher = http
 
     def debug(self, message: str) -> None:
         logger.debug(message)
@@ -79,9 +93,9 @@ class InstallationContext:
         self.debug(f"Recreating staging dir {self.staging}")
         self.staging.mkdir(parents=True)
 
-    def fetch_json(self, url: str) -> Dict:
+    def fetch_rest_query(self, url: str) -> Dict:
         self.debug(f'Fetching {url}')
-        return self.fetcher.get(url).json()
+        return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
 
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
@@ -699,7 +713,7 @@ class TarballInstallable(Installable):
 class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
-        document = self.install_context.fetch_json(self.config_get('url'))
+        document = self.install_context.fetch_rest_query(self.config_get('url'))
         # pylint: disable=eval-used
         self.url = eval(self.config_get('query'), {}, dict(document=document))
         if not self.url:
@@ -713,7 +727,7 @@ class RestQueryTarballInstallable(TarballInstallable):
         return super().should_install()
 
     def __repr__(self) -> str:
-        return f'GithubTarballInstallable({self.name}, {self.install_path})'
+        return f'RestQueryTarballInstallable({self.name}, {self.install_path})'
 
 
 class ScriptInstallable(Installable):
