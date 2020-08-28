@@ -728,6 +728,15 @@ libraries:
         build_type: none
         targets:
           - trunk
+      pipes:
+        type: github
+        method: nightlyclone
+        repo: joboccara/pipes
+        path_name: libs/pipes
+        check_file: include/pipes/pipes.hpp
+        build_type: none
+        targets:
+          - trunk
       namedtype:
         type: github
         method: nightlyclone
