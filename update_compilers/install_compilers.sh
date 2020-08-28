@@ -45,8 +45,7 @@ ce_install 'compilers/haskell'
 
 #########################
 # Swift
-# shellcheck source=install_swift_compilers.sh
-. "${SCRIPT_DIR}"/install_swift_compilers.sh "${ARG1}"
+ce_install 'compilers/swift'
 
 #########################
 # Pascal

@@ -1,0 +1,35 @@
+compilers:
+  swift:
+    type: tarballs
+    compression: gz
+    dir: swift-{name}
+    create_untar_dir: true
+    strip_components: 1
+    build: swift-{name}-release
+    toolchain: swift-{name}-RELEASE
+    url: https://swift.org/builds/{build}/ubuntu1604/{toolchain}/{toolchain}-ubuntu16.04.tar.gz
+    check_exe: usr/bin/swiftc --version
+    after_stage_script:
+      # work around insane installation issue
+      - chmod og+r ./usr/lib/swift/CoreFoundation/*
+    targets:
+      - 3.1.1
+      - 4.0.2
+      - 4.0.3
+      - '4.1'
+      - 4.1.1
+      - 4.1.2
+      - '4.2'
+      - '5.0'
+      - '5.1'
+      - '5.2'
+    nightly:
+      if: nightly
+      type: restQueryTarballs
+      url: https://swift.org/builds/development/ubuntu1604/latest-build.yml
+      query: |
+        'https://swift.org/builds/development/ubuntu1604/' \
+        + document['download'].replace('-ubuntu16.04.tar.gz', '') \
+        + '/' + document['download']
+      targets:
+        - nightly
