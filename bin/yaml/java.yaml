@@ -3,7 +3,6 @@ compilers:
     type: tarballs
     compression: gz
     dir: jdk-{name}
-    strip-components: 1
     check_exe: bin/javac -version
     targets:
       - name: 11.0.2
