@@ -33,6 +33,10 @@ packer-admin: config.json  ## Builds the base image for the admin server
 packer-conan: config.json  ## Builds the base image for the CE conan-server
 	$(PACKER) build -timestamp-ui -var-file=config.json packer-conan.json
 
+.PHONY: packer-win
+packer-win: config.json  ## Builds the base image for the CE windows
+	$(PACKER) build -timestamp-ui -var-file=config.json packer-win.json
+
 .PHONY: clean
 clean:  ## Cleans up anything
 	rm -rf $(VIRTUALENV)

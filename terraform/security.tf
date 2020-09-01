@@ -158,6 +158,18 @@ resource "aws_security_group_rule" "Admin_SSH" {
   description       = "Allow SSH from anywhere"
 }
 
+resource "aws_security_group_rule" "Admin_winRM" {
+  # this is here as we (lazily) use the admin sec group for the packer builds.
+  security_group_id = aws_security_group.AdminNode.id
+  type              = "ingress"
+  from_port         = 5986
+  to_port           = 5986
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "tcp"
+  description       = "Allow secure winrm from anywhere"
+}
+
 resource "aws_security_group_rule" "Admin_EgressToAnywhere" {
   security_group_id = aws_security_group.AdminNode.id
   type              = "egress"
