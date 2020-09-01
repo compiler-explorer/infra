@@ -313,6 +313,7 @@ compilers:
           - 9.0.0
           - 10.0.0
           - 10.0.1
+          - 11.0.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
