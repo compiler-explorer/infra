@@ -4,7 +4,7 @@ compilers:
       type: tarballs
       compression: tar
       dir: fpc-{name}.x86_64-linux
-      url: https://downloads.sourceforge.net/project/freepascal/Linux/{name}/fpc-{name}.x86_64-linux.tar
+      url: https://downloads.sourceforge.net/project/freepascal/Linux/{name}/{dir}.tar
       check_exe: bin/fpc -iV
       after_stage_script:
         - cd {dir}
@@ -24,3 +24,7 @@ compilers:
         - 2.6.4
         - 3.0.2
         - 3.0.4
+      newer:
+        dir: fpc-{name}-x86_64-linux
+        targets:
+          - 3.2.0
