@@ -1,29 +1,30 @@
 compilers:
-  ghc:
-    type: tarballs
-    compression: xz
-    dir: ghc-{name}
-    url: https://downloads.haskell.org/~ghc/{name}/ghc-{name}-x86_64-deb8-linux.tar.xz
-    check_exe: bin/ghc --version
-    after_stage_script:
-      - mkdir install
-      - cd {dir}
-      # ghc needs to be built "as if" it's about to land in the destination
-      - ./configure --prefix={destination}/{dir}
-      # ...but we "dest" to somewhere in staging.
-      - make install DESTDIR=`cd ../install && pwd`
-      - cd ..
-      - rm -rf {dir}
-      # ...and then we undo this so the staging dir is just staging/{dir}
-      - mv install/{destination}/{dir} {dir}
-      - rm -rf install
-    targets:
-      - 8.0.2
-      - 8.2.2
-      - 8.4.1
-      - 8.4.2
-      - 8.4.3
-      - 8.4.4
-      - 8.6.1
-      - 8.6.2
-      - 8.6.3
+  haskell:
+    ghc:
+      type: tarballs
+      compression: xz
+      dir: ghc-{name}
+      url: https://downloads.haskell.org/~ghc/{name}/ghc-{name}-x86_64-deb8-linux.tar.xz
+      check_exe: bin/ghc --version
+      after_stage_script:
+        - mkdir install
+        - cd {dir}
+        # ghc needs to be built "as if" it's about to land in the destination
+        - ./configure --prefix={destination}/{dir}
+        # ...but we "dest" to somewhere in staging.
+        - make install DESTDIR=`cd ../install && pwd`
+        - cd ..
+        - rm -rf {dir}
+        # ...and then we undo this so the staging dir is just staging/{dir}
+        - mv install/{destination}/{dir} {dir}
+        - rm -rf install
+      targets:
+        - 8.0.2
+        - 8.2.2
+        - 8.4.1
+        - 8.4.2
+        - 8.4.3
+        - 8.4.4
+        - 8.6.1
+        - 8.6.2
+        - 8.6.3
