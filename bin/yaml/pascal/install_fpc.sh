@@ -132,7 +132,7 @@ installbinary() {
 
     # Install symlink
     rm -f "$EXECDIR/ppc${PPCSUFFIX}"
-    ln -sf "$LIBDIR/ppc${PPCSUFFIX}" "$EXECDIR/ppc${PPCSUFFIX}"
+    ln -sfr "$LIBDIR/ppc${PPCSUFFIX}" "$EXECDIR/ppc${PPCSUFFIX}"
 
     echo "Installing rtl packages..."
     listtarfiles "$BINARYTAR" packages units-rtl
@@ -270,8 +270,6 @@ case "$OSNAME" in
     ;;
 esac
 
-SHORTARCH="$ARCHNAME"
-FULLARCH="$ARCHNAME-$OSNAME"
 DOCDIR="$PREFIX/share/doc/fpc-$VERSION"
 
 case "$OSNAME" in

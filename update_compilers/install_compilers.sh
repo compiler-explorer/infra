@@ -49,8 +49,7 @@ ce_install 'compilers/swift'
 
 #########################
 # Pascal
-# shellcheck source=install_pascal_compilers.sh
-. "${SCRIPT_DIR}"/install_pascal_compilers.sh "${ARG1}"
+ce_install 'compilers/pascal'
 
 #########################
 # Assembly

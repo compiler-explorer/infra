@@ -3,7 +3,6 @@ compilers:
     type: tarballs
     compression: xz
     dir: ghc-{name}
-    relocatable: false
     url: https://downloads.haskell.org/~ghc/{name}/ghc-{name}-x86_64-deb8-linux.tar.xz
     check_exe: bin/ghc --version
     after_stage_script:

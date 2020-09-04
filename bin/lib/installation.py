@@ -50,7 +50,7 @@ def s3_available_compilers():
 
 class InstallationContext:
     def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
-                 cache: Optional[Path]):
+                 cache: Optional[Path], yaml_dir: Path):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -72,6 +72,7 @@ class InstallationContext:
         else:
             self.info("Making uncached requests")
             self.fetcher = http
+        self.yaml_dir = yaml_dir
 
     def debug(self, message: str) -> None:
         logger.debug(message)
@@ -245,12 +246,12 @@ class InstallationContext:
         # Deliberately ignore errors
         subprocess.call(['strip'] + to_strip)
 
-    def run_script(self, frompath: str, lines: List[str]) -> None:
+    def run_script(self, frompath: Union[str, Path], lines: List[str]) -> None:
         if len(lines) > 0:
             self.info('Running script')
             scriptfile = os.path.join(frompath, 'ce_script.sh')
             f = open(scriptfile, 'w')
-            f.write('#!/bin/sh\n\n')
+            f.write('#!/bin/bash\n\nset -euo pipefail\n\n')
             for line in lines:
                 f.write(f'{line}\n')
             f.close()
@@ -668,6 +669,8 @@ class TarballInstallable(Installable):
             decompress_flag = 'z'
         elif self.config_get('compression') == 'bz2':
             decompress_flag = 'j'
+        elif self.config_get('compression') == 'tar':
+            decompress_flag = ''
         else:
             raise RuntimeError(f'Unknown compression {self.config_get("compression")}')
         self.configure_command = command_config(self.config_get('configure_command', []))
@@ -953,8 +956,8 @@ INSTALLER_TYPES = {
 
 def installers_for(install_context, nodes, enabled):
     for target in targets_from(nodes, enabled,
-                               {'staging': install_context.staging, 'destination': install_context.destination,
-                                'now': datetime.now()}):
+                               dict(staging=install_context.staging, destination=install_context.destination,
+                                    yaml_dir=install_context.yaml_dir, now=datetime.now())):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:

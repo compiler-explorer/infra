@@ -1,0 +1,26 @@
+compilers:
+  pascal:
+    fpc:
+      type: tarballs
+      compression: tar
+      dir: fpc-{name}.x86_64-linux
+      url: https://downloads.sourceforge.net/project/freepascal/Linux/{name}/fpc-{name}.x86_64-linux.tar
+      check_exe: bin/fpc -iV
+      after_stage_script:
+        - cd {dir}
+        - rm demo.tar.gz
+        - rm doc-pdf.tar.gz
+        - rm install.sh
+        - cp {yaml_dir}/pascal/install_fpc.sh .
+        - . install_fpc.sh {name} {staging}/install
+        - cd ..
+        - rm -rf {dir}
+        - mv install {dir}
+        - mkdir -p {destination}/fpc
+        - cp {yaml_dir}/pascal/fpc.cfg {destination}/fpc/fpc.cfg
+      targets:
+        - 2.6.0
+        - 2.6.2
+        - 2.6.4
+        - 3.0.2
+        - 3.0.4

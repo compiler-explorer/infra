@@ -92,7 +92,7 @@ def main():
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
     context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
-                                  args.cache)
+                                  args.cache, args.yaml_dir)
 
     installables = []
     for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
