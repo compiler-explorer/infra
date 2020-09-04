@@ -170,11 +170,6 @@ installbinary() {
         unztarfromtar "$BINARYTAR" "$f" "$PREFIX"
     done
 
-    # Should this be here at all without a big Linux test around it?
-    if [ "x$UID" = "x0" ]; then
-        chmod u=srx,g=rx,o=rx "$PREFIX/bin/grab_vcsa"
-    fi
-
     rm -f *."$1".tar.gz
 }
 
