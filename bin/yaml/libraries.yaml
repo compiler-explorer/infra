@@ -368,6 +368,7 @@ libraries:
         - 0.4.0
         - 0.9.1
         - 0.10.0
+        - 0.11.0
     mp-units:
       type: github
       method: clone_branch
