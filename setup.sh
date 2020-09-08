@@ -1,8 +1,8 @@
 #!/bin/bash
 
-set -ex
+set -exuo pipefail
 
-ENV=$(curl -sf http://169.254.169.254/latest/user-data | tr A-Z a-z || true)
+ENV=$(curl -sf http://169.254.169.254/latest/user-data | tr '[:upper:]' '[:lower:'] || true)
 ENV=${ENV:-prod}
 BRANCH=master
 if [[ "$ENV" == "beta" ]]; then
@@ -11,18 +11,20 @@ fi
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$1" != "--updated" || "$2" != "${BRANCH}" ]]; then
-    git --work-tree ${DIR} checkout ${BRANCH}
-    git --work-tree ${DIR} pull
-    exec bash ${BASH_SOURCE[0]} --updated ${BRANCH}
+    git --work-tree "${DIR}" checkout ${BRANCH}
+    git --work-tree "${DIR}" pull
+    exec bash "${BASH_SOURCE[0]}" --updated ${BRANCH}
     exit 0
 fi
 
-env EXTRA_NFS_ARGS=",ro" ${DIR}/setup-common.sh
+env EXTRA_NFS_ARGS=",ro" "${DIR}/setup-common.sh"
 
+apt-get -y update
+apt-get -y install software-properties-common
 dpkg --add-architecture i386
 curl -s https://dl.winehq.org/wine-builds/winehq.key | apt-key add -
+# TODO at some point see if we can upgrade wine
 apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
-apt-get -y update
 apt-get install -y \
     binutils-multiarch \
     bison \
@@ -51,7 +53,7 @@ apt-get install -y \
     patch \
     pkg-config \
     protobuf-compiler \
-    python-pip \
+    python3-pip \
     s3cmd \
     subversion \
     texinfo \
@@ -68,14 +70,14 @@ git clone https://github.com/apmorton/firejail.git
 cd firejail
 git checkout 0.9.58.2-ce-patch.1
 ./configure --enable-apparmor
-make -j$(nproc)
+make "-j$(nproc)"
 make install
 popd
 
 pushd /tmp
 git clone --recursive --branch 2.9 https://github.com/google/nsjail.git
 cd nsjail
-make -j$(nproc)
+make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
 popd
 

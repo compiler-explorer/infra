@@ -20,13 +20,10 @@ bash ${DIR}/setup-builder-startup.sh
 
 env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
-apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb
+apt -y install python2.7 mosh fish jq ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/infra
-pip install --upgrade pip
-hash -r pip
-pip install --upgrade awscli
 pip install --upgrade -r requirements.txt
 
 # Install private and public keys

@@ -14,13 +14,10 @@ fi
 
 env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
 
-apt -y install python2.7 python-pip mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3-pip python3.8 python3.8-venv libc6-dev-i386
+apt -y install mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/infra
-pip3 install --upgrade pip
-hash -r pip3
-pip3 install --upgrade awscli
 
 # Setup the fish prompt
 ln -sf admin/fish_prompt.fish ~/.config/fish/fish_prompt.fish
