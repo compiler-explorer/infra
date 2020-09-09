@@ -35,7 +35,7 @@ fi
 
 if [[ ! -x ${OPT}/cmake/bin/cmake ]]; then
     mkdir cmake
-    fetch https://cmake.org/files/v3.11/cmake-3.11.0-rc3-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
+    fetch https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
 fi
 
 
