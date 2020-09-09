@@ -818,6 +818,17 @@ libraries:
         build_type: none
         targets:
           - trunk
+      unifex:
+        type: github
+        method: nightlyclone
+        repo: facebookexperimental/libunifex
+        build_type: cmake
+        make_targets:
+          - unifex
+        targets:
+          - trunk
+        after_stage_script:
+          - cp /home/ubuntu/infra/bin/resources/libunifex_config.hpp include/unifex/config.hpp
   cuda:
     cub:
       type: github
