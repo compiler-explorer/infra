@@ -446,6 +446,14 @@ libraries:
       build_type: none
       targets:
         - v3.2.1
+    thinkcellrange:
+      type: github
+      method: nightlyclone
+      repo: think-cell/range
+      check_file: tc/range.h
+      build_type: none
+      targets:
+        - trunk
     nightly:
       install_always: true
       if: nightly
