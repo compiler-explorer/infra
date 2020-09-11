@@ -818,6 +818,12 @@ libraries:
         build_type: cmake
         targets:
           - trunk
+        after_stage_script:
+          - cd libGroundfloor && sh devmake.sh && cd ..
+          - cd libJumpropes && sh devmake.sh && cd ..
+          - cd libJumpknots && sh devmake.sh && cd ..
+          - cd libMySQLBooks && sh devmake.sh && cd ..
+          - cd libChalkboard && sh devmake.sh && cd ..
       sol2:
         type: github
         method: nightlyclone
