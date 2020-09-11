@@ -762,7 +762,7 @@ libraries:
         check_file: include/ctre.hpp
         build_type: none
         targets:
-          - master
+          - main
           - dfa
       rangesv3:
         type: github
