@@ -446,6 +446,14 @@ libraries:
       build_type: none
       targets:
         - v3.2.1
+    immer:
+      type: github
+      method: nightlyclone
+      repo: arximboldi/immer
+      check_file: immer/vector.hpp
+      build_type: none
+      targets:
+        - trunk
     nightly:
       install_always: true
       if: nightly
