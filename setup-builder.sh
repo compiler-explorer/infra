@@ -55,5 +55,6 @@ EOF
 chfn -f 'Compiler Explorer Admin' ubuntu
 chmod 640 /etc/ssmtp/*
 
+echo builder-node > /etc/hostname
 hostname builder-node
-perl -pi -e 's/127.0.0.1 localhost/127.0.0.1 localhost builder-node/' /etc/hosts
+sed -i "/127.0.0.1/c 127.0.0.1 localhost builder-node" /etc/hosts

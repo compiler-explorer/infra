@@ -155,5 +155,6 @@ EOF
 chfn -f 'Compiler Explorer Conan' ubuntu
 chmod 640 /etc/ssmtp/*
 
+echo conan-node > /etc/hostname
 hostname conan-node
-perl -pi -e 's/127.0.0.1 localhost/127.0.0.1 localhost conan-node/' /etc/hosts
+sed -i "/127.0.0.1/c 127.0.0.1 localhost conan-node" /etc/hosts
