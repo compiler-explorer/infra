@@ -90,7 +90,6 @@ resource "aws_autoscaling_group" "spot-prod" {
     create_before_destroy = true
   }
 
-  desired_capacity          = 1
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
