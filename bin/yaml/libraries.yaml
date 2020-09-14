@@ -348,14 +348,6 @@ libraries:
       check_file: README.md
       targets:
         - development
-    ctre:
-      type: github
-      method: clone_branch
-      repo: hanickadot/compile-time-regular-expressions
-      check_file: include/ctre.hpp
-      targets:
-        - v2
-        - ecma-unicode
     rangesv3:
       type: github
       method: clone_branch
@@ -765,6 +757,8 @@ libraries:
         targets:
           - main
           - dfa
+          - v2
+          - ecma-unicode
       rangesv3:
         type: github
         method: nightlyclone

@@ -448,11 +448,18 @@ class GitHubInstallable(Installable):
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
                                   cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
+                                  cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
             subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
                                   cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', f'origin/{self.target_name}'],
+                                  cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'branch', '-q', '-D', self.target_name],
+                                  cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
+                                  cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
 
