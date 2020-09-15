@@ -58,29 +58,6 @@ resource "aws_launch_configuration" "CompilerExplorer-staging" {
   }
 }
 
-resource "aws_launch_configuration" "CompilerExplorer-prod-spot-large" {
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  name_prefix                 = "compiler-explorer-prod-large"
-  image_id                    = local.image_id
-  instance_type               = "c5.large"
-  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
-  key_name                    = "mattgodbolt"
-  security_groups             = [aws_security_group.CompilerExplorer.id]
-  associate_public_ip_address = true
-  enable_monitoring           = false
-  ebs_optimized               = true
-  spot_price                  = local.spot_price
-
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 10
-    delete_on_termination = true
-  }
-}
-
 resource "aws_launch_configuration" "CompilerExplorer-prod-t3" {
   lifecycle {
     create_before_destroy = true
@@ -100,5 +77,19 @@ resource "aws_launch_configuration" "CompilerExplorer-prod-t3" {
     volume_type           = "gp2"
     volume_size           = 10
     delete_on_termination = true
+  }
+}
+
+resource "aws_launch_template" "CompilerExplorer-prod" {
+  name                   = "ce-prod-test"
+  ebs_optimized          = "false"
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerRole.arn
+  }
+  image_id               = local.image_id
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  tags                   = {
+    Site = "CompilerExplorer"
   }
 }
