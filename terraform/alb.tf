@@ -30,7 +30,7 @@ resource "aws_alb" "GccExplorerApp" {
 resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   default_action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.prod.arn
+    target_group_arn = aws_alb_target_group.ce["prod"].arn
   }
 
   load_balancer_arn = aws_alb.GccExplorerApp.arn
@@ -42,7 +42,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-beta" {
   priority     = 1
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.beta.arn
+    target_group_arn = aws_alb_target_group.ce["beta"].arn
   }
   condition {
     path_pattern {
@@ -56,7 +56,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
   priority     = 2
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.staging.arn
+    target_group_arn = aws_alb_target_group.ce["staging"].arn
   }
   condition {
     path_pattern {
@@ -71,7 +71,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   default_action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.prod.arn
+    target_group_arn = aws_alb_target_group.ce["prod"].arn
   }
   load_balancer_arn = aws_alb.GccExplorerApp.arn
   port              = 443
@@ -84,7 +84,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
   priority     = 1
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.beta.arn
+    target_group_arn = aws_alb_target_group.ce["beta"].arn
   }
   condition {
     path_pattern {
@@ -100,7 +100,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
   priority     = 2
   action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.staging.arn
+    target_group_arn = aws_alb_target_group.ce["staging"].arn
   }
   condition {
     path_pattern {

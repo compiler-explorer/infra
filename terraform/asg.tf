@@ -81,7 +81,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
     value               = "CompilerExplorer"
     propagate_at_launch = true
   }
-  target_group_arns = [aws_alb_target_group.prod.arn]
+  target_group_arns = [aws_alb_target_group.ce["prod"].arn]
 }
 
 resource "aws_autoscaling_policy" "prod-mixed" {
@@ -131,7 +131,7 @@ resource "aws_autoscaling_group" "spot-beta" {
     value               = "CompilerExplorer"
     propagate_at_launch = true
   }
-  target_group_arns = [aws_alb_target_group.beta.arn]
+  target_group_arns = [aws_alb_target_group.ce["beta"].arn]
 }
 
 resource "aws_autoscaling_group" "staging" {
@@ -164,5 +164,5 @@ resource "aws_autoscaling_group" "staging" {
     value               = "CompilerExplorer"
     propagate_at_launch = true
   }
-  target_group_arns = [aws_alb_target_group.staging.arn]
+  target_group_arns = [aws_alb_target_group.ce["staging"].arn]
 }

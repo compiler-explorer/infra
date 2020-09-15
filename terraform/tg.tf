@@ -1,56 +1,33 @@
-resource "aws_alb_target_group" "beta" {
-  lifecycle {
-    create_before_destroy = true
-  }
-  name                 = "Beta"
-  port                 = 80
-  protocol             = "HTTP"
-  vpc_id               = aws_vpc.CompilerExplorer.id
-  deregistration_delay = 15
-  health_check {
-    path                = "/healthcheck"
-    timeout             = 5
-    unhealthy_threshold = 2
-    healthy_threshold   = 5
-    interval            = 30
-    protocol            = "HTTP"
+variable "ce-target-groups" {
+  description = "Target groups to create on port 80 for CE"
+  default     = {
+    "prod"    = 1
+    "staging" = 2
+    "beta"    = 3
   }
 }
 
-resource "aws_alb_target_group" "staging" {
-  lifecycle {
-    create_before_destroy = true
-  }
-  name                 = "Staging"
-  port                 = 80
-  protocol             = "HTTP"
-  vpc_id               = aws_vpc.CompilerExplorer.id
-  deregistration_delay = 15
-  health_check {
-    path                = "/healthcheck"
-    timeout             = 3
-    unhealthy_threshold = 3
-    healthy_threshold   = 2
-    interval            = 5
-    protocol            = "HTTP"
-  }
-}
+resource "aws_alb_target_group" "ce" {
+  for_each = var.ce-target-groups
 
-resource "aws_alb_target_group" "prod" {
   lifecycle {
     create_before_destroy = true
   }
-  name                 = "Prod"
+
+  name                 = title(each.key)
   port                 = 80
   protocol             = "HTTP"
   vpc_id               = aws_vpc.CompilerExplorer.id
-  deregistration_delay = 15
+  // a minute to kick off old connections
+  deregistration_delay = 60
+  // give new instances two minutes to slowly start warming up
+  slow_start           = 120
   health_check {
     path                = "/healthcheck"
-    timeout             = 3
+    timeout             = 8
     unhealthy_threshold = 3
     healthy_threshold   = 2
-    interval            = 5
+    interval            = 10
     protocol            = "HTTP"
   }
 }
@@ -75,7 +52,7 @@ resource "aws_alb_target_group" "conan" {
 }
 
 resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
-  target_group_arn  = aws_alb_target_group.conan.id
-  target_id         = aws_instance.ConanNode.id
-  port              = 1080
+  target_group_arn = aws_alb_target_group.conan.id
+  target_id        = aws_instance.ConanNode.id
+  port             = 1080
 }
