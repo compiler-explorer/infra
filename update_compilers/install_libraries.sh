@@ -241,3 +241,35 @@ install_lua() {
 }
 
 install_lua v5.3.5 v5.4.0
+
+#########################
+# nsimd
+
+install_nsimd() {
+    for VERSION in "$@"; do
+        local DEST=${OPT}/libs/nsimd/${VERSION}
+        if [[ ! -d ${DEST} ]]; then
+            rm -rf /tmp/nsimd
+            mkdir -p /tmp/nsimd
+            pushd /tmp/nsimd
+            git clone -b ${VERSION} https://github.com/agenium-scale/nsimd.git
+            cd nsimd
+            python3 egg/hatch.py -l
+            bash scripts/setup.sh
+            mkdir build
+            cd build
+
+            for arch in sse2 sse42 avx avx2 avx512_knl avx512_skylake; do
+                ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
+                                            -prefix=${DEST}/${arch} \
+                                            -Ggnumake
+                make
+                make install
+            done
+            popd
+            rm -rf /tmp/nsimd
+        fi
+    done
+}
+
+install_nsimd spmd
