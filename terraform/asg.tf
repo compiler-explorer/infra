@@ -20,7 +20,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "EC2"
-  max_size                  = 6
+  max_size                  = 11
   min_size                  = 1
   name                      = "prod"
   vpc_zone_identifier       = local.subnets
