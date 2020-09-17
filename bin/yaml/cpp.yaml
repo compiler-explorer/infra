@@ -340,15 +340,21 @@ compilers:
         - name: 2021.1.8.1883
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/16856/l_HPCKit_b_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            bash {script_filename} -s -a -s --action install --eula accept --components intel.oneapi.lin.cpp-compiler:intel.oneapi.lin.ifort-compiler --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
         - name: 2021.1.9.2205
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/16949/l_HPCKit_b_{name}_offline.sh install.sh
-      script: |
-        rm -Rf ~/.intel
-        rm -Rf ~/intel
-        bash {script_filename} -s -a -s --action install --eula accept --components intel.oneapi.lin.cpp-compiler:intel.oneapi.lin.ifort-compiler --install-dir {staging}/{dir}
-        rm -Rf ~/.intel
-        rm -Rf ~/intel
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            bash {script_filename} -s -a -s --action install --eula accept --components intel.oneapi.lin.dpcpp-cpp-compiler-pro:intel.oneapi.lin.ifort-compiler --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
     nightly:
       if: nightly
       gcc:
