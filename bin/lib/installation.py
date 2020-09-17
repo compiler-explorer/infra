@@ -756,8 +756,11 @@ class ScriptInstallable(Installable):
         self.install_context.clean_staging()
         for url in self.fetch:
             url, filename = url.split(' ')
-            with (self.install_context.staging / filename).open('wb') as f:
-                self.install_context.fetch_to(url, f)
+            if url[:1] == '/':
+                shutil.copyfile(url, self.install_context.staging / filename)
+            else:
+                with (self.install_context.staging / filename).open('wb') as f:
+                    self.install_context.fetch_to(url, f)
             self.info(f'{url} -> {filename}')
         self.install_context.stage_command(['bash', '-c', self.script])
         if self.strip:
