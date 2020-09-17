@@ -23,6 +23,7 @@ compilers:
       - '5.0'
       - '5.1'
       - '5.2'
+      - '5.3'
     nightly:
       if: nightly
       type: restQueryTarballs
