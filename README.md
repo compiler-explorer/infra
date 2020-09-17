@@ -9,7 +9,7 @@ installed by anyone by running:
 
 ```bash
 $ make ce  # this installs python modules etc
-$ ./bin/ce_install compilers
+$ ./bin/ce_install install compilers
 ```
 
 This will grab all the open source compilers and put them in `/opt/compiler-explorer` (which must be writable by
