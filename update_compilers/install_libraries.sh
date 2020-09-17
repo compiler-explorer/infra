@@ -69,10 +69,10 @@ update_boost_archive() {
 #
 # See: https://github.com/mattgodbolt/compiler-explorer/issues/1771
 
-install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0 1.74.0
-update_boost_archive
+#install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0 1.74.0
+#update_boost_archive
 
-ce_install 'libraries'
+#ce_install 'libraries'
 
 #########################
 # OpenSSL
@@ -103,7 +103,7 @@ install_openssl() {
     done
 }
 
-install_openssl 1_1_1c 1_1_1g
+#install_openssl 1_1_1c 1_1_1g
 
 #########################
 # cs50
@@ -142,7 +142,7 @@ install_cs50_v9() {
     done
 }
 
-install_cs50_v9 9.1.0
+#install_cs50_v9 9.1.0
 
 
 #########################
@@ -240,10 +240,7 @@ install_lua() {
     done
 }
 
-install_lua v5.3.5 v5.4.0
-
-#########################
-# nsimd
+#install_lua v5.3.5 v5.4.0
 
 install_nsimd() {
     for VERSION in "$@"; do
@@ -259,13 +256,30 @@ install_nsimd() {
             mkdir build
             cd build
 
-            for arch in sse2 sse42 avx avx2 avx512_knl avx512_skylake; do
+            ## X86
+            for arch in avx512_skylake; do
                 ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
-                                            -prefix=${DEST}/${arch} \
+                                            -prefix=${DEST}/x86 \
                                             -Ggnumake
                 make
                 make install
             done
+
+            ## CPU
+            ../nstools/bin/nsconfig ..  -Dsimd="cpu" \
+                                        -prefix=${DEST}/cpu \
+                                        -Ggnumake \
+            make
+            make install
+
+            ## ARM
+            #for arch in aarche64 sve128 sve256 sve512 sve1024 sve2048; do
+            #    ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
+            #                                -prefix=${DEST}/arm/${arch} \
+            #                                -Ggnumake
+            #    make
+            #    make install
+            #done
             popd
             rm -rf /tmp/nsimd
         fi
