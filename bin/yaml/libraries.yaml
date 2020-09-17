@@ -838,6 +838,14 @@ libraries:
           - trunk
         after_stage_script:
           - cp /home/ubuntu/infra/bin/resources/libunifex_config.hpp include/unifex/config.hpp
+      enoki:
+        type: github
+        method: nightlyclone
+        repo: mitsuba-renderer/enoki
+        check_file: include/enoki/array.h
+        build_type: none
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
