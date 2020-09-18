@@ -447,6 +447,19 @@ libraries:
       build_type: none
       targets:
         - trunk
+    spdlog:
+      type: github
+      repo: gabime/spdlog
+      subdir: spdlog-{name}
+      path_name: libs/spdlog/{name}
+      target_prefix: v
+      check_file: include/spdlog/spdlog.h
+      targets:
+        - 1.5.0
+        - 1.6.0
+        - 1.6.1
+        - 1.7.0
+        - 1.8.0
     nightly:
       install_always: true
       if: nightly
