@@ -702,6 +702,7 @@ libraries:
         check_file: include/cnl/all.h
         build_type: none
         targets:
+          - v1.0.0
           - trunk
       googletest:
         type: github
