@@ -453,7 +453,9 @@ libraries:
       subdir: spdlog-{name}
       path_name: libs/spdlog/{name}
       target_prefix: v
-      check_file: include/spdlog/spdlog.h
+      build_type: cmake
+      make_targets:
+        - spdlog
       targets:
         - 1.5.0
         - 1.6.0
