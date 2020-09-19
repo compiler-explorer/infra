@@ -120,6 +120,14 @@ libraries:
       lib_type: static
       extra_cmake_arg:
         - -DBUILD_TESTING=OFF
+    cnl:
+      type: github
+      repo: johnmcfarlane/cnl
+      check_file: include/cnl/all.h
+      build_type: none
+      target_prefix: v
+      targets:
+        - 1.0.0
     hfsm:
       type: github
       repo: andrew-gresyk/HFSM
@@ -698,11 +706,9 @@ libraries:
         type: github
         method: nightlyclone
         repo: johnmcfarlane/cnl
-        path_name: libs/cnl
         check_file: include/cnl/all.h
         build_type: none
         targets:
-          - v1.0.0
           - trunk
       googletest:
         type: github
