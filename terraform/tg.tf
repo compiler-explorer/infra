@@ -14,14 +14,13 @@ resource "aws_alb_target_group" "ce" {
     create_before_destroy = true
   }
 
-  name                 = title(each.key)
-  port                 = 80
-  protocol             = "HTTP"
-  vpc_id               = aws_vpc.CompilerExplorer.id
+  name                          = title(each.key)
+  port                          = 80
+  protocol                      = "HTTP"
+  vpc_id                        = aws_vpc.CompilerExplorer.id
   // a minute to kick off old connections
-  deregistration_delay = 60
-  // give new instances two minutes to slowly start warming up
-  slow_start           = 120
+  deregistration_delay          = 60
+  load_balancing_algorithm_type = "least_outstanding_requests"
   health_check {
     path                = "/healthcheck"
     timeout             = 8
