@@ -155,11 +155,28 @@ resource "aws_cloudwatch_metric_alarm" "efs_burst_credit" {
   period              = 60
   namespace           = "AWS/EFS"
   metric_name         = "BurstCreditBalance"
-  statistic = "Minimum"
+  statistic           = "Minimum"
   dimensions          = {
     FileSystemId = aws_efs_file_system.fs-db4c8192.id
   }
   threshold           = 20000000000
   comparison_operator = "LessThanOrEqualToThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
+  alarm_name         = "NoHealthyProdNodes"
+  alarm_description  = "Ensure there's at least one healthy node in production"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/AutoScaling"
+  metric_name        = "GroupInServiceInstances"
+  statistic          = "Minimum"
+  dimensions         = {
+    AutoScalingGroupName = aws_autoscaling_group.prod-mixed.name
+  }
+
+  threshold           = 1
+  comparison_operator = "LessThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
