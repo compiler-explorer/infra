@@ -7,7 +7,7 @@ locals {
 }
 
 resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
-  alarm_name          = "90ile_15m_resp_too_slow"
+  alarm_name          = "SiteTooSlow"
   alarm_description   = "Monitor site response time, 90%ile being too slow"
   evaluation_periods  = 2
   datapoints_to_alarm = 2
@@ -99,9 +99,9 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
 
 
 resource "aws_cloudwatch_metric_alarm" "traffic" {
-  alarm_name         = "TrafficAnomaly"
-  alarm_description  = "A traffic anomaly was detected (too much or too little)"
-  evaluation_periods = 3
+  alarm_name          = "TrafficAnomaly"
+  alarm_description   = "A traffic anomaly was detected (too much or too little)"
+  evaluation_periods  = 3
   datapoints_to_alarm = 3
   threshold_metric_id = "e1"
 
@@ -127,5 +127,39 @@ resource "aws_cloudwatch_metric_alarm" "traffic" {
   }
 
   comparison_operator = "LessThanLowerOrGreaterThanUpperThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "high_traffic" {
+  alarm_name          = "Traffic"
+  alarm_description   = "A high amount of traffic: did we just get slashdotted?"
+  evaluation_periods  = 3
+  datapoints_to_alarm = 3
+  threshold           = 3000
+  metric_name         = "RequestCount"
+  namespace           = "AWS/ApplicationELB"
+  statistic           = "Sum"
+  period              = 5 * 60
+
+  dimensions          = {
+    LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
+  }
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "efs_burst_credit" {
+  alarm_name          = "EFS burst credit"
+  alarm_description   = "Making sure we have lots of EFS performance in the bank"
+  evaluation_periods  = 1
+  period              = 60
+  namespace           = "AWS/EFS"
+  metric_name         = "BurstCreditBalance"
+  statistic = "Minimum"
+  dimensions          = {
+    FileSystemId = aws_efs_file_system.fs-db4c8192.id
+  }
+  threshold           = 20000000000
+  comparison_operator = "LessThanOrEqualToThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
