@@ -79,7 +79,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
     "godbo.lt"              = aws_cloudfront_distribution.godbo-lt,
     "ce.cdn.net"            = aws_cloudfront_distribution.static-ce-cdn-net
   }
-  alarm_name          = "cloudfront_high_5xx_${each.key}"
+  alarm_name          = "High5xx_${each.key}"
   alarm_description   = "Unnacceptable level of 5xx errors on ${each.key}"
   evaluation_periods  = 4
   datapoints_to_alarm = 4
@@ -94,5 +94,38 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
     Region         = "Global"
   }
   comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "traffic" {
+  alarm_name         = "TrafficAnomaly"
+  alarm_description  = "A traffic anomaly was detected (too much or too little)"
+  evaluation_periods = 3
+  datapoints_to_alarm = 3
+  threshold_metric_id = "e1"
+
+  metric_query {
+    id          = "e1"
+    expression  = "ANOMALY_DETECTION_BAND(m1)"
+    label       = "RequestCount (Expected)"
+    return_data = true
+  }
+
+  metric_query {
+    id          = "m1"
+    return_data = true
+    metric {
+      metric_name = "RequestCount"
+      namespace   = "AWS/ApplicationELB"
+      period      = 5*60
+      stat        = "Sum"
+      dimensions  = {
+        LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
+      }
+    }
+  }
+
+  comparison_operator = "LessThanLowerOrGreaterThanUpperThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
