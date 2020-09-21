@@ -861,6 +861,13 @@ libraries:
       check_file: cub/cub.cuh
       targets:
         - 1.8.0
+    libcudacxx:
+      type: github
+      method: nightlyclone
+      repo: NVIDIA/libcudacxx
+      check_file: cuda/std/atomic
+      targets:
+        - trunk
   d:
     mir-glas:
       type: github
