@@ -101,8 +101,8 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
 resource "aws_cloudwatch_metric_alarm" "traffic" {
   alarm_name          = "TrafficAnomaly"
   alarm_description   = "A traffic anomaly was detected (too much or too little)"
-  evaluation_periods  = 3
-  datapoints_to_alarm = 3
+  evaluation_periods  = 16
+  datapoints_to_alarm = 12
   threshold_metric_id = "e1"
 
   metric_query {
