@@ -865,7 +865,7 @@ libraries:
       type: github
       method: nightlyclone
       repo: NVIDIA/libcudacxx
-      check_file: cuda/std/atomic
+      check_file: include/cuda/std/atomic
       targets:
         - trunk
   d:
