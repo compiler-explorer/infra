@@ -252,29 +252,24 @@ install_nsimd() {
             cd build
 
             ## X86
-            for arch in avx512_skylake; do
-                ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
-                                            -prefix=${DEST}/x86 \
-                                            -Ggnumake
-                make
-                make install
-            done
-
-            ## CPU
-            ../nstools/bin/nsconfig ..  -Dsimd="cpu" \
-                                        -prefix=${DEST}/cpu \
+            ../nstools/bin/nsconfig ..  -Dsimd=avx512_skylake \
+                                        -prefix=${DEST}/x86 \
                                         -Ggnumake \
+                                        -ccomp=gcc,"/opt/compiler-explorer/gcc-9.3.0/bin/gcc" \
+                                        -cppcomp=gcc,"/opt/compiler-explorer/gcc-9.3.0/bin/g++"
             make
             make install
 
-            ## ARM
-            #for arch in aarche64 sve128 sve256 sve512 sve1024 sve2048; do
-            #    ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
-            #                                -prefix=${DEST}/arm/${arch} \
-            #                                -Ggnumake
-            #    make
-            #    make install
-            #done
+            ## ARM (exlcude sve128 sve256 sve512 sve1024 sve2048 neon128)
+            for arch in aarch64 ; do
+                ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
+                                            -prefix=${DEST}/arm \
+                                            -Ggnumake \
+                                            -ccomp=gcc,"/opt/compiler-explorer/arm64/gcc-5.4.0/aarch64-unknown-linux-gnueabi/bin/aarch64-unknown-linux-gnueabi-gcc",5.4.0,aarch64 \
+                                            -cppcomp=gcc,"/opt/compiler-explorer/arm64/gcc-5.4.0/aarch64-unknown-linux-gnueabi/bin/aarch64-unknown-linux-gnueabi-g++",5.4.0,aarch64
+                make
+                make install
+            done
             popd
             rm -rf /tmp/nsimd
         fi
