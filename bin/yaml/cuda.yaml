@@ -12,3 +12,5 @@ compilers:
         build: 450.51.05
       - name: 11.0.3
         build: 450.51.06
+      - name: 11.1.0
+        build: 455.23.05
