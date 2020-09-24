@@ -128,6 +128,14 @@ libraries:
       target_prefix: v
       targets:
         - 1.0.0
+    cppitertools:
+      type: github
+      repo: ryanhaining/cppitertools
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "2.0"
+        - "1.0"
     hfsm:
       type: github
       repo: andrew-gresyk/HFSM
@@ -688,13 +696,10 @@ libraries:
         type: github
         method: nightlyclone
         repo: ryanhaining/cppitertools
-        path_name: libs/cppitertools
         check_file: README.md
         build_type: none
         targets:
           - trunk
-          - v2.0
-          - v1.0
       ctbignum:
         type: github
         method: nightlyclone
