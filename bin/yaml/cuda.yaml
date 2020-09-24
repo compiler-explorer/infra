@@ -2,11 +2,12 @@ compilers:
   cuda:
     type: script
     dir: cuda/{name}
-    check_exe: cuda_nvcc/bin/nvcc  --version
+    check_exe: bin/nvcc --version
     fetch:
       - https://developer.download.nvidia.com/compute/cuda/{name}/local_installers/cuda_{name}_{build}_linux.run combined.sh
     script: |
-      sh combined.sh --extract=$(pwd)/cuda/{name}
+      mkdir -p cuda/{name}
+      sh combined.sh --silent --toolkit --toolkitpath=$(pwd)/cuda/{name}
     targets:
       - name: 11.0.2
         build: 450.51.05
