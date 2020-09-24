@@ -80,19 +80,47 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
     "ce.cdn.net"            = aws_cloudfront_distribution.static-ce-cdn-net
   }
   alarm_name          = "High5xx_${each.key}"
-  alarm_description   = "Unnacceptable level of 5xx errors on ${each.key}"
+  alarm_description   = "Unnacceptable level of 5xx errors on ${each.key} (once we have enough actual queries)"
   evaluation_periods  = 4
   datapoints_to_alarm = 4
   threshold           = 3
-  metric_name         = "5xxErrorRate"
-  namespace           = "AWS/CloudFront"
-  statistic           = "Average"
-  period              = 5 * 60
 
-  dimensions          = {
-    DistributionId = each.value.id
-    Region         = "Global"
+  metric_query {
+    id          = "errors_once_over_threshold"
+    expression  = "IF(total_requests_per_5m > 100, error_rate, 0)"
+    label       = "Error rate (assuming we have enough traffic)"
+    return_data = true
   }
+
+
+  metric_query {
+    id = "error_rate"
+    metric {
+      metric_name = "5xxErrorRate"
+      namespace   = "AWS/CloudFront"
+      stat        = "Average"
+      period      = 5 * 60
+      dimensions  = {
+        DistributionId = each.value.id
+        Region         = "Global"
+      }
+    }
+  }
+
+  metric_query {
+    id = "total_requests_per_5m"
+    metric {
+      metric_name = "Requests"
+      namespace   = "AWS/CloudFront"
+      stat        = "Sum"
+      period      = 5 * 60
+      dimensions  = {
+        DistributionId = each.value.id
+        Region         = "Global"
+      }
+    }
+  }
+
   comparison_operator = "GreaterThanOrEqualToThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
