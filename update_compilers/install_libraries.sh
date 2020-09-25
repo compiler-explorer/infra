@@ -244,32 +244,52 @@ install_nsimd() {
             rm -rf /tmp/nsimd
             mkdir -p /tmp/nsimd
             pushd /tmp/nsimd
+
             git clone -b ${VERSION} https://github.com/agenium-scale/nsimd.git
             cd nsimd
+
             python3 egg/hatch.py -l
             bash scripts/setup.sh
+
             mkdir build
             cd build
 
-            ## X86
+            ## x86_64
+            local COMP_ROOT=`ls -rd ${OPT}/gcc-*.*.* | head -n 1`
+            local CCOMP=${COMP_ROOT}/bin/gcc
+            local CPPCOMP=${COMP_ROOT}/bin/g++
+
             ../nstools/bin/nsconfig ..  -Dsimd=avx512_skylake \
-                                        -prefix=${DEST}/x86 \
+                                        -prefix=${DEST}/x86_64 \
                                         -Ggnumake \
-                                        -ccomp=gcc,"/opt/compiler-explorer/gcc-9.3.0/bin/gcc" \
-                                        -cppcomp=gcc,"/opt/compiler-explorer/gcc-9.3.0/bin/g++"
+                                        -ccomp=gcc,"${CCOMP}",`${CCOMP} -dumpversion`,x86_64 \
+                                        -cppcomp=gcc,"${CPPCOMP}",`${CPPCOMP} -dumpversion`,x86_64
+
             make
             make install
 
-            ## ARM (exlcude sve128 sve256 sve512 sve1024 sve2048 neon128)
-            for arch in aarch64 ; do
-                ../nstools/bin/nsconfig ..  -Dsimd=${arch} \
-                                            -prefix=${DEST}/arm \
-                                            -Ggnumake \
-                                            -ccomp=gcc,"/opt/compiler-explorer/arm64/gcc-5.4.0/aarch64-unknown-linux-gnueabi/bin/aarch64-unknown-linux-gnueabi-gcc",5.4.0,aarch64 \
-                                            -cppcomp=gcc,"/opt/compiler-explorer/arm64/gcc-5.4.0/aarch64-unknown-linux-gnueabi/bin/aarch64-unknown-linux-gnueabi-g++",5.4.0,aarch64
-                make
-                make install
-            done
+            ## CUDA
+            ../nstools/bin/nsconfig ..  -Dsimd=cuda \
+                                        -prefix=${DEST}/cuda \
+                                        -Ggnumake \
+                                        -ccomp=gcc,"${CCOMP}",`${CCOMP} -dumpversion`,x86_64 \
+                                        -cppcomp=gcc,"${CPPCOMP}",`${CPPCOMP} -dumpversion`,x86_64
+            make
+            make install
+
+            ## ARM64
+            COMP_ROOT=`ls -rd ${OPT}/arm64/gcc-*.*.* | head -n 1`/aarch64-unknown-linux-gnu
+            CCOMP=${COMP_ROOT}/bin/aarch64-unknown-linux-gnu-gcc
+            CPPCOMP=${COMP_ROOT}/bin/aarch64-unknown-linux-gnu-g++
+
+            ../nstools/bin/nsconfig ..  -Dsimd=aarch64 \
+                                        -prefix=${DEST}/arm/aarch64 \
+                                        -Ggnumake \
+                                        -ccomp=gcc,"${CCOMP}",`${CCOMP} -dumpversion`,aarch64 \
+                                        -cppcomp=gcc,"${CPPCOMP}",`${CPPCOMP} -dumpversion`,aarch64
+            make
+            make install
+
             popd
             rm -rf /tmp/nsimd
         fi
