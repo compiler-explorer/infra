@@ -69,10 +69,10 @@ update_boost_archive() {
 #
 # See: https://github.com/mattgodbolt/compiler-explorer/issues/1771
 
-#install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0 1.74.0
-#update_boost_archive
+install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0 1.74.0
+update_boost_archive
 
-#ce_install 'libraries'
+ce_install 'libraries'
 
 #########################
 # OpenSSL
@@ -103,7 +103,7 @@ install_openssl() {
     done
 }
 
-#install_openssl 1_1_1c 1_1_1g
+install_openssl 1_1_1c 1_1_1g
 
 #########################
 # cs50
@@ -142,7 +142,7 @@ install_cs50_v9() {
     done
 }
 
-#install_cs50_v9 9.1.0
+install_cs50_v9 9.1.0
 
 
 #########################
@@ -240,7 +240,7 @@ install_lua() {
     done
 }
 
-#install_lua v5.3.5 v5.4.0
+install_lua v5.3.5 v5.4.0
 
 install_nsimd() {
     for VERSION in "$@"; do
@@ -260,15 +260,15 @@ install_nsimd() {
             cd build
 
             ## x86_64
-            local COMP_ROOT=`ls -rd ${OPT}/gcc-*.*.* | head -n 1`
+            local COMP_ROOT=${OPT}/gcc-10.2.0
             local CCOMP=${COMP_ROOT}/bin/gcc
             local CPPCOMP=${COMP_ROOT}/bin/g++
 
             ../nstools/bin/nsconfig ..  -Dsimd=avx512_skylake \
                                         -prefix=${DEST}/x86_64 \
                                         -Ggnumake \
-                                        -ccomp=gcc,"${CCOMP}",`${CCOMP} -dumpversion`,x86_64 \
-                                        -cppcomp=gcc,"${CPPCOMP}",`${CPPCOMP} -dumpversion`,x86_64
+                                        -ccomp=gcc,"${CCOMP}",10.2.0,x86_64 \
+                                        -cppcomp=gcc,"${CPPCOMP}",10.2.0,x86_64
 
             make
             make install
@@ -277,21 +277,21 @@ install_nsimd() {
             ../nstools/bin/nsconfig ..  -Dsimd=cuda \
                                         -prefix=${DEST}/cuda \
                                         -Ggnumake \
-                                        -ccomp=gcc,"${CCOMP}",`${CCOMP} -dumpversion`,x86_64 \
-                                        -cppcomp=gcc,"${CPPCOMP}",`${CPPCOMP} -dumpversion`,x86_64
+                                        -ccomp=gcc,"${CCOMP}",10.2.0,x86_64 \
+                                        -cppcomp=gcc,"${CPPCOMP}",10.2.0,x86_64
             make
             make install
 
             ## ARM64
-            COMP_ROOT=`ls -rd ${OPT}/arm64/gcc-*.*.* | head -n 1`/aarch64-unknown-linux-gnu
-            CCOMP=${COMP_ROOT}/bin/aarch64-unknown-linux-gnu-gcc
-            CPPCOMP=${COMP_ROOT}/bin/aarch64-unknown-linux-gnu-g++
+            COMP_ROOT=${OPT}/arm64/gcc-8.2.0/aarch64-unknown-linux-gnu/bin
+            CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
+            CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
 
             ../nstools/bin/nsconfig ..  -Dsimd=aarch64 \
                                         -prefix=${DEST}/arm/aarch64 \
                                         -Ggnumake \
-                                        -ccomp=gcc,"${CCOMP}",`${CCOMP} -dumpversion`,aarch64 \
-                                        -cppcomp=gcc,"${CPPCOMP}",`${CPPCOMP} -dumpversion`,aarch64
+                                        -ccomp=gcc,"${CCOMP}",8.2.0,aarch64 \
+                                        -cppcomp=gcc,"${CPPCOMP}",8.2.0,aarch64
             make
             make install
 
