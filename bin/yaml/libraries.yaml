@@ -251,7 +251,7 @@ libraries:
       check_file: README.md
       target_prefix: v
       targets:
-        - 1.0.0
+        - '1.0'
     fastor:
       type: github
       repo: romeric/Fastor
