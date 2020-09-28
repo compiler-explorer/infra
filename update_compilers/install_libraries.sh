@@ -49,7 +49,7 @@ install_openssl() {
     done
 }
 
-#install_openssl 1_1_1c 1_1_1g
+install_openssl 1_1_1c 1_1_1g
 
 #########################
 # cs50
@@ -88,7 +88,7 @@ install_cs50_v9() {
     done
 }
 
-#install_cs50_v9 9.1.0
+install_cs50_v9 9.1.0
 
 #########################
 # libuv
