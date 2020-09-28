@@ -228,14 +228,6 @@ libraries:
       targets:
         - 1.37.0
         - 1.38.1
-    nsimd:
-      type: github
-      repo: agenium-scale/nsimd
-      build_type: manual
-      check_file: README.md
-      target_prefix: v
-      targets:
-        - 1.0.0
     fastor:
       type: github
       repo: romeric/Fastor
