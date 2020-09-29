@@ -49,7 +49,7 @@ install_openssl() {
     done
 }
 
-install_openssl 1_1_1c 1_1_1g
+#install_openssl 1_1_1c 1_1_1g
 
 #########################
 # cs50
@@ -88,7 +88,7 @@ install_cs50_v9() {
     done
 }
 
-install_cs50_v9 9.1.0
+#install_cs50_v9 9.1.0
 
 #########################
 # libuv
@@ -184,7 +184,7 @@ install_lua() {
     done
 }
 
-install_lua v5.3.5 v5.4.0
+#install_lua v5.3.5 v5.4.0
 
 # Following are minimal runtime dependencies for Crystal
 
@@ -259,17 +259,16 @@ install_nsimd() {
             local CCOMP=${COMP_ROOT}/bin/gcc
             local CPPCOMP=${COMP_ROOT}/bin/g++
 
-            ../nstools/bin/nsconfig ..  -Dsimd=avx512_skylake \
+            ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=avx512_skylake \
                                         -prefix=${DEST}/x86_64 \
                                         -Ggnumake \
                                         -ccomp=gcc,"${CCOMP}",10.2.0,x86_64 \
                                         -cppcomp=gcc,"${CPPCOMP}",10.2.0,x86_64
-
             make
             make install
 
             ## CUDA
-            ../nstools/bin/nsconfig ..  -Dsimd=cuda \
+            ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=cuda \
                                         -prefix=${DEST}/cuda \
                                         -Ggnumake \
                                         -ccomp=gcc,"${CCOMP}",10.2.0,x86_64 \
@@ -282,7 +281,7 @@ install_nsimd() {
             CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
             CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
 
-            ../nstools/bin/nsconfig ..  -Dsimd=aarch64 \
+            ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=aarch64 \
                                         -prefix=${DEST}/arm/aarch64 \
                                         -Ggnumake \
                                         -ccomp=gcc,"${CCOMP}",8.2.0,aarch64 \
