@@ -690,6 +690,10 @@ class LibraryBuilder:
             if checkcompiler != "" and compiler != checkcompiler:
                 continue
 
+            if compiler in self.buildconfig.skip_compilers:
+                self.logger.info(f'Skipping {compiler}')
+                continue
+
             if 'compilerType' in self.compilerprops[compiler]:
                 compilerType = self.compilerprops[compiler]['compilerType']
             else:

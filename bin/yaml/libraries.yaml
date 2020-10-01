@@ -470,6 +470,8 @@ libraries:
       path_name: libs/spdlog/{name}
       target_prefix: v
       build_type: cmake
+      skip_compilers:
+        - clang_autonsdmi
       make_targets:
         - spdlog
       targets:
