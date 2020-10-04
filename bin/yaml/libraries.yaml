@@ -890,10 +890,27 @@ libraries:
     cub:
       type: github
       method: clone_branch
-      repo: NVlabs/cub
+      repo: NVIDIA/cub
       check_file: cub/cub.cuh
       targets:
         - 1.8.0
+    thrustcub:
+      type: github
+      method: clone_branch
+      repo: NVIDIA/thrust
+      check_file: dependencies/cub/cub/cub.cuh
+      targets:
+        - 1.9.9
+        - 1.9.10
+        - 1.9.10-1
+        - 1.10.0
+    thrustcub-nightly:
+      type: github
+      method: nightlyclone
+      repo: NVIDIA/thrust
+      check_file: dependencies/cub/cub/cub.cuh
+      targets:
+        - trunk
     libcudacxx:
       type: github
       method: nightlyclone
