@@ -904,13 +904,6 @@ libraries:
         - 1.9.10
         - 1.9.10-1
         - 1.10.0
-    thrustcub-nightly:
-      type: github
-      method: nightlyclone
-      repo: NVIDIA/thrust
-      check_file: dependencies/cub/cub/cub.cuh
-      targets:
-        - trunk
     libcudacxx:
       type: github
       method: nightlyclone
@@ -918,6 +911,16 @@ libraries:
       check_file: include/cuda/std/atomic
       targets:
         - trunk
+    nightly:
+      install_always: true
+      if: nightly
+      thrustcub:
+        type: github
+        method: nightlyclone
+        repo: NVIDIA/thrust
+        check_file: dependencies/cub/cub/cub.cuh
+        targets:
+          - trunk
   d:
     mir-glas:
       type: github
