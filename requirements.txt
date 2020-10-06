@@ -6,3 +6,4 @@ pyyaml
 pytest
 mypy
 pylint
+jinja2

@@ -110,6 +110,37 @@ compilers:
     assert second['architectures'] == [['AAA'], 'DDD']
 
 
+def test_jinja_expansion():
+    [target] = parse_targets("""
+compilers:
+  targets:
+    - name: 5.4.0
+      spleen: '{{ name }}'
+      """)
+    assert target['spleen'] == '5.4.0'
+
+
+def test_jinja_expansion_with_filters():
+    [target] = parse_targets("""
+compilers:
+  targets:
+    - name: 5.4.0
+      spleen: "{{ name | replace('.', '_') }}"
+      """)
+    assert target['spleen'] == '5_4_0'
+
+
+def test_jinja_expansion_with_filters_refering_forward():
+    [target] = parse_targets("""
+boost:
+  underscore_name: "{{ name | replace('.', '_') }}"
+  url: https://dl.bintray.com/boostorg/release/{name}/source/boost_{underscore_name}.tar.bz2
+  targets:
+    - 1.64.0
+      """)
+    assert target['url'] == 'https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2'
+
+
 @pytest.fixture(name='fake_context')
 def fake_context_fixture():
     return MagicMock(spec=InstallationContext)

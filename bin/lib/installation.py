@@ -21,13 +21,12 @@ from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers, list_s3_artifacts
+from lib.config_expand import is_value_type, expand_target
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 
 VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
-
-MAX_ITERS = 5
 
 NO_DEFAULT = "__no_default__"
 
@@ -685,6 +684,9 @@ class TarballInstallable(Installable):
         strip_components = self.config_get("strip_components", 0)
         if strip_components:
             self.tar_cmd += ['--strip-components', str(strip_components)]
+        extract_only = self.config_get("extract_only", "")
+        if extract_only:
+            self.tar_cmd += [extract_only]
         self.strip = self.config_get('strip', False)
         self._setup_check_exe(self.install_path)
         if self.install_path_symlink:
@@ -862,36 +864,6 @@ def targets_from(node, enabled, base_config=None):
     return _targets_from(node, enabled, [], "", base_config)
 
 
-def is_list_of_strings(value: Any) -> bool:
-    return isinstance(value, list) and all(isinstance(x, str) for x in value)
-
-
-# dear god it's late and this can't really be sensible, right?
-def is_list_of_strings_or_lists(value: Any) -> bool:
-    return isinstance(value, list) and all(isinstance(x, str) or is_list_of_strings_or_lists(x) for x in value)
-
-
-def is_value_type(value: Any) -> bool:
-    return isinstance(value, str) \
-           or isinstance(value, bool) \
-           or isinstance(value, float) \
-           or isinstance(value, int) \
-           or is_list_of_strings(value) \
-           or is_list_of_strings_or_lists(value)
-
-
-def needs_expansion(target):
-    for value in target.values():
-        if is_list_of_strings(value):
-            for v in value:
-                if '{' in v:
-                    return True
-        elif isinstance(value, str):
-            if '{' in value:
-                return True
-    return False
-
-
 def _targets_from(node, enabled, context, name, base_config):
     if not node:
         return
@@ -932,23 +904,7 @@ def _targets_from(node, enabled, context, name, base_config):
                 raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
                 target = {'name': target}
-            target = ChainMap(target, base_config)
-            iterations = 0
-            while needs_expansion(target):
-                iterations += 1
-                if iterations > MAX_ITERS:
-                    raise RuntimeError(f"Too many mutual references (in {'/'.join(context)})")
-                for key, value in target.items():
-                    try:
-                        if is_list_of_strings(value):
-                            target[key] = [x.format(**target) for x in value]
-                        elif isinstance(value, str):
-                            target[key] = value.format(**target)
-                        elif isinstance(value, float):
-                            target[key] = str(value)
-                    except KeyError as ke:
-                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})") from ke
-            yield target
+            yield expand_target(ChainMap(target, base_config), context)
 
 
 INSTALLER_TYPES = {
