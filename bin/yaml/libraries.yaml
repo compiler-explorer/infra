@@ -10,6 +10,28 @@ libraries:
       targets:
         - 9.1.0
   c++:
+    boost:
+      # NB if you add a new boost, please see the note in install_libraries.sh to update the boosts stored on local instances
+      type: tarballs
+      compression: bz2
+      underscore_name: "{{ name | replace('.', '_') }}"
+      check_file: boost/version.hpp
+      extract_only: boost_{{underscore_name}}/boost
+      untar_dir: boost_{{underscore_name}}
+      dir: libs/boost_{{underscore_name}}
+      url: https://dl.bintray.com/boostorg/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
+      targets:
+        - 1.64.0
+        - 1.65.0
+        - 1.66.0
+        - 1.67.0
+        - 1.68.0
+        - 1.69.0
+        - 1.70.0
+        - 1.71.0
+        - 1.72.0
+        - 1.73.0
+        - 1.74.0
     llvm:
       type: s3tarballs
       s3_path_prefix: llvm-{name}

@@ -25,30 +25,15 @@ fi
 #########################
 # C++
 
-install_boost() {
-    for VERSION in "$@"; do
-        local VERSION_UNDERSCORE=$(echo ${VERSION} | tr . _)
-        local DEST=${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost/
-        if [[ ! -d ${DEST} ]]; then
-            mkdir -p /tmp/boost
-            pushd /tmp/boost
-            fetch https://dl.bintray.com/boostorg/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.bz2 | tar jxf - boost_${VERSION_UNDERSCORE}/boost
-            mkdir -p ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost
-            rsync -a boost_${VERSION_UNDERSCORE}/boost/ ${DEST}
-            popd
-            rm -rf /tmp/boost
-        fi
-    done
-}
-
 update_boost_archive() {
-    local NEWEST=$(find "${OPT}/libs" -maxdepth 1 -name 'boost*' -printf '%T@ %p\n' | sort -k1,1nr | head -n1 | cut -d ' ' -f 2)
+    local NEWEST
+    NEWEST=$(find "${OPT}/libs" -maxdepth 1 -name 'boost*' -printf '%T@ %p\n' | sort -k1,1nr | head -n1 | cut -d ' ' -f 2)
     if [[ "${NEWEST}" != "${OPT}/libs/boost.tar.xz" ]]; then
-        pushd ${OPT}/libs
+        pushd "${OPT}"/libs || exit
         rm -rf /tmp/boost.tar.xz
         tar -cJf /tmp/boost.tar.xz boost_*
         mv /tmp/boost.tar.xz boost.tar.xz
-        popd
+        popd || exit
     fi
 }
 
@@ -69,10 +54,8 @@ update_boost_archive() {
 #
 # See: https://github.com/mattgodbolt/compiler-explorer/issues/1771
 
-install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0 1.74.0
-update_boost_archive
-
 ce_install 'libraries'
+update_boost_archive
 
 #########################
 # OpenSSL
@@ -144,7 +127,6 @@ install_cs50_v9() {
 
 install_cs50_v9 9.1.0
 
-
 #########################
 # libuv
 
@@ -186,7 +168,6 @@ install_libuv() {
     done
 }
 
-
 #########################
 # lua
 
@@ -209,11 +190,11 @@ install_lua() {
 
             rm -f onelua.c
             local cfiles=$(find . -maxdepth 1 -iname '*.c' -o -iname '*.h')
-            echo -e "cmake_minimum_required(VERSION 3.10)\n" > CMakeLists.txt
-            echo -e "project(lua LANGUAGES C)\n" >> CMakeLists.txt
-            echo -e "add_library(lua SHARED\n" >> CMakeLists.txt
-            echo -e ${cfiles} >> CMakeLists.txt
-            echo -e ")\n" >> CMakeLists.txt
+            echo -e "cmake_minimum_required(VERSION 3.10)\n" >CMakeLists.txt
+            echo -e "project(lua LANGUAGES C)\n" >>CMakeLists.txt
+            echo -e "add_library(lua SHARED\n" >>CMakeLists.txt
+            echo -e ${cfiles} >>CMakeLists.txt
+            echo -e ")\n" >>CMakeLists.txt
 
             mkdir -p build
             cd build
