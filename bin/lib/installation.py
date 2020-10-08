@@ -460,7 +460,8 @@ class GitHubInstallable(Installable):
             subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
                                   cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init', '--recursive'],
+                              cwd=self.install_context.staging)
 
     def clone_default(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
@@ -472,7 +473,8 @@ class GitHubInstallable(Installable):
             subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
                                   cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init', '--recursive'],
+                              cwd=self.install_context.staging)
 
     def get_archive_url(self):
         return f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz'
