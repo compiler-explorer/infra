@@ -61,3 +61,24 @@ test: ce  ## Runs the tests
 static-checks: ce  ## Runs all the static tests
 	$(VIRTUALENV)/bin/mypy --ignore-missing-imports bin
 	$(VIRTUALENV)/bin/pylint bin
+
+LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
+LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
+$(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
+	rm -rf $(LAMBDA_PACKAGE_DIR)
+	mkdir -p $(LAMBDA_PACKAGE_DIR)
+	$(PYTHON) -mpip install -r lambda/requirements.txt -t $(LAMBDA_PACKAGE_DIR)
+	cp -R lambda/* $(LAMBDA_PACKAGE_DIR)
+	rm -f $(LAMBDA_PACKAGE)
+	cd $(LAMBDA_PACKAGE_DIR) && zip -r $(LAMBDA_PACKAGE) .
+
+.PHONY: lambda-package
+lambda-package: $(LAMBDA_PACKAGE)
+
+.PHONY: upload-lambda
+upload-lambda: lambda-package
+	aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip
+
+.PHONY: terraform-apply
+terraform-apply:
+	cd terraform && terraform apply
