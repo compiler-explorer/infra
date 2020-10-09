@@ -19,7 +19,7 @@ def parse_service_event(event, service='Service'):
     ]
 
 
-def lambda_handler(event, context):
+def lambda_handler(event, _context):
     webhook_url = os.getenv("WEBHOOK_URL")
     parsed_message = []
     for record in event.get('Records', []):
@@ -49,23 +49,22 @@ def lambda_handler(event, context):
         logging.info(discord_data)
         response = requests.post(webhook_url, data=json.dumps(discord_data), headers=headers)
 
-        logging.info(f'Discord response: {response.status_code}')
+        logging.info('Discord response: %s', response.status_code)
         logging.info(response.content)
 
 
 if __name__ == "__main__":
     # Use this to test; set your env var to the webhook endpoint to try.
-    event = {
-        "AlarmName": "Traffic",
-        "AlarmDescription": "A high amount of traffic: did we just get slashdotted?",
-        "AWSAccountId": "052730242331",
-        "NewStateValue": "ALARM",
-        "NewStateReason": "Threshold Crossed: 3 out of the last 3 datapoints [1141.0 (09/10/20 21:24:00), 1226.0 (09/10/20 21:19:00), 1390.0 (09/10/20 21:14:00)] were greater than or equal to the threshold (30.0) (minimum 3 datapoints for OK -> ALARM transition).",
-        "StateChangeTime": "2020-10-09T21:32:10.617+0000",
-        "Region": "US East (N. Virginia)",
-        "AlarmArn": "arn:aws:cloudwatch:us-east-1:052730242331:alarm:Traffic",
-        "OldStateValue": "OK",
-        "Trigger": {
+    example_event = dict(
+        AlarmName="Traffic", AlarmDescription="A high amount of traffic: did we just get slashdotted?",
+        AWSAccountId="052730242331", NewStateValue="ALARM",
+        NewStateReason="Threshold Crossed: 3 out of the last 3 datapoints "
+                       "[1141.0 (09/10/20 21:24:00), 1226.0 (09/10/20 21:19:00), 1390.0 (09/10/20 21:14:00)] "
+                       "were greater than or equal to the threshold (30.0) "
+                       "(minimum 3 datapoints for OK -> ALARM transition).",
+        StateChangeTime="2020-10-09T21:32:10.617+0000", Region="US East (N. Virginia)",
+        AlarmArn="arn:aws:cloudwatch:us-east-1:052730242331:alarm:Traffic", OldStateValue="OK",
+        Trigger={
             "MetricName": "RequestCount",
             "Namespace": "AWS/ApplicationELB",
             "StatisticType": "Statistic",
@@ -83,6 +82,5 @@ if __name__ == "__main__":
             "Threshold": 30,
             "TreatMissingData": "- TreatMissingData:                    missing",
             "EvaluateLowSampleCountPercentile": ""
-        }
-    }
-    lambda_handler(dict(Records=[{'Sns': {'Message': json.dumps(event)}}]), None)
+        })
+    lambda_handler(dict(Records=[{'Sns': {'Message': json.dumps(example_event)}}]), None)

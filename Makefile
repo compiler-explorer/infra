@@ -59,8 +59,8 @@ test: ce  ## Runs the tests
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
-	$(VIRTUALENV)/bin/mypy --ignore-missing-imports bin
-	$(VIRTUALENV)/bin/pylint bin
+	$(VIRTUALENV)/bin/mypy --ignore-missing-imports bin lambda
+	$(VIRTUALENV)/bin/pylint bin lambda
 
 LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
