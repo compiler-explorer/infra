@@ -618,7 +618,7 @@ class LibraryBuilder:
         self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
         self.writeconanfile(buildfolder)
 
-        if self.has_failed_before() and not self.forcebuild:
+        if not self.forcebuild and self.has_failed_before():
             self.logger.info("Build has failed before, not re-attempting")
             return c_BuildSkipped
 
