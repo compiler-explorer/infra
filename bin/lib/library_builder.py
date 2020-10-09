@@ -680,7 +680,7 @@ class LibraryBuilder:
         if buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
-        elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc":
+        elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor "forceall":
             self.forcebuild = True
             checkcompiler = ""
         else:
