@@ -549,7 +549,7 @@ libraries:
       catch2:
         type: github
         method: nightlyclone
-        build_type: none
+        build_type: cmake
         repo: catchorg/Catch2
         check_file: include/catch.hpp
         make_targets:
