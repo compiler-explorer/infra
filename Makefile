@@ -55,7 +55,7 @@ ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for 
 
 .PHONY: test
 test: ce  ## Runs the tests
-	$(VIRTUALENV)/bin/pytest bin
+	$(VIRTUALENV)/bin/pytest bin lambda
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
