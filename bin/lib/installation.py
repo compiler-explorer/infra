@@ -173,7 +173,8 @@ class InstallationContext:
             self.debug(f'File not found for {link}')
             return False
 
-    def move_from_staging(self, source_str: str, dest_str: Optional[str] = None) -> None:
+    def move_from_staging(self, source_str: str, dest_str: Optional[str] = None,
+                          do_staging_move=lambda source, dest: source.replace(dest)) -> None:
         dest_str = dest_str or source_str
         existing_dir_rename = self.staging / "temp_orig"
         source = self.staging / source_str
@@ -195,7 +196,7 @@ class InstallationContext:
             dest.replace(existing_dir_rename)
             state = 'old_renamed'
         try:
-            source.replace(dest)
+            do_staging_move(source, dest)
             if state == 'old_renamed':
                 state = 'old_needs_remove'
         finally:
@@ -860,6 +861,47 @@ class RustInstallable(Installable):
         return f'RustInstallable({self.name}, {self.install_path})'
 
 
+class PipInstallable(Installable):
+    MV_URL = 'https://raw.githubusercontent.com/brbsix/virtualenv-mv/master/virtualenv-mv'
+
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self._setup_check_exe(self.install_path)
+        self.package = self.config_get('package')
+        self.python = self.config_get('python')
+
+    def stage(self) -> None:
+        self.install_context.clean_staging()
+        venv = self.install_context.staging / self.install_path
+        self.install_context.check_output([self.python, '-mvenv', str(venv)])
+        self.install_context.check_output([str(venv / 'bin' / 'pip'), 'install', self.package])
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def install(self) -> bool:
+        if not super().install():
+            return False
+        self.stage()
+        mv_script = self.install_context.staging / 'virtualenv-mv'
+        with mv_script.open('wb') as f:
+            self.install_context.fetch_to(PipInstallable.MV_URL, f)
+        mv_script.chmod(0o755)
+
+        def mv_venv(source, dest):
+            self.install_context.check_output([str(mv_script), str(source), str(dest)])
+
+        self.install_context.move_from_staging(self.install_path, do_staging_move=mv_venv)
+        return True
+
+    def __repr__(self) -> str:
+        return f'PipInstallable({self.name}, {self.install_path})'
+
+
 def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
@@ -918,7 +960,8 @@ INSTALLER_TYPES = {
     'github': GitHubInstallable,
     'gitlab': GitLabInstallable,
     'bitbucket': BitbucketInstallable,
-    'rust': RustInstallable
+    'rust': RustInstallable,
+    'pip': PipInstallable
 }
 
 
