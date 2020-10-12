@@ -11,15 +11,21 @@ remove_older() {
     done
 }
 
+# try to keep this in the same order as admin-daily-builds.sh
+remove_older llvm
+remove_older gcc
+remove_older gcc-lock3-contracts
+remove_older gcc-cxx-modules
+remove_older gcc-cxx-coroutines
+remove_older gcc-embed
+remove_older gcc-static-analysis
 remove_older clang
 remove_older clang-cppx
-remove_older clang-concepts
+remove_older clang-cppx-ext
 remove_older clang-relocatable
 remove_older clang-autonsdmi
 remove_older clang-lifetime
+remove_older clang-llvmflang
 remove_older clang-parmexpr
-remove_older gcc
-remove_older gcc-lock3-contracts
-remove_older gcc-cxx-coroutines
-remove_older gcc-cxx-modules
+remove_older clang-embed
 remove_older go

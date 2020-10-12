@@ -84,6 +84,8 @@ build_libraries() {
         bash "${COMMAND}" "all" "all"
 }
 
+# IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
+
 # llvm build is fast, so lets do it first
 build_latest clang llvm build.sh llvm-trunk
 
