@@ -933,6 +933,13 @@ libraries:
       check_file: include/cuda/std/atomic
       targets:
         - trunk
+    nvtx:
+      type: github
+      method: clone_branch
+      repo: NVIDIA/NVTX
+      check_file: c/include/nvtx3/nvToolsExt.h
+      targets:
+        - 3.0.1
     nightly:
       install_always: true
       if: nightly
@@ -943,6 +950,13 @@ libraries:
         check_file: dependencies/cub/cub/cub.cuh
         targets:
           - trunk
+      nvtx:
+        type: github
+        method: clone_branch
+        repo: NVIDIA/NVTX
+        check_file: cpp/nvtx3.hpp
+        targets:
+          - dev
   d:
     mir-glas:
       type: github
