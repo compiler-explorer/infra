@@ -51,6 +51,7 @@ libraries:
         - 9.0.0
         - 10.0.0
         - 10.0.1
+        - 11.0.0
     fmt:
       type: github
       repo: fmtlib/fmt
@@ -132,6 +133,7 @@ libraries:
       target_prefix: v
       targets:
         - 3.0.0-preview2
+        - 3.0.0-preview3
     cctz:
       type: github
       repo: google/cctz
@@ -548,9 +550,8 @@ libraries:
       catch2:
         type: github
         method: nightlyclone
-        build_type: none
+        build_type: cmake
         repo: catchorg/Catch2
-        check_file: include/catch.hpp
         make_targets:
           - Catch2
           - Catch2WithMain

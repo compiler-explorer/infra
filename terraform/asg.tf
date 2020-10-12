@@ -21,7 +21,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
   health_check_grace_period = local.grace_period
   health_check_type         = "EC2"
   max_size                  = 16
-  min_size                  = 1
+  min_size                  = 2 // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
   name                      = "prod"
   vpc_zone_identifier       = local.subnets
 

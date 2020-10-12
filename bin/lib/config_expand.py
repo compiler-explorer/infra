@@ -1,4 +1,4 @@
-from typing import Any, Mapping
+from typing import Any, MutableMapping
 
 import jinja2
 
@@ -42,7 +42,7 @@ def expand_one(template_string, configuration):
     return jinjad.format(**configuration)
 
 
-def expand_target(target: Mapping[str, Any], context):
+def expand_target(target: MutableMapping[str, Any], context):
     iterations = 0
     while needs_expansion(target):
         iterations += 1
