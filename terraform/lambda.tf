@@ -44,8 +44,6 @@ resource "aws_lambda_function" "cloudwatch_to_discord" {
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "cloudwatch_to_discord.lambda_handler"
 
-  source_code_hash = filebase64sha256("../.dist/lambda-package.zip")
-
   runtime = "python3.8"
 
   environment {
