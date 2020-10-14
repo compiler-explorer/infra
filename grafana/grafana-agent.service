@@ -1,0 +1,13 @@
+[Unit]
+Description=Grafana Agent
+After=network-online.target
+
+[Service]
+Type=exec
+User=root
+Restart=always
+ExecStart=/usr/local/bin/grafana-agent --config.file=/etc/grafana/agent.yaml
+ExecStartPre=/etc/grafana/make-config.sh
+
+[Install]
+WantedBy=multi-user.target

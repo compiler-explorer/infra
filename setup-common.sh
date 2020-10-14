@@ -72,6 +72,25 @@ WantedBy=multi-user.target
 EOF
 systemctl enable remote-syslog
 
+pushd /tmp
+curl -sLo agent-linux-amd64.zip 'https://github.com/grafana/agent/releases/download/v0.6.1/agent-linux-amd64.zip'
+unzip agent-linux-amd64.zip
+cp agent-linux-amd64 /usr/local/bin/grafana-agent
+popd
+
+PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
+LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
+
+mkdir -p /etc/grafana
+cp /infra/grafana/agent.yaml /etc/grafana/agent.yaml.tpl
+cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
+cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
+systemctl daemon-reload
+systemctl enable grafana-agent
+
+sed -i "s/{{ PROM_PASSWORD }}/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+sed -i "s/{{ LOKI_PASSWORD }}/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+
 mkdir -p /efs
 if ! grep "/efs nfs" /etc/fstab; then
     echo "fs-db4c8192.efs.us-east-1.amazonaws.com:/ /efs nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
