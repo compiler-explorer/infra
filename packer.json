@@ -42,6 +42,7 @@
   ],
 
   "variables": {
+    "BRANCH": "master",
     "MY_ACCESS_KEY": "",
     "MY_SECRET_KEY": ""
   },
@@ -61,7 +62,7 @@
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone https://github.com/compiler-explorer/infra.git /infra",
+        "git clone -b {{user `BRANCH`}} https://github.com/compiler-explorer/infra.git /infra",
         "cd /infra",
         "env PACKER_SETUP=yes bash setup.sh 2>&1 | tee /tmp/setup.log"
       ]

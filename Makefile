@@ -19,23 +19,23 @@ config.json: make_json.py | $(PYTHON)
 
 .PHONY: packer
 packer: config.json ## Builds the base image for compiler explorer nodes
-	$(PACKER) build -timestamp-ui -var-file=config.json packer.json
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer.json
 
 .PHONY: packer-local
 packer-local: config.json ## Builds a local docker version of the compiler explorer node image
-	$(PACKER) build -timestamp-ui -var-file=config.json packer-local.json
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-local.json
 
 .PHONY: packer-admin
 packer-admin: config.json  ## Builds the base image for the admin server
-	$(PACKER) build -timestamp-ui -var-file=config.json packer-admin.json
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-admin.json
 
 .PHONY: packer-conan
 packer-conan: config.json  ## Builds the base image for the CE conan-server
-	$(PACKER) build -timestamp-ui -var-file=config.json packer-conan.json
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-conan.json
 
 .PHONY: packer-win
 packer-win: config.json  ## Builds the base image for the CE windows
-	$(PACKER) build -timestamp-ui -var-file=config.json packer-win.json
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-win.json
 
 .PHONY: clean
 clean:  ## Cleans up anything
