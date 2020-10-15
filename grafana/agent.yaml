@@ -7,6 +7,26 @@ prometheus:
 integrations:
   node_exporter:
     enabled: true
+    disable_collectors:
+      - arp
+      - bonding
+      - boottime
+      - conntrack
+      - cpufreq
+      - diskstats
+      - hwmon
+      - infiniband
+      - mdadm
+      - entropy
+      - netclass
+      - netdev
+      - netstat
+      - thermal_zone
+      - time
+      - timex
+      - udp_queues
+    # ignore all filesystems besides root
+    filesystem_ignored_mount_points: "^/.+$"
   prometheus_remote_write:
     - url: https://prometheus-us-central1.grafana.net/api/prom/push
       basic_auth:
