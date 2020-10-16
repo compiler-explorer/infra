@@ -1,7 +1,7 @@
 locals {
-  image_id          = "ami-08975fb83ac61db7d"
-  staging_image_id  = "ami-08975fb83ac61db7d"
-  beta_image_id     = "ami-08975fb83ac61db7d"
+  image_id          = "ami-0d53d60ac78656f6f"
+  staging_image_id  = "ami-0d53d60ac78656f6f"
+  beta_image_id     = "ami-0d53d60ac78656f6f"
   conan_image_id    = "ami-0bbf81fe86f25532c"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
