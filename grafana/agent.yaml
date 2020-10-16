@@ -4,6 +4,18 @@ prometheus:
   wal_directory: /tmp/grafana-agent-wal
   global:
     scrape_interval: 15s
+  configs:
+    - name: agent
+      scrape_configs:
+        - job_name: compiler_explorer
+          static_configs:
+            - targets: ['localhost:10241']
+      remote_write:
+        - url: https://prometheus-us-central1.grafana.net/api/prom/push
+          basic_auth:
+            username: "16818"
+            password: {{ PROM_PASSWORD }}
+
 integrations:
   node_exporter:
     enabled: true
