@@ -39,6 +39,10 @@ integrations:
       - udp_queues
     # ignore all filesystems besides root
     filesystem_ignored_mount_points: "^/.+$"
+    metric_relabel_configs:
+      - source_labels: [__name__, proto]
+        regex: "node_nfs_requests_total;[^4]"
+        action: drop
   prometheus_remote_write:
     - url: https://prometheus-us-central1.grafana.net/api/prom/push
       basic_auth:
