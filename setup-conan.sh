@@ -60,7 +60,7 @@ cd /home/ubuntu
 rm -Rf node
 wget https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz
 tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
-mv node-v12.18.0-linux-x64 node
+mv node-${NODE_VERSION}-linux-x64 node
 chown -Rf root:root node
 
 # setup daemon
