@@ -86,6 +86,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     --logPort "${LOG_DEST_PORT}" \
     --env amazon \
     --port 10240 \
+    --metricsPort 10241 \
     --static out/dist \
     --dist \
     ${EXTRA_ARGS}
