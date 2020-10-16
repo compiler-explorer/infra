@@ -10,12 +10,19 @@ prometheus:
         - job_name: compiler_explorer
           static_configs:
             - targets: ['localhost:10241']
+              labels:
+                agent_hostname: {{ HOSTNAME }}
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: instance
+              regex: (.*):(.*)
+              replacement: {{ HOSTNAME }}:$2
+              action: replace
       remote_write:
         - url: https://prometheus-us-central1.grafana.net/api/prom/push
           basic_auth:
             username: "16818"
             password: {{ PROM_PASSWORD }}
-
 integrations:
   node_exporter:
     enabled: true
