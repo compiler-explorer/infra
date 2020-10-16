@@ -70,7 +70,7 @@ class ConanInstance:
 
     @staticmethod
     def instance():
-        return ConanInstance(ec2.Instance(id='i-004020cbc0ea36b1a'))
+        return ConanInstance(ec2.Instance(id='i-087ffd9c19455bb43'))
 
 class BuilderInstance:
     def __init__(self, instance):
