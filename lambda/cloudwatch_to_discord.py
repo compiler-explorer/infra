@@ -48,8 +48,7 @@ def parse_sns_message(sns_message):
                                      fields=parsed_message)])
     return discord_data
 
-
-if __name__ == "__main__":
-    # Use this to test; set your env var to the webhook endpoint to try.
-    msg = {}  # copy paste from tests maybe?
-    lambda_handler(dict(Records=[{'Sns': {'Message': json.dumps(msg)}}]), None)
+# if __name__ == "__main__":
+#     # Use this to test; set your env var to the webhook endpoint to try.
+#     msg = {}  # copy paste from tests maybe?
+#     lambda_handler(dict(Records=[{'Sns': {'Message': json.dumps(msg)}}]), None)
