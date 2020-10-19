@@ -939,6 +939,7 @@ libraries:
       method: clone_branch
       repo: NVIDIA/NVTX
       check_file: c/include/nvtx3/nvToolsExt.h
+      target_prefix: v
       targets:
         - 3.0.1
     nightly:
