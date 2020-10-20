@@ -90,6 +90,7 @@ systemctl enable grafana-agent
 
 sed -i "s/{{ PROM_PASSWORD }}/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
 sed -i "s/{{ LOKI_PASSWORD }}/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+chmod 600 /etc/grafana/agent.yaml.tpl
 
 mkdir -p /efs
 if ! grep "/efs nfs" /etc/fstab; then

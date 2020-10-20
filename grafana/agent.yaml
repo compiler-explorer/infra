@@ -12,6 +12,7 @@ prometheus:
             - targets: ['localhost:10241']
               labels:
                 agent_hostname: {{ HOSTNAME }}
+                env: {{ ENV }}
           relabel_configs:
             - source_labels: [__address__]
               target_label: instance
@@ -24,6 +25,8 @@ prometheus:
             username: "16818"
             password: {{ PROM_PASSWORD }}
 integrations:
+  labels:
+    env: {{ ENV }}
   node_exporter:
     enabled: true
     disable_collectors:
@@ -68,6 +71,7 @@ loki:
       journal:
         max_age: 12h
         labels:
+          env: {{ ENV }}
           job: systemd-journal
           host: {{ HOSTNAME }}
       relabel_configs:
