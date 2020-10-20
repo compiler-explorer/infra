@@ -87,6 +87,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     --env amazon \
     --port 10240 \
     --metricsPort 10241 \
+    --loki "http://127.0.0.1:3500" \
     --static out/dist \
     --dist \
     ${EXTRA_ARGS}
