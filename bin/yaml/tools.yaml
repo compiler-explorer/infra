@@ -21,4 +21,3 @@ tools:
     check_exe: bin/osaca --version
     targets:
       - 0.3.6
-      - 0.3.7
