@@ -421,7 +421,8 @@ class GitHubInstallable(Installable):
         self.strip = False
         self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
-        self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
+        self.branch_name = self.target_prefix + self.target_name
+        self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.branch_name))
         if self.repo == "":
             raise RuntimeError('Requires repo')
 
@@ -448,17 +449,17 @@ class GitHubInstallable(Installable):
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
                                   cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
                                   cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
             subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
                                   cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', f'origin/{self.target_name}'],
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', f'origin/{self.branch_name}'],
                                   cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'branch', '-q', '-D', self.target_name],
+            subprocess.check_call(['git', '-C', dest, 'branch', '-q', '-D', self.branch_name],
                                   cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
                                   cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init', '--recursive'],
