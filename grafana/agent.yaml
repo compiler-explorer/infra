@@ -79,6 +79,7 @@ loki:
           target_label: 'unit'
     - job_name: push
       loki_push_api:
+        use_incoming_timestamp: true
         server:
           http_listen_port: 3500
           grpc_listen_port: 3600
