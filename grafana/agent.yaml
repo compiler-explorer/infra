@@ -85,5 +85,10 @@ loki:
           grpc_listen_port: 3600
         labels:
           env: {{ ENV }}
-          job: push
           host: {{ HOSTNAME }}
+      relabel_configs:
+        # provide a default value for job if none is given
+        - source_labels: [ job ]
+          target_label: job
+          replacement: push
+          regex: ""
