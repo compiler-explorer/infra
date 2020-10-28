@@ -35,6 +35,9 @@ CONANINFOHASH_RE = re.compile(r'\s+ID:\s(\w*)')
 c_BuildOk = 0
 c_BuildFailed = 1
 c_BuildSkipped = 2
+c_BuildTimedOut = 3
+
+build_timeout = 600
 
 conanserver_url = "https://conan.compiler-explorer.com"
 
@@ -440,11 +443,15 @@ class LibraryBuilder:
             return c_BuildFailed
 
     def executebuildscript(self, buildfolder):
-        if subprocess.call(['./build.sh'], cwd=buildfolder) == 0:
-            self.logger.info(f'Build succeeded in {buildfolder}')
-            return c_BuildOk
-        else:
-            return c_BuildFailed
+        try:
+            if subprocess.call(['./build.sh'], cwd=buildfolder, timeout=build_timeout) == 0:
+                self.logger.info(f'Build succeeded in {buildfolder}')
+                return c_BuildOk
+            else:
+                return c_BuildFailed
+        except subprocess.TimeoutExpired:
+            self.logger.info(f'Build timed out and was killed')
+            return c_BuildTimedOut
 
     def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         hasher = hashlib.sha256()
@@ -484,6 +491,8 @@ class LibraryBuilder:
             url = f'{conanserver_url}/buildfailed'
         elif builtok == c_BuildOk:
             url = f'{conanserver_url}/buildsuccess'
+        elif builtok == c_BuildTimedOut:
+            url = f'{conanserver_url}/buildfailed'
         else:
             return
 
@@ -497,6 +506,9 @@ class LibraryBuilder:
             f = open(logfile, 'r')
             logging_data = logging_data + '\n'.join(f.readlines())
             f.close()
+
+        if builtok == c_BuildTimedOut:
+            logging_data = logging_data + '\n\n' + 'BUILD TIMED OUT!!'
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy['logging'] = logging_data
