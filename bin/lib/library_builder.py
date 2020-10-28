@@ -685,6 +685,8 @@ class LibraryBuilder:
             checkcompiler = ""
         else:
             checkcompiler = buildfor
+            if not (checkcompiler in self.compilerprops):
+                self.logger.error(f'Unknown compiler {checkcompiler}')
 
         for compiler in self.compilerprops:
             if checkcompiler != "" and compiler != checkcompiler:
