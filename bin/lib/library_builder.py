@@ -13,6 +13,7 @@ from lib.library_build_config import LibraryBuildConfig
 from lib.binary_info import BinaryInfo
 from collections import defaultdict
 from typing import Dict, Any, List
+from enum import Enum, unique
 
 build_supported_os = ['Linux']
 build_supported_buildtype = ['Debug']
@@ -32,9 +33,14 @@ _supports_x86: Dict[str, Any] = defaultdict(lambda: [])
 GITCOMMITHASH_RE = re.compile(r'^(\w*)\s.*')
 CONANINFOHASH_RE = re.compile(r'\s+ID:\s(\w*)')
 
-c_BuildOk = 0
-c_BuildFailed = 1
-c_BuildSkipped = 2
+@unique
+class BuildStatus(Enum):
+    Ok = 0
+    Failed = 1
+    Skipped = 2
+    TimedOut = 3
+
+build_timeout = 600
 
 conanserver_url = "https://conan.compiler-explorer.com"
 
@@ -432,19 +438,23 @@ class LibraryBuilder:
         if filesfound != 0:
             if subprocess.call(['./conanexport.sh'], cwd=buildfolder) == 0:
                 self.logger.info('Export succesful')
-                return c_BuildOk
+                return BuildStatus.Ok
             else:
-                return c_BuildFailed
+                return BuildStatus.Failed
         else:
             self.logger.info('No binaries found to export')
-            return c_BuildFailed
+            return BuildStatus.Failed
 
     def executebuildscript(self, buildfolder):
-        if subprocess.call(['./build.sh'], cwd=buildfolder) == 0:
-            self.logger.info(f'Build succeeded in {buildfolder}')
-            return c_BuildOk
-        else:
-            return c_BuildFailed
+        try:
+            if subprocess.call(['./build.sh'], cwd=buildfolder, timeout=build_timeout) == 0:
+                self.logger.info(f'Build succeeded in {buildfolder}')
+                return BuildStatus.Ok
+            else:
+                return BuildStatus.Failed
+        except subprocess.TimeoutExpired:
+            self.logger.info(f'Build timed out and was killed ({buildfolder})')
+            return BuildStatus.TimedOut
 
     def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
         hasher = hashlib.sha256()
@@ -480,10 +490,12 @@ class LibraryBuilder:
             self.conanserverproxy_token = response['token']
 
     def save_build_logging(self, builtok, buildfolder):
-        if builtok == c_BuildFailed:
+        if builtok == BuildStatus.Failed:
             url = f'{conanserver_url}/buildfailed'
-        elif builtok == c_BuildOk:
+        elif builtok == BuildStatus.Ok:
             url = f'{conanserver_url}/buildsuccess'
+        elif builtok == BuildStatus.TimedOut:
+            url = f'{conanserver_url}/buildfailed'
         else:
             return
 
@@ -497,6 +509,9 @@ class LibraryBuilder:
             f = open(logfile, 'r')
             logging_data = logging_data + '\n'.join(f.readlines())
             f.close()
+
+        if builtok == BuildStatus.TimedOut:
+            logging_data = logging_data + '\n\n' + 'BUILD TIMED OUT!!'
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy['logging'] = logging_data
@@ -620,12 +635,12 @@ class LibraryBuilder:
 
         if not self.forcebuild and self.has_failed_before():
             self.logger.info("Build has failed before, not re-attempting")
-            return c_BuildSkipped
+            return BuildStatus.Skipped
 
         if self.is_already_uploaded(buildfolder):
             self.logger.info("Build already uploaded")
             if not self.forcebuild:
-                return c_BuildSkipped
+                return BuildStatus.Skipped
 
         if requiresTreeCopy:
             shutil.copytree(self.sourcefolder, buildfolder, dirs_exist_ok=True)
@@ -634,18 +649,18 @@ class LibraryBuilder:
             self.conanproxy_login()
 
         builtok = self.executebuildscript(buildfolder)
-        if builtok == c_BuildOk:
+        if builtok == BuildStatus.Ok:
             self.writeconanscript(buildfolder)
             if not self.install_context.dry_run:
                 builtok = self.executeconanscript(buildfolder, arch, stdlib)
-                if builtok == c_BuildOk:
+                if builtok == BuildStatus.Ok:
                     self.needs_uploading += 1
                     self.set_as_uploaded(buildfolder)
 
         if not self.install_context.dry_run:
             self.save_build_logging(builtok, buildfolder)
 
-        if builtok == c_BuildOk:
+        if builtok == BuildStatus.Ok:
             if self.buildconfig.build_type == "cmake":
                 self.build_cleanup(buildfolder)
             elif self.buildconfig.build_type == "make":
@@ -685,6 +700,8 @@ class LibraryBuilder:
             checkcompiler = ""
         else:
             checkcompiler = buildfor
+            if not (checkcompiler in self.compilerprops):
+                self.logger.error(f'Unknown compiler {checkcompiler}')
 
         for compiler in self.compilerprops:
             if checkcompiler != "" and compiler != checkcompiler:
@@ -768,9 +785,9 @@ class LibraryBuilder:
                             for stdlib in stdlibs:
                                 for flagscombination in build_supported_flagscollection:
                                     buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
-                                    if buildstatus == c_BuildOk:
+                                    if buildstatus == BuildStatus.Ok:
                                         builds_succeeded = builds_succeeded + 1
-                                    elif buildstatus == c_BuildSkipped:
+                                    elif buildstatus == BuildStatus.Skipped:
                                         builds_skipped = builds_skipped + 1
                                     else:
                                         builds_failed = builds_failed + 1

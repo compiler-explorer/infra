@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Module",
+            "type": "python",
+            "request": "launch",
+            "module": "lib.ce_install",
+            "cwd": "${workspaceFolder}/bin",
+            "args":[
+                "--dry_run",
+                "--buildfor",
+                "clang_autonsdmi",
+                "build",
+                "spdlog 1.8.0"
+            ]
+        }
+    ]
+}
