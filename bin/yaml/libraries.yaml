@@ -723,7 +723,66 @@ libraries:
         build_type: cmake
         lib_type: static
         staticliblink:
-          - autodetect
+          - absl_synchronization
+          - absl_str_format_internal
+          - absl_leak_check_disable
+          - absl_examine_stack
+          - absl_random_internal_distribution_test_util
+          - absl_random_internal_pool_urbg
+          - absl_stacktrace
+          - absl_bad_variant_access
+          - absl_random_internal_seed_material
+          - absl_graphcycles_internal
+          - absl_strerror
+          - absl_leak_check
+          - absl_random_internal_platform
+          - absl_flags_reflection
+          - absl_random_internal_randen_hwaes_impl
+          - absl_flags_usage
+          - absl_failure_signal_handler
+          - absl_flags_private_handle_accessor
+          - absl_log_severity
+          - absl_hash
+          - absl_hashtablez_sampler
+          - absl_exponential_biased
+          - absl_statusor
+          - absl_time
+          - absl_int128
+          - absl_demangle_internal
+          - absl_random_internal_randen_slow
+          - absl_raw_hash_set
+          - absl_base
+          - absl_throw_delegate
+          - absl_cord
+          - absl_random_seed_sequences
+          - absl_flags_parse
+          - absl_malloc_internal
+          - absl_bad_any_cast_impl
+          - absl_flags_program_name
+          - absl_flags_commandlineflag
+          - absl_flags
+          - absl_strings
+          - absl_random_internal_randen_hwaes
+          - absl_random_seed_gen_exception
+          - absl_city
+          - absl_strings_internal
+          - absl_flags_marshalling
+          - absl_raw_logging_internal
+          - absl_status
+          - absl_civil_time
+          - absl_spinlock_wait
+          - absl_scoped_set_env
+          - absl_periodic_sampler
+          - absl_debugging_internal
+          - absl_flags_usage_internal
+          - absl_symbolize
+          - absl_flags_commandlineflag_internal
+          - absl_flags_config
+          - absl_flags_internal
+          - absl_random_distributions
+          - absl_bad_optional_access
+          - absl_random_internal_randen
+          - absl_time_zone
         make_targets:
           - all
         targets:

@@ -99,14 +99,11 @@ class LibraryBuilder:
 
         alternatelibs = []
         for lib in self.buildconfig.staticliblink:
-            if lib == "autodetect":
-                alternatelibs += ["autodetect"]
+            if lib.endswith('d') and lib[:-1] not in self.buildconfig.staticliblink:
+                alternatelibs += [lib[:-1]]
             else:
-                if lib.endswith('d') and lib[:-1] not in self.buildconfig.staticliblink:
-                    alternatelibs += [lib[:-1]]
-                else:
-                    if f'{lib}d' not in self.buildconfig.staticliblink:
-                        alternatelibs += [f'{lib}d']
+                if f'{lib}d' not in self.buildconfig.staticliblink:
+                    alternatelibs += [f'{lib}d']
 
         self.buildconfig.staticliblink += alternatelibs
 
@@ -335,16 +332,10 @@ class LibraryBuilder:
             f.write('fi\n')
 
         for lib in self.buildconfig.staticliblink:
-            if lib == "autodetect":
-                f.write('find . -iname \'lib*.a\' -type f -exec mv {} . \\;\n')
-            else:
-                f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . \\;\n')
+            f.write(f'find . -iname \'lib{lib}*.a\' -type f -exec mv {{}} . \\;\n')
 
         for lib in self.buildconfig.sharedliblink:
-            if lib == "autodetect":
-                f.write('find . -iname \'lib*.so*\' -type f,l -exec mv {} . \\;\n')
-            else:
-                f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \\;\n')
+            f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \\;\n')
 
         f.close()
         subprocess.check_call(['/bin/chmod','+x', scriptfile])
@@ -387,12 +378,10 @@ class LibraryBuilder:
 
         libsum = ''
         for lib in self.buildconfig.staticliblink:
-            if lib != "autodetect":
-                libsum += f'"{lib}",'
+            libsum += f'"{lib}",'
 
         for lib in self.buildconfig.sharedliblink:
-            if lib != "autodetect":
-                libsum += f'"{lib}",'
+            libsum += f'"{lib}",'
 
         libsum = libsum[:-1]
 
@@ -410,16 +399,10 @@ class LibraryBuilder:
         f.write('    def package(self):\n')
 
         for lib in self.buildconfig.staticliblink:
-            if lib == "autodetect":
-                f.write('        self.copy("lib*.a", dst="lib", keep_path=False)\n')
-            else:
-                f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
+            f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
 
         for lib in self.buildconfig.sharedliblink:
-            if lib == "autodetect":
-                f.write('        self.copy("lib*.so*", dst="lib", keep_path=False)\n')
-            else:
-                f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
+            f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
 
         for copyline in self.buildconfig.package_extra_copy:
             f.write(f'        {copyline}\n')
