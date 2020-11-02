@@ -720,7 +720,9 @@ libraries:
         repo: abseil/abseil-cpp
         path_name: libs/abseil
         check_file: README.md
-        build_type: none
+        build_type: cmake
+        make_targets:
+          - all
         targets:
           - trunk
       cppcoro:
