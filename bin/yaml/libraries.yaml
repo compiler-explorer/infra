@@ -721,6 +721,9 @@ libraries:
         path_name: libs/abseil
         check_file: README.md
         build_type: cmake
+        lib_type: static
+        staticliblink:
+          - autodetect
         make_targets:
           - all
         targets:

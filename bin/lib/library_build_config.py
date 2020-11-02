@@ -7,8 +7,8 @@ class LibraryBuildConfig:
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
         self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
         self.lib_type = self.config_get("lib_type", "static")
-        self.staticliblink: List[str] = []
-        self.sharedliblink: List[str] = []
+        self.staticliblink = self.config_get("staticliblink", [])
+        self.sharedliblink = self.config_get("sharedliblink", [])
         self.url = "None"
         self.description = ""
         self.configure_flags = self.config_get("configure_flags", [])
