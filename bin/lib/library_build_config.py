@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 class LibraryBuildConfig:
     def __init__(self, config: Dict[str, Any]):
