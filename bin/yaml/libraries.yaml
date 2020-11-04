@@ -370,7 +370,7 @@ libraries:
       subdir: vcl
       target_prefix: v
       targets:
-        - 2.00
+        - 2.00.01
         - 2.01.03
     openssl:
       type: github
