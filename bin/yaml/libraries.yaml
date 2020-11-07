@@ -323,7 +323,7 @@ libraries:
       repo: jfalcou/spy
       check_file: README.md
       targets:
-        - 0.0.3
+        - 0.0.4
     hedley:
       type: github
       repo: nemequ/hedley
