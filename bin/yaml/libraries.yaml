@@ -329,7 +329,7 @@ libraries:
       repo: jfalcou/tts
       check_file: README.md
       targets:
-        - 0.1
+        - "0.1"
     hedley:
       type: github
       repo: nemequ/hedley
