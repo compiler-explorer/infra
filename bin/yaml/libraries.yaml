@@ -324,6 +324,12 @@ libraries:
       check_file: README.md
       targets:
         - 0.0.3
+    tts:
+      type: github
+      repo: jfalcou/tts
+      check_file: README.md
+      targets:
+        - 0.1
     hedley:
       type: github
       repo: nemequ/hedley
@@ -668,6 +674,14 @@ libraries:
         type: github
         method: nightlyclone
         repo: jfalcou/spy
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
+      tts:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/tts
         check_file: README.md
         build_type: none
         targets:
