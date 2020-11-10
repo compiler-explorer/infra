@@ -19,7 +19,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
 
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
-  health_check_type         = "EC2"
+  health_check_type         = "ELB"
   max_size                  = 16
   min_size                  = 2 // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
   name                      = "prod"
@@ -108,7 +108,7 @@ resource "aws_autoscaling_group" "spot-beta" {
 
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
-  health_check_type         = "EC2"
+  health_check_type         = "ELB"
   launch_configuration      = aws_launch_configuration.CompilerExplorer-beta-large.id
   max_size                  = 4
   min_size                  = 0
@@ -141,7 +141,7 @@ resource "aws_autoscaling_group" "staging" {
 
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
-  health_check_type         = "EC2"
+  health_check_type         = "ELB"
   launch_configuration      = aws_launch_configuration.CompilerExplorer-staging.id
   max_size                  = 4
   min_size                  = 0
