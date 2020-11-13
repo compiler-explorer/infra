@@ -695,6 +695,8 @@ class TarballInstallable(Installable):
         self._setup_check_exe(self.install_path)
         if self.install_path_symlink:
             self._setup_check_link(self.install_path, self.install_path_symlink)
+        self.remove_older_pattern = self.config_get("remove_older_pattern", "")
+        self.num_to_keep = self.config_get('num_to_keep', 5)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
@@ -717,6 +719,14 @@ class TarballInstallable(Installable):
         if not super().install():
             return False
         self.stage()
+
+        if self.remove_older_pattern:
+            # Do this first, and add one for the file we haven't yet installed... (then dry run works)
+            num_to_keep = self.num_to_keep + 1
+            all_versions = list(sorted(self.install_context.glob(self.remove_older_pattern)))
+            for to_remove in all_versions[:-num_to_keep]:
+                self.install_context.remove_dir(to_remove)
+
         self.install_context.move_from_staging(self.untar_path, self.install_path)
         if self.install_path_symlink:
             self.install_context.set_link(self.install_path, self.install_path_symlink)

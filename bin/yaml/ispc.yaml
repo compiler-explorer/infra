@@ -29,5 +29,6 @@ compilers:
       dir: ispc-{name}-{now:%Y%m%d}
       symlink: ispc-{name}
       untar_dir: ispc-{name}-linux
+      remove_older_pattern: ispc-{name}-*
       targets:
         - trunk
