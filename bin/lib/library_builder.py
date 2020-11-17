@@ -251,7 +251,7 @@ class LibraryBuilder:
         ldlibpathsstr = ':'.join(ldlibpaths)
         f.write(f'export LD_LIBRARY_PATHS="{ldlibpathsstr}"\n')
         f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
-        f.write(f'export NUMCPUS="$(nproc)"\n')
+        f.write('export NUMCPUS="$(nproc)"\n')
 
         stdverflag = ''
         if stdver != '':
