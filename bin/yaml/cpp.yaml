@@ -392,6 +392,7 @@ compilers:
           - autonsdmi-trunk
           - lifetime-trunk
           - parmexpr-trunk
+          - patmat-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:

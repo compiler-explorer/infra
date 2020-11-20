@@ -27,5 +27,6 @@ remove_older clang-autonsdmi
 remove_older clang-lifetime
 remove_older clang-llvmflang
 remove_older clang-parmexpr
+remove_older clang-patmat
 remove_older clang-embed
 remove_older go
