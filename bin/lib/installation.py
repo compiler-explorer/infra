@@ -425,6 +425,7 @@ class GitHubInstallable(Installable):
         self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.branch_name))
         if self.repo == "":
             raise RuntimeError('Requires repo')
+        self.recursive = self.config_get("recursive", True)
 
         splitrepo = self.repo.split('/')
         self.reponame = splitrepo[1]
@@ -444,6 +445,11 @@ class GitHubInstallable(Installable):
         else:
             self.check_file = f'{self.path_name}/{check_file}'
 
+    def _update_args(self):
+        if self.recursive:
+            return ['--recursive']
+        return []
+
     def clone_branch(self):
         dest = os.path.join(self.install_context.destination, self.path_name)
         if not os.path.exists(dest):
@@ -462,7 +468,7 @@ class GitHubInstallable(Installable):
             subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
                                   cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init', '--recursive'],
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'] + self._update_args(),
                               cwd=self.install_context.staging)
 
     def clone_default(self):
@@ -475,7 +481,7 @@ class GitHubInstallable(Installable):
             subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
                                   cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init', '--recursive'],
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'] + self._update_args(),
                               cwd=self.install_context.staging)
 
     def get_archive_url(self):

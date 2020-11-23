@@ -946,6 +946,7 @@ libraries:
         repo: electronicarts/EASTL
         check_file: README.md
         build_type: none
+        recursive: false
         targets:
           - trunk
       crosscables:
