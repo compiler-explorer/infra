@@ -86,7 +86,7 @@ class LibraryBuilder:
         if specificVersionDetails:
             if 'staticliblink' in specificVersionDetails:
                 self.buildconfig.staticliblink = specificVersionDetails['staticliblink']
-                
+
             if 'liblink' in specificVersionDetails:
                 self.buildconfig.sharedliblink = specificVersionDetails['liblink']
 
@@ -122,7 +122,7 @@ class LibraryBuilder:
         if match:
             return match[1]
         return False
-    
+
     def getStdLibFromOptions(self, options):
         match = re.search(r"-stdlib=(\S*)", options)
         if match:
@@ -251,11 +251,12 @@ class LibraryBuilder:
         ldlibpathsstr = ':'.join(ldlibpaths)
         f.write(f'export LD_LIBRARY_PATHS="{ldlibpathsstr}"\n')
         f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
+        f.write('export NUMCPUS="$(nproc)"\n')
 
         stdverflag = ''
         if stdver != '':
             stdverflag = f'-std={stdver}'
-        
+
         stdlibflag = ''
         if stdlib != '' and compilerType == 'clang':
             libcxx = stdlib
@@ -302,16 +303,18 @@ class LibraryBuilder:
             for line in self.buildconfig.prebuild_script:
                 f.write(f'{line}\n')
 
-        expanded_make_args = [self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib) for arg in self.buildconfig.extra_make_arg]
-        extramakeargs = ' '.join(expanded_make_args)
+        extramakeargs = ' '.join(['-j$NUMCPUS'] + [
+            self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
+            for arg in self.buildconfig.extra_make_arg
+        ])
 
         if len(self.buildconfig.make_targets) != 0:
-            lognum = 0 
+            lognum = 0
             for target in self.buildconfig.make_targets:
                 f.write(f'make {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n')
                 lognum += 1
         else:
-            lognum = 0 
+            lognum = 0
             if len(self.buildconfig.staticliblink) != 0:
                 for lib in self.buildconfig.staticliblink:
                     f.write(f'make {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
