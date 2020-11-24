@@ -397,14 +397,6 @@ compilers:
             check_exe: bin/flang
             after_stage_script:
               - chmod 0755 bin/flang
-    oracle: # NB unused and unsupported at present
-      type: s3tarballs
-      check_exe: developerstudio12.5/bin/CC -V
-      s3_path_prefix: "OracleDeveloperStudio{name}-linux-x86-bin"
-      untar_dir: "OracleDeveloperStudio{name}-linux-x86-bin"
-      compression: bz2
-      targets:
-        - "12.5"
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version
