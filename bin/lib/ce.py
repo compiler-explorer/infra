@@ -76,7 +76,11 @@ def describe_current_release(args):
 def wait_for_autoscale_state(instance, state):
     logger.info("Waiting for %s to reach autoscale lifecycle '%s'...", instance, state)
     while True:
-        cur_state = instance.describe_autoscale()['LifecycleState']
+        autoscale = instance.describe_autoscale()
+        if not autoscale:
+            logger.error("Instance is not longer in an ASG: stopping")
+            return
+        cur_state = autoscale['LifecycleState']
         logger.debug("State is %s", cur_state)
         if cur_state == state:
             logger.info("...done")
@@ -287,6 +291,9 @@ def instances_login_cmd(args):
 def instances_restart_one_cmd(args):
     instance = pick_instance(args)
     as_instance_status = instance.describe_autoscale()
+    if not as_instance_status:
+        logger.error("Failed restarting %s - was not in ASG", instance)
+        return
     as_group_name = as_instance_status['AutoScalingGroupName']
     modified_groups = {}
     try:
@@ -320,9 +327,12 @@ def instances_restart_cmd(args):
     for instance in pick_instances(args):
         logger.info("Restarting %s...", instance)
         as_instance_status = instance.describe_autoscale()
+        if not as_instance_status:
+            logger.warning("Skipping %s as it is no longer in the ASG", instance)
+            continue
         as_group_name = as_instance_status['AutoScalingGroupName']
         if as_instance_status['LifecycleState'] != 'InService':
-            logger.error("Skipping %s as it is not InService (%s)", instance, as_instance_status)
+            logger.warning("Skipping %s as it is not InService (%s)", instance, as_instance_status)
             continue
 
         try:

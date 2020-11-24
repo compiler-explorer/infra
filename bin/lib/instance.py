@@ -1,5 +1,6 @@
 import logging
 import subprocess
+from typing import Dict, Optional
 
 from lib.amazon import ec2, as_client, elb_client, get_releases, release_for
 from lib.ssh import exec_remote
@@ -20,9 +21,12 @@ class Instance:
     def __str__(self):
         return '{}@{}'.format(self.instance.id, self.instance.public_ip_address)
 
-    def describe_autoscale(self):
-        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
-        return results['AutoScalingInstances'][0]
+    def describe_autoscale(self) -> Optional[Dict]:
+        results = as_client.describe_auto_scaling_instances(
+            InstanceIds=[self.instance.instance_id])['AutoScalingInstances']
+        if not results:
+            return None
+        return results[0]
 
     def update(self, health=None):
         if not health:
@@ -61,6 +65,7 @@ class AdminInstance:
     def instance():
         return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
 
+
 class ConanInstance:
     def __init__(self, instance):
         self.instance = instance
@@ -71,6 +76,7 @@ class ConanInstance:
     @staticmethod
     def instance():
         return ConanInstance(ec2.Instance(id='i-087ffd9c19455bb43'))
+
 
 class BuilderInstance:
     def __init__(self, instance):
