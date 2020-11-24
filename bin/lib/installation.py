@@ -294,7 +294,7 @@ class Installable:
         self.check_env = {}
         self.check_file = None
         self.check_call = []
-        self.path_name = ''
+        self.install_path = ''
         self.after_stage_script = self.config_get('after_stage_script', [])
 
     def _setup_check_exe(self, path_name: str) -> None:
@@ -392,7 +392,7 @@ class Installable:
         if self.build_config.build_type == "":
             raise RuntimeError('No build_type')
 
-        sourcefolder = os.path.join(self.install_context.destination, self.path_name)
+        sourcefolder = os.path.join(self.install_context.destination, self.install_path)
         builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
                                  self.install_context, self.build_config)
 
@@ -422,7 +422,7 @@ class GitHubInstallable(Installable):
         self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
         self.branch_name = self.target_prefix + self.target_name
-        self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.branch_name))
+        self.install_path = self.config_get('path_name', os.path.join(self.subdir, self.branch_name))
         if self.repo == "":
             raise RuntimeError('Requires repo')
         self.recursive = self.config_get("recursive", True)
@@ -435,15 +435,15 @@ class GitHubInstallable(Installable):
         check_file = self.config_get("check_file", "")
         if check_file == "":
             if self.build_config.build_type == "cmake":
-                self.check_file = os.path.join(self.path_name, 'CMakeLists.txt')
+                self.check_file = os.path.join(self.install_path, 'CMakeLists.txt')
             elif self.build_config.build_type == "make":
-                self.check_file = os.path.join(self.path_name, 'Makefile')
+                self.check_file = os.path.join(self.install_path, 'Makefile')
             elif self.build_config.build_type == "cake":
-                self.check_file = os.path.join(self.path_name, 'config.cake')
+                self.check_file = os.path.join(self.install_path, 'config.cake')
             else:
                 raise RuntimeError(f'Requires check_file ({last_context})')
         else:
-            self.check_file = f'{self.path_name}/{check_file}'
+            self.check_file = f'{self.install_path}/{check_file}'
 
     def _update_args(self):
         if self.recursive:
@@ -451,7 +451,7 @@ class GitHubInstallable(Installable):
         return []
 
     def clone_branch(self):
-        dest = os.path.join(self.install_context.destination, self.path_name)
+        dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
                                   cwd=self.install_context.staging)
@@ -472,7 +472,7 @@ class GitHubInstallable(Installable):
                               cwd=self.install_context.staging)
 
     def clone_default(self):
-        dest = os.path.join(self.install_context.destination, self.path_name)
+        dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
                                   cwd=self.install_context.staging)
@@ -504,14 +504,14 @@ class GitHubInstallable(Installable):
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
-        dest = os.path.join(self.install_context.destination, self.path_name)
+        dest = os.path.join(self.install_context.destination, self.install_path)
         self.install_context.run_script(dest, self.after_stage_script)
 
     def verify(self):
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
+        return self.install_context.compare_against_staging(self.untar_dir, self.install_path)
 
     def install(self):
         if not super().install():
@@ -520,11 +520,11 @@ class GitHubInstallable(Installable):
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
         if self.method == "archive":
-            self.install_context.move_from_staging(self.untar_dir, self.path_name)
+            self.install_context.move_from_staging(self.untar_dir, self.install_path)
         return True
 
     def __repr__(self) -> str:
-        return f'GitHubInstallable({self.name}, {self.path_name})'
+        return f'GitHubInstallable({self.name}, {self.install_path})'
 
 
 class GitLabInstallable(GitHubInstallable):
@@ -536,7 +536,7 @@ class GitLabInstallable(GitHubInstallable):
         return f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz'
 
     def __repr__(self) -> str:
-        return f'GitLabInstallable({self.name}, {self.path_name})'
+        return f'GitLabInstallable({self.name}, {self.install_path})'
 
 
 class BitbucketInstallable(GitHubInstallable):
@@ -548,7 +548,7 @@ class BitbucketInstallable(GitHubInstallable):
         return f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz'
 
     def __repr__(self) -> str:
-        return f'BitbucketInstallable({self.name}, {self.path_name})'
+        return f'BitbucketInstallable({self.name}, {self.install_path})'
 
 
 class S3TarballInstallable(Installable):
@@ -565,7 +565,7 @@ class S3TarballInstallable(Installable):
             default_path_name = f'{last_context}-{self.target_name}'
             default_untar_dir = default_path_name
         s3_path_prefix = self.config_get('s3_path_prefix', default_s3_path_prefix)
-        self.path_name = self.config_get('path_name', default_path_name)
+        self.install_path = self.config_get('path_name', default_path_name)
         self.untar_dir = self.config_get("untar_dir", default_untar_dir)
         compression = self.config_get('compression', 'xz')
         if compression == 'xz':
@@ -580,7 +580,7 @@ class S3TarballInstallable(Installable):
         else:
             raise RuntimeError(f'Unknown compression {compression}')
         self.strip = self.config_get('strip', False)
-        self._setup_check_exe(self.path_name)
+        self._setup_check_exe(self.install_path)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
@@ -594,7 +594,7 @@ class S3TarballInstallable(Installable):
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
+        return self.install_context.compare_against_staging(self.untar_dir, self.install_path)
 
     def install(self) -> bool:
         if not super().install():
@@ -602,14 +602,14 @@ class S3TarballInstallable(Installable):
         self.stage()
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
-        elif self.path_name:
-            self.install_context.make_subdir(self.path_name)
+        elif self.install_path:
+            self.install_context.make_subdir(self.install_path)
 
-        self.install_context.move_from_staging(self.untar_dir, self.path_name)
+        self.install_context.move_from_staging(self.untar_dir, self.install_path)
         return True
 
     def __repr__(self) -> str:
-        return f'S3TarballInstallable({self.name}, {self.path_name})'
+        return f'S3TarballInstallable({self.name}, {self.install_path})'
 
 
 class NightlyInstallable(Installable):
@@ -624,11 +624,11 @@ class NightlyInstallable(Installable):
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
         self.s3_path = f'{compiler_name}-{most_recent}'
-        self.path_name = os.path.join(self.subdir, f'{compiler_name}-{most_recent}')
+        self.install_path = os.path.join(self.subdir, f'{compiler_name}-{most_recent}')
         self.compiler_pattern = os.path.join(self.subdir, f'{compiler_name}-*')
         self.path_name_symlink = self.config_get('symlink', os.path.join(self.subdir, f'{compiler_name}'))
         self.num_to_keep = self.config_get('num_to_keep', 5)
-        self._setup_check_exe(self.path_name)
+        self._setup_check_exe(self.install_path)
         self._setup_check_link(self.s3_path, self.path_name_symlink)
 
     def stage(self) -> None:
@@ -643,7 +643,7 @@ class NightlyInstallable(Installable):
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.s3_path, self.path_name)
+        return self.install_context.compare_against_staging(self.s3_path, self.install_path)
 
     def should_install(self) -> bool:
         return True
@@ -659,13 +659,13 @@ class NightlyInstallable(Installable):
         for to_remove in all_versions[:-num_to_keep]:
             self.install_context.remove_dir(to_remove)
 
-        self.install_context.move_from_staging(self.s3_path, self.path_name)
+        self.install_context.move_from_staging(self.s3_path, self.install_path)
         self.install_context.set_link(Path(self.s3_path), self.path_name_symlink)
 
         return True
 
     def __repr__(self) -> str:
-        return f'NightlyInstallable({self.name}, {self.path_name})'
+        return f'NightlyInstallable({self.name}, {self.install_path})'
 
 
 class TarballInstallable(Installable):
