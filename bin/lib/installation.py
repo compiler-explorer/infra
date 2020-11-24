@@ -413,6 +413,7 @@ class Installable:
         destination_image.parent.mkdir(parents=True, exist_ok=True)
         source_folder = self.install_context.destination / self.install_path
         temp_image = destination_image.with_suffix(".tmp")
+        temp_image.unlink(missing_ok=True)
         self.info(f"Squashing {source_folder}...")
         self.install_context.check_call([
             "/usr/bin/mksquashfs",
