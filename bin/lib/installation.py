@@ -226,6 +226,12 @@ class InstallationContext:
         return subprocess.check_output(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL).decode(
             'utf-8')
 
+    def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
+        args = args[:]
+        args[0] = str(self.destination / args[0])
+        logger.debug('Executing %s in %s', args, self.destination)
+        subprocess.check_call(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL)
+
     def strip_exes(self, paths: Union[bool, List[str]]) -> None:
         if isinstance(paths, bool):
             if not paths:
@@ -402,6 +408,22 @@ class Installable:
             return builder.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
+
+    def squash_to(self, destination_image: Path):
+        destination_image.parent.mkdir(parents=True, exist_ok=True)
+        source_folder = self.install_context.destination / self.install_path
+        temp_image = destination_image.with_suffix(".tmp")
+        self.info(f"Squashing {source_folder}...")
+        self.install_context.check_call([
+            "/usr/bin/mksquashfs",
+            str(source_folder),
+            str(temp_image),
+            "-all-root",
+            "-progress",
+            "-comp", "zstd",
+            "-Xcompression-level", "19"
+        ])
+        temp_image.replace(destination_image)
 
 
 def command_config(config: Union[List[str], str]) -> List[str]:
