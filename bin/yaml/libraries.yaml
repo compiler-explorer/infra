@@ -1007,13 +1007,6 @@ libraries:
         - 1.9.10
         - 1.9.10-1
         - 1.10.0
-    libcudacxx:
-      type: github
-      method: nightlyclone
-      repo: NVIDIA/libcudacxx
-      check_file: include/cuda/std/atomic
-      targets:
-        - trunk
     nvtx:
       type: github
       method: clone_branch
@@ -1039,6 +1032,13 @@ libraries:
         check_file: cpp/nvtx3.hpp
         targets:
           - dev
+      libcudacxx:
+        type: github
+        method: nightlyclone
+        repo: NVIDIA/libcudacxx
+        check_file: include/cuda/std/atomic
+        targets:
+          - trunk
   d:
     mir-glas:
       type: github
