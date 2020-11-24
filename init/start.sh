@@ -28,11 +28,11 @@ mount_opt() {
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
-    "${DEPLOY_DIR}/mount-all-img.sh"
+    ./mount-all-img.sh
 }
 
-rsync_boost() {
-    echo rsyncing boost libraries
+link_boost() {
+    echo "linking boost libraries (temporary until we change CE config)"
     mkdir -p /celibs
     ln -sf /opt/compiler-explorer/libs/boost_1* /celibs
     chown ${CE_USER}:${CE_USER} /celibs
@@ -74,7 +74,7 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 mount_opt
-rsync_boost
+link_boost
 update_code
 
 cd "${DEPLOY_DIR}"
