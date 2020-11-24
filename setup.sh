@@ -76,9 +76,4 @@ cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.s
 systemctl daemon-reload
 systemctl enable compiler-explorer
 
-if [[ -f /efs/compiler-explorer/libs/boost.tar.xz ]]; then
-    mkdir -p /celibs
-    tar xf /efs/compiler-explorer/libs/boost.tar.xz -C /celibs
-fi
-
 adduser --system --group ce

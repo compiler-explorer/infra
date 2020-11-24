@@ -27,13 +27,15 @@ mount_opt() {
 
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
+
+    "${DEPLOY_DIR}/mount-all-img.sh"
 }
 
 rsync_boost() {
     echo rsyncing boost libraries
     mkdir -p /celibs
+    ln -sf /opt/compiler-explorer/libs/boost_1* /celibs
     chown ${CE_USER}:${CE_USER} /celibs
-    rsync -a --chown=${CE_USER}:${CE_USER} --exclude=.git /opt/compiler-explorer/libs/boost_* /celibs/ &
 }
 
 get_released_code() {
