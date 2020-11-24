@@ -757,7 +757,7 @@ class TarballInstallable(Installable):
 
         self.install_context.move_from_staging(self.untar_path, self.install_path)
         if self.install_path_symlink:
-            self.install_context.set_link(self.install_path, self.install_path_symlink)
+            self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
         return True
 
     def __repr__(self) -> str:
@@ -822,7 +822,7 @@ class ScriptInstallable(Installable):
         self.stage()
         self.install_context.move_from_staging(self.install_path)
         if self.install_path_symlink:
-            self.install_context.set_link(self.install_path, self.install_path_symlink)
+            self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
         return True
 
     def __repr__(self) -> str:
