@@ -3,6 +3,7 @@
 # This script installs all the libraries to be used by Compiler Explorer
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.inc
 . ${DIR}/common.inc
 
 #########################
