@@ -167,14 +167,6 @@ libraries:
       targets:
         - "0.8"
         - "0.10"
-    hfsm_trunk:
-      type: github
-      method: nightlyclone
-      repo: andrew-gresyk/HFSM
-      check_file: README.md
-      path_name: libs/hfsm/trunk
-      targets:
-        - trunk
     hfsm2:
       type: github
       repo: andrew-gresyk/HFSM2
@@ -486,14 +478,6 @@ libraries:
       build_type: none
       targets:
         - v3.2.1
-    immer:
-      type: github
-      method: nightlyclone
-      repo: arximboldi/immer
-      check_file: immer/vector.hpp
-      build_type: none
-      targets:
-        - trunk
     spdlog:
       type: github
       repo: gabime/spdlog
@@ -588,6 +572,22 @@ libraries:
         check_file: include/gsl/gsl-lite.hpp
         path_name: libs/gsl-lite
         build_type: none
+        targets:
+          - trunk
+      immer:
+        type: github
+        method: nightlyclone
+        repo: arximboldi/immer
+        check_file: immer/vector.hpp
+        build_type: none
+        targets:
+          - trunk
+      hfsm_trunk:
+        type: github
+        method: nightlyclone
+        repo: andrew-gresyk/HFSM
+        check_file: README.md
+        path_name: libs/hfsm/trunk
         targets:
           - trunk
       nlohmann_json:
