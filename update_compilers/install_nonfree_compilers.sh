@@ -13,6 +13,7 @@ CE_INSTALL_ARG+=" --enable=non-free"
 ##################################
 # Non-free tools
 ce_install tools
+ce_squash tools
 
 ##################################
 # Intel compilers
