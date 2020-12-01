@@ -590,6 +590,14 @@ libraries:
         path_name: libs/hfsm/trunk
         targets:
           - trunk
+      lexy_trunk:
+        type: github
+        method: nightlyclone
+        repo: foonathan/lexy
+        check_file: include/lexy/parse.hpp
+        path_name: libs/lexy/trunk
+        targets:
+          - trunk
       nlohmann_json:
         type: github
         method: nightlyclone
