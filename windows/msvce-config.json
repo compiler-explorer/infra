@@ -1,0 +1,247 @@
+{
+	"$schema": "./msvce-config-schema.json",
+	"windows": {
+		"old_versions": {
+			"2018-09-24": "1803",
+			"2019-08-16": "1809"
+		},
+		"version": "1809"
+	},
+	"toolset": [
+		{
+			"version": "14.14.26428.1",
+			"pretty": "v19.14",
+			"legacy_aliases": {
+				"x86": [ "vcpp_v19_14_(vs_15_7)_x86" ],
+				"x64": [ "vcpp_v19_14_(vs_15_7)_x64" ]
+			}
+		},
+		{
+			"version": "14.15.26726",
+			"pretty": "v19.15",
+			"legacy_aliases": {
+				"x86": [ "vcpp_v19_15_(vs_15_8)_x86" ],
+				"x64": [ "vcpp_v19_15_(vs_15_8)_x64" ]
+			}
+		},
+		{
+			"version": "14.16.27023.1",
+			"pretty": "v19.16"
+		},
+		{
+			"version": "14.20.27508.1",
+			"pretty": "v19.20"
+		},
+		{
+			"version": "14.21.27702.2",
+			"pretty": "v19.21"
+		},
+		{
+			"version": "14.22.27905",
+			"pretty": "v19.22"
+		},
+		{
+			"version": "14.23.28105.4",
+			"pretty": "v19.23"
+		},
+		{
+			"version": "14.24.28314",
+			"pretty": "v19.24"
+		},
+		{
+			"version": "14.25.28614-v1",
+			"pretty": "v19.25"
+		},
+		{
+			"version": "14.27.29111",
+			"pretty": "v19.27"
+		}
+	],
+	"node": {
+		"$comment": [
+			"Note that the hash is for the .zip",
+			"you can find the hash at the nodejs download website;",
+			"make certain to uppercase it."
+		],
+		"old_versions": {
+			"2018-09-24": "8.11.4",
+			"2019-06-21": "10.16.0",
+			"2020-01-29": "12.14.1"
+		},
+		"version": "12.14.1",
+		"architecture": "win-x64",
+		"hash": "1F96CCCE3BA045ECEA3F458E189500ADB90B8BC1A34DE5D82FC10A5BF66CE7E3"
+	},
+	"compiler_explorer": {
+		"$comment": [
+			"When you update the hash here, make sure to update the hash in cgmanifest.json"
+		],
+		"old_versions": {
+			"2018-09-24": "71217A047540FF645B7F5D63B3BD14E8E03B9142",
+			"2019-08-01": "452193112016D5C8D7E7D69BA39326CBD39C3842",
+			"2020-01-29": "4D9E24882EE936DCA6FF31BA1853A0035AD8F81C",
+			"2020-05-07": "D04A8CBBCB9578ABDFA494B5CBF054581BBED83D"
+		},
+		"git_url": "https://github.com/mattgodbolt/compiler-explorer.git",
+		"git_commit": "D04A8CBBCB9578ABDFA494B5CBF054581BBED83D"
+	},
+	"windows_sdk": {
+		"$comment": [
+			"Link to download winsdksetup.exe, and the hash.",
+			"Grab links to new versions of the SDK at",
+			"https://developer.microsoft.com/en-us/windows/downloads/sdk-archive"
+		],
+		"old_versions": {
+			"2019-06-26": {
+				"version": "10.1.18362.1",
+				"link": "https://go.microsoft.com/fwlink/?linkid=2083338"
+			}
+		},
+		"link": "https://go.microsoft.com/fwlink/?linkid=2083338",
+		"hash": "2E28117E82B4D02FE30D564B835ACE9976612609271265872F20F2256A9C506B"
+	},
+	"vcpkg": {
+		"old_versions": {
+			"2019-07-26": "2019.06",
+			"2019-08-01": "2019.07",
+			"2020-05-07": "2020.04"
+		},
+		"$comment": [
+			"The libraries with `null` as their value are those which are not",
+			"available for now. If they're added later, give them a real object.",
+			"cmcstl2 cannot be installed alongside range-v3, and so we don't install",
+			"it. If that changes, then you can also install cmcstl2."
+		],
+		"release": "2020.04",
+		"url": "https://github.com/microsoft/vcpkg",
+		"architectures": {
+			"x86": "x86-windows",
+			"x64": "x64-windows"
+		},
+		"libraries": {
+			"abseil": {
+				"url": "https://abseil.io/",
+				"pretty_name": "Abseil"
+			},
+			"blaze": {
+				"architectures": "x64",
+				"reason": [
+					"openblas",
+					"clapack"
+				],
+				"url": "https://bitbucket.org/blaze-lib/blaze",
+				"pretty_name": "Blaze"
+			},
+			"boost": {
+				"url": "https://www.boost.org",
+				"pretty_name": "boost"
+			},
+			"brigand": null,
+			"catch2": {
+				"url": "https://github.com/catchorg/Catch2",
+				"description": "Catch2",
+				"pretty_name": "Catch2"
+			},
+			"cmcstl2": null,
+			"cnl": {
+				"url": "https://github.com/johnmcfarlane/cnl",
+				"description": "Compositional Numeric Library",
+				"pretty_name": "CNL"
+			},
+			"cppcoro": null,
+			"ctbignum": null,
+			"ctre": {
+				"url": "https://github.com/hanickadot/compile-time-regular-expressions",
+				"description": "Compile Time Regular Expressions",
+				"pretty_name": "CTRE"
+			},
+			"dlib": {
+				"architectures": "x64",
+				"reason": [
+					"openblas",
+					"clapack"
+				],
+				"url": "http://dlib.net/",
+				"description": "Machine learning algorithms and tools",
+				"pretty_name": "dlib"
+			},
+			"doctest": {
+				"url": "https://github.com/onqtam/doctest",
+				"description": "The fastest feature-rich C++11 single-header testing framework for unit tests and TDD",
+				"pretty_name": "Doctest"
+			},
+			"eastl": {
+				"url": "https://github.com/electronicarts/EASTL",
+				"description": "The Electronic Arts Standard Template Library. It is an extensive and robust implementation that has an emphasis on high performance.",
+				"pretty_name": "EASTL"
+			},
+			"eigen3": {
+				"url": "http://eigen.tuxfamily.org/index.php?title=Main_Page",
+				"pretty_name": "Eigen"
+			},
+			"expected-lite": {
+				"url": "https://github.com/martinmoene/expected-lite",
+				"pretty_name": "expected-lite"
+			},
+			"fmt": {
+				"url": "https://fmtlib.net/",
+				"description": "A modern formatting library",
+				"pretty_name": "{fmt}"
+			},
+			"glm": {
+				"url": "https://glm.g-truc.net/",
+				"description": "OpenGL Mathematics",
+				"pretty_name": "GLM"
+			},
+			"gtest": {
+				"url": "https://github.com/google/googletest",
+				"pretty_name": "Google Test"
+			},
+			"ms-gsl": {
+				"url": "https://github.com/Microsoft/GSL",
+				"description": "Guidelines Support Library",
+				"pretty_name": "GSL"
+			},
+			"hfsm2": null,
+			"kvasir-mpl": null,
+			"libguarded": null,
+			"llvm": {
+				"architectures": [],
+				"reason": [
+					"ATL/MFC"
+				],
+				"url": "https://llvm.org/",
+				"description": "LLVM",
+				"pretty_name": "LLVM"
+			},
+			"nlohmann-json": {
+				"url": "https://github.com/nlohmann/json",
+				"pretty_name": "nlohmann::json"
+			},
+			"ned14-outcome": null,
+			"pegtl": {
+				"url": "https://github.com/taocpp/PEGTL",
+				"description": "Parsing Expression Grammar Template Library",
+				"pretty_name": "PEGTL"
+			},
+			"range-v3": {
+				"url": "https://github.com/ericniebler/range-v3",
+				"pretty_name": "range-v3"
+			},
+			"scylladb-seastar": null,
+			"agner-fog-vcl": null,
+			"xsimd": {
+				"url": "http://xsimd.readthedocs.io",
+				"pretty_name": "xsimd"
+			},
+			"xtensor": {
+				"url": "http://xtensor.readthedocs.io",
+				"pretty_name": "xtensor"
+			},
+			"xtl": {
+				"url": "http://xtl.readthedocs.io",
+				"pretty_name": "xtl"
+			}
+		}
+	}
+}
