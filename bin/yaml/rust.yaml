@@ -59,6 +59,7 @@ compilers:
         - 1.45.2
         - 1.46.0
         - 1.47.0
+        - 1.48.0
       nightly:
         if: nightly
         targets:

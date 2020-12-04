@@ -48,6 +48,8 @@ def main():
                             description='Install binaries, libraries and compilers for Compiler Explorer')
     parser.add_argument('--dest', default=Path('/opt/compiler-explorer'), metavar='DEST', type=Path,
                         help='install with DEST as the installation root (default %(default)s)')
+    parser.add_argument('--image-dir', default=Path('/opt/squash-images'), metavar='IMAGES', type=Path,
+                        help='build images to IMAGES (default %(default)s)')
     parser.add_argument('--staging-dir', default=Path('/opt/compiler-explorer/staging'), metavar='STAGEDIR', type=Path,
                         help='install to STAGEDIR then rename in-place. Must be on the same drive as DEST for atomic'
                              'rename/replace. Directory will be removed during install (default %(default)s)')
@@ -72,7 +74,8 @@ def main():
     parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
                         help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
 
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build'],
+    parser.add_argument('command',
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
@@ -166,7 +169,17 @@ def main():
                             logger.error('Path missing for library %s %s: %s', libraryid, version, libpath)
                         else:
                             logger.debug('Found path for library %s %s: %s', libraryid, version, libpath)
-
+    elif args.command == 'squash':
+        for installable in installables:
+            if not installable.is_installed():
+                context.warn(f"{installable.name} wasn't installed; skipping squash")
+                continue
+            destination: Path = args.image_dir / f"{installable.install_path}.img"
+            if destination.exists() and not args.force:
+                context.info(f"Skipping {installable.name} as it already exists at {destination}")
+                continue
+            context.info(f"Squashing {installable.name}  to {destination}")
+            installable.squash_to(destination)
     elif args.command == 'install':
         num_installed = 0
         num_skipped = 0

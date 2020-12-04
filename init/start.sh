@@ -27,13 +27,8 @@ mount_opt() {
 
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
-}
 
-rsync_boost() {
-    echo rsyncing boost libraries
-    mkdir -p /celibs
-    chown ${CE_USER}:${CE_USER} /celibs
-    rsync -a --chown=${CE_USER}:${CE_USER} --exclude=.git /opt/compiler-explorer/libs/boost_* /celibs/ &
+    ./mount-all-img.sh
 }
 
 get_released_code() {
@@ -72,7 +67,6 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 mount_opt
-rsync_boost
 update_code
 
 cd "${DEPLOY_DIR}"

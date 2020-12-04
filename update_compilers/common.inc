@@ -58,6 +58,14 @@ ce_install() {
     "${SCRIPT_DIR}/../bin/ce_install" ${CE_INSTALL_ARG} install "$@"
 }
 
+ce_squash() {
+    if [[ -d /opt/squash-images ]]; then
+        "${SCRIPT_DIR}/../bin/ce_install" squash "$@"
+    else
+        echo "Skipping ce squash of $@ as target directory doesn't exist"
+    fi
+}
+
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
 S3BUCKET=compiler-explorer
 SUBDIR=opt

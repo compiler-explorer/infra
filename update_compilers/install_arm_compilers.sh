@@ -1,6 +1,7 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.inc
 . "${SCRIPT_DIR}"/common.inc
 
 # Some things need to be installed in `/opt/arm` so they can be kept out of the execution path.
