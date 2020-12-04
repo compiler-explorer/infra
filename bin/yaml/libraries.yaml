@@ -1015,6 +1015,7 @@ libraries:
         - 1.9.10
         - 1.9.10-1
         - 1.10.0
+        - 1.11.0
     nvtx:
       type: github
       method: clone_branch
