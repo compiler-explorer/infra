@@ -295,5 +295,4 @@ install_nsimd() {
     done
 }
 
-install_libevent 2.1.12
-install_nsimd spmd
+install_nsimd v2.0
