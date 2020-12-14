@@ -276,8 +276,7 @@ install_nsimd() {
             ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=cuda \
                                         -prefix=${DEST}/cuda \
                                         -Ggnumake \
-                                        -ccomp=gcc,"${CCOMP}",10.2.0,x86_64 \
-                                        -cppcomp=gcc,"${CPPCOMP}",10.2.0,x86_64
+                                        -comp=nvcc
             make
             make install
 
