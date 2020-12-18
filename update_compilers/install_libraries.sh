@@ -273,12 +273,18 @@ install_nsimd() {
             make install
 
             ## CUDA
-            ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=cuda \
-                                        -prefix=${DEST}/cuda \
-                                        -Ggnumake \
-                                        -comp=nvcc
-            make
-            make install
+
+            COMP_ROOT=${OPT}/cuda/9.1.85
+            (
+                export PATH=${OPT}/gcc-6.1.0/bin:${PATH}:${COMP_ROOT}/bin
+                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=cuda \
+                                            -prefix=${DEST}/cuda \
+                                            -Ggnumake \
+                                            -Dstatic_libstdcpp=true \
+                                            -comp=nvcc
+                make
+                make install
+            )
 
             ## ARM64
             COMP_ROOT=${OPT}/arm64/gcc-8.2.0/aarch64-unknown-linux-gnu/bin
@@ -299,4 +305,4 @@ install_nsimd() {
     done
 }
 
-install_nsimd v2.0
+install_nsimd v2.1
