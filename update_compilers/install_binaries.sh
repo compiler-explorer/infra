@@ -49,15 +49,15 @@ if [[ ! -d ${OPT}/pahole ]]; then
     pushd /tmp/build
 
     # Install elfutils for libelf and libdwarf
-    fetch https://sourceware.org/elfutils/ftp/0.179/elfutils-0.179.tar.bz2 | tar jxf -
-    pushd elfutils-0.179
+    fetch https://sourceware.org/elfutils/ftp/0.182/elfutils-0.182.tar.bz2 | tar jxf -
+    pushd elfutils-0.182
     ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod
     make -j$(nproc)
     make install
     popd
 
     git clone -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
-    git -C pahole checkout v1.17
+    git -C pahole checkout v1.19
     git -C pahole submodule sync
     git -C pahole submodule update --init
     pushd pahole
