@@ -11,6 +11,7 @@ compilers:
       - 1.0.4
       - 1.0.6
       - 1.2.0
+      - 1.4.2
 #    nightly:
 #      type: restQueryTarballs
 #      install_always: true
