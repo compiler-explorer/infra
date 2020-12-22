@@ -51,7 +51,7 @@ if [[ ! -d ${OPT}/pahole ]]; then
     # Install elfutils for libelf and libdwarf
     fetch https://sourceware.org/elfutils/ftp/0.182/elfutils-0.182.tar.bz2 | tar jxf -
     pushd elfutils-0.182
-    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod
+    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
     make -j$(nproc)
     make install
     popd
