@@ -42,8 +42,15 @@ fi
 #########################
 # pahole
 
-if [[ ! -d ${OPT}/pahole ]]; then
-    mkdir ${OPT}/pahole
+TARGET_PAHOLE_VERSION=v1.19
+CURRENT_PAHOLE_VERSION=""
+if [[ -f ${OPT}/pahole/bin/pahole ]]; then
+    CURRENT_PAHOLE_VERSION=$(${OPT}/pahole/bin/pahole --version)
+fi
+
+if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
+    rm -Rf ${OPT}/pahole
+    mkdir -p ${OPT}/pahole
 
     mkdir -p /tmp/build
     pushd /tmp/build
@@ -55,6 +62,8 @@ if [[ ! -d ${OPT}/pahole ]]; then
     make -j$(nproc)
     make install
     popd
+
+    rm -Rf /tmp/build/pahole
 
     git clone -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
     git -C pahole checkout v1.19
