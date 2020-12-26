@@ -345,6 +345,12 @@ compilers:
         compression: bz2
         targets:
           - 2017-07-16
+    tinycc:
+      type: s3tarballs
+      dir: "tinycc-{name}"
+      check_exe: bin/tcc -v
+      targets:
+        - 0.9.27
     icc:
       type: script
       dir: "intel-{name}"
