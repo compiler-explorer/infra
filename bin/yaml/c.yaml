@@ -19,6 +19,8 @@ compilers:
       check_exe: bin/cc65 --version
       targets:
         - "2.17"
+        - "2.18"
+        - "2.19"
     gcc:
       type: s3tarballs
       check_exe: bin/gcc -v
