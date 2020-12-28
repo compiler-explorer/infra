@@ -106,6 +106,7 @@ build_latest clang clang_parmexpr build-parmexpr.sh trunk
 build_latest clang clang_patmat build.sh patmat-trunk
 build_latest clang clang_embed build.sh embed-trunk
 build_latest go go build.sh trunk
+build_latest misc tinycc build-tinycc.sh trunk
 
 build_libraries library
 
