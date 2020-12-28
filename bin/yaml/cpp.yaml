@@ -410,6 +410,11 @@ compilers:
             check_exe: bin/flang
             after_stage_script:
               - chmod 0755 bin/flang
+      tinycc:
+        type: nightly
+        check_exe: bin/tcc -v
+        targets:
+          - trunk
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version
