@@ -71,6 +71,7 @@ compilers:
         - 2.082.0
         - 2.089.0
         - 2.092.0
+        - 2.094.2
     nightly:
       install_always: true
       if: nightly
