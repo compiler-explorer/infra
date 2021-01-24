@@ -151,7 +151,9 @@ libraries:
       build_type: none
       target_prefix: v
       targets:
+        - 1.x
         - 1.0.0
+        - 1.1.5
     cppitertools:
       type: github
       repo: ryanhaining/cppitertools
