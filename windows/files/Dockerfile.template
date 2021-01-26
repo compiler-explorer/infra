@@ -1,0 +1,38 @@
+#escape=`
+
+FROM mcr.microsoft.com/windows/servercore:{WindowsVersion}
+
+COPY winsdksetup.exe C:\winsdksetup.exe
+RUN C:\winsdksetup.exe `
+		/installpath "C:\WinSdk" `
+		/quiet `
+		/features OptionId.DesktopCPPx86 OptionId.DesktopCPPx64 OptionId.UWPCPP
+
+COPY node C:\node
+RUN setx PATH "%PATH%;C:\node"
+
+COPY compiler-explorer C:\compiler-explorer
+
+WORKDIR C:\compiler-explorer
+
+RUN npm install --scripts-prepend-node-path
+RUN npx webpack
+
+RUN del `
+	C:\compiler-explorer\static\policies\privacy.html `
+	C:\compiler-explorer\static\policies\cookies.html
+
+RUN mklink `
+	C:\compiler-explorer\etc\config\c++.local.properties `
+	C:\Data\compiler-explorer\c++.local.properties
+RUN mklink `
+	C:\compiler-explorer\etc\config\compiler-explorer.local.properties `
+	C:\Data\compiler-explorer\compiler-explorer.local.properties
+RUN mklink `
+	C:\compiler-explorer\static\policies\privacy.html `
+	C:\Data\compiler-explorer\privacy.html
+RUN mklink `
+	C:\compiler-explorer\static\policies\cookies.html `
+	C:\Data\compiler-explorer\cookies.html
+
+CMD C:\node\npx.cmd cross-env NODE_ENV=production C:\node\node app.js --static ./static --port 80 --languages c++ --dist
