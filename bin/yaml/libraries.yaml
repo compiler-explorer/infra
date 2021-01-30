@@ -697,7 +697,7 @@ libraries:
         build_type: none
         targets:
           - trunk
-       eve:
+      eve:
         type: github
         method: nightlyclone
         repo: jfalcou/eve
