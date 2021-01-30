@@ -697,6 +697,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+       eve:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/eve
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
       hedley:
         type: github
         method: nightlyclone
