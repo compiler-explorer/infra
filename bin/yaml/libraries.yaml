@@ -319,12 +319,14 @@ libraries:
       check_file: README.md
       targets:
         - 0.0.4
+        - 1.0.0
     tts:
       type: github
       repo: jfalcou/tts
       check_file: README.md
       targets:
         - "0.1"
+        - "0.2"
     hedley:
       type: github
       repo: nemequ/hedley
