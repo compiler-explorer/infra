@@ -72,6 +72,9 @@ WantedBy=multi-user.target
 EOF
 systemctl enable remote-syslog
 
+cp /infra/init/log-instance-id.service /lib/systemd/system/log-instance-id.service
+systemctl enable log-instance-id
+
 pushd /tmp
 curl -sLo agent-linux-amd64.zip 'https://github.com/grafana/agent/releases/download/v0.6.1/agent-linux-amd64.zip'
 unzip agent-linux-amd64.zip
