@@ -302,3 +302,14 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Min
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
 }
+
+// This is for the auth node temporarily to allow port 3000 from the alb
+resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
+  security_group_id        = aws_security_group.AdminNode.id
+  type                     = "ingress"
+  from_port                = 3000
+  to_port                  = 3000
+  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  protocol                 = "tcp"
+  description              = "Allow port 3000 access from the ALB"
+}

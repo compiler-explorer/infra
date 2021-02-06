@@ -134,3 +134,18 @@ resource "aws_alb_listener" "ceconan-alb-listen-https" {
   ssl_policy        = "ELBSecurityPolicy-2015-05"
   certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
 }
+
+
+resource "aws_alb_listener_rule" "auth-alb-listen-https" {
+  priority     = 3
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.auth.arn
+  }
+  condition {
+    host_header {
+      values = ["auth.godbolt.org"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
