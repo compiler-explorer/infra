@@ -3,6 +3,11 @@
 These are the scripts which should be used to build the MSVCE data directory and
 docker image.
 
+## Requirements
+
+* PowerShell v6 or later - you can download this via https://github.com/PowerShell/PowerShell
+* Docker for Windows
+
 ## Instructions
 
 There are two parts of the MSVCE pipeline: the docker image, which contains the
