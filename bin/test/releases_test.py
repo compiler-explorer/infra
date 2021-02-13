@@ -2,7 +2,8 @@ from lib.releases import Version, VersionSource
 
 
 def test_version_should_parse():
-    assert Version.from_string('1234') == Version(VersionSource.TRAVIS, 1234)
+    assert Version.from_string('1234') == Version(VersionSource.GITHUB, 1234)
+    assert Version.from_string('tr-123') == Version(VersionSource.TRAVIS, 1234)
     assert Version.from_string('gh-123') == Version(VersionSource.GITHUB, 123)
 
 

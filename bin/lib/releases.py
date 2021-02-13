@@ -34,11 +34,12 @@ class Version:
     @staticmethod
     def from_string(version_str: str):
         if '-' not in version_str:
-            return Version(VersionSource.TRAVIS, int(version_str))
+            return Version(VersionSource.GITHUB, int(version_str))
         source, num = version_str.split('-')
-        if source != 'gh':
-            raise RuntimeError('honestly I should be less lazy')
-        return Version(VersionSource.GITHUB, int(num))
+        for possible_source in list(VersionSource):
+            if possible_source.value[1] == source:
+                return Version(possible_source, int(num))
+        raise RuntimeError(f'Unknown source {source}')
 
     def __str__(self):
         return f'{self.source}-{self.number}'
