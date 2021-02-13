@@ -181,7 +181,7 @@ def get_current_key(args):
 
 def get_all_current():
     versions = []
-    for branch in ['release', 'beta', 'master']:
+    for branch in ['release', 'beta', 'main', 'master']:  # TODO, remove master and the builds therein
         try:
             o = s3_client.get_object(
                 Bucket='compiler-explorer',

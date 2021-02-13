@@ -430,13 +430,17 @@ def builds_set_current_cmd(args):
 
 def builds_rm_old_cmd(args):
     current = get_all_current()
-    all_releases = get_releases()
-    max_build = max(x.version for x in all_releases)
+    max_builds = {}
+    for release in get_releases():
+        if release.version not in max_builds:
+            max_builds[release.version.source] = release.version
+        else:
+            max_builds[release.version.source] = max(release.version, max_builds[release.version.source])
     for release in get_releases():
         if release.key in current:
             print("Skipping {} as it is a current version".format(release))
         else:
-            age = max_build - release.version
+            age = max_builds[release.version.source].number - release.version.number
             if age > args['age']:
                 if args['dry_run']:
                     print("Would remove build {}".format(release))
