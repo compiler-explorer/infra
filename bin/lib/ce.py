@@ -23,6 +23,7 @@ from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases
     list_period_build_logs, get_ssm_param
 from lib.cdn import DeploymentJob
 from lib.instance import ConanInstance, AdminInstance, BuilderInstance, Instance, print_instances
+from lib.releases import Version
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
 logger = logging.getLogger('ce')
@@ -397,7 +398,8 @@ def builds_set_current_cmd(args):
         to_set = args['version']
     else:
         setting_latest = args['version'] == 'latest'
-        release = find_latest_release(args['branch']) if setting_latest else find_release(int(args['version']))
+        release = find_latest_release(args['branch']) if setting_latest else find_release(
+            Version.from_string(args['version']))
         if not release:
             print("Unable to find version " + args['version'])
             if setting_latest and args['branch'] != '':
@@ -456,7 +458,7 @@ def builds_list_cmd(args):
                 print(
                     RELEASE_FORMAT.format(
                         ' -->' if release.key == current else '',
-                        release.branch, release.version, sizeof_fmt(release.size), str(release.hash))
+                        release.branch, str(release.version), sizeof_fmt(release.size), str(release.hash))
                 )
 
 

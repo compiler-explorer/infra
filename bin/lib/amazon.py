@@ -1,6 +1,8 @@
 from datetime import datetime
 from operator import attrgetter
 
+from lib.releases import Version, Release, Hash, VersionSource
+
 
 class LazyObjectWrapper:
     def __init__(self, fn):
@@ -58,31 +60,6 @@ LINKS_TABLE = 'links'
 VERSIONS_LOGGING_TABLE = 'versionslog'
 
 
-class Hash:
-    def __init__(self, hash_val):
-        self.hash = hash_val
-
-    def __repr__(self):
-        return self.hash
-
-    def __str__(self):
-        return f'{str(self.hash[:6])}..{str(self.hash[-6:])}'
-
-
-class Release:
-    def __init__(self, version, branch, key, info_key, size, release_hash):
-        self.version = version
-        self.branch = branch
-        self.key = key
-        self.info_key = info_key
-        self.size = size
-        self.hash = release_hash
-        self.static_key = None
-
-    def __repr__(self):
-        return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
-
-
 def target_group_for(args):
     result = elb_client.describe_target_groups(Names=[args['env'].title()])
     if len(result['TargetGroups']) != 1:
@@ -118,7 +95,7 @@ def remove_release(release):
     )
 
 
-def _get_releases(prefix):
+def _get_releases(source: VersionSource, prefix: str):
     paginator = s3_client.get_paginator('list_objects_v2')
     result_iterator = paginator.paginate(
         Bucket='compiler-explorer',
@@ -133,20 +110,21 @@ def _get_releases(prefix):
             continue
         split_key = key.split('/')
         branch = split_key[-2]
-        version = split_key[-1].split('.')[0]
+        version_str = split_key[-1].split('.')[0]
+        version = Version(source, int(version_str))
 
         if key.endswith('.static.tar.xz'):
-            staticfiles[int(version)] = key
+            staticfiles[version] = key
             continue
 
         size = result['Size']
-        info_key = "/".join(split_key[:-1]) + "/" + version + ".txt"
+        info_key = "/".join(split_key[:-1]) + "/" + version_str + ".txt"
         o = s3_client.get_object(
             Bucket='compiler-explorer',
             Key=info_key
         )
-        release_hash = o['Body'].read().decode("utf-8").strip()
-        releases[int(version)] = Release(int(version), branch, key, info_key, size, Hash(release_hash))
+        release_hash = Hash(o['Body'].read().decode("utf-8").strip())
+        releases[version] = Release(version, branch, key, info_key, size, release_hash)
 
     for ver, key in staticfiles.items():
         r = releases.get(ver)
@@ -157,7 +135,7 @@ def _get_releases(prefix):
 
 
 def get_releases():
-    return _get_releases('dist/travis') + _get_releases('dist/gh')
+    return _get_releases(VersionSource.TRAVIS, 'dist/travis') + _get_releases(VersionSource.GITHUB, 'dist/gh')
 
 
 def download_release_file(file, destination):
