@@ -26,7 +26,7 @@ class VersionSource(Enum):
         return f'{self.value[1]}'
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Version:
     source: VersionSource
     number: int
@@ -43,6 +43,9 @@ class Version:
 
     def __str__(self):
         return f'{self.source}-{self.number}'
+
+    def __repr__(self):
+        return str(self)
 
 
 @dataclass

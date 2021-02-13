@@ -405,7 +405,7 @@ def builds_set_current_cmd(args):
             if setting_latest and args['branch'] != '':
                 print('Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch']))
         elif are_you_sure('change current version to {}'.format(release.key), args) and confirm_branch(release):
-            print('Found release {}'.format(release))
+            print(f'Found release {release}')
             to_set = release.key
     if to_set is not None:
         log_new_build(args, to_set)
