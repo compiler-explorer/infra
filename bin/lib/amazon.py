@@ -118,9 +118,8 @@ def remove_release(release):
     )
 
 
-def get_releases():
+def _get_releases(prefix):
     paginator = s3_client.get_paginator('list_objects_v2')
-    prefix = 'dist/travis/'
     result_iterator = paginator.paginate(
         Bucket='compiler-explorer',
         Prefix=prefix
@@ -155,6 +154,10 @@ def get_releases():
             r.static_key = key
 
     return list(releases.values())
+
+
+def get_releases():
+    return _get_releases('dist/travis') + _get_releases('dist/gh')
 
 
 def download_release_file(file, destination):
