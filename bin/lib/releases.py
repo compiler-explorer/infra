@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional
+from typing import Optional, Tuple
 
 from attr import dataclass
 
@@ -16,6 +16,7 @@ class Hash:
 
 
 class VersionSource(Enum):
+    value: Tuple[int, str]
     TRAVIS = (0, 'tr')
     GITHUB = (1, 'gh')
 
