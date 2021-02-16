@@ -1051,7 +1051,7 @@ libraries:
         type: github
         method: clone_branch
         repo: NVIDIA/NVTX
-        check_file: cpp/nvtx3.hpp
+        check_file: cpp/include/nvtx3/nvtx3.hpp
         targets:
           - dev
       libcudacxx:
