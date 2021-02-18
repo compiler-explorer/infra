@@ -453,6 +453,12 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
     minimum_protocol_version = "TLSv1.1_2016"
   }
 
+  logging_config {
+    include_cookies = false
+    bucket          = "compiler-explorer-logs.s3.amazonaws.com"
+    prefix          = "cloudfront/"
+  }
+
   http_version = "http2"
 
   restrictions {
