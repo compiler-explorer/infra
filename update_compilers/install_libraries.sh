@@ -260,44 +260,57 @@ install_nsimd() {
             cd build
 
             ## x86_64
-            local COMP_ROOT=${OPT}/gcc-10.2.0
-            local CCOMP=${COMP_ROOT}/bin/gcc
-            local CPPCOMP=${COMP_ROOT}/bin/g++
-
-            ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=avx512_skylake \
+            (
+                export PATH=${OPT}/gcc-10.2.0/bin:${PATH}
+                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=avx512_skylake \
                                         -prefix=${DEST}/x86_64 \
                                         -Ggnumake \
-                                        -ccomp=gcc,"${CCOMP}",10.2.0,x86_64 \
-                                        -cppcomp=gcc,"${CPPCOMP}",10.2.0,x86_64
-            make
-            make install
+                                        -suite=gcc
+                make
+                make install
+            )
 
             ## CUDA
-
-            COMP_ROOT=${OPT}/cuda/9.1.85
             (
-                export PATH=${OPT}/gcc-6.1.0/bin:${PATH}:${COMP_ROOT}/bin
+                export PATH=${OPT}/cuda/9.1.85/bin:${OPT}/gcc-6.1.0/bin:${PATH}
                 ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=cuda \
                                             -prefix=${DEST}/cuda \
                                             -Ggnumake \
                                             -Dstatic_libstdcpp=true \
-                                            -comp=nvcc
+                                            -suite=cuda
+                make
+                make install
+            )
+
+            ## ARM32 (armel)
+            (
+                local COMP_ROOT=${OPT}/arm/gcc-8.2.0/arm-unknown-linux-gnueabi/bin/
+                local CCOMP=${COMP_ROOT}/arm-unknown-linux-gnueabi-gcc
+                local CPPCOMP=${COMP_ROOT}/arm-unknown-linux-gnueabi-g++
+
+                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=neon128 \
+                                            -prefix=${DEST}/arm/neon128 \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",8.2.0,armel \
+                                            -comp=c++,gcc,"${CPPCOMP}",8.2.0,armel
                 make
                 make install
             )
 
             ## ARM64
-            COMP_ROOT=${OPT}/arm64/gcc-8.2.0/aarch64-unknown-linux-gnu/bin
-            CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
-            CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
+            (
+                local COMP_ROOT=${OPT}/arm64/gcc-8.2.0/aarch64-unknown-linux-gnu/bin
+                local CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
+                local CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
 
-            ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=aarch64 \
-                                        -prefix=${DEST}/arm/aarch64 \
-                                        -Ggnumake \
-                                        -ccomp=gcc,"${CCOMP}",8.2.0,aarch64 \
-                                        -cppcomp=gcc,"${CPPCOMP}",8.2.0,aarch64
-            make
-            make install
+                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=aarch64 \
+                                            -prefix=${DEST}/arm/aarch64 \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",8.2.0,aarch64 \
+                                            -comp=c++,gcc,"${CPPCOMP}",8.2.0,aarch64
+                make
+                make install
+            )
 
             popd
             rm -rf /tmp/nsimd
@@ -305,4 +318,4 @@ install_nsimd() {
     done
 }
 
-install_nsimd v2.1
+install_nsimd v2.2
