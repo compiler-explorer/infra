@@ -3,6 +3,7 @@ resource "aws_s3_bucket" "compiler-explorer" {
   acl    = "private"
   tags   = {
     Site = "CompilerExplorer"
+    S3-Bucket-Name = "compiler-explorer"
   }
   cors_rule {
     allowed_headers = ["Authorization"]
@@ -30,6 +31,7 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
   tags   = {
     Site = "CompilerExplorer"
+    S3-Bucket-Name = "compiler-explorer-logs"
   }
 
   # not sure if we explicitly need to state the bucket owner gets full control
@@ -149,6 +151,7 @@ resource "aws_s3_bucket" "opt-s3-godbolt-org" {
   acl    = "private"
   tags   = {
     Site = "CompilerExplorer"
+    S3-Bucket-Name = "opt-s3.godbolt.org"
   }
 }
 
@@ -157,6 +160,7 @@ resource "aws_s3_bucket" "storage-godbolt-org" {
   acl    = "private"
   tags   = {
     Site = "CompilerExplorer"
+    S3-Bucket-Name = "storage.godbolt.org"
   }
   lifecycle_rule {
     enabled                                = true
@@ -176,6 +180,7 @@ resource "aws_s3_bucket" "ce-cdn-net" {
   acl    = "private"
   tags   = {
     Site = "CompilerExplorer"
+    S3-Bucket-Name = "ce-cdn.net"
   }
 
   cors_rule {
