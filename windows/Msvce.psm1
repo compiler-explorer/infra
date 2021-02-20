@@ -1541,8 +1541,14 @@ function Install-MsvceConfigurationFile {
     return $includeDirectories -join ';'
   }
 
+  if ($compilerVersions -is [array]) {
+    $lastVersion = "$($compilerVersions[-1])"
+  } else {
+    $lastVersion = $compilerVersions
+  }
+
   [string[]] $file = @(
-    "demangler=C:/data/msvc/$($compilerVersions[-1])/bin/Hostx64/x64/undname.exe",
+    "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe",
     'compilers=&vcpp_x86:&vcpp_x64',
     '')
 
