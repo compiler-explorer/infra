@@ -26,6 +26,12 @@ RUN mklink `
   C:\compiler-explorer\etc\config\c++.local.properties `
   C:\Data\compiler-explorer\c++.local.properties
 RUN mklink `
+  C:\compiler-explorer\etc\config\c.local.properties `
+  C:\Data\compiler-explorer\c.local.properties
+RUN mklink `
+  C:\compiler-explorer\etc\config\python.local.properties `
+  C:\Data\compiler-explorer\python.local.properties
+RUN mklink `
   C:\compiler-explorer\etc\config\compiler-explorer.local.properties `
   C:\Data\compiler-explorer\compiler-explorer.local.properties
 RUN mklink `
