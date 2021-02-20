@@ -795,9 +795,11 @@ function Build-MsvceDataDirectory {
     $versions = Get-MsvceToolsetVersions
 
     if (Test-Path "$DataDirectory\msvc") {
-      Get-ChildItem "$DataDirectory\msvc" | ForEach-Object {
+      Get-ChildItem -Name "$DataDirectory\msvc" | ForEach-Object {
         if ($_ -notin $versions) {
           Write-Warning "Msvc toolset not present in msvce-config.json is found at: $DataDirectory\msvc\$_"
+        } else {
+          Write-Verbose "Msvc toolset at: $DataDirectory\msvc\$_"
         }
       }
     }
