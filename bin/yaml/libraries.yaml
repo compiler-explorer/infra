@@ -224,6 +224,14 @@ libraries:
         - 2.1.1
         - 3.1.2
         - 3.6.0
+    nsimd:
+      type: s3tarballs
+      s3_path_prefix: nsimd-{name}
+      subdir: libs/nsimd/{name}
+      path_name: libs/nsimd/{name}
+      check_file: x86_64/include/nsimd/nsimd.h
+      targets:
+        - v2.2
     tomlplusplus:
       type: github
       repo: marzer/tomlplusplus
@@ -1051,7 +1059,7 @@ libraries:
         type: github
         method: clone_branch
         repo: NVIDIA/NVTX
-        check_file: cpp/nvtx3.hpp
+        check_file: cpp/include/nvtx3/nvtx3.hpp
         targets:
           - dev
       libcudacxx:

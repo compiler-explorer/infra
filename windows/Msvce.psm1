@@ -150,7 +150,7 @@ then pass this to only do a build of the existing output directory.
 .PARAMETER GitCommit
 
 The specific hash of compiler-explorer to use for building the image. Use
-'master' for the latest on github. Any value is okay to use for testing, but
+'main' for the latest on github. Any value is okay to use for testing, but
 images uploaded to production server need to be registered with
 https://ossmsft.visualstudio.com/_oss
 

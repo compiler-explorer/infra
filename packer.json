@@ -42,7 +42,7 @@
   ],
 
   "variables": {
-    "BRANCH": "master",
+    "BRANCH": "main",
     "MY_ACCESS_KEY": "",
     "MY_SECRET_KEY": ""
   },

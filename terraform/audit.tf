@@ -57,6 +57,7 @@ resource "aws_s3_bucket" "cloudtrail" {
 
   tags                          = {
     Site = "CompilerExplorer"
+    S3-Bucket-Name = "cloudtrail.godbolt.org"
   }
 
   lifecycle_rule {

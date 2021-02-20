@@ -108,6 +108,15 @@ compilers:
             targets:
               - gcc-arm-none-eabi-9-2019-q4 # name unused in this case
           - type: tarballs
+            check_exe: bin/arm-none-eabi-g++ --version
+            subdir: arm
+            dir: arm/gcc-arm-none-eabi-10-2020-q4-major
+            untar_dir: gcc-arm-none-eabi-10-2020-q4-major
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-10-2020-q4 # name unused in this case
+          - type: tarballs
             # Not in a subdir
             check_exe: bin/arm-none-eabi-g++ --version
             dir: gcc-arm-none-eabi-5_4-2016q3
@@ -217,12 +226,14 @@ compilers:
           subdir: riscv64
           targets:
             - 8.2.0
+            - 10.2.0
         riscv32:
           arch_prefix: "riscv32-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: riscv32
           targets:
             - 8.2.0
+            - 10.2.0
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"

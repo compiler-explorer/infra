@@ -23,6 +23,7 @@ from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases
     list_period_build_logs, get_ssm_param
 from lib.cdn import DeploymentJob
 from lib.instance import ConanInstance, AdminInstance, BuilderInstance, Instance, print_instances
+from lib.releases import Version
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
 
 logger = logging.getLogger('ce')
@@ -397,13 +398,14 @@ def builds_set_current_cmd(args):
         to_set = args['version']
     else:
         setting_latest = args['version'] == 'latest'
-        release = find_latest_release(args['branch']) if setting_latest else find_release(int(args['version']))
+        release = find_latest_release(args['branch']) if setting_latest else find_release(
+            Version.from_string(args['version']))
         if not release:
             print("Unable to find version " + args['version'])
             if setting_latest and args['branch'] != '':
                 print('Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch']))
         elif are_you_sure('change current version to {}'.format(release.key), args) and confirm_branch(release):
-            print('Found release {}'.format(release))
+            print(f'Found release {release}')
             to_set = release.key
     if to_set is not None:
         log_new_build(args, to_set)
@@ -428,13 +430,17 @@ def builds_set_current_cmd(args):
 
 def builds_rm_old_cmd(args):
     current = get_all_current()
-    all_releases = get_releases()
-    max_build = max(x.version for x in all_releases)
+    max_builds = {}
+    for release in get_releases():
+        if release.version not in max_builds:
+            max_builds[release.version.source] = release.version
+        else:
+            max_builds[release.version.source] = max(release.version, max_builds[release.version.source])
     for release in get_releases():
         if release.key in current:
             print("Skipping {} as it is a current version".format(release))
         else:
-            age = max_build - release.version
+            age = max_builds[release.version.source].number - release.version.number
             if age > args['age']:
                 if args['dry_run']:
                     print("Would remove build {}".format(release))
@@ -456,7 +462,7 @@ def builds_list_cmd(args):
                 print(
                     RELEASE_FORMAT.format(
                         ' -->' if release.key == current else '',
-                        release.branch, release.version, sizeof_fmt(release.size), str(release.hash))
+                        release.branch, str(release.version), sizeof_fmt(release.size), str(release.hash))
                 )
 
 

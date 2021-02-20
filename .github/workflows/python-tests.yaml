@@ -1,0 +1,20 @@
+name: Python package
+
+on: [ push ]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Install dependencies
+        run: |
+          make ce
+      - name: tests
+        run: |
+          make test
+          make static-checks

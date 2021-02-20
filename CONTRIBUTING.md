@@ -24,4 +24,4 @@ is a mess. Hopefully this will change with time, and ideas to improve it are wel
   to `/opt/compiler-explorer/...`.
 * Submit a Pull Request.
 
-If you have any questions, don't hesitate: [Contact us](https://github.com/mattgodbolt/compiler-explorer/blob/master/README.md#contact-us).
+If you have any questions, don't hesitate: [Contact us](https://github.com/mattgodbolt/compiler-explorer/blob/main/README.md#contact-us).

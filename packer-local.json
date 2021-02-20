@@ -44,7 +44,7 @@
         "apt-get -y update",
         "apt-get -y install git sudo curl rsyslog psmisc systemd",
         "cd /infra",
-        "env PACKER_SETUP=yes bash setup.sh --updated master 2>&1 | tee /tmp/setup.log"
+        "env PACKER_SETUP=yes bash setup.sh --updated main 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]
