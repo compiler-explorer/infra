@@ -1542,7 +1542,7 @@ function Install-MsvceConfigurationFile {
   }
 
   if ($compilerVersions -is [array]) {
-    $lastVersion = "$($compilerVersions[-1])"
+    $lastVersion = $compilerVersions[-1]
   } else {
     $lastVersion = $compilerVersions
   }
