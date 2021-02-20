@@ -114,6 +114,8 @@ but you will need to place the MSVC versions manually.
              |-- bin/lib/include ... etcetera
 ```
 
+So for example, if you have a Community edition of MSVC installed into something like `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.27.29111` - you will need to copy this path to `Z:\Msvcedata\msvc\14.27.29111`
+
 # Other useful commands
 
 ## To list the MSVC versions that are configured
