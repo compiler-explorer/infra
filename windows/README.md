@@ -97,7 +97,7 @@ By default, you should be able to access the server at
 [http://localhost:10240](http://localhost:10240). If you don't see anything,
 you may need to wait a little bit. It takes about a minute to spin up.
 
-# DataDirectory structure
+## DataDirectory structure
 
 To configure new compilers, you will need to install them before you can test the changes.
 
@@ -116,9 +116,9 @@ but you will need to place the MSVC versions manually.
 
 So for example, if you have a Community edition of MSVC installed into something like `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.27.29111` - you will need to copy this path to `Z:\Msvcedata\msvc\14.27.29111`
 
-# Other useful commands
+## Other useful commands
 
-## To list the MSVC versions that are configured
+### To list the MSVC versions that are configured
 
 Only `msvce-config.json` is used to look these up.
 
@@ -126,7 +126,7 @@ Only `msvce-config.json` is used to look these up.
 Get-MsvceToolsetVersions
 ```
 
-## To list libraries that are configured
+### To list libraries that are configured
 
 Only `msvce-config.json` is used to look these up.
 
@@ -134,7 +134,7 @@ Only `msvce-config.json` is used to look these up.
 Get-MsvceVcpkgLibraryList
 ```
 
-## To check if a specific MSVC version is detected
+### To check if a specific MSVC version is detected
 
 Note that the DataDirectory here includes the fixed foldername Msvcedata that was left out in other commands.
 
@@ -142,7 +142,7 @@ Note that the DataDirectory here includes the fixed foldername Msvcedata that wa
 Test-MsvceToolsetExistence -DataDirectory Z:\Msvcedata -Version 1.2.1234
 ```
 
-## Debugging and editing Msvce.psm1
+### Debugging and editing Msvce.psm1
 
 You can pass the `-Verbose` parameter to the mentioned PS commands to enable more logging.
 
