@@ -1018,11 +1018,11 @@ libraries:
         build_type: none
         targets:
           - trunk
-      zstd:
+      ztd:
         type: github
         method: nightlyclone
         repo: soasis/text
-        check_file: include/zstd/text.hpp
+        check_file: include/ztd/text.hpp
         build_type: none
         targets:
           - trunk
