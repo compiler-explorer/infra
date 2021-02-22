@@ -1018,7 +1018,7 @@ libraries:
         build_type: none
         targets:
           - trunk
-      ztd:
+      ztdtext:
         type: github
         method: nightlyclone
         repo: soasis/text
