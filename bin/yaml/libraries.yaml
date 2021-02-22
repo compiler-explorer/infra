@@ -1022,7 +1022,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: soasis/text
-        check_file: include/text/text.hpp
+        check_file: include/zstd/text.hpp
         build_type: none
         targets:
           - trunk
