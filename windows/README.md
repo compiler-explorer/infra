@@ -3,6 +3,11 @@
 These are the scripts which should be used to build the MSVCE data directory and
 docker image.
 
+## Requirements
+
+* PowerShell v6 or later - you can download this via https://github.com/PowerShell/PowerShell
+* Docker for Windows
+
 ## Instructions
 
 There are two parts of the MSVCE pipeline: the docker image, which contains the
@@ -54,10 +59,12 @@ Remember that all the information you should be interested in exists in the
 
 If you're interested in speeding up the building of the data directory, you
 should look into the `Get-Help` for `Build-MsvceDataDirectory` -- however, it
-shouldn't be that terrible if you just run it in the default configuration. If
-you're not adding new compilers, you may pass the `-SkipVerifyToolsets` flag; if
-you aren't updating vcpkg, you can pass the `-SkipVcpkgBootstrap`; and if you
-aren't adding new libraries, you can pass `-SkipVcpkgLibraries`. The existing
+shouldn't be that terrible if you just run it in the default configuration.
+
+Some useful parameters:
+* If you're not adding new compilers; you may pass the `-SkipVerifyToolsets` flag
+* If you aren't updating vcpkg, you can pass the `-SkipVcpkgBootstrap`
+* If you aren't adding new libraries, you can pass `-SkipVcpkgLibraries`. The existing
 toolsets won't be touched.
 
 For the default case: you're adding new compilers, and updating vcpkg, and
@@ -89,3 +96,54 @@ PS > Start-MsvceDockerContainer `
 By default, you should be able to access the server at
 [http://localhost:10240](http://localhost:10240). If you don't see anything,
 you may need to wait a little bit. It takes about a minute to spin up.
+
+## DataDirectory structure
+
+To configure new compilers, you will need to install them before you can test the changes.
+
+The DataDirectory will setup mostly by itself by using `Build-MsvceDataDirectory`,
+but you will need to place the MSVC versions manually.
+
+```
+ Z:\
+ |-- Msvcedata
+     |-- compiler-explorer (generated)
+     |-- libraries (generated)
+     |-- msvc
+         |-- 14.27.29111 (your new msvc folder)
+             |-- bin/lib/include ... etcetera
+```
+
+So for example, if you have a Community edition of MSVC installed into something like `C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.27.29111` - you will need to copy this path to `Z:\Msvcedata\msvc\14.27.29111`
+
+## Other useful commands
+
+### To list the MSVC versions that are configured
+
+Only `msvce-config.json` is used to look these up.
+
+```pwsh
+Get-MsvceToolsetVersions
+```
+
+### To list libraries that are configured
+
+Only `msvce-config.json` is used to look these up.
+
+```pwsh
+Get-MsvceVcpkgLibraryList
+```
+
+### To check if a specific MSVC version is detected
+
+Note that the DataDirectory here includes the fixed foldername Msvcedata that was left out in other commands.
+
+```pwsh
+Test-MsvceToolsetExistence -DataDirectory Z:\Msvcedata -Version 1.2.1234
+```
+
+### Debugging and editing Msvce.psm1
+
+You can pass the `-Verbose` parameter to the mentioned PS commands to enable more logging.
+
+Should you need to make changes to Msvce.psm1 (or pulled changes from the repository), make sure you do `Import-Module -Force .\Msvce.psm1` before testing, otherwise you'll run the old version.

@@ -795,9 +795,11 @@ function Build-MsvceDataDirectory {
     $versions = Get-MsvceToolsetVersions
 
     if (Test-Path "$DataDirectory\msvc") {
-      Get-ChildItem "$DataDirectory\msvc" | ForEach-Object {
+      Get-ChildItem -Name "$DataDirectory\msvc" | ForEach-Object {
         if ($_ -notin $versions) {
           Write-Warning "Msvc toolset not present in msvce-config.json is found at: $DataDirectory\msvc\$_"
+        } else {
+          Write-Verbose "Msvc toolset at: $DataDirectory\msvc\$_"
         }
       }
     }
@@ -1539,8 +1541,14 @@ function Install-MsvceConfigurationFile {
     return $includeDirectories -join ';'
   }
 
+  if ($compilerVersions -is [array]) {
+    $lastVersion = $compilerVersions[-1]
+  } else {
+    $lastVersion = $compilerVersions
+  }
+
   [string[]] $file = @(
-    "demangler=C:/data/msvc/$($compilerVersions[-1])/bin/Hostx64/x64/undname.exe",
+    "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe",
     'compilers=&vcpp_x86:&vcpp_x64',
     '')
 
