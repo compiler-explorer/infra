@@ -1483,8 +1483,8 @@ function Install-MsvceConfigurationFile {
     $compilerIdPrefix = 'c';
     $propertiesFilename = 'c.local.properties'
   } else {
-      $compilerIdPrefix = ''
-      $propertiesFilename = 'c++.local.properties'
+    $compilerIdPrefix = ''
+    $propertiesFilename = 'c++.local.properties'
   }
 
 
