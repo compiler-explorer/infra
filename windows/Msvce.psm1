@@ -1571,10 +1571,17 @@ function Install-MsvceConfigurationFile {
     $lastVersion = $compilerVersions
   }
 
-  [string[]] $file = @(
-    "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe",
-    "compilers=&${compilerIdPrefix}vcpp_x86:&${compilerIdPrefix}vcpp_x64",
-    '')
+  [string[]] $file = @()
+
+  if (-not $CProperties) {
+    $file += "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe"
+  } else {
+    $file += "demangler="
+    $file += "supportsBinary=false"
+  }
+
+  $file += "compilers=&${compilerIdPrefix}vcpp_x86:&${compilerIdPrefix}vcpp_x64"
+  $file += ""
 
   function InternalName {
     Param([string]$Arch, [string]$Version)
