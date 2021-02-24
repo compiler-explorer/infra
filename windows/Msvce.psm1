@@ -838,7 +838,7 @@ function Build-MsvceDataDirectory {
   Install-MsvceConfigurationFile `
     -DataDirectory $DataDirectory `
     -DockerTag $DockerTag `
-    -GenerateClocal $true `
+    -CProperties `
     | Out-Null    
 }
 
