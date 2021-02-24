@@ -828,7 +828,7 @@ function Build-MsvceDataDirectory {
   Write-Verbose 'Installing MSVCE base CE files'
   Install-MsvceBaseCEFiles -DataDirectory $DataDirectory
 
-  Write-Verbose 'Installing MSVCE c++ configuration file'
+  Write-Verbose 'Installing MSVCE C++ configuration file'
   Install-MsvceConfigurationFile `
     -DataDirectory $DataDirectory `
     -DockerTag $DockerTag `
