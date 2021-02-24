@@ -1465,7 +1465,7 @@ function Install-MsvceConfigurationFile {
     [Parameter(Mandatory=$true, ParameterSetName='FindSdk')]
     [string]$DockerTag,
 
-    [Parameter(Mandatory=$true)]
+    [Parameter()]
     [switch]$CProperties,
 
     [Parameter(Mandatory=$false)]
