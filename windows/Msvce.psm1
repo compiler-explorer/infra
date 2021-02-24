@@ -1425,9 +1425,9 @@ The directory which MSVCE can use as its C:\Data.
 
 The tag of the msvce image to look in, to see where the SDK is installed.
 
-.PARAMETER GenerateCLocal
+.PARAMETER CProperties
 
-If true, generate a c.local.properties file instead of for c++.
+Generate c.local.properties as opposed to c++.local.properties.
 
 .INPUTS
 
