@@ -81,10 +81,10 @@
       "2019-08-01": "452193112016D5C8D7E7D69BA39326CBD39C3842",
       "2020-01-29": "4D9E24882EE936DCA6FF31BA1853A0035AD8F81C",
       "2020-05-07": "D04A8CBBCB9578ABDFA494B5CBF054581BBED83D",
-      "2020-11-03": "75ba44c8fd0478882a282fc2d289959aef960837"
+      "2021-02-23": "5ccfd590130616adf770c42fc1d467a61313c92c"
     },
     "git_url": "https://github.com/compiler-explorer/compiler-explorer.git",
-    "git_commit": "75ba44c8fd0478882a282fc2d289959aef960837"
+    "git_commit": "5ccfd590130616adf770c42fc1d467a61313c92c"
   },
   "windows_sdk": {
     "$comment": [
