@@ -1642,7 +1642,7 @@ function Install-MsvceConfigurationFile {
     $_.Name -replace '-','_'
   }
 
-  if ($GenerateClocal -eq $false) {
+  if (-not $CProperties) {
     $file += ('libs=' + ($libraryNames -join ':'))
 
     $Libraries.GetEnumerator() | ForEach-Object {
