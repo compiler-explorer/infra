@@ -1467,7 +1467,7 @@ function Install-MsvceConfigurationFile {
     [string]$DockerTag,
 
     [Parameter(Mandatory=$true)]
-    [bool]$GenerateClocal,
+    [switch]$CProperties,
 
     [Parameter(Mandatory=$false)]
     [array]$VcpkgVersion = (Get-MsvceConfig 'vcpkg/release'),
