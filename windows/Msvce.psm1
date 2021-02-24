@@ -834,7 +834,7 @@ function Build-MsvceDataDirectory {
     -DockerTag $DockerTag `
     | Out-Null
 
-  Write-Verbose 'Installing MSVCE c configuration file'
+  Write-Verbose 'Installing MSVCE C configuration file'
   Install-MsvceConfigurationFile `
     -DataDirectory $DataDirectory `
     -DockerTag $DockerTag `
