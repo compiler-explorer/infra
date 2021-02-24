@@ -1482,7 +1482,7 @@ function Install-MsvceConfigurationFile {
   $compilerIdPrefix = ''
   $propertiesFilename = 'c++.local.properties'
 
-  if ($GenerateClocal -eq $true) {
+  if ($CProperties) {
     $compilerIdPrefix = 'c';
     $propertiesFilename = 'c.local.properties'
   }
