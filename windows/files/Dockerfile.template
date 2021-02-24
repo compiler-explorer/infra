@@ -41,4 +41,4 @@ RUN mklink `
   C:\compiler-explorer\static\policies\cookies.html `
   C:\Data\compiler-explorer\cookies.html
 
-CMD C:\node\npx.cmd cross-env NODE_ENV=production C:\node\node app.js --static ./static --port 80 --languages c++ --dist
+CMD C:\node\npx.cmd cross-env NODE_ENV=production C:\node\node -r esm -- app.js --static ./static --port 80 --languages c++ --dist
