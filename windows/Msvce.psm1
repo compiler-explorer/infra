@@ -828,11 +828,18 @@ function Build-MsvceDataDirectory {
   Write-Verbose 'Installing MSVCE base CE files'
   Install-MsvceBaseCEFiles -DataDirectory $DataDirectory
 
-  Write-Verbose 'Installing MSVCE configuration file'
+  Write-Verbose 'Installing MSVCE C++ configuration file'
   Install-MsvceConfigurationFile `
     -DataDirectory $DataDirectory `
     -DockerTag $DockerTag `
     | Out-Null
+
+  Write-Verbose 'Installing MSVCE C configuration file'
+  Install-MsvceConfigurationFile `
+    -DataDirectory $DataDirectory `
+    -DockerTag $DockerTag `
+    -CProperties `
+    | Out-Null    
 }
 
 <#
@@ -1418,6 +1425,10 @@ The directory which MSVCE can use as its C:\Data.
 
 The tag of the msvce image to look in, to see where the SDK is installed.
 
+.PARAMETER CProperties
+
+Generate c.local.properties as opposed to c++.local.properties.
+
 .INPUTS
 
 None
@@ -1454,6 +1465,9 @@ function Install-MsvceConfigurationFile {
     [Parameter(Mandatory=$true, ParameterSetName='FindSdk')]
     [string]$DockerTag,
 
+    [Parameter()]
+    [switch]$CProperties,
+
     [Parameter(Mandatory=$false)]
     [array]$VcpkgVersion = (Get-MsvceConfig 'vcpkg/release'),
 
@@ -1463,6 +1477,16 @@ function Install-MsvceConfigurationFile {
     [Parameter(Mandatory=$false, DontShow, ParameterSetName='SetSdk')]
     [string]$SdkVersion
   )
+
+
+  if ($CProperties) {
+    $compilerIdPrefix = 'c';
+    $propertiesFilename = 'c.local.properties'
+  } else {
+    $compilerIdPrefix = ''
+    $propertiesFilename = 'c++.local.properties'
+  }
+
 
   <#
     we need to generate the c++.local.properties file based on the
@@ -1522,7 +1546,7 @@ function Install-MsvceConfigurationFile {
     New-Item -Path $basePath -ItemType 'Directory' | Out-Null
   }
 
-  $outputFile = "$basePath\c++.local.properties"
+  $outputFile = "$basePath\$propertiesFilename"
 
   function IncludesForArch {
     param([string]$Arch)
@@ -1549,13 +1573,13 @@ function Install-MsvceConfigurationFile {
 
   [string[]] $file = @(
     "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe",
-    'compilers=&vcpp_x86:&vcpp_x64',
+    "compilers=&${compilerIdPrefix}vcpp_x86:&${compilerIdPrefix}vcpp_x64",
     '')
 
   function InternalName {
     Param([string]$Arch, [string]$Version)
     $prettyName = (Get-MsvceToolsetPrettyName $Version) -replace '[. ]','_'
-    return "vcpp_${prettyName}_$Arch"
+    return "${compilerIdPrefix}vcpp_${prettyName}_$Arch"
   }
 
   function ArchOptions {
@@ -1564,15 +1588,15 @@ function Install-MsvceConfigurationFile {
       InternalName $Arch $_
     }
     return @(
-      "group.vcpp_$Arch.options=-EHsc",
-      "group.vcpp_$Arch.compilerType=win32-vc",
-      "group.vcpp_$Arch.needsMulti=false",
-      "group.vcpp_$Arch.includeFlag=/I",
-      "group.vcpp_$Arch.versionFlag=/?",
-      "group.vcpp_$Arch.versionRe=^.*Microsoft \(R\).*$",
-      "group.vcpp_$Arch.compilers=$($internalNames -join ':')",
-      "group.vcpp_$Arch.groupName=MSVC $Arch",
-      "group.vcpp_$Arch.isSemVer=true",
+      "group.${compilerIdPrefix}vcpp_$Arch.options=-EHsc",
+      "group.${compilerIdPrefix}vcpp_$Arch.compilerType=win32-vc",
+      "group.${compilerIdPrefix}vcpp_$Arch.needsMulti=false",
+      "group.${compilerIdPrefix}vcpp_$Arch.includeFlag=/I",
+      "group.${compilerIdPrefix}vcpp_$Arch.versionFlag=/?",
+      "group.${compilerIdPrefix}vcpp_$Arch.versionRe=^.*Microsoft \(R\).*$",
+      "group.${compilerIdPrefix}vcpp_$Arch.compilers=$($internalNames -join ':')",
+      "group.${compilerIdPrefix}vcpp_$Arch.groupName=MSVC $Arch",
+      "group.${compilerIdPrefix}vcpp_$Arch.isSemVer=true",
       '')
   }
 
@@ -1617,28 +1641,30 @@ function Install-MsvceConfigurationFile {
     $_.Name -replace '-','_'
   }
 
-  $file += ('libs=' + ($libraryNames -join ':'))
+  if (-not $CProperties) {
+    $file += ('libs=' + ($libraryNames -join ':'))
 
-  $Libraries.GetEnumerator() | ForEach-Object {
-    if ($null -eq $_.Value) {
-      return
+    $Libraries.GetEnumerator() | ForEach-Object {
+      if ($null -eq $_.Value) {
+        return
+      }
+
+      $ceName = $_.Name -replace '-','_'
+      [string[]] $libraryDescription = @(
+        "libs.${ceName}.name=$($_.Value.pretty_name)",
+        "libs.${ceName}.versions=vcpkg",
+        "libs.${ceName}.versions.vcpkg.version=vcpkg ${VcpkgVersion}",
+        "libs.${ceName}.url=$($_.Value.url)",
+        # note: we can add these paths later
+        "libs.${ceName}.versions.vcpkg.path="
+      )
+
+      if ($_.Value.ContainsKey('description')) {
+        $libraryDescription += "libs.${ceName}.description=$($_.Value.description)"
+      }
+
+      $file += $libraryDescription
     }
-
-    $ceName = $_.Name -replace '-','_'
-    [string[]] $libraryDescription = @(
-      "libs.${ceName}.name=$($_.Value.pretty_name)",
-      "libs.${ceName}.versions=vcpkg",
-      "libs.${ceName}.versions.vcpkg.version=vcpkg ${VcpkgVersion}",
-      "libs.${ceName}.url=$($_.Value.url)",
-      # note: we can add these paths later
-      "libs.${ceName}.versions.vcpkg.path="
-    )
-
-    if ($_.Value.ContainsKey('description')) {
-      $libraryDescription += "libs.${ceName}.description=$($_.Value.description)"
-    }
-
-    $file += $libraryDescription
   }
 
   return New-Item `
@@ -1724,7 +1750,11 @@ function Install-MsvceBaseCEFiles {
 
     [Parameter(Mandatory=$false)]
     [ValidateScript({Test-Path -LiteralPath $_ -PathType 'Leaf'})]
-    [string]$CEProperties = "$PSScriptRoot\files\compiler-explorer.properties"
+    [string]$CEProperties = "$PSScriptRoot\files\compiler-explorer.properties",
+
+    [Parameter(Mandatory=$false)]
+    [ValidateScript({Test-Path -LiteralPath $_ -PathType 'Leaf'})]
+    [string]$PythonProperties = "$PSScriptRoot\files\python.properties"
   )
 
   $ErrorActionPreference = 'Stop'
@@ -1746,6 +1776,9 @@ function Install-MsvceBaseCEFiles {
   Copy-Item `
     -LiteralPath $CEProperties `
     -Destination "$basePath\compiler-explorer.local.properties"
+  Copy-Item `
+    -LiteralPath $PythonProperties `
+    -Destination "$basePath\python.local.properties"
 }
 
 
