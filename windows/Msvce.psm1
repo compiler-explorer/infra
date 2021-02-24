@@ -1479,8 +1479,6 @@ function Install-MsvceConfigurationFile {
     [string]$SdkVersion
   )
 
-  $compilerIdPrefix = ''
-  $propertiesFilename = 'c++.local.properties'
 
   if ($CProperties) {
     $compilerIdPrefix = 'c';
