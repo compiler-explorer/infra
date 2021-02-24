@@ -1018,6 +1018,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      ztdtext:
+        type: github
+        method: nightlyclone
+        repo: soasis/text
+        check_file: include/ztd/text.hpp
+        build_type: none
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
