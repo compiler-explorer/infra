@@ -375,25 +375,14 @@ compilers:
       check_exe: compiler/latest/linux/bin/intel64/icc -V
       script_filename: install.sh
       targets:
-        - name: 2021.1.8.1883
+        - name: 2021.1.2.63
           fetch:
-            - https://registrationcenter-download.intel.com/akdlm/irc_nas/16856/l_HPCKit_b_{name}_offline.sh install.sh
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17513/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
           script: |
             rm -Rf ~/.intel
             rm -Rf ~/intel
             rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --components intel.oneapi.lin.cpp-compiler:intel.oneapi.lin.ifort-compiler --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-        - name: 2021.1.9.2205
-          fetch:
-            - https://registrationcenter-download.intel.com/akdlm/irc_nas/16949/l_HPCKit_b_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --components intel.oneapi.lin.dpcpp-cpp-compiler-pro:intel.oneapi.lin.ifort-compiler --install-dir {staging}/{dir}
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
             rm -Rf ~/.intel
             rm -Rf ~/intel
             rm -Rf /var/intel/installercache
