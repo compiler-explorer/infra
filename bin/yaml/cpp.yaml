@@ -369,15 +369,32 @@ compilers:
       check_exe: bin/tcc -v
       targets:
         - 0.9.27
-    icc:
+    intel-cpp:
       type: script
-      dir: "intel-{name}"
+      dir: "intel-cpp-{name}"
       check_exe: compiler/latest/linux/bin/intel64/icc -V
       script_filename: install.sh
       targets:
         - name: 2021.1.2.63
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17513/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+    intel-fortran:
+      type: script
+      dir: "intel-fortran-{name}"
+      check_exe: compiler/latest/linux/bin/intel64/ifort -V
+      script_filename: install.sh
+      targets:
+        - name: 2021.1.2.62
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17508/l_fortran-compiler_p_{name}_offline.sh install.sh
           script: |
             rm -Rf ~/.intel
             rm -Rf ~/intel
