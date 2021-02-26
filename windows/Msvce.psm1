@@ -1600,9 +1600,9 @@ function Install-MsvceConfigurationFile {
     $file += "demangler=C:/data/msvc/$demanglerVersion/bin/Hostx64/x64/undname.exe"
   } else {
     $file += "demangler="
-    $file += "supportsBinary=false"
   }
 
+  $file += "supportsBinary=false"
   $file += "compilers=&${compilerIdPrefix}vcpp_x86:&${compilerIdPrefix}vcpp_x64"
   $file += ""
 
