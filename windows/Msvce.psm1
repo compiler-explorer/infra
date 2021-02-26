@@ -1589,15 +1589,15 @@ function Install-MsvceConfigurationFile {
   }
 
   if ($compilerVersions -is [array]) {
-    $lastVersion = GetLastStableVersion $compilerVersions
+    $demanglerVersion = GetLastStableVersion $compilerVersions
   } else {
-    $lastVersion = $compilerVersions
+    $demanglerVersion = $compilerVersions
   }
 
   [string[]] $file = @()
 
   if (-not $CProperties) {
-    $file += "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe"
+    $file += "demangler=C:/data/msvc/$demanglerVersion/bin/Hostx64/x64/undname.exe"
   } else {
     $file += "demangler="
     $file += "supportsBinary=false"
