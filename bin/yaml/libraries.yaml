@@ -1026,6 +1026,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      type_safe:
+        type: github
+        method: nightlyclone
+        repo: foonathan/type_safe
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
