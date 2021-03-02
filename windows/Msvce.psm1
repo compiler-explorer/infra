@@ -1566,26 +1566,9 @@ function Install-MsvceConfigurationFile {
   }
 
   function GetLastStableVersion {
-    Param([array] $Versions)
-
-    $c = @($Versions).Count;
-    if ($c -eq 0) {
-      return "";
-    }
-    $c--
-
-    Do {
-      $versionNumber = $Versions[$c]
-
-      $name = Get-MsvceToolsetPrettyName $versionNumber
-      if (-not $name.Contains("latest")) {
-        return $versionNumber
-      }
-
-      $c--
-    } Until ($c -lt 0)
-
-    return $Versions[-1]
+    Param([string[]] $Versions)
+    $stableVersions = $Versions | Where-Object { -not (Get-MsvceToolsetPrettyName $_).Contains('latest') }
+    $stableVersions[-1]
   }
 
   if ($compilerVersions -is [array]) {
