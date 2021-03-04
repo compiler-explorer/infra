@@ -1565,16 +1565,29 @@ function Install-MsvceConfigurationFile {
     return $includeDirectories -join ';'
   }
 
-  if ($compilerVersions -is [array]) {
-    $lastVersion = $compilerVersions[-1]
-  } else {
-    $lastVersion = $compilerVersions
+  function GetLastStableVersion {
+    Param([string[]] $Versions)
+    $stableVersions = $Versions | Where-Object { -not (Get-MsvceToolsetPrettyName $_).Contains('latest') }
+    $stableVersions[-1]
   }
 
-  [string[]] $file = @(
-    "demangler=C:/data/msvc/$lastVersion/bin/Hostx64/x64/undname.exe",
-    "compilers=&${compilerIdPrefix}vcpp_x86:&${compilerIdPrefix}vcpp_x64",
-    '')
+  if ($compilerVersions -is [array]) {
+    $demanglerVersion = GetLastStableVersion $compilerVersions
+  } else {
+    $demanglerVersion = $compilerVersions
+  }
+
+  [string[]] $file = @()
+
+  if (-not $CProperties) {
+    $file += "demangler=C:/data/msvc/$demanglerVersion/bin/Hostx64/x64/undname.exe"
+  } else {
+    $file += "demangler="
+  }
+
+  $file += "supportsBinary=false"
+  $file += "compilers=&${compilerIdPrefix}vcpp_x86:&${compilerIdPrefix}vcpp_x64"
+  $file += ""
 
   function InternalName {
     Param([string]$Arch, [string]$Version)

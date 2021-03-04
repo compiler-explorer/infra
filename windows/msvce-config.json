@@ -80,10 +80,11 @@
       "2018-09-24": "71217A047540FF645B7F5D63B3BD14E8E03B9142",
       "2019-08-01": "452193112016D5C8D7E7D69BA39326CBD39C3842",
       "2020-01-29": "4D9E24882EE936DCA6FF31BA1853A0035AD8F81C",
-      "2020-05-07": "D04A8CBBCB9578ABDFA494B5CBF054581BBED83D"
+      "2020-05-07": "D04A8CBBCB9578ABDFA494B5CBF054581BBED83D",
+      "2021-02-23": "5ccfd590130616adf770c42fc1d467a61313c92c"
     },
-    "git_url": "https://github.com/mattgodbolt/compiler-explorer.git",
-    "git_commit": "D04A8CBBCB9578ABDFA494B5CBF054581BBED83D"
+    "git_url": "https://github.com/compiler-explorer/compiler-explorer.git",
+    "git_commit": "5ccfd590130616adf770c42fc1d467a61313c92c"
   },
   "windows_sdk": {
     "$comment": [
