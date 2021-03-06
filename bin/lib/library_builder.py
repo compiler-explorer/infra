@@ -144,7 +144,7 @@ class LibraryBuilder:
         fullenv['LD_LIBRARY_PATH'] = ldPath
 
         if compilerType == "":
-            if 'icc' in exe or 'icpx' in exe:
+            if 'icc' in exe:
                 output = subprocess.check_output([exe, '--help'], env = fullenv).decode('utf-8', 'ignore')
                 if arch == 'x86':
                     arch = "-m32"
