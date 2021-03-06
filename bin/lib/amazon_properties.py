@@ -56,6 +56,8 @@ def get_properties_compilers_and_libraries(language, logger):
                 groups[group]['compilerType'] = val
             elif key[2] == "supportsBinary":
                 groups[group]['supportsBinary'] = val == 'true'
+            elif key[2] == "ldPath":
+                groups[group]['ldPath'] = val
         elif sline.startswith('libs.'):
             keyval = sline.split('=', 1)
             key = keyval[0].split('.')
@@ -108,6 +110,8 @@ def get_properties_compilers_and_libraries(language, logger):
                     groups[subgroupname]['compilerType'] = groups[group]['compilerType']
                 if not 'supportsBinary' in groups[subgroupname] and 'supportsBinary' in groups[group]:
                     groups[subgroupname]['supportsBinary'] = groups[group]['supportsBinary']
+                if not 'ldPath' in groups[subgroupname] and 'ldPath' in groups[group]:
+                    groups[subgroupname]['ldPath'] = groups[group]['ldPath']
 
             if not compiler in _compilers:
                 _compilers[compiler] = defaultdict(lambda: [])
@@ -126,6 +130,11 @@ def get_properties_compilers_and_libraries(language, logger):
                 _compilers[compiler]['supportsBinary'] = groups[group]['supportsBinary']
             else:
                 _compilers[compiler]['supportsBinary'] = True
+
+            if 'ldPath' in groups[group]:
+                _compilers[compiler]['ldPath'] = groups[group]['ldPath']
+            else:
+                _compilers[compiler]['ldPath'] = ""
 
             _compilers[compiler]['group'] = group
 

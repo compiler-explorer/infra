@@ -135,14 +135,17 @@ class LibraryBuilder:
             return match[1]
         return False
 
-    def does_compiler_support(self, exe, compilerType, arch, options):
+    def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
         fixedTarget = self.getTargetFromOptions(options)
         if fixedTarget:
             return fixedTarget == arch
 
+        fullenv = os.environ
+        fullenv['LD_LIBRARY_PATH'] = ldPath
+
         if compilerType == "":
-            if 'icc' in exe:
-                output = subprocess.check_output([exe, '--help']).decode('utf-8', 'ignore')
+            if 'icc' in exe or 'icpx' in exe:
+                output = subprocess.check_output([exe, '--help'], env = fullenv).decode('utf-8', 'ignore')
                 if arch == 'x86':
                     arch = "-m32"
                 elif arch == 'x86_64':
@@ -151,13 +154,13 @@ class LibraryBuilder:
                 if 'zapcc' in exe:
                     return arch == 'x86' or arch == 'x86_64'
                 else:
-                    output = subprocess.check_output([exe, '--target-help']).decode('utf-8', 'ignore')
+                    output = subprocess.check_output([exe, '--target-help'], env = fullenv).decode('utf-8', 'ignore')
         elif compilerType == "clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, 'llc')
             if os.path.exists(llcexe):
                 try:
-                    output = subprocess.check_output([llcexe, '--version']).decode('utf-8', 'ignore')
+                    output = subprocess.check_output([llcexe, '--version'], env = fullenv).decode('utf-8', 'ignore')
                 except subprocess.CalledProcessError as e:
                     output = e.output.decode('utf-8', 'ignore')
             else:
@@ -172,10 +175,10 @@ class LibraryBuilder:
             self.logger.debug(f'Compiler {exe} does not support {arch}')
             return False
 
-    def does_compiler_support_x86(self, exe, compilerType, options):
+    def does_compiler_support_x86(self, exe, compilerType, options, ldPath):
         cachekey = f'{exe}|{options}'
         if cachekey not in _supports_x86:
-            _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, 'x86', options)
+            _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, 'x86', options, ldPath)
         return _supports_x86[cachekey]
 
     def replace_optional_arg(self, arg, name, value):
@@ -207,7 +210,7 @@ class LibraryBuilder:
 
         return expanded
 
-    def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+    def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath):
         scriptfile = os.path.join(buildfolder, "build.sh")
 
         f = open(scriptfile, 'w')
@@ -221,19 +224,19 @@ class LibraryBuilder:
         f.write(f'export CC={compilerexecc}\n')
         f.write(f'export CXX={compilerexe}\n')
 
-        ldlibpaths = []
+        libparampaths = []
         archflag = ''
         if arch == '':
             # note: native arch for the compiler, so most of the time 64, but not always
             if os.path.exists(f'{toolchain}/lib64'):
-                ldlibpaths.append(f'{toolchain}/lib64')
-                ldlibpaths.append(f'{toolchain}/lib')
+                libparampaths.append(f'{toolchain}/lib64')
+                libparampaths.append(f'{toolchain}/lib')
             else:
-                ldlibpaths.append(f'{toolchain}/lib')
+                libparampaths.append(f'{toolchain}/lib')
         elif arch == 'x86':
-            ldlibpaths.append(f'{toolchain}/lib')
+            libparampaths.append(f'{toolchain}/lib')
             if os.path.exists(f'{toolchain}/lib32'):
-                ldlibpaths.append(f'{toolchain}/lib32')
+                libparampaths.append(f'{toolchain}/lib32')
 
             if compilerType == 'clang':
                 archflag = '-m32'
@@ -242,13 +245,13 @@ class LibraryBuilder:
 
         rpathflags = ''
         ldflags = ''
-        for path in ldlibpaths:
+        for path in libparampaths:
             rpathflags += f'-Wl,-rpath={path} '
 
-        for path in ldlibpaths:
+        for path in libparampaths:
             ldflags += f'-L{path} '
 
-        ldlibpathsstr = ':'.join(ldlibpaths)
+        ldlibpathsstr = ldPath
         f.write(f'export LD_LIBRARY_PATHS="{ldlibpathsstr}"\n')
         f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
         f.write('export NUMCPUS="$(nproc)"\n')
@@ -618,7 +621,7 @@ class LibraryBuilder:
         if not request.ok:
             raise RuntimeError(f'Post failure for {url}: {request}')
 
-    def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+    def makebuildfor(self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath):
         combinedhash = self.makebuildhash(compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
 
         requiresTreeCopy = False
@@ -637,7 +640,7 @@ class LibraryBuilder:
 
         self.logger.debug(f'Buildfolder: {buildfolder}')
 
-        self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
+        self.writebuildscript(buildfolder, self.sourcefolder, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath)
         self.writeconanfile(buildfolder)
 
         if not self.forcebuild and self.has_failed_before():
@@ -769,13 +772,13 @@ class LibraryBuilder:
                 archs = ['x86_64']
             else:
                 if self.buildconfig.build_fixed_arch != "":
-                    if not self.does_compiler_support(exe, compilerType, self.buildconfig.build_fixed_arch, self.compilerprops[compiler]['options']):
+                    if not self.does_compiler_support(exe, compilerType, self.buildconfig.build_fixed_arch, self.compilerprops[compiler]['options'], self.compilerprops[compiler]['ldPath']):
                         self.logger.debug(f'Compiler {compiler} does not support fixed arch {self.buildconfig.build_fixed_arch}')
                         continue
                     else:
                         archs = [self.buildconfig.build_fixed_arch]
 
-                if not self.does_compiler_support_x86(exe, compilerType, self.compilerprops[compiler]['options']):
+                if not self.does_compiler_support_x86(exe, compilerType, self.compilerprops[compiler]['options'], self.compilerprops[compiler]['ldPath']):
                     archs = ['']
 
             if buildfor == "nonx86" and archs[0] != "":
@@ -791,7 +794,7 @@ class LibraryBuilder:
                         for stdver in stdvers:
                             for stdlib in stdlibs:
                                 for flagscombination in build_supported_flagscollection:
-                                    buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination)
+                                    buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, self.compilerprops[compiler]['ldPath'])
                                     if buildstatus == BuildStatus.Ok:
                                         builds_succeeded = builds_succeeded + 1
                                     elif buildstatus == BuildStatus.Skipped:
