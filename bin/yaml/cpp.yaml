@@ -423,6 +423,7 @@ compilers:
           - trunk
           - cppx-trunk
           - cppx-ext-trunk
+          - cppx-p2320-trunk
           - concepts-trunk
           - embed-trunk
           - relocatable-trunk

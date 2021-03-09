@@ -22,6 +22,7 @@ remove_older gcc-static-analysis
 remove_older clang
 remove_older clang-cppx
 remove_older clang-cppx-ext
+remove_older clang-cppx-p2320
 remove_older clang-relocatable
 remove_older clang-autonsdmi
 remove_older clang-lifetime
