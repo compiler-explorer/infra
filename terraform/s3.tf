@@ -146,15 +146,6 @@ resource "aws_s3_bucket_policy" "compiler-explorer-logs" {
   policy = data.aws_iam_policy_document.compiler-explorer-logs-s3-policy.json
 }
 
-resource "aws_s3_bucket" "opt-s3-godbolt-org" {
-  bucket = "opt-s3.godbolt.org"
-  acl    = "private"
-  tags   = {
-    Site = "CompilerExplorer"
-    S3-Bucket-Name = "opt-s3.godbolt.org"
-  }
-}
-
 resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
   acl    = "private"

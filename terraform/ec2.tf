@@ -20,6 +20,11 @@ resource "aws_instance" "AdminNode" {
     Site = "CompilerExplorer"
     Name = "AdminNode"
   }
+
+  volume_tags = {
+    Name = "AdminNodeVolume"
+    Site = "CompilerExplorer"
+  }
 }
 
 resource "aws_instance" "ConanNode" {
@@ -43,6 +48,11 @@ resource "aws_instance" "ConanNode" {
   tags = {
     Site = "CompilerExplorer"
     Name = "ConanNode"
+  }
+
+  volume_tags = {
+    Name = "CEConanServerVol1"
+    Site = "CompilerExplorer"
   }
 }
 
