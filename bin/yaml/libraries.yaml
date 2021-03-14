@@ -162,6 +162,14 @@ libraries:
       targets:
         - "2.0"
         - "1.0"
+    entt:
+      type: github
+      repo: skypjack/entt
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "3.6.0"
+        - "3.5.0"
     hfsm:
       type: github
       repo: andrew-gresyk/HFSM
@@ -601,6 +609,13 @@ libraries:
         repo: andrew-gresyk/HFSM
         check_file: README.md
         path_name: libs/hfsm/trunk
+        targets:
+          - trunk
+      entt:
+        type: github
+        method: nightlyclone
+        repo: skypjack/entt
+        check_file: README.md
         targets:
           - trunk
       lexy_trunk:
