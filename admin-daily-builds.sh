@@ -20,31 +20,33 @@ run_on_build() {
     set +e
     date >"${logdir}/begin"
     local CE_BUILD_RESULT=""
-    if ! ce builder exec -- "$@" |& tee ${logdir}/log; then
+    if ! ce builder exec -- "$@" |& tee "${logdir}/log"; then
         BUILD_FAILED=1
         CE_BUILD_RESULT=FAILED
     else
         CE_BUILD_RESULT=OK
     fi
 
-    local CE_BUILD_STATUS=$(grep -P "^ce-build-status:" "${logdir}/log" | cut -d ':' -f 2-)
+    local CE_BUILD_STATUS
+    CE_BUILD_STATUS=$(grep -P "^ce-build-status:" "${logdir}/log" | cut -d ':' -f 2-)
     if [[ -z "${CE_BUILD_STATUS}" ]]; then
         CE_BUILD_STATUS=${CE_BUILD_RESULT}
     fi
-    echo "${CE_BUILD_STATUS}" >${logdir}/status
+    echo "${CE_BUILD_STATUS}" >"${logdir}/status"
 
     if [[ "${CE_BUILD_RESULT}" == "OK" ]]; then
-        local REVISION=$(grep -P "^ce-build-revision:" "${logdir}/log" | cut -d ':' -f 2-)
-        if [[ ! -z "${REVISION}" ]]; then
-            echo "${REVISION}" > "${revisionfile}"
+        local REVISION
+        REVISION=$(grep -P "^ce-build-revision:" "${logdir}/log" | cut -d ':' -f 2-)
+        if [[ -n "${REVISION}" ]]; then
+            echo "${REVISION}" >"${revisionfile}"
         fi
     fi
 
     if [[ "${CE_BUILD_STATUS}" == "OK" ]]; then
-        date >${logdir}/last_success
+        date >"${logdir}/last_success"
     fi
 
-    date >${logdir}/end
+    date >"${logdir}/end"
     set -e
 }
 
@@ -68,12 +70,30 @@ build_latest() {
     log_to_json ${LOG_DIR} admin
 }
 
+build_latest_cross() {
+    local IMAGE=$1
+    local BUILD_NAME=$2
+    local COMMAND=$3
+    local ARCH=$4
+    local BUILD=$5
+
+    # We don't support the "revision" for cross compilers. I looked briefly at adding it
+    # using `ct-ng sources` and similar magic, but the number of dependencies (e.g. linux source, gcc trunk)
+    # means we'll almost certainly be different every time anyway.
+    run_on_build "${BUILD_NAME}" /dev/null \
+        sudo docker run --rm --name "${BUILD_NAME}.build" -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg.s3cfg:ro -e 'LOGSPOUT=ignore' \
+        "compilerexplorer/${IMAGE}-cross-builder" \
+        bash "${COMMAND}" "${ARCH}" "${BUILD}" s3://compiler-explorer/opt/
+    log_to_json ${LOG_DIR} admin
+}
+
 build_libraries() {
     local IMAGE=$1
     local BUILD_NAME=library
     local COMMAND=build.sh
 
-    local CONAN_PASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .Parameter.Value)
+    local CONAN_PASSWORD
+    CONAN_PASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .Parameter.Value)
 
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
@@ -109,6 +129,9 @@ build_latest clang clang_embed build.sh embed-trunk
 build_latest go go build.sh trunk
 build_latest misc tinycc build-tinycc.sh trunk
 build_latest misc cc65 buildcc65.sh trunk
+
+build_latest_cross gcc arm32 build.sh arm trunk
+build_latest_cross gcc arm64 build.sh arm64 trunk
 
 build_libraries library
 
