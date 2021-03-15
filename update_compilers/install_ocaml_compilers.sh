@@ -12,6 +12,7 @@ get_ocaml() {
         fetch ${S3URL}/${DIR}.tar.xz | tar Jxf -
     fi
 }
+
 get_ocaml 4.04.2
 get_ocaml 4.06.1
 get_ocaml 4.07.1
@@ -34,3 +35,4 @@ get_ocaml 4.10.1-flambda
 get_ocaml 4.10.2-flambda
 get_ocaml 4.11.1-flambda
 get_ocaml 4.11.2-flambda
+get_ocaml 4.12.0-flambda
