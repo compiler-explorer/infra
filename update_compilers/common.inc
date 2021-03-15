@@ -29,11 +29,6 @@ s3fetch() {
     fetch "${PRESIGNED_URL}"
 }
 
-
-do_unzip() {
-    unzip "$*"
-}
-
 do_strip() {
     find $1 -executable -type f | xargs strip 2>&1 || true
 }
@@ -67,7 +62,3 @@ ce_squash() {
 }
 
 PATCHELF=${OPT}/patchelf-0.8/src/patchelf
-S3BUCKET=compiler-explorer
-SUBDIR=opt
-S3URL=https://s3.amazonaws.com/${S3BUCKET}/${SUBDIR}
-ALL_COMPILERS=$(${SCRIPT_DIR}/../bin/list_compilers)

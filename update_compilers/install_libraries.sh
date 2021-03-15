@@ -8,15 +8,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 export PATH=$PATH:/opt/compiler-explorer/cmake/bin
 
-ARG1="$1"
-install_nightly() {
-    if [[ "$ARG1" == "nightly" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
-
 if install_nightly; then
     echo "Installing trunk versions"
 else
