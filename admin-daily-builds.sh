@@ -81,7 +81,7 @@ build_latest_cross() {
     # using `ct-ng sources` and similar magic, but the number of dependencies (e.g. linux source, gcc trunk)
     # means we'll almost certainly be different every time anyway.
     run_on_build "${BUILD_NAME}" /dev/null \
-        sudo docker run --rm --name "${BUILD_NAME}.build" -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg.s3cfg:ro -e 'LOGSPOUT=ignore' \
+        sudo docker run --rm --name "${BUILD_NAME}.build" -v/home/ubuntu/.s3cfg:/home/gcc-user/.s3cfg:ro -e 'LOGSPOUT=ignore' \
         "compilerexplorer/${IMAGE}-cross-builder" \
         bash "${COMMAND}" "${ARCH}" "${BUILD}" s3://compiler-explorer/opt/
     log_to_json ${LOG_DIR} admin
