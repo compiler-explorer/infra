@@ -219,12 +219,16 @@ class InstallationContext:
             self.warn('Contents differ')
         return result == 0
 
-    def check_output(self, args: List[str], env: Optional[dict] = None) -> str:
+    def check_output(self, args: List[str], env: Optional[dict] = None, stderr_on_stdout=False) -> str:
         args = args[:]
         args[0] = str(self.destination / args[0])
         logger.debug('Executing %s in %s', args, self.destination)
-        return subprocess.check_output(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL).decode(
-            'utf-8')
+        return subprocess.check_output(
+            args,
+            cwd=str(self.destination),
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT if stderr_on_stdout else None).decode('utf-8')
 
     def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
         args = args[:]
@@ -300,6 +304,7 @@ class Installable:
         self.check_env = {}
         self.check_file = None
         self.check_call = []
+        self.check_stderr_on_stdout = self.config.get('check_stderr_on_stdout', False)
         self.install_path = ''
         self.after_stage_script = self.config_get('after_stage_script', [])
 
@@ -367,7 +372,10 @@ class Installable:
             return res
 
         try:
-            res_call = self.install_context.check_output(self.check_call, env=self.check_env)
+            res_call = self.install_context.check_output(
+                self.check_call,
+                env=self.check_env,
+                stderr_on_stdout=self.check_stderr_on_stdout)
             self.debug(f'Check call returned {res_call}')
             return True
         except FileNotFoundError:

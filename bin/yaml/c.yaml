@@ -17,6 +17,7 @@ compilers:
       subdir: '6502'
       s3_path_prefix: cc65-{name}
       check_exe: bin/cc65 --version
+      check_stderr_on_stdout: true
       targets:
         - "2.17"
         - "2.18"
@@ -24,6 +25,7 @@ compilers:
     gcc:
       type: s3tarballs
       check_exe: bin/gcc -v
+      check_stderr_on_stdout: true
       targets:
         - '1.27'
     sdcc:

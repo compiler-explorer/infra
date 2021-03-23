@@ -381,6 +381,7 @@ compilers:
       type: script
       dir: "intel-cpp-{name}"
       check_exe: compiler/latest/linux/bin/intel64/icc -V
+      check_stderr_on_stdout: true
       script_filename: install.sh
       targets:
         - name: 2021.1.2.63
@@ -398,6 +399,7 @@ compilers:
       type: script
       dir: "intel-fortran-{name}"
       check_exe: compiler/latest/linux/bin/intel64/ifort -V
+      check_stderr_on_stdout: true
       script_filename: install.sh
       targets:
         - name: 2021.1.2.62
