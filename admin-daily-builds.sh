@@ -116,6 +116,7 @@ build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
 build_latest gcc gcc_embed build.sh embed-trunk
 build_latest gcc gcc_static_analysis build.sh static-analysis-trunk
 build_latest clang clang build.sh trunk
+build_latest clang clang_assertions build.sh assertions-trunk
 build_latest clang clang_cppx build.sh cppx-trunk
 build_latest clang clang_cppx_ext build.sh cppx-ext-trunk
 build_latest clang clang_cppx_p2320 build.sh cppx-p2320-trunk
