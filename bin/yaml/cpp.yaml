@@ -431,6 +431,7 @@ compilers:
         check_exe: bin/clang++ --version
         targets:
           - trunk
+          - assertions-trunk
           - cppx-trunk
           - cppx-ext-trunk
           - cppx-p2320-trunk
