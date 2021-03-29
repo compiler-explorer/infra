@@ -229,6 +229,11 @@
         "description": "Parsing Expression Grammar Template Library",
         "pretty_name": "PEGTL"
       },
+      "pugixml": {
+        "url": "https://github.com/zeux/pugixml",
+        "description": "pugixml is a C++ XML processing library",
+        "pretty_name": "pugixml"
+      },
       "range-v3": {
         "url": "https://github.com/ericniebler/range-v3",
         "pretty_name": "range-v3"
