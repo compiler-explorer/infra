@@ -219,6 +219,10 @@
         "url": "https://github.com/nlohmann/json",
         "pretty_name": "nlohmann::json"
       },
+      "jsoncpp": {
+        "url": "https://github.com/open-source-parsers/jsoncpp",
+        "pretty_name": "JsonCpp"
+      },
       "ned14-outcome": null,
       "pegtl": {
         "url": "https://github.com/taocpp/PEGTL",
