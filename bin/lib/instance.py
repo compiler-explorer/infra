@@ -75,7 +75,7 @@ class ConanInstance:
 
     @staticmethod
     def instance():
-        return ConanInstance(ec2.Instance(id='i-087ffd9c19455bb43'))
+        return ConanInstance(ec2.Instance(id='i-0a3f201b6378db03f'))
 
 
 class BuilderInstance:
