@@ -222,18 +222,22 @@ def main():
                 print(f"Building {installable.name} for all")
 
             if args.force or installable.should_build():
-                try:
-                    [num_installed, num_skipped, num_failed] = installable.build(args.buildfor)
-                    if num_installed > 0:
-                        context.info(f"{installable.name} built OK")
-                    elif num_failed:
-                        context.info(f"{installable.name} failed to build")
-                except RuntimeError as e:
-                    if args.buildfor:
-                        raise e
-                    else:
-                        context.info(f"{installable.name} failed to build: {e}")
-                        num_failed += 1
+                if not installable.is_installed():
+                    context.info(f"{installable.name} is not installed, unable to build")
+                    num_skipped += 1
+                else:
+                    try:
+                        [num_installed, num_skipped, num_failed] = installable.build(args.buildfor)
+                        if num_installed > 0:
+                            context.info(f"{installable.name} built OK")
+                        elif num_failed:
+                            context.info(f"{installable.name} failed to build")
+                    except RuntimeError as e:
+                        if args.buildfor:
+                            raise e
+                        else:
+                            context.info(f"{installable.name} failed to build: {e}")
+                            num_failed += 1
             else:
                 context.info(f"{installable.name} is already built, skipping")
                 num_skipped += 1
