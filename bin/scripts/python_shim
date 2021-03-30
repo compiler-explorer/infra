@@ -2,7 +2,12 @@
 
 set -euo pipefail
 
-ROOT_DIR=$(readlink -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../..")
+function kindofreadlink() {
+  DIR="${1%/*}"
+  (cd "$DIR" && echo "$(pwd -P)")
+}
+
+ROOT_DIR=$(kindofreadlink "$(dirname "${BASH_SOURCE[0]}")/../..")
 MY_NAME=$(basename "$0")
 
 if ! make -sq -C "${ROOT_DIR}" ce; then
