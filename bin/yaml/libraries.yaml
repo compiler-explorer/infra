@@ -250,6 +250,17 @@ libraries:
       check_file: x86_64/include/nsimd/nsimd.h
       targets:
         - v2.2
+    pugixml:
+      type: github
+      repo: zeux/pugixml
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 1.11.4
+      build_type: cmake
+      lib_type: static
+      extra_cmake_arg:
+        - -DBUILD_TESTS=OFF
     tomlplusplus:
       type: github
       repo: marzer/tomlplusplus
