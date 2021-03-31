@@ -1158,6 +1158,13 @@ libraries:
         check_file: include/cuda/std/atomic
         targets:
           - trunk
+      cucollections:
+        type: github
+        method: nightlyclone
+        repo: NVIDIA/cuCollections
+        check_file: include/cuco/static_map.cuh
+        targets:
+          - dev
   d:
     mir-glas:
       type: github
