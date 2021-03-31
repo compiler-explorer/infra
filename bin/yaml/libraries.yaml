@@ -1160,7 +1160,7 @@ libraries:
           - trunk
       cucollections:
         type: github
-        method: nightlyclone
+        method: clone_branch
         repo: NVIDIA/cuCollections
         check_file: include/cuco/static_map.cuh
         targets:
