@@ -1,5 +1,5 @@
 locals {
-  image_id          = "ami-017204596cbd72d7c"
+  image_id          = "ami-0e565ccb9dda657e4"
   staging_image_id  = "ami-0e565ccb9dda657e4"
   beta_image_id     = "ami-0e565ccb9dda657e4"
   conan_image_id    = "ami-0b41dc7a318b530bd"
