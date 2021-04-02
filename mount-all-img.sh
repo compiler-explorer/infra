@@ -13,6 +13,8 @@ for img_file in "${IMG_DIR}"/**/*.img; do
         echo "$dst_path is mounted already, skipping"
     else
         echo "$img_file -> $dst_path"
-        mount -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime
+        mount -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime &
     fi
 done
+
+wait
