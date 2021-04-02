@@ -62,7 +62,7 @@ make install
 popd
 
 pushd /tmp
-git clone --recursive --branch 2.9 https://github.com/google/nsjail.git
+git clone --recursive --branch 3.0 https://github.com/google/nsjail.git
 cd nsjail
 make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
