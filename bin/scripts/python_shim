@@ -12,7 +12,7 @@ MY_NAME=$(basename "$0")
 if ! make -sq -C "${ROOT_DIR}" ce; then
     echo "python environment is out of date"
     echo "please run 'make ce' in the top level directory"
-    echo "(this is not done automatically as it can be a lengthy and surprising process"
+    echo "(this is not done automatically as it can be a lengthy and surprising process)"
     exit 1
 fi
 
