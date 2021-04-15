@@ -15,6 +15,7 @@ remove_older() {
 remove_older llvm
 remove_older gcc
 remove_older gcc-lock3-contracts
+remove_older gcc-lock3-contract-labels
 remove_older gcc-cxx-modules
 remove_older gcc-cxx-coroutines
 remove_older gcc-embed
