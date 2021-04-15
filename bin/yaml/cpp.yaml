@@ -451,6 +451,7 @@ compilers:
           - name: trunk
             symlink: gcc-snapshot
           - lock3-contracts-trunk
+          - lock3-contract-labels-trunk
           - cxx-modules-trunk
           - cxx-coroutines-trunk
           - static-analysis-trunk
