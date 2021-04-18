@@ -751,8 +751,10 @@ libraries:
           - trunk
       ofw:
         type: github
+        method: nightlyclone
         repo: jfalcou/ofw
         check_file: README.md
+        build_type: none
         targets:
           - trunk
       spy:
