@@ -749,6 +749,12 @@ libraries:
         build_type: none
         targets:
           - trunk
+      ofw:
+        type: github
+        repo: jfalcou/ofw
+        check_file: README.md
+        targets:
+          - trunk
       spy:
         type: github
         method: nightlyclone
