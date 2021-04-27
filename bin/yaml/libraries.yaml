@@ -32,6 +32,7 @@ libraries:
         - 1.73.0
         - 1.74.0
         - 1.75.0
+        - 1.76.0
     llvm:
       type: s3tarballs
       s3_path_prefix: llvm-{name}
