@@ -325,8 +325,12 @@ def instances_restart_cmd(args):
     save_events(args, events)
     modified_groups = {}
     failed = False
-    for instance in pick_instances(args):
-        logger.info("Restarting %s...", instance)
+    instances = pick_instances(args)
+    instancecount = len(instances)
+    currentinstance = 1
+
+    for instance in instances:
+        logger.info("Restarting %s (%d of %d)...", instance, currentinstance, instancecount)
         as_instance_status = instance.describe_autoscale()
         if not as_instance_status:
             logger.warning("Skipping %s as it is no longer in the ASG", instance)
