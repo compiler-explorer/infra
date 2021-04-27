@@ -331,6 +331,7 @@ def instances_restart_cmd(args):
 
     for instance in instances:
         logger.info("Restarting %s (%d of %d)...", instance, currentinstance, instancecount)
+        currentinstance = currentinstance + 1
         as_instance_status = instance.describe_autoscale()
         if not as_instance_status:
             logger.warning("Skipping %s as it is no longer in the ASG", instance)
