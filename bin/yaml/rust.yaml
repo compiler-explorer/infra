@@ -70,3 +70,8 @@ compilers:
             nightly_install_days: 1
           - name: beta
             nightly_install_days: 7
+        gcc:
+          type: nightly
+          check_exe: bin/gccrs --version
+          targets:
+            - gccrs-master
