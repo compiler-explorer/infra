@@ -20,6 +20,7 @@ remove_older gcc-cxx-modules
 remove_older gcc-cxx-coroutines
 remove_older gcc-embed
 remove_older gcc-static-analysis
+remove_older gcc_gccrs_master
 remove_older clang
 remove_older clang-assertions
 remove_older clang-cppx
