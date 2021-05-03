@@ -89,7 +89,4 @@ resource "aws_launch_template" "CompilerExplorer-prod" {
   image_id               = local.image_id
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  tags                   = {
-    Site = "CompilerExplorer"
-  }
 }

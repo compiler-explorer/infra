@@ -1,8 +1,5 @@
 resource "aws_route53_zone" "ce-cdn-net" {
   name = "ce-cdn.net"
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 resource "aws_route53_record" "static-ce-cdn-net-A" {

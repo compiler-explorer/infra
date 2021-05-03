@@ -2,7 +2,6 @@ resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
   acl    = "private"
   tags   = {
-    Site = "CompilerExplorer"
     S3-Bucket-Name = "compiler-explorer"
   }
   cors_rule {
@@ -30,7 +29,6 @@ data "aws_canonical_user_id" "current" {}
 resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
   tags   = {
-    Site = "CompilerExplorer"
     S3-Bucket-Name = "compiler-explorer-logs"
   }
 
@@ -150,7 +148,6 @@ resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
   acl    = "private"
   tags   = {
-    Site = "CompilerExplorer"
     S3-Bucket-Name = "storage.godbolt.org"
   }
   lifecycle_rule {
@@ -170,7 +167,6 @@ resource "aws_s3_bucket" "ce-cdn-net" {
   bucket = "ce-cdn.net"
   acl    = "private"
   tags   = {
-    Site = "CompilerExplorer"
     S3-Bucket-Name = "ce-cdn.net"
   }
 

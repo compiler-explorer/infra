@@ -3,7 +3,6 @@ resource "aws_efs_file_system" "fs-db4c8192" {
   performance_mode = "generalPurpose"
   tags             = {
     Name = "CompilerExplorer"
-    Site = "CompilerExplorer"
   }
   lifecycle_policy {
     transition_to_ia = "AFTER_90_DAYS"

@@ -1,9 +1,6 @@
 resource "aws_acm_certificate" "static-ce-cdn-net" {
   domain_name       = "static.ce-cdn.net"
   validation_method = "DNS"
-  tags              = {
-    Site = "CompilerExplorer"
-  }
 
   lifecycle {
     create_before_destroy = true

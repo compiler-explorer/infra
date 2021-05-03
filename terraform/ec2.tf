@@ -17,7 +17,6 @@ resource "aws_instance" "AdminNode" {
   }
 
   tags = {
-    Site = "CompilerExplorer"
     Name = "AdminNode"
   }
 
@@ -46,7 +45,6 @@ resource "aws_instance" "ConanNode" {
   }
 
   tags = {
-    Site = "CompilerExplorer"
     Name = "ConanNode"
   }
 

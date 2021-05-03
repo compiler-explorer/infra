@@ -24,9 +24,4 @@ resource "aws_dynamodb_table" "links" {
   point_in_time_recovery {
     enabled = true
   }
-
-  tags = {
-    key   = "Site"
-    value = "CompilerExplorer"
-  }
 }

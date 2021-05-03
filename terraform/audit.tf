@@ -4,9 +4,6 @@ resource "aws_cloudtrail" "audit" {
   name                          = "ce-audit"
   s3_bucket_name                = aws_s3_bucket.cloudtrail.id
   include_global_service_events = true
-  tags                          = {
-    Site = "CompilerExplorer"
-  }
   event_selector {
     include_management_events = true
     read_write_type = "All"
@@ -56,7 +53,6 @@ resource "aws_s3_bucket" "cloudtrail" {
   //  }
 
   tags                          = {
-    Site = "CompilerExplorer"
     S3-Bucket-Name = "cloudtrail.godbolt.org"
   }
 

@@ -144,10 +144,6 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
     error_caching_min_ttl = 5
     response_page_path    = "/admin/503.html"
   }
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 # TODO - the duplication is rubbish
@@ -287,10 +283,6 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     error_caching_min_ttl = 5
     response_page_path    = "/admin/503.html"
   }
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 resource "aws_cloudfront_distribution" "godbo-lt" {
@@ -428,10 +420,6 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
     error_caching_min_ttl = 5
     response_page_path    = "/admin/503.html"
   }
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
@@ -503,9 +491,5 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
     target_origin_id       = "S3-ce-cdn.net"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-  }
-
-  tags = {
-    Site = "CompilerExplorer"
   }
 }

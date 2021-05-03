@@ -4,7 +4,6 @@ resource "aws_security_group" "CompilerExplorer" {
   description = "For the GCC explorer"
   tags        = {
     Name = "CompilerExplorer"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -79,7 +78,6 @@ resource "aws_security_group" "CompilerExplorerAlb" {
   description = "Load balancer security group"
   tags        = {
     Name = "CELoadBalancer"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -132,7 +130,6 @@ resource "aws_security_group" "AdminNode" {
   description = "Security for the admin node"
   tags        = {
     Name = "AdminNode"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -205,10 +202,6 @@ resource "aws_iam_role" "CompilerExplorerRole" {
   name               = "CompilerExplorerRole"
   description        = "Compiler Explorer node role"
   assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 data "aws_iam_policy" "CloudWatchAgentServerPolicy" {

@@ -21,10 +21,6 @@ resource "aws_alb" "GccExplorerApp" {
     prefix  = "elb"
     enabled = true
   }
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {

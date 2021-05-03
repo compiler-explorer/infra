@@ -6,7 +6,6 @@ resource "aws_vpc" "CompilerExplorer" {
 
   tags = {
     Name = "CompilerExplorer"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -18,7 +17,6 @@ resource "aws_subnet" "ce-1a" {
 
   tags = {
     Name = "CompilerExplorer1a"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -30,7 +28,6 @@ resource "aws_subnet" "ce-1b" {
 
   tags = {
     Name = "CompilerExplorer1b"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -42,7 +39,6 @@ resource "aws_subnet" "ce-1c" {
 
   tags = {
     Name = "CompilerExplorer1c"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -54,7 +50,6 @@ resource "aws_subnet" "ce-1d" {
 
   tags = {
     Name = "CompilerExplorer1d"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -66,7 +61,6 @@ resource "aws_subnet" "ce-1e" {
 
   tags = {
     Name = "CompilerExplorer1e"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -78,6 +72,5 @@ resource "aws_subnet" "ce-1f" {
 
   tags = {
     Name = "CompilerExplorer1f"
-    Site = "CompilerExplorer"
   }
 }

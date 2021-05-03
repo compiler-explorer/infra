@@ -83,8 +83,4 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
   }
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
