@@ -25,3 +25,31 @@ resource "aws_dynamodb_table" "links" {
     enabled = true
   }
 }
+
+resource "aws_dynamodb_table" "versionslog" {
+  name           = "versionslog"
+  lifecycle {
+    ignore_changes = [
+      read_capacity,
+      write_capacity
+    ]
+  }
+  billing_mode   = "PAY_PER_REQUEST"
+  read_capacity  = 1
+  write_capacity = 1
+  hash_key       = "buildId"
+  range_key      = "timestamp"
+
+  attribute {
+    name = "buildId"
+    type = "S"
+  }
+  attribute {
+    name = "timestamp"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = false
+  }
+}
