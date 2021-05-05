@@ -773,6 +773,49 @@ class TarballInstallable(Installable):
         return f'TarballInstallable({self.name}, {self.install_path})'
 
 
+class ZipArchiveInstallable(Installable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self.url = self.config_get('url')
+        self.folder_to_rename = self.config_get('folder')
+        self.configure_command = command_config(self.config_get('configure_command', []))
+        self.strip = self.config_get('strip', False)
+        self._setup_check_exe(self.install_path)
+
+    def stage(self) -> None:
+        self.install_context.clean_staging()
+        name = self.config_get('name')
+        # Unzip does not support stdin piping so we need to create a file
+        with (self.install_context.staging / 'distribution.zip').open('wb') as fd:
+            self.install_context.fetch_to(self.url, fd)
+            self.install_context.stage_command(['unzip', fd.name])
+            self.install_context.stage_command(['mv', self.folder_to_rename, self.install_path])
+        if self.configure_command:
+            self.install_context.stage_command(self.configure_command)
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+        if not (self.install_context.staging / self.install_path).is_dir():
+            raise RuntimeError(f"After unpacking, {self.install_path} was not a directory")
+        self.install_context.run_script(self.install_context.staging / self.install_path, self.after_stage_script)
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def install(self) -> bool:
+        if not super().install():
+            return False
+        self.stage()
+        self.install_context.move_from_staging(self.install_path)
+        return True
+
+    def __repr__(self) -> str:
+        return f'ZipArchiveInstallable({self.name}, {self.install_path})'
+
+
 class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
@@ -1009,7 +1052,8 @@ INSTALLER_TYPES = {
     'gitlab': GitLabInstallable,
     'bitbucket': BitbucketInstallable,
     'rust': RustInstallable,
-    'pip': PipInstallable
+    'pip': PipInstallable,
+    'ziparchive': ZipArchiveInstallable
 }
 
 

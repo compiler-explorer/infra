@@ -1,0 +1,23 @@
+compilers:
+  kotlin:
+    type: ziparchive
+    dir: kotlin-jvm-{name}
+    folder: kotlinc
+    check_exe: bin/kotlinc-jvm -version
+    targets:
+      - name: 1.4.0
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.0/kotlin-compiler-1.4.0.zip
+      - name: 1.4.10
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.10/kotlin-compiler-1.4.10.zip
+      - name: 1.4.20
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.20/kotlin-compiler-1.4.20.zip
+      - name: 1.4.21
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.21/kotlin-compiler-1.4.21.zip
+      - name: 1.4.30
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.30/kotlin-compiler-1.4.30.zip
+      - name: 1.4.31
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.31/kotlin-compiler-1.4.31.zip
+      - name: 1.4.32
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.32/kotlin-compiler-1.4.32.zip
+      - name: 1.5.0
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.0/kotlin-compiler-1.5.0.zip
