@@ -750,6 +750,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      kiwaku:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/kiwaku
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
       ofw:
         type: github
         method: nightlyclone
