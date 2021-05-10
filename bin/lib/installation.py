@@ -785,7 +785,6 @@ class ZipArchiveInstallable(Installable):
 
     def stage(self) -> None:
         self.install_context.clean_staging()
-        name = self.config_get('name')
         # Unzip does not support stdin piping so we need to create a file
         with (self.install_context.staging / 'distribution.zip').open('wb') as fd:
             self.install_context.fetch_to(self.url, fd)
