@@ -902,6 +902,7 @@ libraries:
           - absl_bad_optional_access
           - absl_random_internal_randen
           - absl_time_zone
+          - absl_wyhash
         make_targets:
           - all
         targets:
