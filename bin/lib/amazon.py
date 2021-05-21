@@ -109,7 +109,7 @@ def _get_releases(source: VersionSource, prefix: str):
         if not key.endswith(".tar.xz"):
             continue
         split_key = key.split('/')
-        branch = split_key[-2]
+        branch = '/'.join(split_key[2:-1])
         version_str = split_key[-1].split('.')[0]
         version = Version(source, int(version_str))
 
