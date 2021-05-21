@@ -91,7 +91,7 @@ def get_autoscaling_groups_for(args):
 def remove_release(release):
     s3_client.delete_objects(
         Bucket='compiler-explorer',
-        Delete={'Objects': [{'Key': release.key}, {'Key': release.info_key}]}
+        Delete={'Objects': [{'Key': release.key}, {'Key': release.static_key}, {'Key': release.info_key}]}
     )
 
 
