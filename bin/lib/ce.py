@@ -12,6 +12,7 @@ import sys
 import tempfile
 import time
 from argparse import ArgumentParser
+from collections import defaultdict
 from pprint import pprint
 
 import requests
@@ -435,17 +436,14 @@ def builds_set_current_cmd(args):
 
 def builds_rm_old_cmd(args):
     current = get_all_current()
-    max_builds = {}
+    max_builds = defaultdict(int)
     for release in get_releases():
-        if release.version not in max_builds:
-            max_builds[release.version.source] = release.version
-        else:
-            max_builds[release.version.source] = max(release.version, max_builds[release.version.source])
+        max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
     for release in get_releases():
         if release.key in current:
             print("Skipping {} as it is a current version".format(release))
         else:
-            age = max_builds[release.version.source].number - release.version.number
+            age = max_builds[release.version.source] - release.version.number
             if age > args['age']:
                 if args['dry_run']:
                     print("Would remove build {}".format(release))
