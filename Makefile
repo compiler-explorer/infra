@@ -1,6 +1,6 @@
 .NOTPARALLEL: 
 
-PYTHON:=$(shell which python3.8 || echo .python3.8-not-found)
+PYTHON:=$(shell which python3.9 || which python3.8 || echo .python3.8-not-found)
 VIRTUALENV?=.env
 export PYTHONPATH=$(CURDIR)/bin
 
@@ -11,7 +11,7 @@ help: # with thanks to Ben Rady
 PACKER ?= ../packer
 
 $(PYTHON):
-	@echo "Python 3.8 not found on path. Please install (sudo apt install python3.8 python3.8-venv or similar)"
+	@echo "Python 3.8 or 3.9 not found on path. Please install (sudo apt install python3.8 python3.8-venv or similar)"
 	@exit 1
 
 config.json: make_json.py | $(PYTHON)
