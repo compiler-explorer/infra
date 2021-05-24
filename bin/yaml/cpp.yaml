@@ -87,6 +87,7 @@ compilers:
               - 10.3.0
             nightly:
               if: nightly
+              type: nightly
               targets:
                 - trunk
           - type: tarballs
@@ -205,6 +206,7 @@ compilers:
             - 10.3.0
           nightly:
             if: nightly
+            type: nightly
             targets:
               - trunk
         mips:
