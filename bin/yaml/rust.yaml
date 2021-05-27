@@ -80,4 +80,4 @@ compilers:
           type: nightly
           check_exe: bin/mrustc --version
           targets:
-            - mrustc-master
+            - master
