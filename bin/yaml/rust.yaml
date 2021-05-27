@@ -79,6 +79,5 @@ compilers:
         mrustc:
           type: nightly
           check_exe: bin/mrustc --version
-          strip_components: 1
           targets:
             - master
