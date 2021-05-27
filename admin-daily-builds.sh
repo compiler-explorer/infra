@@ -131,6 +131,7 @@ build_latest clang clang_embed build.sh embed-trunk
 build_latest go go build.sh trunk
 build_latest misc tinycc build-tinycc.sh trunk
 build_latest misc cc65 buildcc65.sh trunk
+build_latest misc mrustc build-mrustc.sh master
 
 build_latest_cross gcc arm32 build.sh arm trunk
 build_latest_cross gcc arm64 build.sh arm64 trunk
