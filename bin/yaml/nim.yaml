@@ -14,6 +14,7 @@ compilers:
       - 1.4.2
       - 1.4.4
       - 1.4.6
+      - 1.4.8
     nightly:
       install_always: true
       if: nightly
