@@ -49,7 +49,7 @@ $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
 	$(PYTHON) -m venv $(VIRTUALENV)
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
-	mypy --install-types
+	$(VIRTUALENV)/bin/mypy --install-types
 
 .PHONY: ce
 ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
