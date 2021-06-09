@@ -49,7 +49,6 @@ $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
 	$(PYTHON) -m venv $(VIRTUALENV)
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
-	$(VIRTUALENV)/bin/mypy --install-types
 
 .PHONY: ce
 ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
@@ -60,7 +59,7 @@ test: ce  ## Runs the tests
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
-	$(VIRTUALENV)/bin/mypy --ignore-missing-imports bin lambda
+	$(VIRTUALENV)/bin/mypy --install-types --ignore-missing-imports bin lambda
 	$(VIRTUALENV)/bin/pylint bin lambda
 
 LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
