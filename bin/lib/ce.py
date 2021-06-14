@@ -310,9 +310,11 @@ def instances_start_cmd(args):
 
 
 def instances_stop_cmd(args):
-    if not are_you_sure('stop all instances', args):
-        return
-    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
+    if args['env'] == 'prod':
+        print('Operation aborted. This would bring down the site')
+        print('If you know what you are doing, edit the code in bin/lib/ce.py, function instances_stop_cmd')
+    elif are_you_sure('stop all instances', args):
+        exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
 
 
 def instances_restart_cmd(args):
@@ -796,7 +798,10 @@ def environment_start_cmd(args):
 
 
 def environment_stop_cmd(args):
-    if are_you_sure('stop environment', args):
+    if args['env'] == 'prod':
+        print('Operation aborted. This would bring down the site')
+        print('If you know what you are doing, edit the code in bin/lib/ce.py, function environment_stop_cmd')
+    elif are_you_sure('stop environment', args):
         for asg in get_autoscaling_groups_for(args):
             group_name = asg['AutoScalingGroupName']
             if asg['MinSize'] > 0:
