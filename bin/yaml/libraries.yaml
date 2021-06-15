@@ -292,6 +292,7 @@ libraries:
         - "38"
         - "39"
         - "40"
+        - "41"
     doctest:
       type: github
       repo: onqtam/doctest
