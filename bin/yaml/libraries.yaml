@@ -683,6 +683,18 @@ libraries:
         path_name: libs/lexy/trunk
         targets:
           - trunk
+      highway:
+        type: github
+        method: nightlyclone
+        repo: google/highway
+        check_file: hwy/highway.h
+        build_type: cmake
+        lib_type: static
+        make_targets:
+          - hwy
+          - hwy_contrib
+        targets:
+          - trunk
       nlohmann_json:
         type: github
         method: nightlyclone
