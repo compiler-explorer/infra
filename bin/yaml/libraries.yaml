@@ -226,6 +226,17 @@ libraries:
       target_prefix: v
       targets:
         - 0.1.0
+    highway:
+      type: github
+      repo: google/highway
+      check_file: hwy/highway.h
+      build_type: cmake
+      lib_type: static
+      make_targets:
+        - hwy
+        - hwy_contrib
+      targets:
+        - 0.12.2
     nlohmann_json:
       type: github
       repo: nlohmann/json
