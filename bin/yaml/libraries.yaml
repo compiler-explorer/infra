@@ -237,6 +237,7 @@ libraries:
         - hwy_contrib
       targets:
         - 0.12.2
+        - trunk
     nlohmann_json:
       type: github
       repo: nlohmann/json
