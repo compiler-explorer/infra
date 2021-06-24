@@ -1334,3 +1334,21 @@ libraries:
         check_file: README.md
         targets:
           - trunk
+  zig:
+    zig-args:
+      type: github
+      repo: MasterQ32/zig-args
+      check_file: README.md
+      targets:
+        - "0.1"
+    nightly:
+      install_always: true
+      if: nightly
+      zig-args:
+        type: github
+        method: nightlyclone
+        repo: MasterQ32/zig-args
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
