@@ -7,6 +7,10 @@ compilers:
     strip_components: 1
     dir: crystal-{name}
     check_exe: bin/crystal --version
+    after_stage_script:
+      - cd lib/crystal/lib
+      - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a
+      - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
     targets:
       - 1.0.0
       - 0.36.1

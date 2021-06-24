@@ -185,3 +185,56 @@ install_lua() {
 }
 
 install_lua v5.3.5 v5.4.0
+
+# Following are minimal runtime dependencies for Crystal
+
+#########################
+# pcre
+
+install_pcre() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/libpcre/${VERSION}/x86_64/lib
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/pcre
+            mkdir -p /tmp/pcre
+            pushd /tmp/pcre
+
+            fetch https://ftp.pcre.org/pub/pcre/pcre-${VERSION}.tar.gz | tar zxf - --strip-components 1
+
+            ./configure --disable-shared --enable-utf --enable-unicode-properties
+            make
+
+            mkdir -p ${DEST1}
+            cp .libs/libpcre.a ${DEST1}
+
+            popd
+            rm -rf /tmp/pcre
+        fi
+    done
+}
+
+install_pcre 8.45
+
+install_libevent() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/libevent/${VERSION}/x86_64/lib
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/libevent
+            mkdir -p /tmp/libevent
+            pushd /tmp/libevent
+
+            fetch https://github.com/libevent/libevent/releases/download/release-${VERSION}-stable/libevent-${VERSION}-stable.tar.gz | tar zxf - --strip-components 1
+
+            ./configure --disable-shared
+            make
+
+            mkdir -p ${DEST1}
+            cp .libs/libevent.a ${DEST1}
+
+            popd
+            rm -rf /tmp/libevent
+        fi
+    done
+}
+
+install_libevent 2.1.12
