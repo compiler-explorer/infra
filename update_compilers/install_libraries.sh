@@ -225,6 +225,7 @@ install_libevent() {
 
             fetch https://github.com/libevent/libevent/releases/download/release-${VERSION}-stable/libevent-${VERSION}-stable.tar.gz | tar zxf - --strip-components 1
 
+            export PKG_CONFIG_PATH=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt/lib/pkgconfig
             ./configure --disable-shared
             make
 
