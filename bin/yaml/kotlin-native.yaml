@@ -1,0 +1,30 @@
+compilers:
+  kotlin-native:
+    type: tarballs
+    dir: kotlin-native-linux-{name}
+    compression: gz
+    check_exe: bin/kotlinc-native -version
+    targets:
+      - name: 1.4.0
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.0/kotlin-native-linux-1.4.tar.gz
+        configure_command: [mv, kotlin-native-linux-1.4, kotlin-native-linux-1.4.0]
+      - name: 1.4.10
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.10/kotlin-native-linux-1.4.10.tar.gz
+      - name: 1.4.20
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.20/kotlin-native-prebuilt-linux-1.4.20.tar.gz
+        configure_command: [mv, kotlin-native-prebuilt-linux-1.4.20, kotlin-native-linux-1.4.20]
+      - name: 1.4.21
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.21/kotlin-native-prebuilt-linux-1.4.21.tar.gz
+        configure_command: [mv, kotlin-native-prebuilt-linux-1.4.21, kotlin-native-linux-1.4.21]
+      - name: 1.4.30
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.30/kotlin-native-linux-1.4.30.tar.gz
+      - name: 1.4.31
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.31/kotlin-native-linux-1.4.31.tar.gz
+      - name: 1.4.32
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.32/kotlin-native-linux-1.4.32.tar.gz
+      - name: 1.5.0
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.0/kotlin-native-linux-1.5.0.tar.gz
+      - name: 1.5.10
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.10/kotlin-native-linux-1.5.10.tar.gz
+      - name: 1.5.20
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.20/kotlin-native-linux-1.5.20.tar.gz
