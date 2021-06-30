@@ -3,7 +3,7 @@ import subprocess
 from typing import Dict, Optional
 
 from lib.amazon import ec2, as_client, elb_client, get_releases, release_for
-from lib.ssh import exec_remote
+from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
 logger = logging.getLogger('ssh')
@@ -19,7 +19,7 @@ class Instance:
         self.update(health)
 
     def __str__(self):
-        return '{}@{}'.format(self.instance.id, self.instance.public_ip_address)
+        return '{}@{}'.format(self.instance.id, self.instance.private_ip_address)
 
     def describe_autoscale(self) -> Optional[Dict]:
         results = as_client.describe_auto_scaling_instances(
@@ -35,18 +35,21 @@ class Instance:
                 Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
         self.instance.load()
         self.elb_health = health['TargetHealth']['State']
-        try:
-            self.service_status = {key: value for key, value in
-                                   (s.split("=", 1) for s in
-                                    exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
-                                    "=" in s)}
-            self.running_version = exec_remote(self, [
-                'bash', '-c',
-                'if [[ -f /infra/.deploy/s3_key ]]; '
-                'then cat /infra/.deploy/s3_key; fi'
-            ]).strip()
-        except subprocess.CalledProcessError as e:
-            logger.warning("Failed to execute on remote host: %s", e)
+        if can_ssh_to(self):
+            try:
+                self.service_status = {
+                    key: value for key, value in
+                    (s.split("=", 1) for s in
+                     exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n")
+                     if "=" in s)
+                }
+                self.running_version = exec_remote(self, [
+                    'bash', '-c',
+                    'if [[ -f /infra/.deploy/s3_key ]]; '
+                    'then cat /infra/.deploy/s3_key; fi'
+                ]).strip()
+            except subprocess.CalledProcessError as e:
+                logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod
     def elb_instances(group_arn):
@@ -116,7 +119,7 @@ def print_instances(instances, number=False):
         else:
             running_version = '(unknown {})'.format(inst.running_version)
         print(STATUS_FORMAT.format(
-            inst.instance.public_ip_address,
+            inst.instance.private_ip_address,
             inst.instance.id,
             inst.instance.state['Name'],
             inst.instance.instance_type,

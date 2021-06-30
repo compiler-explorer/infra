@@ -32,11 +32,18 @@ def running_on_ec2():
     return False
 
 
+def can_ssh_to(instance) -> bool:
+    if running_on_ec2():
+        return True
+    return instance.instance.public_ip_address is True
+
+
 def ssh_address_for(instance):
     if running_on_ec2():
         return instance.instance.private_ip_address
-    else:
+    if instance.instance.public_ip_address:
         return instance.instance.public_ip_address
+    raise RuntimeError(f"No public address for {instance.instance}")
 
 
 def run_remote_shell(args, instance):
