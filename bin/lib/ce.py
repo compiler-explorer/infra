@@ -814,7 +814,7 @@ def environment_refresh_cmd(args):
         else:
             if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(args)}', args):
                 return
-            print(f"  Starting new refresh...")
+            print("  Starting new refresh...")
             refresh_result = as_client.start_instance_refresh(
                 AutoScalingGroupName=group_name,
                 Preferences=dict(
