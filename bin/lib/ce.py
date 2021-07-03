@@ -11,10 +11,11 @@ import subprocess
 import sys
 import tempfile
 import time
-from argparse import ArgumentParser
 from collections import defaultdict
 from pprint import pprint
+from typing import TextIO, List, Optional, Dict
 
+import click as click
 import requests
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
@@ -34,8 +35,21 @@ ADS_FORMAT = '{: <5} {: <10} {: <20}'
 DECORATION_FORMAT = '{: <10} {: <15} {: <30} {: <50}'
 
 
-def dispatch_global(sub, args):
-    globals()['{}_{}_cmd'.format(sub, args['{}_sub'.format(sub)])](args)
+@click.group()
+@click.option("--env", type=click.Choice(['prod', 'beta', 'staging']),
+              default='staging', metavar='ENV',
+              help='Select environment ENV')
+@click.option("--mosh/--no-mosh", help='Use mosh to connect to hosts')
+@click.option("--debug/--no-debug", help='Turn on debugging')
+@click.pass_context
+def cli(ctx: click.Context, env: str, mosh: bool, debug: bool):
+    ctx.obj = dict(env=env, mosh=mosh, debug=debug)
+    if debug:
+        logging.basicConfig(level=logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO)
+        logging.getLogger('boto3').setLevel(logging.WARNING)
+        logging.getLogger('botocore').setLevel(logging.WARNING)
 
 
 def pick_instance(args):
@@ -195,12 +209,10 @@ def restart_one_instance(as_group_name, instance, modified_groups):
     logger.info("Instance restarted ok")
 
 
-def admin_cmd(args):
+@cli.command()
+@click.pass_obj
+def admin(args: dict):
     run_remote_shell(args, AdminInstance.instance())
-
-
-def conan_cmd(args):
-    dispatch_global('conan', args)
 
 
 def conan_login_cmd(args):
@@ -223,21 +235,28 @@ def conan_reloadwww_cmd(_):
     exec_remote(instance, ["sudo", "git", "-C", "/home/ubuntu/ceconan/conanproxy", "pull"])
 
 
-def builder_cmd(args):
-    dispatch_global('builder', args)
+@cli.group()
+def builder():
+    """Builder machine manipulation commands."""
 
 
-def builder_login_cmd(args):
+@builder.command(name='login')
+@click.pass_obj
+def builder_login(args: dict):
+    """Log in to the builder machine."""
     instance = BuilderInstance.instance()
     run_remote_shell(args, instance)
 
 
-def builder_exec_cmd(args):
+@builder.command(name='exec')
+@click.argument('remote_cmd', required=True, nargs=-1)
+def builder_exec(remote_cmd=List[str]):
     instance = BuilderInstance.instance()
-    exec_remote_to_stdout(instance, args['remote_cmd'])
+    exec_remote_to_stdout(instance, remote_cmd)
 
 
-def builder_start_cmd(_):
+@builder.command(name='start')
+def builder_start():
     instance = BuilderInstance.instance()
     if instance.status() == 'stopped':
         print("Starting builder instance...")
@@ -264,16 +283,14 @@ def builder_start_cmd(_):
     print("Builder started OK")
 
 
-def builder_stop_cmd(_):
+@builder.command(name='start')
+def builder_stop():
     BuilderInstance.instance().stop()
 
 
-def builder_status_cmd(_):
+@builder.command(name='status')
+def builder_status():
     print("Builder status: {}".format(BuilderInstance.instance().status()))
-
-
-def instances_cmd(args):
-    dispatch_global('instances', args)
 
 
 def instances_exec_all_cmd(args):
@@ -368,11 +385,15 @@ def instances_status_cmd(args):
     print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
 
 
-def builds_cmd(args):
-    dispatch_global('builds', args)
+@cli.group()
+def builds():
+    """Build manipulation commands."""
 
 
-def builds_current_cmd(args):
+@builds.command(name="current")
+@click.pass_obj
+def builds_current(args: dict):
+    """Print the current release."""
     print(describe_current_release(args))
 
 
@@ -399,19 +420,28 @@ def deploy_staticfiles(release) -> bool:
             return job.run()
 
 
-def builds_set_current_cmd(args):
+@builds.command(name='set_current')
+@click.pass_obj
+@click.option('--branch', help='if version == latest, branch to get latest version from')
+@click.option('--raw/--no-raw', help='Set a raw path for a version')
+@click.argument('version')
+def builds_set_current(args: dict, branch: Optional[str], version: str, raw: bool):
+    """Set the current version to VERSION for this environment.
+
+    If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
+    """
     to_set = None
     release = None
-    if args['raw']:
-        to_set = args['version']
+    if raw:
+        to_set = version
     else:
-        setting_latest = args['version'] == 'latest'
-        release = find_latest_release(args['branch']) if setting_latest else find_release(
-            Version.from_string(args['version']))
+        setting_latest = version == 'latest'
+        release = find_latest_release(branch) if setting_latest else find_release(
+            Version.from_string(version))
         if not release:
-            print("Unable to find version " + args['version'])
-            if setting_latest and args['branch'] != '':
-                print('Branch {} has no available versions (Bad branch/No image yet built)'.format(args['branch']))
+            print("Unable to find version " + version)
+            if setting_latest and branch != '':
+                print('Branch {} has no available versions (Bad branch/No image yet built)'.format(branch))
         elif are_you_sure('change current version to {}'.format(release.key), args) and confirm_branch(release):
             print(f'Found release {release}')
             to_set = release.key
@@ -422,7 +452,7 @@ def builds_set_current_cmd(args):
                 print("...aborted due to deployment failure!")
                 sys.exit(1)
         else:
-            old_deploy_staticfiles(args['branch'], to_set)
+            old_deploy_staticfiles(branch, to_set)
         set_current_key(args, to_set)
         if release:
             print("Marking as a release in sentry...")
@@ -432,13 +462,17 @@ def builds_set_current_cmd(args):
                 data=dict(environment=args['env']),
                 headers=dict(Authorization=f'Bearer {token}'))
             if not result.ok:
-                raise RuntimeError(f"Failed to send to sentry: {result} {result.content}")
+                raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
             print("...done", json.loads(result.content.decode()))
 
 
-def builds_rm_old_cmd(args):
+@builds.command(name="rm_old")
+@click.option('--dry-run/--no-dry-run', help='dry run only')
+@click.argument('max_age', type=int)
+def builds_rm_old(dry_run: bool, max_age: int):
+    """Remove all but the last MAX_AGE builds."""
     current = get_all_current()
-    max_builds = defaultdict(int)
+    max_builds: Dict[str, int] = defaultdict(int)
     for release in get_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
     for release in get_releases():
@@ -446,8 +480,8 @@ def builds_rm_old_cmd(args):
             print("Skipping {} as it is a current version".format(release))
         else:
             age = max_builds[release.version.source] - release.version.number
-            if age > args['age']:
-                if args['dry_run']:
+            if age > max_age:
+                if dry_run:
                     print("Would remove build {}".format(release))
                 else:
                     print("Removing build {}".format(release))
@@ -456,10 +490,17 @@ def builds_rm_old_cmd(args):
                 print("Keeping build {}".format(release))
 
 
-def builds_list_cmd(args):
+@builds.command(name='list')
+@click.pass_obj
+@click.option('-b', '--branch', type=str, help='show only BRANCH (may be specified more than once)',
+              metavar='BRANCH', multiple=True)
+def builds_list(args: dict, branch: List[str]):
+    """List available builds.
+
+    The --> indicates the build currently deployed in this environment."""
     current = get_current_key(args)
     releases = get_releases()
-    filter_branches = set(args['branch'].split(',') if args['branch'] is not None else [])
+    filter_branches = set(branch)
     print(RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash'))
     for _, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
@@ -471,19 +512,18 @@ def builds_list_cmd(args):
                 )
 
 
-def builds_history_cmd(args):
-    from_time = args['from']
-    until_time = args['until']
+@builds.command(name='history')
+@click.option('--from', 'from_time')
+@click.option('--until', 'until_time')
+@click.pass_obj
+def builds_history(args: dict, from_time: Optional[str], until_time: Optional[str]):
+    """Show the history of current versions for this environment."""
     if from_time is None and until_time is None:
         if confirm_action(
                 'Do you want list all builds for {}? It might be an expensive operation:'.format(args['env'])):
             list_all_build_logs(args)
     else:
         list_period_build_logs(args, from_time, until_time)
-
-
-def ads_cmd(args):
-    dispatch_global('ads', args)
 
 
 def ads_list_cmd(args):
@@ -541,10 +581,6 @@ def ads_edit_cmd(args):
                 events['ads'][i] = new_ad
                 save_event_file(args, json.dumps(events))
             break
-
-
-def decorations_cmd(args):
-    dispatch_global('decorations', args)
 
 
 def decorations_list_cmd(args):
@@ -630,56 +666,76 @@ def decorations_edit_cmd(args):
             break
 
 
-def motd_cmd(args):
-    dispatch_global('motd', args)
+@cli.group()
+def motd():
+    """Message of the day manipulation functions."""
 
 
-def motd_show_cmd(args):
+@motd.command(name='show')
+@click.pass_obj
+def motd_show(args: dict):
+    """Prints the message of the day."""
     events = get_events(args)
     print('Current motd: "{}"'.format(events['motd']))
 
 
-def motd_update_cmd(args):
+@motd.command(name='update')
+@click.argument('message', type=str)
+@click.pass_obj
+def motd_update(args: dict, message: str):
+    """Updates the message of the day to MESSAGE."""
     events = get_events(args)
-    if are_you_sure('update motd from: {} to: {}'.format(events['motd'], args['message']), args):
-        events['motd'] = args['message']
+    if are_you_sure('update motd from: {} to: {}'.format(events['motd'], message), args):
+        events['motd'] = message
         save_event_file(args, json.dumps(events))
 
 
-def motd_clear_cmd(args):
+@motd.command(name='clear')
+@click.pass_obj
+def motd_clear(args: dict):
+    """Clears the message of the day."""
     events = get_events(args)
     if are_you_sure('clear current motd: {}'.format(events['motd']), args):
         events['motd'] = ''
         save_events(args, events)
 
 
-def events_cmd(args):
-    dispatch_global('events', args)
+@cli.group(name='events')
+def events_group():
+    """Low-level manipulation of ads and events."""
 
 
-def events_to_raw_cmd(args):
+@events_group.command(name='to_raw')
+@click.pass_obj
+def events_to_raw(args: dict):
+    """Dumps the events file as raw JSON."""
     print(get_events_file(args))
 
 
-def events_from_raw_cmd(args):
+@events_group.command(name='from_raw')
+@click.pass_obj
+def events_from_raw(args: dict):
+    """Reloads the events file as raw JSON from console input."""
     raw = input()
     save_event_file(args, json.dumps(json.loads(raw)))
 
 
-def events_to_file_cmd(args):
-    with open(args['path'], mode='w') as f:
-        f.write(get_events_file(args))
+@events_group.command(name='to_file')
+@click.argument("file", type=click.File(mode='w'))
+@click.pass_obj
+def events_to_file(args: dict, file: TextIO):
+    """Saves the raw events file as FILE."""
+    file.write(get_events_file(args))
 
 
-def events_from_file_cmd(args):
-    with open(args['path'], mode='r') as f:
-        new_contents = f.read()
-        if are_you_sure('load from file {}', args):
-            save_event_file(args, json.loads(new_contents))
-
-
-def links_cmd(args):
-    dispatch_global('links', args)
+@events_group.command(name='from_file')
+@click.argument("file", type=click.File(mode='r'))
+@click.pass_obj
+def events_from_file(args: dict, file: TextIO):
+    """Reads FILE and replaces the events file with its contents."""
+    new_contents = json.loads(file.read())
+    if are_you_sure(f'load events from file {file.name}', args):
+        save_event_file(args, new_contents)
 
 
 def links_name_cmd(args):
@@ -772,18 +828,25 @@ def add_required_sub_parsers(parser, dest):
     return sub_parser
 
 
-def environment_cmd(args):
-    dispatch_global('environment', args)
+@cli.group()
+def environment():
+    """Environment manipulation commands."""
 
 
-def environment_status_cmd(args):
+@environment.command(name='status')
+@click.pass_obj
+def environment_status(args: dict):
+    """Gets the status of an environment."""
     for asg in get_autoscaling_groups_for(args):
         group_name = asg['AutoScalingGroupName']
         instances = asg['DesiredCapacity']
         print(f"Found ASG {group_name} with desired instances {instances}")
 
 
-def environment_start_cmd(args):
+@environment.command(name='start')
+@click.pass_obj
+def environment_start(args: dict):
+    """Starts up an environment by ensure its ASGs have capacity."""
     for asg in get_autoscaling_groups_for(args):
         group_name = asg['AutoScalingGroupName']
         if asg['MinSize'] > 0:
@@ -797,7 +860,16 @@ def environment_start_cmd(args):
         as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=1)
 
 
-def environment_refresh_cmd(args):
+@environment.command(name='refresh')
+@click.option("--min-healthy-percent", type=click.IntRange(min=0, max=100), metavar='PERCENT',
+              help='While updating, ensure at least PERCENT are healthy', default=75, show_default=True)
+@click.pass_obj
+def environment_refresh_cmd(args: dict, min_healthy_percent: int):
+    """Refreshes an environment.
+
+    This replaces all the instances in the ASGs associated with an environment with
+    new instances (with the latest code), while ensuring there are some left to handle
+    the traffic while we update."""
     for asg in get_autoscaling_groups_for(args):
         group_name = asg['AutoScalingGroupName']
         if asg['DesiredCapacity'] == 0:
@@ -812,14 +884,13 @@ def environment_refresh_cmd(args):
             refresh_id = existing_refreshes[0]['InstanceRefreshId']
             print(f"  Found existing refresh {refresh_id} for {group_name}")
         else:
-            if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(args)}', args):
+            if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(args)}',
+                                args):
                 return
             print("  Starting new refresh...")
             refresh_result = as_client.start_instance_refresh(
                 AutoScalingGroupName=group_name,
-                Preferences=dict(
-                    MinHealthyPercentage=75
-                )
+                Preferences=dict(MinHealthyPercentage=min_healthy_percent)
             )
             refresh_id = refresh_result['InstanceRefreshId']
             print(f"  id {refresh_id}")
@@ -865,25 +936,17 @@ def environment_stop_cmd(args):
 
 
 def main():
-    parser = ArgumentParser(prog='ce', description='Administrate Compiler Explorer instances')
-    parser.add_argument('--env', choices=['prod', 'beta', 'staging'], default='staging', metavar='ENV',
-                        help='Select environment ENV')
-    parser.add_argument('--mosh', action='store_true', help='Use mosh for interactive shells')
-    parser.add_argument('--debug', action='store_true', help='Increase debug information')
+    try:
+        cli(prog_name='ce')  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    except (KeyboardInterrupt, SystemExit):
+        # print empty line so terminal prompt doesn't end up on the end of some
+        # of our own program output
+        print()
 
-    subparsers = add_required_sub_parsers(parser, 'command')
-    subparsers.add_parser('admin')
 
-    builder_parser = subparsers.add_parser('builder')
-    builder_sub = add_required_sub_parsers(builder_parser, 'builder_sub')
-    builder_sub.required = True
-    builder_sub.add_parser('start')
-    builder_sub.add_parser('stop')
-    builder_sub.add_parser('status')
-    builder_sub.add_parser('login')
-    builder_exec = builder_sub.add_parser('exec')
-    builder_exec.add_argument('remote_cmd', nargs='+', help='command to run on builder node')
-
+# pylint: disable=pointless-string-statement
+"""
+def old_main():
     conan_parser = subparsers.add_parser('conan')
     conan_sub = add_required_sub_parsers(conan_parser, 'conan_sub')
     conan_sub.required = True
@@ -892,24 +955,6 @@ def main():
     conan_sub.add_parser('login')
     conan_exec = conan_sub.add_parser('exec')
     conan_exec.add_argument('remote_cmd', nargs='+', help='command to run on conan node')
-
-    builds_parser = subparsers.add_parser('builds')
-    builds_sub = add_required_sub_parsers(builds_parser, 'builds_sub')
-    list_parser = builds_sub.add_parser('list')
-    list_parser.add_argument('-b', '--branch', type=str, help='show only selected branches')
-    builds_sub.add_parser('current')
-    set_current = builds_sub.add_parser('set_current')
-    set_current.add_argument('version', help='version to set')
-    set_current.add_argument('--branch', help='if version == latest, branch to get latest version from', type=str,
-                             default='')
-    set_current.add_argument('--raw', action='store_true', help='Set a raw path for a version')
-    expire = builds_sub.add_parser('rm_old', help='delete old versions')
-    expire.add_argument('age', help='keep the most recent AGE builds (as well as current builds)', metavar='AGE',
-                        type=int)
-    expire.add_argument('--dry-run', help='dry run only', action='store_true')
-    history_parser = builds_sub.add_parser('history')
-    history_parser.add_argument('--from', help='timestamp filter')
-    history_parser.add_argument('--until', help='timestamp filter')
 
     instances_parser = subparsers.add_parser('instances')
     instances_sub = add_required_sub_parsers(instances_parser, 'instances_sub')
@@ -957,22 +1002,6 @@ def main():
     decorations_edit_parser.add_argument('--decoration', type=str, help='new decoration')
     decorations_edit_parser.add_argument('--filter', type=str, help='new decoration filter(s)')
 
-    motd_parser = subparsers.add_parser('motd')
-    motd_sub = add_required_sub_parsers(motd_parser, 'motd_sub')
-    motd_sub.add_parser('show')
-    motd_update_parser = motd_sub.add_parser('update')
-    motd_update_parser.add_argument('message', type=str, help='new motd')
-    motd_sub.add_parser('clear')
-
-    events_parser = subparsers.add_parser('events')
-    events_sub = add_required_sub_parsers(events_parser, 'events_sub')
-    events_from_file_parser = events_sub.add_parser('from_file')
-    events_from_file_parser.add_argument('path', type=str, help='location of file to load from')
-    events_to_file_parser = events_sub.add_parser('to_file')
-    events_to_file_parser.add_argument('path', type=str, help='location of file to save to')
-    events_sub.add_parser('from_raw')
-    events_sub.add_parser('to_raw')
-
     links_parser = subparsers.add_parser('links')
     links_sub = add_required_sub_parsers(links_parser, 'links_sub')
     links_name_parser = links_sub.add_parser('name')
@@ -983,13 +1012,6 @@ def main():
     links_update_parser.add_argument('to', type=str, help='named short link to update')
     links_maintenance_parser = links_sub.add_parser('maintenance')
     links_maintenance_parser.add_argument('--dry-run', action='store_true', help='dry run')
-
-    env_parser = subparsers.add_parser('environment')
-    env_sub = add_required_sub_parsers(env_parser, 'environment_sub')
-    env_sub.add_parser('start')
-    env_sub.add_parser('stop')
-    env_sub.add_parser('status')
-    env_sub.add_parser('refresh')
 
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
@@ -1008,3 +1030,4 @@ def main():
         # print empty line so terminal prompt doesn't end up on the end of some
         # of our own program output
         print()
+"""
