@@ -797,6 +797,55 @@ def environment_start_cmd(args):
         as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=1)
 
 
+def environment_refresh_cmd(args):
+    for asg in get_autoscaling_groups_for(args):
+        group_name = asg['AutoScalingGroupName']
+        if asg['DesiredCapacity'] == 0:
+            print(f"Skipping ASG {group_name} as it has a zero size")
+            continue
+        describe_state = as_client.describe_instance_refreshes(
+            AutoScalingGroupName=group_name
+        )
+        existing_refreshes = [x for x in describe_state['InstanceRefreshes'] if
+                              x['Status'] in ('Pending', 'InProgress')]
+        if existing_refreshes:
+            refresh_id = existing_refreshes[0]['InstanceRefreshId']
+            print(f"  Found existing refresh {refresh_id} for {group_name}")
+        else:
+            if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(args)}', args):
+                return
+            print(f"  Starting new refresh...")
+            refresh_result = as_client.start_instance_refresh(
+                AutoScalingGroupName=group_name,
+                Preferences=dict(
+                    MinHealthyPercentage=75
+                )
+            )
+            refresh_id = refresh_result['InstanceRefreshId']
+            print(f"  id {refresh_id}")
+
+        last_log = ""
+        while True:
+            time.sleep(5)
+            describe_state = as_client.describe_instance_refreshes(
+                AutoScalingGroupName=group_name,
+                InstanceRefreshIds=[refresh_id]
+            )
+            refresh = describe_state['InstanceRefreshes'][0]
+            status = refresh['Status']
+            if status == 'InProgress':
+                log = f"  {status}, {refresh['PercentageComplete']}%, " \
+                      f"{refresh['InstancesToUpdate']} to update. " \
+                      f"{refresh['StatusReason']}"
+            else:
+                log = f"  Status: {status}"
+            if log != last_log:
+                print(log)
+                last_log = log
+            if status in ('Successful', 'Failed', 'Cancelled'):
+                break
+
+
 def environment_stop_cmd(args):
     if args['env'] == 'prod':
         print('Operation aborted. This would bring down the site')
@@ -940,6 +989,7 @@ def main():
     env_sub.add_parser('start')
     env_sub.add_parser('stop')
     env_sub.add_parser('status')
+    env_sub.add_parser('refresh')
 
     kwargs = vars(parser.parse_args())
     if kwargs['debug']:
