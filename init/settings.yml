@@ -27,6 +27,6 @@ flagcollection: ANY
 
 stdlib: ['', libc++]
 
-stdver: ['', c++11, c++14, c++17, c++2a, gnu++11, gnu++14, gnu++17, gnu++2a]
+stdver: ['', c++11, c++14, c++17, c++2a, c++20, c++2b, gnu++11, gnu++14, gnu++17, gnu++2a]
 
 toolchain: ANY
