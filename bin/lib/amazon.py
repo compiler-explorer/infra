@@ -77,12 +77,8 @@ def get_autoscaling_group(group_name):
 
 
 def get_autoscaling_groups_for(args):
-    def finder(r):
-        for k in r['Tags']:
-            if k['Key'] == 'Name' and k['Value'] == args['env'].title():
-                return r
-
-    result = list(filter(finder, as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
+    result = list(filter(lambda r: args['env'].lower() in r['AutoScalingGroupName'],
+                         as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
     if not result:
         raise RuntimeError(f"Invalid environment {args['env']}")
     return result

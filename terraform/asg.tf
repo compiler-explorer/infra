@@ -21,7 +21,8 @@ resource "aws_autoscaling_group" "prod-mixed" {
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
   max_size                  = 16
-  min_size                  = 2 // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
+  min_size                  = 2
+  // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
   name                      = "prod"
   vpc_zone_identifier       = local.subnets
 
@@ -40,10 +41,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
     launch_template {
       launch_template_specification {
         launch_template_id = aws_launch_template.CompilerExplorer-prod.id
-        version = "$Latest"
-      }
-      override {
-        instance_type = "c5.large"
+        version            = "$Latest"
       }
     }
   }
@@ -64,23 +62,6 @@ resource "aws_autoscaling_group" "prod-mixed" {
     "GroupTotalInstances",
   ]
 
-  tag {
-    key                 = "Environment"
-    value               = "Prod"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "Name"
-    value               = "Prod"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["prod"].arn]
 }
 
@@ -101,7 +82,7 @@ resource "aws_autoscaling_policy" "prod-mixed" {
   }
 }
 
-resource "aws_autoscaling_group" "spot-beta" {
+resource "aws_autoscaling_group" "beta" {
   lifecycle {
     create_before_destroy = true
   }
@@ -109,28 +90,16 @@ resource "aws_autoscaling_group" "spot-beta" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  launch_configuration      = aws_launch_configuration.CompilerExplorer-beta-large.id
-  max_size                  = 4
-  min_size                  = 0
-  name                      = "spot-beta"
-  vpc_zone_identifier       = local.subnets
-  tag {
-    key                 = "Environment"
-    value               = "Beta"
-    propagate_at_launch = true
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-beta.id
+    version = "$Latest"
   }
 
-  tag {
-    key                 = "Name"
-    value               = "Beta"
-    propagate_at_launch = true
-  }
+  max_size            = 4
+  min_size            = 0
+  name                = "spot-beta"
+  vpc_zone_identifier = local.subnets
 
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["beta"].arn]
 }
 
@@ -142,27 +111,14 @@ resource "aws_autoscaling_group" "staging" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  launch_configuration      = aws_launch_configuration.CompilerExplorer-staging.id
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-staging.id
+    version = "$Latest"
+  }
   max_size                  = 4
   min_size                  = 0
   name                      = "staging"
   vpc_zone_identifier       = local.subnets
-  tag {
-    key                 = "Environment"
-    value               = "Staging"
-    propagate_at_launch = true
-  }
 
-  tag {
-    key                 = "Name"
-    value               = "Staging"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["staging"].arn]
 }

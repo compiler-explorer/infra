@@ -17,6 +17,7 @@
       "instance_type": "t2.medium",
       "ssh_username": "ubuntu",
       "ami_name": "compiler-explorer admin packer 18.04 @ {{timestamp}}",
+      "tags": {"Site":  "CompilerExplorer"},
       "associate_public_ip_address": true,
       "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
@@ -53,7 +54,7 @@
       "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
       "inline": [
         "set -e",
-    	"while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
         "rm -rf /home/ubuntu/packer",

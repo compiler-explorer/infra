@@ -573,6 +573,13 @@ libraries:
         - 1.6.1
         - 1.7.0
         - 1.8.0
+    date:
+      type: github
+      repo: HowardHinnant/date
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - 3.0.1
     nightly:
       install_always: true
       if: nightly
@@ -1148,6 +1155,14 @@ libraries:
         method: nightlyclone
         repo: arximboldi/zug
         check_file: zug/reduce.hpp
+        build_type: none
+        targets:
+          - trunk
+      date:
+        type: github
+        method: nightlyclone
+        repo: HowardHinnant/date
+        check_file: README.md
         build_type: none
         targets:
           - trunk
