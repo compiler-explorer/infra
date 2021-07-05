@@ -42,9 +42,6 @@ resource "aws_autoscaling_group" "prod-mixed" {
         launch_template_id = aws_launch_template.CompilerExplorer-prod.id
         version = "$Latest"
       }
-      override {
-        instance_type = "c5.large"
-      }
     }
   }
 
@@ -76,11 +73,6 @@ resource "aws_autoscaling_group" "prod-mixed" {
     propagate_at_launch = true
   }
 
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["prod"].arn]
 }
 
