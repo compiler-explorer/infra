@@ -836,7 +836,7 @@ def environment_refresh_cmd(args):
             if status == 'InProgress':
                 log = f"  {status}, {refresh['PercentageComplete']}%, " \
                       f"{refresh['InstancesToUpdate']} to update. " \
-                      f"{refresh['StatusReason']}"
+                      f"{refresh.get('StatusReason', '')}"
             else:
                 log = f"  Status: {status}"
             if log != last_log:
