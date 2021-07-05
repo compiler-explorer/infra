@@ -15,7 +15,7 @@ from collections import defaultdict
 from pprint import pformat
 from typing import TextIO, Optional, Dict, Sequence
 
-import click as click
+import click
 import requests
 
 from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases, find_release, get_current_key, \
