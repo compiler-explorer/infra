@@ -693,7 +693,7 @@ def decorations_add(args: dict, lang_filter: Sequence[str], name: str, regex: st
     """
     events = get_events(args)
     if name in [d['name'] for d in events['decorations']]:
-        raise RuntimeError(f'Duplicate decoration name {args["name"]}')
+        raise RuntimeError(f'Duplicate decoration name {name}')
     regex, decoration = check_dec_args(regex, decoration)
 
     new_decoration = {
