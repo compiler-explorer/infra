@@ -78,9 +78,7 @@ def get_autoscaling_group(group_name):
 
 def get_autoscaling_groups_for(args):
     def finder(r):
-        for k in r['Tags']:
-            if k['Key'] == 'Name' and k['Value'] == args['env'].title():
-                return r
+        return args['env'].lower() in r['AutoScalingGroupName']
 
     result = list(filter(finder, as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
     if not result:
