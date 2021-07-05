@@ -71,7 +71,7 @@ resource "aws_launch_template" "CompilerExplorer-staging" {
     tags = {
       Site = "CompilerExplorer"
       Environment = "Staging"
-      name = "Staging"
+      Name = "Staging"
     }
   }
 }
