@@ -17,6 +17,9 @@ compiler:
     ellcc:
         version: ANY
         libcxx: ANY
+    zigcxx:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 
