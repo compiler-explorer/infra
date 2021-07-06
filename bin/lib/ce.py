@@ -24,6 +24,7 @@ from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases
     get_autoscaling_groups_for, download_release_file, download_release_fileobj, log_new_build, list_all_build_logs, \
     list_period_build_logs, get_ssm_param
 from lib.cdn import DeploymentJob
+from lib.env import Environment, Config
 from lib.instance import ConanInstance, AdminInstance, BuilderInstance, Instance, print_instances
 from lib.releases import Version
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
@@ -36,15 +37,14 @@ DECORATION_FORMAT = '{: <10} {: <15} {: <30} {: <50}'
 
 
 @click.group()
-@click.option("--env", type=click.Choice(['prod', 'beta', 'staging']),
-              default='staging', metavar='ENV',
+@click.option("--env", type=click.Choice([env.value for env in Environment]),
+              default=Environment.STAGING.value, metavar='ENV',
               help='Select environment ENV')
 @click.option("--mosh/--no-mosh", help='Use mosh to connect to hosts')
 @click.option("--debug/--no-debug", help='Turn on debugging')
 @click.pass_context
 def cli(ctx: click.Context, env: str, mosh: bool, debug: bool):
-    # TODO make an object for this instead of a smelly dict.
-    ctx.obj = dict(env=env, mosh=mosh, debug=debug)
+    ctx.obj = Config(env=Environment(env), use_mosh=mosh)
     if debug:
         logging.basicConfig(level=logging.DEBUG)
     else:
@@ -53,8 +53,8 @@ def cli(ctx: click.Context, env: str, mosh: bool, debug: bool):
         logging.getLogger('botocore').setLevel(logging.WARNING)
 
 
-def pick_instance(args):
-    elb_instances = Instance.elb_instances(target_group_arn_for(args))
+def pick_instance(cfg: Config):
+    elb_instances = Instance.elb_instances(target_group_arn_for(cfg))
     if len(elb_instances) == 1:
         return elb_instances[0]
     while True:
@@ -66,9 +66,8 @@ def pick_instance(args):
             pass
 
 
-def pick_instances(args):
-    # TODO, maybe something in args to select only some?
-    return Instance.elb_instances(target_group_arn_for(args))
+def pick_instances(cfg: Config):
+    return Instance.elb_instances(target_group_arn_for(cfg))
 
 
 def sizeof_fmt(num, suffix='B'):
@@ -79,8 +78,8 @@ def sizeof_fmt(num, suffix='B'):
     return "%.1f%s%s" % (num, 'Yi', suffix)
 
 
-def describe_current_release(args):
-    current = get_current_key(args)
+def describe_current_release(cfg: Config):
+    current = get_current_key(cfg)
     if not current:
         return "none"
     r = release_for(get_releases(), current)
@@ -105,8 +104,8 @@ def wait_for_autoscale_state(instance, state):
         time.sleep(5)
 
 
-def get_events(args):
-    events = json.loads(get_events_file(args))
+def get_events(cfg: Config):
+    events = json.loads(get_events_file(cfg))
     if 'ads' not in events:
         events['ads'] = []
     if 'decorations' not in events:
@@ -116,8 +115,8 @@ def get_events(args):
     return events
 
 
-def save_events(args, events):
-    save_event_file(args, json.dumps(events))
+def save_events(cfg: Config, events):
+    save_event_file(cfg, json.dumps(events))
 
 
 def wait_for_elb_state(instance, state):
@@ -134,12 +133,11 @@ def wait_for_elb_state(instance, state):
         time.sleep(5)
 
 
-def are_you_sure(name, args):
-    env = args['env']
+def are_you_sure(name: str, cfg: Config) -> bool:
     while True:
         typed = input(
-            'Confirm operation: "{}" in env {}\nType the name of the environment to proceed: '.format(name, env))
-        if typed == env:
+            f'Confirm operation: "{name}" in env {cfg.env.value}\nType the name of the environment to proceed: ')
+        if typed == cfg.env.value:
             return True
 
 
@@ -212,9 +210,9 @@ def restart_one_instance(as_group_name: str, instance: Instance, modified_groups
 
 @cli.command()
 @click.pass_obj
-def admin(args: dict):
+def admin(cfg: Config):
     """Log in to the administrative instance."""
-    run_remote_shell(args, AdminInstance.instance())
+    run_remote_shell(cfg, AdminInstance.instance())
 
 
 @cli.group()
@@ -224,10 +222,10 @@ def conan():
 
 @conan.command(name='login')
 @click.pass_obj
-def conan_login(args: dict):
+def conan_login(cfg: Config):
     """Log in to the conan instance."""
     instance = ConanInstance.instance()
-    run_remote_shell(args, instance)
+    run_remote_shell(cfg, instance)
 
 
 @conan.command(name='exec')
@@ -259,10 +257,10 @@ def builder():
 
 @builder.command(name='login')
 @click.pass_obj
-def builder_login(args: dict):
+def builder_login(cfg: Config):
     """Log in to the builder machine."""
     instance = BuilderInstance.instance()
-    run_remote_shell(args, instance)
+    run_remote_shell(cfg, instance)
 
 
 @builder.command(name='exec')
@@ -322,28 +320,28 @@ def instances():
 @instances.command(name='exec_all')
 @click.pass_obj
 @click.argument('remote_cmd', required=True, nargs=-1)
-def instances_exec_all(args: dict, remote_cmd: Sequence[str]):
+def instances_exec_all(cfg: Config, remote_cmd: Sequence[str]):
     """Execute REMOTE_CMD on all the instances."""
-    if not are_you_sure(f'exec command {remote_cmd} in all instances', args):
+    if not are_you_sure(f'exec command {remote_cmd} in all instances', cfg):
         return
 
     print("Running '{}' on all instances".format(' '.join(remote_cmd)))
-    exec_remote_all(pick_instances(args), remote_cmd)
+    exec_remote_all(pick_instances(cfg), remote_cmd)
 
 
 @instances.command(name='login')
 @click.pass_obj
-def instances_login(args: dict):
+def instances_login(cfg: Config):
     """Log in to one of the instances."""
-    instance = pick_instance(args)
-    run_remote_shell(args, instance)
+    instance = pick_instance(cfg)
+    run_remote_shell(cfg, instance)
 
 
 @instances.command(name='restart_one')
 @click.pass_obj
-def instances_restart_one(args: dict):
+def instances_restart_one(cfg: Config):
     """Restart one of the instances."""
-    instance = pick_instance(args)
+    instance = pick_instance(cfg)
     as_instance_status = instance.describe_autoscale()
     if not as_instance_status:
         logger.error("Failed restarting %s - was not in ASG", instance)
@@ -358,40 +356,40 @@ def instances_restart_one(args: dict):
 
 @instances.command(name='start')
 @click.pass_obj
-def instances_start(args: dict):
+def instances_start(cfg: Config):
     """Start up the instances."""
-    print("Starting version %s", describe_current_release(args))
-    exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
+    print("Starting version %s", describe_current_release(cfg))
+    exec_remote_all(pick_instances(cfg), ['sudo', 'systemctl', 'start', 'compiler-explorer'])
 
 
 @instances.command(name='stop')
 @click.pass_obj
-def instances_stop(args: dict):
+def instances_stop(cfg: Config):
     """Stop the instances."""
-    if args['env'] == 'prod':
+    if cfg.env == Environment.PROD:
         print('Operation aborted. This would bring down the site')
         print('If you know what you are doing, edit the code in bin/lib/ce.py, function instances_stop_cmd')
-    elif are_you_sure('stop all instances', args):
-        exec_remote_all(pick_instances(args), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
+    elif are_you_sure('stop all instances', cfg):
+        exec_remote_all(pick_instances(cfg), ['sudo', 'systemctl', 'stop', 'compiler-explorer'])
 
 
 @instances.command(name='restart')
 @click.option('--motd', type=str, default='Site is being updated',
               help='Set the message of the day used during update', show_default=True)
 @click.pass_obj
-def instances_restart(args: dict, motd: str):
+def instances_restart(cfg: Config, motd: str):
     """Restart the instances, picking up new code."""
-    if not are_you_sure('restart all instances with version {}'.format(describe_current_release(args)), args):
+    if not are_you_sure('restart all instances with version {}'.format(describe_current_release(cfg)), cfg):
         return
     # Store old motd
     begin_time = datetime.datetime.now()
-    events = get_events(args)
+    events = get_events(cfg)
     old_motd = events['motd']
     events['motd'] = old_motd if motd == '' else motd
-    save_events(args, events)
+    save_events(cfg, events)
     modified_groups: Dict[str, int] = {}
     failed = False
-    to_restart = pick_instances(args)
+    to_restart = pick_instances(cfg)
 
     for index, instance in enumerate(to_restart):
         logger.info("Restarting %s (%d of %d)...", instance, index + 1, len(to_restart))
@@ -415,9 +413,9 @@ def instances_restart(args: dict, motd: str):
         logger.info("Putting desired instances for %s back to %d", group, desired)
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
     # Events might have changed, re-fetch
-    events = get_events(args)
+    events = get_events(cfg)
     events['motd'] = old_motd
-    save_events(args, events)
+    save_events(cfg, events)
     end_time = datetime.datetime.now()
     delta_time = end_time - begin_time
     print(f'Instances restarted in {delta_time.total_seconds()} seconds')
@@ -426,9 +424,9 @@ def instances_restart(args: dict, motd: str):
 
 @instances.command(name='status')
 @click.pass_obj
-def instances_status(args: dict):
+def instances_status(cfg: Config):
     """Get the status of the instances."""
-    print_instances(Instance.elb_instances(target_group_arn_for(args)), number=False)
+    print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
 
 
 @cli.group()
@@ -438,9 +436,9 @@ def builds():
 
 @builds.command(name="current")
 @click.pass_obj
-def builds_current(args: dict):
+def builds_current(cfg: Config):
     """Print the current release."""
-    print(describe_current_release(args))
+    print(describe_current_release(cfg))
 
 
 def old_deploy_staticfiles(branch, versionfile):
@@ -471,7 +469,7 @@ def deploy_staticfiles(release) -> bool:
 @click.option('--branch', help='if version == latest, branch to get latest version from')
 @click.option('--raw/--no-raw', help='Set a raw path for a version')
 @click.argument('version')
-def builds_set_current(args: dict, branch: Optional[str], version: str, raw: bool):
+def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool):
     """Set the current version to VERSION for this environment.
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
@@ -488,24 +486,24 @@ def builds_set_current(args: dict, branch: Optional[str], version: str, raw: boo
             print("Unable to find version " + version)
             if setting_latest and branch != '':
                 print('Branch {} has no available versions (Bad branch/No image yet built)'.format(branch))
-        elif are_you_sure('change current version to {}'.format(release.key), args) and confirm_branch(release):
+        elif are_you_sure('change current version to {}'.format(release.key), cfg) and confirm_branch(release):
             print(f'Found release {release}')
             to_set = release.key
     if to_set is not None:
-        log_new_build(args, to_set)
+        log_new_build(cfg, to_set)
         if release and release.static_key:
             if not deploy_staticfiles(release):
                 print("...aborted due to deployment failure!")
                 sys.exit(1)
         else:
             old_deploy_staticfiles(branch, to_set)
-        set_current_key(args, to_set)
+        set_current_key(cfg, to_set)
         if release:
             print("Marking as a release in sentry...")
             token = get_ssm_param("/compiler-explorer/sentryAuthToken")
             result = requests.post(
                 f"https://sentry.io/api/0/organizations/compiler-explorer/releases/{release.version}/deploys/",
-                data=dict(environment=args['env']),
+                data=dict(environment=cfg.env.value),
                 headers=dict(Authorization=f'Bearer {token}'))
             if not result.ok:
                 raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
@@ -540,11 +538,11 @@ def builds_rm_old(dry_run: bool, max_age: int):
 @click.pass_obj
 @click.option('-b', '--branch', type=str, help='show only BRANCH (may be specified more than once)',
               metavar='BRANCH', multiple=True)
-def builds_list(args: dict, branch: Sequence[str]):
+def builds_list(cfg: Config, branch: Sequence[str]):
     """List available builds.
 
     The --> indicates the build currently deployed in this environment."""
-    current = get_current_key(args)
+    current = get_current_key(cfg)
     releases = get_releases()
     filter_branches = set(branch)
     print(RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash'))
@@ -562,14 +560,14 @@ def builds_list(args: dict, branch: Sequence[str]):
 @click.option('--from', 'from_time')
 @click.option('--until', 'until_time')
 @click.pass_obj
-def builds_history(args: dict, from_time: Optional[str], until_time: Optional[str]):
+def builds_history(cfg: Config, from_time: Optional[str], until_time: Optional[str]):
     """Show the history of current versions for this environment."""
     if from_time is None and until_time is None:
         if confirm_action(
-                'Do you want list all builds for {}? It might be an expensive operation:'.format(args['env'])):
-            list_all_build_logs(args)
+                'Do you want list all builds for {}? It might be an expensive operation:'.format(cfg.env.value)):
+            list_all_build_logs(cfg)
     else:
-        list_period_build_logs(args, from_time, until_time)
+        list_period_build_logs(cfg, from_time, until_time)
 
 
 @cli.group()
@@ -579,9 +577,9 @@ def ads():
 
 @ads.command(name='list')
 @click.pass_obj
-def ads_list(args: dict):
+def ads_list(cfg: Config):
     """List the existing community adverts."""
-    events = get_events(args)
+    events = get_events(cfg)
     print(ADS_FORMAT.format('ID', 'Filters', 'HTML'))
     for ad in events['ads']:
         print(ADS_FORMAT.format(ad['id'], str(ad['filter']), ad['html']))
@@ -591,44 +589,44 @@ def ads_list(args: dict):
 @click.pass_obj
 @click.option("--filter", 'lang_filter', help='Filter to these languages (default all)', multiple=True)
 @click.argument("html")
-def ads_add(args: dict, lang_filter: Sequence[str], html: str):
+def ads_add(cfg: Config, lang_filter: Sequence[str], html: str):
     """Add a community advert with HTML."""
-    events = get_events(args)
+    events = get_events(cfg)
     new_ad = {
         'html': html,
         'filter': lang_filter,
         'id': max([x['id'] for x in events['ads']]) + 1 if len(events['ads']) > 0 else 0
     }
-    if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], str(new_ad['filter']), new_ad['html'])), args):
+    if are_you_sure('add ad: {}'.format(ADS_FORMAT.format(new_ad['id'], str(new_ad['filter']), new_ad['html'])), cfg):
         events['ads'].append(new_ad)
-        save_event_file(args, json.dumps(events))
+        save_event_file(cfg, json.dumps(events))
 
 
 @ads.command(name='remove')
 @click.pass_obj
 @click.option('--force/--no-force', help='Force remove (no confirmation)')
 @click.argument('ad_id', type=int)
-def ads_remove(args: dict, ad_id: int, force: bool):
+def ads_remove(cfg: Config, ad_id: int, force: bool):
     """Remove community ad number AD_ID."""
-    events = get_events(args)
+    events = get_events(cfg)
     for i, ad in enumerate(events['ads']):
         if ad['id'] == ad_id:
             if force or \
                     are_you_sure('remove ad: {}'.format(ADS_FORMAT.format(ad['id'], str(ad['filter']), ad['html'])),
-                                 args):
+                                 cfg):
                 del events['ads'][i]
-                save_event_file(args, json.dumps(events))
+                save_event_file(cfg, json.dumps(events))
             break
 
 
 @ads.command(name='clear')
 @click.pass_obj
-def ads_clear(args):
+def ads_clear(cfg: Config):
     """Clear all community ads."""
-    events = get_events(args)
-    if are_you_sure('clear all ads (count: {})'.format(len(events['ads'])), args):
+    events = get_events(cfg)
+    if are_you_sure('clear all ads (count: {})'.format(len(events['ads'])), cfg):
         events['ads'] = []
-        save_event_file(args, json.dumps(events))
+        save_event_file(cfg, json.dumps(events))
 
 
 @ads.command(name='edit')
@@ -636,9 +634,9 @@ def ads_clear(args):
 @click.option("--html", help='Change html to HTML')
 @click.argument('ad_id', type=int)
 @click.pass_obj
-def ads_edit(args: dict, ad_id: int, html: str, lang_filter: Sequence[str]):
+def ads_edit(cfg: Config, ad_id: int, html: str, lang_filter: Sequence[str]):
     """Edit community ad AD_ID."""
-    events = get_events(args)
+    events = get_events(cfg)
     for i, ad in enumerate(events['ads']):
         if ad['id'] == ad_id:
             new_ad = {
@@ -649,9 +647,9 @@ def ads_edit(args: dict, ad_id: int, html: str, lang_filter: Sequence[str]):
             print('{}\n{}\n{}'.format(ADS_FORMAT.format('Event', 'Filter(s)', 'HTML'),
                                       ADS_FORMAT.format('<FROM', str(ad['filter']), ad['html']),
                                       ADS_FORMAT.format('>TO', str(new_ad['filter']), new_ad['html'])))
-            if are_you_sure('edit ad id: {}'.format(ad['id']), args):
+            if are_you_sure('edit ad id: {}'.format(ad['id']), cfg):
                 events['ads'][i] = new_ad
-                save_event_file(args, json.dumps(events))
+                save_event_file(cfg, json.dumps(events))
             break
 
 
@@ -662,8 +660,8 @@ def decorations():
 
 @decorations.command(name='list')
 @click.pass_obj
-def decorations_list(args: dict):
-    events = get_events(args)
+def decorations_list(cfg: Config):
+    events = get_events(cfg)
     print(DECORATION_FORMAT.format('Name', 'Filters', 'Regex', 'Decoration'))
     for dec in events['decorations']:
         print(DECORATION_FORMAT.format(dec['name'], str(dec['filter']), dec['regex'], json.dumps(dec['decoration'])))
@@ -687,11 +685,11 @@ def check_dec_args(regex, decoration):
 @click.argument('name')
 @click.argument('regex')
 @click.argument('decoration')
-def decorations_add(args: dict, lang_filter: Sequence[str], name: str, regex: str, decoration: str):
+def decorations_add(cfg: Config, lang_filter: Sequence[str], name: str, regex: str, decoration: str):
     """
     Add a decoration called NAME matching REGEX resulting in json DECORATION.
     """
-    events = get_events(args)
+    events = get_events(cfg)
     if name in [d['name'] for d in events['decorations']]:
         raise RuntimeError(f'Duplicate decoration name {name}')
     regex, decoration = check_dec_args(regex, decoration)
@@ -704,37 +702,37 @@ def decorations_add(args: dict, lang_filter: Sequence[str], name: str, regex: st
     }
     if are_you_sure('add decoration: {}'.format(
             DECORATION_FORMAT.format(new_decoration['name'], str(new_decoration['filter']), new_decoration['regex'],
-                                     json.dumps(new_decoration['decoration']))), args):
+                                     json.dumps(new_decoration['decoration']))), cfg):
         events['decorations'].append(new_decoration)
-        save_event_file(args, json.dumps(events))
+        save_event_file(cfg, json.dumps(events))
 
 
 @decorations.command(name='remove')
 @click.pass_obj
 @click.option("--force/--no-force", help="force without confirmation")
 @click.argument('name')
-def decorations_remove(args: dict, name: str, force: bool):
+def decorations_remove(cfg: Config, name: str, force: bool):
     """Remove a decoration."""
-    events = get_events(args)
+    events = get_events(cfg)
     for i, dec in enumerate(events['decorations']):
         if dec['name'] == name:
             if force or \
                     are_you_sure('remove decoration: {}'.format(
                         DECORATION_FORMAT.format(dec['name'], str(dec['filter']), dec['regex'],
-                                                 json.dumps(dec['decoration']))), args):
+                                                 json.dumps(dec['decoration']))), cfg):
                 del events['decorations'][i]
-                save_event_file(args, json.dumps(events))
+                save_event_file(cfg, json.dumps(events))
             break
 
 
 @decorations.command(name='clear')
 @click.pass_obj
-def decorations_clear(args: dict):
+def decorations_clear(cfg: Config):
     """Clear all decorations."""
-    events = get_events(args)
-    if are_you_sure('clear all decorations (count: {})'.format(len(events['decorations'])), args):
+    events = get_events(cfg)
+    if are_you_sure('clear all decorations (count: {})'.format(len(events['decorations'])), cfg):
         events['decorations'] = []
-        save_event_file(args, json.dumps(events))
+        save_event_file(cfg, json.dumps(events))
 
 
 @decorations.command(name='edit')
@@ -743,9 +741,9 @@ def decorations_clear(args: dict):
 @click.option('--regex', help='match REGEX')
 @click.option('--decoration', help='evaluate to DECORATION (json syntax)')
 @click.argument('name')
-def decorations_edit(args, lang_filter: Sequence[str], name: str, regex: str, decoration: str):
+def decorations_edit(cfg: Config, lang_filter: Sequence[str], name: str, regex: str, decoration: str):
     """Edit existing decoration NAME."""
-    events = get_events(args)
+    events = get_events(cfg)
 
     for i, dec in enumerate(events['decorations']):
         if dec['name'] == name:
@@ -762,9 +760,9 @@ def decorations_edit(args, lang_filter: Sequence[str], name: str, regex: str, de
                                                                json.dumps(dec['decoration'])),
                                       DECORATION_FORMAT.format('>TO', str(new_dec['filter']), new_dec['regex'],
                                                                json.dumps(new_dec['decoration']))))
-            if are_you_sure('edit decoration: {}'.format(dec['name']), args):
+            if are_you_sure('edit decoration: {}'.format(dec['name']), cfg):
                 events['decoration'][i] = new_dec
-                save_event_file(args, json.dumps(events))
+                save_event_file(cfg, json.dumps(events))
             break
 
 
@@ -775,31 +773,31 @@ def motd_group():
 
 @motd_group.command(name='show')
 @click.pass_obj
-def motd_show(args: dict):
+def motd_show(cfg: Config):
     """Prints the message of the day."""
-    events = get_events(args)
+    events = get_events(cfg)
     print('Current motd: "{}"'.format(events['motd']))
 
 
 @motd_group.command(name='update')
 @click.argument('message', type=str)
 @click.pass_obj
-def motd_update(args: dict, message: str):
+def motd_update(cfg: Config, message: str):
     """Updates the message of the day to MESSAGE."""
-    events = get_events(args)
-    if are_you_sure('update motd from: {} to: {}'.format(events['motd'], message), args):
+    events = get_events(cfg)
+    if are_you_sure('update motd from: {} to: {}'.format(events['motd'], message), cfg):
         events['motd'] = message
-        save_event_file(args, json.dumps(events))
+        save_event_file(cfg, json.dumps(events))
 
 
 @motd_group.command(name='clear')
 @click.pass_obj
-def motd_clear(args: dict):
+def motd_clear(cfg: Config):
     """Clears the message of the day."""
-    events = get_events(args)
-    if are_you_sure('clear current motd: {}'.format(events['motd']), args):
+    events = get_events(cfg)
+    if are_you_sure('clear current motd: {}'.format(events['motd']), cfg):
         events['motd'] = ''
-        save_events(args, events)
+        save_events(cfg, events)
 
 
 @cli.group(name='events')
@@ -809,35 +807,35 @@ def events_group():
 
 @events_group.command(name='to_raw')
 @click.pass_obj
-def events_to_raw(args: dict):
+def events_to_raw(cfg: Config):
     """Dumps the events file as raw JSON."""
-    print(get_events_file(args))
+    print(get_events_file(cfg))
 
 
 @events_group.command(name='from_raw')
 @click.pass_obj
-def events_from_raw(args: dict):
+def events_from_raw(cfg: Config):
     """Reloads the events file as raw JSON from console input."""
     raw = input()
-    save_event_file(args, json.dumps(json.loads(raw)))
+    save_event_file(cfg, json.dumps(json.loads(raw)))
 
 
 @events_group.command(name='to_file')
 @click.argument("file", type=click.File(mode='w'))
 @click.pass_obj
-def events_to_file(args: dict, file: TextIO):
+def events_to_file(cfg: Config, file: TextIO):
     """Saves the raw events file as FILE."""
-    file.write(get_events_file(args))
+    file.write(get_events_file(cfg))
 
 
 @events_group.command(name='from_file')
 @click.argument("file", type=click.File(mode='r'))
 @click.pass_obj
-def events_from_file(args: dict, file: TextIO):
+def events_from_file(cfg: Config, file: TextIO):
     """Reads FILE and replaces the events file with its contents."""
     new_contents = json.loads(file.read())
-    if are_you_sure(f'load events from file {file.name}', args):
-        save_event_file(args, new_contents)
+    if are_you_sure(f'load events from file {file.name}', cfg):
+        save_event_file(cfg, new_contents)
 
 
 @cli.group()
@@ -849,7 +847,7 @@ def link():
 @click.pass_obj
 @click.argument("link_from")
 @click.argument("link_to")
-def links_name(args: dict, link_from: str, link_to: str):
+def links_name(cfg: Config, link_from: str, link_to: str):
     """Give link LINK_FROM a new name LINK_TO."""
     if len(link_from) < 6:
         raise RuntimeError('from length must be at least 6')
@@ -878,7 +876,7 @@ def links_name(args: dict, link_from: str, link_to: str):
         'description': {'S': description}
     }}
     print('New link: {}'.format(pformat(base_link)))
-    if are_you_sure('create new link named {}'.format(link_to), args):
+    if are_you_sure('create new link named {}'.format(link_to), cfg):
         put_short_link(base_link)
 
 
@@ -886,7 +884,7 @@ def links_name(args: dict, link_from: str, link_to: str):
 @click.pass_obj
 @click.argument("link_from")
 @click.argument("link_to")
-def links_update(args: dict, link_from: str, link_to: str):
+def links_update(cfg: Config, link_from: str, link_to: str):
     """Update a link; point LINK_FROM to existing LINK_TO."""
     if len(link_from) < 6:
         raise RuntimeError('from length must be at least 6')
@@ -900,14 +898,14 @@ def links_update(args: dict, link_from: str, link_to: str):
         raise RuntimeError('Couldn\'t find existing short link {}'.format(link_to))
     link_to_update['full_hash'] = base_link['full_hash']
     print('New link: {}'.format(pformat(link_to_update)))
-    if are_you_sure('update link named {}'.format(link_to), args):
+    if are_you_sure('update link named {}'.format(link_to), cfg):
         put_short_link(link_to_update)
 
 
 @link.command(name='maintenance')
 @click.option("--dry-run/--no-dry-run", help="dry run only")
 @click.pass_obj
-def links_maintenance(args: dict, dry_run: bool):
+def links_maintenance(cfg: Config, dry_run: bool):
     s3links, dblinks = list_short_links()
     s3keys_set = set()
     dbkeys_set = set()
@@ -931,11 +929,11 @@ def links_maintenance(args: dict, dry_run: bool):
         if s3key not in dbhashes_set:
             s3dirty_set.add(s3key)
 
-    if are_you_sure('delete {} db elements:\n{}\n'.format(len(dbdirty_set), dbdirty_set), args) and not dry_run:
+    if are_you_sure('delete {} db elements:\n{}\n'.format(len(dbdirty_set), dbdirty_set), cfg) and not dry_run:
         for item in dbdirty_set:
             print('Deleting {}'.format(item))
             delete_short_link(item)
-    if are_you_sure('delete {} s3 elements:\n{}\n'.format(len(s3dirty_set), s3dirty_set), args) and not dry_run:
+    if are_you_sure('delete {} s3 elements:\n{}\n'.format(len(s3dirty_set), s3dirty_set), cfg) and not dry_run:
         delete_s3_links(s3dirty_set)
 
 
@@ -952,17 +950,17 @@ def environment():
 
 @environment.command(name='status')
 @click.pass_obj
-def environment_status(args: dict):
+def environment_status(cfg: Config):
     """Gets the status of an environment."""
-    for asg in get_autoscaling_groups_for(args):
+    for asg in get_autoscaling_groups_for(cfg):
         print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
 
 
 @environment.command(name='start')
 @click.pass_obj
-def environment_start(args: dict):
+def environment_start(cfg: Config):
     """Starts up an environment by ensure its ASGs have capacity."""
-    for asg in get_autoscaling_groups_for(args):
+    for asg in get_autoscaling_groups_for(cfg):
         group_name = asg['AutoScalingGroupName']
         if asg['MinSize'] > 0:
             print(f"Skipping ASG {group_name} as it has a non-zero min size")
@@ -979,14 +977,14 @@ def environment_start(args: dict):
 @click.option("--min-healthy-percent", type=click.IntRange(min=0, max=100), metavar='PERCENT',
               help='While updating, ensure at least PERCENT are healthy', default=75, show_default=True)
 @click.pass_obj
-def environment_refresh(args: dict, min_healthy_percent: int):
+def environment_refresh(cfg: Config, min_healthy_percent: int):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
     new instances (with the latest code), while ensuring there are some left to handle
     the traffic while we update."""
     # TODO motd like the restart
-    for asg in get_autoscaling_groups_for(args):
+    for asg in get_autoscaling_groups_for(cfg):
         group_name = asg['AutoScalingGroupName']
         if asg['DesiredCapacity'] == 0:
             print(f"Skipping ASG {group_name} as it has a zero size")
@@ -1000,8 +998,8 @@ def environment_refresh(args: dict, min_healthy_percent: int):
             refresh_id = existing_refreshes[0]['InstanceRefreshId']
             print(f"  Found existing refresh {refresh_id} for {group_name}")
         else:
-            if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(args)}',
-                                args):
+            if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(cfg)}',
+                                cfg):
                 return
             print("  Starting new refresh...")
             refresh_result = as_client.start_instance_refresh(
@@ -1033,12 +1031,12 @@ def environment_refresh(args: dict, min_healthy_percent: int):
                 break
 
 
-def environment_stop(args):
-    if args['env'] == 'prod':
+def environment_stop(cfg: Config):
+    if cfg.env == Environment.PROD:
         print('Operation aborted. This would bring down the site')
         print('If you know what you are doing, edit the code in bin/lib/ce.py, function environment_stop_cmd')
-    elif are_you_sure('stop environment', args):
-        for asg in get_autoscaling_groups_for(args):
+    elif are_you_sure('stop environment', cfg):
+        for asg in get_autoscaling_groups_for(cfg):
             group_name = asg['AutoScalingGroupName']
             if asg['MinSize'] > 0:
                 print(f"Skipping ASG {group_name} as it has a non-zero min size")
