@@ -578,6 +578,11 @@ libraries:
       repo: HowardHinnant/date
       check_file: README.md
       target_prefix: v
+      build_type: cmake
+      make_targets:
+        - date-tz
+      extra_cmake_arg:
+        - -DBUILD_TZ_LIB=ON
       targets:
         - 3.0.1
     nightly:
@@ -1163,7 +1168,11 @@ libraries:
         method: nightlyclone
         repo: HowardHinnant/date
         check_file: README.md
-        build_type: none
+        build_type: cmake
+        make_targets:
+          - date-tz
+        extra_cmake_arg:
+          - -DBUILD_TZ_LIB=ON
         targets:
           - trunk
   cuda:
