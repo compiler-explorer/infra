@@ -1031,7 +1031,10 @@ def environment_refresh(cfg: Config, min_healthy_percent: int):
                 break
 
 
+@environment.command(name='stop')
+@click.pass_obj
 def environment_stop(cfg: Config):
+    """Stops an environment."""
     if cfg.env == Environment.PROD:
         print('Operation aborted. This would bring down the site')
         print('If you know what you are doing, edit the code in bin/lib/ce.py, function environment_stop_cmd')
