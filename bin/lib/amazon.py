@@ -1,6 +1,8 @@
 from datetime import datetime
 from operator import attrgetter
+from typing import List, Optional
 
+from lib.env import Config, Environment
 from lib.releases import Version, Release, Hash, VersionSource
 
 
@@ -60,15 +62,15 @@ LINKS_TABLE = 'links'
 VERSIONS_LOGGING_TABLE = 'versionslog'
 
 
-def target_group_for(args):
-    result = elb_client.describe_target_groups(Names=[args['env'].title()])
+def target_group_for(cfg: Config) -> dict:
+    result = elb_client.describe_target_groups(Names=[cfg.env.value.title()])
     if len(result['TargetGroups']) != 1:
-        raise RuntimeError(f"Invalid environment {args['env']}")
+        raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result['TargetGroups'][0]
 
 
-def target_group_arn_for(args):
-    return target_group_for(args)['TargetGroupArn']
+def target_group_arn_for(cfg: Config) -> str:
+    return target_group_for(cfg)['TargetGroupArn']
 
 
 def get_autoscaling_group(group_name):
@@ -76,11 +78,11 @@ def get_autoscaling_group(group_name):
     return result['AutoScalingGroups'][0]
 
 
-def get_autoscaling_groups_for(args):
-    result = list(filter(lambda r: args['env'].lower() in r['AutoScalingGroupName'],
+def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
+    result = list(filter(lambda r: cfg.env.value.lower() in r['AutoScalingGroupName'],
                          as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
     if not result:
-        raise RuntimeError(f"Invalid environment {args['env']}")
+        raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result
 
 
@@ -154,28 +156,28 @@ def find_latest_release(branch):
     return max(releases, key=attrgetter('version')) if len(releases) > 0 else None
 
 
-def branch_for_env(args):
-    if args['env'] == 'prod':
+def branch_for_env(cfg: Config):
+    if cfg.env == Environment.PROD:
         return 'release'
-    return args['env']
+    return cfg.env.value
 
 
 def version_key_for_env(env):
     return 'version/{}'.format(branch_for_env(env))
 
 
-def get_current_key(args):
+def get_current_key(cfg: Config) -> Optional[str]:
     try:
         o = s3_client.get_object(
             Bucket='compiler-explorer',
-            Key=version_key_for_env(args)
+            Key=version_key_for_env(cfg)
         )
         return o['Body'].read().decode("utf-8").strip()
     except s3_client.exceptions.NoSuchKey:
         return None
 
 
-def get_all_current():
+def get_all_current() -> List[str]:
     versions = []
     for branch in ['release', 'beta', 'staging']:
         try:
@@ -189,8 +191,8 @@ def get_all_current():
     return versions
 
 
-def set_current_key(args, key):
-    s3_key = version_key_for_env(args)
+def set_current_key(cfg: Config, key: str):
+    s3_key = version_key_for_env(cfg)
     print('Setting {} to {}'.format(s3_key, key))
     s3_client.put_object(
         Bucket='compiler-explorer',
@@ -207,29 +209,29 @@ def release_for(releases, s3_key):
     return None
 
 
-def get_events_file(args):
+def get_events_file(cfg: Config) -> str:
     try:
         o = s3_client.get_object(
             Bucket='compiler-explorer',
-            Key=events_file_for(args)
+            Key=events_file_for(cfg)
         )
         return o['Body'].read().decode("utf-8")
     except s3_client.exceptions.NoSuchKey:
-        pass
+        return '{}'
 
 
-def save_event_file(args, contents):
+def save_event_file(cfg: Config, contents: str):
     s3_client.put_object(
         Bucket='compiler-explorer',
-        Key=events_file_for(args),
+        Key=events_file_for(cfg),
         Body=contents,
         ACL='public-read',
         CacheControl='public, max-age=60'
     )
 
 
-def events_file_for(args):
-    events_file = 'motd/motd-{}.json'.format(args['env'])
+def events_file_for(cfg: Config):
+    events_file = 'motd/motd-{}.json'.format(cfg.env.value)
     return events_file
 
 
@@ -249,12 +251,12 @@ def delete_short_link(item):
     dynamodb_client.delete_item(TableName=LINKS_TABLE, Key={'prefix': {'S': item[:6]}, 'unique_subhash': {'S': item}})
 
 
-def log_new_build(args, new_version):
+def log_new_build(cfg: Config, new_version):
     current_time = datetime.utcnow().isoformat()
     new_item = {
         'buildId': {'S': new_version},
         'timestamp': {'S': current_time},
-        'env': {'S': args['env']}
+        'env': {'S': cfg.env.value}
     }
     dynamodb_client.put_item(TableName=VERSIONS_LOGGING_TABLE, Item=new_item)
 
@@ -264,31 +266,31 @@ def print_version_logs(items):
         print('{} (from {}) at {}'.format(item['buildId']['S'], item['env']['S'], item['timestamp']['S']))
 
 
-def list_all_build_logs(args):
+def list_all_build_logs(cfg: Config):
     result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
                                   FilterExpression='env = :environment',
-                                  ExpressionAttributeValues={':environment': {'S': args['env']}})
+                                  ExpressionAttributeValues={':environment': {'S': cfg.env.value}})
     print_version_logs(result.get('Items', []))
 
 
-def list_period_build_logs(args, from_time, until_time):
+def list_period_build_logs(cfg: Config, from_time: Optional[str], until_time: Optional[str]):
     result = None
     if from_time is None and until_time is None:
         #  Our only calling site already checks this, but added as fallback just in case
-        list_all_build_logs(args)
+        list_all_build_logs(cfg)
     elif from_time is None:
         assert (until_time is not None), "Required field --until is missing"
         result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
                                       FilterExpression='#ts <= :until and env = :environment',
                                       ExpressionAttributeValues={':until': {'S': until_time},
-                                                                 ':environment': {'S': args['env']}},
+                                                                 ':environment': {'S': cfg.env.value}},
                                       ExpressionAttributeNames={'#ts': 'timestamp'})
     elif until_time is None:
         assert (from_time is not None), "Required field --from is missing"
         result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
                                       FilterExpression='#ts >= :from and env = :environment',
                                       ExpressionAttributeValues={':from': {'S': from_time},
-                                                                 ':environment': {'S': args['env']}},
+                                                                 ':environment': {'S': cfg.env.value}},
                                       ExpressionAttributeNames={'#ts': 'timestamp'})
     else:
         assert (until_time is not None and from_time is not None), "Expected both --until and --from to be filled"
@@ -296,7 +298,7 @@ def list_period_build_logs(args, from_time, until_time):
                                       FilterExpression='#ts BETWEEN :from AND :until and env = :environment',
                                       ExpressionAttributeValues={':until': {'S': until_time},
                                                                  ':from': {'S': from_time},
-                                                                 ':environment': {'S': args['env']}},
+                                                                 ':environment': {'S': cfg.env.value}},
                                       ExpressionAttributeNames={'#ts': 'timestamp'})
     if result is not None:
         print_version_logs(result.get('Items', []))

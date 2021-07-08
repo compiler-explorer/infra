@@ -6,6 +6,8 @@ import subprocess
 import requests
 from requests.exceptions import ConnectTimeout
 
+from lib.env import Config
+
 logger = logging.getLogger('ssh')
 
 
@@ -46,13 +48,13 @@ def ssh_address_for(instance):
     raise RuntimeError(f"No public address for {instance.instance}")
 
 
-def run_remote_shell(args, instance):
+def run_remote_shell(cfg: Config, instance):
     logger.debug("Running remote shell on %s", instance)
     ssh_command = 'ssh -o ConnectTimeout=5 ' \
                   '-o UserKnownHostsFile=/dev/null ' \
                   '-o StrictHostKeyChecking=no -o ' \
                   'LogLevel=ERROR'
-    if args['mosh']:
+    if cfg.use_mosh:
         ssh_command = f'mosh --ssh=\'{ssh_command}\''
     os.system(f'{ssh_command} ubuntu@{ssh_address_for(instance)}')
 
