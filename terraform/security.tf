@@ -267,7 +267,7 @@ data "aws_iam_policy_document" "ReadS3Minimal" {
 
 resource "aws_iam_policy" "ReadS3Minimal" {
   name        = "ReadS3Minimal"
-  description = "Minimum possible read acces to S3 to boot an instance"
+  description = "Minimum possible read access to S3 to boot an instance"
   policy      = data.aws_iam_policy_document.ReadS3Minimal.json
 }
 
