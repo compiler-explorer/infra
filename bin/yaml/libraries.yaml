@@ -1175,6 +1175,14 @@ libraries:
           - -DBUILD_TZ_LIB=ON
         targets:
           - trunk
+      taojson:
+        type: github
+        method: nightlyclone
+        repo: taocpp/json
+        check_file: include/tao/json.hpp
+        build_type: none
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
