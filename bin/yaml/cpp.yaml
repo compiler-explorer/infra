@@ -425,6 +425,17 @@ compilers:
             rm -Rf ~/.intel
             rm -Rf ~/intel
             rm -Rf /var/intel/installercache
+        - name: 2021.3.0.3168
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17928/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
     intel-fortran:
       type: script
       dir: "intel-fortran-{name}"
@@ -446,6 +457,17 @@ compilers:
         - name: 2021.2.0.136
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17756/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+        - name: 2021.3.0.3168
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17959/l_fortran-compiler_p_{name}_offline.sh install.sh
           script: |
             rm -Rf ~/.intel
             rm -Rf ~/intel
