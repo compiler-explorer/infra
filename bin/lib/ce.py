@@ -300,7 +300,7 @@ def builder_start():
     print("Builder started OK")
 
 
-@builder.command(name='start')
+@builder.command(name='stop')
 def builder_stop():
     """Stop the builder instance."""
     BuilderInstance.instance().stop()
