@@ -45,5 +45,6 @@ remove_older go
 remove_older tinycc
 remove_older cc65
 remove_older_master mrustc
+remove_older_master rustc-cg-gcc
 remove_older arm32
 remove_older arm64

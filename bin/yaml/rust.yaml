@@ -77,6 +77,11 @@ compilers:
           check_exe: bin/gccrs --version
           targets:
             - gccrs-master
+        rustccggcc:
+          type: nightly
+          check_exe: "bin/rustc --version"
+          targets:
+            - master
         mrustc:
           type: nightly
           check_exe: bin/mrustc --version
