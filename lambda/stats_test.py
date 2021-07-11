@@ -115,3 +115,22 @@ def test_should_handle_pageloads_with_many_sponsors(sqs_client):
             queue_url,
             sqs_client)
     metrics.set_property.assert_called_once_with('sponsors', ['bob', 'alice', 'crystal'])
+
+
+def test_should_handle_pageloads_with_many_sponsors_uri_encoded(sqs_client):
+    metrics = mock.Mock(spec_set=MetricsLogger)
+    queue_url = 'some-queue-url'
+    with Stubber(sqs_client) as stubber:
+        stubber.add_response('send_message', {}, dict(QueueUrl=queue_url, MessageBody=ANY))
+        for expectation in ('bob', 'alice', 'crystal'):
+            stubber.add_response(
+                'send_message',
+                {},
+                dict(QueueUrl=queue_url, MessageBody=make_expected_body('SponsorView', expectation)))
+        handle_pageload(
+            dict(queryStringParameters=dict(icons='bob%2Calice%2Ccrystal')),
+            metrics,
+            SOME_DATE,
+            queue_url,
+            sqs_client)
+    metrics.set_property.assert_called_once_with('sponsors', ['bob', 'alice', 'crystal'])

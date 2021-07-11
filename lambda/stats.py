@@ -19,6 +19,7 @@ RECORD_KEY = "Records"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
+import urllib.parse
 
 
 @aws_embedded_metrics.metric_scope
@@ -77,13 +78,15 @@ def handle_pageload(
     sqs_client.send_message(
         QueueUrl=queue_url,
         MessageBody=json.dumps(dict(type='PageLoad', date=date, time=time, value=''), sort_keys=True))
-    sponsors = list(filter(lambda x: x, event['queryStringParameters'].get('icons', '').split(',')))
+    icons = urllib.parse.unquote_plus(event['queryStringParameters'].get('icons', ''))
+    sponsors = list(filter(lambda x: x, icons.split(',')))
     for sponsor in sponsors:
         sqs_client.send_message(
             QueueUrl=queue_url,
             MessageBody=json.dumps(dict(type='SponsorView', date=date, time=time, value=sponsor), sort_keys=True))
     metrics.set_property("sponsors", sponsors)
     metrics.put_metric("PageLoad", 1)
+
     return dict(
         statusCode=200,
         statusDescription="200 OK",
