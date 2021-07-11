@@ -11,7 +11,8 @@ from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
 
 STATIC_HEADERS = {
     "Content-Type": "text/plain; charset=utf-8",
-    "Cache-Control": "no-cache"
+    "Cache-Control": "no-cache",
+    "Access-Control-Allow-Origin": "*"
 }
 
 RECORD_KEY = "Records"
@@ -76,7 +77,7 @@ def handle_pageload(
     sqs_client.send_message(
         QueueUrl=queue_url,
         MessageBody=json.dumps(dict(type='PageLoad', date=date, time=time, value=''), sort_keys=True))
-    sponsors = list(filter(lambda x: x, event['queryStringParameters'].get('sponsors', '').split(',')))
+    sponsors = list(filter(lambda x: x, event['queryStringParameters'].get('icons', '').split(',')))
     for sponsor in sponsors:
         sqs_client.send_message(
             QueueUrl=queue_url,

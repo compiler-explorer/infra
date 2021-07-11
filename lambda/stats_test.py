@@ -80,7 +80,7 @@ def test_should_handle_pageloads_with_empty_sponsors(sqs_client):
             {},
             dict(QueueUrl=queue_url, MessageBody=make_expected_body('PageLoad', ''))
         )
-        handle_pageload(dict(queryStringParameters=dict(sponsors='')), metrics, SOME_DATE, queue_url, sqs_client)
+        handle_pageload(dict(queryStringParameters=dict(icons='')), metrics, SOME_DATE, queue_url, sqs_client)
     metrics.set_property.assert_called_once_with('sponsors', [])
 
 
@@ -94,7 +94,7 @@ def test_should_handle_pageloads_with_one_sponsor(sqs_client):
             {},
             dict(QueueUrl=queue_url, MessageBody=make_expected_body('SponsorView', 'bob'))
         )
-        handle_pageload(dict(queryStringParameters=dict(sponsors='bob')), metrics, SOME_DATE, queue_url, sqs_client)
+        handle_pageload(dict(queryStringParameters=dict(icons='bob')), metrics, SOME_DATE, queue_url, sqs_client)
     metrics.set_property.assert_called_once_with('sponsors', ['bob'])
 
 
@@ -109,7 +109,7 @@ def test_should_handle_pageloads_with_many_sponsors(sqs_client):
                 {},
                 dict(QueueUrl=queue_url, MessageBody=make_expected_body('SponsorView', expectation)))
         handle_pageload(
-            dict(queryStringParameters=dict(sponsors='bob,alice,crystal')),
+            dict(queryStringParameters=dict(icons='bob,alice,crystal')),
             metrics,
             SOME_DATE,
             queue_url,
