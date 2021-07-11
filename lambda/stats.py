@@ -53,7 +53,7 @@ def handle_http(
     sqs_client = sqs_client or boto3.client('sqs')
     now = now or datetime.datetime.utcnow()
 
-    if event['path'] == '/pageload':
+    if event['path'] == '/pageload' and event['httpMethod'] == 'POST':
         return handle_pageload(event, metrics, now, os.environ['SQS_STATS_QUEUE'], sqs_client)
 
     return dict(
