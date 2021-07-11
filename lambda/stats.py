@@ -72,8 +72,8 @@ def handle_pageload(
         now: datetime.datetime,
         queue_url: str,
         sqs_client: botocore.client.BaseClient):
-    date = str(now.date())
-    time = str(now.time())
+    date = now.strftime('%Y-%m-%d')
+    time = now.strftime('%H:%M:%S')
     sqs_client.send_message(
         QueueUrl=queue_url,
         MessageBody=json.dumps(dict(type='PageLoad', date=date, time=time, value=''), sort_keys=True))

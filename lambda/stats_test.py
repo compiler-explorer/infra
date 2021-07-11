@@ -24,7 +24,7 @@ def s3_client():
 
 
 def make_expected_body(msg_type: str, value: str):
-    return f'{{"date": "2020-01-02", "time": "03:04:05.012312", "type": "{msg_type}", "value": "{value}"}}'
+    return f'{{"date": "2020-01-02", "time": "03:04:05", "type": "{msg_type}", "value": "{value}"}}'
 
 
 @mock.patch.dict(os.environ, dict(S3_BUCKET_NAME="not-a-real-bucket"))
