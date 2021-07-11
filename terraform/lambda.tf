@@ -96,8 +96,8 @@ resource "aws_lambda_function" "stats" {
   s3_bucket         = data.aws_s3_bucket_object.lambda_zip.bucket
   s3_key            = data.aws_s3_bucket_object.lambda_zip.key
   s3_object_version = data.aws_s3_bucket_object.lambda_zip.version_id
-  # TODO not this
-  source_code_hash  = data.aws_s3_bucket_object.lambda_zip.etag
+  // Comment this in if you want to force a deploy every time... TODO ideally fix this
+  //  source_code_hash  = data.aws_s3_bucket_object.lambda_zip.etag
   function_name     = "stats"
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "stats.lambda_handler"
