@@ -145,3 +145,28 @@ resource "aws_alb_listener_rule" "auth-alb-listen-https" {
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
+
+resource "aws_alb_target_group" "lambda" {
+  name        = "AwsLambdaTargetGroup"
+  target_type = "lambda"
+}
+
+resource "aws_alb_target_group_attachment" "lambda-stats-endpoint" {
+  target_group_arn = aws_alb_target_group.lambda.arn
+  target_id        = aws_lambda_function.stats.arn
+  depends_on       = [aws_lambda_permission.from_alb]
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
+  priority     = 4
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.lambda.arn
+  }
+  condition {
+    host_header {
+      values = ["lambda.compiler-explorer.com"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
