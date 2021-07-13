@@ -28,3 +28,5 @@ compilers:
         url: https://github.com/JetBrains/kotlin/releases/download/v1.5.10/kotlin-native-linux-1.5.10.tar.gz
       - name: 1.5.20
         url: https://github.com/JetBrains/kotlin/releases/download/v1.5.20/kotlin-native-linux-1.5.20.tar.gz
+      - name: 1.5.21
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.21/kotlin-native-linux-1.5.21.tar.gz
