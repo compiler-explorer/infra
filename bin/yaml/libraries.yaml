@@ -777,7 +777,7 @@ libraries:
         method: nightlyclone
         repo: taocpp/PEGTL
         check_file: README.md
-        subdir: PEGTL/trunk
+        subdir: PEGTL
         build_type: none
         targets:
           - trunk
