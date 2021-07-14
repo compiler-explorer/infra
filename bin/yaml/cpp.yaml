@@ -90,8 +90,7 @@ compilers:
             nightly:
               if: nightly
               type: nightly
-              check_exe: "bin/g++ --version"
-              compiler_name: gcc-trunk
+              compiler_name: arm-gcc-trunk
               targets:
                 - trunk
           - type: tarballs
@@ -214,8 +213,7 @@ compilers:
           nightly:
             if: nightly
             type: nightly
-            compiler_name: gcc-trunk
-            check_exe: "bin/g++ --version"
+            compiler_name: arm-gcc-trunk
             targets:
               - trunk
         mips:
