@@ -214,7 +214,7 @@ compilers:
           nightly:
             if: nightly
             type: nightly
-            compiler_name: arm-gcc-trunk
+            compiler_name: arm64-gcc-trunk
             path_name_prefix: gcc-trunk
             targets:
               - trunk
