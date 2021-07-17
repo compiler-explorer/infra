@@ -101,6 +101,8 @@ resource "aws_launch_template" "CompilerExplorer-prod" {
 
     tags = {
       Site = "CompilerExplorer"
+      Environment = "Prod"
+      Name = "Prod"
     }
   }
 }
