@@ -198,7 +198,7 @@ def main():
                     else:
                         context.info(f"{installable.name} failed to install")
                         failed.append(installable.name)
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-except
                     context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
                     failed.append(installable.name)
             else:
