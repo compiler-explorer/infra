@@ -654,27 +654,29 @@ class NightlyInstallable(Installable):
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
+        path_name_prefix = self.config_get('path_name_prefix', compiler_name)
         self.s3_path = f'{compiler_name}-{most_recent}'
-        self.install_path = os.path.join(self.subdir, f'{compiler_name}-{most_recent}')
-        self.compiler_pattern = os.path.join(self.subdir, f'{compiler_name}-*')
-        self.path_name_symlink = self.config_get('symlink', os.path.join(self.subdir, f'{compiler_name}'))
+        self.local_path = f'{path_name_prefix}-{most_recent}'
+        self.install_path = os.path.join(self.subdir, f'{path_name_prefix}-{most_recent}')
+        self.compiler_pattern = os.path.join(self.subdir, f'{path_name_prefix}-*')
+        self.path_name_symlink = self.config_get('symlink', os.path.join(self.subdir, f'{path_name_prefix}'))
         self.num_to_keep = self.config_get('num_to_keep', 5)
         self._setup_check_exe(self.install_path)
-        self._setup_check_link(self.s3_path, self.path_name_symlink)
+        self._setup_check_link(self.local_path, self.path_name_symlink)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
-        self.install_context.run_script(os.path.join(self.install_context.staging, self.s3_path),
+        self.install_context.run_script(os.path.join(self.install_context.staging, self.local_path),
                                         self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.s3_path, self.install_path)
+        return self.install_context.compare_against_staging(self.local_path, self.install_path)
 
     def should_install(self) -> bool:
         return True
@@ -690,8 +692,8 @@ class NightlyInstallable(Installable):
         for to_remove in all_versions[:-num_to_keep]:
             self.install_context.remove_dir(to_remove)
 
-        self.install_context.move_from_staging(self.s3_path, self.install_path)
-        self.install_context.set_link(Path(self.s3_path), self.path_name_symlink)
+        self.install_context.move_from_staging(self.local_path, self.install_path)
+        self.install_context.set_link(Path(self.local_path), self.path_name_symlink)
 
         return True
 

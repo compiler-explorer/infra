@@ -91,6 +91,7 @@ compilers:
               if: nightly
               type: nightly
               compiler_name: arm-gcc-trunk
+              path_name_prefix: gcc-trunk
               targets:
                 - trunk
           - type: tarballs
@@ -214,6 +215,7 @@ compilers:
             if: nightly
             type: nightly
             compiler_name: arm-gcc-trunk
+            path_name_prefix: gcc-trunk
             targets:
               - trunk
         mips:
