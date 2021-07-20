@@ -1185,6 +1185,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      hotels-template-library:
+        type: github
+        method: nightlyclone
+        repo: google/hotels-template-library
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
