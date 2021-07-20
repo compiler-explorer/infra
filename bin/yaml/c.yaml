@@ -1,8 +1,9 @@
 compilers:
   c:
     cproc:
+      if: nightly
       type: nightly
-      check_exe: "bin/cproc -h"
+      check_file: bin/cproc
       targets:
         - master
     ppci:
