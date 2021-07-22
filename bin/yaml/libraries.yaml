@@ -586,6 +586,13 @@ libraries:
         - -DBUILD_TZ_LIB=ON
       targets:
         - 3.0.1
+    libsimdpp:
+      type: github
+      repo: p12tic/libsimdpp
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "2.1"
     nightly:
       install_always: true
       if: nightly
