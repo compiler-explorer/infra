@@ -12,8 +12,10 @@ import sys
 import tempfile
 import time
 from collections import defaultdict
+from pathlib import Path
 from pprint import pformat
-from typing import TextIO, Optional, Dict, Sequence
+from tempfile import TemporaryDirectory
+from typing import TextIO, Optional, Dict, Sequence, Set, List, Union
 
 import click
 import requests
@@ -22,16 +24,17 @@ from lib.amazon import target_group_arn_for, get_autoscaling_group, get_releases
     set_current_key, as_client, release_for, find_latest_release, get_all_current, remove_release, get_events_file, \
     save_event_file, get_short_link, put_short_link, delete_short_link, list_short_links, delete_s3_links, \
     get_autoscaling_groups_for, download_release_file, download_release_fileobj, log_new_build, list_all_build_logs, \
-    list_period_build_logs, get_ssm_param
+    list_period_build_logs, get_ssm_param, get_tools_releases
 from lib.cdn import DeploymentJob
 from lib.env import Environment, Config
 from lib.instance import ConanInstance, AdminInstance, BuilderInstance, Instance, print_instances
-from lib.releases import Version
+from lib.releases import Version, Release, Hash, VersionSource
 from lib.ssh import run_remote_shell, exec_remote, exec_remote_all, exec_remote_to_stdout
+
+CE_TOOLS_LOCATION = '/opt/compiler-explorer/demanglers/'
 
 logger = logging.getLogger('ce')
 
-RELEASE_FORMAT = '{: <5} {: <10} {: <10} {: <10} {: <14}'
 ADS_FORMAT = '{: <5} {: <10} {: <20}'
 DECORATION_FORMAT = '{: <10} {: <15} {: <30} {: <50}'
 
@@ -133,11 +136,12 @@ def wait_for_elb_state(instance, state):
         time.sleep(5)
 
 
-def are_you_sure(name: str, cfg: Config) -> bool:
+def are_you_sure(name: str, cfg: Optional[Config] = None) -> bool:
+    env_name = cfg.env.value if cfg else 'global'
     while True:
         typed = input(
-            f'Confirm operation: "{name}" in env {cfg.env.value}\nType the name of the environment to proceed: ')
-        if typed == cfg.env.value:
+            f'Confirm operation: "{name}" in env {env_name}\nType the name of the environment to proceed: ')
+        if typed == env_name:
             return True
 
 
@@ -544,14 +548,19 @@ def builds_list(cfg: Config, branch: Sequence[str]):
     The --> indicates the build currently deployed in this environment."""
     current = get_current_key(cfg)
     releases = get_releases()
-    filter_branches = set(branch)
-    print(RELEASE_FORMAT.format('Live', 'Branch', 'Version', 'Size', 'Hash'))
+    display_releases(current, set(branch), releases)
+
+
+def display_releases(current: Union[str, Hash], filter_branches: Set[str], releases: List[Release]):
+    max_branch_len = max(10, max((len(release.branch) for release in releases), default=10))
+    release_format = '{: <5} {: <' + str(max_branch_len) + '} {: <10} {: <10} {: <14}'
+    click.echo(release_format.format('Live', 'Branch', 'Version', 'Size', 'Hash'))
     for _, releases in itertools.groupby(releases, lambda r: r.branch):
         for release in releases:
-            if len(filter_branches) == 0 or release.branch in filter_branches:
-                print(
-                    RELEASE_FORMAT.format(
-                        ' -->' if release.key == current else '',
+            if not filter_branches or release.branch in filter_branches:
+                click.echo(
+                    release_format.format(
+                        ' -->' if (release.key == current or release.hash == current) else '',
                         release.branch, str(release.version), sizeof_fmt(release.size), str(release.hash))
                 )
 
@@ -844,10 +853,9 @@ def link():
 
 
 @link.command(name='name')
-@click.pass_obj
 @click.argument("link_from")
 @click.argument("link_to")
-def links_name(cfg: Config, link_from: str, link_to: str):
+def links_name(link_from: str, link_to: str):
     """Give link LINK_FROM a new name LINK_TO."""
     if len(link_from) < 6:
         raise RuntimeError('from length must be at least 6')
@@ -876,15 +884,14 @@ def links_name(cfg: Config, link_from: str, link_to: str):
         'description': {'S': description}
     }}
     print('New link: {}'.format(pformat(base_link)))
-    if are_you_sure('create new link named {}'.format(link_to), cfg):
+    if are_you_sure('create new link named {}'.format(link_to)):
         put_short_link(base_link)
 
 
 @link.command(name='update')
-@click.pass_obj
 @click.argument("link_from")
 @click.argument("link_to")
-def links_update(cfg: Config, link_from: str, link_to: str):
+def links_update(link_from: str, link_to: str):
     """Update a link; point LINK_FROM to existing LINK_TO."""
     if len(link_from) < 6:
         raise RuntimeError('from length must be at least 6')
@@ -898,14 +905,13 @@ def links_update(cfg: Config, link_from: str, link_to: str):
         raise RuntimeError('Couldn\'t find existing short link {}'.format(link_to))
     link_to_update['full_hash'] = base_link['full_hash']
     print('New link: {}'.format(pformat(link_to_update)))
-    if are_you_sure('update link named {}'.format(link_to), cfg):
+    if are_you_sure('update link named {}'.format(link_to)):
         put_short_link(link_to_update)
 
 
 @link.command(name='maintenance')
 @click.option("--dry-run/--no-dry-run", help="dry run only")
-@click.pass_obj
-def links_maintenance(cfg: Config, dry_run: bool):
+def links_maintenance(dry_run: bool):
     s3links, dblinks = list_short_links()
     s3keys_set = set()
     dbkeys_set = set()
@@ -929,11 +935,11 @@ def links_maintenance(cfg: Config, dry_run: bool):
         if s3key not in dbhashes_set:
             s3dirty_set.add(s3key)
 
-    if are_you_sure('delete {} db elements:\n{}\n'.format(len(dbdirty_set), dbdirty_set), cfg) and not dry_run:
+    if are_you_sure('delete {} db elements:\n{}\n'.format(len(dbdirty_set), dbdirty_set)) and not dry_run:
         for item in dbdirty_set:
             print('Deleting {}'.format(item))
             delete_short_link(item)
-    if are_you_sure('delete {} s3 elements:\n{}\n'.format(len(s3dirty_set), s3dirty_set), cfg) and not dry_run:
+    if are_you_sure('delete {} s3 elements:\n{}\n'.format(len(s3dirty_set), s3dirty_set)) and not dry_run:
         delete_s3_links(s3dirty_set)
 
 
@@ -1052,6 +1058,62 @@ def environment_stop(cfg: Config):
             as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=0)
 
 
+@cli.group()
+def tools():
+    """Tool installation commands."""
+
+
+@tools.command(name='list')
+@click.option('--destination', type=click.Path(file_okay=False, dir_okay=True),
+              default=CE_TOOLS_LOCATION)
+@click.option('-b', '--branch', type=str, help='show only BRANCH (may be specified more than once)',
+              metavar='BRANCH', multiple=True)
+def tools_list(destination: str, branch: List[str]):
+    current_version = Hash('')
+    hash_file = Path(destination) / 'git_hash'
+    if hash_file.exists():
+        current_version = Hash(hash_file.read_text(encoding='utf-8').strip())
+    display_releases(current_version, set(branch), get_tools_releases())
+
+
+@tools.command(name='install')
+@click.option('--destination', type=click.Path(file_okay=False, dir_okay=True),
+              default=CE_TOOLS_LOCATION)
+@click.argument('version')
+def tools_install(version: str, destination: str):
+    """
+    Install demangling tools version VERSION.
+    """
+    releases = get_tools_releases()
+    version = Version.from_string(version, assumed_source=VersionSource.GITHUB)
+    for release in releases:
+        if release.version == version:
+            if not are_you_sure("deploy tools"):
+                return
+            with TemporaryDirectory(prefix='ce-tools-') as td:
+                td = Path(td)
+                tar_dest = td / 'tarball.tar.xz'
+                unpack_dest = td / 'tools'
+                unpack_dest.mkdir()
+                download_release_file(release.key, str(tar_dest))
+                subprocess.check_call([
+                    'tar',
+                    '--strip-components', '1',
+                    '-C', str(unpack_dest),
+                    '-Jxf', str(tar_dest)
+                ])
+                subprocess.check_call([
+                    'rsync',
+                    '-a',
+                    '--delete-after',
+                    f'{unpack_dest}/',
+                    f'{destination}/'
+                ])
+            click.echo(f'Tools updated to {version}')
+            return
+    click.echo(f'Unable to find version {version}')
+
+
 def main():
     try:
         cli(prog_name='ce')  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
@@ -1059,3 +1121,7 @@ def main():
         # print empty line so terminal prompt doesn't end up on the end of some
         # of our own program output
         print()
+
+
+if __name__ == '__main__':
+    main()

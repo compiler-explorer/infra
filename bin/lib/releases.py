@@ -4,14 +4,11 @@ from typing import Optional, Tuple
 from attr import dataclass
 
 
+@dataclass(frozen=True)
 class Hash:
-    def __init__(self, hash_val):
-        self.hash = hash_val
+    hash: str
 
-    def __repr__(self):
-        return self.hash
-
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{str(self.hash[:6])}..{str(self.hash[-6:])}'
 
 
@@ -33,9 +30,9 @@ class Version:
     number: int
 
     @staticmethod
-    def from_string(version_str: str):
+    def from_string(version_str: str, assumed_source: VersionSource = VersionSource.GITHUB):
         if '-' not in version_str:
-            return Version(VersionSource.GITHUB, int(version_str))
+            return Version(assumed_source, int(version_str))
         source, num = version_str.split('-')
         for possible_source in list(VersionSource):
             if possible_source.value[1] == source:

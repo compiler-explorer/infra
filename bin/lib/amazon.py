@@ -109,7 +109,7 @@ def _get_releases(source: VersionSource, prefix: str):
         split_key = key.split('/')
         branch = '/'.join(split_key[2:-1])
         version_str = split_key[-1].split('.')[0]
-        version = Version(source, int(version_str))
+        version = Version.from_string(version_str, source)
 
         if key.endswith('.static.tar.xz'):
             staticfiles[version] = key
@@ -134,6 +134,10 @@ def _get_releases(source: VersionSource, prefix: str):
 
 def get_releases():
     return _get_releases(VersionSource.TRAVIS, 'dist/travis') + _get_releases(VersionSource.GITHUB, 'dist/gh')
+
+
+def get_tools_releases():
+    return _get_releases(VersionSource.TRAVIS, 'dist/tools')
 
 
 def download_release_file(file, destination):
