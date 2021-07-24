@@ -5,6 +5,6 @@ resource "aws_efs_file_system" "fs-db4c8192" {
     Name = "CompilerExplorer"
   }
   lifecycle_policy {
-    transition_to_ia = "AFTER_90_DAYS"
+    transition_to_ia = "AFTER_14_DAYS"
   }
 }
