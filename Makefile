@@ -1,7 +1,8 @@
 .NOTPARALLEL: 
 
-PYTHON:=$(shell which python3.9 || which python3.8 || echo .python3.8-not-found)
+PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "which python3.9 || which python3.8 || echo .python3.8-not-found")
 VIRTUALENV?=.env
+VIRTUALENV_DONE:=$(VIRTUALENV)/.done
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
@@ -45,13 +46,14 @@ clean:  ## Cleans up anything
 update-admin:  ## Updates the admin website
 	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
 
-$(VIRTUALENV): requirements.txt | $(PYTHON)
+$(VIRTUALENV_DONE): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
-	python -m venv $(VIRTUALENV)  # NB uses system python!
+	$(PYTHON) -m venv $(VIRTUALENV)
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
+	touch $(VIRTUALENV_DONE)
 
 .PHONY: ce
-ce: $(VIRTUALENV)  ## Installs and configures the python environment needed for the various admin commands
+ce: $(VIRTUALENV_DONE)  ## Installs and configures the python environment needed for the various admin commands
 
 .PHONY: test
 test: ce  ## Runs the tests
