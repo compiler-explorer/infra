@@ -13,3 +13,5 @@ types-pkg_resources
 types-requests
 types-toml
 aws-embedded-metrics  # only needed by lambda tests really
+paramiko
+types-paramiko

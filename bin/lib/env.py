@@ -11,4 +11,3 @@ class Environment(Enum):
 @dataclass(frozen=True)
 class Config:
     env: Environment
-    use_mosh: bool

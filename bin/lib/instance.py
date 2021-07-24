@@ -64,6 +64,10 @@ class AdminInstance:
         self.service_status = {'SubState': 'unknown'}
         self.running_version = 'admin'
 
+    @property
+    def address(self):
+        return self.instance.public_ip_address
+
     @staticmethod
     def instance():
         return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
