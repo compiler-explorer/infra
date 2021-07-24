@@ -5,6 +5,7 @@ import glob
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -127,11 +128,11 @@ class InstallationContext:
         with tempfile.TemporaryFile() as fd:
             self.fetch_to(url, fd)
             fd.seek(0)
-            self.info(f'Piping to {" ".join(command)}')
+            self.info(f'Piping to {shlex.join(command)}')
             subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
     def stage_command(self, command: Sequence[str], cwd: Optional[Path] = None) -> None:
-        self.info(f'Staging with {" ".join(command)}')
+        self.info(f'Staging with {shlex.join(command)}')
         subprocess.check_call(command, cwd=str(cwd or self.staging))
 
     def fetch_s3_and_pipe_to(self, s3: str, command: Sequence[str]) -> None:

@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -355,10 +356,11 @@ def instances():
 @click.argument('remote_cmd', required=True, nargs=-1)
 def instances_exec_all(cfg: Config, remote_cmd: Sequence[str]):
     """Execute REMOTE_CMD on all the instances."""
-    if not are_you_sure(f'exec command {remote_cmd} in all instances', cfg):
+    escaped = shlex.join(remote_cmd)
+    if not are_you_sure(f'exec command {escaped} in all instances', cfg):
         return
 
-    print("Running '{}' on all instances".format(' '.join(remote_cmd)))
+    print("Running '{}' on all instances".format(escaped))
     exec_remote_all(pick_instances(cfg), remote_cmd)
 
 
