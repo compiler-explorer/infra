@@ -47,7 +47,7 @@ update-admin:  ## Updates the admin website
 
 $(VIRTUALENV): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
-	$(PYTHON) -m venv $(VIRTUALENV)
+	python -m venv $(VIRTUALENV)  # NB uses system python!
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 
 .PHONY: ce
