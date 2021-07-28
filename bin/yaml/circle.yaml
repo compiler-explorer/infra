@@ -9,6 +9,7 @@ compilers:
     dir: circle-{name}
     targets:
       - '128'
+      - '129'
     nightly:
       if: nightly
       install_always: true
