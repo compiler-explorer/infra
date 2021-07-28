@@ -330,18 +330,8 @@ def builder_start():
     else:
         raise RuntimeError("Unable to get SSH access")
     res = exec_remote(instance,
-                      ["bash", "-c", "cd infra && git pull && sudo ./setup-builder-startup.sh"], True)
+                      ["bash", "-c", "cd infra && git pull && sudo ./setup-builder-startup.sh"])
     print(res)
-    for _ in range(30):
-        try:
-            r = exec_remote(instance, ["sudo", "systemctl", "status", "docker"])
-            if "active (running)" in r:
-                break
-        except:
-            print("Still waiting for Docker")
-        time.sleep(1)
-    else:
-        raise RuntimeError("Unable to launch docker")
     print("Builder started OK")
 
 
