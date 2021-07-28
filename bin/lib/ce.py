@@ -324,8 +324,8 @@ def builder_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except (subprocess.CalledProcessError, socket.timeout) as e:
-            print("Still waiting for SSH: got: {}".format(e))
+        except:
+            print("Still waiting for SSH")
         time.sleep(1)
     else:
         raise RuntimeError("Unable to get SSH access")
