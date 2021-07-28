@@ -593,6 +593,20 @@ libraries:
       target_prefix: v
       targets:
         - "2.1"
+    scnlib:
+      type: github
+      repo: eliaskosunen/scnlib
+      target_prefix: refs/tags/v
+      build_type: cmake
+      extra_cmake_arg:
+        - -DSCN_TESTS=OFF
+        - -DSCN_EXAMPLES=OFF
+        - -DSCN_BENCHMARKS=OFF
+        - -DSCN_DOCS=OFF
+      make_targets:
+        - scn
+      targets:
+        - '0.4'
     nightly:
       install_always: true
       if: nightly
