@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import shlex
+import socket
 import subprocess
 import sys
 import tempfile
@@ -312,7 +313,7 @@ def builder_start():
     if instance.status() == 'stopped':
         print("Starting builder instance...")
         instance.start()
-        for _ in range(120):
+        for _ in range(60):
             if instance.status() == 'running':
                 break
             time.sleep(1)
@@ -323,7 +324,7 @@ def builder_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, socket.timeout) as e:
             print("Still waiting for SSH: got: {}".format(e))
         time.sleep(1)
     else:
