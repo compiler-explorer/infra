@@ -330,7 +330,7 @@ def builder_start():
     else:
         raise RuntimeError("Unable to get SSH access")
     res = exec_remote(instance,
-                      ["bash", "-c", "cd infra && git pull && sudo ./setup-builder-startup.sh"])
+                      ["bash", "-c", "cd infra && git pull && sudo ./setup-builder-startup.sh"], True)
     print(res)
     print("Builder started OK")
 
