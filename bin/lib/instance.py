@@ -94,7 +94,7 @@ class BuilderInstance:
 
     @staticmethod
     def instance():
-        return BuilderInstance(ec2.Instance(id='i-016c31c082de09817'))
+        return BuilderInstance(ec2.Instance(id='i-06e4bfd4430a8955a'))
 
     def start(self):
         self.instance.start()
