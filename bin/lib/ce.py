@@ -312,7 +312,7 @@ def builder_start():
     if instance.status() == 'stopped':
         print("Starting builder instance...")
         instance.start()
-        for _ in range(60):
+        for _ in range(120):
             if instance.status() == 'running':
                 break
             time.sleep(1)
