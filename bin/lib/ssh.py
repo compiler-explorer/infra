@@ -56,7 +56,7 @@ def run_remote_shell(instance, use_mosh: bool = False):
     os.system(f'{ssh_command} ubuntu@{ssh_address_for(instance)}')
 
 
-def exec_remote(instance, command):
+def exec_remote(instance, command, ignore_errors: bool = False):
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)
     with ssh_client_for(instance) as client:
@@ -65,7 +65,7 @@ def exec_remote(instance, command):
         stdout_text = stdout.read().decode('utf-8')
         stderr_text = stderr.read().decode('utf-8')
         status = stdout.channel.recv_exit_status()
-        if status == 0:
+        if status == 0 or ignore_errors:
             return stdout_text
         logger.error("Execution of '%s' failed with status %d", command, status)
         logger.warning("Standard error: %s", stderr_text)
