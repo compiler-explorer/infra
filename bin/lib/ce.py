@@ -8,7 +8,6 @@ import logging
 import os
 import re
 import shlex
-import socket
 import subprocess
 import sys
 import tempfile
@@ -324,8 +323,8 @@ def builder_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except:
-            print("Still waiting for SSH")
+        except Exception as e:  # pylint: disable=broad-except
+            print("Still waiting for SSH: got: {}".format(e))
         time.sleep(1)
     else:
         raise RuntimeError("Unable to get SSH access")
