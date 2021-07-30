@@ -1,27 +1,9 @@
 compilers:
   ruby:
-    yarv:
-      type: tarballs
-      compression: xz
-      dir: ruby-{name}
-      check_exe: bin/ruby --version
-      after_stage_script:
-        # taken from ghc
-        - mkdir install
-        - cd {dir}
-        - ./configure --prefix={destination}/{dir}
-        - make
-        - make install DESTDIR=`cd ../install && pwd`
-        - cd ..
-        - rm -rf {dir}
-        - mv install/{destination}/{dir} {dir}
-        - rm -rf install
-      targets:
-        - name: 2.5.9
-          url: https://cache.ruby-lang.org/pub/ruby/2.5/ruby-2.5.9.tar.xz
-        - name: 2.6.8
-          url: https://cache.ruby-lang.org/pub/ruby/2.6/ruby-2.6.8.tar.xz
-        - name: 2.7.4
-          url: https://cache.ruby-lang.org/pub/ruby/2.7/ruby-2.7.4.tar.xz
-        - name: 3.0.2
-          url: https://cache.ruby-lang.org/pub/ruby/3.0/ruby-3.0.2.tar.xz
+    type: s3tarballs
+    check_exe: bin/ruby --version
+    targets:
+      - 2.5.9
+      - 2.6.8
+      - 2.7.4
+      - 3.0.2
