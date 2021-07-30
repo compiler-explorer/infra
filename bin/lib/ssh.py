@@ -3,6 +3,7 @@ import itertools
 import logging
 import os
 import shlex
+import sys
 
 import paramiko
 import requests
@@ -77,12 +78,12 @@ def exec_remote_to_stdout(instance, command):
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)
     with ssh_client_for(instance) as client:
-        (stdin, stdout, stderr) = client.exec_command(command, get_pty=True)
+        (stdin, stdout, stderr) = client.exec_command(command, get_pty=sys.stdout.isatty())
         stdout: paramiko.ChannelFile
         stdin.close()
         # This isn't exactly what we want: we iterate all of stdout, then all of stderr...
         for line in itertools.chain(stdout, stderr):
-            print(line, end='')
+            print(line.rstrip())
         status = stdout.channel.recv_exit_status()
         if status != 0:
             raise RuntimeError(f"Remote command execution failed with status {status}")

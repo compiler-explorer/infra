@@ -49,6 +49,7 @@ update-admin:  ## Updates the admin website
 $(VIRTUALENV_DONE): requirements.txt | $(PYTHON)
 	rm -rf $(VIRTUALENV)
 	$(PYTHON) -m venv $(VIRTUALENV)
+	$(VIRTUALENV)/bin/pip install --upgrade pip
 	$(VIRTUALENV)/bin/pip install -r requirements.txt
 	touch $(VIRTUALENV_DONE)
 
