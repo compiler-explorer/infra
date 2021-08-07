@@ -369,7 +369,7 @@ class Installable:
 
         if self.check_file:
             res = (self.install_context.destination / self.check_file).is_file()
-            self.debug(f'Check file for "{self.check_file}" returned {res}')
+            self.debug(f'Check file for "{self.install_context.destination / self.check_file}" returned {res}')
             return res
 
         try:
