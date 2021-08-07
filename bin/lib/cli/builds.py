@@ -14,7 +14,7 @@ from lib.amazon import download_release_file, download_release_fileobj, find_lat
     log_new_build, set_current_key, get_ssm_param, get_all_current, get_releases, remove_release, get_current_key, \
     list_all_build_logs, list_period_build_logs
 from lib.cdn import DeploymentJob
-from lib.ce_utils import describe_current_release, are_you_sure, display_releases
+from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
 from lib.cli import cli
 from lib.env import Config
 from lib.releases import Version
@@ -77,7 +77,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print("Unable to find version " + version)
             if setting_latest and branch != '':
                 print('Branch {} has no available versions (Bad branch/No image yet built)'.format(branch))
-        elif are_you_sure('change current version to {}'.format(release.key), cfg) and confirm_branch(release):
+        elif are_you_sure('change current version to {}'.format(release.key), cfg) and confirm_branch(release.branch):
             print(f'Found release {release}')
             to_set = release.key
     if to_set is not None:
@@ -150,16 +150,3 @@ def builds_history(cfg: Config, from_time: Optional[str], until_time: Optional[s
             list_all_build_logs(cfg)
     else:
         list_period_build_logs(cfg, from_time, until_time)
-
-
-def confirm_branch(release):
-    branch = release.branch
-    while True:
-        typed = input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
-        if typed == branch:
-            return True
-
-
-def confirm_action(description):
-    typed = input('{}: [Y/N]\n'.format(description))
-    return typed.upper() == 'Y'

@@ -56,14 +56,16 @@ $(VIRTUALENV_DONE): requirements.txt | $(PYTHON)
 .PHONY: ce
 ce: $(VIRTUALENV_DONE)  ## Installs and configures the python environment needed for the various admin commands
 
+PY_SOURCE_ROOTS:=bin/lib bin/test lambda
+
 .PHONY: test
 test: ce  ## Runs the tests
-	$(VIRTUALENV)/bin/pytest bin lambda
+	$(VIRTUALENV)/bin/pytest $(PY_SOURCE_ROOTS)
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
 	$(VIRTUALENV)/bin/mypy --install-types --ignore-missing-imports bin lambda
-	$(VIRTUALENV)/bin/pylint bin/lib bin/test lambda
+	$(VIRTUALENV)/bin/pylint $(PY_SOURCE_ROOTS)
 
 LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
