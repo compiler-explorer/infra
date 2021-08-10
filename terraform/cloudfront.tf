@@ -514,8 +514,8 @@ resource "aws_wafv2_web_acl" "rate_limit" {
     }
     statement {
       rate_based_statement {
-        // 150 POSTs in 5 minutes - that's one every two seconds
-        limit              = 150
+        // Limit to this many per 5 minutes (300 seconds)
+        limit              = 300
         aggregate_key_type = "IP"
         scope_down_statement {
           byte_match_statement {
