@@ -10,6 +10,7 @@ compilers:
     targets:
       - '128'
       - '129'
+      - '131'
     nightly:
       if: nightly
       install_always: true
