@@ -30,6 +30,7 @@ apt-get install -y \
     libc6-dev-i386 \
     libdatetime-perl \
     libelf-dev \
+    libgmp3-dev \
     libprotobuf-dev \
     libnl-route-3-dev \
     libwww-perl \
