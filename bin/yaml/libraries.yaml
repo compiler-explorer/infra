@@ -148,6 +148,15 @@ libraries:
       lib_type: static
       extra_cmake_arg:
         - -DBUILD_TESTING=OFF
+    cli11:
+      type: github
+      repo: CLIUtils/CLI11
+      target_prefix: v
+      targets:
+        - 1.9.1
+        - 2.0.0
+      build_type: none
+      check_file: include/CLI/CLI.hpp
     cnl:
       type: github
       repo: johnmcfarlane/cnl
