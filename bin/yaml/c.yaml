@@ -62,3 +62,8 @@ compilers:
         check_exe: bin/tcc -version
         targets:
           - trunk
+      chibicc:
+        type: nightly
+        check_file: chibicc
+        targets:
+          - main
