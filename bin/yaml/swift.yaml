@@ -29,10 +29,10 @@ compilers:
       if: nightly
       type: restQueryTarballs
       install_always: true
-      url: https://swift.org/builds/development/ubuntu1604/latest-build.yml
+      url: https://swift.org/builds/development/ubuntu2004/latest-build.yml
       query: |
-        'https://swift.org/builds/development/ubuntu1604/' \
-        + document['download'].replace('-ubuntu16.04.tar.gz', '') \
+        'https://swift.org/builds/development/ubuntu2004/' \
+        + document['download'].replace('-ubuntu20.04.tar.gz', '') \
         + '/' + document['download']
       targets:
         - nightly
