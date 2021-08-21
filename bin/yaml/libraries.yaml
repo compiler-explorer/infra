@@ -18,7 +18,7 @@ libraries:
       extract_only: boost_{{underscore_name}}/boost
       untar_dir: boost_{{underscore_name}}
       dir: libs/boost_{{underscore_name}}
-      url: https://boostorg.jfrog.io/ui/native/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
+      url: https://boostorg.jfrog.io/artifactory/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
       targets:
         - 1.64.0
         - 1.65.0
