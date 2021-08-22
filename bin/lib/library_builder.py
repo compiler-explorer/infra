@@ -1,3 +1,4 @@
+import contextlib
 import glob
 import hashlib
 import itertools
@@ -9,7 +10,8 @@ import subprocess
 import tempfile
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Dict, Any, List, Optional
+from pathlib import Path
+from typing import Dict, Any, List, Optional, Generator, TextIO
 
 import requests
 
@@ -50,6 +52,13 @@ class BuildStatus(Enum):
 build_timeout = 600
 
 conanserver_url = "https://conan.compiler-explorer.com"
+
+
+@contextlib.contextmanager
+def open_script(script: Path) -> Generator[TextIO, None, None]:
+    with script.open('w', encoding='utf-8') as f:
+        yield f
+    script.chmod(0o755)
 
 
 class LibraryBuilder:
@@ -223,9 +232,7 @@ class LibraryBuilder:
 
     def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType,
                          toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath):
-        scriptfile = os.path.join(buildfolder, "build.sh")
-
-        with open(scriptfile, 'w') as f:
+        with open_script(Path(buildfolder) / "build.sh") as f:
             f.write('#!/bin/sh\n\n')
             compilerexecc = compilerexe[:-2]
             if compilerexe.endswith('clang++'):
@@ -350,8 +357,6 @@ class LibraryBuilder:
             for lib in self.buildconfig.sharedliblink:
                 f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \\;\n')
 
-        subprocess.check_call(['/bin/chmod', '+x', scriptfile])
-
         self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver,
                                             extraflags)
 
@@ -378,18 +383,12 @@ class LibraryBuilder:
                                         '-s', f'flagcollection={extraflags}']
 
     def writeconanscript(self, buildfolder):
-        scriptfile = os.path.join(buildfolder, "conanexport.sh")
         conanparamsstr = ' '.join(self.current_buildparameters)
-
-        f = open(scriptfile, 'w')
-        f.write('#!/bin/sh\n\n')
-        f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n')
-        f.close()
-        subprocess.check_call(['/bin/chmod', '+x', scriptfile])
+        with open_script(Path(buildfolder) / "conanexport.sh") as f:
+            f.write('#!/bin/sh\n\n')
+            f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n')
 
     def writeconanfile(self, buildfolder):
-        scriptfile = os.path.join(buildfolder, "conanfile.py")
-
         libsum = ''
         for lib in self.buildconfig.staticliblink:
             libsum += f'"{lib}",'
@@ -399,30 +398,29 @@ class LibraryBuilder:
 
         libsum = libsum[:-1]
 
-        f = open(scriptfile, 'w')
-        f.write('from conans import ConanFile, tools\n')
-        f.write(f'class {self.libname}Conan(ConanFile):\n')
-        f.write(f'    name = "{self.libname}"\n')
-        f.write(f'    version = "{self.target_name}"\n')
-        f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
-        f.write(f'    description = "{self.buildconfig.description}"\n')
-        f.write(f'    url = "{self.buildconfig.url}"\n')
-        f.write('    license = "None"\n')
-        f.write('    author = "None"\n')
-        f.write('    topics = None\n')
-        f.write('    def package(self):\n')
+        with (Path(buildfolder) / 'conanfile.py').open(mode='w', encoding='utf-8') as f:
+            f.write('from conans import ConanFile, tools\n')
+            f.write(f'class {self.libname}Conan(ConanFile):\n')
+            f.write(f'    name = "{self.libname}"\n')
+            f.write(f'    version = "{self.target_name}"\n')
+            f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
+            f.write(f'    description = "{self.buildconfig.description}"\n')
+            f.write(f'    url = "{self.buildconfig.url}"\n')
+            f.write('    license = "None"\n')
+            f.write('    author = "None"\n')
+            f.write('    topics = None\n')
+            f.write('    def package(self):\n')
 
-        for lib in self.buildconfig.staticliblink:
-            f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
+            for lib in self.buildconfig.staticliblink:
+                f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
 
-        for lib in self.buildconfig.sharedliblink:
-            f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
+            for lib in self.buildconfig.sharedliblink:
+                f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
 
-        for copyline in self.buildconfig.package_extra_copy:
-            f.write(f'        {copyline}\n')
-        f.write('    def package_info(self):\n')
-        f.write(f'        self.cpp_info.libs = [{libsum}]\n')
-        f.close()
+            for copyline in self.buildconfig.package_extra_copy:
+                f.write(f'        {copyline}\n')
+            f.write('    def package_info(self):\n')
+            f.write(f'        self.cpp_info.libs = [{libsum}]\n')
 
     def executeconanscript(self, buildfolder, arch, stdlib):
         filesfound = 0
@@ -529,9 +527,7 @@ class LibraryBuilder:
 
         logging_data = ""
         for logfile in loggingfiles:
-            f = open(logfile, 'r')
-            logging_data = logging_data + '\n'.join(f.readlines())
-            f.close()
+            logging_data += Path(logfile).read_text(encoding='utf-8')
 
         if builtok == BuildStatus.TimedOut:
             logging_data = logging_data + '\n\n' + 'BUILD TIMED OUT!!'

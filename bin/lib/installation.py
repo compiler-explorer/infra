@@ -257,20 +257,19 @@ class InstallationContext:
         # Deliberately ignore errors
         subprocess.call(['strip'] + to_strip)
 
-    def run_script(self, frompath: Union[str, Path], lines: List[str]) -> None:
+    def run_script(self, from_path: Union[str, Path], lines: List[str]) -> None:
+        from_path = Path(from_path)
         if len(lines) > 0:
             self.info('Running script')
-            scriptfile = os.path.join(frompath, 'ce_script.sh')
-            f = open(scriptfile, 'w')
-            f.write('#!/bin/bash\n\nset -euo pipefail\n\n')
-            for line in lines:
-                f.write(f'{line}\n')
-            f.close()
+            script_file = from_path / 'ce_script.sh'
+            with script_file.open('w', encoding='utf-8') as f:
+                f.write('#!/bin/bash\n\nset -euo pipefail\n\n')
+                for line in lines:
+                    f.write(f'{line}\n')
 
-            subprocess.check_call(['/bin/chmod', '+x', scriptfile])
-            subprocess.check_call([scriptfile], cwd=frompath)
-
-            os.remove(scriptfile)
+            script_file.chmod(0o744)
+            subprocess.check_call([str(script_file)], cwd=from_path)
+            script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
         return b'ELF' in subprocess.check_output(['file', maybe_elf_file])

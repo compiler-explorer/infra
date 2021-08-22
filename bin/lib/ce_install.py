@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # coding=utf-8
-import glob
 import logging
 import logging.config
 import os
@@ -98,8 +97,10 @@ def main():
                                   args.cache, args.yaml_dir)
 
     installables = []
-    for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
-        for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=ConfigSafeLoader), args.enable):
+    for yaml_path in Path(args.yaml_dir).glob('*.yaml'):
+        with yaml_path.open() as yaml_file:
+            yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+        for installer in installers_for(context, yaml_doc, args.enable):
             installables.append(installer)
 
     installables_by_name = {installable.name: installable for installable in installables}
