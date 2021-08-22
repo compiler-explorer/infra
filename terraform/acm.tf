@@ -17,3 +17,19 @@ resource "aws_acm_certificate_validation" "static-ce-cdn-net" {
   validation_record_fqdns = ["${aws_route53_record.static-ce-cdn-net-acm.fqdn}"]
 }
 */
+
+resource "aws_acm_certificate" "godbolt-org-et-al" {
+  domain_name = "godbolt.org"
+  validation_method = "DNS"
+
+  subject_alternative_names = [
+    "*.godbo.lt",
+    "*.compiler-explorer.com",
+    "godbo.lt",
+    "compiler-explorer.com",
+    "*.godbolt.org"
+  ]
+  lifecycle {
+    create_before_destroy = true
+  }
+}
