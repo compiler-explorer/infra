@@ -207,6 +207,7 @@ libraries:
         - 3.3.5
         - 3.3.7
         - 3.3.9
+        - 3.4.0
     glm:
       type: github
       repo: g-truc/glm
