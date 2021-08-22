@@ -24,3 +24,9 @@ variable "wildcard" {
   type        = bool
   default     = true
 }
+
+variable "mail" {
+  description = "Whether to set up mail stuff"
+  type        = bool
+  default     = true
+}

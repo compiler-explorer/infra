@@ -18,37 +18,6 @@ resource "aws_route53_record" "address" {
   }
 }
 
-resource "aws_route53_record" "wildcard" {
-  count   = var.wildcard ? 1 : 0
-  zone_id = aws_route53_zone.zone.zone_id
-  name    = "*"
-  type    = "CNAME"
-  ttl     = 60
-  records = [aws_route53_record.address["a"].fqdn]
-}
-
-resource "aws_route53_record" "spf" {
-  zone_id = aws_route53_zone.zone.zone_id
-  name    = ""
-  type    = "SPF"
-  ttl     = 3600
-  records = ["v=spf1 a include:_spf.google.com ~all"]
-}
-
-resource "aws_route53_record" "mail" {
-  name    = ""
-  type    = "MX"
-  ttl     = 3600
-  zone_id = aws_route53_zone.zone.zone_id
-  records = [
-    "1 aspmx.l.google.com",
-    "5 alt1.aspmx.l.google.com",
-    "5 alt2.aspmx.l.google.com",
-    "10 alt3.aspmx.l.google.com",
-    "10 alt4.aspmx.l.google.com",
-  ]
-}
-
 resource "aws_route53_record" "acm" {
   for_each = {
   for dvo in var.certificate.domain_validation_options : dvo.domain_name => {
@@ -64,4 +33,37 @@ resource "aws_route53_record" "acm" {
   type            = each.value.type
   records         = [each.value.record]
   ttl             = 60
+}
+
+resource "aws_route53_record" "wildcard" {
+  count   = var.wildcard ? 1 : 0
+  zone_id = aws_route53_zone.zone.zone_id
+  name    = "*"
+  type    = "CNAME"
+  ttl     = 60
+  records = [aws_route53_record.address["a"].fqdn]
+}
+
+resource "aws_route53_record" "spf" {
+  count   = var.mail ? 1 : 0
+  zone_id = aws_route53_zone.zone.zone_id
+  name    = ""
+  type    = "SPF"
+  ttl     = 3600
+  records = ["v=spf1 a include:_spf.google.com ~all"]
+}
+
+resource "aws_route53_record" "mail" {
+  count   = var.mail ? 1 : 0
+  name    = ""
+  type    = "MX"
+  ttl     = 3600
+  zone_id = aws_route53_zone.zone.zone_id
+  records = [
+    "1 aspmx.l.google.com",
+    "5 alt1.aspmx.l.google.com",
+    "5 alt2.aspmx.l.google.com",
+    "10 alt3.aspmx.l.google.com",
+    "10 alt4.aspmx.l.google.com",
+  ]
 }
