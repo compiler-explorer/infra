@@ -30,3 +30,6 @@ compilers:
         url: https://github.com/JetBrains/kotlin/releases/download/v1.5.20/kotlin-native-linux-1.5.20.tar.gz
       - name: 1.5.21
         url: https://github.com/JetBrains/kotlin/releases/download/v1.5.21/kotlin-native-linux-1.5.21.tar.gz
+      - name: 1.5.30
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.30/kotlin-native-linux-x86_64-1.5.30.tar.gz
+        configure_command: [mv, kotlin-native-linux-x86_64-1.5.30, kotlin-native-linux-1.5.30]
