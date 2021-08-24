@@ -618,6 +618,13 @@ libraries:
         - scn
       targets:
         - '0.4'
+    dawjson:
+      type: github
+      repo: beached/daw_json_link
+      target_prefix: v
+      check_file: readme.md
+      targets:
+        - 2.9.11
     nightly:
       install_always: true
       if: nightly
@@ -1222,6 +1229,14 @@ libraries:
         method: nightlyclone
         repo: google/hotels-template-library
         check_file: README.md
+        build_type: none
+        targets:
+          - trunk
+      dawjson:
+        type: github
+        method: nightlyclone
+        repo: beached/daw_json_link
+        check_file: include/daw/json/daw_json_link.h
         build_type: none
         targets:
           - trunk
