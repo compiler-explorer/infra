@@ -3,16 +3,16 @@
 set -ex
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd ${DIR}
+cd "${DIR}"
 
 if [[ "$1" != "--updated" ]]; then
-    sudo -u ubuntu git -C ${DIR} pull
-    pwd
-    exec bash ${BASH_SOURCE[0]} --updated
-    exit 0
+  sudo -u ubuntu git -C "${DIR}" pull
+  pwd
+  exec bash "${BASH_SOURCE[0]}" --updated
+  exit 0
 fi
 
-env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
+env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
 apt -y install mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
@@ -52,6 +52,11 @@ EOF
 chfn -f 'Compiler Explorer Admin' ubuntu
 chmod 640 /etc/ssmtp/*
 
-echo admin-node > /etc/hostname
+echo admin-node >/etc/hostname
 hostname admin-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost admin-node" /etc/hosts
+
+if ! grep vm.min_free_kbytes /etc/sysctl.conf; then
+  echo "vm.min_free_kbytes=65536" >>/etc/sysctl.conf
+  sysctl -p
+fi
