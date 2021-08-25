@@ -525,17 +525,19 @@ class GitHubInstallable(Installable):
         self.install_context.clean_staging()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(self.get_archive_url(), self.get_archive_pipecommand())
+            dest = os.path.join(self.install_context.staging, self.untar_dir)
         elif self.method == "clone_branch":
             self.clone_branch()
+            dest = os.path.join(self.install_context.destination, self.install_path)
         elif self.method == "nightlyclone":
             self.clone_default()
+            dest = os.path.join(self.install_context.destination, self.install_path)
         else:
             raise RuntimeError(f'Unknown Github method {self.method}')
 
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
-        dest = os.path.join(self.install_context.destination, self.install_path)
         self.install_context.run_script(dest, self.after_stage_script)
 
     def verify(self):
