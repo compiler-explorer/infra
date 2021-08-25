@@ -48,7 +48,7 @@ resource "aws_route53_record" "spf" {
   count   = var.mail ? 1 : 0
   zone_id = aws_route53_zone.zone.zone_id
   name    = ""
-  type    = "SPF"
+  type    = "TXT"
   ttl     = 3600
   records = ["v=spf1 a include:_spf.google.com ~all"]
 }

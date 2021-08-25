@@ -72,6 +72,17 @@ resource "aws_route53_record" "gh-godbolt-org" {
   records = ["78a5d77c2a"]
 }
 
+
+resource "aws_route53_record" "dkim-godbolt-org" {
+  name    = "google._domainkey"
+  zone_id = module.godbolt-org.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = [
+    "v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCYl6muZHDYPuwza5M/Ba4coCeQShiWZ7qIaZgiWWhicS/0Xtesz88hFRdQHs6KlxiKUsPw8053SpS9NVLoq3jWeWce4JJgBNXi29WEnID0SJSdyq9xgpe1GThZccem21rHOk0t1VdQDoXUvhDTI3HaGmODMv7FNQm2nz1yNZDP1QIDAQAB"]
+}
+
+
 ////////////////////////////////////////////////////
 
 module compiler-explorer-com {
