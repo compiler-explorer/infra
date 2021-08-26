@@ -325,8 +325,13 @@ class Installable:
         try:
             self.depends = [all_installables[dep] for dep in self.depends]
         except KeyError as ke:
-            self.error(f"Unable to find dependency {ke}")
+            self.error(f"Unable to find dependency {ke} in {all_installables}")
             raise
+        dep_re = re.compile('%DEP([0-9]+)%')
+        def dep_n(match):
+            return str(self.install_context.destination / self.depends[int(match.group(1))].install_path)
+        for k, v in self.check_env.items():
+            self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
 
     def debug(self, message: str) -> None:
         self.install_context.debug(f'{self.name}: {message}')

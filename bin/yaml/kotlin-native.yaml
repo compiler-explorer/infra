@@ -4,9 +4,13 @@ compilers:
     dir: kotlin-native-linux-{name}
     compression: gz
     check_exe: bin/kotlinc-native -version
+    check_env:
+      - JAVA_HOME=%DEP0%
     filename: kotlin-native-linux-{name}
     url: https://github.com/JetBrains/kotlin/releases/download/v{name}/{filename}.tar.gz
     untar_dir: '{filename}'
+    depends:
+      - compilers/java 16.0.1
     targets:
       - name: 1.4.0
         filename: kotlin-native-linux-1.4
