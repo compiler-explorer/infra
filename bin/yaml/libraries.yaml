@@ -625,6 +625,14 @@ libraries:
       check_file: readme.md
       targets:
         - 2.9.11
+      after_stage_script:
+        - mkdir build
+        - cd build
+        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ cmake -DCMAKE_INSTALL_PREFIX="." ..
+        - cmake --install .
+        - cp -Rf include ..
+        - cd ..
+        - rm -Rf build
     nightly:
       install_always: true
       if: nightly
@@ -1240,6 +1248,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+        after_stage_script:
+          - mkdir build
+          - cd build
+          - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ cmake -DCMAKE_INSTALL_PREFIX="." ..
+          - cmake --install .
+          - cp -Rf include ..
+          - cd ..
+          - rm -Rf build
   cuda:
     cub:
       type: github
