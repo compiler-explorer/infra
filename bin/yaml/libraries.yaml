@@ -628,8 +628,8 @@ libraries:
       after_stage_script:
         - mkdir build
         - cd build
-        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ cmake -DCMAKE_INSTALL_PREFIX="." ..
-        - cmake --install .
+        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake -DCMAKE_INSTALL_PREFIX="." ..
+        - /opt/compiler-explorer/cmake/bin/cmake --install .
         - cp -Rf include ..
         - cd ..
         - rm -Rf build
