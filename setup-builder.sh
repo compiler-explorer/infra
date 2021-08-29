@@ -8,7 +8,7 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
 wget -qO- https://get.docker.com/ | sh
 
-apt -y install python2.7 mosh fish jq ssmtp cronic subversion upx gdb
+apt -y install mosh fish ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
 # Install private and public keys

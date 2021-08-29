@@ -42,6 +42,7 @@ apt-get install -y \
     pkg-config \
     protobuf-compiler \
     python3-pip \
+    python3.8-venv \
     s3cmd \
     subversion \
     texinfo \
