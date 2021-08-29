@@ -6,14 +6,11 @@ set -euo pipefail
 
 systemctl stop docker
 umount /ephemeral || true
-sfdisk -f /dev/nvme1n1 <<EOF
-label: dos
-label-id: 0x7d7e658b
-device: /dev/nvme1n1
-unit: sectors
-
-/dev/nvme1n1p1 : start=     3999744, size=   120999936, type=82
-/dev/nvme1n1p2 : start=   124999680, size=   656248832, type=83
+# swap was 57GB (!) hopefully we really don't need that much
+SWAP_SIZE=$((8 * 1024 * 1024 * 1024 / 512))
+sfdisk /dev/nvme1n1 <<EOF
+,${SWAP_SIZE},82
+;
 EOF
 sync
 sleep 2 # let the device get registered
