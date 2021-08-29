@@ -35,7 +35,6 @@ apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip3
 pip3 install --upgrade awscli
-touch /updated
 
 # setup ce_user
 adduser --system --group ${CE_USER}

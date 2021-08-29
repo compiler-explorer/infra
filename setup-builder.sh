@@ -8,12 +8,10 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
 wget -qO- https://get.docker.com/ | sh
 
-apt -y install mosh fish ssmtp cronic subversion upx gdb
+apt -y install mosh fish cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
-# Install private and public keys
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
-
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
