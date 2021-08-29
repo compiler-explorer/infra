@@ -330,7 +330,7 @@ class Installable:
         dep_re = re.compile('%DEP([0-9]+)%')
         def dep_n(match):
             return str(self.install_context.destination / self.depends[int(match.group(1))].install_path)
-        for k, v in self.check_env.items():
+        for k in self.check_env.keys():
             self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
 
     def debug(self, message: str) -> None:
