@@ -33,25 +33,6 @@ chown -R ubuntu:ubuntu /home/ubuntu/infra
 sudo -u ubuntu fish setup.fish
 crontab -u ubuntu crontab.admin
 
-# Configure email
-SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
-cat >/etc/ssmtp/ssmtp.conf <<EOF
-root=postmaster
-mailhub=email-smtp.us-east-1.amazonaws.com
-hostname=compiler-explorer.com
-FromLineOverride=NO
-AuthUser=AKIAJZWPG4D3SSK45LJA
-AuthPass=${SMTP_PASS}
-UseTLS=YES
-UseSTARTTLS=YES
-EOF
-cat >/etc/ssmtp/revaliases <<EOF
-ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
-EOF
-
-chfn -f 'Compiler Explorer Admin' ubuntu
-chmod 640 /etc/ssmtp/*
-
 echo admin-node >/etc/hostname
 hostname admin-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost admin-node" /etc/hosts

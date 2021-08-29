@@ -2,8 +2,6 @@
 
 set -ex
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 # https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
 wait_for_apt() {
     while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
@@ -99,6 +97,25 @@ mkdir -p /efs
 if ! grep "/efs nfs" /etc/fstab; then
     echo "fs-db4c8192.efs.us-east-1.amazonaws.com:/ /efs nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
 fi
+
+# Configure email
+SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
+cat >/etc/ssmtp/ssmtp.conf <<EOF
+root=postmaster
+mailhub=email-smtp.us-east-1.amazonaws.com
+hostname=compiler-explorer.com
+FromLineOverride=NO
+AuthUser=AKIAJZWPG4D3SSK45LJA
+AuthPass=${SMTP_PASS}
+UseTLS=YES
+UseSTARTTLS=YES
+EOF
+cat >/etc/ssmtp/revaliases <<EOF
+ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
+EOF
+
+chfn -f 'Compiler Explorer Admin' ubuntu
+chmod 640 /etc/ssmtp/*
 
 mount -a
 
