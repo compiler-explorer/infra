@@ -38,6 +38,10 @@ packer-conan: config.json  ## Builds the base image for the CE conan-server
 packer-win: config.json  ## Builds the base image for the CE windows
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-win.json
 
+.PHONY: packer-builder
+packer-win: config.json  ## Builds the base image for the CE builder
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-builder.json
+
 .PHONY: clean
 clean:  ## Cleans up anything
 	rm -rf $(VIRTUALENV)

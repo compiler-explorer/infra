@@ -2,9 +2,7 @@
 
 # called on every startup
 
-set -ex
-
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+set -euo pipefail
 
 systemctl stop docker
 umount /ephemeral || true
@@ -33,19 +31,19 @@ cat >/etc/docker/daemon.json <<EOF
 EOF
 
 mount_opt() {
-    mkdir -p /opt/compiler-explorer
-    mountpoint /opt/compiler-explorer || mount --bind /efs/compiler-explorer /opt/compiler-explorer
+  mkdir -p /opt/compiler-explorer
+  mountpoint /opt/compiler-explorer || mount --bind /efs/compiler-explorer /opt/compiler-explorer
 
-    mkdir -p /opt/intel
-    mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
+  mkdir -p /opt/intel
+  mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
 
-    mkdir -p /opt/arm
-    mountpoint /opt/arm || mount --bind /efs/arm /opt/arm
+  mkdir -p /opt/arm
+  mountpoint /opt/arm || mount --bind /efs/arm /opt/arm
 
-    [ -f /opt/.health ] || touch /opt/.health
-    mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
+  [ -f /opt/.health ] || touch /opt/.health
+  mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
-    ./mount-all-img.sh
+  ./mount-all-img.sh
 }
 
 mount_opt
