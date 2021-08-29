@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exuo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -25,6 +25,6 @@ chown -R ubuntu:ubuntu /home/ubuntu/infra
 sudo -u ubuntu fish setup.fish
 crontab -u ubuntu crontab.builder
 
-echo builder-node >/etc/hostname
-hostname builder-node
-sed -i "/127.0.0.1/c 127.0.0.1 localhost builder-node" /etc/hosts
+echo builder >/etc/hostname
+hostname builder
+sed -i "/127.0.0.1/c 127.0.0.1 localhost builder" /etc/hosts

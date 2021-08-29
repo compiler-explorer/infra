@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exuo pipefail
 
 # https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
 wait_for_apt() {
@@ -18,7 +18,7 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python3-pip wget cachefilesd qemu-user-static libc6-arm64-cross libtinfo5
+apt-get -y install unzip libwww-perl libdatetime-perl nfs-common jq python3-pip wget cachefilesd qemu-user-static libc6-arm64-cross libtinfo5 ssmtp
 apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip

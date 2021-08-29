@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -exuo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${DIR}"
@@ -14,7 +14,7 @@ fi
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
-apt -y install mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
+apt -y install mosh fish jq cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/infra
