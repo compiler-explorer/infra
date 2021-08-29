@@ -5,6 +5,7 @@ set -exuo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
+usermod -aG docker ubuntu
 
 wget -qO- https://get.docker.com/ | sh
 
@@ -22,6 +23,7 @@ crontab -u ubuntu crontab.builder
 echo builder >/etc/hostname
 hostname builder
 sed -i "/127.0.0.1/c 127.0.0.1 localhost builder" /etc/hosts
+sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
 
 mv /infra /home/ubuntu/infra
 chown -R ubuntu:ubuntu /home/ubuntu/infra

@@ -16,6 +16,9 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
 apt -y install mosh fish jq cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
+mkdir -p /home/ubuntu/.fish/functions
+echo -e 'function fish_greeting\nend\n' > /home/ubuntu/.fish/functions
+chown ubuntu:ubuntu /home/ubuntu/.fish/functions
 
 cd /home/ubuntu/infra
 
@@ -36,6 +39,7 @@ crontab -u ubuntu crontab.admin
 echo admin-node >/etc/hostname
 hostname admin-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost admin-node" /etc/hosts
+sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
 
 if ! grep vm.min_free_kbytes /etc/sysctl.conf; then
   echo "vm.min_free_kbytes=65536" >>/etc/sysctl.conf
