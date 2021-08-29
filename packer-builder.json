@@ -54,7 +54,7 @@
       "type": "shell",
       "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
       "inline": [
-        "set -e",
+        "set -euo pipefail",
         "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",

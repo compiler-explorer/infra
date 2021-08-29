@@ -5,9 +5,9 @@ set -exuo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
-usermod -aG docker ubuntu
 
 wget -qO- https://get.docker.com/ | sh
+usermod -aG docker ubuntu
 
 apt -y install mosh fish cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
