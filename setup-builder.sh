@@ -11,9 +11,6 @@ wget -qO- https://get.docker.com/ | sh
 apt -y install python2.7 mosh fish jq ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
 
-cd /infra
-pip install --upgrade -r requirements.txt
-
 # Install private and public keys
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
 
@@ -30,3 +27,4 @@ sed -i "/127.0.0.1/c 127.0.0.1 localhost builder" /etc/hosts
 
 mv /infra /home/ubuntu/infra
 chown -R ubuntu:ubuntu /home/ubuntu/infra
+sudo -u ubuntu make -C /home/ubuntu/infra ce

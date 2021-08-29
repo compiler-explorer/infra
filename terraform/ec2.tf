@@ -59,3 +59,30 @@ resource "aws_volume_attachment" "ebs_conanserver" {
   volume_id   = "vol-0a99526fcf7bcfc11"
   instance_id = aws_instance.ConanNode.id
 }
+
+
+resource "aws_instance" "BuilderNode" {
+  ami                         = local.builder_image_id
+  // TODO bring into the fold
+  iam_instance_profile        = "GccBuilder"
+  ebs_optimized               = true
+  // TODO make 4xlarge or similar
+  instance_type               = "c5d.large"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = aws_subnet.ce-1a.id
+  // TODO reconsider, make an SG specifically for builder
+  vpc_security_group_ids      = [aws_security_group.AdminNode.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 24
+    delete_on_termination = true
+  }
+
+  tags = {
+    Name = "Builder-New"
+  }
+}
