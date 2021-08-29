@@ -21,7 +21,7 @@
       "associate_public_ip_address": true,
       "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
-      "security_group_id": "sg-99df30fd",
+      "security_group_id": "sg-f53f9f80",
       "subnet_id": "subnet-1df1e135",
       "ami_block_device_mappings": [
         {

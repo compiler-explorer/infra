@@ -5,9 +5,9 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [[ "$1" != "--updated" ]]; then
-    sudo -u ubuntu git -C ${DIR} pull
+    sudo -u ubuntu git -C "${DIR}" pull
     pwd
-    exec bash ${BASH_SOURCE[0]} --updated
+    exec bash "${BASH_SOURCE[0]}" --updated
     exit 0
 fi
 
@@ -16,9 +16,7 @@ if [[ ! -f /updated.2 ]]; then
     touch /updated.2
 fi
 
-bash ${DIR}/setup-builder-startup.sh
-
-env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
+env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
 apt -y install python2.7 mosh fish jq ssmtp cronic subversion upx gdb
 chsh ubuntu -s /usr/bin/fish
