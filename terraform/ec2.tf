@@ -1,3 +1,8 @@
+locals {
+  conan_image_id   = "ami-0b41dc7a318b530bd"
+  builder_image_id = "ami-0aafd27bd6c1d2536"
+}
+
 resource "aws_instance" "AdminNode" {
   ami                         = "ami-0e76b49ef537405f1"
   iam_instance_profile        = "CompilerExplorerAdminNode"

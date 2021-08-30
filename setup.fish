@@ -17,3 +17,5 @@ echo set VIRTUAL_ENV_DISABLE_PROMPT yes >> ~/.config/fish/config.fish
 echo if test -e ~/infra/.env/bin/activate.fish >> ~/.config/fish/config.fish
 echo   source ~/infra/.env/bin/activate.fish >> ~/.config/fish/config.fish
 echo end >> ~/.config/fish/config.fish
+mkdir -p ~/.fish/functions/
+echo -e 'function fish_greeting\nend\n' > ~/.fish/functions/fish_greeting

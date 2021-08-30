@@ -16,9 +16,6 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
 apt -y install mosh fish jq cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
-mkdir -p /home/ubuntu/.fish/functions
-echo -e 'function fish_greeting\nend\n' > /home/ubuntu/.fish/functions
-chown ubuntu:ubuntu /home/ubuntu/.fish/functions
 
 cd /home/ubuntu/infra
 
