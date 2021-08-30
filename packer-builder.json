@@ -52,7 +52,7 @@
     { "type": "file", "source": "packer", "destination": "/home/ubuntu/" },
     {
       "type": "shell",
-      "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+      "execute_command" : "{{ .Vars }} sudo -E bash '{{ .Path }}'",
       "inline": [
         "set -euo pipefail",
         "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
