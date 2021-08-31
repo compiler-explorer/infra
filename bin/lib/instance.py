@@ -11,7 +11,7 @@ logger = logging.getLogger('instance')
 
 
 @functools.lru_cache()
-def _singleton_instance(name: str) -> ec2.Instance:
+def _singleton_instance(name: str):
     result = ec2_client.describe_instances(Filters=[
         {'Name': 'tag:Name', 'Values': [name]},
         {'Name': 'instance-state-name', 'Values': ['stopped', 'stopping', 'running', 'pending']},
