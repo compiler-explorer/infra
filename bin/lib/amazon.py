@@ -51,6 +51,7 @@ def _create_anon_s3_client():
 
 
 ec2 = LazyObjectWrapper(lambda: boto3.resource('ec2'))
+ec2_client = LazyObjectWrapper(lambda: boto3.client('ec2'))
 s3 = LazyObjectWrapper(lambda: boto3.resource('s3'))
 as_client = LazyObjectWrapper(lambda: boto3.client('autoscaling'))
 elb_client = LazyObjectWrapper(lambda: boto3.client('elbv2'))
