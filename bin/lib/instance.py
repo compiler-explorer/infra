@@ -7,12 +7,15 @@ from lib.amazon import ec2, ec2_client, as_client, elb_client, get_releases, rel
 from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
-logger = logging.getLogger('ssh')
+logger = logging.getLogger('instance')
 
 
 @functools.lru_cache()
 def _singleton_instance(name: str) -> ec2.Instance:
-    result = ec2_client.describe_instances(Filters=[{'Name': 'tag:Name', 'Values': [name]}])
+    result = ec2_client.describe_instances(Filters=[
+        {'Name': 'tag:Name', 'Values': [name]},
+        {'Name': 'instance-state-name', 'Values': ['stopped', 'stopping', 'running', 'pending']},
+    ])
     reservations = result['Reservations']
     if len(reservations) == 0:
         raise RuntimeError(f"No instance named '{name}' found")
