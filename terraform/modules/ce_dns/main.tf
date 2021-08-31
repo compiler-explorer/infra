@@ -50,7 +50,7 @@ resource "aws_route53_record" "spf" {
   name    = ""
   type    = "TXT"
   ttl     = 3600
-  records = ["v=spf1 a include:_spf.google.com ~all"]
+  records = ["v=spf1 include:_spf.google.com ~all"]
 }
 
 resource "aws_route53_record" "mail" {
