@@ -1,6 +1,6 @@
 locals {
   conan_image_id   = "ami-0b41dc7a318b530bd"
-  builder_image_id = "ami-0aafd27bd6c1d2536"
+  builder_image_id = "ami-0c4ea668b9465d57b"
 }
 
 resource "aws_instance" "AdminNode" {
