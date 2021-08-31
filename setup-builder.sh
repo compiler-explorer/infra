@@ -28,3 +28,5 @@ sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
 mv /infra /home/ubuntu/infra
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 sudo -u ubuntu make -C /home/ubuntu/infra ce
+
+ln -s /efs/squash-images /opt/squash-images
