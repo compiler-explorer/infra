@@ -1,8 +1,7 @@
 locals {
-  image_id          = "ami-0ae0c00c96d17fa9e"
-  staging_image_id  = "ami-0ae0c00c96d17fa9e"
-  beta_image_id     = "ami-0ae0c00c96d17fa9e"
-  conan_image_id    = "ami-0b41dc7a318b530bd"
+  image_id          = "ami-0802e269a69d186ae"
+  staging_image_id  = "ami-0802e269a69d186ae"
+  beta_image_id     = "ami-0802e269a69d186ae"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
   // Current c5 on-demand price is 0.085. Yearly pre-pay is 0.05 (so this is same as prepaying a year)
@@ -27,7 +26,7 @@ resource "aws_launch_template" "CompilerExplorer-beta" {
     resource_type = "volume"
 
     tags = {
-      Site = "CompilerExplorer"
+      Site        = "CompilerExplorer"
       Environment = "Beta"
     }
   }
@@ -36,9 +35,9 @@ resource "aws_launch_template" "CompilerExplorer-beta" {
     resource_type = "instance"
 
     tags = {
-      Site = "CompilerExplorer"
+      Site        = "CompilerExplorer"
       Environment = "Beta"
-      Name = "Beta"
+      Name        = "Beta"
     }
   }
 }
@@ -60,7 +59,7 @@ resource "aws_launch_template" "CompilerExplorer-staging" {
     resource_type = "volume"
 
     tags = {
-      Site = "CompilerExplorer"
+      Site        = "CompilerExplorer"
       Environment = "Staging"
     }
   }
@@ -69,9 +68,9 @@ resource "aws_launch_template" "CompilerExplorer-staging" {
     resource_type = "instance"
 
     tags = {
-      Site = "CompilerExplorer"
+      Site        = "CompilerExplorer"
       Environment = "Staging"
-      Name = "Staging"
+      Name        = "Staging"
     }
   }
 }
@@ -100,9 +99,9 @@ resource "aws_launch_template" "CompilerExplorer-prod" {
     resource_type = "instance"
 
     tags = {
-      Site = "CompilerExplorer"
+      Site        = "CompilerExplorer"
       Environment = "Prod"
-      Name = "Prod"
+      Name        = "Prod"
     }
   }
 }

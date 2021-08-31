@@ -17,4 +17,6 @@ for img_file in "${IMG_DIR}"/**/*.img; do
     fi
 done
 
+echo -n "Waiting for mounts to complete..."
 wait
+echo "done"

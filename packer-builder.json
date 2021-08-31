@@ -43,6 +43,7 @@
   ],
 
   "variables": {
+    "BRANCH": "main",
     "MY_ACCESS_KEY": "",
     "MY_SECRET_KEY": ""
   },
@@ -51,18 +52,18 @@
     { "type": "file", "source": "packer", "destination": "/home/ubuntu/" },
     {
       "type": "shell",
-      "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+      "execute_command" : "{{ .Vars }} sudo -E bash '{{ .Path }}'",
       "inline": [
-        "set -e",
+        "set -euo pipefail",
         "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone https://github.com/compiler-explorer/infra.git /home/ubuntu/infra",
-        "chown -R ubuntu:ubuntu /home/ubuntu/infra",
-        "/home/ubuntu/infra/setup-builder.sh"
+        "git clone -b {{user `BRANCH`}} https://github.com/compiler-explorer/infra.git /infra",
+        "cd /infra",
+        "env PACKER_SETUP=yes bash setup-builder.sh 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]

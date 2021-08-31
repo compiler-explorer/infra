@@ -1,12 +1,32 @@
+import functools
 import logging
 import subprocess
 from typing import Dict, Optional
 
-from lib.amazon import ec2, as_client, elb_client, get_releases, release_for
+from lib.amazon import ec2, ec2_client, as_client, elb_client, get_releases, release_for
 from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
-logger = logging.getLogger('ssh')
+logger = logging.getLogger('instance')
+
+
+@functools.lru_cache()
+def _singleton_instance(name: str):
+    result = ec2_client.describe_instances(Filters=[
+        {'Name': 'tag:Name', 'Values': [name]},
+        {'Name': 'instance-state-name', 'Values': ['stopped', 'stopping', 'running', 'pending']},
+    ])
+    reservations = result['Reservations']
+    if len(reservations) == 0:
+        raise RuntimeError(f"No instance named '{name}' found")
+    if len(reservations) > 1:
+        raise RuntimeError(f"Multiple instances named '{name}' found ({reservations}")
+    instances = reservations[0]['Instances']
+    if len(instances) == 0:
+        raise RuntimeError(f"No instance named '{name}' found")
+    if len(instances) > 1:
+        raise RuntimeError(f"Multiple instances named '{name}' found ({instances}")
+    return ec2.Instance(id=instances[0]['InstanceId'])
 
 
 class Instance:
@@ -70,7 +90,7 @@ class AdminInstance:
 
     @staticmethod
     def instance():
-        return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
+        return AdminInstance(_singleton_instance("AdminNode"))
 
 
 class ConanInstance:
@@ -82,7 +102,7 @@ class ConanInstance:
 
     @staticmethod
     def instance():
-        return ConanInstance(ec2.Instance(id='i-0a3f201b6378db03f'))
+        return ConanInstance(_singleton_instance("ConanNode"))
 
 
 class BuilderInstance:
@@ -94,7 +114,7 @@ class BuilderInstance:
 
     @staticmethod
     def instance():
-        return BuilderInstance(ec2.Instance(id='i-06e4bfd4430a8955a'))
+        return BuilderInstance(_singleton_instance('Builder'))
 
     def start(self):
         self.instance.start()

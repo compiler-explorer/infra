@@ -52,9 +52,9 @@
     { "type": "file", "source": "packer", "destination": "/home/ubuntu/" },
     {
       "type": "shell",
-      "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+      "execute_command" : "{{ .Vars }} sudo -E bash '{{ .Path }}'",
       "inline": [
-        "set -e",
+        "set -euo pipefail",
         "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "mkdir -p /root/.ssh",
@@ -65,7 +65,7 @@
         "apt-get -y install git",
         "git clone -b {{user `BRANCH`}} https://github.com/compiler-explorer/infra.git /infra",
         "cd /infra",
-        "env PACKER_SETUP=yes bash setup.sh 2>&1 | tee /tmp/setup.log"
+        "env PACKER_SETUP=yes bash setup-node.sh 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]
