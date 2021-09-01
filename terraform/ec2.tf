@@ -86,6 +86,12 @@ resource "aws_instance" "BuilderNode" {
     delete_on_termination = true
   }
 
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
 
   tags = {
     Name = "Builder"
