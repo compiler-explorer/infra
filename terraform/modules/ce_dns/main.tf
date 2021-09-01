@@ -50,7 +50,10 @@ resource "aws_route53_record" "spf" {
   name    = ""
   type    = "TXT"
   ttl     = 3600
-  records = ["v=spf1 include:_spf.google.com ~all", "v=DMARC1; p=none; rua=mailto:matt+dmarc@${var.domain_name}"]
+  records = [
+    "v=spf1 include:_spf.google.com ~all",
+    "v=DMARC1;p=none;sp=quarantine;rua=mailto:matt+dmarc@${var.domain_name}"
+  ]
 }
 
 resource "aws_route53_record" "mail" {
