@@ -1,6 +1,6 @@
 locals {
   conan_image_id   = "ami-0b41dc7a318b530bd"
-  builder_image_id = "ami-0c4ea668b9465d57b"
+  builder_image_id = "ami-0ef4921e9d82c03fb"
 }
 
 resource "aws_instance" "AdminNode" {
@@ -71,8 +71,7 @@ resource "aws_instance" "BuilderNode" {
   // TODO bring into the fold
   iam_instance_profile        = "GccBuilder"
   ebs_optimized               = true
-  // TODO make 4xlarge or similar
-  instance_type               = "c5d.large"
+  instance_type               = "c5d.4xlarge"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = aws_subnet.ce-1a.id
@@ -87,7 +86,8 @@ resource "aws_instance" "BuilderNode" {
     delete_on_termination = true
   }
 
+
   tags = {
-    Name = "Builder-New"
+    Name = "Builder"
   }
 }
