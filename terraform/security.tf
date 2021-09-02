@@ -306,3 +306,52 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   protocol                 = "tcp"
   description              = "Allow port 3000 access from the ALB"
 }
+
+// TODO: remove this comment once we're happy with the builder:
+// * builder used to have AmazonSFullAccess and AmazonSSMReadOnlyAccess
+resource "aws_iam_role" "Builder" {
+  name               = "Builder"
+  description        = "Compiler Explorer compiler and library building role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
+resource "aws_iam_instance_profile" "Builder" {
+  name = "Builder"
+  role = aws_iam_role.Builder.name
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerPolicy" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
+}
+
+data "aws_iam_policy_document" "CeBuilderStorageAccess" {
+  statement {
+    sid       = "S3Access"
+    actions   = ["s3:*"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeBuilderStorageAccess" {
+  name        = "CeBuilderStorageAccess"
+  description = "Can write to S3 in the appropriate locations only"
+  policy      = data.aws_iam_policy_document.CeBuilderStorageAccess.json
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_CeBuilderStorageAccess" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.CeModifyStoredState.arn
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_AccessCeParams" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.AccessCeParams.arn
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}

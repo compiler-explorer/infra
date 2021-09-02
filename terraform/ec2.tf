@@ -68,8 +68,7 @@ resource "aws_volume_attachment" "ebs_conanserver" {
 
 resource "aws_instance" "BuilderNode" {
   ami                         = local.builder_image_id
-  // TODO bring into the fold
-  iam_instance_profile        = "GccBuilder"
+  iam_instance_profile        = aws_iam_instance_profile.Builder.name
   ebs_optimized               = true
   instance_type               = "c5d.4xlarge"
   monitoring                  = false
