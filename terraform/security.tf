@@ -244,7 +244,8 @@ data "aws_iam_policy_document" "AccessCeParams" {
       "ssm:Get*",
       "ssm:List*"
     ]
-    // TODO is there a way to refer to this (external) parameter (CC @Cosaquee)
+    // These secrets are externally managed. There's no way I can find to refer to them using data stanzas without
+    // storing their contents here too.
     resources = ["arn:aws:ssm:us-east-1:052730242331:parameter/compiler-explorer/*"]
   }
 }
@@ -305,6 +306,34 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   source_security_group_id = aws_security_group.CompilerExplorerAlb.id
   protocol                 = "tcp"
   description              = "Allow port 3000 access from the ALB"
+}
+
+resource "aws_security_group" "Builder" {
+  vpc_id      = aws_vpc.CompilerExplorer.id
+  name        = "BuilderNodeSecGroup"
+  description = "Compiler Explorer compiler and library security group"
+}
+
+// The builder needs to be able to fetch things from the wider internet.
+resource "aws_security_group_rule" "Builder_EgressToAll" {
+  security_group_id = aws_security_group.Builder.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "-1"
+  description       = "Unfettered outbound access"
+}
+
+resource "aws_security_group_rule" "Builder_SshFromAdminNode" {
+  security_group_id        = aws_security_group.Builder.id
+  type                     = "ingress"
+  from_port                = 22
+  to_port                  = 22
+  source_security_group_id = aws_security_group.AdminNode.id
+  protocol                 = "tcp"
+  description              = "Allow SSH access from the admin node only"
 }
 
 // TODO: remove this comment once we're happy with the builder:

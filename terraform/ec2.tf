@@ -74,8 +74,7 @@ resource "aws_instance" "BuilderNode" {
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = aws_subnet.ce-1a.id
-  // TODO reconsider, make an SG specifically for builder
-  vpc_security_group_ids      = [aws_security_group.AdminNode.id]
+  vpc_security_group_ids      = [aws_security_group.Builder.id]
   associate_public_ip_address = true
   source_dest_check           = false
 
