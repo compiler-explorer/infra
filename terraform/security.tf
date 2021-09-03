@@ -372,7 +372,7 @@ resource "aws_iam_policy" "CeBuilderStorageAccess" {
 
 resource "aws_iam_role_policy_attachment" "Builder_attach_CeBuilderStorageAccess" {
   role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.CeModifyStoredState.arn
+  policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
 }
 
 resource "aws_iam_role_policy_attachment" "Builder_attach_AccessCeParams" {
