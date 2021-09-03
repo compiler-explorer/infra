@@ -38,7 +38,7 @@ def builder_start():
         for _ in range(60):
             if instance.status() == 'running':
                 break
-            time.sleep(1)
+            time.sleep(5)
         else:
             raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
     for _ in range(60):
@@ -46,10 +46,9 @@ def builder_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-            time.sleep(5)
         except Exception as e:  # pylint: disable=broad-except
             print("Still waiting for SSH: got: {}".format(e))
-        time.sleep(1)
+        time.sleep(5)
     else:
         raise RuntimeError("Unable to get SSH access")
     res = exec_remote(instance,
