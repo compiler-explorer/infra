@@ -46,6 +46,7 @@ def builder_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
+            time.sleep(5)
         except Exception as e:  # pylint: disable=broad-except
             print("Still waiting for SSH: got: {}".format(e))
         time.sleep(1)
