@@ -7,6 +7,9 @@ resource "aws_efs_file_system" "fs-db4c8192" {
   lifecycle_policy {
     transition_to_ia = "AFTER_14_DAYS"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_efs_mount_target" "fs-db4c8192" {

@@ -5,6 +5,7 @@ resource "aws_dynamodb_table" "links" {
       read_capacity,
       write_capacity
     ]
+    prevent_destroy = true
   }
   billing_mode   = "PAY_PER_REQUEST"
   read_capacity  = 1
@@ -33,6 +34,7 @@ resource "aws_dynamodb_table" "versionslog" {
       read_capacity,
       write_capacity
     ]
+    prevent_destroy = true
   }
   billing_mode   = "PAY_PER_REQUEST"
   read_capacity  = 1

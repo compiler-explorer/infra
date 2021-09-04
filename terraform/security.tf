@@ -392,13 +392,16 @@ resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
 resource "aws_security_group" "efs" {
   vpc_id      = aws_vpc.CompilerExplorer.id
   name        = "EFS"
-  description = "EFS for Gcc explorer"
+  description = "EFS access for Compiler Explorer"
   tags        = {
     Name = "EFS"
   }
 }
 
 resource "aws_security_group_rule" "efs_outbound" {
+  lifecycle {
+    create_before_destroy = true
+  }
   security_group_id = aws_security_group.efs.id
   type              = "egress"
   from_port         = 0
@@ -410,9 +413,9 @@ resource "aws_security_group_rule" "efs_outbound" {
 
 resource "aws_security_group_rule" "efs_inbound" {
   for_each                 = {
-    "Access for admin SG" = aws_security_group.AdminNode.id,
-    "General CE access"   = aws_security_group.CompilerExplorer.id
-    "Builder access"      = aws_security_group.Builder.id
+    "Admin"       = aws_security_group.AdminNode.id,
+    "Compilation" = aws_security_group.CompilerExplorer.id
+    "Builder"     = aws_security_group.Builder.id
   }
   security_group_id        = aws_security_group.efs.id
   type                     = "ingress"
@@ -420,5 +423,5 @@ resource "aws_security_group_rule" "efs_inbound" {
   to_port                  = 65535
   protocol                 = "all"
   source_security_group_id = each.value
-  description              = each.key
+  description              = "${each.key} node acccess"
 }

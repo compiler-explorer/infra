@@ -4,6 +4,9 @@ resource "aws_s3_bucket" "compiler-explorer" {
   tags   = {
     S3-Bucket-Name = "compiler-explorer"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
   cors_rule {
     allowed_headers = ["Authorization"]
     allowed_methods = ["GET"]
@@ -30,6 +33,10 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
   tags   = {
     S3-Bucket-Name = "compiler-explorer-logs"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 
   # not sure if we explicitly need to state the bucket owner gets full control
@@ -150,6 +157,9 @@ resource "aws_s3_bucket" "storage-godbolt-org" {
   tags   = {
     S3-Bucket-Name = "storage.godbolt.org"
   }
+  lifecycle {
+    prevent_destroy = true
+  }
   lifecycle_rule {
     enabled                                = true
     abort_incomplete_multipart_upload_days = 7
@@ -169,7 +179,9 @@ resource "aws_s3_bucket" "ce-cdn-net" {
   tags   = {
     S3-Bucket-Name = "ce-cdn.net"
   }
-
+  lifecycle {
+    prevent_destroy = true
+  }
   cors_rule {
     allowed_methods = ["GET"]
     allowed_origins = ["*"]
