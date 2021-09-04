@@ -312,6 +312,9 @@ resource "aws_security_group" "Builder" {
   vpc_id      = aws_vpc.CompilerExplorer.id
   name        = "BuilderNodeSecGroup"
   description = "Compiler Explorer compiler and library security group"
+  tags        = {
+    Name = "Builder"
+  }
 }
 
 // The builder needs to be able to fetch things from the wider internet.
@@ -383,4 +386,39 @@ resource "aws_iam_role_policy_attachment" "Builder_attach_AccessCeParams" {
 resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
   role       = aws_iam_role.Builder.name
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+
+resource "aws_security_group" "efs" {
+  vpc_id      = aws_vpc.CompilerExplorer.id
+  name        = "EFS"
+  description = "EFS for Gcc explorer"
+  tags        = {
+    Name = "EFS"
+  }
+}
+
+resource "aws_security_group_rule" "efs_outbound" {
+  security_group_id = aws_security_group.efs.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "all"
+}
+
+resource "aws_security_group_rule" "efs_inbound" {
+  for_each                 = {
+    "Access for admin SG" = aws_security_group.AdminNode.id,
+    "General CE access"   = aws_security_group.CompilerExplorer.id
+    "Builder access"      = aws_security_group.Builder.id
+  }
+  security_group_id        = aws_security_group.efs.id
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 65535
+  protocol                 = "all"
+  source_security_group_id = each.value
+  description              = each.key
 }

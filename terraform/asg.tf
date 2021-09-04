@@ -1,12 +1,6 @@
+
 locals {
-  // 1e seems to be lacking many instance types..so I ignore it here
-  subnets      = [
-    aws_subnet.ce-1a.id,
-    aws_subnet.ce-1b.id,
-    aws_subnet.ce-1c.id,
-    aws_subnet.ce-1d.id,
-    aws_subnet.ce-1f.id
-  ]
+  subnets      = data.aws_subnet_ids.all.ids
   grace_period = 180
   cooldown     = 180
 }
