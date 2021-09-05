@@ -18,6 +18,7 @@
       "ssh_username": "ubuntu",
       "ami_name": "compiler-explorer packer 20.04 @ {{timestamp}}",
       "tags": {"Site":  "CompilerExplorer"},
+      "run_volume_tags": {"Site":  "CompilerExplorer"},
       "associate_public_ip_address": true,
       "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
