@@ -3,7 +3,7 @@ import time
 import click
 
 from lib.amazon import get_autoscaling_groups_for, as_client
-from lib.ce_utils import are_you_sure, describe_current_release
+from lib.ce_utils import are_you_sure, describe_current_release, update_motd
 from lib.cli import cli
 from lib.env import Config, Environment
 
@@ -41,14 +41,16 @@ def environment_start(cfg: Config):
 @environment.command(name='refresh')
 @click.option("--min-healthy-percent", type=click.IntRange(min=0, max=100), metavar='PERCENT',
               help='While updating, ensure at least PERCENT are healthy', default=75, show_default=True)
+@click.option('--motd', type=str, default='Site is being updated',
+              help='Set the message of the day used during refresh', show_default=True)
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
     new instances (with the latest code), while ensuring there are some left to handle
     the traffic while we update."""
-    # TODO motd like the restart
+    old_motd = update_motd(cfg, motd)
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg['AutoScalingGroupName']
         if asg['DesiredCapacity'] == 0:
@@ -65,7 +67,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int):
         else:
             if not are_you_sure(f'Refresh instances in {group_name} with version {describe_current_release(cfg)}',
                                 cfg):
-                return
+                continue
             print("  Starting new refresh...")
             refresh_result = as_client.start_instance_refresh(
                 AutoScalingGroupName=group_name,
@@ -94,6 +96,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int):
                 last_log = log
             if status in ('Successful', 'Failed', 'Cancelled'):
                 break
+    update_motd(cfg, old_motd)
 
 
 @environment.command(name='stop')

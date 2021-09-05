@@ -63,6 +63,14 @@ def save_events(cfg: Config, events) -> None:
     save_event_file(cfg, json.dumps(events))
 
 
+def update_motd(cfg: Config, motd: str) -> str:
+    events = get_events(cfg)
+    old_motd = events['motd']
+    events['motd'] = old_motd if motd == '' else motd
+    save_events(cfg, events)
+    return old_motd
+
+
 def are_you_sure(name: str, cfg: Optional[Config] = None) -> bool:
     env_name = cfg.env.value if cfg else 'global'
     while True:

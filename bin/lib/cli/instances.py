@@ -9,8 +9,8 @@ from typing import Sequence, Dict
 import click
 
 from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group
-from lib.ce_utils import describe_current_release, get_events, save_events, are_you_sure, logger, \
-    wait_for_autoscale_state
+from lib.ce_utils import describe_current_release, are_you_sure, logger, \
+    wait_for_autoscale_state, update_motd
 from lib.cli import cli
 from lib.env import Config, Environment
 from lib.instance import print_instances, Instance
@@ -89,12 +89,9 @@ def instances_restart(cfg: Config, motd: str):
     """Restart the instances, picking up new code."""
     if not are_you_sure('restart all instances with version {}'.format(describe_current_release(cfg)), cfg):
         return
-    # Store old motd
     begin_time = datetime.datetime.now()
-    events = get_events(cfg)
-    old_motd = events['motd']
-    events['motd'] = old_motd if motd == '' else motd
-    save_events(cfg, events)
+    # Store old motd
+    old_motd = update_motd(cfg, motd)
     modified_groups: Dict[str, int] = {}
     failed = False
     to_restart = pick_instances(cfg)
@@ -120,10 +117,7 @@ def instances_restart(cfg: Config, motd: str):
     for group, desired in iter(modified_groups.items()):
         logger.info("Putting desired instances for %s back to %d", group, desired)
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
-    # Events might have changed, re-fetch
-    events = get_events(cfg)
-    events['motd'] = old_motd
-    save_events(cfg, events)
+    update_motd(cfg, old_motd)
     end_time = datetime.datetime.now()
     delta_time = end_time - begin_time
     print(f'Instances restarted in {delta_time.total_seconds()} seconds')
