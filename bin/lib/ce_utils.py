@@ -66,7 +66,7 @@ def save_events(cfg: Config, events) -> None:
 def update_motd(cfg: Config, motd: str) -> str:
     events = get_events(cfg)
     old_motd = events['motd']
-    events['motd'] = old_motd if motd == '' else motd
+    events['motd'] = motd
     save_events(cfg, events)
     return old_motd
 
