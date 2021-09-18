@@ -41,11 +41,13 @@ remove_older clang-llvmflang
 remove_older clang-parmexpr
 remove_older clang-patmat
 remove_older clang-embed
+remove_older llvm-spirv
 remove_older go
 remove_older tinycc
 remove_older cc65
 remove_older_master mrustc
 remove_older_master cproc
 remove_older_master rustc-cg-gcc
+remove_older_master SPIRV-Tools
 remove_older arm32
 remove_older arm64
