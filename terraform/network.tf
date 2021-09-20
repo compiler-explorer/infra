@@ -1,41 +1,12 @@
-resource "aws_vpc" "CompilerExplorer" {
-  cidr_block           = "172.30.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  instance_tenancy     = "default"
-
-  tags = {
-    Name = "CompilerExplorer"
-  }
+module ce_network {
+  source        = "./modules/ce_network"
+  cidr_b_prefix = "172.30"
+  subnets       = local.subnet_mappings
 }
 
-resource "aws_internet_gateway" "ce-gw" {
-  vpc_id = aws_vpc.CompilerExplorer.id
-
-  tags = {
-    Name = "CompilerExplorerVpcGw"
-  }
-}
-
-resource "aws_default_route_table" "ce-route-table" {
-  default_route_table_id = aws_vpc.CompilerExplorer.default_route_table_id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.ce-gw.id
-  }
-
-  tags = {
-    Name = "NodeRouteTable"
-  }
-}
-
-data "aws_subnet_ids" "all" {
-  vpc_id = aws_vpc.CompilerExplorer.id
-}
-
-resource "aws_subnet" "ce" {
-  for_each = {
+locals {
+  // Hackily we inject this into the module instead of reading it out. Mainly due to frustration with a foreach()
+  subnet_mappings = {
     "1a": "0",
     "1b": "1",
     "1c": "4",
@@ -43,12 +14,7 @@ resource "aws_subnet" "ce" {
     "1e": "6",
     "1f": "5",
   }
-  vpc_id                  = aws_vpc.CompilerExplorer.id
-  cidr_block              = "172.30.${each.value}.0/24"
-  availability_zone       = "us-east-${each.key}"
-  map_public_ip_on_launch = true
-
-  tags = {
-    Name = "CompilerExplorer${each.key}"
-  }
+  // All the subnet IDs, but not available until after planning, so can't be used in foreach. If you need this in
+  // foreach, then you need to foreach over subnet_mappings and grab the ids from that.
+  all_subnet_ids  = [for subnet, _ in local.subnet_mappings: module.ce_network.subnet[subnet].id]
 }

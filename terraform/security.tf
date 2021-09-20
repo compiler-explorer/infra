@@ -1,5 +1,5 @@
 resource "aws_security_group" "CompilerExplorer" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "gcc-explorer-sg"
   description = "For the GCC explorer"
   tags        = {
@@ -73,7 +73,7 @@ resource "aws_security_group_rule" "CE_ConanHttpsFromAlb" {
 }
 
 resource "aws_security_group" "CompilerExplorerAlb" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "ce-alb-sg"
   description = "Load balancer security group"
   tags        = {
@@ -125,7 +125,7 @@ resource "aws_security_group_rule" "ALB_IngressFromCE" {
 }
 
 resource "aws_security_group" "AdminNode" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "AdminNodeSecGroup"
   description = "Security for the admin node"
   tags        = {
@@ -309,7 +309,7 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
 }
 
 resource "aws_security_group" "Builder" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "BuilderNodeSecGroup"
   description = "Compiler Explorer compiler and library security group"
   tags        = {
@@ -390,7 +390,7 @@ resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
 
 
 resource "aws_security_group" "efs" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "EFS"
   description = "EFS access for Compiler Explorer"
   tags        = {

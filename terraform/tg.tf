@@ -17,7 +17,7 @@ resource "aws_alb_target_group" "ce" {
   name                          = title(each.key)
   port                          = 80
   protocol                      = "HTTP"
-  vpc_id                        = aws_vpc.CompilerExplorer.id
+  vpc_id                        = module.ce_network.vpc.id
   // a minute to kick off old connections
   deregistration_delay          = 60
   load_balancing_algorithm_type = "least_outstanding_requests"
@@ -38,7 +38,7 @@ resource "aws_alb_target_group" "conan" {
   name                 = "ConanGroup"
   port                 = 1080
   protocol             = "HTTP"
-  vpc_id               = aws_vpc.CompilerExplorer.id
+  vpc_id               = module.ce_network.vpc.id
   deregistration_delay = 15
   health_check {
     path                = "/healthcheck"
@@ -63,7 +63,7 @@ resource "aws_alb_target_group" "auth" {
   name                 = "AuthGroup"
   port                 = 3000
   protocol             = "HTTP"
-  vpc_id               = aws_vpc.CompilerExplorer.id
+  vpc_id               = module.ce_network.vpc.id
   deregistration_delay = 15
   health_check {
     path                = "/healthcheck"

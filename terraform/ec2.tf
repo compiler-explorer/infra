@@ -1,6 +1,7 @@
 locals {
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
+  admin_subnet = module.ce_network.subnet["1a"].id
 }
 
 resource "aws_instance" "AdminNode" {
@@ -10,7 +11,7 @@ resource "aws_instance" "AdminNode" {
   instance_type               = "t3.nano"
   monitoring                  = false
   key_name                    = "mattgodbolt"
-  subnet_id                   = aws_subnet.ce["1a"].id
+  subnet_id                   = local.admin_subnet
   vpc_security_group_ids      = [aws_security_group.AdminNode.id]
   associate_public_ip_address = true
   source_dest_check           = true
@@ -38,7 +39,7 @@ resource "aws_instance" "ConanNode" {
   instance_type               = "t2.micro"
   monitoring                  = false
   key_name                    = "mattgodbolt"
-  subnet_id                   = aws_subnet.ce["1a"].id
+  subnet_id                   = local.admin_subnet
   vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
   associate_public_ip_address = true
   source_dest_check           = false
@@ -73,7 +74,7 @@ resource "aws_instance" "BuilderNode" {
   instance_type               = "c5d.4xlarge"
   monitoring                  = false
   key_name                    = "mattgodbolt"
-  subnet_id                   = aws_subnet.ce["1a"].id
+  subnet_id                   = local.admin_subnet
   vpc_security_group_ids      = [aws_security_group.Builder.id]
   associate_public_ip_address = true
   source_dest_check           = false

@@ -1,6 +1,6 @@
 
 locals {
-  subnets      = data.aws_subnet_ids.all.ids
+  subnets      = local.all_subnet_ids
   grace_period = 180
   cooldown     = 180
 }

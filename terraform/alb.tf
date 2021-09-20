@@ -5,7 +5,7 @@ resource "aws_alb" "GccExplorerApp" {
   security_groups = [
     aws_security_group.CompilerExplorerAlb.id
   ]
-  subnets         = data.aws_subnet_ids.all.ids
+  subnets         = local.all_subnet_ids
 
   enable_deletion_protection = false
 
