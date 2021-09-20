@@ -803,6 +803,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      simde:
+        type: github
+        method: nightlyclone
+        repo: simd-everywhere/simde
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
       xtensor:
         type: github
         method: nightlyclone
