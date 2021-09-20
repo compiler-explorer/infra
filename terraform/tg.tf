@@ -55,28 +55,3 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   target_id        = aws_instance.ConanNode.id
   port             = 1080
 }
-
-resource "aws_alb_target_group" "auth" {
-  lifecycle {
-    create_before_destroy = true
-  }
-  name                 = "AuthGroup"
-  port                 = 3000
-  protocol             = "HTTP"
-  vpc_id               = module.ce_network.vpc.id
-  deregistration_delay = 15
-  health_check {
-    path                = "/healthcheck"
-    timeout             = 3
-    unhealthy_threshold = 3
-    healthy_threshold   = 2
-    interval            = 5
-    protocol            = "HTTP"
-  }
-}
-
-resource "aws_alb_target_group_attachment" "AuthServerTargetInstance" {
-  target_group_arn = aws_alb_target_group.auth.id
-  target_id        = aws_instance.AdminNode.id
-  port             = 3000
-}

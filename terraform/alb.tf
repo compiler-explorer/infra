@@ -124,21 +124,6 @@ resource "aws_alb_listener" "ceconan-alb-listen-https" {
   certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
 }
 
-
-resource "aws_alb_listener_rule" "auth-alb-listen-https" {
-  priority     = 3
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.auth.arn
-  }
-  condition {
-    host_header {
-      values = ["auth.godbolt.org"]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-}
-
 resource "aws_alb_target_group" "lambda" {
   name        = "AwsLambdaTargetGroup"
   target_type = "lambda"
@@ -151,7 +136,7 @@ resource "aws_alb_target_group_attachment" "lambda-stats-endpoint" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
-  priority     = 4
+  priority     = 3
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.lambda.arn
