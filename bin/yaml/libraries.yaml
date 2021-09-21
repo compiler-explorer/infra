@@ -365,6 +365,8 @@ libraries:
       lib_type: static
       extra_cmake_arg:
         - -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
+      after_stage_script:
+        - cp /home/ubuntu/infra/bin/resources/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
     xtl:
       type: github
       repo: QuantStack/xtl
