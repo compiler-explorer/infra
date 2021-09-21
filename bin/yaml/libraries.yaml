@@ -364,7 +364,7 @@ libraries:
       build_type: cmake
       lib_type: static
       extra_cmake_arg:
-        - -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
+        - -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
     xtl:
       type: github
       repo: QuantStack/xtl
