@@ -633,6 +633,13 @@ libraries:
         - cp -Rf include ..
         - cd ..
         - rm -Rf build
+    magic_enum:
+      type: github
+      repo: Neargye/magic_enum
+      check_file: include/magic_enum.hpp
+      target_prefix: v
+      targets:
+        - "0.7.3"
     nightly:
       install_always: true
       if: nightly
@@ -1264,6 +1271,13 @@ libraries:
           - cp -Rf include ..
           - cd ..
           - rm -Rf build
+      magic_enum:
+        type: github
+        method: nightlyclone
+        repo: Neargye/magic_enum
+        check_file: include/magic_enum.hpp
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
