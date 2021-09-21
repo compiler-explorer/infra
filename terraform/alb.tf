@@ -1,113 +1,11 @@
-resource "aws_alb" "GccExplorerApp" {
-  idle_timeout    = 60
-  internal        = false
-  name            = "GccExplorerApp"
-  security_groups = [
-    aws_security_group.CompilerExplorerAlb.id
-  ]
-  subnets         = local.all_subnet_ids
-
-  enable_deletion_protection = false
-
-  access_logs {
-    bucket  = aws_s3_bucket.compiler-explorer-logs.bucket
-    prefix  = "elb"
-    enabled = true
-  }
-}
-
-resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["prod"].arn
-  }
-
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
-  port              = 80
-  protocol          = "HTTP"
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-beta" {
-  priority     = 1
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["beta"].arn
-  }
-  condition {
-    path_pattern {
-      values = ["/beta*"]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
-  priority     = 2
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["staging"].arn
-  }
-  condition {
-    path_pattern {
-      values = [
-        "/staging*"
-      ]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
-}
-
-resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["prod"].arn
-  }
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2015-05"
-  certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
-  priority     = 1
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["beta"].arn
-  }
-  condition {
-    path_pattern {
-      values = [
-        "/beta*"
-      ]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
-  priority     = 2
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["staging"].arn
-  }
-  condition {
-    path_pattern {
-      values = [
-        "/staging*"
-      ]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-}
-
+// TODO move into main?
 resource "aws_alb_listener" "ceconan-alb-listen-http" {
   default_action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.conan.arn
   }
 
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
+  load_balancer_arn = module.main.alb.arn
   port              = 1080
   protocol          = "HTTP"
 }
@@ -117,13 +15,14 @@ resource "aws_alb_listener" "ceconan-alb-listen-https" {
     type             = "forward"
     target_group_arn = aws_alb_target_group.conan.arn
   }
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
+  load_balancer_arn = module.main.alb.arn
   port              = 1443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2015-05"
   certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
 }
 
+// TODO move this into main?
 resource "aws_alb_target_group" "lambda" {
   name        = "AwsLambdaTargetGroup"
   target_type = "lambda"
@@ -146,5 +45,5 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
       values = ["lambda.compiler-explorer.com"]
     }
   }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  listener_arn = module.main.https_listener.arn
 }

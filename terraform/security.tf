@@ -37,7 +37,7 @@ resource "aws_security_group_rule" "CE_HttpFromAlb" {
   type                     = "ingress"
   from_port                = 80
   to_port                  = 80
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = module.main.sg.id
   protocol                 = "tcp"
   description              = "Allow HTTP access from the ALB"
 }
@@ -47,7 +47,7 @@ resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   type                     = "ingress"
   from_port                = 1080
   to_port                  = 1080
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = module.main.sg.id
   protocol                 = "tcp"
   description              = "Allow HTTP access from the ALB"
 }
@@ -57,7 +57,7 @@ resource "aws_security_group_rule" "CE_HttpsFromAlb" {
   type                     = "ingress"
   from_port                = 443
   to_port                  = 443
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = module.main.sg.id
   protocol                 = "tcp"
   description              = "Allow HTTPS access from the ALB"
 }
@@ -67,33 +67,14 @@ resource "aws_security_group_rule" "CE_ConanHttpsFromAlb" {
   type                     = "ingress"
   from_port                = 1443
   to_port                  = 1443
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = module.main.sg.id
   protocol                 = "tcp"
   description              = "Allow HTTPS access from the ALB"
 }
 
-resource "aws_security_group" "CompilerExplorerAlb" {
-  vpc_id      = module.ce_network.vpc.id
-  name        = "ce-alb-sg"
-  description = "Load balancer security group"
-  tags        = {
-    Name = "CELoadBalancer"
-  }
-}
-
-resource "aws_security_group_rule" "ALB_HttpsFromAnywhere" {
-  security_group_id = aws_security_group.CompilerExplorerAlb.id
-  type              = "ingress"
-  from_port         = 443
-  to_port           = 443
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "tcp"
-  description       = "Allow HTTPS access from anywhere"
-}
 
 resource "aws_security_group_rule" "ALB_ConanHttpsFromAnywhere" {
-  security_group_id = aws_security_group.CompilerExplorerAlb.id
+  security_group_id = module.main.sg.id
   type              = "ingress"
   from_port         = 1443
   to_port           = 1443
@@ -103,19 +84,8 @@ resource "aws_security_group_rule" "ALB_ConanHttpsFromAnywhere" {
   description       = "Allow HTTPS access from anywhere"
 }
 
-resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
-  security_group_id = aws_security_group.CompilerExplorerAlb.id
-  type              = "egress"
-  from_port         = 0
-  to_port           = 65535
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "-1"
-  description       = "Allow egress to anywhere"
-}
-
 resource "aws_security_group_rule" "ALB_IngressFromCE" {
-  security_group_id        = aws_security_group.CompilerExplorerAlb.id
+  security_group_id        = module.main.sg.id
   type                     = "ingress"
   from_port                = 0
   to_port                  = 65535
@@ -303,7 +273,7 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   type                     = "ingress"
   from_port                = 3000
   to_port                  = 3000
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = module.main.sg.id
   protocol                 = "tcp"
   description              = "Allow port 3000 access from the ALB"
 }

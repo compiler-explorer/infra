@@ -9,13 +9,14 @@ data "aws_acm_certificate" "static-ce-cdn-net" {
   most_recent = true
 }
 
+// TODO lots of potential to move into main
 resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
   }
   origin {
-    domain_name = aws_alb.GccExplorerApp.dns_name
+    domain_name = module.main.alb.dns_name
     origin_id   = "ALB-compiler-explorer"
     custom_origin_config {
       http_port                = 80
@@ -155,7 +156,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     origin_id   = "S3-compiler-explorer"
   }
   origin {
-    domain_name = aws_alb.GccExplorerApp.dns_name
+    domain_name = module.main.alb.dns_name
     origin_id   = "ALB-compiler-explorer"
     custom_origin_config {
       http_port                = 80
@@ -293,7 +294,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
     origin_id   = "S3-compiler-explorer"
   }
   origin {
-    domain_name = aws_alb.GccExplorerApp.dns_name
+    domain_name = module.main.alb.dns_name
     origin_id   = "ALB-compiler-explorer"
     custom_origin_config {
       http_port                = 80

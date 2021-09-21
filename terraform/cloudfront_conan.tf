@@ -4,7 +4,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
     origin_id   = "S3-compiler-explorer"
   }
   origin {
-    domain_name = aws_alb.GccExplorerApp.dns_name
+    domain_name = module.main.alb.dns_name
     origin_id   = "GccExplorerApp"
     custom_origin_config {
       http_port                = 1080

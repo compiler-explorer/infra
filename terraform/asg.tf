@@ -1,10 +1,8 @@
-
 locals {
   subnets      = local.all_subnet_ids
   grace_period = 180
   cooldown     = 180
 }
-
 
 resource "aws_autoscaling_group" "prod-mixed" {
   lifecycle {
@@ -56,7 +54,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
     "GroupTotalInstances",
   ]
 
-  target_group_arns = [aws_alb_target_group.ce["prod"].arn]
+  target_group_arns = [module.main.prod_target_group.arn]
 }
 
 resource "aws_autoscaling_policy" "prod-mixed" {
@@ -74,45 +72,4 @@ resource "aws_autoscaling_policy" "prod-mixed" {
     }
     target_value = 40.0
   }
-}
-
-resource "aws_autoscaling_group" "beta" {
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  default_cooldown          = local.cooldown
-  health_check_grace_period = local.grace_period
-  health_check_type         = "ELB"
-  launch_template {
-    id      = aws_launch_template.CompilerExplorer-beta.id
-    version = "$Latest"
-  }
-
-  max_size            = 4
-  min_size            = 0
-  name                = "spot-beta"
-  vpc_zone_identifier = local.subnets
-
-  target_group_arns = [aws_alb_target_group.ce["beta"].arn]
-}
-
-resource "aws_autoscaling_group" "staging" {
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  default_cooldown          = local.cooldown
-  health_check_grace_period = local.grace_period
-  health_check_type         = "ELB"
-  launch_template {
-    id      = aws_launch_template.CompilerExplorer-staging.id
-    version = "$Latest"
-  }
-  max_size                  = 4
-  min_size                  = 0
-  name                      = "staging"
-  vpc_zone_identifier       = local.subnets
-
-  target_group_arns = [aws_alb_target_group.ce["staging"].arn]
 }

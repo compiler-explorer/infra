@@ -18,7 +18,7 @@ resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
   period              = 15 * 60
 
   dimensions          = {
-    LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
+    LoadBalancer = module.main.alb.arn_suffix
   }
   comparison_operator = "GreaterThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
@@ -149,7 +149,7 @@ resource "aws_cloudwatch_metric_alarm" "traffic" {
       period      = 5*60
       stat        = "Sum"
       dimensions  = {
-        LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
+        LoadBalancer = module.main.alb.arn_suffix
       }
     }
   }
@@ -170,7 +170,7 @@ resource "aws_cloudwatch_metric_alarm" "high_traffic" {
   period              = 5 * 60
 
   dimensions          = {
-    LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
+    LoadBalancer = module.main.alb.arn_suffix
   }
   comparison_operator = "GreaterThanOrEqualToThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
