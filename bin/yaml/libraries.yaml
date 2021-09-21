@@ -354,6 +354,17 @@ libraries:
       target_prefix: V
       targets:
         - 0.6.3
+    xerces-c:
+      type: github
+      repo: apache/xerces-c
+      check_file: README
+      target_prefix: v
+      targets:
+        - 3.2.3
+      build_type: cmake
+      lib_type: static
+      extra_cmake_arg:
+        - -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
     xtl:
       type: github
       repo: QuantStack/xtl
