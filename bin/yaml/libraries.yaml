@@ -354,7 +354,7 @@ libraries:
       target_prefix: V
       targets:
         - 0.6.3
-    xerces-c:
+    xercesc:
       type: github
       repo: apache/xerces-c
       check_file: README
