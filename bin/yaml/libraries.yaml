@@ -759,7 +759,7 @@ libraries:
         type: github
         method: nightlyclone
         repo: foonathan/lexy
-        check_file: include/lexy/parse.hpp
+        check_file: include/lexy/dsl.hpp
         path_name: libs/lexy/trunk
         targets:
           - trunk
