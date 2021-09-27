@@ -367,6 +367,7 @@ libraries:
         - -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
       after_stage_script:
         - cp /home/ubuntu/infra/bin/resources/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
+        - cp /home/ubuntu/infra/bin/resources/XercesVersion.hpp src/xercesc/util/XercesVersion.hpp
     xtl:
       type: github
       repo: QuantStack/xtl
