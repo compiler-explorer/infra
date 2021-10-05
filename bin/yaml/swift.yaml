@@ -24,12 +24,12 @@ compilers:
         - '5.0'
         - '5.1'
         - '5.2'
-    newer:
-    url: https://swift.org/builds/{build}/ubuntu2004/{toolchain}/{toolchain}-ubuntu20.04.tar.gz
-    targets:
         - '5.3'
-        - '5.4'
-        - '5.5'
+    newer:
+      url: https://swift.org/builds/{build}/ubuntu2004/{toolchain}/{toolchain}-ubuntu20.04.tar.gz
+      targets:
+          - '5.4'
+          - '5.5'
     nightly:
       if: nightly
       type: restQueryTarballs
