@@ -7,25 +7,29 @@ compilers:
     strip_components: 1
     build: swift-{name}-release
     toolchain: swift-{name}-RELEASE
-    url: https://swift.org/builds/{build}/ubuntu1604/{toolchain}/{toolchain}-ubuntu16.04.tar.gz
     check_exe: usr/bin/swiftc --version
     after_stage_script:
       # work around insane installation issue
       - chmod og+r ./usr/lib/swift/CoreFoundation/*
+    older:
+      url: https://swift.org/builds/{build}/ubuntu1604/{toolchain}/{toolchain}-ubuntu16.04.tar.gz
+      targets:
+        - 3.1.1
+        - 4.0.2
+        - 4.0.3
+        - '4.1'
+        - 4.1.1
+        - 4.1.2
+        - '4.2'
+        - '5.0'
+        - '5.1'
+        - '5.2'
+    newer:
+    url: https://swift.org/builds/{build}/ubuntu2004/{toolchain}/{toolchain}-ubuntu20.04.tar.gz
     targets:
-      - 3.1.1
-      - 4.0.2
-      - 4.0.3
-      - '4.1'
-      - 4.1.1
-      - 4.1.2
-      - '4.2'
-      - '5.0'
-      - '5.1'
-      - '5.2'
-      - '5.3'
-      - '5.4'
-      - '5.5'
+        - '5.3'
+        - '5.4'
+        - '5.5'
     nightly:
       if: nightly
       type: restQueryTarballs
