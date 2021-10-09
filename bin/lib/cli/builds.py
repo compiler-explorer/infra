@@ -59,7 +59,7 @@ def deploy_staticfiles(release) -> bool:
 @click.pass_obj
 @click.option('--branch', help='if version == latest, branch to get latest version from')
 @click.option('--raw/--no-raw', help='Set a raw path for a version')
-@click.option('--confirm', help='Skip confirmation questions', default=True)
+@click.option('--confirm', help='Skip confirmation questions', is_flag=True)
 @click.argument('version')
 def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
     """Set the current version to VERSION for this environment.
@@ -78,7 +78,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print("Unable to find version " + version)
             if setting_latest and branch != '':
                 print('Branch {} has no available versions (Bad branch/No image yet built)'.format(branch))
-        elif not confirm:
+        elif confirm:
             print(f'Found release {release}')
             to_set = release.key
         elif are_you_sure('change current version to {}'.format(release.key), cfg) and confirm_branch(release.branch):
