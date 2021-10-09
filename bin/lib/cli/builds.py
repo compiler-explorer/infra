@@ -61,7 +61,7 @@ def deploy_staticfiles(release) -> bool:
 @click.option('--raw/--no-raw', help='Set a raw path for a version')
 @click.option('--confirm', help='Skip confirmation questions', default=True)
 @click.argument('version')
-def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, noconfirm: bool):
+def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
     """Set the current version to VERSION for this environment.
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
