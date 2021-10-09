@@ -78,7 +78,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print("Unable to find version " + version)
             if setting_latest and branch != '':
                 print('Branch {} has no available versions (Bad branch/No image yet built)'.format(branch))
-        elif !confirm:
+        elif not confirm:
             print(f'Found release {release}')
             to_set = release.key
         elif are_you_sure('change current version to {}'.format(release.key), cfg) and confirm_branch(release.branch):
