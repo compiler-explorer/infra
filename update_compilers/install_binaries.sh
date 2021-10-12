@@ -19,7 +19,7 @@ fi
 #########################
 # node.js
 
-TARGET_NODE_VERSION=v12.18.4
+TARGET_NODE_VERSION=v14.18.0
 CURRENT_NODE_VERSION=""
 if [[ -d node ]]; then
     CURRENT_NODE_VERSION=$(node/bin/node --version)
