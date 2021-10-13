@@ -61,9 +61,8 @@ update_code() {
 }
 
 install_node() {
-    rm -Rf /usr/local/node
-    mkdir -p /usr/local/node
-    cp -r /opt/compiler-explorer/node/bin /usr/local/node/bin
+    rm -f /usr/local/bin/node
+    cp /opt/compiler-explorer/node/bin/node /usr/local/bin
 }
 
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
@@ -79,7 +78,7 @@ install_node
 cd "${DEPLOY_DIR}"
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
-    /usr/local/node/bin/node \
+    /usr/local/bin/node \
     -r esm \
     -- app.js \
     --suppressConsoleLog \
