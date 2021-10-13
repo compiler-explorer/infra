@@ -14,7 +14,7 @@ on:
 
 jobs:
   startstaging:
-    runs-on: ['self-hosted', 'Linux', 'X64']
+    runs-on: ['admin']
 
     steps:
     - name: Update infra
