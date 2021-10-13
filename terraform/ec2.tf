@@ -96,3 +96,33 @@ resource "aws_instance" "BuilderNode" {
     Name = "Builder"
   }
 }
+
+resource "aws_instance" "CERunner" {
+  ami                         = local.image_id
+  iam_instance_profile        = aws_iam_instance_profile.Builder.name
+  ebs_optimized               = true
+  instance_type               = "t2.small"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.Builder.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 24
+    delete_on_termination = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  tags = {
+    Name = "CERunner"
+  }
+}
