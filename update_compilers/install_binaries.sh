@@ -26,7 +26,7 @@ if [[ -d node ]]; then
 fi
 
 if [[ "$TARGET_NODE_VERSION" != "$CURRENT_NODE_VERSION" ]]; then
-    echo "Installing node TARGET_NODE_VERSION"
+    echo "Installing node ${TARGET_NODE_VERSION}"
     rm -rf node
     fetch "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.gz" | tar zxf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
 fi
