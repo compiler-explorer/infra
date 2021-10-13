@@ -62,7 +62,8 @@ update_code() {
 
 install_node() {
     rm -Rf /usr/local/node
-    cp -r /opt/compiler-explorer/node /usr/local/node
+    mkdir -p /usr/local/node
+    cp -r /opt/compiler-explorer/node/bin /usr/local/node/bin
 }
 
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
