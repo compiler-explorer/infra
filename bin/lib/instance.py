@@ -127,6 +127,28 @@ class BuilderInstance:
         return self.instance.state['Name']
 
 
+class RunnerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'runner'
+
+    @staticmethod
+    def instance():
+        return RunnerInstance(_singleton_instance('Runner'))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state['Name']
+
+
 def print_instances(instances, number=False):
     if number:
         print('   ', end='')
