@@ -59,7 +59,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/compiler-explorer/node/bin/node \
     -r esm \
     -- app.js \
-    --discoveryonly=/home/ce/discovered-compilers.json
+    --discoveryonly=/home/ce/discovered-compilers.json \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
     --logPort "${LOG_DEST_PORT}" \
