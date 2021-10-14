@@ -136,7 +136,7 @@ class RunnerInstance:
 
     @staticmethod
     def instance():
-        return RunnerInstance(_singleton_instance('Runner'))
+        return RunnerInstance(_singleton_instance('CERunner'))
 
     def start(self):
         self.instance.start()
