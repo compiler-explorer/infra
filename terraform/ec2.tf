@@ -101,7 +101,7 @@ resource "aws_instance" "BuilderNode" {
 resource "aws_instance" "CERunner" {
   ami                         = local.prod_image_id
   iam_instance_profile        = aws_iam_instance_profile.Builder.name
-  ebs_optimized               = true
+  ebs_optimized               = false
   instance_type               = "t2.micro"
   monitoring                  = false
   key_name                    = "mattgodbolt"
