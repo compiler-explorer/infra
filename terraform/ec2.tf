@@ -1,5 +1,5 @@
 locals {
-  prod_image_id    = "ami-0802e269a69d186ae"
+  runner_image_id  = "ami-0fb5c5ff125d3fbb7"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
   admin_subnet = module.ce_network.subnet["1a"].id
@@ -99,7 +99,7 @@ resource "aws_instance" "BuilderNode" {
 }
 
 resource "aws_instance" "CERunner" {
-  ami                         = local.prod_image_id
+  ami                         = local.runner_image_id
   iam_instance_profile        = aws_iam_instance_profile.Builder.name
   ebs_optimized               = false
   instance_type               = "t2.micro"
