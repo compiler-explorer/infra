@@ -6,6 +6,7 @@ class Environment(Enum):
     PROD = 'prod'
     BETA = 'beta'
     STAGING = 'staging'
+    RUNNER = 'runner'
 
 
 @dataclass(frozen=True)
