@@ -63,6 +63,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     -- app.js \
     --discoveryonly=/home/ce/discovered-compilers.json \
     --env amazon \
+    --env no-s3 \
     --port 10240 \
     --metricsPort 10241 \
     --loki "http://127.0.0.1:3500" \
