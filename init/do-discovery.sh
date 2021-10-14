@@ -52,6 +52,8 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 update_code
 
+sudo rm -Rf /tmp/ce-wine-prefix
+
 cd "${DEPLOY_DIR}"
 
 # shellcheck disable=SC2086
@@ -60,9 +62,6 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     -r esm \
     -- app.js \
     --discoveryonly=/home/ce/discovered-compilers.json \
-    --suppressConsoleLog \
-    --logHost "${LOG_DEST_HOST}" \
-    --logPort "${LOG_DEST_PORT}" \
     --env amazon \
     --port 10240 \
     --metricsPort 10241 \
