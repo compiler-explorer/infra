@@ -1,4 +1,5 @@
 locals {
+  runner_image_id  = "ami-0fb5c5ff125d3fbb7"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
   admin_subnet = module.ce_network.subnet["1a"].id
@@ -94,5 +95,36 @@ resource "aws_instance" "BuilderNode" {
 
   tags = {
     Name = "Builder"
+  }
+}
+
+resource "aws_instance" "CERunner" {
+  ami                         = local.runner_image_id
+  iam_instance_profile        = aws_iam_instance_profile.Builder.name
+  ebs_optimized               = false
+  instance_type               = "t2.medium"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.Builder.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+  user_data                   = "runner"
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 24
+    delete_on_termination = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  tags = {
+    Name = "CERunner"
   }
 }

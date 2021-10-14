@@ -15,24 +15,6 @@ get_conf() {
     aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
 
-mount_opt() {
-    mkdir -p /opt/compiler-explorer
-    mountpoint /opt/compiler-explorer || mount --bind /efs/compiler-explorer /opt/compiler-explorer
-
-    mkdir -p /opt/intel
-    mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
-
-    mkdir -p /opt/arm
-    mountpoint /opt/arm || mount --bind /efs/arm /opt/arm
-
-    [ -f /opt/.health ] || touch /opt/.health
-    mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
-
-    if [[ "${ENV}" != "runner" ]]; then
-        ./mount-all-img.sh
-    fi
-}
-
 get_released_code() {
     local DEST=$1
     local S3_KEY=$2
@@ -62,36 +44,26 @@ update_code() {
     fi
 }
 
-install_node() {
-    rm -f /usr/local/bin/node
-    cp /opt/compiler-explorer/node/bin/node /usr/local/bin
-}
-
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
-mount_opt
 update_code
-install_node
+
+sudo rm -Rf /tmp/ce-wine-prefix
 
 cd "${DEPLOY_DIR}"
 
-if [[ "${ENV}" == "runner" ]]; then
-  exit
-fi
-
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
-    /usr/local/bin/node \
+    /opt/compiler-explorer/node/bin/node \
     -r esm \
     -- app.js \
-    --suppressConsoleLog \
-    --logHost "${LOG_DEST_HOST}" \
-    --logPort "${LOG_DEST_PORT}" \
+    --discoveryonly=/home/ce/discovered-compilers.json \
     --env amazon \
+    --env no-s3 \
     --port 10240 \
     --metricsPort 10241 \
     --loki "http://127.0.0.1:3500" \
