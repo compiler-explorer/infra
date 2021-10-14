@@ -1,5 +1,5 @@
 locals {
-  runner_image_id  = "ami-0fb5c5ff125d3fbb7"
+  runner_image_id  = "ami-06971202708e1639a"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
   admin_subnet = module.ce_network.subnet["1a"].id
@@ -102,7 +102,7 @@ resource "aws_instance" "CERunner" {
   ami                         = local.runner_image_id
   iam_instance_profile        = aws_iam_instance_profile.Builder.name
   ebs_optimized               = false
-  instance_type               = "t2.medium"
+  instance_type               = "c5.large"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
