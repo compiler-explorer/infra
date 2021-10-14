@@ -11,6 +11,10 @@ echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
 source "${PWD}/site-${ENV}.sh"
 
+get_conf() {
+    aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
+}
+
 get_released_code() {
     local DEST=$1
     local S3_KEY=$2
