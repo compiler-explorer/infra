@@ -60,6 +60,11 @@ update_code() {
     fi
 }
 
+install_node() {
+    rm -f /usr/local/bin/node
+    cp /opt/compiler-explorer/node/bin/node /usr/local/bin
+}
+
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
@@ -68,11 +73,12 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 mount_opt
 update_code
+install_node
 
 cd "${DEPLOY_DIR}"
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
-    /opt/compiler-explorer/node/bin/node \
+    /usr/local/bin/node \
     -r esm \
     -- app.js \
     --suppressConsoleLog \
