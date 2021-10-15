@@ -51,7 +51,7 @@ def runner_uploaddiscovery(version: str):
     localtemppath = f'/tmp/{version}.json'
     get_remote_file(instance, '/home/ce/discovered-compilers.json', localtemppath)
     s3path = f's3://compiler-explorer/dist/discovery/{version}.json'
-    os.system(f'aws s3 cp --storage-class REDUCED_REDUNDANCY "{localtemppath}" "{s3path}"')
+    os.system(f'aws s3 cp --storage-class REDUCED_REDUNDANCY --acl public-read "{localtemppath}" "{s3path}"')
     os.remove(localtemppath)
 
 
