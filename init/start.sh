@@ -6,6 +6,8 @@ ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
 ENV=${ENV:-prod}
 CE_USER=ce
 DEPLOY_DIR=${PWD}/.deploy
+COMPILERS_ARG=
+COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
 echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
@@ -31,6 +33,15 @@ mount_opt() {
     if [[ "${ENV}" != "runner" ]]; then
         ./mount-all-img.sh
     fi
+}
+
+get_discovered_compilers() {
+    local DEST=$1
+    local S3_FILE=$2
+    S3_FILE=$(echo "${S3_FILE}" | sed -e 's/.*\/\d*/gh-/g' -e 's/.tar.xz/.json/g')
+    local URL=https://s3.amazonaws.com/compiler-explorer/dist/discovery/${S3_FILE}
+    echo "Discovered compilers from ${URL}"
+    curl -sf -o "${COMPILERS_FILE}" "${URL}"
 }
 
 get_released_code() {
@@ -59,6 +70,11 @@ update_code() {
     else
         rm -rf "${DEPLOY_DIR}"
         get_released_code "${DEPLOY_DIR}" "${S3_KEY}"
+        get_discovered_compilers "${DEPLOY_DIR}" "${S3_KEY}"
+    fi
+
+    if [[ -f "${COMPILERS_FILE}" ]]; then
+        COMPILERS_ARG="--prediscovered=${COMPILERS_FILE}"
     fi
 }
 
@@ -97,4 +113,5 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     --loki "http://127.0.0.1:3500" \
     --static out/dist \
     --dist \
+    ${COMPILERS_ARG} \
     ${EXTRA_ARGS}
