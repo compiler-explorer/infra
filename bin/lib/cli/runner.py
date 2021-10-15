@@ -44,13 +44,15 @@ def runner_discovery():
 
 
 @runner.command(name='uploaddiscovery')
-def runner_uploaddiscovery():
+@click.argument('version')
+def runner_uploaddiscovery(version: str):
     """Execute compiler discovery on the builder instance."""
     instance = RunnerInstance.instance()
-    localtemppath = '/tmp/discovered-compilers.json'
+    localtemppath = f'/tmp/{version}.json'
     get_remote_file(instance, '/home/ce/discovered-compilers.json', localtemppath)
-    s3path = 's3://compiler-explorer/dist/discovery/latest.json'
+    s3path = f's3://compiler-explorer/dist/discovery/{version}.json'
     os.system(f'aws s3 cp --storage-class REDUCED_REDUNDANCY "{localtemppath}" "{s3path}"')
+    os.remove(localtemppath)
 
 
 @runner.command(name='start')
