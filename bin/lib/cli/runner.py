@@ -76,9 +76,6 @@ def runner_start():
         time.sleep(5)
     else:
         raise RuntimeError("Unable to get SSH access")
-    res = exec_remote(instance,
-                      ["bash", "-c", "cd infra && git pull && sudo ./setup-builder-startup.sh"])
-    print(res)
     print("Runner started OK")
 
 
