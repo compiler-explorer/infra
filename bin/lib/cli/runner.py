@@ -33,14 +33,14 @@ def runner_exec(remote_cmd: Sequence[str]):
 def runner_pull():
     """Execute git pull on the builder instance."""
     instance = RunnerInstance.instance()
-    exec_remote_to_stdout(instance, ['cd','/infra','&&','sudo','git','pull'])
+    exec_remote_to_stdout(instance, ['bash', '-c', 'cd /infra && sudo git pull'])
 
 
 @runner.command(name='discovery')
 def runner_discovery():
     """Execute compiler discovery on the builder instance."""
     instance = RunnerInstance.instance()
-    exec_remote_to_stdout(instance, ['cd','/infra','&&','sudo','/infra/init/do-discovery.sh'])
+    exec_remote_to_stdout(instance, ['bash', '-c', 'cd /infra && sudo /infra/init/do-discovery.sh'])
 
 
 @runner.command(name='uploaddiscovery')
@@ -76,6 +76,9 @@ def runner_start():
         time.sleep(5)
     else:
         raise RuntimeError("Unable to get SSH access")
+    res = exec_remote(instance,
+                      ["bash", "-c", "cd infra && git pull && sudo ./setup-builder-startup.sh"])
+    print(res)
     print("Runner started OK")
 
 
