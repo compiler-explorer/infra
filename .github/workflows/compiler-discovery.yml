@@ -1,0 +1,33 @@
+name: Compiler discovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number'
+        default: ''
+        required: true
+
+jobs:
+  startstaging:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull
+    - name: Set build number
+      run: ce runner set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    - name: Start runner
+      run: ce runner start
+    - name: Update infra on runner
+      run: ce runner pull
+    - name: Do Compiler discovery
+      run: ce runner discovery
+    - name: Upload discovered compilers
+      run: ce runner uploaddiscovery
+    - name: Shut down runner
+      run: ce runner stop
