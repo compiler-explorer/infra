@@ -20,7 +20,7 @@ jobs:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull
     - name: Set build number
-      run: ce runner set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+      run: ce --env runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
     - name: Start runner
       run: ce runner start
     - name: Update infra on runner
