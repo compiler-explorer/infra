@@ -28,6 +28,6 @@ jobs:
     - name: Do Compiler discovery
       run: ce runner discovery
     - name: Upload discovered compilers
-      run: ce runner uploaddiscovery
+      run: ce runner uploaddiscovery ${{ github.event.inputs.buildnumber }}
     - name: Shut down runner
       run: ce runner stop
