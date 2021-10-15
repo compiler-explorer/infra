@@ -89,6 +89,12 @@ def exec_remote_to_stdout(instance, command):
             raise RuntimeError(f"Remote command execution failed with status {status}")
 
 
+def get_remote_file(instance, remotepath, localpath):
+    with ssh_client_for(instance) as client:
+        sftpsession = client.open_sftp()
+        sftpsession.get(remotepath, localpath)
+
+
 def ssh_client_for(instance) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.load_system_host_keys()

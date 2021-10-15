@@ -1,10 +1,11 @@
+import os
 import time
 from typing import Sequence
 
 import click
 
 from lib.instance import RunnerInstance
-from lib.ssh import run_remote_shell, exec_remote, exec_remote_to_stdout
+from lib.ssh import get_remote_file, run_remote_shell, exec_remote, exec_remote_to_stdout
 from .cli import cli
 
 
@@ -26,6 +27,32 @@ def runner_exec(remote_cmd: Sequence[str]):
     """Execute REMOTE_CMD on the builder instance."""
     instance = RunnerInstance.instance()
     exec_remote_to_stdout(instance, remote_cmd)
+
+
+@runner.command(name='pull')
+def runner_pull():
+    """Execute git pull on the builder instance."""
+    instance = RunnerInstance.instance()
+    exec_remote_to_stdout(instance, ['bash', '-c', 'cd /infra && sudo git pull'])
+
+
+@runner.command(name='discovery')
+def runner_discovery():
+    """Execute compiler discovery on the builder instance."""
+    instance = RunnerInstance.instance()
+    exec_remote_to_stdout(instance, ['bash', '-c', 'cd /infra && sudo /infra/init/do-discovery.sh'])
+
+
+@runner.command(name='uploaddiscovery')
+@click.argument('version')
+def runner_uploaddiscovery(version: str):
+    """Execute compiler discovery on the builder instance."""
+    instance = RunnerInstance.instance()
+    localtemppath = f'/tmp/{version}.json'
+    get_remote_file(instance, '/home/ce/discovered-compilers.json', localtemppath)
+    s3path = f's3://compiler-explorer/dist/discovery/{version}.json'
+    os.system(f'aws s3 cp --storage-class REDUCED_REDUNDANCY "{localtemppath}" "{s3path}"')
+    os.remove(localtemppath)
 
 
 @runner.command(name='start')
