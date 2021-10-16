@@ -9,6 +9,7 @@ from typing import Optional, Dict, Sequence
 
 import click
 import requests
+from lib.cli.runner import runner_discoveryexists
 
 from lib.amazon import download_release_file, download_release_fileobj, find_latest_release, find_release, \
     log_new_build, set_current_key, get_ssm_param, get_all_current, get_releases, remove_release, get_current_key, \
@@ -84,7 +85,11 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
         elif are_you_sure('change current version to {}'.format(release.key), cfg) and confirm_branch(release.branch):
             print(f'Found release {release}')
             to_set = release.key
-    if to_set is not None:
+    if to_set is not None and release is not None:
+        if not runner_discoveryexists(cfg.env.value, release.version):
+            if not confirm_action(f'Compiler discovery has not run for {cfg.env.value}/{release.version}, are you sure you want to continue?'):
+                sys.exit(1)
+
         log_new_build(cfg, to_set)
         if release and release.static_key:
             if not deploy_staticfiles(release):
