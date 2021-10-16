@@ -3,7 +3,7 @@ import time
 from typing import Sequence
 
 import click
-from bin.lib.env import EnvironmentNoProd, EnvironmentNoRunner
+from lib.env import EnvironmentNoProd, EnvironmentNoRunner
 
 from lib.instance import RunnerInstance
 from lib.ssh import get_remote_file, run_remote_shell, exec_remote, exec_remote_to_stdout
