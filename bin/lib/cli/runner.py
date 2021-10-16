@@ -61,6 +61,16 @@ def runner_uploaddiscovery(environment: str, version: str):
     os.remove(localtemppath)
 
 
+def runner_discoveryexists(environment: str, version: str):
+    """Check if a discovery json file exists."""
+    if environment == 'prod':
+        s3path = f's3://compiler-explorer/dist/discovery/release/{version}.json'
+    else:
+        s3path = f's3://compiler-explorer/dist/discovery/{environment}/{version}.json'
+    res = os.system(f'aws s3 ls "{s3path}" > /dev/null')
+    return res == 0
+
+
 @runner.command(name='safeforprod')
 @click.argument('environment', required=True, type=click.Choice([env.value for env in EnvironmentNoProd]))
 @click.argument('version', required=True)
