@@ -13,7 +13,7 @@ on:
         required: true
 
 jobs:
-  startstaging:
+  compilerdiscovery:
     runs-on: ['admin']
 
     steps:
