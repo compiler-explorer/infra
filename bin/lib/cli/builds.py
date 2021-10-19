@@ -86,7 +86,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print(f'Found release {release}')
             to_set = release.key
     if to_set is not None and release is not None:
-        if not runner_discoveryexists(cfg.env.value, release.version):
+        if (cfg.env.value != 'runner') and not runner_discoveryexists(cfg.env.value, release.version):
             if not confirm_action(f'Compiler discovery has not run for {cfg.env.value}/{release.version}, are you sure you want to continue?'):
                 sys.exit(1)
 
