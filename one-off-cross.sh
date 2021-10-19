@@ -5,6 +5,20 @@ SCRIPTNAME=$2
 BRANCH=$3
 TMPNAME="${REPO}_$(date +%Y%m%d%H%M)"
 
+if [[ "${REPO}" == "" ]]; then
+  echo "Usage ./one-off-cross.sh <reponame> <scriptname> <branchname>"
+  exit
+fi
+
+if [[ "${SCRIPTNAME}" == "" ]]; then
+  echo "Usage ./one-off-cross.sh <reponame> <scriptname> <branchname>"
+  exit
+fi
+
+if [[ "${BRANCH}" == "" ]]; then
+  echo "Usage ./one-off-cross.sh <reponame> <scriptname> <branchname>"
+  exit
+fi
 
 set -exuo pipefail
 
