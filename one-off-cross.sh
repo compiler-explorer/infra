@@ -4,11 +4,10 @@ REPO=$1
 SCRIPTNAME=$2
 ARCHITECTURE=$3
 VERSION=$4
-BASEVERSION=$5
 TMPNAME="${REPO}_$(date +%Y%m%d%H%M)"
 
 showhelp() {
-  echo "Usage ./one-off-cross.sh <reponame> build.sh <architecture> <version> <baseversion>"
+  echo "Usage ./one-off-cross.sh <reponame> build.sh <architecture> <version>"
 }
 
 if [[ "${REPO}" == "" ]]; then
@@ -27,11 +26,6 @@ if [[ "${ARCHITECTURE}" == "" ]]; then
 fi
 
 if [[ "${VERSION}" == "" ]]; then
-  showhelp
-  exit
-fi
-
-if [[ "${BASEVERSION}" == "" ]]; then
   showhelp
   exit
 fi
@@ -124,6 +118,6 @@ build_latest_cross() {
     log_to_json ${LOG_DIR} admin
 }
 
-build_latest_cross ${REPO} ${TMPNAME} ${SCRIPTNAME} ${ARCHITECTURE} ${VERSION} ${BASEVERSION}
+build_latest_cross ${REPO} ${TMPNAME} ${SCRIPTNAME} ${ARCHITECTURE} ${VERSION}
 
 exit ${BUILD_FAILED}
