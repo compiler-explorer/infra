@@ -1,5 +1,5 @@
 locals {
-  runner_image_id  = "ami-0cc27013e4e36f493"
+  runner_image_id  = "ami-02ca691126050a9f9"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
   admin_subnet = module.ce_network.subnet["1a"].id
