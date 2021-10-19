@@ -1,4 +1,4 @@
-name: Start Staging
+name: Build cross compiler
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ on:
         required: true
 
 jobs:
-  startstaging:
+  buildcross:
     runs-on: ['admin']
 
     steps:
