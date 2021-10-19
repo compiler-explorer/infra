@@ -257,7 +257,7 @@ install_nsimd() {
             ## x86_64
             (
                 export PATH=${OPT}/gcc-10.2.0/bin:${PATH}
-                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=avx512_skylake \
+                ../nstools/nsconfig/nsconfig .. -Dsimd=avx512_skylake \
                                         -prefix=${DEST}/x86_64 \
                                         -Ggnumake \
                                         -suite=gcc
@@ -268,7 +268,7 @@ install_nsimd() {
             ## CUDA
             (
                 export PATH=${OPT}/cuda/9.1.85/bin:${OPT}/gcc-6.1.0/bin:${PATH}
-                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=cuda \
+                ../nstools/bin/nsconfig .. -Dsimd=cuda \
                                             -prefix=${DEST}/cuda \
                                             -Ggnumake \
                                             -Dstatic_libstdcpp=true \
@@ -283,7 +283,7 @@ install_nsimd() {
                 local CCOMP=${COMP_ROOT}/arm-unknown-linux-gnueabi-gcc
                 local CPPCOMP=${COMP_ROOT}/arm-unknown-linux-gnueabi-g++
 
-                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=neon128 \
+                ../nstools/nsconfig/nsconfig .. -Dsimd=neon128 \
                                             -prefix=${DEST}/arm/neon128 \
                                             -Ggnumake \
                                             -comp=cc,gcc,"${CCOMP}",8.2.0,armel \
@@ -298,8 +298,38 @@ install_nsimd() {
                 local CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
                 local CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
 
-                ../nstools/bin/nsconfig .. -Dbuild_library_only=true -Dsimd=aarch64 \
+                ../nstools/nsconfig/nsconfig .. -Dsimd=aarch64 \
                                             -prefix=${DEST}/arm/aarch64 \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",8.2.0,aarch64 \
+                                            -comp=c++,gcc,"${CPPCOMP}",8.2.0,aarch64
+                make
+                make install
+            )
+
+            ## PowerPC
+            (
+                local COMP_ROOT=${OPT}/powerpc64le/gcc-at13/powerpc64le-unknown-linux-gnu/bin
+                local CCOMP=${COMP_ROOT}/powerpc64le-unknown-linux-gnu-gcc
+                local CPPCOMP=${COMP_ROOT}/powerpc64le-unknown-linux-gnu-g++
+
+                ../nstools/nsconfig/nsconfig .. -Dsimd=vsx \
+                                            -prefix=${DEST}/powerpc \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",9,ppc64el \
+                                            -comp=c++,gcc,"${CPPCOMP}",9,ppc64el
+                make
+                make install
+            )
+
+            ## SVE 512
+            (
+                local COMP_ROOT=${OPT}/arm64/gcc-11.1.0/aarch64-unknown-linux-gnu/bin
+                local CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
+                local CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
+
+                ../nstools/nsconfig/nsconfig .. -Dsimd=sve512 \
+                                            -prefix=${DEST}/sve/sve512 \
                                             -Ggnumake \
                                             -comp=cc,gcc,"${CCOMP}",8.2.0,aarch64 \
                                             -comp=c++,gcc,"${CPPCOMP}",8.2.0,aarch64
@@ -313,4 +343,4 @@ install_nsimd() {
     done
 }
 
-install_nsimd v2.2
+install_nsimd v3.0.1
