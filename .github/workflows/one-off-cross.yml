@@ -1,0 +1,31 @@
+name: Start Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      compilertype:
+        description: 'Compilertype'
+        default: 'gcc'
+        required: true
+      architecture:
+        description: 'Architecture'
+        default: 'arm64'
+        required: true
+      version:
+        description: 'Compiler version'
+        default: '7.5.0'
+        required: true
+      configversion:
+        description: 'Config version'
+        default: '7.5.0'
+        required: true
+
+jobs:
+  startstaging:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull
+    - name: Set build number
+      run: ./one-off-cross.sh ${{ github.event.inputs.compilertype }} build.sh ${{ github.event.inputs.architecture }} ${{ github.event.inputs.version }} ${{ github.event.inputs.configversion }}

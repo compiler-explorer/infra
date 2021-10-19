@@ -8,7 +8,7 @@ BASEVERSION=$5
 TMPNAME="${REPO}_$(date +%Y%m%d%H%M)"
 
 showhelp() {
-  echo "Usage ./one-off-cross.sh <reponame> <scriptname> <architecture> <version> <baseversion>"
+  echo "Usage ./one-off-cross.sh <reponame> build.sh <architecture> <version> <baseversion>"
 }
 
 if [[ "${REPO}" == "" ]]; then
