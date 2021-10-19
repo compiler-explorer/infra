@@ -4,7 +4,7 @@ REPO=$1
 SCRIPTNAME=$2
 ARCHITECTURE=$3
 VERSION=$4
-TMPNAME="${REPO}_$(date +%Y%m%d%H%M)"
+TMPNAME="${REPO}_${ARCHITECTURE}_${VERSION}_$(date +%Y%m%d%H%M)"
 
 showhelp() {
   echo "Usage ./one-off-cross.sh <reponame> build.sh <architecture> <version>"
