@@ -27,5 +27,5 @@ jobs:
     steps:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull
-    - name: Set build number
+    - name: Build compiler
       run: ./one-off-cross.sh ${{ github.event.inputs.compilertype }} build.sh ${{ github.event.inputs.architecture }} ${{ github.event.inputs.version }} ${{ github.event.inputs.configversion }}
