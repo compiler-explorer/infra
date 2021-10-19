@@ -3,6 +3,10 @@ name: Compiler discovery
 on:
   workflow_dispatch:
     inputs:
+      environment:
+        description: 'Environment'
+        default: 'staging'
+        required: true
       branch:
         description: 'Branch'
         default: 'main'
@@ -28,6 +32,6 @@ jobs:
     - name: Do Compiler discovery
       run: ce runner discovery
     - name: Upload discovered compilers
-      run: ce runner uploaddiscovery ${{ github.event.inputs.buildnumber }}
+      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} ${{ github.event.inputs.buildnumber }}
     - name: Shut down runner
       run: ce runner stop
