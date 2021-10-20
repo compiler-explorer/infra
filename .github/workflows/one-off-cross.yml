@@ -18,6 +18,7 @@ on:
 
 jobs:
   buildcross:
+    name: Buildcross ${{ github.event.inputs.compilertype }} ${{ github.event.inputs.architecture }} ${{ github.event.inputs.version }}
     runs-on: ['admin']
 
     steps:
