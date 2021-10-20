@@ -84,10 +84,13 @@ compilers:
             arch_prefix: arm-unknown-linux-gnueabihf
             targets:
               - 5.4.0
+              - 7.5.0
+              - 8.5.0
               - 9.3.0
               - 10.2.0
               - 10.3.0
               - 11.1.0
+              - 11.2.0
             nightly:
               if: nightly
               type: nightly
@@ -207,11 +210,14 @@ compilers:
           targets:
             - 6.4.0
             - 7.3.0
+            - 7.5.0
             - 8.2.0
+            - 8.5.0
             - 9.3.0
             - 10.2.0
             - 10.3.0
             - 11.1.0
+            - 11.2.0
           nightly:
             if: nightly
             type: nightly
