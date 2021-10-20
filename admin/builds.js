@@ -156,15 +156,16 @@ class BuildsViewModel {
             this.clear();
             Object.keys(info).map(buildKey => {
                 const build = info[buildKey];
+                const status = build.status ? build.status : 'UNKNOWN';
                 this.addItem({
                     name: buildKey,
                     start: new Date(build.begin),
                     end: new Date(build.end),
                     duration: new Date(build.end) - new Date(build.begin),
                     last_success: build.last_success ? new Date(build.last_success) : null,
-                    status: build.status.endsWith('\n') ?
-                        build.status.substring(0, build.status.length - 1) :
-                        build.status,
+                    status: status.endsWith('\n') ?
+                        status.substring(0, status.length - 1) :
+                        status,
                     log: build.log,
                     icon: ''
                 });
