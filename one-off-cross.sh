@@ -30,6 +30,11 @@ if [[ "${VERSION}" == "" ]]; then
   exit
 fi
 
+STAT=$("ce builder status")
+if [[ "${STAT}" == "Builder status: stopping\n" ]]; then
+  echo "Builder still stopping, need to wait a bit longer"
+  exit
+fi
 
 set -exuo pipefail
 
