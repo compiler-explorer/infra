@@ -39,7 +39,7 @@ get_discovered_compilers() {
     S3_FILE=$(echo "${S3_FILE}" | sed -e 's/.*\/\d*/gh-/g' -e 's/.tar.xz/.json/g')
     local URL=https://s3.amazonaws.com/compiler-explorer/dist/discovery/${BRANCH}/${S3_FILE}
     echo "Discovered compilers from ${URL}"
-    curl -sf -o "${COMPILERS_FILE}" "${URL}"
+    curl -sf -o "${COMPILERS_FILE}" "${URL}" || true
 }
 
 get_released_code() {
