@@ -13,7 +13,7 @@ from lib.cli.runner import runner_discoveryexists
 
 from lib.amazon import download_release_file, download_release_fileobj, find_latest_release, find_release, \
     log_new_build, set_current_key, get_ssm_param, get_all_current, get_releases, remove_release, get_current_key, \
-    list_all_build_logs, list_period_build_logs
+    list_all_build_logs, list_period_build_logs, put_bouncelock_file, delete_bouncelock_file, has_bouncelock_file
 from lib.cdn import DeploymentJob
 from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
 from lib.cli import cli
@@ -67,6 +67,9 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
     """
+    if has_bouncelock_file(cfg):
+        print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
+        sys.exit(1)
     to_set = None
     release = None
     if raw:
@@ -159,3 +162,27 @@ def builds_history(cfg: Config, from_time: Optional[str], until_time: Optional[s
             list_all_build_logs(cfg)
     else:
         list_period_build_logs(cfg, from_time, until_time)
+
+
+@builds.command(name='is_locked')
+@click.pass_obj
+def builds_is_locked(cfg: Config):
+    """Check whether the current env is version bounce locked."""
+    if has_bouncelock_file(cfg):
+        print(f"Env {cfg.env.value} is currently locked from version bounce")
+    else:
+        print(f"Env {cfg.env.value} is NOT locked from version bounce")
+
+
+@builds.command(name='lock')
+@click.pass_obj
+def builds_lock(cfg: Config):
+    """Lock version bounce for the specified env."""
+    put_bouncelock_file(cfg)
+
+
+@builds.command(name='unlock')
+@click.pass_obj
+def builds_unlock(cfg: Config):
+    """Unlock version bounce for the specified env."""
+    delete_bouncelock_file(cfg)
