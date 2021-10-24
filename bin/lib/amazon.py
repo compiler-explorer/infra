@@ -348,3 +348,35 @@ def list_s3_artifacts(bucket, prefix):
 
 def get_ssm_param(param):
     return ssm_client.get_parameter(Name=param)['Parameter']['Value']
+
+
+def bouncelock_file_for(cfg: Config):
+    return f"ce-bouncelock-{cfg.env.value}"
+
+
+def put_bouncelock_file(cfg: Config):
+    s3_client.put_object(
+        Bucket='compiler-explorer',
+        Key=bouncelock_file_for(cfg),
+        Body='',
+        ACL='public-read',
+        CacheControl='public, max-age=60'
+    )
+
+
+def delete_bouncelock_file(cfg: Config):
+    s3_client.delete_object(
+        Bucket='compiler-explorer',
+        Key=bouncelock_file_for(cfg)
+    )
+
+
+def is_bouncelock_file(cfg: Config):
+    try:
+        s3_client.get_object(
+            Bucket='compiler-explorer',
+            Key=bouncelock_file_for(cfg)
+        )
+        return True
+    except s3_client.exceptions.NoSuchKey:
+        return False
