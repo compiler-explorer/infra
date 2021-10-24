@@ -166,9 +166,9 @@ def builds_history(cfg: Config, from_time: Optional[str], until_time: Optional[s
 
 @builds.command(name='is_locked')
 @click.pass_obj
-def builds_lock(cfg: Config):
+def builds_is_locked(cfg: Config):
     """Check whether the current env is version bounce locked."""
-    if is_env_bounce_locked(cfg):
+    if is_bouncelock_file(cfg):
         print(f"Env {cfg.env.value} is currently locked from version bounce")
     else:
         print(f"Env {cfg.env.value} is NOT locked from version bounce")
