@@ -371,7 +371,7 @@ def delete_bouncelock_file(cfg: Config):
     )
 
 
-def is_bouncelock_file(cfg: Config):
+def has_bouncelock_file(cfg: Config):
     try:
         s3_client.get_object(
             Bucket='compiler-explorer',
