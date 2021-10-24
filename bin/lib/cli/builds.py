@@ -184,5 +184,5 @@ def builds_lock(cfg: Config):
 @builds.command(name='unlock')
 @click.pass_obj
 def builds_unlock(cfg: Config):
-    """Lock version bounce for the specified env."""
+    """Unlock version bounce for the specified env."""
     delete_bouncelock_file(cfg)
