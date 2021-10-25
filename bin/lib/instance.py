@@ -1,11 +1,32 @@
+import functools
 import logging
 import subprocess
+from typing import Dict, Optional
 
-from lib.amazon import ec2, as_client, elb_client, get_releases, release_for
-from lib.ssh import exec_remote
+from lib.amazon import ec2, ec2_client, as_client, elb_client, get_releases, release_for
+from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = '{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}'
-logger = logging.getLogger('ssh')
+logger = logging.getLogger('instance')
+
+
+@functools.lru_cache()
+def _singleton_instance(name: str):
+    result = ec2_client.describe_instances(Filters=[
+        {'Name': 'tag:Name', 'Values': [name]},
+        {'Name': 'instance-state-name', 'Values': ['stopped', 'stopping', 'running', 'pending']},
+    ])
+    reservations = result['Reservations']
+    if len(reservations) == 0:
+        raise RuntimeError(f"No instance named '{name}' found")
+    if len(reservations) > 1:
+        raise RuntimeError(f"Multiple instances named '{name}' found ({reservations}")
+    instances = reservations[0]['Instances']
+    if len(instances) == 0:
+        raise RuntimeError(f"No instance named '{name}' found")
+    if len(instances) > 1:
+        raise RuntimeError(f"Multiple instances named '{name}' found ({instances}")
+    return ec2.Instance(id=instances[0]['InstanceId'])
 
 
 class Instance:
@@ -18,11 +39,14 @@ class Instance:
         self.update(health)
 
     def __str__(self):
-        return '{}@{}'.format(self.instance.id, self.instance.public_ip_address)
+        return '{}@{}'.format(self.instance.id, self.instance.private_ip_address)
 
-    def describe_autoscale(self):
-        results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])
-        return results['AutoScalingInstances'][0]
+    def describe_autoscale(self) -> Optional[Dict]:
+        results = as_client.describe_auto_scaling_instances(
+            InstanceIds=[self.instance.instance_id])['AutoScalingInstances']
+        if not results:
+            return None
+        return results[0]
 
     def update(self, health=None):
         if not health:
@@ -31,18 +55,21 @@ class Instance:
                 Targets=[{'Id': self.instance.instance_id}])['TargetHealthDescriptions'][0]
         self.instance.load()
         self.elb_health = health['TargetHealth']['State']
-        try:
-            self.service_status = {key: value for key, value in
-                                   (s.split("=", 1) for s in
-                                    exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n") if
-                                    "=" in s)}
-            self.running_version = exec_remote(self, [
-                'bash', '-c',
-                'if [[ -f /infra/.deploy/s3_key ]]; '
-                'then cat /infra/.deploy/s3_key; fi'
-            ]).strip()
-        except subprocess.CalledProcessError as e:
-            logger.warning("Failed to execute on remote host: %s", e)
+        if can_ssh_to(self):
+            try:
+                self.service_status = {
+                    key: value for key, value in
+                    (s.split("=", 1) for s in
+                     exec_remote(self, ['sudo', 'systemctl', 'show', 'compiler-explorer']).split("\n")
+                     if "=" in s)
+                }
+                self.running_version = exec_remote(self, [
+                    'bash', '-c',
+                    'if [[ -f /infra/.deploy/s3_key ]]; '
+                    'then cat /infra/.deploy/s3_key; fi'
+                ]).strip()
+            except subprocess.CalledProcessError as e:
+                logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod
     def elb_instances(group_arn):
@@ -57,9 +84,14 @@ class AdminInstance:
         self.service_status = {'SubState': 'unknown'}
         self.running_version = 'admin'
 
+    @property
+    def address(self):
+        return self.instance.public_ip_address
+
     @staticmethod
     def instance():
-        return AdminInstance(ec2.Instance(id='i-0988cd194a4a8a2c0'))
+        return AdminInstance(_singleton_instance("AdminNode"))
+
 
 class ConanInstance:
     def __init__(self, instance):
@@ -70,7 +102,8 @@ class ConanInstance:
 
     @staticmethod
     def instance():
-        return ConanInstance(ec2.Instance(id='i-0fbc4d84c0f7994a2'))
+        return ConanInstance(_singleton_instance("ConanNode"))
+
 
 class BuilderInstance:
     def __init__(self, instance):
@@ -81,7 +114,29 @@ class BuilderInstance:
 
     @staticmethod
     def instance():
-        return BuilderInstance(ec2.Instance(id='i-016c31c082de09817'))
+        return BuilderInstance(_singleton_instance('Builder'))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state['Name']
+
+
+class RunnerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = 'unknown'
+        self.service_status = {'SubState': 'unknown'}
+        self.running_version = 'runner'
+
+    @staticmethod
+    def instance():
+        return RunnerInstance(_singleton_instance('CERunner'))
 
     def start(self):
         self.instance.start()
@@ -110,7 +165,7 @@ def print_instances(instances, number=False):
         else:
             running_version = '(unknown {})'.format(inst.running_version)
         print(STATUS_FORMAT.format(
-            inst.instance.public_ip_address,
+            inst.instance.private_ip_address,
             inst.instance.id,
             inst.instance.state['Name'],
             inst.instance.instance_type,

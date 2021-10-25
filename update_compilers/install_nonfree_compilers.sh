@@ -4,6 +4,7 @@
 # On EC2 this location is on an EFS drive.
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.inc
 . ${DIR}/common.inc
 S3URL=s3://compiler-explorer/opt-nonfree
 
@@ -12,6 +13,7 @@ CE_INSTALL_ARG+=" --enable=non-free"
 ##################################
 # Non-free tools
 ce_install tools
+ce_squash tools
 
 ##################################
 # Intel compilers

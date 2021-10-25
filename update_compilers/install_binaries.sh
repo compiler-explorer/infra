@@ -3,6 +3,7 @@
 # This script installs all the libraries to be used by Compiler Explorer
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.inc
 . ${DIR}/common.inc
 
 #########################
@@ -18,14 +19,14 @@ fi
 #########################
 # node.js
 
-TARGET_NODE_VERSION=v12.15.0
+TARGET_NODE_VERSION=v14.18.0
 CURRENT_NODE_VERSION=""
 if [[ -d node ]]; then
     CURRENT_NODE_VERSION=$(node/bin/node --version)
 fi
 
 if [[ "$TARGET_NODE_VERSION" != "$CURRENT_NODE_VERSION" ]]; then
-    echo "Installing node TARGET_NODE_VERSION"
+    echo "Installing node ${TARGET_NODE_VERSION}"
     rm -rf node
     fetch "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.gz" | tar zxf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
 fi
@@ -42,22 +43,34 @@ fi
 #########################
 # pahole
 
-if [[ ! -d ${OPT}/pahole ]]; then
-    mkdir ${OPT}/pahole
+TARGET_PAHOLE_VERSION=v1.19
+CURRENT_PAHOLE_VERSION=""
+if [[ -f ${OPT}/pahole/bin/pahole ]]; then
+    CURRENT_PAHOLE_VERSION=$(${OPT}/pahole/bin/pahole --version)
+fi
+
+if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
+    rm -Rf ${OPT}/pahole
+    mkdir -p ${OPT}/pahole
 
     mkdir -p /tmp/build
     pushd /tmp/build
 
     # Install elfutils for libelf and libdwarf
-    fetch https://sourceware.org/elfutils/ftp/0.175/elfutils-0.175.tar.bz2 | tar jxf -
-    pushd elfutils-0.175
-    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives
+    fetch https://sourceware.org/elfutils/ftp/0.182/elfutils-0.182.tar.bz2 | tar jxf -
+    pushd elfutils-0.182
+    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
     make -j$(nproc)
     make install
     popd
 
-    fetch https://git.kernel.org/pub/scm/devel/pahole/pahole.git/snapshot/pahole-1.12.tar.gz | tar zxf -
-    pushd pahole-1.12
+    rm -Rf /tmp/build/pahole
+
+    git clone -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
+    git -C pahole checkout v1.19
+    git -C pahole submodule sync
+    git -C pahole submodule update --init
+    pushd pahole
     ${OPT}/cmake/bin/cmake \
         -D CMAKE_INSTALL_PREFIX:PATH=${OPT}/pahole \
         -D__LIB=lib \
@@ -110,21 +123,3 @@ if [[ ! -d ${OPT}/iwyu/0.12 ]]; then
     rm -rf /tmp/build
 fi
 
-
-#########################
-# plog-converter
-if [[ ! -x ${OPT}/plog-converter ]]; then
-    mkdir -p /tmp/build
-    pushd /tmp/build
-
-    git clone https://github.com/viva64/plog-converter.git
-    cd plog-converter
-    mkdir build
-    cd build
-    ${OPT}/cmake/bin/cmake ..
-    ${OPT}/cmake/bin/cmake --build .
-    cp plog-converter ${OPT}/plog-converter
-
-    popd
-    rm -rf /tmp/build
-fi

@@ -1,5 +1,9 @@
 from datetime import datetime
 from operator import attrgetter
+from typing import List, Optional
+
+from lib.env import Config, Environment
+from lib.releases import Version, Release, Hash, VersionSource
 
 
 class LazyObjectWrapper:
@@ -47,6 +51,7 @@ def _create_anon_s3_client():
 
 
 ec2 = LazyObjectWrapper(lambda: boto3.resource('ec2'))
+ec2_client = LazyObjectWrapper(lambda: boto3.client('ec2'))
 s3 = LazyObjectWrapper(lambda: boto3.resource('s3'))
 as_client = LazyObjectWrapper(lambda: boto3.client('autoscaling'))
 elb_client = LazyObjectWrapper(lambda: boto3.client('elbv2'))
@@ -58,40 +63,15 @@ LINKS_TABLE = 'links'
 VERSIONS_LOGGING_TABLE = 'versionslog'
 
 
-class Hash:
-    def __init__(self, hash_val):
-        self.hash = hash_val
-
-    def __repr__(self):
-        return self.hash
-
-    def __str__(self):
-        return f'{str(self.hash[:6])}..{str(self.hash[-6:])}'
-
-
-class Release:
-    def __init__(self, version, branch, key, info_key, size, release_hash):
-        self.version = version
-        self.branch = branch
-        self.key = key
-        self.info_key = info_key
-        self.size = size
-        self.hash = release_hash
-        self.static_key = None
-
-    def __repr__(self):
-        return 'Release({}, {}, {}, {}, {})'.format(self.version, self.branch, self.key, self.size, self.hash)
-
-
-def target_group_for(args):
-    result = elb_client.describe_target_groups(Names=[args['env'].title()])
+def target_group_for(cfg: Config) -> dict:
+    result = elb_client.describe_target_groups(Names=[cfg.env.value.title()])
     if len(result['TargetGroups']) != 1:
-        raise RuntimeError(f"Invalid environment {args['env']}")
+        raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result['TargetGroups'][0]
 
 
-def target_group_arn_for(args):
-    return target_group_for(args)['TargetGroupArn']
+def target_group_arn_for(cfg: Config) -> str:
+    return target_group_for(cfg)['TargetGroupArn']
 
 
 def get_autoscaling_group(group_name):
@@ -99,28 +79,23 @@ def get_autoscaling_group(group_name):
     return result['AutoScalingGroups'][0]
 
 
-def get_autoscaling_groups_for(args):
-    def finder(r):
-        for k in r['Tags']:
-            if k['Key'] == 'Name' and k['Value'] == args['env'].title():
-                return r
-
-    result = list(filter(finder, as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
+def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
+    result = list(filter(lambda r: cfg.env.value.lower() in r['AutoScalingGroupName'],
+                         as_client.describe_auto_scaling_groups()['AutoScalingGroups']))
     if not result:
-        raise RuntimeError(f"Invalid environment {args['env']}")
+        raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result
 
 
 def remove_release(release):
     s3_client.delete_objects(
         Bucket='compiler-explorer',
-        Delete={'Objects': [{'Key': release.key}, {'Key': release.info_key}]}
+        Delete={'Objects': [{'Key': release.key}, {'Key': release.static_key}, {'Key': release.info_key}]}
     )
 
 
-def get_releases():
+def _get_releases(source: VersionSource, prefix: str):
     paginator = s3_client.get_paginator('list_objects_v2')
-    prefix = 'dist/travis/'
     result_iterator = paginator.paginate(
         Bucket='compiler-explorer',
         Prefix=prefix
@@ -133,21 +108,22 @@ def get_releases():
         if not key.endswith(".tar.xz"):
             continue
         split_key = key.split('/')
-        branch = split_key[-2]
-        version = split_key[-1].split('.')[0]
+        branch = '/'.join(split_key[2:-1])
+        version_str = split_key[-1].split('.')[0]
+        version = Version.from_string(version_str, source)
 
         if key.endswith('.static.tar.xz'):
-            staticfiles[int(version)] = key
+            staticfiles[version] = key
             continue
 
         size = result['Size']
-        info_key = "/".join(split_key[:-1]) + "/" + version + ".txt"
+        info_key = "/".join(split_key[:-1]) + "/" + version_str + ".txt"
         o = s3_client.get_object(
             Bucket='compiler-explorer',
             Key=info_key
         )
-        release_hash = o['Body'].read().decode("utf-8").strip()
-        releases[int(version)] = Release(int(version), branch, key, info_key, size, Hash(release_hash))
+        release_hash = Hash(o['Body'].read().decode("utf-8").strip())
+        releases[version] = Release(version, branch, key, info_key, size, release_hash)
 
     for ver, key in staticfiles.items():
         r = releases.get(ver)
@@ -155,6 +131,14 @@ def get_releases():
             r.static_key = key
 
     return list(releases.values())
+
+
+def get_releases():
+    return _get_releases(VersionSource.TRAVIS, 'dist/travis') + _get_releases(VersionSource.GITHUB, 'dist/gh')
+
+
+def get_tools_releases():
+    return _get_releases(VersionSource.TRAVIS, 'dist/tools')
 
 
 def download_release_file(file, destination):
@@ -177,30 +161,30 @@ def find_latest_release(branch):
     return max(releases, key=attrgetter('version')) if len(releases) > 0 else None
 
 
-def branch_for_env(args):
-    if args['env'] == 'prod':
+def branch_for_env(cfg: Config):
+    if cfg.env == Environment.PROD:
         return 'release'
-    return args['env']
+    return cfg.env.value
 
 
 def version_key_for_env(env):
     return 'version/{}'.format(branch_for_env(env))
 
 
-def get_current_key(args):
+def get_current_key(cfg: Config) -> Optional[str]:
     try:
         o = s3_client.get_object(
             Bucket='compiler-explorer',
-            Key=version_key_for_env(args)
+            Key=version_key_for_env(cfg)
         )
         return o['Body'].read().decode("utf-8").strip()
     except s3_client.exceptions.NoSuchKey:
         return None
 
 
-def get_all_current():
+def get_all_current() -> List[str]:
     versions = []
-    for branch in ['release', 'beta', 'master']:
+    for branch in ['release', 'beta', 'staging']:
         try:
             o = s3_client.get_object(
                 Bucket='compiler-explorer',
@@ -212,8 +196,8 @@ def get_all_current():
     return versions
 
 
-def set_current_key(args, key):
-    s3_key = version_key_for_env(args)
+def set_current_key(cfg: Config, key: str):
+    s3_key = version_key_for_env(cfg)
     print('Setting {} to {}'.format(s3_key, key))
     s3_client.put_object(
         Bucket='compiler-explorer',
@@ -230,29 +214,29 @@ def release_for(releases, s3_key):
     return None
 
 
-def get_events_file(args):
+def get_events_file(cfg: Config) -> str:
     try:
         o = s3_client.get_object(
             Bucket='compiler-explorer',
-            Key=events_file_for(args)
+            Key=events_file_for(cfg)
         )
         return o['Body'].read().decode("utf-8")
     except s3_client.exceptions.NoSuchKey:
-        pass
+        return '{}'
 
 
-def save_event_file(args, contents):
+def save_event_file(cfg: Config, contents: str):
     s3_client.put_object(
         Bucket='compiler-explorer',
-        Key=events_file_for(args),
+        Key=events_file_for(cfg),
         Body=contents,
         ACL='public-read',
         CacheControl='public, max-age=60'
     )
 
 
-def events_file_for(args):
-    events_file = 'motd/motd-{}.json'.format(args['env'])
+def events_file_for(cfg: Config):
+    events_file = 'motd/motd-{}.json'.format(cfg.env.value)
     return events_file
 
 
@@ -272,12 +256,12 @@ def delete_short_link(item):
     dynamodb_client.delete_item(TableName=LINKS_TABLE, Key={'prefix': {'S': item[:6]}, 'unique_subhash': {'S': item}})
 
 
-def log_new_build(args, new_version):
+def log_new_build(cfg: Config, new_version):
     current_time = datetime.utcnow().isoformat()
     new_item = {
         'buildId': {'S': new_version},
         'timestamp': {'S': current_time},
-        'env': {'S': args['env']}
+        'env': {'S': cfg.env.value}
     }
     dynamodb_client.put_item(TableName=VERSIONS_LOGGING_TABLE, Item=new_item)
 
@@ -287,31 +271,31 @@ def print_version_logs(items):
         print('{} (from {}) at {}'.format(item['buildId']['S'], item['env']['S'], item['timestamp']['S']))
 
 
-def list_all_build_logs(args):
+def list_all_build_logs(cfg: Config):
     result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
                                   FilterExpression='env = :environment',
-                                  ExpressionAttributeValues={':environment': {'S': args['env']}})
+                                  ExpressionAttributeValues={':environment': {'S': cfg.env.value}})
     print_version_logs(result.get('Items', []))
 
 
-def list_period_build_logs(args, from_time, until_time):
+def list_period_build_logs(cfg: Config, from_time: Optional[str], until_time: Optional[str]):
     result = None
     if from_time is None and until_time is None:
         #  Our only calling site already checks this, but added as fallback just in case
-        list_all_build_logs(args)
+        list_all_build_logs(cfg)
     elif from_time is None:
         assert (until_time is not None), "Required field --until is missing"
         result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
                                       FilterExpression='#ts <= :until and env = :environment',
                                       ExpressionAttributeValues={':until': {'S': until_time},
-                                                                 ':environment': {'S': args['env']}},
+                                                                 ':environment': {'S': cfg.env.value}},
                                       ExpressionAttributeNames={'#ts': 'timestamp'})
     elif until_time is None:
         assert (from_time is not None), "Required field --from is missing"
         result = dynamodb_client.scan(TableName=VERSIONS_LOGGING_TABLE,
                                       FilterExpression='#ts >= :from and env = :environment',
                                       ExpressionAttributeValues={':from': {'S': from_time},
-                                                                 ':environment': {'S': args['env']}},
+                                                                 ':environment': {'S': cfg.env.value}},
                                       ExpressionAttributeNames={'#ts': 'timestamp'})
     else:
         assert (until_time is not None and from_time is not None), "Expected both --until and --from to be filled"
@@ -319,7 +303,7 @@ def list_period_build_logs(args, from_time, until_time):
                                       FilterExpression='#ts BETWEEN :from AND :until and env = :environment',
                                       ExpressionAttributeValues={':until': {'S': until_time},
                                                                  ':from': {'S': from_time},
-                                                                 ':environment': {'S': args['env']}},
+                                                                 ':environment': {'S': cfg.env.value}},
                                       ExpressionAttributeNames={'#ts': 'timestamp'})
     if result is not None:
         print_version_logs(result.get('Items', []))
@@ -364,3 +348,35 @@ def list_s3_artifacts(bucket, prefix):
 
 def get_ssm_param(param):
     return ssm_client.get_parameter(Name=param)['Parameter']['Value']
+
+
+def bouncelock_file_for(cfg: Config):
+    return f"ce-bouncelock-{cfg.env.value}"
+
+
+def put_bouncelock_file(cfg: Config):
+    s3_client.put_object(
+        Bucket='compiler-explorer',
+        Key=bouncelock_file_for(cfg),
+        Body='',
+        ACL='public-read',
+        CacheControl='public, max-age=60'
+    )
+
+
+def delete_bouncelock_file(cfg: Config):
+    s3_client.delete_object(
+        Bucket='compiler-explorer',
+        Key=bouncelock_file_for(cfg)
+    )
+
+
+def has_bouncelock_file(cfg: Config):
+    try:
+        s3_client.get_object(
+            Bucket='compiler-explorer',
+            Key=bouncelock_file_for(cfg)
+        )
+        return True
+    except s3_client.exceptions.NoSuchKey:
+        return False

@@ -1,8 +1,17 @@
-boto3>=1.7
 awscli
-requests
+boto3>=1.17
 cachecontrol[filecache]
-pyyaml
-pytest
+click
+jinja2
 mypy
 pylint
+pytest
+pyyaml
+requests
+types-PyYAML
+types-pkg_resources
+types-requests
+types-toml
+aws-embedded-metrics  # only needed by lambda tests really
+paramiko
+types-paramiko

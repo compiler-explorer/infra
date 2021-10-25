@@ -4,6 +4,7 @@ compilers:
     compression: gz
     url: https://ftp.cs.ru.nl/Clean/Clean{name_no_dots}/linux/clean{name}{suffix}.tar.gz
     check_exe: bin/patch_bin /dev/null installation_test
+    check_stderr_on_stdout: true
     dir: clean32-{name}
     strip_components: 1
     create_untar_dir: true
@@ -25,3 +26,10 @@ compilers:
           name_no_dots: 24
         - name: '3.0'
           name_no_dots: 30
+  nightly:
+    if: nightly
+    clean:
+      type: nightly
+      check_exe: bin/clm -V
+      targets:
+        - trunk

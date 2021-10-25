@@ -5,6 +5,7 @@ resource "aws_dynamodb_table" "links" {
       read_capacity,
       write_capacity
     ]
+    prevent_destroy = true
   }
   billing_mode   = "PAY_PER_REQUEST"
   read_capacity  = 1
@@ -24,9 +25,33 @@ resource "aws_dynamodb_table" "links" {
   point_in_time_recovery {
     enabled = true
   }
+}
 
-  tags = {
-    key   = "Site"
-    value = "CompilerExplorer"
+resource "aws_dynamodb_table" "versionslog" {
+  name           = "versionslog"
+  lifecycle {
+    ignore_changes = [
+      read_capacity,
+      write_capacity
+    ]
+    prevent_destroy = true
+  }
+  billing_mode   = "PAY_PER_REQUEST"
+  read_capacity  = 1
+  write_capacity = 1
+  hash_key       = "buildId"
+  range_key      = "timestamp"
+
+  attribute {
+    name = "buildId"
+    type = "S"
+  }
+  attribute {
+    name = "timestamp"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = false
   }
 }

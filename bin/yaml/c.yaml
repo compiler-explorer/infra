@@ -1,12 +1,18 @@
 compilers:
   c:
+    cproc:
+      if: nightly
+      type: nightly
+      check_file: bin/cproc
+      targets:
+        - master
     ppci:
       type: tarballs
       compression: gz
       check_exe:
         - /bin/bash
         - -c
-        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{name} python3 -B -mppci --version"
+        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{name} $(which python3) -B -mppci --version"
       dir: ppci-{name}
       untar_dir: ppci-{name}
       url: https://pypi.io/packages/source/p/ppci/ppci-{name}.tar.gz
@@ -17,11 +23,15 @@ compilers:
       subdir: '6502'
       s3_path_prefix: cc65-{name}
       check_exe: bin/cc65 --version
+      check_stderr_on_stdout: true
       targets:
         - "2.17"
+        - "2.18"
+        - "2.19"
     gcc:
       type: s3tarballs
       check_exe: bin/gcc -v
+      check_stderr_on_stdout: true
       targets:
         - '1.27'
     sdcc:
@@ -29,10 +39,15 @@ compilers:
       compression: bz2
       dir: sdcc-{name}
       check_exe: bin/sdcc --version
-      untar_dir: sdcc-{name}
       url: https://downloads.sourceforge.net/project/sdcc/sdcc-linux-amd64/{name}/sdcc-{name}-amd64-unknown-linux2.5.tar.bz2
-      targets:
-        - 4.0.0
+      older:
+        untar_dir: sdcc-{name}
+        targets:
+          - 4.0.0
+      newer:
+        untar_dir: sdcc
+        targets:
+          - 4.1.0
     nightly:
       if: nightly
       cc65:
@@ -47,3 +62,8 @@ compilers:
         check_exe: bin/tcc -version
         targets:
           - trunk
+      chibicc:
+        type: nightly
+        check_file: chibicc
+        targets:
+          - main

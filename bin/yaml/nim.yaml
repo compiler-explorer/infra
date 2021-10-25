@@ -11,15 +11,17 @@ compilers:
       - 1.0.4
       - 1.0.6
       - 1.2.0
-#    nightly:
-#      type: restQueryTarballs
-#      install_always: true
-#      if: nightly
-#      url: https://api.github.com/repos/nim-lang/nightlies/releases/latest
-#      query: ([doc['browser_download_url'] for doc in document['assets'] if 'x86_64' in doc['name']] or [None])[0]
-#      targets:
-#        - linux_x64-nightlies
-# todo: fetch 
-# look for [.assets[] | select(.name | contains(\"${target}\"))][0].browser_download_url
-# download and unpack that
-# See issue #31 for details why this isn't working currently.
+      - 1.4.2
+      - 1.4.4
+      - 1.4.6
+      - 1.4.8
+      - 1.6.0
+    nightly:
+      install_always: true
+      if: nightly
+      url: https://github.com/nim-lang/nightlies/releases/download/latest-{name}/linux_x64.tar.xz
+      untar_dir: nim-{name}
+      create_untar_dir: true
+      strip_components: 1
+      targets:
+        - devel

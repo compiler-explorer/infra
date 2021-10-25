@@ -1,20 +1,20 @@
 #!/bin/bash
 
-set -ex
+set -exuo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd ${DIR}
+cd "${DIR}"
 
 if [[ "$1" != "--updated" ]]; then
-    sudo -u ubuntu git -C ${DIR} pull
-    pwd
-    exec bash ${BASH_SOURCE[0]} --updated
-    exit 0
+  sudo -u ubuntu git -C "${DIR}" pull
+  pwd
+  exec bash "${BASH_SOURCE[0]}" --updated
+  exit 0
 fi
 
-env EXTRA_NFS_ARGS="" ${DIR}/setup-common.sh
+env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 
-apt -y install mosh fish jq ssmtp cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
+apt -y install mosh fish jq cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/infra
@@ -33,25 +33,12 @@ chown -R ubuntu:ubuntu /home/ubuntu/infra
 sudo -u ubuntu fish setup.fish
 crontab -u ubuntu crontab.admin
 
-# Configure email
-SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
-cat >/etc/ssmtp/ssmtp.conf <<EOF
-root=postmaster
-mailhub=email-smtp.us-east-1.amazonaws.com
-hostname=compiler-explorer.com
-FromLineOverride=NO
-AuthUser=AKIAJZWPG4D3SSK45LJA
-AuthPass=${SMTP_PASS}
-UseTLS=YES
-UseSTARTTLS=YES
-EOF
-cat >/etc/ssmtp/revaliases <<EOF
-ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
-EOF
-
-chfn -f 'Compiler Explorer Admin' ubuntu
-chmod 640 /etc/ssmtp/*
-
-echo admin-node > /etc/hostname
+echo admin-node >/etc/hostname
 hostname admin-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost admin-node" /etc/hosts
+sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
+
+if ! grep vm.min_free_kbytes /etc/sysctl.conf; then
+  echo "vm.min_free_kbytes=65536" >>/etc/sysctl.conf
+  sysctl -p
+fi

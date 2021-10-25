@@ -2,20 +2,7 @@
 
 set -exuo pipefail
 
-ENV=$(curl -sf http://169.254.169.254/latest/user-data | tr '[:upper:]' '[:lower:'] || true)
-ENV=${ENV:-prod}
-BRANCH=master
-if [[ "$ENV" == "beta" ]]; then
-    BRANCH=beta
-fi
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-if [[ "$#" -ne 2 || "$1" != "--updated" || "$2" != "${BRANCH}" ]]; then
-    git --work-tree "${DIR}" checkout ${BRANCH}
-    git --work-tree "${DIR}" pull
-    exec bash "${BASH_SOURCE[0]}" --updated ${BRANCH}
-    exit 0
-fi
 
 env EXTRA_NFS_ARGS=",ro" "${DIR}/setup-common.sh"
 
@@ -43,6 +30,7 @@ apt-get install -y \
     libc6-dev-i386 \
     libdatetime-perl \
     libelf-dev \
+    libgmp3-dev \
     libprotobuf-dev \
     libnl-route-3-dev \
     libwww-perl \
@@ -54,6 +42,7 @@ apt-get install -y \
     pkg-config \
     protobuf-compiler \
     python3-pip \
+    python3.8-venv \
     s3cmd \
     subversion \
     texinfo \
@@ -75,7 +64,7 @@ make install
 popd
 
 pushd /tmp
-git clone --recursive --branch 2.9 https://github.com/google/nsjail.git
+git clone --recursive --branch 3.0 https://github.com/google/nsjail.git
 cd nsjail
 make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
@@ -87,10 +76,5 @@ systemctl restart nginx
 cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
 systemctl daemon-reload
 systemctl enable compiler-explorer
-
-if [[ -f /efs/compiler-explorer/libs/boost.tar.xz ]]; then
-    mkdir -p /celibs
-    tar xf /efs/compiler-explorer/libs/boost.tar.xz -C /celibs
-fi
 
 adduser --system --group ce

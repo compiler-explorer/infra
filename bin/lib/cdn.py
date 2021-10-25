@@ -126,14 +126,6 @@ class DeploymentJob:
                 return None
             raise
 
-    def __s3_upload_fileobj(self, fileobj, key, **kwargs):
-        return s3_client.upload_fileobj(
-            fileobj,
-            self.bucket_name,
-            self.__get_bucket_path(key),
-            **kwargs
-        )
-
     def __s3_upload_file(self, filepath, key, **kwargs):
         return s3_client.upload_file(
             filepath,

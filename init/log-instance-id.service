@@ -1,0 +1,13 @@
+[Unit]
+Description=Log AWS Instance ID
+Before=basic.target
+After=local-fs.target sysinit.target
+DefaultDependencies=no
+
+[Service]
+Type=oneshot
+SyslogIdentifier=instance-id
+ExecStart=cat /sys/devices/virtual/dmi/id/board_asset_tag
+
+[Install]
+WantedBy=basic.target

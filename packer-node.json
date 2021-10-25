@@ -1,0 +1,73 @@
+{
+  "builders": [
+    {
+      "type": "amazon-ebs",
+      "region": "us-east-1",
+      "access_key": "{{user `MY_ACCESS_KEY`}}",
+      "secret_key": "{{user `MY_SECRET_KEY`}}",
+      "source_ami_filter": {
+          "filters": {
+              "virtualization-type": "hvm",
+              "name": "ubuntu/images/*ubuntu-focal-20.04-amd64-server-*",
+              "root-device-type": "ebs"
+          },
+          "owners": ["099720109477"],
+          "most_recent": true
+      },
+      "instance_type": "c5.xlarge",
+      "ssh_username": "ubuntu",
+      "ami_name": "compiler-explorer packer 20.04 @ {{timestamp}}",
+      "tags": {"Site":  "CompilerExplorer"},
+      "run_volume_tags": {"Site":  "CompilerExplorer"},
+      "associate_public_ip_address": true,
+      "iam_instance_profile": "XaniaBlog",
+      "vpc_id": "vpc-17209172",
+      "security_group_id": "sg-f53f9f80",
+      "subnet_id": "subnet-1df1e135",
+      "ami_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "volume_size": 6,
+          "delete_on_termination": true,
+          "volume_type": "gp2"
+        }
+      ],
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "volume_size": 10,
+          "delete_on_termination": true,
+          "volume_type": "gp2"
+        }
+      ]
+    }
+  ],
+
+  "variables": {
+    "BRANCH": "main",
+    "MY_ACCESS_KEY": "",
+    "MY_SECRET_KEY": ""
+  },
+
+  "provisioners": [
+    { "type": "file", "source": "packer", "destination": "/home/ubuntu/" },
+    {
+      "type": "shell",
+      "execute_command" : "{{ .Vars }} sudo -E bash '{{ .Path }}'",
+      "inline": [
+        "set -euo pipefail",
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+        "export DEBIAN_FRONTEND=noninteractive",
+        "mkdir -p /root/.ssh",
+        "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
+        "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
+        "rm -rf /home/ubuntu/packer",
+        "apt-get -y update",
+        "apt-get -y install git",
+        "git clone -b {{user `BRANCH`}} https://github.com/compiler-explorer/infra.git /infra",
+        "cd /infra",
+        "env PACKER_SETUP=yes bash setup-node.sh 2>&1 | tee /tmp/setup.log"
+      ]
+    }
+  ]
+}

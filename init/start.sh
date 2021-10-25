@@ -6,6 +6,8 @@ ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
 ENV=${ENV:-prod}
 CE_USER=ce
 DEPLOY_DIR=${PWD}/.deploy
+COMPILERS_ARG=
+COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
 echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
@@ -27,13 +29,17 @@ mount_opt() {
 
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
+
+    ./mount-all-img.sh
 }
 
-rsync_boost() {
-    echo rsyncing boost libraries
-    mkdir -p /celibs
-    chown ${CE_USER}:${CE_USER} /celibs
-    rsync -a --chown=${CE_USER}:${CE_USER} --exclude=.git /opt/compiler-explorer/libs/boost_* /celibs/ &
+get_discovered_compilers() {
+    local DEST=$1
+    local S3_FILE=$2
+    S3_FILE=$(echo "${S3_FILE}" | sed -e 's/.*\/\d*/gh-/g' -e 's/.tar.xz/.json/g')
+    local URL=https://s3.amazonaws.com/compiler-explorer/dist/discovery/${BRANCH}/${S3_FILE}
+    echo "Discovered compilers from ${URL}"
+    curl -sf -o "${COMPILERS_FILE}" "${URL}" || true
 }
 
 get_released_code() {
@@ -62,7 +68,17 @@ update_code() {
     else
         rm -rf "${DEPLOY_DIR}"
         get_released_code "${DEPLOY_DIR}" "${S3_KEY}"
+        get_discovered_compilers "${DEPLOY_DIR}" "${S3_KEY}"
     fi
+
+    if [[ -f "${COMPILERS_FILE}" ]]; then
+        COMPILERS_ARG="--prediscovered=${COMPILERS_FILE}"
+    fi
+}
+
+install_node() {
+    rm -f /usr/local/bin/node
+    cp /opt/compiler-explorer/node/bin/node /usr/local/bin
 }
 
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
@@ -72,19 +88,28 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 mount_opt
-rsync_boost
 update_code
+install_node
 
 cd "${DEPLOY_DIR}"
+
+if [[ "${ENV}" == "runner" ]]; then
+  exit
+fi
+
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
-    /opt/compiler-explorer/node/bin/node \
+    /usr/local/bin/node \
+    -r esm \
     -- app.js \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
     --logPort "${LOG_DEST_PORT}" \
     --env amazon \
     --port 10240 \
+    --metricsPort 10241 \
+    --loki "http://127.0.0.1:3500" \
     --static out/dist \
     --dist \
+    ${COMPILERS_ARG} \
     ${EXTRA_ARGS}

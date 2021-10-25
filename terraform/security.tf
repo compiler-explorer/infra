@@ -1,10 +1,9 @@
 resource "aws_security_group" "CompilerExplorer" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "gcc-explorer-sg"
   description = "For the GCC explorer"
   tags        = {
     Name = "CompilerExplorer"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -74,12 +73,11 @@ resource "aws_security_group_rule" "CE_ConanHttpsFromAlb" {
 }
 
 resource "aws_security_group" "CompilerExplorerAlb" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "ce-alb-sg"
   description = "Load balancer security group"
   tags        = {
     Name = "CELoadBalancer"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -127,12 +125,11 @@ resource "aws_security_group_rule" "ALB_IngressFromCE" {
 }
 
 resource "aws_security_group" "AdminNode" {
-  vpc_id      = aws_vpc.CompilerExplorer.id
+  vpc_id      = module.ce_network.vpc.id
   name        = "AdminNodeSecGroup"
   description = "Security for the admin node"
   tags        = {
     Name = "AdminNode"
-    Site = "CompilerExplorer"
   }
 }
 
@@ -205,10 +202,6 @@ resource "aws_iam_role" "CompilerExplorerRole" {
   name               = "CompilerExplorerRole"
   description        = "Compiler Explorer node role"
   assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
-
-  tags = {
-    Site = "CompilerExplorer"
-  }
 }
 
 data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
@@ -251,7 +244,8 @@ data "aws_iam_policy_document" "AccessCeParams" {
       "ssm:Get*",
       "ssm:List*"
     ]
-    // TODO is there a way to refer to this (external) parameter (CC @Cosaquee)
+    // These secrets are externally managed. There's no way I can find to refer to them using data stanzas without
+    // storing their contents here too.
     resources = ["arn:aws:ssm:us-east-1:052730242331:parameter/compiler-explorer/*"]
   }
 }
@@ -274,7 +268,7 @@ data "aws_iam_policy_document" "ReadS3Minimal" {
 
 resource "aws_iam_policy" "ReadS3Minimal" {
   name        = "ReadS3Minimal"
-  description = "Minimum possible read acces to S3 to boot an instance"
+  description = "Minimum possible read access to S3 to boot an instance"
   policy      = data.aws_iam_policy_document.ReadS3Minimal.json
 }
 
@@ -301,4 +295,133 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AccessCeP
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Minimal" {
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+// This is for the auth node temporarily to allow port 3000 from the alb
+resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
+  security_group_id        = aws_security_group.AdminNode.id
+  type                     = "ingress"
+  from_port                = 3000
+  to_port                  = 3000
+  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  protocol                 = "tcp"
+  description              = "Allow port 3000 access from the ALB"
+}
+
+resource "aws_security_group" "Builder" {
+  vpc_id      = module.ce_network.vpc.id
+  name        = "BuilderNodeSecGroup"
+  description = "Compiler Explorer compiler and library security group"
+  tags        = {
+    Name = "Builder"
+  }
+}
+
+// The builder needs to be able to fetch things from the wider internet.
+resource "aws_security_group_rule" "Builder_EgressToAll" {
+  security_group_id = aws_security_group.Builder.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "-1"
+  description       = "Unfettered outbound access"
+}
+
+resource "aws_security_group_rule" "Builder_SshFromAdminNode" {
+  security_group_id        = aws_security_group.Builder.id
+  type                     = "ingress"
+  from_port                = 22
+  to_port                  = 22
+  source_security_group_id = aws_security_group.AdminNode.id
+  protocol                 = "tcp"
+  description              = "Allow SSH access from the admin node only"
+}
+
+// TODO: remove this comment once we're happy with the builder:
+// * builder used to have AmazonSFullAccess and AmazonSSMReadOnlyAccess
+resource "aws_iam_role" "Builder" {
+  name               = "Builder"
+  description        = "Compiler Explorer compiler and library building role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
+resource "aws_iam_instance_profile" "Builder" {
+  name = "Builder"
+  role = aws_iam_role.Builder.name
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerPolicy" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
+}
+
+data "aws_iam_policy_document" "CeBuilderStorageAccess" {
+  statement {
+    sid       = "S3Access"
+    actions   = ["s3:*"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeBuilderStorageAccess" {
+  name        = "CeBuilderStorageAccess"
+  description = "Can write to S3 in the appropriate locations only"
+  policy      = data.aws_iam_policy_document.CeBuilderStorageAccess.json
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_CeBuilderStorageAccess" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_AccessCeParams" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.AccessCeParams.arn
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+
+resource "aws_security_group" "efs" {
+  vpc_id      = module.ce_network.vpc.id
+  name        = "EFS"
+  description = "EFS access for Compiler Explorer"
+  tags        = {
+    Name = "EFS"
+  }
+}
+
+resource "aws_security_group_rule" "efs_outbound" {
+  lifecycle {
+    create_before_destroy = true
+  }
+  security_group_id = aws_security_group.efs.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "all"
+}
+
+resource "aws_security_group_rule" "efs_inbound" {
+  for_each                 = {
+    "Admin"       = aws_security_group.AdminNode.id,
+    "Compilation" = aws_security_group.CompilerExplorer.id
+    "Builder"     = aws_security_group.Builder.id
+  }
+  security_group_id        = aws_security_group.efs.id
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 65535
+  protocol                 = "all"
+  source_security_group_id = each.value
+  description              = "${each.key} node acccess"
 }

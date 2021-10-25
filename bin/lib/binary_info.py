@@ -1,9 +1,11 @@
 import re
-import os
 import subprocess
 from collections import defaultdict
+from pathlib import Path
+from typing import Dict, Any, Iterable
 
-SYMBOLLINE_RE = re.compile(r'^\s*(\d*):\s[0-9a-f]*\s*(\d*)\s(\w*)\s*(\w*)\s*(\w*)\s*([\w|\d]*)\s?([\w\.]*)?$', re.MULTILINE)
+SYMBOLLINE_RE = re.compile(r'^\s*(\d*):\s[0-9a-f]*\s*(\d*)\s(\w*)\s*(\w*)\s*(\w*)\s*([\w|\d]*)\s?([\w\.]*)?$',
+                           re.MULTILINE)
 SO_STRANGE_SYMLINK = re.compile(r'INPUT \((\S*)\)')
 
 ELF_CLASS_RE = re.compile(r'^\s*Class:\s*(.*)$', re.MULTILINE)
@@ -18,42 +20,40 @@ sym_grp_vis = 4
 sym_grp_ndx = 5
 sym_grp_name = 6
 
+
 class BinaryInfo:
     def __init__(self, logger, buildfolder, filepath):
         self.logger = logger
 
-        self.buildfolder = buildfolder
-        self.filepath = filepath
+        self.buildfolder = Path(buildfolder)
+        self.filepath = Path(filepath)
 
         self.readelf_header_details = ''
         self.readelf_symbols_details = ''
         self.ldd_details = ''
 
-        self.follow_and_readelf()
-        self.read_symbols_from_binary()
+        self._follow_and_readelf()
+        self._read_symbols_from_binary()
 
-    def follow_and_readelf(self):
-        self.logger.debug('Readelf on ' + self.filepath)
-        if not os.path.exists(self.filepath):
-            return False
+    def _follow_and_readelf(self) -> None:
+        self.logger.debug('Readelf on %s', self.filepath)
+        if not self.filepath.exists():
+            return
 
         try:
-            self.readelf_header_details = subprocess.check_output(['readelf', '-h', self.filepath]).decode('utf-8', 'replace')
-            self.readelf_symbols_details = subprocess.check_output(['readelf', '-W', '-s', self.filepath]).decode('utf-8', 'replace')
-            if ".so" in self.filepath:
-                self.ldd_details = subprocess.check_output(['ldd', self.filepath]).decode('utf-8', 'replace')
+            self.readelf_header_details = subprocess.check_output(
+                ['readelf', '-h', str(self.filepath)]).decode('utf-8', 'replace')
+            self.readelf_symbols_details = subprocess.check_output(
+                ['readelf', '-W', '-s', str(self.filepath)]).decode('utf-8', 'replace')
+            if ".so" in self.filepath.name:
+                self.ldd_details = subprocess.check_output(['ldd', str(self.filepath)]).decode('utf-8', 'replace')
         except subprocess.CalledProcessError:
-            f = open(self.filepath, 'r')
-            lines = f.readlines()
-            f.close()
-
-            match = SO_STRANGE_SYMLINK.match('\n'.join(lines))
+            match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding='utf-8'))
             if match:
-                self.filepath = os.path.join(self.buildfolder, match[1])
-                return self.follow_and_readelf()
-            return False
+                self.filepath = self.buildfolder / match[1]
+                self._follow_and_readelf()
 
-    def read_symbols_from_binary(self):
+    def _read_symbols_from_binary(self) -> None:
         self.required_symbols = set()
         self.implemented_symbols = set()
 
@@ -65,29 +65,24 @@ class BinaryInfo:
                         self.required_symbols.add(line[sym_grp_name])
                     else:
                         self.implemented_symbols.add(line[sym_grp_name])
-            return True
-        else:
-            return False
 
-    def symbol_maybe_cxx11abi(self, symbol):
+    @staticmethod
+    def symbol_maybe_cxx11abi(symbol: str) -> bool:
         return 'cxx11' in symbol
 
-    def set_maybe_cxx11abi(self, symbolset):
-        for symbol in symbolset:
-            if self.symbol_maybe_cxx11abi(symbol):
-                return True
-        return False
+    def set_maybe_cxx11abi(self, symbolset: Iterable[str]) -> bool:
+        return any(self.symbol_maybe_cxx11abi(s) for s in symbolset)
 
-    def cxx_info_from_binary(self):
-        info = defaultdict(lambda: [])
-        info['has_personality'] = set(['__gxx_personality_v0']).issubset(self.required_symbols)
-        info['has_exceptions'] = set(['_Unwind_Resume']).issubset(self.required_symbols)
+    def cxx_info_from_binary(self) -> Dict[str, Any]:
+        info: Dict[str, Any] = defaultdict(lambda: [])
+        info['has_personality'] = {'__gxx_personality_v0'}.issubset(self.required_symbols)
+        info['has_exceptions'] = {'_Unwind_Resume'}.issubset(self.required_symbols)
         info['has_maybecxx11abi'] = self.set_maybe_cxx11abi(self.implemented_symbols)
 
         return info
 
-    def arch_info_from_binary(self):
-        info = defaultdict(lambda: [])
+    def arch_info_from_binary(self) -> Dict[str, Any]:
+        info: Dict[str, Any] = defaultdict(lambda: [])
         info['elf_class'] = ''
         info['elf_osabi'] = ''
         info['elf_machine'] = ''

@@ -1,11 +1,11 @@
 tools:
   pvs-studio:
-    if: 
+    if:
       - non-free
       - nightly
     install_always: true
     type: tarballs
-    url:  https://files.viva64.com/pvs-studio-latest.tgz
+    url: https://files.viva64.com/pvs-studio-latest.tgz
     compression: gz
     create_untar_dir: true
     dir: pvs-studio-latest
@@ -13,3 +13,22 @@ tools:
     check_exe: bin/pvs-studio --version
     targets:
       - latest
+  osaca:
+    type: pip
+    dir: osaca-{name}
+    python: /usr/bin/python3.8
+    package: osaca=={name}
+    check_exe: bin/osaca --version
+    targets:
+      - 0.3.14
+      - 0.4.6
+  rustfmt:
+    type: tarballs
+    dir: rustfmt-{name}
+    compression: gz
+    check_exe: rustfmt --version
+    targets:
+      - name: 1.4.36
+        url: https://github.com/rust-lang/rustfmt/releases/download/v1.4.36/rustfmt_linux-x86_64_v1.4.36.tar.gz
+        strip_components: 1
+        create_untar_dir: true

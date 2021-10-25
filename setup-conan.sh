@@ -35,7 +35,6 @@ apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip3
 pip3 install --upgrade awscli
-touch /updated
 
 # setup ce_user
 adduser --system --group ${CE_USER}
@@ -60,7 +59,8 @@ cd /home/ubuntu
 rm -Rf node
 wget https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz
 tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
-mv node-v12.18.0-linux-x64 node
+mv node-${NODE_VERSION}-linux-x64 node
+chown -Rf root:root node
 
 # setup daemon
 cp /home/ubuntu/infra/init/ce-conan.service /lib/systemd/system/ce-conan.service
@@ -134,27 +134,7 @@ aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 
-#crontab -u ubuntu crontab.admin
-
-# Configure email
-SMTP_PASS=$(aws ssm get-parameter --name /admin/smtp_pass | jq -r .Parameter.Value)
-cat >/etc/ssmtp/ssmtp.conf <<EOF
-root=postmaster
-mailhub=email-smtp.us-east-1.amazonaws.com
-hostname=compiler-explorer.com
-FromLineOverride=NO
-AuthUser=AKIAJZWPG4D3SSK45LJA
-AuthPass=${SMTP_PASS}
-UseTLS=YES
-UseSTARTTLS=YES
-EOF
-cat >/etc/ssmtp/revaliases <<EOF
-ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
-EOF
-
-chfn -f 'Compiler Explorer Conan' ubuntu
-chmod 640 /etc/ssmtp/*
-
 echo conan-node > /etc/hostname
 hostname conan-node
 sed -i "/127.0.0.1/c 127.0.0.1 localhost conan-node" /etc/hosts
+sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg

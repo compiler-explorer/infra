@@ -5,6 +5,7 @@ import glob
 import logging
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -21,13 +22,12 @@ from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
 
 from lib.amazon import list_compilers, list_s3_artifacts
+from lib.config_expand import is_value_type, expand_target
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 
 VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
-
-MAX_ITERS = 5
 
 NO_DEFAULT = "__no_default__"
 
@@ -128,11 +128,11 @@ class InstallationContext:
         with tempfile.TemporaryFile() as fd:
             self.fetch_to(url, fd)
             fd.seek(0)
-            self.info(f'Piping to {" ".join(command)}')
+            self.info(f'Piping to {shlex.join(command)}')
             subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
     def stage_command(self, command: Sequence[str], cwd: Optional[Path] = None) -> None:
-        self.info(f'Staging with {" ".join(command)}')
+        self.info(f'Staging with {shlex.join(command)}')
         subprocess.check_call(command, cwd=str(cwd or self.staging))
 
     def fetch_s3_and_pipe_to(self, s3: str, command: Sequence[str]) -> None:
@@ -174,7 +174,8 @@ class InstallationContext:
             self.debug(f'File not found for {link}')
             return False
 
-    def move_from_staging(self, source_str: str, dest_str: Optional[str] = None) -> None:
+    def move_from_staging(self, source_str: str, dest_str: Optional[str] = None,
+                          do_staging_move=lambda source, dest: source.replace(dest)) -> None:
         dest_str = dest_str or source_str
         existing_dir_rename = self.staging / "temp_orig"
         source = self.staging / source_str
@@ -196,7 +197,7 @@ class InstallationContext:
             dest.replace(existing_dir_rename)
             state = 'old_renamed'
         try:
-            source.replace(dest)
+            do_staging_move(source, dest)
             if state == 'old_renamed':
                 state = 'old_needs_remove'
         finally:
@@ -219,12 +220,22 @@ class InstallationContext:
             self.warn('Contents differ')
         return result == 0
 
-    def check_output(self, args: List[str], env: Optional[dict] = None) -> str:
+    def check_output(self, args: List[str], env: Optional[dict] = None, stderr_on_stdout=False) -> str:
         args = args[:]
         args[0] = str(self.destination / args[0])
         logger.debug('Executing %s in %s', args, self.destination)
-        return subprocess.check_output(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL).decode(
-            'utf-8')
+        return subprocess.check_output(
+            args,
+            cwd=str(self.destination),
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stderr=subprocess.STDOUT if stderr_on_stdout else None).decode('utf-8')
+
+    def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
+        args = args[:]
+        args[0] = str(self.destination / args[0])
+        logger.debug('Executing %s in %s', args, self.destination)
+        subprocess.check_call(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL)
 
     def strip_exes(self, paths: Union[bool, List[str]]) -> None:
         if isinstance(paths, bool):
@@ -246,20 +257,19 @@ class InstallationContext:
         # Deliberately ignore errors
         subprocess.call(['strip'] + to_strip)
 
-    def run_script(self, frompath: Union[str, Path], lines: List[str]) -> None:
+    def run_script(self, from_path: Union[str, Path], lines: List[str]) -> None:
+        from_path = Path(from_path)
         if len(lines) > 0:
             self.info('Running script')
-            scriptfile = os.path.join(frompath, 'ce_script.sh')
-            f = open(scriptfile, 'w')
-            f.write('#!/bin/bash\n\nset -euo pipefail\n\n')
-            for line in lines:
-                f.write(f'{line}\n')
-            f.close()
+            script_file = from_path / 'ce_script.sh'
+            with script_file.open('w', encoding='utf-8') as f:
+                f.write('#!/bin/bash\n\nset -euo pipefail\n\n')
+                for line in lines:
+                    f.write(f'{line}\n')
 
-            subprocess.check_call(['/bin/chmod', '+x', scriptfile])
-            subprocess.check_call([scriptfile], cwd=frompath)
-
-            os.remove(scriptfile)
+            script_file.chmod(0o744)
+            subprocess.check_call([str(script_file)], cwd=from_path)
+            script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
         return b'ELF' in subprocess.check_output(['file', maybe_elf_file])
@@ -294,7 +304,8 @@ class Installable:
         self.check_env = {}
         self.check_file = None
         self.check_call = []
-        self.path_name = ''
+        self.check_stderr_on_stdout = self.config.get('check_stderr_on_stdout', False)
+        self.install_path = ''
         self.after_stage_script = self.config_get('after_stage_script', [])
 
     def _setup_check_exe(self, path_name: str) -> None:
@@ -314,8 +325,13 @@ class Installable:
         try:
             self.depends = [all_installables[dep] for dep in self.depends]
         except KeyError as ke:
-            self.error(f"Unable to find dependency {ke}")
+            self.error(f"Unable to find dependency {ke} in {all_installables}")
             raise
+        dep_re = re.compile('%DEP([0-9]+)%')
+        def dep_n(match):
+            return str(self.install_context.destination / self.depends[int(match.group(1))].install_path)
+        for k in self.check_env.keys():
+            self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
 
     def debug(self, message: str) -> None:
         self.install_context.debug(f'{self.name}: {message}')
@@ -336,7 +352,7 @@ class Installable:
         return self.install_always or not self.is_installed()
 
     def should_build(self):
-        return self.is_library and self.build_config.build_type != "manual" and self.build_config.build_type != "none"
+        return self.is_library and self.build_config.build_type != "manual" and self.build_config.build_type != "none" and self.build_config.build_type != ""
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")
@@ -357,11 +373,14 @@ class Installable:
 
         if self.check_file:
             res = (self.install_context.destination / self.check_file).is_file()
-            self.debug(f'Check file for "{self.check_file}" returned {res}')
+            self.debug(f'Check file for "{self.install_context.destination / self.check_file}" returned {res}')
             return res
 
         try:
-            res_call = self.install_context.check_output(self.check_call, env=self.check_env)
+            res_call = self.install_context.check_output(
+                self.check_call,
+                env=self.check_env,
+                stderr_on_stdout=self.check_stderr_on_stdout)
             self.debug(f'Check call returned {res_call}')
             return True
         except FileNotFoundError:
@@ -392,7 +411,7 @@ class Installable:
         if self.build_config.build_type == "":
             raise RuntimeError('No build_type')
 
-        sourcefolder = os.path.join(self.install_context.destination, self.path_name)
+        sourcefolder = os.path.join(self.install_context.destination, self.install_path)
         builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
                                  self.install_context, self.build_config)
 
@@ -402,6 +421,23 @@ class Installable:
             return builder.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
+
+    def squash_to(self, destination_image: Path):
+        destination_image.parent.mkdir(parents=True, exist_ok=True)
+        source_folder = self.install_context.destination / self.install_path
+        temp_image = destination_image.with_suffix(".tmp")
+        temp_image.unlink(missing_ok=True)
+        self.info(f"Squashing {source_folder}...")
+        self.install_context.check_call([
+            "/usr/bin/mksquashfs",
+            str(source_folder),
+            str(temp_image),
+            "-all-root",
+            "-progress",
+            "-comp", "zstd",
+            "-Xcompression-level", "19"
+        ])
+        temp_image.replace(destination_image)
 
 
 def command_config(config: Union[List[str], str]) -> List[str]:
@@ -421,9 +457,11 @@ class GitHubInstallable(Installable):
         self.strip = False
         self.subdir = os.path.join('libs', self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
-        self.path_name = self.config_get('path_name', os.path.join(self.subdir, self.target_prefix + self.target_name))
+        self.branch_name = self.target_prefix + self.target_name
+        self.install_path = self.config_get('path_name', os.path.join(self.subdir, self.branch_name))
         if self.repo == "":
             raise RuntimeError('Requires repo')
+        self.recursive = self.config_get("recursive", True)
 
         splitrepo = self.repo.split('/')
         self.reponame = splitrepo[1]
@@ -433,31 +471,44 @@ class GitHubInstallable(Installable):
         check_file = self.config_get("check_file", "")
         if check_file == "":
             if self.build_config.build_type == "cmake":
-                self.check_file = os.path.join(self.path_name, 'CMakeLists.txt')
+                self.check_file = os.path.join(self.install_path, 'CMakeLists.txt')
             elif self.build_config.build_type == "make":
-                self.check_file = os.path.join(self.path_name, 'Makefile')
+                self.check_file = os.path.join(self.install_path, 'Makefile')
             elif self.build_config.build_type == "cake":
-                self.check_file = os.path.join(self.path_name, 'config.cake')
+                self.check_file = os.path.join(self.install_path, 'config.cake')
             else:
                 raise RuntimeError(f'Requires check_file ({last_context})')
         else:
-            self.check_file = f'{self.path_name}/{check_file}'
+            self.check_file = f'{self.install_path}/{check_file}'
+
+    def _update_args(self):
+        if self.recursive:
+            return ['--recursive']
+        return []
 
     def clone_branch(self):
-        dest = os.path.join(self.install_context.destination, self.path_name)
+        dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
+                                  cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
                                   cwd=self.install_context.staging)
         else:
             subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
             subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
                                   cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name], cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', f'origin/{self.branch_name}'],
+                                  cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'branch', '-q', '-D', self.branch_name],
+                                  cwd=self.install_context.staging)
+            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
+                                  cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'] + self._update_args(),
+                              cwd=self.install_context.staging)
 
     def clone_default(self):
-        dest = os.path.join(self.install_context.destination, self.path_name)
+        dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
             subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
                                   cwd=self.install_context.staging)
@@ -466,7 +517,8 @@ class GitHubInstallable(Installable):
             subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
                                   cwd=self.install_context.staging)
         subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'], cwd=self.install_context.staging)
+        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'] + self._update_args(),
+                              cwd=self.install_context.staging)
 
     def get_archive_url(self):
         return f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz'
@@ -478,24 +530,26 @@ class GitHubInstallable(Installable):
         self.install_context.clean_staging()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(self.get_archive_url(), self.get_archive_pipecommand())
+            dest = os.path.join(self.install_context.staging, self.untar_dir)
         elif self.method == "clone_branch":
             self.clone_branch()
+            dest = os.path.join(self.install_context.destination, self.install_path)
         elif self.method == "nightlyclone":
             self.clone_default()
+            dest = os.path.join(self.install_context.destination, self.install_path)
         else:
             raise RuntimeError(f'Unknown Github method {self.method}')
 
         if self.strip:
             self.install_context.strip_exes(self.strip)
 
-        dest = os.path.join(self.install_context.destination, self.path_name)
         self.install_context.run_script(dest, self.after_stage_script)
 
     def verify(self):
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
+        return self.install_context.compare_against_staging(self.untar_dir, self.install_path)
 
     def install(self):
         if not super().install():
@@ -504,11 +558,11 @@ class GitHubInstallable(Installable):
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
         if self.method == "archive":
-            self.install_context.move_from_staging(self.untar_dir, self.path_name)
+            self.install_context.move_from_staging(self.untar_dir, self.install_path)
         return True
 
     def __repr__(self) -> str:
-        return f'GitHubInstallable({self.name}, {self.path_name})'
+        return f'GitHubInstallable({self.name}, {self.install_path})'
 
 
 class GitLabInstallable(GitHubInstallable):
@@ -520,7 +574,7 @@ class GitLabInstallable(GitHubInstallable):
         return f'{self.domainurl}/{self.repo}/-/archive/{self.target_name}/{self.reponame}-{self.target_name}.tar.gz'
 
     def __repr__(self) -> str:
-        return f'GitLabInstallable({self.name}, {self.path_name})'
+        return f'GitLabInstallable({self.name}, {self.install_path})'
 
 
 class BitbucketInstallable(GitHubInstallable):
@@ -532,7 +586,7 @@ class BitbucketInstallable(GitHubInstallable):
         return f'{self.domainurl}/{self.repo}/downloads/{self.reponame}-{self.target_name}.tar.gz'
 
     def __repr__(self) -> str:
-        return f'BitbucketInstallable({self.name}, {self.path_name})'
+        return f'BitbucketInstallable({self.name}, {self.install_path})'
 
 
 class S3TarballInstallable(Installable):
@@ -549,7 +603,7 @@ class S3TarballInstallable(Installable):
             default_path_name = f'{last_context}-{self.target_name}'
             default_untar_dir = default_path_name
         s3_path_prefix = self.config_get('s3_path_prefix', default_s3_path_prefix)
-        self.path_name = self.config_get('path_name', default_path_name)
+        self.install_path = self.config_get('path_name', default_path_name)
         self.untar_dir = self.config_get("untar_dir", default_untar_dir)
         compression = self.config_get('compression', 'xz')
         if compression == 'xz':
@@ -564,7 +618,7 @@ class S3TarballInstallable(Installable):
         else:
             raise RuntimeError(f'Unknown compression {compression}')
         self.strip = self.config_get('strip', False)
-        self._setup_check_exe(self.path_name)
+        self._setup_check_exe(self.install_path)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
@@ -578,7 +632,7 @@ class S3TarballInstallable(Installable):
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.untar_dir, self.path_name)
+        return self.install_context.compare_against_staging(self.untar_dir, self.install_path)
 
     def install(self) -> bool:
         if not super().install():
@@ -586,14 +640,14 @@ class S3TarballInstallable(Installable):
         self.stage()
         if self.subdir:
             self.install_context.make_subdir(self.subdir)
-        elif self.path_name:
-            self.install_context.make_subdir(self.path_name)
+        elif self.install_path:
+            self.install_context.make_subdir(self.install_path)
 
-        self.install_context.move_from_staging(self.untar_dir, self.path_name)
+        self.install_context.move_from_staging(self.untar_dir, self.install_path)
         return True
 
     def __repr__(self) -> str:
-        return f'S3TarballInstallable({self.name}, {self.path_name})'
+        return f'S3TarballInstallable({self.name}, {self.install_path})'
 
 
 class NightlyInstallable(Installable):
@@ -607,27 +661,29 @@ class NightlyInstallable(Installable):
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
+        path_name_prefix = self.config_get('path_name_prefix', compiler_name)
         self.s3_path = f'{compiler_name}-{most_recent}'
-        self.path_name = os.path.join(self.subdir, f'{compiler_name}-{most_recent}')
-        self.compiler_pattern = os.path.join(self.subdir, f'{compiler_name}-*')
-        self.path_name_symlink = self.config_get('symlink', os.path.join(self.subdir, f'{compiler_name}'))
+        self.local_path = f'{path_name_prefix}-{most_recent}'
+        self.install_path = os.path.join(self.subdir, f'{path_name_prefix}-{most_recent}')
+        self.compiler_pattern = os.path.join(self.subdir, f'{path_name_prefix}-*')
+        self.path_name_symlink = self.config_get('symlink', os.path.join(self.subdir, f'{path_name_prefix}'))
         self.num_to_keep = self.config_get('num_to_keep', 5)
-        self._setup_check_exe(self.path_name)
-        self._setup_check_link(self.s3_path, self.path_name_symlink)
+        self._setup_check_exe(self.install_path)
+        self._setup_check_link(self.local_path, self.path_name_symlink)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
-        self.install_context.run_script(os.path.join(self.install_context.staging, self.s3_path),
+        self.install_context.run_script(os.path.join(self.install_context.staging, self.local_path),
                                         self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
             return False
         self.stage()
-        return self.install_context.compare_against_staging(self.s3_path, self.path_name)
+        return self.install_context.compare_against_staging(self.local_path, self.install_path)
 
     def should_install(self) -> bool:
         return True
@@ -643,13 +699,13 @@ class NightlyInstallable(Installable):
         for to_remove in all_versions[:-num_to_keep]:
             self.install_context.remove_dir(to_remove)
 
-        self.install_context.move_from_staging(self.s3_path, self.path_name)
-        self.install_context.set_link(Path(self.s3_path), self.path_name_symlink)
+        self.install_context.move_from_staging(self.local_path, self.install_path)
+        self.install_context.set_link(Path(self.local_path), self.path_name_symlink)
 
         return True
 
     def __repr__(self) -> str:
-        return f'NightlyInstallable({self.name}, {self.path_name})'
+        return f'NightlyInstallable({self.name}, {self.install_path})'
 
 
 class TarballInstallable(Installable):
@@ -678,10 +734,15 @@ class TarballInstallable(Installable):
         strip_components = self.config_get("strip_components", 0)
         if strip_components:
             self.tar_cmd += ['--strip-components', str(strip_components)]
+        extract_only = self.config_get("extract_only", "")
+        if extract_only:
+            self.tar_cmd += [extract_only]
         self.strip = self.config_get('strip', False)
         self._setup_check_exe(self.install_path)
         if self.install_path_symlink:
             self._setup_check_link(self.install_path, self.install_path_symlink)
+        self.remove_older_pattern = self.config_get("remove_older_pattern", "")
+        self.num_to_keep = self.config_get('num_to_keep', 5)
 
     def stage(self) -> None:
         self.install_context.clean_staging()
@@ -704,13 +765,63 @@ class TarballInstallable(Installable):
         if not super().install():
             return False
         self.stage()
+
+        if self.remove_older_pattern:
+            # Do this first, and add one for the file we haven't yet installed... (then dry run works)
+            num_to_keep = self.num_to_keep + 1
+            all_versions = list(sorted(self.install_context.glob(self.remove_older_pattern)))
+            for to_remove in all_versions[:-num_to_keep]:
+                self.install_context.remove_dir(to_remove)
+
         self.install_context.move_from_staging(self.untar_path, self.install_path)
         if self.install_path_symlink:
-            self.install_context.set_link(self.install_path, self.install_path_symlink)
+            self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
         return True
 
     def __repr__(self) -> str:
         return f'TarballInstallable({self.name}, {self.install_path})'
+
+
+class ZipArchiveInstallable(Installable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self.url = self.config_get('url')
+        self.folder_to_rename = self.config_get('folder')
+        self.configure_command = command_config(self.config_get('configure_command', []))
+        self.strip = self.config_get('strip', False)
+        self._setup_check_exe(self.install_path)
+
+    def stage(self) -> None:
+        self.install_context.clean_staging()
+        # Unzip does not support stdin piping so we need to create a file
+        with (self.install_context.staging / 'distribution.zip').open('wb') as fd:
+            self.install_context.fetch_to(self.url, fd)
+            self.install_context.stage_command(['unzip', fd.name])
+            self.install_context.stage_command(['mv', self.folder_to_rename, self.install_path])
+        if self.configure_command:
+            self.install_context.stage_command(self.configure_command)
+        if self.strip:
+            self.install_context.strip_exes(self.strip)
+        if not (self.install_context.staging / self.install_path).is_dir():
+            raise RuntimeError(f"After unpacking, {self.install_path} was not a directory")
+        self.install_context.run_script(self.install_context.staging / self.install_path, self.after_stage_script)
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def install(self) -> bool:
+        if not super().install():
+            return False
+        self.stage()
+        self.install_context.move_from_staging(self.install_path)
+        return True
+
+    def __repr__(self) -> str:
+        return f'ZipArchiveInstallable({self.name}, {self.install_path})'
 
 
 class RestQueryTarballInstallable(TarballInstallable):
@@ -749,8 +860,11 @@ class ScriptInstallable(Installable):
         self.install_context.clean_staging()
         for url in self.fetch:
             url, filename = url.split(' ')
-            with (self.install_context.staging / filename).open('wb') as f:
-                self.install_context.fetch_to(url, f)
+            if url[:1] == '/':
+                shutil.copyfile(url, self.install_context.staging / filename)
+            else:
+                with (self.install_context.staging / filename).open('wb') as f:
+                    self.install_context.fetch_to(url, f)
             self.info(f'{url} -> {filename}')
         self.install_context.stage_command(['bash', '-c', self.script])
         if self.strip:
@@ -768,7 +882,7 @@ class ScriptInstallable(Installable):
         self.stage()
         self.install_context.move_from_staging(self.install_path)
         if self.install_path_symlink:
-            self.install_context.set_link(self.install_path, self.install_path_symlink)
+            self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
         return True
 
     def __repr__(self) -> str:
@@ -846,40 +960,51 @@ class RustInstallable(Installable):
         return f'RustInstallable({self.name}, {self.install_path})'
 
 
+class PipInstallable(Installable):
+    MV_URL = 'https://raw.githubusercontent.com/brbsix/virtualenv-mv/master/virtualenv-mv'
+
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self._setup_check_exe(self.install_path)
+        self.package = self.config_get('package')
+        self.python = self.config_get('python')
+
+    def stage(self) -> None:
+        self.install_context.clean_staging()
+        venv = self.install_context.staging / self.install_path
+        self.install_context.check_output([self.python, '-mvenv', str(venv)])
+        self.install_context.check_output([str(venv / 'bin' / 'pip'), 'install', self.package])
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def install(self) -> bool:
+        if not super().install():
+            return False
+        self.stage()
+        mv_script = self.install_context.staging / 'virtualenv-mv'
+        with mv_script.open('wb') as f:
+            self.install_context.fetch_to(PipInstallable.MV_URL, f)
+        mv_script.chmod(0o755)
+
+        def mv_venv(source, dest):
+            self.install_context.check_output([str(mv_script), str(source), str(dest)])
+
+        self.install_context.move_from_staging(self.install_path, do_staging_move=mv_venv)
+        return True
+
+    def __repr__(self) -> str:
+        return f'PipInstallable({self.name}, {self.install_path})'
+
+
 def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
     return _targets_from(node, enabled, [], "", base_config)
-
-
-def is_list_of_strings(value: Any) -> bool:
-    return isinstance(value, list) and all(isinstance(x, str) for x in value)
-
-
-# dear god it's late and this can't really be sensible, right?
-def is_list_of_strings_or_lists(value: Any) -> bool:
-    return isinstance(value, list) and all(isinstance(x, str) or is_list_of_strings_or_lists(x) for x in value)
-
-
-def is_value_type(value: Any) -> bool:
-    return isinstance(value, str) \
-           or isinstance(value, bool) \
-           or isinstance(value, float) \
-           or isinstance(value, int) \
-           or is_list_of_strings(value) \
-           or is_list_of_strings_or_lists(value)
-
-
-def needs_expansion(target):
-    for value in target.values():
-        if is_list_of_strings(value):
-            for v in value:
-                if '{' in v:
-                    return True
-        elif isinstance(value, str):
-            if '{' in value:
-                return True
-    return False
 
 
 def _targets_from(node, enabled, context, name, base_config):
@@ -922,23 +1047,7 @@ def _targets_from(node, enabled, context, name, base_config):
                 raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
                 target = {'name': target}
-            target = ChainMap(target, base_config)
-            iterations = 0
-            while needs_expansion(target):
-                iterations += 1
-                if iterations > MAX_ITERS:
-                    raise RuntimeError(f"Too many mutual references (in {'/'.join(context)})")
-                for key, value in target.items():
-                    try:
-                        if is_list_of_strings(value):
-                            target[key] = [x.format(**target) for x in value]
-                        elif isinstance(value, str):
-                            target[key] = value.format(**target)
-                        elif isinstance(value, float):
-                            target[key] = str(value)
-                    except KeyError as ke:
-                        raise RuntimeError(f"Unable to find key {ke} in {target[key]} (in {'/'.join(context)})") from ke
-            yield target
+            yield expand_target(ChainMap(target, base_config), context)
 
 
 INSTALLER_TYPES = {
@@ -950,7 +1059,9 @@ INSTALLER_TYPES = {
     'github': GitHubInstallable,
     'gitlab': GitLabInstallable,
     'bitbucket': BitbucketInstallable,
-    'rust': RustInstallable
+    'rust': RustInstallable,
+    'pip': PipInstallable,
+    'ziparchive': ZipArchiveInstallable
 }
 
 

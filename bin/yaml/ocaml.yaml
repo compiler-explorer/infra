@@ -1,0 +1,27 @@
+compilers:
+  ocaml:
+    type: s3tarballs
+    check_exe: bin/ocaml --version
+    targets:
+      - 4.04.2
+      - 4.06.1
+      - 4.07.1
+      - 4.07.1-flambda
+      - 4.08.1
+      - 4.08.1-flambda
+      - 4.09.0
+      - 4.09.0-flambda
+      - 4.09.1
+      - 4.09.1-flambda
+      - 4.10.0
+      - 4.10.0-flambda
+      - 4.10.1
+      - 4.10.1-flambda
+      - 4.10.2
+      - 4.10.2-flambda
+      - 4.11.1
+      - 4.11.1-flambda
+      - 4.11.2
+      - 4.11.2-flambda
+      - 4.12.0
+      - 4.12.0-flambda

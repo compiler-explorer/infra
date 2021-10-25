@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 # coding=utf-8
 
-import logging
-from argparse import ArgumentParser
-import boto3
-import os
-import json
 import datetime
+import json
+import logging
+import os
+from argparse import ArgumentParser
+from pathlib import Path
+
+import boto3
 
 s3_client = boto3.client('s3')
 
@@ -35,9 +37,10 @@ def main():
         for d in dirs:
             obj[d] = {}
         for f in files:
+            file_path = Path(root) / f
             if f == 'log':
                 log_path = f'{log_prefix}{os.path.basename(root)}'
-                with open(os.path.join(root, f), 'rb') as file_obj:
+                with file_path.open('rb') as file_obj:
                     print(f"Uploading {log_path}...")
                     s3_client.put_object(
                         Bucket='compiler-explorer',
@@ -48,7 +51,7 @@ def main():
                     )
                 obj[f] = f"logs/{os.path.basename(root)}"
             else:
-                obj[f] = open(os.path.join(root, f)).read()
+                obj[f] = file_path.read_text(encoding='utf-8')
     key = f"{base}buildStatus.json"
     print(f"Uploading {key}...")
     s3_client.put_object(

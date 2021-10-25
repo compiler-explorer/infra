@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # coding=utf-8
-import glob
 import logging
 import logging.config
 import os
@@ -48,6 +47,8 @@ def main():
                             description='Install binaries, libraries and compilers for Compiler Explorer')
     parser.add_argument('--dest', default=Path('/opt/compiler-explorer'), metavar='DEST', type=Path,
                         help='install with DEST as the installation root (default %(default)s)')
+    parser.add_argument('--image-dir', default=Path('/opt/squash-images'), metavar='IMAGES', type=Path,
+                        help='build images to IMAGES (default %(default)s)')
     parser.add_argument('--staging-dir', default=Path('/opt/compiler-explorer/staging'), metavar='STAGEDIR', type=Path,
                         help='install to STAGEDIR then rename in-place. Must be on the same drive as DEST for atomic'
                              'rename/replace. Directory will be removed during install (default %(default)s)')
@@ -72,7 +73,8 @@ def main():
     parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
                         help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
 
-    parser.add_argument('command', choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build'],
+    parser.add_argument('command',
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
@@ -95,8 +97,10 @@ def main():
                                   args.cache, args.yaml_dir)
 
     installables = []
-    for yamlfile in glob.glob(os.path.join(args.yaml_dir, '*.yaml')):
-        for installer in installers_for(context, yaml.load(open(yamlfile, 'r'), Loader=ConfigSafeLoader), args.enable):
+    for yaml_path in Path(args.yaml_dir).glob('*.yaml'):
+        with yaml_path.open() as yaml_file:
+            yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+        for installer in installers_for(context, yaml_doc, args.enable):
             installables.append(installer)
 
     installables_by_name = {installable.name: installable for installable in installables}
@@ -166,7 +170,17 @@ def main():
                             logger.error('Path missing for library %s %s: %s', libraryid, version, libpath)
                         else:
                             logger.debug('Found path for library %s %s: %s', libraryid, version, libpath)
-
+    elif args.command == 'squash':
+        for installable in installables:
+            if not installable.is_installed():
+                context.warn(f"{installable.name} wasn't installed; skipping squash")
+                continue
+            destination: Path = args.image_dir / f"{installable.install_path}.img"
+            if destination.exists() and not args.force:
+                context.info(f"Skipping {installable.name} as it already exists at {destination}")
+                continue
+            context.info(f"Squashing {installable.name}  to {destination}")
+            installable.squash_to(destination)
     elif args.command == 'install':
         num_installed = 0
         num_skipped = 0
@@ -185,7 +199,7 @@ def main():
                     else:
                         context.info(f"{installable.name} failed to install")
                         failed.append(installable.name)
-                except RuntimeError as e:
+                except Exception as e:  # pylint: disable=broad-except
                     context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
                     failed.append(installable.name)
             else:
@@ -209,18 +223,22 @@ def main():
                 print(f"Building {installable.name} for all")
 
             if args.force or installable.should_build():
-                try:
-                    [num_installed, num_skipped, num_failed] = installable.build(args.buildfor)
-                    if num_installed > 0:
-                        context.info(f"{installable.name} built OK")
-                    elif num_failed:
-                        context.info(f"{installable.name} failed to build")
-                except RuntimeError as e:
-                    if args.buildfor:
-                        raise e
-                    else:
-                        context.info(f"{installable.name} failed to build: {e}")
-                        num_failed += 1
+                if not installable.is_installed():
+                    context.info(f"{installable.name} is not installed, unable to build")
+                    num_skipped += 1
+                else:
+                    try:
+                        [num_installed, num_skipped, num_failed] = installable.build(args.buildfor)
+                        if num_installed > 0:
+                            context.info(f"{installable.name} built OK")
+                        elif num_failed:
+                            context.info(f"{installable.name} failed to build")
+                    except RuntimeError as e:
+                        if args.buildfor:
+                            raise e
+                        else:
+                            context.info(f"{installable.name} failed to build: {e}")
+                            num_failed += 1
             else:
                 context.info(f"{installable.name} is already built, skipping")
                 num_skipped += 1

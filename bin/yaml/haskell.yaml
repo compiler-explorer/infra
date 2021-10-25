@@ -4,8 +4,9 @@ compilers:
       type: tarballs
       compression: xz
       dir: ghc-{name}
-      url: https://downloads.haskell.org/~ghc/{name}/ghc-{name}-x86_64-deb8-linux.tar.xz
+      url: https://downloads.haskell.org/~ghc/{name}/ghc-{name}-x86_64-deb{deb}-linux.tar.xz
       check_exe: bin/ghc --version
+      deb: 8
       after_stage_script:
         - mkdir install
         - cd {dir}
@@ -28,3 +29,7 @@ compilers:
         - 8.6.1
         - 8.6.2
         - 8.6.3
+        - name: 8.10.5
+          deb: 10
+        - name: 9.0.1
+          deb: 10

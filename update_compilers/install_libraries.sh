@@ -3,18 +3,10 @@
 # This script installs all the libraries to be used by Compiler Explorer
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=common.inc
 . ${SCRIPT_DIR}/common.inc
 
 export PATH=$PATH:/opt/compiler-explorer/cmake/bin
-
-ARG1="$1"
-install_nightly() {
-    if [[ "$ARG1" == "nightly" ]]; then
-        return 0
-    else
-        return 1
-    fi
-}
 
 if install_nightly; then
     echo "Installing trunk versions"
@@ -25,54 +17,8 @@ fi
 #########################
 # C++
 
-install_boost() {
-    for VERSION in "$@"; do
-        local VERSION_UNDERSCORE=$(echo ${VERSION} | tr . _)
-        local DEST=${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost/
-        if [[ ! -d ${DEST} ]]; then
-            mkdir -p /tmp/boost
-            pushd /tmp/boost
-            fetch https://dl.bintray.com/boostorg/release/${VERSION}/source/boost_${VERSION_UNDERSCORE}.tar.bz2 | tar jxf - boost_${VERSION_UNDERSCORE}/boost
-            mkdir -p ${OPT}/libs/boost_${VERSION_UNDERSCORE}/boost
-            rsync -a boost_${VERSION_UNDERSCORE}/boost/ ${DEST}
-            popd
-            rm -rf /tmp/boost
-        fi
-    done
-}
-
-update_boost_archive() {
-    local NEWEST=$(find "${OPT}/libs" -maxdepth 1 -name 'boost*' -printf '%T@ %p\n' | sort -k1,1nr | head -n1 | cut -d ' ' -f 2)
-    if [[ "${NEWEST}" != "${OPT}/libs/boost.tar.xz" ]]; then
-        pushd ${OPT}/libs
-        rm -rf /tmp/boost.tar.xz
-        tar -cJf /tmp/boost.tar.xz boost_*
-        mv /tmp/boost.tar.xz boost.tar.xz
-        popd
-    fi
-}
-
-###########################################
-# !!!!!!!!!!!!!!! IMPORTANT !!!!!!!!!!!!!!!
-###########################################
-#
-# When adding a new version of boost you must:
-#  - run `sudo ~/infra/update_compilers/install_libraries.sh` on the admin node to generate an updated `${OPT}/libs/boost.tar.xz`
-#  - run `make packer` from your own machine to build a new AMI with the new boost version baked in
-#  - update the image_id values in `terraform/lc.tf` and commit/push
-#  - run `terraform apply` from your own machine so the new images are used when launching new nodes
-#  - run `ce --env=prod instances restart` so currently running nodes will rsync the new boost version
-#
-# This rather convoluted process is required because when new nodes start up they attempt to rsync missing boost versions to a local directory
-# and this process can take quite a while, during which compilations using missing boost versions will error out.
-# To mitigate this we bake any known boost versions into the AMIs using packer.
-#
-# See: https://github.com/mattgodbolt/compiler-explorer/issues/1771
-
-install_boost 1.64.0 1.65.0 1.66.0 1.67.0 1.68.0 1.69.0 1.70.0 1.71.0 1.72.0 1.73.0 1.74.0
-update_boost_archive
-
 ce_install 'libraries'
+ce_squash 'libraries'
 
 #########################
 # OpenSSL
@@ -144,7 +90,6 @@ install_cs50_v9() {
 
 install_cs50_v9 9.1.0
 
-
 #########################
 # libuv
 
@@ -186,7 +131,6 @@ install_libuv() {
     done
 }
 
-
 #########################
 # lua
 
@@ -209,11 +153,11 @@ install_lua() {
 
             rm -f onelua.c
             local cfiles=$(find . -maxdepth 1 -iname '*.c' -o -iname '*.h')
-            echo -e "cmake_minimum_required(VERSION 3.10)\n" > CMakeLists.txt
-            echo -e "project(lua LANGUAGES C)\n" >> CMakeLists.txt
-            echo -e "add_library(lua SHARED\n" >> CMakeLists.txt
-            echo -e ${cfiles} >> CMakeLists.txt
-            echo -e ")\n" >> CMakeLists.txt
+            echo -e "cmake_minimum_required(VERSION 3.10)\n" >CMakeLists.txt
+            echo -e "project(lua LANGUAGES C)\n" >>CMakeLists.txt
+            echo -e "add_library(lua SHARED\n" >>CMakeLists.txt
+            echo -e ${cfiles} >>CMakeLists.txt
+            echo -e ")\n" >>CMakeLists.txt
 
             mkdir -p build
             cd build
@@ -241,6 +185,63 @@ install_lua() {
 }
 
 install_lua v5.3.5 v5.4.0
+
+# Following are minimal runtime dependencies for Crystal
+
+#########################
+# pcre
+
+install_pcre() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/libpcre/${VERSION}/x86_64/lib
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/pcre
+            mkdir -p /tmp/pcre
+            pushd /tmp/pcre
+
+            fetch https://ftp.pcre.org/pub/pcre/pcre-${VERSION}.tar.gz | tar zxf - --strip-components 1
+
+            ./configure --disable-shared --enable-utf --enable-unicode-properties
+            make
+
+            mkdir -p ${DEST1}
+            cp .libs/libpcre.a ${DEST1}
+
+            popd
+            rm -rf /tmp/pcre
+        fi
+    done
+}
+
+install_pcre 8.45
+
+install_libevent() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/libevent/${VERSION}/x86_64/lib
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/libevent
+            mkdir -p /tmp/libevent
+            pushd /tmp/libevent
+
+            fetch https://github.com/libevent/libevent/releases/download/release-${VERSION}-stable/libevent-${VERSION}-stable.tar.gz | tar zxf - --strip-components 1
+
+            export PKG_CONFIG_PATH=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt/lib/pkgconfig
+            ./configure --disable-shared
+            make
+
+            mkdir -p ${DEST1}
+            cp .libs/libevent.a ${DEST1}
+
+            popd
+            rm -rf /tmp/libevent
+        fi
+    done
+}
+
+install_libevent 2.1.12
+
+#########################
+# nsimd
 
 install_nsimd() {
     for VERSION in "$@"; do

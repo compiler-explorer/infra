@@ -5,14 +5,7 @@ resource "aws_alb" "GccExplorerApp" {
   security_groups = [
     aws_security_group.CompilerExplorerAlb.id
   ]
-  subnets         = [
-    aws_subnet.ce-1a.id,
-    aws_subnet.ce-1b.id,
-    aws_subnet.ce-1c.id,
-    aws_subnet.ce-1d.id,
-    aws_subnet.ce-1e.id,
-    aws_subnet.ce-1f.id
-  ]
+  subnets         = local.all_subnet_ids
 
   enable_deletion_protection = false
 
@@ -20,10 +13,6 @@ resource "aws_alb" "GccExplorerApp" {
     bucket  = aws_s3_bucket.compiler-explorer-logs.bucket
     prefix  = "elb"
     enabled = true
-  }
-
-  tags = {
-    Site = "CompilerExplorer"
   }
 }
 
@@ -133,4 +122,29 @@ resource "aws_alb_listener" "ceconan-alb-listen-https" {
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2015-05"
   certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
+}
+
+resource "aws_alb_target_group" "lambda" {
+  name        = "AwsLambdaTargetGroup"
+  target_type = "lambda"
+}
+
+resource "aws_alb_target_group_attachment" "lambda-stats-endpoint" {
+  target_group_arn = aws_alb_target_group.lambda.arn
+  target_id        = aws_lambda_function.stats.arn
+  depends_on       = [aws_lambda_permission.from_alb]
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
+  priority     = 3
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.lambda.arn
+  }
+  condition {
+    host_header {
+      values = ["lambda.compiler-explorer.com"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }

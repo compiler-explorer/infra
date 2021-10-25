@@ -1,0 +1,25 @@
+name: Start Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to stage'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number'
+        default: 'latest'
+        required: true
+
+jobs:
+  startstaging:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull
+    - name: Set build number
+      run: ce builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    - name: Start environment
+      run: ce environment start

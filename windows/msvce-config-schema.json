@@ -1,0 +1,217 @@
+{
+  "$comment": "See http://json-schema.org/ for more info on JSON schemas",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "$id": "msvc/src/vctools/NonShip/scripts/MSVCE/msvce-config-schema.json",
+  "type": "object",
+  "required": [
+    "windows",
+    "toolset",
+    "node",
+    "compiler_explorer",
+    "windows_sdk",
+    "vcpkg"
+  ],
+  "definitions": {
+    "sha512": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{64}$"
+    },
+    "git_commit": {
+      "type": "string",
+      "pattern": "^[0-9A-F]{40}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "v?[0-9.]+"
+    },
+    "one_or_more_strings": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    }
+  },
+  "properties": {
+    "windows": {
+      "type": "object",
+      "required": [
+        "version"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        }
+      }
+    },
+    "toolset": {
+      "type": "array",
+
+      "items": {
+        "type": "object",
+
+        "required": [ "version", "pretty" ],
+
+        "properties": {
+          "version": {
+            "$ref": "#/definitions/version"
+          },
+          "pretty": {
+            "$ref": "#/definitions/version"
+          },
+          "legacy_aliases": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "version",
+        "architecture",
+        "hash"
+      ],
+      "properties": {
+        "version": {
+          "$ref": "#/definitions/version"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "hash": {
+          "$ref": "#/definitions/sha512"
+        }
+      }
+    },
+    "compiler_explorer": {
+      "type": "object",
+      "required": [
+        "git_url",
+        "git_commit"
+      ],
+      "properties": {
+        "git_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "git_commit": {
+          "$ref": "#/definitions/git_commit"
+        }
+      }
+    },
+    "windows_sdk": {
+      "type": "object",
+      "required": [
+        "link",
+        "hash"
+      ],
+      "properties": {
+        "link": {
+          "type": "string",
+          "format": "uri"
+        },
+        "hash": {
+          "$ref": "#/definitions/sha512"
+        }
+      }
+    },
+    "azure": {
+      "type": "object",
+      "required": [
+        "blob_url",
+        "share_path"
+      ],
+      "properties": {
+        "blob_url": {
+          "type": "string",
+          "format": "hostname"
+        },
+        "share_path": {
+          "type": "string"
+        }
+      }
+    },
+    "vcpkg": {
+      "type": "object",
+      "required": [
+        "architectures",
+        "libraries"
+      ],
+      "properties": {
+        "release": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "architectures": {
+          "type": "object",
+          "required": [
+            "x86",
+            "x64"
+          ],
+          "properties": {
+            "x86": {
+              "type": "string"
+            },
+            "x64": {
+              "type": "string"
+            }
+          }
+        },
+        "libraries": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^(\\$.*|#?[a-zA-Z][-a-zA-Z0-9]*)$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "pretty_name",
+                  "url"
+                ],
+                "properties": {
+                  "architectures": {
+                    "$ref": "#/definitions/one_or_more_strings"
+                  },
+                  "reason": {
+                    "$ref": "#/definitions/one_or_more_strings"
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "pretty_name": {
+                    "type": "string"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

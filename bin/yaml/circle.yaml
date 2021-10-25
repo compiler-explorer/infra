@@ -1,13 +1,18 @@
 compilers:
-  if: broken
   circle:
-    preview:
-      type: tarballs
-      compression: gz
-      url: http://circle-lang.org/linux/build_{name}.tgz
-      check_exe: circle --version
-      dir: circle-preview-{name}
-      create_untar_dir: true
-      strip: true
+    type: tarballs
+    compression: gz
+    check_exe: circle --version
+    create_untar_dir: true
+    strip: true
+    url: https://circle-lang.org/linux/build_{name}.tgz
+    dir: circle-{name}
+    targets:
+      - '128'
+      - '129'
+      - '131'
+    nightly:
+      if: nightly
+      install_always: true
       targets:
-        - "98"
+        - latest

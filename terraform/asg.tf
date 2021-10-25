@@ -1,13 +1,9 @@
 locals {
-  // 1e seems to be lacking many instance types..so I ignore it here
-  subnets      = [
-    aws_subnet.ce-1a.id,
-    aws_subnet.ce-1b.id,
-    aws_subnet.ce-1c.id,
-    aws_subnet.ce-1d.id,
-    aws_subnet.ce-1f.id
-  ]
-  grace_period = 180
+  subnets      = local.all_subnet_ids
+  // Worst case it takes ~8m to get through all the compilers at startup.
+  // See https://github.com/compiler-explorer/compiler-explorer/issues/2977
+  // TODO: reduce this
+  grace_period = 600
   cooldown     = 180
 }
 
@@ -19,9 +15,10 @@ resource "aws_autoscaling_group" "prod-mixed" {
 
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
-  health_check_type         = "EC2"
-  max_size                  = 6
-  min_size                  = 1
+  health_check_type         = "ELB"
+  max_size                  = 16
+  min_size                  = 2
+  // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
   name                      = "prod"
   vpc_zone_identifier       = local.subnets
 
@@ -40,10 +37,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
     launch_template {
       launch_template_specification {
         launch_template_id = aws_launch_template.CompilerExplorer-prod.id
-        version = aws_launch_template.CompilerExplorer-prod.latest_version
-      }
-      override {
-        instance_type = "c5.large"
+        version            = "$Latest"
       }
     }
   }
@@ -64,23 +58,6 @@ resource "aws_autoscaling_group" "prod-mixed" {
     "GroupTotalInstances",
   ]
 
-  tag {
-    key                 = "Environment"
-    value               = "Prod"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "Name"
-    value               = "Prod"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["prod"].arn]
 }
 
@@ -97,40 +74,28 @@ resource "aws_autoscaling_policy" "prod-mixed" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value = 75.0
+    target_value = 40.0
   }
 }
 
-resource "aws_autoscaling_group" "spot-beta" {
+resource "aws_autoscaling_group" "beta" {
   lifecycle {
     create_before_destroy = true
   }
 
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
-  health_check_type         = "EC2"
-  launch_configuration      = aws_launch_configuration.CompilerExplorer-beta-large.id
-  max_size                  = 4
-  min_size                  = 0
-  name                      = "spot-beta"
-  vpc_zone_identifier       = local.subnets
-  tag {
-    key                 = "Environment"
-    value               = "Beta"
-    propagate_at_launch = true
+  health_check_type         = "ELB"
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-beta.id
+    version = "$Latest"
   }
 
-  tag {
-    key                 = "Name"
-    value               = "Beta"
-    propagate_at_launch = true
-  }
+  max_size            = 4
+  min_size            = 0
+  name                = "spot-beta"
+  vpc_zone_identifier = local.subnets
 
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["beta"].arn]
 }
 
@@ -141,28 +106,15 @@ resource "aws_autoscaling_group" "staging" {
 
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
-  health_check_type         = "EC2"
-  launch_configuration      = aws_launch_configuration.CompilerExplorer-staging.id
+  health_check_type         = "ELB"
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-staging.id
+    version = "$Latest"
+  }
   max_size                  = 4
   min_size                  = 0
   name                      = "staging"
   vpc_zone_identifier       = local.subnets
-  tag {
-    key                 = "Environment"
-    value               = "Staging"
-    propagate_at_launch = true
-  }
 
-  tag {
-    key                 = "Name"
-    value               = "Staging"
-    propagate_at_launch = true
-  }
-
-  tag {
-    key                 = "Site"
-    value               = "CompilerExplorer"
-    propagate_at_launch = true
-  }
   target_group_arns = [aws_alb_target_group.ce["staging"].arn]
 }

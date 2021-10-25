@@ -40,11 +40,17 @@ compilers:
           - 8.1.0
           - 8.2.0
           - 8.3.0
+          - 8.4.0
+          - 8.5.0
           - 9.1.0
           - 9.2.0
           - 9.3.0
+          - 9.4.0
           - 10.1.0
           - 10.2.0
+          - 10.3.0
+          - 11.1.0
+          - 11.2.0
     cross:
       type: s3tarballs
       arch_prefix:
@@ -70,12 +76,28 @@ compilers:
           - check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
             arch_prefix: arm-unknown-linux-gnueabi
             targets:
-              - name: 5.4.0
-                arch_prefix: arm-unknown-linux-gnueabihf
               - 6.3.0
               - 6.4.0
               - 7.3.0
               - 8.2.0
+          - check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            arch_prefix: arm-unknown-linux-gnueabihf
+            targets:
+              - 5.4.0
+              - 7.5.0
+              - 8.5.0
+              - 9.3.0
+              - 10.2.0
+              - 10.3.0
+              - 11.1.0
+              - 11.2.0
+            nightly:
+              if: nightly
+              type: nightly
+              compiler_name: arm-gcc-trunk
+              path_name_prefix: gcc-trunk
+              targets:
+                - trunk
           - type: tarballs
             check_exe: bin/arm-none-eabi-g++ --version
             subdir: arm
@@ -107,6 +129,15 @@ compilers:
             compression: bz2
             targets:
               - gcc-arm-none-eabi-9-2019-q4 # name unused in this case
+          - type: tarballs
+            check_exe: bin/arm-none-eabi-g++ --version
+            subdir: arm
+            dir: arm/gcc-arm-none-eabi-10-2020-q4-major
+            untar_dir: gcc-arm-none-eabi-10-2020-q4-major
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-10-2020-q4 # name unused in this case
           - type: tarballs
             # Not in a subdir
             check_exe: bin/arm-none-eabi-g++ --version
@@ -165,6 +196,8 @@ compilers:
               untar_dir: "gcc-{name}"
             - 9.2.0
             - 9.3.0
+            - 10.3.0
+            - 11.1.0
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -177,7 +210,21 @@ compilers:
           targets:
             - 6.4.0
             - 7.3.0
+            - 7.5.0
             - 8.2.0
+            - 8.5.0
+            - 9.3.0
+            - 10.2.0
+            - 10.3.0
+            - 11.1.0
+            - 11.2.0
+          nightly:
+            if: nightly
+            type: nightly
+            compiler_name: arm64-gcc-trunk
+            path_name_prefix: gcc-trunk
+            targets:
+              - trunk
         mips:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -217,6 +264,14 @@ compilers:
           subdir: riscv64
           targets:
             - 8.2.0
+            - 10.2.0
+        riscv32:
+          arch_prefix: "riscv32-unknown-elf"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          subdir: riscv32
+          targets:
+            - 8.2.0
+            - 10.2.0
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -236,6 +291,10 @@ compilers:
           targets:
             - 4.1.0-cd1
             - 4.1.0-rc6
+            - 4.2.0-rc5
+            - 4.3.0
+            - 4.4.0
+            - 4.6.0
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -307,12 +366,24 @@ compilers:
           - 4.0.0
           - 4.0.1
           - 5.0.0
+          - 5.0.1
+          - 5.0.2
           - 6.0.0
+          - 6.0.1
           - 7.0.0
+          - 7.0.1
+          - 7.1.0
           - 8.0.0
+          - 8.0.1
           - 9.0.0
+          - 9.0.1
           - 10.0.0
           - 10.0.1
+          - 11.0.0
+          - 11.0.1
+          - 12.0.0
+          - 12.0.1
+          - 13.0.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
@@ -331,6 +402,92 @@ compilers:
         compression: bz2
         targets:
           - 2017-07-16
+    tinycc:
+      type: s3tarballs
+      dir: "tinycc-{name}"
+      check_exe: bin/tcc -v
+      targets:
+        - 0.9.27
+    intel-cpp:
+      type: script
+      dir: "intel-cpp-{name}"
+      check_exe: compiler/latest/linux/bin/intel64/icc -V
+      check_stderr_on_stdout: true
+      script_filename: install.sh
+      targets:
+        - name: 2021.1.2.63
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17513/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+        - name: 2021.2.0.118
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17749/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+        - name: 2021.3.0.3168
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17928/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+    intel-fortran:
+      type: script
+      dir: "intel-fortran-{name}"
+      check_exe: compiler/latest/linux/bin/intel64/ifort -V
+      check_stderr_on_stdout: true
+      script_filename: install.sh
+      targets:
+        - name: 2021.1.2.62
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17508/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+        - name: 2021.2.0.136
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17756/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+        - name: 2021.3.0.3168
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/17959/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: |
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            rm -Rf ~/.intel
+            rm -Rf ~/intel
+            rm -Rf /var/intel/installercache
     nightly:
       if: nightly
       gcc:
@@ -340,35 +497,35 @@ compilers:
           - name: trunk
             symlink: gcc-snapshot
           - lock3-contracts-trunk
+          - lock3-contract-labels-trunk
           - cxx-modules-trunk
           - cxx-coroutines-trunk
-          - embed-trunk
           - static-analysis-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
         targets:
           - trunk
+          - assertions-trunk
           - cppx-trunk
           - cppx-ext-trunk
+          - cppx-p2320-trunk
           - concepts-trunk
           - embed-trunk
           - relocatable-trunk
           - autonsdmi-trunk
           - lifetime-trunk
           - parmexpr-trunk
+          - patmat-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:
               - chmod 0755 bin/flang
-    oracle: # NB unused and unsupported at present
-      type: s3tarballs
-      check_exe: developerstudio12.5/bin/CC -V
-      s3_path_prefix: "OracleDeveloperStudio{name}-linux-x86-bin"
-      untar_dir: "OracleDeveloperStudio{name}-linux-x86-bin"
-      compression: bz2
-      targets:
-        - "12.5"
+      tinycc:
+        type: nightly
+        check_exe: bin/tcc -v
+        targets:
+          - trunk
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version

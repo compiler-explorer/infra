@@ -2,7 +2,10 @@ resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
   acl    = "private"
   tags   = {
-    Site = "CompilerExplorer"
+    S3-Bucket-Name = "compiler-explorer"
+  }
+  lifecycle {
+    prevent_destroy = true
   }
   cors_rule {
     allowed_headers = ["Authorization"]
@@ -29,7 +32,11 @@ data "aws_canonical_user_id" "current" {}
 resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
   tags   = {
-    Site = "CompilerExplorer"
+    S3-Bucket-Name = "compiler-explorer-logs"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 
   # not sure if we explicitly need to state the bucket owner gets full control
@@ -144,19 +151,14 @@ resource "aws_s3_bucket_policy" "compiler-explorer-logs" {
   policy = data.aws_iam_policy_document.compiler-explorer-logs-s3-policy.json
 }
 
-resource "aws_s3_bucket" "opt-s3-godbolt-org" {
-  bucket = "opt-s3.godbolt.org"
-  acl    = "private"
-  tags   = {
-    Site = "CompilerExplorer"
-  }
-}
-
 resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
   acl    = "private"
   tags   = {
-    Site = "CompilerExplorer"
+    S3-Bucket-Name = "storage.godbolt.org"
+  }
+  lifecycle {
+    prevent_destroy = true
   }
   lifecycle_rule {
     enabled                                = true
@@ -175,9 +177,11 @@ resource "aws_s3_bucket" "ce-cdn-net" {
   bucket = "ce-cdn.net"
   acl    = "private"
   tags   = {
-    Site = "CompilerExplorer"
+    S3-Bucket-Name = "ce-cdn.net"
   }
-
+  lifecycle {
+    prevent_destroy = true
+  }
   cors_rule {
     allowed_methods = ["GET"]
     allowed_origins = ["*"]

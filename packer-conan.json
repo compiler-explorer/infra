@@ -17,10 +17,11 @@
       "instance_type": "t3.medium",
       "ssh_username": "ubuntu",
       "ami_name": "ce-conan packer 18.04 @ {{timestamp}}",
+      "tags": {"Site":  "CompilerExplorer"},
       "associate_public_ip_address": true,
       "iam_instance_profile": "XaniaBlog",
       "vpc_id": "vpc-17209172",
-      "security_group_id": "sg-99df30fd",
+      "security_group_id": "sg-f53f9f80",
       "subnet_id": "subnet-1df1e135",
       "ami_block_device_mappings": [
         {
@@ -50,10 +51,10 @@
     { "type": "file", "source": "packer", "destination": "/home/ubuntu/" },
     {
       "type": "shell",
-      "execute_command" : "{{ .Vars }} sudo -E sh '{{ .Path }}'",
+      "execute_command" : "{{ .Vars }} sudo -E bash '{{ .Path }}'",
       "inline": [
-        "set -e",
-    	"while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+        "set -euo pipefail",
+        "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
         "rm -rf /home/ubuntu/packer",

@@ -5,4 +5,4 @@ PATH=/home/ubuntu/infra/.env/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/loc
 00 03 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_binaries.sh"
 30 05 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_compilers.sh nightly"
 30 04 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_libraries.sh nightly"
-15 04 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_nonfree_compilers.sh"
+15 04 * * * cronic bash -c "/home/ubuntu/infra/update_compilers/install_nonfree_compilers.sh nightly"

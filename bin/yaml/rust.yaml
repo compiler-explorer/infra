@@ -58,6 +58,16 @@ compilers:
         - 1.45.0
         - 1.45.2
         - 1.46.0
+        - 1.47.0
+        - 1.48.0
+        - 1.49.0
+        - 1.50.0
+        - 1.51.0
+        - 1.52.0
+        - 1.53.0
+        - 1.54.0
+        - 1.55.0
+        - 1.56.0
       nightly:
         if: nightly
         targets:
@@ -65,3 +75,18 @@ compilers:
             nightly_install_days: 1
           - name: beta
             nightly_install_days: 7
+        gcc:
+          type: nightly
+          check_exe: bin/gccrs --version
+          targets:
+            - gccrs-master
+        rustc-cg-gcc:
+          type: nightly
+          check_exe: "bin/rustc --version"
+          targets:
+            - master
+        mrustc:
+          type: nightly
+          check_exe: bin/mrustc --version
+          targets:
+            - master

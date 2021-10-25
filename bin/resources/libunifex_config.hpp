@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-present Facebook, Inc.
+ * Copyright (c) Facebook, Inc. and its affiliates.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,15 @@
  */
 #pragma once
 
+// Get the library feature test macros:
+#if __has_include(<version>)
+#  include <version>
+#elif __has_include(<ciso646>)
+#  include <ciso646>
+#endif
+
+#include <cassert>
+
 // the configured options and settings for unifex
 #define UNIFEX_VERSION_MAJOR 0
 #define UNIFEX_VERSION_MINOR 1
@@ -27,7 +36,7 @@
 // prior to clang-10, [[no_unique_address]] leads to bad codegen
 #if __has_cpp_attribute(no_unique_address) && \
   (!defined(__clang__) || __clang_major__ > 9)
-#define UNIFEX_NO_UNIQUE_ADDRESS /*[[no_unique_address]]*/
+#define UNIFEX_NO_UNIQUE_ADDRESS [[no_unique_address]]
 #else
 #define UNIFEX_NO_UNIQUE_ADDRESS
 #endif
@@ -35,9 +44,26 @@
 #define UNIFEX_NO_UNIQUE_ADDRESS
 #endif
 
-#define UNIFEX_NO_COROUTINES 1
-/* #undef UNIFEX_COROUTINES_HEADER */
-/* #undef UNIFEX_COROUTINES_NAMESPACE */
+#if !defined(UNIFEX_NO_COROUTINES)
+#  if defined(__cpp_impl_coroutine) || defined(__cpp_coroutines)
+#    define UNIFEX_NO_COROUTINES 0
+#  else
+#    define UNIFEX_NO_COROUTINES 1
+#  endif
+#endif
+
+#if !UNIFEX_NO_COROUTINES
+#  if __has_include(<coroutine>) && defined(__cpp_lib_coroutine)
+#    define UNIFEX_COROUTINES_HEADER <coroutine>
+#    define UNIFEX_COROUTINES_NAMESPACE std
+#  elif __has_include(<experimental/coroutine>)
+#    define UNIFEX_COROUTINES_HEADER <experimental/coroutine>
+#    define UNIFEX_COROUTINES_NAMESPACE std::experimental
+#  else
+#    undef UNIFEX_NO_COROUTINES
+#    define UNIFEX_NO_COROUTINES 1
+#  endif
+#endif
 
 #if !defined(UNIFEX_NO_EPOLL)
 #  if defined(__ANDROID_API__) && __ANDROID_API__ < 19
@@ -167,3 +193,45 @@
     #define UNIFEX_DIAGNOSTIC_IGNORE_CPP2A_COMPAT
   #endif
 #endif // MSVC/Generic configuration switch
+
+#if defined(__GNUC__) || defined(__clang__)
+  #define UNIFEX_ALWAYS_INLINE \
+    __attribute__((__always_inline__)) __attribute__((__visibility__("hidden"))) inline
+#elif defined(_MSC_VER)
+  #define UNIFEX_ALWAYS_INLINE __forceinline
+#else
+  #define UNIFEX_ALWAYS_INLINE inline
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+  #define UNIFEX_NO_INLINE __attribute__((__noinline__))
+#elif defined(_MSC_VER)
+  #define UNIFEX_NO_INLINE __declspec(noinline)
+#else
+  #define UNIFEX_NO_INLINE
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+  #define UNIFEX_ASSUME_UNREACHABLE __builtin_unreachable()
+#elif defined(_MSC_VER)
+  #define UNIFEX_ASSUME_UNREACHABLE __assume(0)
+#else
+  #define UNIFEX_ASSUME_UNREACHABLE std::terminate()
+#endif
+
+#ifndef UNIFEX_ASSERT
+# define UNIFEX_ASSERT assert
+#endif
+
+#if defined(__clang__)
+  // Clang's optimizer interacts badly with its address sanitizer. Certain
+  // functions must have optimizations disabled in order to avoid triggering
+  // stack-use-after-scope-exit errors.
+  #if __has_feature(address_sanitizer)
+    #define UNIFEX_CLANG_DISABLE_OPTIMIZATION __attribute__((__optnone__))
+  #else
+    #define UNIFEX_CLANG_DISABLE_OPTIMIZATION
+  #endif
+#else
+  #define UNIFEX_CLANG_DISABLE_OPTIMIZATION
+#endif

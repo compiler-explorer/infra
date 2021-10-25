@@ -9,3 +9,4 @@ config.json
 .nfs*
 node_modules
 /.mypy_cache
+/.dist
