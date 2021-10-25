@@ -234,6 +234,12 @@ install_libevent() {
 
             popd
             rm -rf /tmp/libevent
+        fi
+    done
+}
+
+install_libevent 2.1.12
+
 #########################
 # nsimd
 
