@@ -1,0 +1,13 @@
+name: Some kind of one-off build
+
+# really on demand
+on: [push]
+
+jobs:
+  buildcross:
+    name: OHAI
+    runs-on: ['ce','ubuntu']
+
+    steps:
+    - name: Echo moose
+      run: echo moose again
