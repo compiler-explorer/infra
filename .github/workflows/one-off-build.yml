@@ -13,3 +13,5 @@ jobs:
       run: echo moose again
     - name: What host am I?
       run: hostname
+    - name: Ooh crikey
+      run: ls /
