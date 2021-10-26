@@ -15,3 +15,7 @@ jobs:
       run: hostname
     - name: Ooh crikey
       run: ls /
+    - name: docker?
+      run: docker --help
+    - name: docker!
+      run: docker run --rm alpine ls
