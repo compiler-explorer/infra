@@ -416,6 +416,7 @@ resource "aws_security_group_rule" "efs_inbound" {
     "Admin"       = aws_security_group.AdminNode.id,
     "Compilation" = aws_security_group.CompilerExplorer.id
     "Builder"     = aws_security_group.Builder.id
+    "CI"          = "sg-0b6cec49789cbf1a8"  # TODO! hardcoded from another
   }
   security_group_id        = aws_security_group.efs.id
   type                     = "ingress"
