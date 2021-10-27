@@ -9,13 +9,11 @@ jobs:
     runs-on: ['ce','ubuntu']
 
     steps:
-    - name: Echo moose
-      run: echo moose again
-    - name: What host am I?
-      run: hostname
-    - name: Ooh crikey
-      run: ls /
-    - name: docker?
-      run: docker --help
-    - name: docker!
-      run: docker run --rm alpine ls
+    # todo get revision
+    - name: Build compiler
+      run: |
+        mkdir /tmp/compiler-out
+        docker run --rm -v/tmp/compiler-out:/tmp/compiler-out compilerexplorer/gcc-builder bash build.sh 11.2.0 /tmp/compiler-out/ ""
+    - name: ls the output
+      run: ls /tmp/compiler-out
+    # todo upload s3 thing
