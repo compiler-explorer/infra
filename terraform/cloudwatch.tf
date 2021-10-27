@@ -3,7 +3,8 @@ data "aws_sns_topic" "alert" {
 }
 
 locals {
-  approx_monthly_budget = 550
+  approx_monthly_budget = 600
+  alert_every           = 200
 }
 
 resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
@@ -24,10 +25,11 @@ resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
 
-resource "aws_cloudwatch_metric_alarm" "halfway_budget" {
-  alarm_name          = "HalfBudget"
-  alarm_description   = "A heads up we're halfway through the budget"
-  threshold           = local.approx_monthly_budget / 2
+resource "aws_cloudwatch_metric_alarm" "spending_alert" {
+  count               = local.approx_monthly_budget * 2 / local.alert_every
+  alarm_name          = "Budget_${(count.index+1) * local.alert_every}"
+  alarm_description   = "We've now spent ${"$"}${(count.index+1) * local.alert_every}"
+  threshold           = (count.index+1) * local.alert_every
   period              = 6 * 60 * 60
   evaluation_periods  = 1
   namespace           = "AWS/Billing"
