@@ -1,19 +1,18 @@
 name: Some kind of one-off build
 
-# really on demand
+# really should be on a cron, here it's just push to let me test in a branch
+# if it was in main, I could use workflow_dispatch
 on: [ push ]
 
 jobs:
-  buildcross:
-    name: OHAI
+  daily-compiler:
+    name: Build daily compilers
     runs-on: [ 'ce','ubuntu' ]
     strategy:
       matrix:
         include:
-          - image: clang
-            build_name: llvm
-            command: build.sh
-            build: llvm-trunk
+          - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
+          - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
 
     steps:
       - uses: actions/checkout@v2
