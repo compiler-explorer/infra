@@ -28,9 +28,11 @@ jobs:
               REVISION=$(cat "${REVISION_FILENAME}")
           fi
           mkdir dist
+          echo ::group::Docker build
           docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ matrix.image }}-builder \
             bash ${{ matrix.command }} ${{ matrix.build }} \
             /dist "${REVISION}" | tee output.log
+          echo ::endgroup::
           gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output " m[1] "::" m[2]; }' output.log
       - name: Print outputs from previous
         run: |
