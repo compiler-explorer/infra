@@ -12,6 +12,7 @@ jobs:
       matrix:
         include:
           - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
+          - { image: clang, build_name: clang, command: build.sh, build: trunk }
           - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
 
     steps:
@@ -29,8 +30,8 @@ jobs:
           mkdir dist
           docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ matrix.image }}-builder \
             bash ${{ matrix.command }} ${{ matrix.build }} \
-            /dist "${REVISION}" | tee output_log
-          gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output " m[1] "=" m[2]; }' output_log
+            /dist "${REVISION}" | tee output.log
+          gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output " m[1] "::" m[2]; }' output.log
       - name: Print outputs from previous
         run: |
           echo STATUS ${{ steps.build.outputs.status }}
