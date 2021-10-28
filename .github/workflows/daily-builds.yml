@@ -1,0 +1,36 @@
+name: Some kind of one-off build
+
+# really on demand
+on: [ push ]
+
+jobs:
+  buildcross:
+    name: OHAI
+    runs-on: [ 'ce','ubuntu' ]
+    strategy:
+      matrix:
+        include:
+          - image: clang
+            build_name: llvm
+            command: build.sh
+            build: llvm-trunk
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Daily build of ${{ matrix.build_name }}
+        run: |
+          REVISION_FILENAME=/opt/.buildrevs/${{ matrix.build_name }}
+          REVISION=""
+          if [[ -f "${REVISION_FILENAME}" ]]; then
+              REVISION=$(cat "${REVISION_FILENAME}")
+          fi
+          docker run --rm compilerexplorer/${{ matrix.image }}-builder \
+            bash ${{ matrix.command }} ${{ matrix.build }} \
+            s3://compiler-explorer/opt/ "${REVISION}" | tee output_log
+          # TODO can extract this from admin-daily-builds.sh
+
+      # TODO - the output needs parsing to get the revision out
+      # You can use the set-output command in your workflow to set the same value:
+      # '::set-output name=SELECTED_COLOR::green' type stuff?
