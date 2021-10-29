@@ -6,19 +6,15 @@ on:
       image:
         description: Docker image (gcc, clang...)
         required: true
-        default: gcc
-      build_name: # TODO this is probably dangerous...
+      build_name:
         description: Name of the build (gcc, gcc_contracts...)
         required: true
-        default: gcc
       command:
         description: Command to run (build.sh...)
         required: true
-        default: build.sh
       build:
         description: Target to build (trunk, llvm-trunk...)
         required: true
-        default: trunk
 
 jobs:
   one-off-build:
