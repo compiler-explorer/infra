@@ -7,7 +7,7 @@ on:
         description: Docker image
         type: string
         required: true
-      build_name:
+      build_name: # TODO this is probably dangerous, we should probably derive a name for the buildrevs
         type: string
         required: true
       command:
