@@ -1,4 +1,4 @@
-name: Some kind of one-off build
+name: Daily build
 
 # really should be on a cron, here it's just push to let me test in a branch
 # if it was in main, I could use workflow_dispatch
@@ -9,11 +9,12 @@ jobs:
     name: Build daily compilers
     runs-on: [ 'ce','ubuntu' ]
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
-          - { image: clang, build_name: clang, command: build.sh, build: trunk }
-          - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
+#          - { image: clang, build_name: clang, command: build.sh, build: trunk }
+#          - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
 
     steps:
       - uses: actions/checkout@v2
@@ -22,6 +23,8 @@ jobs:
       - name: Get previous build version number
         id: previous
         run: |
+          ls -l /
+          ls -l /ext
           REVISION_FILENAME=/ext/.buildrevs/${{ matrix.build_name }}
           echo ::set-output name=revision_filename::${REVISION_FILENAME}
           if [[ -f "${REVISION_FILENAME}" ]]; then
