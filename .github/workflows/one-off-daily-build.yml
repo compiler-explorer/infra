@@ -19,7 +19,7 @@ on:
 jobs:
   one-off-build:
     name: Build ${{ inputs.build_name }}
-    uses: compiler-explorer/infra/.github/worflows/daily-build.yml@main
+    uses: compiler-explorer/infra/.github/workflows/daily-build.yml@main
     with:
       image: ${{ inputs.image }}
       build_name: ${{ inputs.build_name }}
