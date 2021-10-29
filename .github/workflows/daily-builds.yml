@@ -2,7 +2,9 @@ name: Daily build
 
 # really should be on a cron, here it's just push to let me test in a branch
 # if it was in main, I could use workflow_dispatch
-on: [ push ]
+on:
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   daily-compiler:
