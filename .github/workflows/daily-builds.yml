@@ -13,8 +13,8 @@ jobs:
       matrix:
         include:
           - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
-#          - { image: clang, build_name: clang, command: build.sh, build: trunk }
-#          - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
+    #          - { image: clang, build_name: clang, command: build.sh, build: trunk }
+    #          - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
 
     steps:
       - uses: actions/checkout@v2
@@ -23,11 +23,7 @@ jobs:
       - name: Get previous build version number
         id: previous
         run: |
-          REVISION_FILENAME=/efs/.buildrevs/${{ matrix.build_name }}
-          echo ::set-output name=revision_filename::${REVISION_FILENAME}
-          if [[ -f "${REVISION_FILENAME}" ]]; then
-              echo ::set-output name=revision::$(cat "${REVISION_FILENAME}")
-          fi
+          echo ::set-output name=$(curl https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ matrix.build_name }}
       - name: Daily build of ${{ matrix.build_name }}
         id: build
         run: |
@@ -43,13 +39,22 @@ jobs:
         id: filenames
         run: |
           echo ::set-output name=source::$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})
-          echo ${{ steps.build.outputs.revision }} > ${{ steps.previous.outputs.revision_filename }}
-      - name: Copy to S3
+          echo ${{ steps.build.outputs.revision }} > ${{ matrix.build_name }}
+      - name: Copy output to S3
         if: ${{ steps.build.outputs.status != 'SKIPPED' }}
         uses: keithweaver/aws-s3-github-action@v0.1.2
         with:
           command: cp
           source: ${{ steps.filenames.outputs.source }}
-          destination: s3://opt/compiler-explorer/
+          destination: s3://opt/compiler-explorer/${{ steps.filenames.outputs.source }}
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Copy revision to S3
+        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+        uses: keithweaver/aws-s3-github-action@v0.1.2
+        with:
+          command: cp
+          source: ${{ matrix.build_name }}
+          destination: s3://opt/compiler-explorer/.buildrevs/${{ matrix.build_name }}
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
