@@ -19,23 +19,36 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      - name: Get previous build version number
+        id: previous
+        run: |
+          REVISION_FILENAME=/ext/.buildrevs/${{ matrix.build_name }}
+          echo ::set-output name=revision_filename::${REVISION_FILENAME}
+          if [[ -f "${REVISION_FILENAME}" ]]; then
+              echo ::set-output name=revision::$(cat "${REVISION_FILENAME}")
+          fi
       - name: Daily build of ${{ matrix.build_name }}
         id: build
         run: |
-          REVISION_FILENAME=/opt/.buildrevs/${{ matrix.build_name }}
-          REVISION=""
-          if [[ -f "${REVISION_FILENAME}" ]]; then
-              REVISION=$(cat "${REVISION_FILENAME}")
-          fi
           mkdir dist
           echo ::group::Docker build
           docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ matrix.image }}-builder \
             bash ${{ matrix.command }} ${{ matrix.build }} \
-            /dist "${REVISION}" | tee output.log
+            /dist "${{ steps.previous.outputs.revision }}" | tee output.log
           echo ::endgroup::
           gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output name=" m[1] "::" m[2]; }' output.log
-      - name: Print outputs from previous
+      - name: Get output filename
+        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+        id: filenames
         run: |
-          echo STATUS ${{ steps.build.outputs.status }}
-          echo REVISION ${{ steps.build.outputs.revision }}
-          echo OUTPUT ${{ steps.build.outputs.output }}
+          echo ::set-output name=source::$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})
+          echo ${{ steps.build.outputs.revision }} > ${{ steps.previous.outputs.revision_filename }}
+      - name: Copy to S3
+        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+        uses: keithweaver/aws-s3-github-action@v0.1.2
+        with:
+          command: cp
+          source: ${{ steps.filenames.outputs.source }}
+          destination: s3://opt/compiler-explorer/
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
