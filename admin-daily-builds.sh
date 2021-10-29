@@ -39,6 +39,7 @@ run_on_build() {
         REVISION=$(grep -P "^ce-build-revision:" "${logdir}/log" | cut -d ':' -f 2-)
         if [[ -n "${REVISION}" ]]; then
             echo "${REVISION}" >"${revisionfile}"
+            aws s3 cp "${revisionfile}" s3://compiler-explorer/opt/.buildrevs/
         fi
     fi
 
