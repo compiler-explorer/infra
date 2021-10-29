@@ -1,4 +1,4 @@
-name: Daily build
+name: All daily builds
 
 on:
   schedule:
