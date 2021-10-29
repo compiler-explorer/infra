@@ -23,9 +23,7 @@ jobs:
       - name: Get previous build version number
         id: previous
         run: |
-          ls -l /
-          ls -l /ext
-          REVISION_FILENAME=/ext/.buildrevs/${{ matrix.build_name }}
+          REVISION_FILENAME=/efs/.buildrevs/${{ matrix.build_name }}
           echo ::set-output name=revision_filename::${REVISION_FILENAME}
           if [[ -f "${REVISION_FILENAME}" ]]; then
               echo ::set-output name=revision::$(cat "${REVISION_FILENAME}")
