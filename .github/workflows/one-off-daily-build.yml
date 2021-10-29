@@ -21,6 +21,9 @@ jobs:
     name: Build ${{ inputs.build_name }}
     runs-on: [ 'ce','ubuntu' ]
     steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/daily-build
         with:
           image: ${{ inputs.image }}
