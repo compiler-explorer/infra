@@ -113,11 +113,11 @@ build_libraries() {
 #MOVED: build_latest clang llvm build.sh llvm-trunk
 
 #MOVED: build_latest gcc gcc build.sh trunk
-build_latest gcc gcc_contracts build.sh lock3-contracts-trunk
-build_latest gcc gcc_contract_labels build.sh lock3-contract-labels-trunk
-build_latest gcc gcc_modules build.sh cxx-modules-trunk
-build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
-build_latest gcc gcc_gccrs_master build.sh gccrs-master
+#MOVED: build_latest gcc gcc_contracts build.sh lock3-contracts-trunk
+#MOVED: build_latest gcc gcc_contract_labels build.sh lock3-contract-labels-trunk
+#MOVED: build_latest gcc gcc_modules build.sh cxx-modules-trunk
+#MOVED: build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
+#MOVED: build_latest gcc gcc_gccrs_master build.sh gccrs-master
 #MOVED: build_latest clang clang build.sh trunk
 build_latest clang clang_assertions build.sh assertions-trunk
 build_latest clang clang_cppx build.sh cppx-trunk

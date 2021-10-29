@@ -1,10 +1,9 @@
 name: Daily build
 
-# really should be on a cron, here it's just push to let me test in a branch
-# if it was in main, I could use workflow_dispatch
 on:
   schedule:
     - cron: '0 0 * * *'
+
 
 jobs:
   daily-compiler:
@@ -19,47 +18,19 @@ jobs:
           - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
           - { image: clang, build_name: clang, command: build.sh, build: trunk }
           - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
+          - { image: gcc, build_name: gcc_contracts, command: build.sh, build: lock3-contracts-trunk }
+          - { image: gcc, build_name: gcc_contract_labels, command: build.sh, build: lock3-contract-labels-trunk }
+          - { image: gcc, build_name: gcc_modules, command: build.sh, build: cxx-modules-trunk }
+          - { image: gcc, build_name: gcc_coroutines, command: build.sh, build: cxx-coroutines-trunk }
+          - { image: gcc, build_name: gcc_gccrs_master, command: build.sh, build: gccrs-master }
 
     steps:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Get previous build version number
-        id: previous
-        run: |
-          echo ::set-output name=$(curl -sf https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ matrix.build_name }} || true)
-      - name: Daily build of ${{ matrix.build_name }}
-        id: build
-        run: |
-          mkdir dist
-          echo ::group::Docker build
-          docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ matrix.image }}-builder \
-            bash ${{ matrix.command }} ${{ matrix.build }} \
-            /dist "${{ steps.previous.outputs.revision }}" | tee output.log
-          echo ::endgroup::
-          echo ::group::Translate docker output into GH variables
-          gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output name=" m[1] "::" m[2]; }' output.log
-          echo ::endgroup::
-      - name: Get output filename
-        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        id: filenames
-        run: |
-          echo ::set-output name=source::$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})
-          echo ::set-output name=s3dest::s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }})
-          echo ${{ steps.build.outputs.revision }} > ${{ matrix.build_name }}
-      - name: Copy output to S3
-        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        uses: prewk/s3-cp-action@v2
+      - uses: ./.github/actions/daily-build
         with:
-          source: ${{ steps.filenames.outputs.source }}
-          dest: ${{ steps.filenames.outputs.s3dest }}
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - name: Copy revision to S3
-        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        uses: prewk/s3-cp-action@v2
-        with:
-          source: ${{ matrix.build_name }}
-          dest: s3://compiler-explorer/opt/.buildrevs/${{ matrix.build_name }}
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          image: ${{ matrix.image }}
+          build_name: ${{ matrix.build_name }}
+          command: ${{ matrix.command }}
+          build: ${{ matrix.build }}
