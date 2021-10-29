@@ -1,0 +1,29 @@
+name: One-off daily build
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Docker image (gcc, clang...)
+        required: true
+      build_name:
+        description: Name of the build (gcc, gcc_contracts...)
+        required: true
+      command:
+        description: Command to run (build.sh...)
+        required: true
+      build:
+        description: Target to build (trunk, llvm-trunk...)
+        required: true
+
+jobs:
+  one-off-build:
+    name: Build ${{ inputs.build_name }}
+    runs-on: [ 'ce','ubuntu' ]
+    steps:
+      - uses: ./.github/actions/daily-build
+        with:
+          image: ${{ inputs.image }}
+          build_name: ${{ inputs.build_name }}
+          command: ${{ inputs.command }}
+          build: ${{ inputs.build }}

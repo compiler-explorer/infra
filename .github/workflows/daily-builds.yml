@@ -6,7 +6,7 @@ on:
 
 
 jobs:
-  daily-compiler:
+  all-daily-compilers:
     name: Build daily compilers
     runs-on: [ 'ce','ubuntu' ]
     strategy:
