@@ -11,6 +11,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
+        # These are slowly replacing the ones in admin-daily-builds.sh
         include:
           - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
           - { image: clang, build_name: clang, command: build.sh, build: trunk }
@@ -33,7 +35,9 @@ jobs:
             bash ${{ matrix.command }} ${{ matrix.build }} \
             /dist "${{ steps.previous.outputs.revision }}" | tee output.log
           echo ::endgroup::
+          echo ::group::Translate docker output into GH variables
           gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output name=" m[1] "::" m[2]; }' output.log
+          echo ::endgroup::
       - name: Get output filename
         if: ${{ steps.build.outputs.status != 'SKIPPED' }}
         id: filenames
