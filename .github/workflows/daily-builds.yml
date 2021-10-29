@@ -23,7 +23,7 @@ jobs:
       - name: Get previous build version number
         id: previous
         run: |
-          echo ::set-output name=$(curl https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ matrix.build_name }}
+          echo ::set-output name=$(curl https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ matrix.build_name }})
       - name: Daily build of ${{ matrix.build_name }}
         id: build
         run: |
