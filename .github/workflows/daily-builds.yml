@@ -39,7 +39,7 @@ jobs:
         id: filenames
         run: |
           echo ::set-output name=source::$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})
-          echo ::set-output name=s3dest::s3://opt/compiler-explorer/$(basename ${{ steps.build.outputs.output }})
+          echo ::set-output name=s3dest::s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }})
           echo ${{ steps.build.outputs.revision }} > ${{ matrix.build_name }}
       - name: Copy output to S3
         if: ${{ steps.build.outputs.status != 'SKIPPED' }}
@@ -54,6 +54,6 @@ jobs:
         uses: prewk/s3-cp-action@v2
         with:
           source: ${{ matrix.build_name }}
-          dest: s3://opt/compiler-explorer/.buildrevs/${{ matrix.build_name }}
+          dest: s3://compiler-explorer/opt/.buildrevs/${{ matrix.build_name }}
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
