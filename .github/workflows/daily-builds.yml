@@ -23,7 +23,7 @@ jobs:
       - name: Get previous build version number
         id: previous
         run: |
-          echo ::set-output name=$(curl https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ matrix.build_name }})
+          echo ::set-output name=$(curl -sf https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ matrix.build_name }} || true)
       - name: Daily build of ${{ matrix.build_name }}
         id: build
         run: |
@@ -42,19 +42,17 @@ jobs:
           echo ${{ steps.build.outputs.revision }} > ${{ matrix.build_name }}
       - name: Copy output to S3
         if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        uses: keithweaver/aws-s3-github-action@v0.1.2
+        uses: prewk/s3-cp-action@v2
         with:
-          command: cp
           source: ${{ steps.filenames.outputs.source }}
-          destination: s3://opt/compiler-explorer/${{ steps.filenames.outputs.source }}
+          dest: s3://opt/compiler-explorer/${{ steps.filenames.outputs.source }}
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       - name: Copy revision to S3
         if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        uses: keithweaver/aws-s3-github-action@v0.1.2
+        uses: prewk/s3-cp-action@v2
         with:
-          command: cp
           source: ${{ matrix.build_name }}
-          destination: s3://opt/compiler-explorer/.buildrevs/${{ matrix.build_name }}
+          dest: s3://opt/compiler-explorer/.buildrevs/${{ matrix.build_name }}
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
