@@ -1,7 +1,6 @@
 <component name="ProjectCodeStyleConfiguration">
   <code_scheme name="Project" version="173">
     <HCL-Terraform>
-      <option name="PROPERTY_ALIGNMENT" value="2" />
       <option name="ARRAY_WRAPPING" value="5" />
     </HCL-Terraform>
   </code_scheme>

@@ -363,6 +363,7 @@ data "aws_iam_policy_document" "CeBuilderStorageAccess" {
     actions   = ["s3:*"]
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
+      "${aws_s3_bucket.compiler-explorer.arn}/dist/*",
     ]
   }
 }
@@ -424,4 +425,14 @@ resource "aws_security_group_rule" "efs_inbound" {
   protocol                 = "all"
   source_security_group_id = each.value
   description              = "${each.key} node acccess"
+}
+
+resource "aws_iam_user" "github" {
+  name = "github"
+}
+
+
+resource "aws_iam_user_policy_attachment" "github_attach_CeBuilderStorageAccess" {
+  user       = "github"
+  policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
 }

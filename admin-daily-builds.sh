@@ -39,6 +39,7 @@ run_on_build() {
         REVISION=$(grep -P "^ce-build-revision:" "${logdir}/log" | cut -d ':' -f 2-)
         if [[ -n "${REVISION}" ]]; then
             echo "${REVISION}" >"${revisionfile}"
+            aws s3 cp "${revisionfile}" s3://compiler-explorer/opt/.buildrevs/
         fi
     fi
 
@@ -106,16 +107,18 @@ build_libraries() {
 
 # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
 
-# llvm build is fast, so lets do it first
-build_latest clang llvm build.sh llvm-trunk
+# Entries commented out with #MOVED: have been moved to the .github/workflows/daily-builds.yml
 
-build_latest gcc gcc build.sh trunk
+# llvm build is fast, so lets do it first
+#MOVED: build_latest clang llvm build.sh llvm-trunk
+
+#MOVED: build_latest gcc gcc build.sh trunk
 build_latest gcc gcc_contracts build.sh lock3-contracts-trunk
 build_latest gcc gcc_contract_labels build.sh lock3-contract-labels-trunk
 build_latest gcc gcc_modules build.sh cxx-modules-trunk
 build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
 build_latest gcc gcc_gccrs_master build.sh gccrs-master
-build_latest clang clang build.sh trunk
+#MOVED: build_latest clang clang build.sh trunk
 build_latest clang clang_assertions build.sh assertions-trunk
 build_latest clang clang_cppx build.sh cppx-trunk
 build_latest clang clang_cppx_ext build.sh cppx-ext-trunk
