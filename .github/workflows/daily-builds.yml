@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - uses: ./.github/actions/daily-build.yml
+      - uses: ./.github/actions/daily-build
         with:
           image: ${{ matrix.image }}
           build_name: ${{ matrix.build_name }}
