@@ -19,14 +19,9 @@ on:
 jobs:
   one-off-build:
     name: Build ${{ inputs.build_name }}
-    runs-on: [ 'ce','ubuntu' ]
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/daily-build
-        with:
-          image: ${{ inputs.image }}
-          build_name: ${{ inputs.build_name }}
-          command: ${{ inputs.command }}
-          build: ${{ inputs.build }}
+    uses: compiler-explorer/infra/.github/worflows/daily-build.yml@main
+    with:
+      image: ${{ inputs.image }}
+      build_name: ${{ inputs.build_name }}
+      command: ${{ inputs.command }}
+      build: ${{ inputs.build }}

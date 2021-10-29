@@ -8,6 +8,7 @@ on:
 jobs:
   all-daily-compilers:
     name: Build daily compilers
+    # TODO this doesn't work the way I want it to
     runs-on: [ 'ce','ubuntu' ]
     strategy:
       fail-fast: false
@@ -24,13 +25,9 @@ jobs:
           - { image: gcc, build_name: gcc_coroutines, command: build.sh, build: cxx-coroutines-trunk }
           - { image: gcc, build_name: gcc_gccrs_master, command: build.sh, build: gccrs-master }
 
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - uses: ./.github/actions/daily-build
-        with:
-          image: ${{ matrix.image }}
-          build_name: ${{ matrix.build_name }}
-          command: ${{ matrix.command }}
-          build: ${{ matrix.build }}
+    uses: compiler-explorer/infra/.github/worflows/daily-build.yml@main
+    with:
+      image: ${{ matrix.image }}
+      build_name: ${{ matrix.build_name }}
+      command: ${{ matrix.command }}
+      build: ${{ matrix.build }}
