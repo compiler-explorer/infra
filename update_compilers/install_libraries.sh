@@ -274,7 +274,7 @@ install_nsimd() {
             ## CUDA
             (
                 export PATH=${OPT}/cuda/9.1.85/bin:${OPT}/gcc-6.1.0/bin:${PATH}
-                ../nstools/bin/nsconfig .. -Dsimd=cuda \
+                ../nstools/nsconfig/nsconfig .. -Dsimd=cuda \
                                             -prefix=${DEST}/cuda \
                                             -Ggnumake \
                                             -Dstatic_libstdcpp=true \
