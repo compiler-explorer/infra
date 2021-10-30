@@ -239,3 +239,114 @@ install_libevent() {
 }
 
 install_libevent 2.1.12
+
+#########################
+# nsimd
+
+install_nsimd() {
+    for VERSION in "$@"; do
+        local DEST=${OPT}/libs/nsimd/${VERSION}
+        if [[ ! -d ${DEST} ]]; then
+            rm -rf /tmp/nsimd
+            mkdir -p /tmp/nsimd
+            pushd /tmp/nsimd
+
+            git clone -b ${VERSION} https://github.com/agenium-scale/nsimd.git
+            cd nsimd
+
+            python3 egg/hatch.py -l
+            bash scripts/setup.sh
+
+            mkdir build
+            cd build
+
+            ## x86_64
+            (
+                export PATH=${OPT}/gcc-10.2.0/bin:${PATH}
+                ../nstools/nsconfig/nsconfig .. -Dsimd=avx512_skylake \
+                                        -prefix=${DEST}/x86_64 \
+                                        -Ggnumake \
+                                        -suite=gcc
+                make
+                make install
+            )
+
+            ## CUDA
+            (
+                export PATH=${OPT}/cuda/9.1.85/bin:${OPT}/gcc-6.1.0/bin:${PATH}
+                ../nstools/bin/nsconfig .. -Dsimd=cuda \
+                                            -prefix=${DEST}/cuda \
+                                            -Ggnumake \
+                                            -Dstatic_libstdcpp=true \
+                                            -suite=cuda
+                make
+                make install
+            )
+
+            ## ARM32 (armel)
+            (
+                local COMP_ROOT=${OPT}/arm/gcc-8.2.0/arm-unknown-linux-gnueabi/bin/
+                local CCOMP=${COMP_ROOT}/arm-unknown-linux-gnueabi-gcc
+                local CPPCOMP=${COMP_ROOT}/arm-unknown-linux-gnueabi-g++
+
+                ../nstools/nsconfig/nsconfig .. -Dsimd=neon128 \
+                                            -prefix=${DEST}/arm/neon128 \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",8.2.0,armel \
+                                            -comp=c++,gcc,"${CPPCOMP}",8.2.0,armel
+                make
+                make install
+            )
+
+            ## ARM64
+            (
+                local COMP_ROOT=${OPT}/arm64/gcc-8.2.0/aarch64-unknown-linux-gnu/bin
+                local CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
+                local CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
+
+                ../nstools/nsconfig/nsconfig .. -Dsimd=aarch64 \
+                                            -prefix=${DEST}/arm/aarch64 \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",8.2.0,aarch64 \
+                                            -comp=c++,gcc,"${CPPCOMP}",8.2.0,aarch64
+                make
+                make install
+            )
+
+            ## PowerPC
+            (
+                local COMP_ROOT=${OPT}/powerpc64le/gcc-at13/powerpc64le-unknown-linux-gnu/bin
+                local CCOMP=${COMP_ROOT}/powerpc64le-unknown-linux-gnu-gcc
+                local CPPCOMP=${COMP_ROOT}/powerpc64le-unknown-linux-gnu-g++
+
+                ../nstools/nsconfig/nsconfig .. -Dsimd=vsx \
+                                            -prefix=${DEST}/powerpc \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",9,ppc64el \
+                                            -comp=c++,gcc,"${CPPCOMP}",9,ppc64el
+                make
+                make install
+            )
+
+            ## SVE 512
+            (
+                local COMP_ROOT=${OPT}/arm64/gcc-11.1.0/aarch64-unknown-linux-gnu/bin
+                local CCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-gcc
+                local CPPCOMP=${COMP_ROOT}/aarch64-unknown-linux-gnu-g++
+
+                ../nstools/nsconfig/nsconfig .. -Dsimd=sve512 \
+                                            -prefix=${DEST}/sve/sve512 \
+                                            -Ggnumake \
+                                            -comp=cc,gcc,"${CCOMP}",8.2.0,aarch64 \
+                                            -comp=c++,gcc,"${CPPCOMP}",8.2.0,aarch64
+                make
+                make install
+            )
+
+            popd
+            rm -rf /tmp/nsimd
+        fi
+    done
+}
+
+install_nsimd v3.0.1
