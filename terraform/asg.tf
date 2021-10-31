@@ -1,9 +1,7 @@
 locals {
   subnets      = local.all_subnet_ids
-  // Worst case it takes ~8m to get through all the compilers at startup.
-  // See https://github.com/compiler-explorer/compiler-explorer/issues/2977
-  // TODO: reduce this
-  grace_period = 600
+  // A startup I measured on Oct 31st 2021 took 3m to become ready.
+  grace_period = 220
   cooldown     = 180
 }
 
