@@ -21,7 +21,7 @@ jobs:
           - { image: gcc, build_name: gcc_coroutines, command: build.sh, build: cxx-coroutines-trunk }
           - { image: gcc, build_name: gcc_gccrs_master, command: build.sh, build: gccrs-master }
 
-    name: Daily build of ${{ strategy.build_name }}
+    name: Daily build of ${{ matrix.build_name }}
     runs-on: [ 'ce', 'ubuntu' ]
 
     steps:
