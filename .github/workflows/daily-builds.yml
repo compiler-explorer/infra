@@ -10,13 +10,11 @@ jobs:
   # These are slowly replacing the ones in admin-daily-builds.sh
   llvm-trunk:
     name: LLVM trunk daily
-    uses: compiler-explorer/infra/.github/workflows/daily-build.yml@main
-#    uses: &workflow compiler-explorer/infra/.github/workflows/daily-build.yml@main
+    uses: &workflow compiler-explorer/infra/.github/workflows/daily-build.yml@main
     with: { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
   clang-trunk:
     name: clang trunk daily
-#    uses: *workflow
-    uses: compiler-explorer/infra/.github/workflows/daily-build.yml@main
+    uses: *workflow
     with: { image: clang, build_name: clang, command: build.sh, build: trunk }
 #  gcc-trunk:
 #    name: gcc trunk daily
