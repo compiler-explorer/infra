@@ -127,7 +127,7 @@ build_libraries() {
 #MOVED: build_latest clang clang_autonsdmi build.sh autonsdmi-trunk
 #MOVED: build_latest clang clang_lifetime build.sh lifetime-trunk
 #MOVED: build_latest clang clang_llvmflang build.sh llvmflang-trunk
-build_latest clang clang_parmexpr build-parmexpr.sh trunk
+#MOVED: build_latest clang clang_parmexpr build-parmexpr.sh trunk
 #MOVED: build_latest clang clang_patmat build.sh patmat-trunk
 #MOVED: build_latest clang clang_embed build.sh embed-trunk
 #MOVED: build_latest clang llvm_spirv build.sh llvm-spirv

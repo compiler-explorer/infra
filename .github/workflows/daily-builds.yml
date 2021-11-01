@@ -32,6 +32,7 @@ jobs:
           - { image: clang, build_name: clang_patmat, command: build.sh, build: patmat-trunk }
           - { image: clang, build_name: clang_embed, command: build.sh, build: embed-trunk }
           - { image: clang, build_name: llvm_spirv, command: build.sh, build: llvm-spirv }
+          - { image: clang, build_name: clang_parmexpr, command: build-parmexpr.sh, build: trunk }
 
     name: Daily build of ${{ matrix.build_name }}
     runs-on: [ 'ce', 'ubuntu' ]
