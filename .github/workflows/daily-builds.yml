@@ -29,7 +29,6 @@ jobs:
           - { image: clang, build_name: clang_autonsdmi, command: build.sh, build: autonsdmi-trunk }
           - { image: clang, build_name: clang_lifetime, command: build.sh, build: lifetime-trunk }
           - { image: clang, build_name: clang_llvmflang, command: build.sh, build: llvmflang-trunk }
-          - { image: clang, build_name: clang_parmexpr, command: build-parmexpr, build: .sh trunk }
           - { image: clang, build_name: clang_patmat, command: build.sh, build: patmat-trunk }
           - { image: clang, build_name: clang_embed, command: build.sh, build: embed-trunk }
           - { image: clang, build_name: llvm_spirv, command: build.sh, build: llvm-spirv }
