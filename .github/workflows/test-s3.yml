@@ -1,4 +1,4 @@
-name: Daily build
+name: s3 temp test
 
 on: [ push ]
 
