@@ -13,6 +13,7 @@ jobs:
         include:
           # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
           # These are slowly replacing the ones in admin-daily-builds.sh
+          - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
           - { image: clang, build_name: clang, command: build.sh, build: trunk }
           - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
           - { image: gcc, build_name: gcc_contracts, command: build.sh, build: lock3-contracts-trunk }
