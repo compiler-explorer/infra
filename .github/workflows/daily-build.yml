@@ -22,45 +22,54 @@ jobs:
     name: Build ${{ inputs.build_name }}
     runs-on: [ 'ce','ubuntu' ]
     steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Get previous build version number
-        id: previous
-        run: |
-          echo ::set-output name=$(curl -sf https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ inputs.build_name }} || true)
-      - name: Daily build of ${{ inputs.build_name }}
-        id: build
-        run: |
-          mkdir dist
-          echo ::group::Docker build
-          docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ inputs.image }}-builder \
-            bash ${{ inputs.command }} ${{ inputs.build }} \
-            /dist "${{ steps.previous.outputs.revision }}" | tee output.log
-          echo ::endgroup::
-          echo ::group::Translate docker output into GH variables
-          gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output name=" m[1] "::" m[2]; }' output.log
-          echo ::endgroup::
-      - name: Get output filename
-        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        id: filenames
-        run: |
-          echo ::set-output name=source::$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})
-          echo ::set-output name=s3dest::s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }})
-          echo ${{ steps.build.outputs.revision }} > ${{ inputs.build_name }}
-      - name: Copy output to S3
-        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+      - name: create a file
+        run: touch test-mgodbolt
+      - name: copy it to s3
         uses: prewk/s3-cp-action@v2
         with:
-          source: ${{ steps.filenames.outputs.source }}
-          dest: ${{ steps.filenames.outputs.s3dest }}
+          source: test-mgodbolt
+          dest: s3://compiler-explorer/opt/test-mgodbolt-workflow
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      - name: Copy revision to S3
-        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
-        uses: prewk/s3-cp-action@v2
-        with:
-          source: ${{ inputs.build_name }}
-          dest: s3://compiler-explorer/opt/.buildrevs/${{ inputs.build_name }}
-          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      - uses: actions/checkout@v2
+#        with:
+#          fetch-depth: 0
+#      - name: Get previous build version number
+#        id: previous
+#        run: |
+#          echo ::set-output name=$(curl -sf https://compiler-explorer.s3.amazonaws.com/opt/.buildrevs/${{ inputs.build_name }} || true)
+#      - name: Daily build of ${{ inputs.build_name }}
+#        id: build
+#        run: |
+#          mkdir dist
+#          echo ::group::Docker build
+#          docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ inputs.image }}-builder \
+#            bash ${{ inputs.command }} ${{ inputs.build }} \
+#            /dist "${{ steps.previous.outputs.revision }}" | tee output.log
+#          echo ::endgroup::
+#          echo ::group::Translate docker output into GH variables
+#          gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print "::set-output name=" m[1] "::" m[2]; }' output.log
+#          echo ::endgroup::
+#      - name: Get output filename
+#        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+#        id: filenames
+#        run: |
+#          echo ::set-output name=source::$(pwd)/dist/$(basename ${{ steps.build.outputs.output }})
+#          echo ::set-output name=s3dest::s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }})
+#          echo ${{ steps.build.outputs.revision }} > ${{ inputs.build_name }}
+#      - name: Copy output to S3
+#        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+#        uses: prewk/s3-cp-action@v2
+#        with:
+#          source: ${{ steps.filenames.outputs.source }}
+#          dest: ${{ steps.filenames.outputs.s3dest }}
+#          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#      - name: Copy revision to S3
+#        if: ${{ steps.build.outputs.status != 'SKIPPED' }}
+#        uses: prewk/s3-cp-action@v2
+#        with:
+#          source: ${{ inputs.build_name }}
+#          dest: s3://compiler-explorer/opt/.buildrevs/${{ inputs.build_name }}
+#          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
