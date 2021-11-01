@@ -4,7 +4,8 @@ resource "aws_vpc" "CompilerExplorer" {
   enable_dns_support   = true
   instance_tenancy     = "default"
 
-  tags = {
+  enable_classiclink = false
+  tags               = {
     Name = "CompilerExplorer"
   }
 }
@@ -31,7 +32,7 @@ resource "aws_default_route_table" "ce-route-table" {
 }
 
 resource "aws_subnet" "ce" {
-  for_each = var.subnets
+  for_each                = var.subnets
   vpc_id                  = aws_vpc.CompilerExplorer.id
   cidr_block              = "${var.cidr_b_prefix}.${each.value}.0/24"
   availability_zone       = "us-east-${each.key}"
