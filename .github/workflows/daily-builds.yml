@@ -54,9 +54,9 @@ jobs:
       - name: Daily build of ${{ matrix.build_name }}
         id: build
         run: |
-          if [[ "${{ matrix.build_name }}" =~ "${{ inputs.restrict_to }}"]]; then
+          if [[ -n "github.event.inputs.restrict_to" ]] && [[ "${{ matrix.build_name }}" =~ "${{ github.event.inputs.restrict_to }}" ]]; then
             echo ::set-output name=status::SKIPPED
-             exit 0
+            exit 0
           fi
 
           mkdir dist
