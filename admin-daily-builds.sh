@@ -119,18 +119,20 @@ build_libraries() {
 #MOVED: build_latest gcc gcc_coroutines build.sh cxx-coroutines-trunk
 #MOVED: build_latest gcc gcc_gccrs_master build.sh gccrs-master
 #MOVED: build_latest clang clang build.sh trunk
-build_latest clang clang_assertions build.sh assertions-trunk
-build_latest clang clang_cppx build.sh cppx-trunk
-build_latest clang clang_cppx_ext build.sh cppx-ext-trunk
-build_latest clang clang_cppx_p2320 build.sh cppx-p2320-trunk
-build_latest clang clang_relocatable build.sh relocatable-trunk
-build_latest clang clang_autonsdmi build.sh autonsdmi-trunk
-build_latest clang clang_lifetime build.sh lifetime-trunk
-build_latest clang clang_llvmflang build.sh llvmflang-trunk
-build_latest clang clang_parmexpr build-parmexpr.sh trunk
-build_latest clang clang_patmat build.sh patmat-trunk
-build_latest clang clang_embed build.sh embed-trunk
-build_latest clang llvm_spirv build.sh llvm-spirv
+#MOVED: build_latest clang clang_assertions build.sh assertions-trunk
+#MOVED: build_latest clang clang_cppx build.sh cppx-trunk
+#MOVED: build_latest clang clang_cppx_ext build.sh cppx-ext-trunk
+#MOVED: build_latest clang clang_cppx_p2320 build.sh cppx-p2320-trunk
+#MOVED: build_latest clang clang_relocatable build.sh relocatable-trunk
+#MOVED: build_latest clang clang_autonsdmi build.sh autonsdmi-trunk
+#MOVED: build_latest clang clang_lifetime build.sh lifetime-trunk
+#MOVED: build_latest clang clang_llvmflang build.sh llvmflang-trunk
+#MOVED: build_latest clang clang_parmexpr build-parmexpr.sh trunk
+#MOVED: build_latest clang clang_patmat build.sh patmat-trunk
+#MOVED: build_latest clang clang_embed build.sh embed-trunk
+#MOVED: build_latest clang llvm_spirv build.sh llvm-spirv
+# before these can be moved, their build scripts need updating to output
+# build name, and handle output to a directory.
 build_latest go go build.sh trunk
 build_latest misc tinycc build-tinycc.sh trunk
 build_latest misc cc65 buildcc65.sh trunk

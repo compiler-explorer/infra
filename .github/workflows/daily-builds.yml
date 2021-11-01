@@ -14,13 +14,25 @@ jobs:
           # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
           # These are slowly replacing the ones in admin-daily-builds.sh
           - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
-          - { image: clang, build_name: clang, command: build.sh, build: trunk }
           - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
           - { image: gcc, build_name: gcc_contracts, command: build.sh, build: lock3-contracts-trunk }
           - { image: gcc, build_name: gcc_contracts_labels, command: build.sh, build: lock3-contracts-labels-trunk }
           - { image: gcc, build_name: gcc_modules, command: build.sh, build: cxx-modules-trunk }
           - { image: gcc, build_name: gcc_coroutines, command: build.sh, build: cxx-coroutines-trunk }
           - { image: gcc, build_name: gcc_gccrs_master, command: build.sh, build: gccrs-master }
+          - { image: clang, build_name: clang, command: build.sh, build: trunk }
+          - { image: clang, build_name: clang_assertions, command: build.sh, build: assertions-trunk }
+          - { image: clang, build_name: clang_cppx, command: build.sh, build: cppx-trunk }
+          - { image: clang, build_name: clang_cppx_ext, command: build.sh, build: cppx-ext-trunk }
+          - { image: clang, build_name: clang_cppx_p2320, command: build.sh, build: cppx-p2320-trunk }
+          - { image: clang, build_name: clang_relocatable, command: build.sh, build: relocatable-trunk }
+          - { image: clang, build_name: clang_autonsdmi, command: build.sh, build: autonsdmi-trunk }
+          - { image: clang, build_name: clang_lifetime, command: build.sh, build: lifetime-trunk }
+          - { image: clang, build_name: clang_llvmflang, command: build.sh, build: llvmflang-trunk }
+          - { image: clang, build_name: clang_parmexpr, command: build-parmexpr, build: .sh trunk }
+          - { image: clang, build_name: clang_patmat, command: build.sh, build: patmat-trunk }
+          - { image: clang, build_name: clang_embed, command: build.sh, build: embed-trunk }
+          - { image: clang, build_name: llvm_spirv, command: build.sh, build: llvm-spirv }
 
     name: Daily build of ${{ matrix.build_name }}
     runs-on: [ 'ce', 'ubuntu' ]
