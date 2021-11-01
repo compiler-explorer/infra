@@ -26,6 +26,8 @@ jobs:
     runs-on: [ 'ce', 'ubuntu' ]
 
     steps:
+      - name: Start from a clean directory
+        uses: AutoModality/action-clean@v1.1.0
       - name: Get previous build version number
         id: previous
         run: |
