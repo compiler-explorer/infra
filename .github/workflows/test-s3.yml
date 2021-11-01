@@ -13,6 +13,6 @@ jobs:
         uses: prewk/s3-cp-action@v2
         with:
           source: test-mgodbolt
-          dest: s3://compiler-explorer/dist/test-mgodbolt
+          dest: s3://compiler-explorer/opt/test-mgodbolt
           aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
