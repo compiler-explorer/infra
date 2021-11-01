@@ -3,31 +3,40 @@ name: All daily builds
 on:
   schedule:
     - cron: '0 0 * * *'
-
+  workflow_dispatch: # Only for testing...
 
 jobs:
-  all-daily-compilers:
-    name: Build daily compilers
-    # TODO this doesn't work the way I want it to
-    runs-on: [ 'ce','ubuntu' ]
-    strategy:
-      fail-fast: false
-      matrix:
-        # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
-        # These are slowly replacing the ones in admin-daily-builds.sh
-        include:
-          - { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
-          - { image: clang, build_name: clang, command: build.sh, build: trunk }
-          - { image: gcc, build_name: gcc, command: build.sh, build: trunk }
-          - { image: gcc, build_name: gcc_contracts, command: build.sh, build: lock3-contracts-trunk }
-          - { image: gcc, build_name: gcc_contract_labels, command: build.sh, build: lock3-contract-labels-trunk }
-          - { image: gcc, build_name: gcc_modules, command: build.sh, build: cxx-modules-trunk }
-          - { image: gcc, build_name: gcc_coroutines, command: build.sh, build: cxx-coroutines-trunk }
-          - { image: gcc, build_name: gcc_gccrs_master, command: build.sh, build: gccrs-master }
-
-    uses: compiler-explorer/infra/.github/worflows/daily-build.yml@main
-    with:
-      image: ${{ matrix.image }}
-      build_name: ${{ matrix.build_name }}
-      command: ${{ matrix.command }}
-      build: ${{ matrix.build }}
+  # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
+  # These are slowly replacing the ones in admin-daily-builds.sh
+  llvm-trunk:
+    name: LLVM trunk daily
+    uses: &workflow compiler-explorer/infra/.github/workflows/daily-build.yml@main
+    with: { image: clang, build_name: llvm, command: build.sh, build: llvm-trunk }
+  clang-trunk:
+    name: clang trunk daily
+    uses: *workflow
+    with: { image: clang, build_name: clang, command: build.sh, build: trunk }
+  gcc-trunk:
+    name: gcc trunk daily
+    uses: *workflow
+    with: { image: gcc, build_name: gcc, command: build.sh, build: trunk }
+  gcc-contracts:
+    name: gcc contracts daily
+    uses: *workflow
+    with: { image: gcc, build_name: gcc_contracts, command: build.sh, build: lock3-contracts-trunk }
+  gcc-contracts-labels:
+    name: gcc contracts labels daily
+    uses: *workflow
+    with: { image: gcc, build_name: gcc_contracts_labels, command: build.sh, build: lock3-contracts-labels-trunk }
+  gcc-modules:
+    name: gcc modules daily
+    uses: *workflow
+    with: { image: gcc, build_name: gcc_modules, command: build.sh, build: cxx-modules-trunk }
+  gcc-coroutines:
+    name: gcc coroutines daily
+    uses: *workflow
+    with: { image: gcc, build_name: gcc_coroutines, command: build.sh, build: cxx-coroutines-trunk }
+  gcc-gccrs:
+    name: gcc gccrs daily
+    uses: *workflow
+    with: { image: gcc, build_name: gcc_gccrs_master, command: build.sh, build: gccrs-master }
