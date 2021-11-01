@@ -3,7 +3,12 @@ name: All daily builds
 on:
   schedule:
     - cron: '0 0 * * *'
-  workflow_dispatch: # Only for testing...
+  workflow_dispatch:
+    inputs:
+      restrict_to:
+        description: 'Build only things matching this build name'
+        required: true
+        default: '.*'
 
 jobs:
   daily-build:
@@ -49,6 +54,11 @@ jobs:
       - name: Daily build of ${{ matrix.build_name }}
         id: build
         run: |
+          if [[ "${{ matrix.build_name }}" =~ "${{ inputs.restrict_to }}"]]; then
+            echo ::set-output name=status::SKIPPED
+             exit 0
+          fi
+
           mkdir dist
           echo ::group::Docker build
           docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ matrix.image }}-builder \
