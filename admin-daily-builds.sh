@@ -132,14 +132,15 @@ build_libraries() {
 #MOVED: build_latest clang clang_embed build.sh embed-trunk
 #MOVED: build_latest clang llvm_spirv build.sh llvm-spirv
 #MOVED: build_latest go go build.sh trunk
+#MOVED: build_latest misc tinycc build-tinycc.sh trunk
+#MOVED: build_latest misc cc65 buildcc65.sh trunk
+#MOVED: build_latest misc mrustc build-mrustc.sh master
+#MOVED: build_latest misc cproc build-cproc.sh master
+#MOVED: build_latest misc rustc-cg-gcc_master build-rustc-cg-gcc.sh master
+#MOVED: build_latest misc SPIRV-Tools build-spirv-tools.sh master
+
 # before these can be moved, their build scripts need updating to output
 # build name, and handle output to a directory.
-build_latest misc tinycc build-tinycc.sh trunk
-build_latest misc cc65 buildcc65.sh trunk
-build_latest misc mrustc build-mrustc.sh master
-build_latest misc cproc build-cproc.sh master
-build_latest misc rustc-cg-gcc_master build-rustc-cg-gcc.sh master
-build_latest misc SPIRV-Tools build-spirv-tools.sh master
 
 build_latest_cross gcc arm32 build.sh arm trunk
 build_latest_cross gcc arm64 build.sh arm64 trunk

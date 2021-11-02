@@ -37,6 +37,12 @@ jobs:
           - { image: clang, build_name: clang_patmat, command: build.sh, build: patmat-trunk }
           - { image: clang, build_name: clang_parmexpr, command: build-parmexpr.sh, build: trunk }
           - { image: go, build_name: go, command: build.sh, build: trunk }
+          - { image: misc, build_name: tinycc, command: build-tinycc.sh, build: trunk }
+          - { image: misc, build_name: cc65, command: buildcc65.sh, build: trunk }
+          - { image: misc, build_name: mrustc, command: build-mrustc.sh, build: master }
+          - { image: misc, build_name: cproc, command: build-cproc.sh, build: master }
+          - { image: misc, build_name: rustc-cg-gcc_master, command: build-rustc-cg-gcc.sh, build: master }
+          - { image: misc, build_name: SPIRV-Tools, command: build-spirv-tools.sh, build: master }
             # see https://github.com/compiler-explorer/clang-builder/issues/28
             #- { image: clang, build_name: clang_embed, command: build.sh, build: embed-trunk }
             # see https://github.com/compiler-explorer/clang-builder/issues/29
