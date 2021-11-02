@@ -36,6 +36,7 @@ jobs:
           - { image: clang, build_name: clang_llvmflang, command: build.sh, build: llvmflang-trunk }
           - { image: clang, build_name: clang_patmat, command: build.sh, build: patmat-trunk }
           - { image: clang, build_name: clang_parmexpr, command: build-parmexpr.sh, build: trunk }
+          - { image: go, build_name: go, command: build.sh, build: trunk }
             # see https://github.com/compiler-explorer/clang-builder/issues/28
             #- { image: clang, build_name: clang_embed, command: build.sh, build: embed-trunk }
             # see https://github.com/compiler-explorer/clang-builder/issues/29
