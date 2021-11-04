@@ -21,4 +21,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Echo check run ids
-        run: echo "job ids - ${{ toJSON(fromJSON(steps.fetch.outputs.data).jobs.*.id) }}
+        run: echo "job ids - ${{ toJSON(fromJSON(steps.fetch.outputs.data).jobs.*.id) }}"
