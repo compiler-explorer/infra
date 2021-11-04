@@ -1,0 +1,13 @@
+name: status
+
+on:
+  workflow_dispatch:
+
+jobs:
+  status:
+    name: Testy mctest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: printy
+        run: echo "My run id is '${GITHUB_RUN_ID}'"
