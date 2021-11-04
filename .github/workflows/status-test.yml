@@ -1,7 +1,7 @@
 name: status
 
 on:
-  workflow_dispatch:
+  push:
 
 jobs:
   status:
