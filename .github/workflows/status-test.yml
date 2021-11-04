@@ -41,5 +41,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         with:
           operation: put
+          region: us-east-1
           table: compiler-builds
           file: entry.json
