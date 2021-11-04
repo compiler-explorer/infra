@@ -11,14 +11,35 @@ jobs:
     steps:
       - name: printy
         run: echo "My run id is '${GITHUB_RUN_ID}'"
-      - name: Fetch check run ids
-        id: fetch
-        uses: octokit/request-action@v2.x
-        with:
-          route: GET /repos/{repo}/actions/runs/{run_id}/jobs
-          repo: ${{ github.repository }}
-          run_id: ${{ github.run_id }}
+#      - name: Fetch check run ids
+#        id: fetch
+#        uses: octokit/request-action@v2.x
+#        with:
+#          route: GET /repos/{repo}/actions/runs/{run_id}/jobs
+#          repo: ${{ github.repository }}
+#          run_id: ${{ github.run_id }}
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#      - name: Echo check run ids
+#        run: echo "job ids - ${{ toJSON(fromJSON(steps.fetch.outputs.data).jobs.*.id) }}"
+      - name: Make json
+        run: |
+          echo <<EOF
+          {
+            "compiler": "test-gcc",
+            "timestamp": "$(date -u -Iseconds)",
+            "duration": 123,
+            "status": "SUCCESS",
+            "path": "s3://something/tar.xz"
+          }
+          EOF > entry.json
+      - name: DynamoDB Actions
+        uses: mooyoul/dynamodb-actions@v1.2.1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Echo check run ids
-        run: echo "job ids - ${{ toJSON(fromJSON(steps.fetch.outputs.data).jobs.*.id) }}"
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        with:
+          operation: put
+          table: compiler-builds
+          file: entry.json
