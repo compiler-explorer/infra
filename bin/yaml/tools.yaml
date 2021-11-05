@@ -22,6 +22,7 @@ tools:
     targets:
       - 0.3.14
       - 0.4.6
+      - 0.4.7
   rustfmt:
     type: tarballs
     dir: rustfmt-{name}
