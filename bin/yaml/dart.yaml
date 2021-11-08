@@ -1,0 +1,9 @@
+compilers:
+  dart:
+    type: tarballs
+    compression: gz
+    dir: dart-{name}
+    check_exe: bin/javac -version
+    url: https://storage.googleapis.com/dart-archive/channels/stable/release/{name}/sdk/dartsdk-linux-x64-release.zip
+    targets:
+      - 2.14.4
