@@ -378,11 +378,13 @@ libraries:
         - 0.5.3
     xsimd:
       type: github
-      repo: QuantStack/xsimd
+      repo: xtensor-stack/xsimd
       check_file: README.md
       targets:
         - 6.1.4
         - 7.0.0
+        - 7.6.0
+        - 8.0.3
     xtensor:
       type: github
       repo: QuantStack/xtensor
@@ -820,7 +822,7 @@ libraries:
       xsimd:
         type: github
         method: nightlyclone
-        repo: QuantStack/xsimd
+        repo: xtensor-stack/xsimd
         check_file: README.md
         build_type: none
         targets:
