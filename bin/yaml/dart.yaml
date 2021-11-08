@@ -2,6 +2,7 @@ compilers:
   dart:
     type: ziparchive
     dir: dart-{name}
+    folder: dart-sdk
     check_exe: bin/dart --version
     url: https://storage.googleapis.com/dart-archive/channels/stable/release/{name}/sdk/dartsdk-linux-x64-release.zip
     targets:
