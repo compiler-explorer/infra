@@ -443,8 +443,35 @@ resource "aws_iam_user" "github" {
   name = "github"
 }
 
-
 resource "aws_iam_user_policy_attachment" "github_attach_CeBuilderStorageAccess" {
-  user       = "github"
+  user       = aws_iam_user.github.name
   policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
+}
+
+data "aws_iam_policy_document" "AnonWebUserPolicy" {
+  statement {
+    sid       = "BuildTableAccess"
+    actions   = [
+      "dynamodb:DescribeTable",
+      "dynamodb:GetItem",
+      "dynamodb:Scan",
+      "dynamodb:Query"
+    ]
+    resources = [aws_dynamodb_table.compiler-builds.arn]
+  }
+}
+
+resource "aws_iam_policy" "AnonWebUserPolicy" {
+  name        = "AnonWebUserPolicy"
+  description = "Anonymous web user access policy; basically dynamodb build table read-only"
+  policy      = data.aws_iam_policy_document.AnonWebUserPolicy.json
+}
+
+resource "aws_iam_user" "anon_web_user" {
+  name = "anon_web_user"
+}
+
+resource "aws_iam_user_policy_attachment" "anon_web_user_policy" {
+  user       = aws_iam_user.anon_web_user.name
+  policy_arn = aws_iam_policy.AnonWebUserPolicy.arn
 }
