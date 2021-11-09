@@ -366,11 +366,23 @@ data "aws_iam_policy_document" "CeBuilderStorageAccess" {
       "${aws_s3_bucket.compiler-explorer.arn}/dist/*",
     ]
   }
+  statement {
+    sid       = "BuildTableAccess"
+    actions   = [
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem",
+      "dynamodb:DescribeTable",
+      "dynamodb:GetItem",
+      "dynamodb:Scan",
+      "dynamodb:Query"
+    ]
+    resources = [aws_dynamodb_table.compiler-builds.arn]
+  }
 }
 
 resource "aws_iam_policy" "CeBuilderStorageAccess" {
   name        = "CeBuilderStorageAccess"
-  description = "Can write to S3 in the appropriate locations only"
+  description = "Can write to S3 (in the appropriate locations only) and build table "
   policy      = data.aws_iam_policy_document.CeBuilderStorageAccess.json
 }
 

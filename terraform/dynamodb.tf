@@ -55,3 +55,32 @@ resource "aws_dynamodb_table" "versionslog" {
     enabled = false
   }
 }
+
+resource "aws_dynamodb_table" "compiler-builds" {
+  name           = "compiler-builds"
+  lifecycle {
+    ignore_changes = [
+      read_capacity,
+      write_capacity
+    ]
+    prevent_destroy = true
+  }
+  billing_mode   = "PAY_PER_REQUEST"
+  read_capacity  = 1
+  write_capacity = 1
+  hash_key       = "compiler"
+  range_key      = "timestamp"
+
+  attribute {
+    name = "compiler"
+    type = "S"
+  }
+  attribute {
+    name = "timestamp"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = false
+  }
+}
