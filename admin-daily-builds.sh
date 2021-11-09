@@ -107,7 +107,8 @@ build_libraries() {
 
 # IMPORTANT: when you add a build here you must also add an entry in remove_old_compilers.sh
 
-# Entries commented out with #MOVED: have been moved to the .github/workflows/daily-builds.yml
+# Entries commented out with #MOVED: have been moved to the compiler-workflows repo in
+# .github/workflows/daily-builds.yml
 
 # llvm build is fast, so lets do it first
 #MOVED: build_latest clang llvm build.sh llvm-trunk
