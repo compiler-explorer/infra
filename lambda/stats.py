@@ -2,7 +2,8 @@ import datetime
 import json
 import logging
 import os
-from typing import Optional, Dict
+import urllib.parse
+from typing import Optional, Dict, Any
 
 import aws_embedded_metrics
 import boto3
@@ -19,7 +20,6 @@ RECORD_KEY = "Records"
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-import urllib.parse
 
 
 @aws_embedded_metrics.metric_scope
@@ -51,12 +51,19 @@ def handle_http(
         event: Dict,
         metrics: MetricsLogger,
         sqs_client: Optional[botocore.client.BaseClient] = None,
+        dynamo_client: Optional[botocore.client.BaseClient] = None,
         now: Optional[datetime.datetime] = None):
     sqs_client = sqs_client or boto3.client('sqs')
+    dynamo_client = dynamo_client or boto3.client('dynamodb')
     now = now or datetime.datetime.utcnow()
 
-    if event['path'] == '/pageload' and event['httpMethod'] == 'POST':
+    path = event['path'].split('/')[1:]
+    method = event['httpMethod']
+    if path == ['pageload'] and method == 'POST':
         return handle_pageload(event, metrics, now, os.environ['SQS_STATS_QUEUE'], sqs_client)
+
+    if len(path) == 2 and path[0] == 'compiler-build' and method == 'GET':
+        return handle_compiler_stats(path[1], os.environ['COMPILER_BUILD_TABLE'], dynamo_client)
 
     return dict(
         statusCode=404,
@@ -93,4 +100,47 @@ def handle_pageload(
         isBase64Encoded=False,
         headers=STATIC_HEADERS,
         body="Ok"
+    )
+
+
+# Example query from the UI
+# {"TableName":"compiler-builds","ReturnConsumedCapacity":
+# "TOTAL","Limit":50,"KeyConditionExpression":"#kn0 = :kv0",
+# "ScanIndexForward":false,"FilterExpression":"#n0 = :v0",
+# "ExpressionAttributeNames":{"#n0":"status","#kn0":"compiler"},
+# "ExpressionAttributeValues":{":v0":{"S":"OK"},":kv0":{"S":"gcc"}}}
+def handle_compiler_stats(
+        compiler: str,
+        table: str,
+        dynamo_client: botocore.client.BaseClient):
+    result: Dict[str, Any] = {}
+    query_results = dynamo_client.query(
+        TableName=table,
+        Limit=100,  # NB limit to _evaluate_ not the limit of matches
+        ScanIndexForward=False,  # items in reverse order (by time)
+        KeyConditionExpression='#key = :compiler',
+        FilterExpression='#status = :ok',
+        ExpressionAttributeNames={"#key": "compiler", "#status": "status"},
+        ExpressionAttributeValues={":ok": dict(S="OK"), ":compiler": dict(S=compiler)}
+    )
+    if query_results['Count']:
+        most_recent = query_results['Items'][0]
+        result['last_success'] = dict(
+            path=most_recent['path']['S'],
+            github_run_id=most_recent['github_run_id']['S'],
+            timestamp=most_recent['timestamp']['S'],
+            duration=int(most_recent['duration']['N']),
+        )
+    else:
+        result['last_success'] = None
+    return dict(
+        statusCode=200,
+        statusDescription="200 OK",
+        isBase64Encoded=False,
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "max-age: 180",
+            "Access-Control-Allow-Origin": "*"
+        },
+        body=json.dumps(result)
     )

@@ -19,7 +19,7 @@ resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-data "aws_iam_policy_document" "aws_lambda_stats_logs" {
+data "aws_iam_policy_document" "aws_lambda_stats" {
   statement {
     sid       = "WriteStatsLog"
     actions   = ["s3:PutObject"]
@@ -35,17 +35,24 @@ data "aws_iam_policy_document" "aws_lambda_stats_logs" {
     ]
     resources = [aws_sqs_queue.stats_queue.arn]
   }
+  statement {
+    sid       = "ReadCompilerDb"
+    actions   = [
+      "dynamodb:Query"
+    ]
+    resources = [aws_dynamodb_table.compiler-builds.arn]
+  }
 }
 
-resource "aws_iam_policy" "aws_lambda_stats_logs" {
+resource "aws_iam_policy" "aws_lambda_stats" {
   name        = "aws_lambda_stats_logs"
-  description = "Allow lambda to write to stats logs"
-  policy      = data.aws_iam_policy_document.aws_lambda_stats_logs.json
+  description = "Lambda stats policy (SNS, dynamodb)"
+  policy      = data.aws_iam_policy_document.aws_lambda_stats.json
 }
 
-resource "aws_iam_role_policy_attachment" "aws_lambda_stats_logs" {
+resource "aws_iam_role_policy_attachment" "aws_lambda_stats" {
   role       = aws_iam_role.iam_for_lambda.name
-  policy_arn = aws_iam_policy.aws_lambda_stats_logs.arn
+  policy_arn = aws_iam_policy.aws_lambda_stats.arn
 }
 
 data "aws_ssm_parameter" "discord_webhook_url" {
@@ -64,11 +71,18 @@ data "aws_s3_bucket_object" "lambda_zip" {
   key    = "lambdas/lambda-package.zip"
 }
 
+data "aws_s3_bucket_object" "lambda_zip_sha" {
+  # Lambda zip's SHA256 is uploaded and rebuild by the Makefile: make upload-lambda
+  bucket = aws_s3_bucket.compiler-explorer.bucket
+  key    = "lambdas/lambda-package.zip.sha256"
+}
+
 resource "aws_lambda_function" "cloudwatch_to_discord" {
   description       = "Dispatch cloudwatch messages to discord"
   s3_bucket         = data.aws_s3_bucket_object.lambda_zip.bucket
   s3_key            = data.aws_s3_bucket_object.lambda_zip.key
   s3_object_version = data.aws_s3_bucket_object.lambda_zip.version_id
+  source_code_hash  = chomp(data.aws_s3_bucket_object.lambda_zip_sha.body)
   function_name     = "cloudwatch_to_discord"
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "cloudwatch_to_discord.lambda_handler"
@@ -96,8 +110,7 @@ resource "aws_lambda_function" "stats" {
   s3_bucket         = data.aws_s3_bucket_object.lambda_zip.bucket
   s3_key            = data.aws_s3_bucket_object.lambda_zip.key
   s3_object_version = data.aws_s3_bucket_object.lambda_zip.version_id
-  // Comment this in if you want to force a deploy every time... TODO ideally fix this
-  //  source_code_hash  = data.aws_s3_bucket_object.lambda_zip.etag
+  source_code_hash  = chomp(data.aws_s3_bucket_object.lambda_zip_sha.body)
   function_name     = "stats"
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "stats.lambda_handler"
@@ -107,8 +120,9 @@ resource "aws_lambda_function" "stats" {
 
   environment {
     variables = {
-      S3_BUCKET_NAME  = aws_s3_bucket.compiler-explorer-logs.bucket
-      SQS_STATS_QUEUE = aws_sqs_queue.stats_queue.id
+      S3_BUCKET_NAME       = aws_s3_bucket.compiler-explorer-logs.bucket
+      SQS_STATS_QUEUE      = aws_sqs_queue.stats_queue.id
+      COMPILER_BUILD_TABLE = aws_dynamodb_table.compiler-builds.name
     }
   }
 }

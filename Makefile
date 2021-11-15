@@ -73,6 +73,7 @@ static-checks: ce  ## Runs all the static tests
 
 LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
+LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
 $(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
 	rm -rf $(LAMBDA_PACKAGE_DIR)
 	mkdir -p $(LAMBDA_PACKAGE_DIR)
@@ -81,12 +82,16 @@ $(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
 	rm -f $(LAMBDA_PACKAGE)
 	cd $(LAMBDA_PACKAGE_DIR) && zip -r $(LAMBDA_PACKAGE) .
 
+$(LAMBDA_PACKAGE_SHA): $(LAMBDA_PACKAGE)
+	openssl dgst -sha256 -binary $(LAMBDA_PACKAGE) | openssl enc -base64 > $@
+
 .PHONY: lambda-package
-lambda-package: $(LAMBDA_PACKAGE)
+lambda-package: $(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA)
 
 .PHONY: upload-lambda
 upload-lambda: lambda-package
 	aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip
+	aws s3 cp --content-type text/sha256 $(LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/lambda-package.zip.sha256
 
 .PHONY: terraform-apply
 terraform-apply:

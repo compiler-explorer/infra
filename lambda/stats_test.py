@@ -1,14 +1,18 @@
 # pylint: disable=redefined-outer-name
 import datetime
+import json
 import os
+from typing import Dict
 from unittest import mock
 
+import boto3
+import botocore.client
 import botocore.session
 import pytest as pytest
 from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
 from botocore.stub import Stubber, ANY
 
-from stats import handle_sqs, handle_pageload
+from stats import handle_sqs, handle_pageload, handle_compiler_stats
 
 SOME_DATE = datetime.datetime(2020, 1, 2, 3, 4, 5, 12312)
 
@@ -16,6 +20,11 @@ SOME_DATE = datetime.datetime(2020, 1, 2, 3, 4, 5, 12312)
 @pytest.fixture
 def sqs_client():
     return botocore.session.get_session().create_client('sqs', region_name='not-real')
+
+
+@pytest.fixture
+def dynamodb_client():
+    return botocore.session.get_session().create_client('dynamodb', region_name='not-real')
 
 
 @pytest.fixture
@@ -134,3 +143,53 @@ def test_should_handle_pageloads_with_many_sponsors_uri_encoded(sqs_client):
             queue_url,
             sqs_client)
     metrics.set_property.assert_called_once_with('sponsors', ['bob', 'alice', 'crystal'])
+
+
+@pytest.mark.skip("run manually with creds")
+def test_should_find_stats_on_a_compiler():
+    res = handle_compiler_stats("gcc", "compiler-builds", boto3.client('dynamodb'))
+    print(res)
+
+
+def test_should_query_compilers_with_the_right_query(dynamodb_client):
+    with Stubber(dynamodb_client) as stubber:
+        stubber.add_response('query', dict(Count=0, Items=[]),
+                             dict(TableName="compiler-table",
+                                  Limit=100,  # NB limit to _evaluate_ not the limit of matches
+                                  ScanIndexForward=False,  # items in reverse order (by time)
+                                  KeyConditionExpression='#key = :compiler',
+                                  FilterExpression='#status = :ok',
+                                  ExpressionAttributeNames={"#key": "compiler", "#status": "status"},
+                                  ExpressionAttributeValues={":ok": dict(S="OK"), ":compiler": dict(S="some-compiler")}
+                                  )
+                             )
+        handle_compiler_stats("some-compiler", "compiler-table", dynamodb_client)
+
+
+def test_should_mention_most_recent_compiler_build(dynamodb_client):
+    def make_fake_item(run_id: str) -> Dict:
+        return dict(
+            path=dict(S="path"),
+            github_run_id=dict(S=run_id),
+            timestamp=dict(S="some time"),
+            duration=dict(N="123"),
+        )
+
+    with Stubber(dynamodb_client) as stubber:
+        stubber.add_response(
+            'query', dict(Count=3, Items=[make_fake_item("first"), make_fake_item("second"), make_fake_item("third")]))
+        result = handle_compiler_stats("some-compiler", "compiler-table", dynamodb_client)
+    assert result['statusCode'] == 200
+    assert json.loads(result['body']) == dict(
+        last_success=dict(duration=123, github_run_id='first', path='path', timestamp='some time')
+    )
+
+
+def test_should_handle_when_no_valid_compiler_builds(dynamodb_client):
+    with Stubber(dynamodb_client) as stubber:
+        stubber.add_response('query', dict(Count=0, Items=[]))
+        result = handle_compiler_stats("some-compiler", "compiler-table", dynamodb_client)
+    assert result['statusCode'] == 200
+    assert json.loads(result['body']) == dict(
+        last_success=None
+    )
