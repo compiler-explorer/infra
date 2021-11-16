@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import urllib.parse
-from typing import Optional, Dict, Any
+from typing import Optional, Dict
 
 import aws_embedded_metrics
 import boto3
@@ -109,37 +109,51 @@ def handle_pageload(
 # "ScanIndexForward":false,"FilterExpression":"#n0 = :v0",
 # "ExpressionAttributeNames":{"#n0":"status","#kn0":"compiler"},
 # "ExpressionAttributeValues":{":v0":{"S":"OK"},":kv0":{"S":"gcc"}}}
-def handle_compiler_stats(
-        compiler: str,
-        table: str,
-        dynamo_client: botocore.client.BaseClient):
-    result: Dict[str, Any] = {}
-    query_results = dynamo_client.query(
+
+def _do_one_query(compiler: str,
+                  table: str,
+                  dynamo_client: botocore.client.BaseClient,
+                  status: Optional[str]) -> Optional[Dict]:
+    params = dict(
         TableName=table,
         Limit=100,  # NB limit to _evaluate_ not the limit of matches
         ScanIndexForward=False,  # items in reverse order (by time)
         KeyConditionExpression='#key = :compiler',
-        FilterExpression='#status = :ok',
-        ExpressionAttributeNames={"#key": "compiler", "#status": "status"},
-        ExpressionAttributeValues={":ok": dict(S="OK"), ":compiler": dict(S=compiler)}
+        ExpressionAttributeNames={"#key": "compiler"},
+        ExpressionAttributeValues={":compiler": dict(S=compiler)}
     )
+    if status is not None:
+        params['FilterExpression'] = '#status = :status_filter'
+        params['ExpressionAttributeNames']["#status"] = "status"
+        params['ExpressionAttributeValues'][":status_filter"] = dict(S=status or "na")
+
+    query_results = dynamo_client.query(**params)
     if query_results['Count']:
         most_recent = query_results['Items'][0]
-        result['last_success'] = dict(
+        return dict(
             path=most_recent['path']['S'],
             github_run_id=most_recent['github_run_id']['S'],
             timestamp=most_recent['timestamp']['S'],
             duration=int(most_recent['duration']['N']),
         )
-    else:
-        result['last_success'] = None
+    return None
+
+
+def handle_compiler_stats(
+        compiler: str,
+        table: str,
+        dynamo_client: botocore.client.BaseClient) -> Dict:
+    result = dict(
+        last_success=_do_one_query(compiler, table, dynamo_client, "OK"),
+        last_build=_do_one_query(compiler, table, dynamo_client, None)
+    )
     return dict(
         statusCode=200,
         statusDescription="200 OK",
         isBase64Encoded=False,
         headers={
             "Content-Type": "application/json; charset=utf-8",
-            "Cache-Control": "max-age: 180",
+            "Cache-Control": "max-age: 180, must-revalidate",
             "Access-Control-Allow-Origin": "*"
         },
         body=json.dumps(result)

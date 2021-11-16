@@ -153,16 +153,31 @@ def test_should_find_stats_on_a_compiler():
 
 def test_should_query_compilers_with_the_right_query(dynamodb_client):
     with Stubber(dynamodb_client) as stubber:
-        stubber.add_response('query', dict(Count=0, Items=[]),
-                             dict(TableName="compiler-table",
-                                  Limit=100,  # NB limit to _evaluate_ not the limit of matches
-                                  ScanIndexForward=False,  # items in reverse order (by time)
-                                  KeyConditionExpression='#key = :compiler',
-                                  FilterExpression='#status = :ok',
-                                  ExpressionAttributeNames={"#key": "compiler", "#status": "status"},
-                                  ExpressionAttributeValues={":ok": dict(S="OK"), ":compiler": dict(S="some-compiler")}
-                                  )
-                             )
+        stubber.add_response(
+            'query',
+            dict(Count=0, Items=[]),
+            dict(
+                TableName="compiler-table",
+                Limit=100,
+                ScanIndexForward=False,
+                KeyConditionExpression='#key = :compiler',
+                FilterExpression='#status = :status_filter',
+                ExpressionAttributeNames={"#key": "compiler", "#status": "status"},
+                ExpressionAttributeValues={":status_filter": dict(S="OK"), ":compiler": dict(S="some-compiler")}
+            )
+        )
+        stubber.add_response(
+            'query',
+            dict(Count=0, Items=[]),
+            dict(
+                TableName="compiler-table",
+                Limit=100,
+                ScanIndexForward=False,
+                KeyConditionExpression='#key = :compiler',
+                ExpressionAttributeNames={"#key": "compiler"},
+                ExpressionAttributeValues={":compiler": dict(S="some-compiler")}
+            )
+        )
         handle_compiler_stats("some-compiler", "compiler-table", dynamodb_client)
 
 
@@ -178,18 +193,23 @@ def test_should_mention_most_recent_compiler_build(dynamodb_client):
     with Stubber(dynamodb_client) as stubber:
         stubber.add_response(
             'query', dict(Count=3, Items=[make_fake_item("first"), make_fake_item("second"), make_fake_item("third")]))
+        stubber.add_response(
+            'query', dict(Count=2, Items=[make_fake_item("first_b"), make_fake_item("second_b")]))
         result = handle_compiler_stats("some-compiler", "compiler-table", dynamodb_client)
     assert result['statusCode'] == 200
     assert json.loads(result['body']) == dict(
-        last_success=dict(duration=123, github_run_id='first', path='path', timestamp='some time')
+        last_success=dict(duration=123, github_run_id='first', path='path', timestamp='some time'),
+        last_build=dict(duration=123, github_run_id='first_b', path='path', timestamp='some time')
     )
 
 
 def test_should_handle_when_no_valid_compiler_builds(dynamodb_client):
     with Stubber(dynamodb_client) as stubber:
         stubber.add_response('query', dict(Count=0, Items=[]))
+        stubber.add_response('query', dict(Count=0, Items=[]))
         result = handle_compiler_stats("some-compiler", "compiler-table", dynamodb_client)
     assert result['statusCode'] == 200
     assert json.loads(result['body']) == dict(
-        last_success=None
+        last_success=None,
+        last_build=None
     )
