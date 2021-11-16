@@ -10,4 +10,3 @@ Make sure you have a valid AWS credentials file in ` ~/.aws/credentials` and the
 
 * `terraform plan` -> previews changes
 * `terraform apply` -> applies changes
-

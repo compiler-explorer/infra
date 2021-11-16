@@ -3,7 +3,7 @@ Compiler Explorer Infrastructure
 
 A whole bag of scripts and AWS config to run [Compiler Explorer](https://gcc.godbolt.org).
 
-Of most use to the casual observer is probably the code in `bin/ce_install` - a tool to install the 
+Of most use to the casual observer is probably the code in `bin/ce_install` - a tool to install the
 Compiler Explorer compilers to `/opt/compiler-explorer`. In particular, the open source compilers can be
 installed by anyone by running:
 

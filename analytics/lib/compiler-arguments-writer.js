@@ -84,7 +84,7 @@ class CompilerArgumentsWriter {
 
     filterOnTimesUsedAndExcludeUnwantedArgs() {
         _.each(this.arguments, (args, compilerId) => {
-            this.arguments[compilerId] = 
+            this.arguments[compilerId] =
                 _.each(this.arguments[compilerId], (times, arg) => {
                     if ((times < this.minimumUse) || this.isUnwantedArgumentType(arg)) {
                         delete this.arguments[compilerId][arg];

@@ -101,8 +101,8 @@ cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.servic
 systemctl daemon-reload
 systemctl enable grafana-agent
 
-sed -i "s/{{ PROM_PASSWORD }}/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-sed -i "s/{{ LOKI_PASSWORD }}/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
 chmod 600 /etc/grafana/agent.yaml.tpl
 
 mkdir -p /efs

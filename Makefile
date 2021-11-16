@@ -1,4 +1,4 @@
-.NOTPARALLEL: 
+.NOTPARALLEL:
 
 PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "which python3.9 || which python3.8 || echo .python3.8-not-found")
 VIRTUALENV?=.env
@@ -96,3 +96,11 @@ upload-lambda: lambda-package
 .PHONY: terraform-apply
 terraform-apply:
 	cd terraform && terraform apply
+
+.PHONY: pre-commit
+pre-commit: ce  ## Runs all pre-commit hooks
+	$(VIRTUALENV)/bin/pre-commit run --all-files
+
+.PHONY: install-pre-commit
+install-pre-commit: ce  ## Install pre-commit hooks
+	$(VIRTUALENV)/bin/pre-commit install

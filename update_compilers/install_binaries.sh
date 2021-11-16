@@ -122,4 +122,3 @@ if [[ ! -d ${OPT}/iwyu/0.12 ]]; then
     popd
     rm -rf /tmp/build
 fi
-

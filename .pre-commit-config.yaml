@@ -1,0 +1,21 @@
+exclude: "\\.idea|test/remote-cases/"
+repos:
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v3.2.0
+      hooks:
+          - id: trailing-whitespace
+          - id: end-of-file-fixer
+          - id: check-yaml
+          - id: check-added-large-files
+# TODO: re-enable this!
+#    - repo: https://github.com/jumanjihouse/pre-commit-hooks
+#      rev: 2.1.5
+#      hooks:
+#        - id: shellcheck
+    - repo: local
+      hooks:
+        - id: test
+          name: Run tests
+          entry: make static-checks test
+          language: system
+          types_or: [python, shell]

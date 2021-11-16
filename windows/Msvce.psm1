@@ -839,7 +839,7 @@ function Build-MsvceDataDirectory {
     -DataDirectory $DataDirectory `
     -DockerTag $DockerTag `
     -CProperties `
-    | Out-Null    
+    | Out-Null
 }
 
 <#
