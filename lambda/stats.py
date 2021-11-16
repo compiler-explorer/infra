@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import urllib.parse
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 import aws_embedded_metrics
 import boto3
@@ -114,7 +114,7 @@ def _do_one_query(compiler: str,
                   table: str,
                   dynamo_client: botocore.client.BaseClient,
                   status: Optional[str]) -> Optional[Dict]:
-    params = dict(
+    params: Dict[str, Any] = dict(
         TableName=table,
         Limit=100,  # NB limit to _evaluate_ not the limit of matches
         ScanIndexForward=False,  # items in reverse order (by time)
