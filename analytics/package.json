@@ -14,7 +14,7 @@
     },
     "main": "./compilestats.js",
     "dependencies": {
-        "aws-sdk": "^2.667.0",
+        "aws-sdk": "^2.814.0",
         "fs-extra": "^7.0.0",
         "nopt": "3.0.x",
         "shell-quote": "^1.7.2",
