@@ -517,6 +517,7 @@ compilers:
           - lifetime-trunk
           - parmexpr-trunk
           - patmat-trunk
+          - reflection-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:
