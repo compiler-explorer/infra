@@ -1,0 +1,6 @@
+compilers:
+  erlang:
+    type: s3tarballs
+    check_exe: bin/erlangc --version
+    targets:
+      - 24.1.6
