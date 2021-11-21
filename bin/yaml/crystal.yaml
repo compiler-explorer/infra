@@ -8,10 +8,14 @@ compilers:
     dir: crystal-{name}
     check_exe: bin/crystal --version
     after_stage_script:
-      - cd lib/crystal/lib
-      - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a
+      - cd lib/crystal
+      - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.2.0 and onward
+      - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
+      - cd lib
+      - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.1.1 and before
       - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
     targets:
+      - 1.2.2
       - 1.2.0
       - 1.1.1
       - 1.0.0
