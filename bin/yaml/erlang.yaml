@@ -1,6 +1,6 @@
 compilers:
   erlang:
     type: s3tarballs
-    check_exe: bin/erlc --help
+    check_exe: bin/erlc -v
     targets:
       - 24.1.6
