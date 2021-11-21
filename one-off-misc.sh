@@ -8,11 +8,6 @@ showhelp() {
   echo "Usage ./one-off-misc.sh <scriptname> <version>"
 }
 
-if [[ "${REPO}" == "" ]]; then
-  showhelp
-  exit
-fi
-
 if [[ "${SCRIPTNAME}" == "" ]]; then
   showhelp
   exit
