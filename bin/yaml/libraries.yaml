@@ -421,9 +421,9 @@ libraries:
       targets:
         - 0.0.4
         - 1.0.0
-    spy:
+    eve:
       type: github
-      repo: jfalcou/spy
+      repo: jfalcou/eve
       check_file: README.md
       targets:
         - "v2021.10.0"
