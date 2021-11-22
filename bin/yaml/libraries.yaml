@@ -421,6 +421,12 @@ libraries:
       targets:
         - 0.0.4
         - 1.0.0
+    eve:
+      type: github
+      repo: jfalcou/spy
+      check_file: README.md
+      targets:
+        - "v2021.10.0"
     tts:
       type: github
       repo: jfalcou/tts
@@ -428,6 +434,8 @@ libraries:
       targets:
         - "0.1"
         - "0.2"
+        - "1.0"
+        - "2.0"
     hedley:
       type: github
       repo: nemequ/hedley
@@ -865,6 +873,14 @@ libraries:
         method: nightlyclone
         repo: jansende/benri
         check_file: readme.md
+        build_type: none
+        targets:
+          - trunk
+      kumi:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/kumi
+        check_file: README.md
         build_type: none
         targets:
           - trunk
