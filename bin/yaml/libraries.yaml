@@ -421,7 +421,7 @@ libraries:
       targets:
         - 0.0.4
         - 1.0.0
-    eve:
+    spy:
       type: github
       repo: jfalcou/spy
       check_file: README.md
