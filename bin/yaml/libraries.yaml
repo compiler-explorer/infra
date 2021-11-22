@@ -425,8 +425,9 @@ libraries:
       type: github
       repo: jfalcou/eve
       check_file: README.md
+      target_prefix: v
       targets:
-        - "v2021.10.0"
+        - "2021.10.0"
     tts:
       type: github
       repo: jfalcou/tts
