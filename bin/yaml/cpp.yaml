@@ -312,6 +312,67 @@ compilers:
               subdir: powerpc64le
             - name: at13
               subdir: powerpc64le
+        xtensa:
+          esp32:
+            arch_prefix: xtensa-esp32-elf
+            type: tarballs
+            compression: gz
+            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
+            untar_dir: "{arch_prefix}"
+            subdir: xtensa
+            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+            check_exe: "bin/{arch_prefix}-g++ --version"
+            targets:
+              - name: 2019r2
+                base: "8_2_0"
+              - name: 2020r1
+                base: "8_2_0"
+              - name: 2020r2
+                base: "8_2_0"
+              - name: 2020r3
+                base: "8_4_0"
+              - name: 2021r1
+                base: "8_4_0"
+              - name: 2021r2
+                base: "8_4_0"
+          esp32s2:
+            arch_prefix: xtensa-esp32s2-elf
+            type: tarballs
+            compression: gz
+            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
+            untar_dir: "{arch_prefix}"
+            subdir: xtensa
+            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+            check_exe: "bin/{arch_prefix}-g++ --version"
+            targets:
+              - name: 2019r2
+                base: "8_2_0"
+              - name: 2020r1
+                base: "8_2_0"
+              - name: 2020r2
+                base: "8_2_0"
+              - name: 2020r3
+                base: "8_4_0"
+              - name: 2021r1
+                base: "8_4_0"
+              - name: 2021r2
+                base: "8_4_0"
+          esp32s3:
+            arch_prefix: xtensa-esp32s3-elf
+            type: tarballs
+            compression: gz
+            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
+            untar_dir: "{arch_prefix}"
+            subdir: xtensa
+            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+            check_exe: "bin/{arch_prefix}-g++ --version"
+            targets:
+              - name: 2020r3
+                base: "8_4_0"
+              - name: 2021r1
+                base: "8_4_0"
+              - name: 2021r2
+                base: "8_4_0"
     clang:
       - type: tarballs
         check_exe: bin/clang++ --version
