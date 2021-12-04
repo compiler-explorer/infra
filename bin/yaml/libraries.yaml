@@ -559,8 +559,18 @@ libraries:
       targets:
         - "2020.2"
         - "2020.3"
-        - "2021.4.0"
       build_type: make
+      lib_type: shared
+    tbb2021:
+      type: github
+      method: nightlyclone
+      subdir: tbb
+      repo: oneapi-src/oneTBB
+      extra_cmake_arg:
+        - -DTBB_TEST=OF
+      targets:
+        - "2021.4.0"
+      build_type: cmake
       lib_type: shared
     eastl:
       type: github
