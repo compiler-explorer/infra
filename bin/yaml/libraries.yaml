@@ -572,6 +572,10 @@ libraries:
         - "2021.4.0"
       build_type: cmake
       lib_type: shared
+      sharedliblink:
+        - tbb_debug
+        - tbbmalloc_debug
+        - tbbmalloc_proxy_debug
     eastl:
       type: github
       method: clone_branch
