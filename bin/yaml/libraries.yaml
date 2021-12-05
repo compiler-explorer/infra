@@ -559,16 +559,14 @@ libraries:
       targets:
         - "2020.2"
         - "2020.3"
-      newversions:
-        extra_cmake_arg:
-          - -DTBB_TEST=OF
-        build_type: cmake
-        sharedliblink:
-          - tbb_debug
-          - tbbmalloc_debug
-          - tbbmalloc_proxy_debug
-        targets:
-          - "2021.4.0"
+        - name: "2021.4.0"
+          extra_cmake_arg:
+            - -DTBB_TEST=OF
+          build_type: cmake
+          sharedliblink:
+            - tbb_debug
+            - tbbmalloc_debug
+            - tbbmalloc_proxy_debug
       build_type: make
       lib_type: shared
     eastl:
