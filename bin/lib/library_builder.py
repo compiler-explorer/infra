@@ -107,6 +107,8 @@ class LibraryBuilder:
 
             if 'liblink' in specificVersionDetails:
                 self.buildconfig.sharedliblink = specificVersionDetails['liblink']
+        else:
+            self.logger.debug('No specific library version information found')
 
         if self.buildconfig.lib_type == "static":
             if self.buildconfig.staticliblink == []:
@@ -422,7 +424,7 @@ class LibraryBuilder:
             f.write('    def package_info(self):\n')
             f.write(f'        self.cpp_info.libs = [{libsum}]\n')
 
-    def executeconanscript(self, buildfolder, arch, stdlib):
+    def countValidLibraryBinaries(self, buildfolder, arch, stdlib):
         filesfound = 0
 
         for lib in self.buildconfig.staticliblink:
@@ -452,6 +454,10 @@ class LibraryBuilder:
                 elif arch == "x86_64" and 'ELF64' in bininfo.readelf_header_details:
                     filesfound += 1
 
+        return filesfound
+
+    def executeconanscript(self, buildfolder, arch, stdlib):
+        filesfound = self.countValidLibraryBinaries(buildfolder, arch, stdlib)
         if filesfound != 0:
             if subprocess.call(['./conanexport.sh'], cwd=buildfolder) == 0:
                 self.logger.info('Export succesful')
@@ -664,6 +670,9 @@ class LibraryBuilder:
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
                     self.set_as_uploaded(build_folder)
+            else:
+                filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib)
+                self.logger.debug(f'Number of valid library binaries {filesfound}')
 
         if not self.install_context.dry_run:
             self.save_build_logging(build_status, build_folder)
