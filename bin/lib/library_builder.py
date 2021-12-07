@@ -107,6 +107,8 @@ class LibraryBuilder:
 
             if 'liblink' in specificVersionDetails:
                 self.buildconfig.sharedliblink = specificVersionDetails['liblink']
+        else:
+            self.logger.debug('No specific library version information found')
 
         if self.buildconfig.lib_type == "static":
             if self.buildconfig.staticliblink == []:
