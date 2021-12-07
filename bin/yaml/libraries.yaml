@@ -933,6 +933,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      raberu:
+        type: github
+        method: nightlyclone
+        repo: jfalcou/raberu
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
       hedley:
         type: github
         method: nightlyclone
