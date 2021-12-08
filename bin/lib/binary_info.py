@@ -48,7 +48,7 @@ class BinaryInfo:
             if ".so" in self.filepath.name:
                 self.ldd_details = subprocess.check_output(['ldd', str(self.filepath)]).decode('utf-8', 'replace')
         except subprocess.CalledProcessError:
-            try
+            try:
                 match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding='utf-8'))
                 if match:
                     self.filepath = self.buildfolder / match[1]
