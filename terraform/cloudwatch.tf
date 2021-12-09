@@ -137,7 +137,7 @@ resource "aws_cloudwatch_metric_alarm" "traffic" {
 
   metric_query {
     id          = "e1"
-    expression  = "ANOMALY_DETECTION_BAND(m1,5)"
+    expression  = "ANOMALY_DETECTION_BAND(m1,10)"
     label       = "RequestCount (Expected)"
     return_data = true
   }

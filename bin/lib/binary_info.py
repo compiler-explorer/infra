@@ -48,10 +48,13 @@ class BinaryInfo:
             if ".so" in self.filepath.name:
                 self.ldd_details = subprocess.check_output(['ldd', str(self.filepath)]).decode('utf-8', 'replace')
         except subprocess.CalledProcessError:
-            match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding='utf-8'))
-            if match:
-                self.filepath = self.buildfolder / match[1]
-                self._follow_and_readelf()
+            try:
+                match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding='utf-8'))
+                if match:
+                    self.filepath = self.buildfolder / match[1]
+                    self._follow_and_readelf()
+            except UnicodeDecodeError:
+                return
 
     def _read_symbols_from_binary(self) -> None:
         self.required_symbols = set()
