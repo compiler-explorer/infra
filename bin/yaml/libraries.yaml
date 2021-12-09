@@ -939,11 +939,7 @@ libraries:
         repo: facebook/folly
         path_name: libs/folly
         check_file: README.md
-        build_type: cmake
-        make_targets:
-          - all
-        targets:
-          - main
+        build_type: none
       raberu:
         type: github
         method: nightlyclone
