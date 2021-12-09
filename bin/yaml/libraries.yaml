@@ -908,6 +908,17 @@ libraries:
         build_type: none
         targets:
           - trunk
+      folly:
+        type: github
+        method: nightlyclone
+        repo: facebook/folly
+        path_name: libs/folly
+        check_file: README.md
+        build_type: cmake
+        make_targets:
+          - all
+        targets:
+          - main
       hedley:
         type: github
         method: nightlyclone
