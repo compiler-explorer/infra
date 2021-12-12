@@ -1181,6 +1181,14 @@ libraries:
         build_type: none
         targets:
           - trunk
+      mp-coro:
+        type: github
+        method: nightlyclone
+        repo: mpusz/mp-coro
+        check_file: README.md
+        build_type: none
+        targets:
+          - trunk
       dlib:
         type: github
         method: nightlyclone
