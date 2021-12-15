@@ -32,3 +32,5 @@ compilers:
         filename: kotlin-native-linux-x86_64-1.5.31
       - name: 1.6.0
         filename: kotlin-native-linux-x86_64-1.6.0
+      - name: 1.6.10
+        filename: kotlin-native-linux-x86_64-1.6.10
