@@ -23,7 +23,7 @@ jobs:
     steps:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull
-    - name: Set build number
+    - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
     - name: Start runner
       run: ce runner start
