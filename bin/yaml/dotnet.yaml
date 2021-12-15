@@ -1,0 +1,8 @@
+compilers:
+  dotnet:
+    type: s3tarballs
+    dir: dotnet-{name}
+    untar_dir: artifacts
+    check_exe: bin/coreclr/Linux.x64.Checked/crossgen2/crossgen2 --version
+    targets:
+      - v6.0.0
