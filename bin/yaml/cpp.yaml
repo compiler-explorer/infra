@@ -561,7 +561,6 @@ compilers:
           - lock3-contract-labels-trunk
           - cxx-modules-trunk
           - cxx-coroutines-trunk
-          - static-analysis-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
