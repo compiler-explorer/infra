@@ -782,6 +782,26 @@ class TarballInstallable(Installable):
         return f'TarballInstallable({self.name}, {self.install_path})'
 
 
+class NightlyTarballInstallable(TarballInstallable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+
+        if not self.install_path_symlink:
+            self.install_path_symlink = f'{self.install_path}'
+
+        today = datetime.today().strftime('%Y%m%d')
+        self.install_path = f'{self.install_path}-{today}'
+        if not self.remove_older_pattern:
+            self.remove_older_pattern = f'{self.install_path}-*'
+
+        # redo exe checks
+        self._setup_check_exe(self.install_path)
+        self._setup_check_link(self.install_path, self.install_path_symlink)
+
+    def __repr__(self) -> str:
+        return f'NightlyTarballInstallable({self.name}, {self.install_path})'
+
+
 class ZipArchiveInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
@@ -1054,6 +1074,7 @@ INSTALLER_TYPES = {
     'tarballs': TarballInstallable,
     'restQueryTarballs': RestQueryTarballInstallable,
     's3tarballs': S3TarballInstallable,
+    'nightlytarballs': NightlyTarballInstallable,
     'nightly': NightlyInstallable,
     'script': ScriptInstallable,
     'github': GitHubInstallable,
