@@ -28,11 +28,9 @@ compilers:
           - 1.9.1
     nightly:
       if: nightly
-      type: tarballs
+      type: nightlytarballs
       url: "https://ci.appveyor.com/api/projects/ispc/ispc/artifacts/build/ispc-trunk-linux.tar.gz?job=Environment: APPVEYOR_BUILD_WORKER_IMAGE=Ubuntu1604, LLVM_VERSION=latest"
-      dir: ispc-{name}-{now:%Y%m%d}
-      symlink: ispc-{name}
+      dir: ispc-{name}
       untar_dir: ispc-{name}-linux
-      remove_older_pattern: ispc-{name}-*
       targets:
         - trunk
