@@ -238,16 +238,18 @@ compilers:
             - name: 5.4.0
               subdir: mips64el
         mrisc32:
-          type: tarballs
-          subdir: mrisc32
-          arch_prefix: "mrisc32-elf"
-          check_exe: "mrisc32-gnu-toolchain/bin/{arch_prefix}-g++ --version"
-          dir: mrisc32-{name}
-          create_untar_dir: true
-          url: https://github.com/mrisc32/mrisc32-gnu-toolchain/releases/download/v{name}/mrisc32-gnu-toolchain-linux-x86_64.tar.gz
-          compression: gz
-          targets:
-            - 12.0-20211220
+          nightly:
+            if: nightly
+            type: nightlytarballs
+            subdir: mrisc32
+            arch_prefix: "mrisc32-elf"
+            check_exe: "mrisc32-gnu-toolchain/bin/{arch_prefix}-g++ --version"
+            dir: mrisc32-{name}
+            create_untar_dir: true
+            url: https://github.com/mrisc32/mrisc32-gnu-toolchain/releases/latest/download/mrisc32-gnu-toolchain-linux-x86_64.tar.gz
+            compression: gz
+            targets:
+              - trunk
         msp430:
           arch_prefix: msp430
           subdir: msp430
