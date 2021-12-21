@@ -492,7 +492,7 @@ compilers:
         - name: 2021.1.2.63
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17513/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
-          script: |
+          script: &intel-one-install-script |
             rm -Rf ~/.intel
             rm -Rf ~/intel
             rm -Rf /var/intel/installercache
@@ -503,47 +503,19 @@ compilers:
         - name: 2021.2.0.118
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17749/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2021.3.0.3168
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17928/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2021.4.0.3201
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18209/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2022.0.1.71
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18435/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
     intel-fortran:
       type: script
       dir: "intel-fortran-{name}"
@@ -554,58 +526,23 @@ compilers:
         - name: 2021.1.2.62
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17508/l_fortran-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2021.2.0.136
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17756/l_fortran-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2021.3.0.3168
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/17959/l_fortran-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2021.4.0.3224
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18210/l_fortran-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
         - name: 2022.0.1.70
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18436/l_fortran-compiler_p_{name}_offline.sh install.sh
-          script: |
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
-            rm -Rf ~/.intel
-            rm -Rf ~/intel
-            rm -Rf /var/intel/installercache
+          script: *intel-one-install-script
     nightly:
       if: nightly
       gcc:
