@@ -101,6 +101,7 @@ fi
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /usr/local/bin/node \
     -r esm \
+    -r ts-node/register \
     -- app.js \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
