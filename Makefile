@@ -1,6 +1,6 @@
 .NOTPARALLEL: 
 
-PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "which python3.9 || which python3.8 || echo .python3.8-not-found")
+PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "command -v python3.9 || command -v python3.8 || echo .python3.8-not-found")
 VIRTUALENV?=.env
 VIRTUALENV_DONE:=$(VIRTUALENV)/.done
 export PYTHONPATH=$(CURDIR)/bin

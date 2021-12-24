@@ -205,7 +205,7 @@ freebsd)
     ;;
 sunos)
     # Check if GNU llinker is recent enough, version 2.21 is needed at least
-    GNU_LD=$(which gld)
+    GNU_LD=$(command -v gld)
     supported_emulations=$("$GNU_LD" --target-help | sed -n "s|^\(elf.*\):|\1|p")
     supports_elf_i386_sol2=$(echo $supported_emulations | grep -w elf_i386_sol2)
     supports_elf_x86_64_sol2=$(echo $supported_emulations | grep -w elf_x86_64_sol2)
@@ -218,8 +218,8 @@ sunos)
     fi
     PREFIX=/usr/local
     # Use GNU tar if present
-    if [ "$(which gtar)" != "" ]; then
-        CMDTAR=$(which gtar)
+    if [ "$(command -v gtar)" != "" ]; then
+        CMDTAR=$(command -v gtar)
         TAR="$CMDTAR --no-same-owner"
     fi
     echo "Using TAR binary=$CMDTAR"
@@ -284,7 +284,7 @@ for f in *binary*.tar; do
 
     # cross install?
     if [ "$cross" != "" ]; then
-        if [ "$(which fpc 2>/dev/null)" = '' ]; then
+        if [ "$(command -v fpc 2>/dev/null)" = '' ]; then
             echo "No native FPC found."
             echo "For a proper installation of a cross FPC the installation of a native FPC is required."
             exit 1
