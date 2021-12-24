@@ -335,13 +335,15 @@ class LibraryBuilder:
                 for arg in self.buildconfig.extra_make_arg
             ])
 
+            make_utility = self.buildconfig.make_utility
+
             if len(self.buildconfig.make_targets) != 0:
                 for lognum, target in enumerate(self.buildconfig.make_targets):
-                    f.write(f'make {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n')
+                    f.write(f'{make_utility} {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n')
             else:
                 lognum = 0
                 for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-                    f.write(f'make {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
+                    f.write(f'{make_utility} {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
                     lognum += 1
 
                 if len(self.buildconfig.staticliblink) != 0:
@@ -350,7 +352,7 @@ class LibraryBuilder:
                     f.write('libsfound=$(find . -iname \'lib*.so*\')\n')
 
                 f.write('if [ "$libsfound" = "" ]; then\n')
-                f.write(f'  make {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n')
+                f.write(f'  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n')
                 f.write('fi\n')
 
             for lib in self.buildconfig.staticliblink:
