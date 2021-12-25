@@ -95,18 +95,18 @@ class LibraryBuilder:
             self.buildconfig.url = self.libraryprops[self.libid]['url']
 
         if 'staticliblink' in self.libraryprops[self.libid]:
-            self.buildconfig.staticliblink = self.libraryprops[self.libid]['staticliblink']
+            self.buildconfig.staticliblink = list(set(self.buildconfig.staticliblink + self.libraryprops[self.libid]['staticliblink']))
 
         if 'liblink' in self.libraryprops[self.libid]:
-            self.buildconfig.sharedliblink = self.libraryprops[self.libid]['liblink']
+            self.buildconfig.sharedliblink = list(set(self.buildconfig.sharedliblink + self.libraryprops[self.libid]['liblink']))
 
         specificVersionDetails = get_specific_library_version_details(self.libraryprops, self.libid, self.target_name)
         if specificVersionDetails:
             if 'staticliblink' in specificVersionDetails:
-                self.buildconfig.staticliblink = specificVersionDetails['staticliblink']
+                self.buildconfig.staticliblink = list(set(self.buildconfig.staticliblink + specificVersionDetails['staticliblink']))
 
             if 'liblink' in specificVersionDetails:
-                self.buildconfig.sharedliblink = specificVersionDetails['liblink']
+                self.buildconfig.sharedliblink = list(set(self.buildconfig.sharedliblink + specificVersionDetails['liblink']))
         else:
             self.logger.debug('No specific library version information found')
 
