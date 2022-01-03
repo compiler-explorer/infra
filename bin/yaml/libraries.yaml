@@ -603,6 +603,14 @@ libraries:
       build_type: none
       targets:
         - v3.2.1
+    gemmlowp:
+      type: github
+      method: nightlyclone
+      repo: google/gemmlowp
+      check_file: fixedpoint/fixedpoint.h
+      build_type: none
+      targets:
+        - trunk
     spdlog:
       type: github
       repo: gabime/spdlog
