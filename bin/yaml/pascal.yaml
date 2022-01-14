@@ -28,3 +28,4 @@ compilers:
         dir: fpc-{name}-x86_64-linux
         targets:
           - 3.2.0
+          - 3.2.2
