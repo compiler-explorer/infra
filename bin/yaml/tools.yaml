@@ -33,3 +33,12 @@ tools:
         url: https://github.com/rust-lang/rustfmt/releases/download/v1.4.36/rustfmt_linux-x86_64_v1.4.36.tar.gz
         strip_components: 1
         create_untar_dir: true
+  asm-parser:
+    type: tarballs
+    dir: asm-parser
+    create_untar_dir: true
+    compression: xz
+    url: https://github.com/compiler-explorer/asm-parser/releases/latest/download/asm-parser.tar.xz
+    check_exe: asm-parser --version
+    targets:
+      - trunk
