@@ -226,17 +226,36 @@ compilers:
             targets:
               - trunk
         mips:
-          arch_prefix: "{subdir}-unknown-linux-gnu"
-          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
-          targets:
-            - name: 5.4.0
-              subdir: mips
-            - name: 5.4.0
-              subdir: mipsel
-            - name: 5.4.0
-              subdir: mips64
-            - name: 5.4.0
-              subdir: mips64el
+          - arch_prefix: "{subdir}-unknown-linux-gnu"
+            check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            targets:
+              - name: 5.4.0
+                subdir: mips
+              - name: 5.4.0
+                subdir: mipsel
+              - name: 5.4.0
+                subdir: mips64
+              - name: 5.4.0
+                subdir: mips64el
+          - type: tarballs
+            subdir: mips
+            check_exe: "bin/mips-mti-elf-g++ --version"
+            targets:
+              - name: 9.3.0
+                dir: mips/mips-mti-elf/2020.06-01
+                untar_dir: mips-mti-elf/2020.06-01
+                url: https://codescape.mips.com/components/toolchain/2020.06-01/Codescape.GNU.Tools.Package.2020.06-01.for.MIPS.MTI.Bare.Metal.CentOS-6.x86_64.tar.gz
+                compression: gz
+        nanomips:
+            subdir: nanomips
+            type: tarballs
+            check_exe: "bin/nanomips-linux-musl-g++ --version"
+            targets:
+              - name: 6.3.0
+                dir: nanomips/nanomips-linux-musl/2021.11-02
+                untar_dir: nanomips-linux-musl/2021.11-02
+                url: https://github.com/MediaTek-Labs/nanomips-gnu-toolchain/releases/download/nanoMIPS-2021.11-02/MediaTek.GNU.Tools.2021.11-02.for.nanoMIPS.Linux.CentOS-6.x86_64.tar.gz
+                compression: gz
         mrisc32:
           nightly:
             if: nightly
