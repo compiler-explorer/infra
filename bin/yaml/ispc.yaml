@@ -29,7 +29,7 @@ compilers:
     nightly:
       if: nightly
       type: nightlytarballs
-      url: "https://ci.appveyor.com/api/projects/ispc/ispc/artifacts/build/ispc-trunk-linux.tar.gz?job=Environment: APPVEYOR_BUILD_WORKER_IMAGE=Ubuntu1604, LLVM_VERSION=latest"
+      url: "https://ci.appveyor.com/api/projects/ispc/ispc/artifacts/build/ispc-trunk-linux.tar.gz?job=Environment: APPVEYOR_BUILD_WORKER_IMAGE=Ubuntu1804, LLVM_VERSION=latest"
       dir: ispc-{name}
       untar_dir: ispc-{name}-linux
       targets:
