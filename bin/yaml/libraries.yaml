@@ -266,6 +266,7 @@ libraries:
       check_file: README.md
       targets:
         - 1.9.4
+        - 1.9.5
       build_type: cmake
       lib_type: static
       extra_cmake_arg:
