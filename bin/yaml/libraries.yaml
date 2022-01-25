@@ -178,6 +178,13 @@ libraries:
       targets:
         - "2.0"
         - "1.0"
+    dataframe:
+      type: github
+      repo: hosseinmoein/DataFrame
+      check_file: README.md
+      targets:
+        - 1.19.0
+      build_type: cmake
     entt:
       type: github
       repo: skypjack/entt
@@ -1407,6 +1414,13 @@ libraries:
         method: nightlyclone
         repo: Neargye/magic_enum
         check_file: include/magic_enum.hpp
+        targets:
+          - trunk
+      dataframe:
+        type: github
+        method: nightlyclone
+        repo: hosseinmoein/DataFrame
+        build_type: cmake
         targets:
           - trunk
   cuda:
