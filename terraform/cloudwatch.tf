@@ -3,8 +3,8 @@ data "aws_sns_topic" "alert" {
 }
 
 locals {
-  approx_monthly_budget = 600
-  alert_every           = 200
+  approx_monthly_budget = 750
+  alert_every           = 250
 }
 
 resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
