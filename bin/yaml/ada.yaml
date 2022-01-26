@@ -2,7 +2,8 @@ compilers:
   ada:
     gnat:
       type: tarballs
-      dir: gnat-{target}-linux64-{name}
+      untar_dir: "gnat-{target}-linux64-{name}"
+      dir: "{subdir}/gnat-{target}-linux64-{name}"
       url: https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnat-{version}/gnat-{target}-linux64-{version}.tar.gz
       compression: gz
       check_exe: bin/{toolprefix}gcc -v
