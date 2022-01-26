@@ -10,14 +10,16 @@ compilers:
       name: "{version}"
 
       arm:
+        subdir: arm
         target: arm-elf
         toolprefix: arm-eabi-
         targets:
           - version: 11.2.0-3
           - version: 10.3.0-2
       riscv64:
+        subdir: riscv64
         target: riscv64-elf
-        toolprefix: riscv64-elf
+        toolprefix: riscv64-elf-
         targets:
           - version: 11.2.0-3
           - version: 10.3.0-2
