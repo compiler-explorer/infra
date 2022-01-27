@@ -585,6 +585,7 @@ compilers:
           - cppx-p2320-trunk
           - concepts-trunk
           - embed-trunk
+          - dang-main
           - relocatable-trunk
           - autonsdmi-trunk
           - lifetime-trunk
