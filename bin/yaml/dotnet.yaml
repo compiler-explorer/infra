@@ -1,0 +1,8 @@
+compilers:
+  dotnet:
+    type: s3tarballs
+    dir: dotnet-{name}
+    untar_dir: artifacts
+    check_exe: bin/coreclr/Linux.x64.Checked/.dotnet/dotnet --version
+    targets:
+      - v6.0.0
