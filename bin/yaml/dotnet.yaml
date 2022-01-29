@@ -3,6 +3,10 @@ compilers:
     type: s3tarballs
     dir: dotnet-{name}
     untar_dir: artifacts
-    check_exe: bin/coreclr/Linux.x64.Checked/.dotnet/dotnet --version
+    check_exe:
+      - /bin/bash
+      - -c
+      - "/usr/bin/env DOTNET_CLI_HOME=/tmp /opt/compiler-explorer/{dir}/bin/coreclr/Linux.x64.Checked/.dotnet/dotnet --version"
     targets:
       - v6.0.0
+      - v6.0.1
