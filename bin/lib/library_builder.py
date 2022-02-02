@@ -176,7 +176,10 @@ class LibraryBuilder:
                 if 'zapcc' in exe:
                     return arch == 'x86' or arch == 'x86_64'
                 else:
-                    output = subprocess.check_output([exe, '--target-help'], env=fullenv).decode('utf-8', 'ignore')
+                    try:
+                        output = subprocess.check_output([exe, '--target-help'], env=fullenv).decode('utf-8', 'ignore')
+                    except subprocess.CalledProcessError as e:
+                        output = e.output.decode('utf-8', 'ignore')
         elif compilerType == "clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, 'llc')
