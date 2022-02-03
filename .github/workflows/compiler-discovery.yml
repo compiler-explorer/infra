@@ -5,8 +5,13 @@ on:
     inputs:
       environment:
         description: 'Environment'
-        default: 'staging'
+        type: choice
+        default: staging
         required: true
+        options:
+        - staging
+        - beta
+        - prod
       branch:
         description: 'Branch'
         default: 'main'
