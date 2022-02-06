@@ -18,6 +18,9 @@ jobs:
         run: |
           ls /opt
           ls /opt/compiler-explorer
+          ls /opt/compiler-explorer/gcc-11.1.0/bin/g++
+          ldd /opt/compiler-explorer/gcc-11.1.0/bin/g++
+          /opt/compiler-explorer/gcc-11.1.0/bin/g++ --version
       - name: Squash ${{ inputs.squash }}
         shell: bash
         id: build
