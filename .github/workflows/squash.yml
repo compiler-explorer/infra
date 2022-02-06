@@ -14,16 +14,9 @@ jobs:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
       - uses: actions/checkout@v2
-      - name: Test
-        run: |
-          set -x
-          whoami
-          id -a
-          ls -l /opt/compiler-explorer
-          touch /opt/compiler-explorer/testing
       - name: Squash ${{ inputs.squash }}
         shell: bash
         id: build
         run: |
-          docker run --rm -v$(pwd):/root -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
+          docker run --rm -u1000:1000 -v$(pwd):/root -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
               bash -c "make ce && ce_install squash ${{ inputs.squash }}"
