@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       squash:
-        description: Things to squash
+        description: Things to squash (empty means all)
         default: ''
         required: false
 jobs:
@@ -14,6 +14,13 @@ jobs:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
       - uses: actions/checkout@v2
+      - name: Test
+        run: |
+          set -x
+          whoami
+          id -a
+          ls -l /opt/compiler-explorer
+          touch /opt/compiler-explorer/testing
       - name: Squash ${{ inputs.squash }}
         shell: bash
         id: build
