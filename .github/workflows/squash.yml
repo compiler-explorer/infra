@@ -14,16 +14,9 @@ jobs:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
       - uses: actions/checkout@v2
-      - name: Test
-        run: |
-          ls /opt
-          ls /opt/compiler-explorer
-          ls /opt/compiler-explorer/gcc-11.1.0/bin/g++
-          ldd /opt/compiler-explorer/gcc-11.1.0/bin/g++
-          /opt/compiler-explorer/gcc-11.1.0/bin/g++ --version
       - name: Squash ${{ inputs.squash }}
         shell: bash
         id: build
         run: |
-          docker run --rm -v$(pwd):/root -v/opt:/opt compilerexplorer/infra:latest \
-              bash -c "make ce && ce_install --debug squash ${{ inputs.squash }}"
+          docker run --rm -v$(pwd):/root -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
+              bash -c "make ce && ce_install squash ${{ inputs.squash }}"
