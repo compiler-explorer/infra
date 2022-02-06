@@ -1,0 +1,22 @@
+name: Squashfs-ify the compilers
+
+on:
+  workflow_dispatch:
+    inputs:
+      squash:
+        description: Things to squash
+        default: ''
+        required: false
+jobs:
+  squash:
+    runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
+    steps:
+      - name: Start from a clean directory
+        uses: AutoModality/action-clean@v1.1.0
+      - uses: actions/checkout@v2
+      - name: Squash ${{ inputs.squash }}
+        shell: bash
+        id: build
+        run: |
+          docker run --rm -v$(pwd):/root -v/opt:/opt compilerexplorer/infra:latest \
+              bash -c "make ce && ce_install squash ${{ inputs.squash }}"
