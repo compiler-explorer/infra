@@ -11,6 +11,4 @@ RUN apt update -y -q && apt upgrade -y -q && apt update -y -q && \
 
 
 WORKDIR /root
-COPY . /root
-RUN make ce
 ENV PATH=$PATH:/root/bin
