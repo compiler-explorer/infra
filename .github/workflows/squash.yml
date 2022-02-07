@@ -16,13 +16,16 @@ jobs:
       - uses: actions/checkout@v2
       - name: Test
         run: |
-          docker pull compilerexplorer/infra:latest
-          whoami
-          id -a
-          ls -ld .
-      - name: Squash ${{ inputs.squash }}
-        shell: bash
-        id: build
-        run: |
-          docker run --rm -u1000:1000 -v$(pwd):/worky -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
-              bash -c "ls -ld /worky; whoami; id -a; make ce && ce_install squash ${{ inputs.squash }}"
+          sudo apt install -y python3.8-venv squashfs-tools
+          make ce
+          ce_install squash ${{ inputs.squash }}
+#          docker pull compilerexplorer/infra:latest
+#          whoami
+#          id -a
+#          ls -ld .
+#      - name: Squash ${{ inputs.squash }}
+#        shell: bash
+#        id: build
+#        run: |
+#          docker run --rm -u1000:1000 -v$(pwd):/worky -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
+#              bash -c "ls -ld /worky; whoami; id -a; make ce && ce_install squash ${{ inputs.squash }}"
