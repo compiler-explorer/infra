@@ -24,5 +24,5 @@ jobs:
         shell: bash
         id: build
         run: |
-          docker run --rm -u1000:1000 -v$(pwd):/work -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
-              bash -c "ls -ld /work; whoami; id -a; make ce && ce_install squash ${{ inputs.squash }}"
+          docker run --rm -u1000:1000 -v$(pwd):/worky -v/opt:/opt -v/efs:/efs compilerexplorer/infra:latest \
+              bash -c "ls -ld /worky; whoami; id -a; make ce && ce_install squash ${{ inputs.squash }}"
