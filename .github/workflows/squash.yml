@@ -25,5 +25,6 @@ jobs:
       - name: Set up environment
         if: steps.env-cache.outputs.cache-hit != 'true'
         run: make ce
-      - name: Squash ${{ inputs.squash }}
-        run: bin/ce_install squash ${{ inputs.squash }}
+        # relies on this being empty on cron
+      - name: Squash ${{ github.event.inputs.squash }}
+        run: bin/ce_install squash ${{ github.event.inputs.squash }}
