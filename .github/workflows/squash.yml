@@ -1,6 +1,8 @@
 name: Squashfs-ify the compilers
 
 on:
+  schedule:
+    - cron: '15 6 * * *'
   workflow_dispatch:
     inputs:
       squash:
