@@ -19,6 +19,7 @@ jobs:
           docker pull compilerexplorer/infra:latest
           whoami
           id -a
+          ls -ld .
       - name: Squash ${{ inputs.squash }}
         shell: bash
         id: build
