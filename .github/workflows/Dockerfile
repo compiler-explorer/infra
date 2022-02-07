@@ -9,6 +9,7 @@ RUN apt update -y -q && apt upgrade -y -q && apt update -y -q && \
     squashfs-tools \
     wget
 
+RUN groupadd -g 1000 ubuntu
 RUN useradd -ms /bin/bash -u 1000 -g 1000 ubuntu
 USER ubuntu
 WORKDIR /work
