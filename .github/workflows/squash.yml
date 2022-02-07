@@ -15,11 +15,13 @@ jobs:
         uses: AutoModality/action-clean@v1.1.0
       - uses: actions/checkout@v2
       - name: Cache the environment
+        id: env-cache
         uses: actions/cache@v2
         with:
           path: .venv
           key: ${{ runner.os }}-${{ hashFiles('requirements.txt') }}
       - name: Set up environment
+        if: steps.env-cache.outputs.cache-hit != 'true'
         run: make ce
       - name: Squash ${{ inputs.squash }}
         run: bin/ce_install squash ${{ inputs.squash }}
