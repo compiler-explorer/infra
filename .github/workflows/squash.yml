@@ -14,8 +14,14 @@ jobs:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
       - uses: actions/checkout@v2
-      - name: Test
-        run: |
-          sudo apt install -y python3.8-venv squashfs-tools
-          make ce
-          bin/ce_install squash ${{ inputs.squash }}
+      - name: Cache the environment
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: ${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+      - name: Setup
+        run: sudo apt install -y python3.8-venv squashfs-tools
+      - name: Set up environment
+        run: make ce
+      - name: Squash ${{ inputs.squash }}
+        run: bin/ce_install squash ${{ inputs.squash }}
