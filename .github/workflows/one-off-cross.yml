@@ -15,6 +15,10 @@ on:
         description: 'Compiler version'
         default: '7.5.0'
         required: true
+      nonsense:
+        description: 'Extra nonsense'
+        default: ''
+        required: true
 
 jobs:
   buildcross:
@@ -25,4 +29,4 @@ jobs:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull
     - name: Build compiler
-      run: /home/ubuntu/infra/one-off-cross.sh ${{ github.event.inputs.compilertype }} build.sh ${{ github.event.inputs.architecture }} ${{ github.event.inputs.version }}
+      run: /home/ubuntu/infra/one-off-cross.sh ${{ github.event.inputs.compilertype }} build.sh ${{ github.event.inputs.architecture }} ${{ github.event.inputs.version }} ${{ github.events.inputs.nonsense }}
