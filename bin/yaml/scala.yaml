@@ -5,6 +5,10 @@ compilers:
     dir: scala-{name}
     folder: scalac
     check_exe: bin/scalac -version
+    depends:
+      - compilers/java 16.0.1
+    check_env:
+      - JAVA_HOME=%DEP0%
     targets:
       - name: 2.12.14
         url: https://downloads.lightbend.com/scala/2.12.14/scala-2.12.14.tgz
