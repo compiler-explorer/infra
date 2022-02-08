@@ -79,13 +79,13 @@ compilers:
               - 6.3.0
               - 6.4.0
               - 7.3.0
+              - 7.5.0
               - 8.2.0
+              - 8.5.0
           - check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
             arch_prefix: arm-unknown-linux-gnueabihf
             targets:
               - 5.4.0
-              - 7.5.0
-              - 8.5.0
               - 9.3.0
               - 10.2.0
               - 10.3.0

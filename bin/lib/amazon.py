@@ -332,9 +332,10 @@ def list_compilers(with_extension=False):
             if with_extension:
                 yield name
             else:
-                name = name[:name.find(".tar")]
-                if not name:
+                found = name.find(".tar")
+                if found <= 0:
                     continue
+                name = name[:found]
                 yield name
 
 
