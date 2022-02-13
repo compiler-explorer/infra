@@ -6,4 +6,12 @@ compilers:
     check_exe: bin/dart --version
     url: https://storage.googleapis.com/dart-archive/channels/stable/release/{name}/sdk/dartsdk-linux-x64-release.zip
     targets:
+      - 2.16.1
+      - 2.15.1
       - 2.14.4
+      - 2.13.4
+      - 2.12.4
+      # version 2.11 was skipped
+      - 2.10.5
+      - 2.9.3
+      - 2.8.4
