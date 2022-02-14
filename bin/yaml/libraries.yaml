@@ -1450,6 +1450,7 @@ libraries:
         - 1.13.1
         - 1.14.0
         - 1.15.0
+        - 1.16.0
     nvtx:
       type: github
       method: clone_branch
