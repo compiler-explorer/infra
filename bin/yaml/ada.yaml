@@ -1,0 +1,26 @@
+compilers:
+  ada:
+    gnat:
+      type: tarballs
+      untar_dir: "gnat-{target}-linux64-{name}"
+      dir: "{subdir}/gnat-{target}-linux64-{name}"
+      url: https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnat-{version}/gnat-{target}-linux64-{version}.tar.gz
+      compression: gz
+      check_exe: bin/{toolprefix}gcc -v
+      check_stderr_on_stdout: true
+      name: "{version}"
+
+      arm:
+        subdir: arm
+        target: arm-elf
+        toolprefix: arm-eabi-
+        targets:
+          - version: 11.2.0-3
+          - version: 10.3.0-2
+      riscv64:
+        subdir: riscv64
+        target: riscv64-elf
+        toolprefix: riscv64-elf-
+        targets:
+          - version: 11.2.0-3
+          - version: 10.3.0-2

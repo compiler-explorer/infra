@@ -95,18 +95,18 @@ class LibraryBuilder:
             self.buildconfig.url = self.libraryprops[self.libid]['url']
 
         if 'staticliblink' in self.libraryprops[self.libid]:
-            self.buildconfig.staticliblink = self.libraryprops[self.libid]['staticliblink']
+            self.buildconfig.staticliblink = list(set(self.buildconfig.staticliblink + self.libraryprops[self.libid]['staticliblink']))
 
         if 'liblink' in self.libraryprops[self.libid]:
-            self.buildconfig.sharedliblink = self.libraryprops[self.libid]['liblink']
+            self.buildconfig.sharedliblink = list(set(self.buildconfig.sharedliblink + self.libraryprops[self.libid]['liblink']))
 
         specificVersionDetails = get_specific_library_version_details(self.libraryprops, self.libid, self.target_name)
         if specificVersionDetails:
             if 'staticliblink' in specificVersionDetails:
-                self.buildconfig.staticliblink = specificVersionDetails['staticliblink']
+                self.buildconfig.staticliblink = list(set(self.buildconfig.staticliblink + specificVersionDetails['staticliblink']))
 
             if 'liblink' in specificVersionDetails:
-                self.buildconfig.sharedliblink = specificVersionDetails['liblink']
+                self.buildconfig.sharedliblink = list(set(self.buildconfig.sharedliblink + specificVersionDetails['liblink']))
         else:
             self.logger.debug('No specific library version information found')
 
@@ -176,7 +176,10 @@ class LibraryBuilder:
                 if 'zapcc' in exe:
                     return arch == 'x86' or arch == 'x86_64'
                 else:
-                    output = subprocess.check_output([exe, '--target-help'], env=fullenv).decode('utf-8', 'ignore')
+                    try:
+                        output = subprocess.check_output([exe, '--target-help'], env=fullenv).decode('utf-8', 'ignore')
+                    except subprocess.CalledProcessError as e:
+                        output = e.output.decode('utf-8', 'ignore')
         elif compilerType == "clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, 'llc')
@@ -335,13 +338,15 @@ class LibraryBuilder:
                 for arg in self.buildconfig.extra_make_arg
             ])
 
+            make_utility = self.buildconfig.make_utility
+
             if len(self.buildconfig.make_targets) != 0:
                 for lognum, target in enumerate(self.buildconfig.make_targets):
-                    f.write(f'make {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n')
+                    f.write(f'{make_utility} {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n')
             else:
                 lognum = 0
                 for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-                    f.write(f'make {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
+                    f.write(f'{make_utility} {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n')
                     lognum += 1
 
                 if len(self.buildconfig.staticliblink) != 0:
@@ -350,7 +355,7 @@ class LibraryBuilder:
                     f.write('libsfound=$(find . -iname \'lib*.so*\')\n')
 
                 f.write('if [ "$libsfound" = "" ]; then\n')
-                f.write(f'  make {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n')
+                f.write(f'  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n')
                 f.write('fi\n')
 
             for lib in self.buildconfig.staticliblink:

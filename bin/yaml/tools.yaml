@@ -42,3 +42,12 @@ tools:
     check_exe: ./beeb
     targets:
       - trunk
+  asm-parser:
+    type: tarballs
+    dir: asm-parser
+    create_untar_dir: true
+    compression: xz
+    url: https://github.com/compiler-explorer/asm-parser/releases/latest/download/asm-parser.tar.xz
+    check_exe: asm-parser --version
+    targets:
+      - trunk

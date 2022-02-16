@@ -3,6 +3,10 @@ compilers:
     type: ziparchive
     dir: kotlin-jvm-{name}
     folder: kotlinc
+    depends:
+      - compilers/java 15.0.2
+    check_env:
+      - JAVA_HOME=%DEP0%
     check_exe: bin/kotlinc-jvm -version
     targets:
       - name: 1.4.0
@@ -33,3 +37,5 @@ compilers:
         url: https://github.com/JetBrains/kotlin/releases/download/v1.5.31/kotlin-compiler-1.5.31.zip
       - name: 1.6.0
         url: https://github.com/JetBrains/kotlin/releases/download/v1.6.0/kotlin-compiler-1.6.0.zip
+      - name: 1.6.10
+        url: https://github.com/JetBrains/kotlin/releases/download/v1.6.10/kotlin-compiler-1.6.10.zip

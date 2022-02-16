@@ -1,5 +1,4 @@
-Compiler Explorer Infrastructure
---------------------------------
+# Compiler Explorer Infrastructure
 
 A whole bag of scripts and AWS config to run [Compiler Explorer](https://gcc.godbolt.org).
 
@@ -16,3 +15,7 @@ This will grab all the open source compilers and put them in `/opt/compiler-expl
 the current user).  To get the beta and nightly-built latest compilers, add the parameter `--enable nightly` to the command.
 
 To list installation candidates, use `./bin/ce_install list`. A single installation can be installed by name.
+
+# Built compilers
+
+Status page to our daily built compilers https://compiler-explorer.github.io/compiler-workflows/build-status

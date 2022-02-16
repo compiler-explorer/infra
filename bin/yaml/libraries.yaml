@@ -58,6 +58,7 @@ libraries:
         - 12.0.0
         - 12.0.1
         - 13.0.0
+        - 13.0.1
     fmt:
       type: github
       repo: fmtlib/fmt
@@ -178,6 +179,13 @@ libraries:
       targets:
         - "2.0"
         - "1.0"
+    dataframe:
+      type: github
+      repo: hosseinmoein/DataFrame
+      check_file: README.md
+      targets:
+        - 1.19.0
+      build_type: cmake
     entt:
       type: github
       repo: skypjack/entt
@@ -266,6 +274,7 @@ libraries:
       check_file: README.md
       targets:
         - 1.9.4
+        - 1.9.5
       build_type: cmake
       lib_type: static
       extra_cmake_arg:
@@ -603,6 +612,14 @@ libraries:
       build_type: none
       targets:
         - v3.2.1
+    gemmlowp:
+      type: github
+      method: nightlyclone
+      repo: google/gemmlowp
+      check_file: fixedpoint/fixedpoint.h
+      build_type: none
+      targets:
+        - trunk
     spdlog:
       type: github
       repo: gabime/spdlog
@@ -620,6 +637,63 @@ libraries:
         - 1.6.1
         - 1.7.0
         - 1.8.0
+    lagom:
+      type: github
+      repo: SerenityOS/serenity
+      method: nightlyclone
+      check_file: CMakeLists.txt
+      build_type: cmake
+      lib_type: shared
+      make_targets:
+        - all
+      make_utility: ninja
+      extra_cmake_arg:
+        - -DBUILD_LAGOM=ON
+        - -DENABLE_COMPILER_EXPLORER_BUILD=ON
+        - -GNinja
+        - -DENABLE_UNICODE_DATABASE_DOWNLOAD=NO
+        - -DENABLE_COMMONMARK_SPEC_DOWNLOAD=NO
+        - -DCMAKE_EXE_LINKER_FLAGS=-latomic
+      targets:
+        - trunk
+      after_stage_script:
+        # Just build Lagom, no touchy serenity itself.
+        - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
+        # \x7b...\x7d for braces, because config_expand.py doesn't understand the meaning of escaping.
+        - echo -e "list(APPEND CMAKE_MODULE_PATH \"\$\\x7bCMAKE_CURRENT_LIST_DIR\\x7d/Meta/CMake\")" >> CMakeLists.txt
+        - echo "project(SerenityOS CXX)" >> CMakeLists.txt
+        - echo "add_subdirectory(Meta/Lagom)" >> CMakeLists.txt
+        # Patch out the 'CMAKE_BUILD_TYPE' check with a non-fatal set(CMAKE_BUILD_TYPE "")
+        - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/' Meta/Lagom/CMakeLists.txt
+        # Generate a AK/Debug.h for CE to use
+        - sed 's/cmakedefine01 \(\w\+\)/define \1 0/' AK/Debug.h.in > AK/Debug.h
+      sharedliblink:
+        - lagom-archive
+        - lagom-audio
+        - lagom-compress
+        - lagom-core
+        - lagom-crypto
+        - lagom-elf
+        - lagom-gemini
+        - lagom-gfx
+        - lagom-gl
+        - lagom-gml
+        - lagom-http
+        - lagom-imap
+        - lagom-ipc
+        - lagom-js
+        - lagom-line
+        - lagom-main
+        - lagom-markdown
+        - lagom-pdf
+        - lagom-regex
+        - lagom-shell
+        - lagom-sql
+        - lagom-textcodec
+        - lagom-tls
+        - lagom-unicode
+        - lagom-wasm
+        - lagom-x86
     date:
       type: github
       repo: HowardHinnant/date
@@ -1344,6 +1418,13 @@ libraries:
         check_file: include/magic_enum.hpp
         targets:
           - trunk
+      dataframe:
+        type: github
+        method: nightlyclone
+        repo: hosseinmoein/DataFrame
+        build_type: cmake
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
@@ -1369,6 +1450,7 @@ libraries:
         - 1.13.1
         - 1.14.0
         - 1.15.0
+        - 1.16.0
     nvtx:
       type: github
       method: clone_branch

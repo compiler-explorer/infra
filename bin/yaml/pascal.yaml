@@ -24,7 +24,6 @@ compilers:
         - 2.6.4
         - 3.0.2
         - 3.0.4
-      newer:
-        dir: fpc-{name}-x86_64-linux
-        targets:
-          - 3.2.0
+        - name: 3.2.0
+          dir: fpc-{name}-x86_64-linux
+        - 3.2.2

@@ -12,7 +12,7 @@ compilers:
       check_exe:
         - /bin/bash
         - -c
-        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{name} $(which python3) -B -mppci --version"
+        - "/usr/bin/env PYTHONPATH=$(pwd)/ppci-{name} $(command -v python3) -B -mppci --version"
       dir: ppci-{name}
       untar_dir: ppci-{name}
       url: https://pypi.io/packages/source/p/ppci/ppci-{name}.tar.gz

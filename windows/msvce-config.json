@@ -156,6 +156,11 @@
         "description": "Compile Time Regular Expressions",
         "pretty_name": "CTRE"
       },
+      "dataframe": {
+        "url": "https://github.com/hosseinmoein/DataFrame",
+        "description": "C++ DataFrame",
+        "pretty_name": "DataFrame"
+      },
       "dlib": {
         "architectures": "x64",
         "reason": [

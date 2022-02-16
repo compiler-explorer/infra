@@ -1,12 +1,14 @@
 compilers:
   opencl-c:
-    SPIRV-Tools:
-      type: nightly
-      check_exe: "build/tools/spirv-dis --version"
-      targets:
-        - master
-    llvm-spirv:
-      type: nightly
-      check_exe: "bin/llvm-spirv --version"
-      targets:
-        - trunk
+    nightly:
+      if: nightly
+      SPIRV-Tools:
+        type: nightly
+        check_exe: "build/tools/spirv-dis --version"
+        targets:
+          - master
+        llvm-spirv:
+          type: nightly
+          check_exe: "bin/llvm-spirv --version"
+          targets:
+            - trunk

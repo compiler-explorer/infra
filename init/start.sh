@@ -81,6 +81,11 @@ install_node() {
     cp /opt/compiler-explorer/node/bin/node /usr/local/bin
 }
 
+install_asmparser() {
+    rm -f /usr/local/bin/asm-parser
+    cp /opt/compiler-explorer/asm-parser/asm-parser /usr/local/bin
+}
+
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
@@ -90,6 +95,7 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 mount_opt
 update_code
 install_node
+install_asmparser
 
 cd "${DEPLOY_DIR}"
 
@@ -101,6 +107,7 @@ fi
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /usr/local/bin/node \
     -r esm \
+    -r ts-node/register \
     -- app.js \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
