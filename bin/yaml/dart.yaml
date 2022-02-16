@@ -4,6 +4,9 @@ compilers:
     dir: dart-{name}
     folder: dart-sdk
     check_exe: bin/dart --version
+    after_stage_script:
+      - chmod -R og+r .
+      - find -executable -print0 | xargs -0 chmod og+x
     url: https://storage.googleapis.com/dart-archive/channels/stable/release/{name}/sdk/dartsdk-linux-x64-release.zip
     targets:
       - 2.16.1
