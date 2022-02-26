@@ -25,8 +25,9 @@ are a little fuzzy and complicated.
 
 What you can do to get the token is to use the webpage https://ga-dev-tools.appspot.com/query-explorer/
 to do 1 test request for GCC explorer id `ga:60096530`, supplying at least the metric `ga:totalEvents`
-and let the query run. If I scroll down on this webpage, it will mention the Access Token used for this request in
-the API Query URI box. It is this token that we can use for this script for about 60 minutes.
+and let the query run. If you scroll down on this webpage and check the option "include access token" -
+it will mention the Access Token used for this request in the API Query URI box.
+It is this token that we can use for this script for about 60 minutes.
 
 And then we can run:
 
