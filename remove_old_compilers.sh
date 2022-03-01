@@ -52,3 +52,5 @@ remove_older_master rustc-cg-gcc
 remove_older_master SPIRV-Tools
 remove_older arm-gcc
 remove_older arm64-gcc
+remove_older ispc
+remove_older mrisc32
