@@ -54,3 +54,4 @@ remove_older arm-gcc
 remove_older arm64-gcc
 remove_older ispc
 remove_older mrisc32
+remove_older tendra
