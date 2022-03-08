@@ -789,10 +789,11 @@ class NightlyTarballInstallable(TarballInstallable):
         if not self.install_path_symlink:
             self.install_path_symlink = f'{self.install_path}'
 
-        today = datetime.today().strftime('%Y%m%d')
-        self.install_path = f'{self.install_path}-{today}'
         if not self.remove_older_pattern:
             self.remove_older_pattern = f'{self.install_path}-*'
+
+        today = datetime.today().strftime('%Y%m%d')
+        self.install_path = f'{self.install_path}-{today}'
 
         # redo exe checks
         self._setup_check_exe(self.install_path)
