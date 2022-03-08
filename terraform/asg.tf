@@ -1,7 +1,7 @@
 locals {
   subnets      = local.all_subnet_ids
-  // A startup I measured on Oct 31st 2021 took 3m to become ready.
-  grace_period = 220
+  // As of Mar 7 2022, startups are around 100s.
+  grace_period = 120
   cooldown     = 180
 }
 
@@ -72,7 +72,7 @@ resource "aws_autoscaling_policy" "prod-mixed" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value = 40.0
+    target_value = 75.0
   }
 }
 
