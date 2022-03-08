@@ -35,3 +35,5 @@ compilers:
           deb: 10
         - name: 9.2.1
           deb: 10
+        - name: 9.2.2
+          deb: 10
