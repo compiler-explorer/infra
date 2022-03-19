@@ -76,12 +76,6 @@ update_code() {
     fi
 }
 
-install_node() {
-#    rm -f /usr/local/bin/node
-#    cp /opt/compiler-explorer/node/bin/node /usr/local/bin
-    ln -s /opt/compiler-explorer/nsolid/nsolid/bin/nsolid /usr/local/bin/node
-}
-
 install_asmparser() {
     rm -f /usr/local/bin/asm-parser
     cp /opt/compiler-explorer/asm-parser/asm-parser /usr/local/bin
@@ -95,7 +89,6 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
 mount_opt
 update_code
-install_node
 install_asmparser
 
 cd "${DEPLOY_DIR}"
@@ -110,7 +103,7 @@ export NSOLID_TAGS="${ENV}"
 
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV,NSOLID_COMMAND,NSOLID_APPNAME,NSOLID_TAGS -- \
-    /usr/local/bin/node \
+    /opt/nsolid/bin/nsolid \
     -r esm \
     -r ts-node/register \
     -- app.js \
