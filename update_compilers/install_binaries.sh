@@ -17,22 +17,6 @@ if [[ ! -f ${PATCHELF} ]]; then
 fi
 
 #########################
-# node.js
-# NB we are testing nsolid currently; and we now build the node version into our AMIs
-
-TARGET_NODE_VERSION=v16.13.1
-CURRENT_NODE_VERSION=""
-if [[ -d node ]]; then
-    CURRENT_NODE_VERSION=$(node/bin/node --version)
-fi
-
-if [[ "$TARGET_NODE_VERSION" != "$CURRENT_NODE_VERSION" ]]; then
-    echo "Installing node ${TARGET_NODE_VERSION}"
-    rm -rf node
-    fetch "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.gz" | tar zxf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
-fi
-
-#########################
 # cmake
 
 if [[ ! -x ${OPT}/cmake/bin/cmake ]]; then
