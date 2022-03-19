@@ -308,6 +308,28 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   description              = "Allow port 3000 access from the ALB"
 }
 
+resource "aws_security_group_rule" "nsolid" {
+  security_group_id        = aws_security_group.AdminNode.id
+  type                     = "ingress"
+  from_port                = 9001
+  to_port                  = 9003
+  source_security_group_id = aws_security_group.CompilerExplorer.id
+  protocol                 = "tcp"
+  description              = "Let nodes talk to nsolid console"
+}
+
+resource "aws_security_group_rule" "nsolid_console" {
+  # this is here as we (lazily) use the admin sec group for the packer builds.
+  security_group_id = aws_security_group.AdminNode.id
+  type              = "ingress"
+  from_port         = 6753
+  to_port           = 6753
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "tcp"
+  description       = "Allow access to the nsolid console"
+}
+
 resource "aws_security_group" "Builder" {
   vpc_id      = module.ce_network.vpc.id
   name        = "BuilderNodeSecGroup"
