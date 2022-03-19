@@ -18,6 +18,7 @@ fi
 
 #########################
 # node.js
+# NB we are testing nsolid currently; and we now build the node version into our AMIs
 
 TARGET_NODE_VERSION=v16.13.1
 CURRENT_NODE_VERSION=""

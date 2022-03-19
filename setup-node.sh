@@ -70,6 +70,7 @@ make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
 popd
 
+cp -r /opt/compiler-explorer/node/ /opt/node/
 cp -r /opt/compiler-explorer/nsolid/nsolid/ /opt/nsolid/
 
 cp nginx/nginx.conf /etc/nginx/nginx.conf
