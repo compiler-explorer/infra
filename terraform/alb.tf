@@ -101,6 +101,21 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
 
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-nsolid" {
+  priority     = 4
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.nsolid.arn
+  }
+  condition {
+    host_header {
+      values = ["nsolid.compiler-explorer.com"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
+
 resource "aws_alb_listener" "ceconan-alb-listen-http" {
   default_action {
     type             = "forward"

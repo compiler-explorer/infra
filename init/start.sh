@@ -79,7 +79,7 @@ update_code() {
 install_node() {
 #    rm -f /usr/local/bin/node
 #    cp /opt/compiler-explorer/node/bin/node /usr/local/bin
-    ln -s /opt/compiler-explorer/nsolid/bin/nsolid /usr/local/bin/node
+    ln -s /opt/compiler-explorer/nsolid/nsolid/bin/nsolid /usr/local/bin/node
 }
 
 install_asmparser() {
