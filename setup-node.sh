@@ -70,6 +70,7 @@ make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
 popd
 
+mkdir /opt
 cp -r /opt/compiler-explorer/node/ /opt/node/
 cp -r /opt/compiler-explorer/nsolid/nsolid/ /opt/nsolid/
 
