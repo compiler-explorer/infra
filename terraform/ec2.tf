@@ -9,7 +9,7 @@ resource "aws_instance" "AdminNode" {
   ami                         = "ami-0e76b49ef537405f1"
   iam_instance_profile        = "CompilerExplorerAdminNode"
   ebs_optimized               = false
-  instance_type               = "t3.nano"
+  instance_type               = "t3a.small"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
@@ -20,7 +20,7 @@ resource "aws_instance" "AdminNode" {
   root_block_device {
     volume_type           = "gp2"
     volume_size           = 24
-    delete_on_termination = true
+    delete_on_termination = false
   }
 
   tags = {

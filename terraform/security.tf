@@ -319,7 +319,6 @@ resource "aws_security_group_rule" "nsolid" {
 }
 
 resource "aws_security_group_rule" "nsolid_console" {
-  # this is here as we (lazily) use the admin sec group for the packer builds.
   security_group_id = aws_security_group.AdminNode.id
   type              = "ingress"
   from_port         = 6753
