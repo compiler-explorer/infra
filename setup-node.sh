@@ -76,7 +76,7 @@ pushd /opt
 TARGET_NODE_VERSION=v16.13.1
 echo "Installing node ${TARGET_NODE_VERSION}"
 curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.gz" | tar zxf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
-popd /opt
+popd
 
 # nsolid
 mkdir /tmp/nsolid
