@@ -82,7 +82,7 @@ popd
 mkdir /tmp/nsolid
 pushd /tmp/nsolid
 NSOLID_VERSION=4.7.1
-curl -sL https://s3-us-west-2.amazonaws.com/nodesource-public-downloads/4.7.1/artifacts/bundles/nsolid-bundle-v${NSOLID_VERSION}-linux-x64.tar.gz | tar zxf - --strip-components 1
+curl -sL https://s3-us-west-2.amazonaws.com/nodesource-public-downloads/4.7.1/artifacts/bundles/nsolid-bundle-v${NSOLID_VERSION}-linux-x64.tar.gz | tar zxf - --strip-components 2
 
 mkdir /opt/nsolid
 tar zxf nsolid-v${NSOLID_VERSION}-gallium-linux-x64.tar.gz --strip-components 1 -C /opt/nsolid
