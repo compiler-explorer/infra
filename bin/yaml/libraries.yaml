@@ -59,6 +59,7 @@ libraries:
         - 12.0.1
         - 13.0.0
         - 13.0.1
+        - 14.0.0
     fmt:
       type: github
       repo: fmtlib/fmt
