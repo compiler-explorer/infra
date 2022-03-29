@@ -210,8 +210,8 @@ data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
 
 data "aws_iam_policy_document" "CeModifyStoredState" {
   statement {
-    sid       = "DatabaseAccessSid"
-    actions   = [
+    sid     = "DatabaseAccessSid"
+    actions = [
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
       "dynamodb:DescribeTable",
@@ -239,7 +239,7 @@ resource "aws_iam_policy" "CeModifyStoredState" {
 
 data "aws_iam_policy_document" "AccessCeParams" {
   statement {
-    actions   = [
+    actions = [
       "ssm:Describe*",
       "ssm:Get*",
       "ssm:List*"
@@ -388,8 +388,8 @@ data "aws_iam_policy_document" "CeBuilderStorageAccess" {
     ]
   }
   statement {
-    sid       = "BuildTableAccess"
-    actions   = [
+    sid     = "BuildTableAccess"
+    actions = [
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
       "dynamodb:DescribeTable",
@@ -446,7 +446,7 @@ resource "aws_security_group_rule" "efs_outbound" {
 }
 
 resource "aws_security_group_rule" "efs_inbound" {
-  for_each                 = {
+  for_each = {
     "Admin"       = aws_security_group.AdminNode.id,
     "Compilation" = aws_security_group.CompilerExplorer.id
     "Builder"     = aws_security_group.Builder.id
@@ -467,4 +467,36 @@ resource "aws_iam_user" "github" {
 resource "aws_iam_user_policy_attachment" "github_attach_CeBuilderStorageAccess" {
   user       = aws_iam_user.github.name
   policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
+}
+
+resource "aws_iam_role" "CompilerExplorerAdminNode" {
+  name               = "CompilerExplorerAdminNode"
+  description        = "Compiler Explorer admin node role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
+resource "aws_iam_instance_profile" "CompilerExplorerAdminNode" {
+  name = "CompilerExplorerAdminNode"
+  role = aws_iam_role.CompilerExplorerAdminNode.name
+}
+
+data "aws_iam_policy" "CloudWatchAgentAdminPolicy" {
+  arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentAdminPolicy"
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_CloudWatchAgentServerPolicy" {
+  role       = aws_iam_role.CompilerExplorerAdminNode.name
+  policy_arn = data.aws_iam_policy.CloudWatchAgentAdminPolicy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_managed" {
+  for_each = {
+    "AmazonEC2FullAccess" : true,
+    "AmazonS3FullAccess" : true,
+    "CloudWatchFullAccess" : true,
+    "AmazonDynamoDBFullAccess" : true,
+    "AmazonSSMReadOnlyAccess" : true,
+  }
+  role       = aws_iam_role.CompilerExplorerAdminNode.name
+  policy_arn = "arn:aws:iam::aws:policy/${each.key}"
 }
