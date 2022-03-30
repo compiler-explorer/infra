@@ -3,7 +3,7 @@ import time
 import click
 
 from lib.amazon import get_autoscaling_groups_for, as_client
-from lib.ce_utils import are_you_sure, describe_current_release, update_motd
+from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
 
@@ -50,7 +50,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
     This replaces all the instances in the ASGs associated with an environment with
     new instances (with the latest code), while ensuring there are some left to handle
     the traffic while we update."""
-    old_motd = update_motd(cfg, motd)
+    set_update_message(cfg, motd)
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg['AutoScalingGroupName']
         if asg['DesiredCapacity'] == 0:
@@ -96,7 +96,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
                 last_log = log
             if status in ('Successful', 'Failed', 'Cancelled'):
                 break
-    update_motd(cfg, old_motd)
+    set_update_message(cfg, '')
 
 
 @environment.command(name='stop')
@@ -105,7 +105,7 @@ def environment_stop(cfg: Config):
     """Stops an environment."""
     if cfg.env == Environment.PROD:
         print('Operation aborted. This would bring down the site')
-        print('If you know what you are doing, edit the code in bin/lib/ce.py, function environment_stop_cmd')
+        print('If you know what you are doing, edit the code in bin/lib/cli/environment.py, function environment_stop')
     elif are_you_sure('stop environment', cfg):
         for asg in get_autoscaling_groups_for(cfg):
             group_name = asg['AutoScalingGroupName']

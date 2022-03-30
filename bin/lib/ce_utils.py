@@ -56,6 +56,8 @@ def get_events(cfg: Config) -> dict:
         events['decorations'] = []
     if 'motd' not in events:
         events['motd'] = ''
+    if 'update' not in events:
+        events['update'] = ''
     return events
 
 
@@ -69,6 +71,12 @@ def update_motd(cfg: Config, motd: str) -> str:
     events['motd'] = motd
     save_events(cfg, events)
     return old_motd
+
+
+def set_update_message(cfg: Config, message: str):
+    events = get_events(cfg)
+    events['update'] = message
+    save_events(cfg, events)
 
 
 def are_you_sure(name: str, cfg: Optional[Config] = None) -> bool:
