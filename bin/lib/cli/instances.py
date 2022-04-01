@@ -10,7 +10,7 @@ import click
 
 from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group
 from lib.ce_utils import describe_current_release, are_you_sure, logger, \
-    wait_for_autoscale_state, update_motd
+    wait_for_autoscale_state, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
 from lib.instance import print_instances, Instance
@@ -91,7 +91,7 @@ def instances_restart(cfg: Config, motd: str):
         return
     begin_time = datetime.datetime.now()
     # Store old motd
-    old_motd = update_motd(cfg, motd)
+    set_update_message(cfg, motd)
     modified_groups: Dict[str, int] = {}
     failed = False
     to_restart = pick_instances(cfg)
@@ -117,7 +117,7 @@ def instances_restart(cfg: Config, motd: str):
     for group, desired in iter(modified_groups.items()):
         logger.info("Putting desired instances for %s back to %d", group, desired)
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
-    update_motd(cfg, old_motd)
+    set_update_message(cfg, '')
     end_time = datetime.datetime.now()
     delta_time = end_time - begin_time
     print(f'Instances restarted in {delta_time.total_seconds()} seconds')
