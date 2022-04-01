@@ -757,6 +757,34 @@ libraries:
       target_prefix: v
       targets:
         - "0.7.3"
+    hdf5:
+      type: github
+      repo: HDFGroup/hdf5
+      method: clone_branch
+      check_file: CMakeLists.txt
+      build_type: cmake
+      lib_type: shared
+      make_targets:
+        - hdf5-shared
+      extra_cmake_arg:
+        - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        - -DBUILD_STATIC_LIBS=OFF
+        - -DBUILD_TESTING=OFF
+        - -DHDF5_BUILD_EXAMPLES=OFF
+        - -DHDF5_BUILD_HL_LIB=OFF
+        - -DHDF5_BUILD_TOOLS=OFF
+        - -DHDF5_BUILD_UTILS=OFF
+      after_stage_script:
+        - mkdir build
+        - cd build
+        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_INSTALL_PREFIX="." -DBUILD_STATIC_LIBS=OFF -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_HL_LIB=OFF -DHDF5_BUILD_TOOLS=OFF -DHDF5_BUILD_UTILS=OFF
+        - /opt/compiler-explorer/cmake/bin/cmake --install .
+        - cp -Rf include ..
+        - cd ..
+        - rm -Rf build
+      targets:
+        - hdf5-1_12_1
+        - hdf5-1_13_1
     nightly:
       install_always: true
       if: nightly
