@@ -323,10 +323,9 @@ resource "aws_security_group_rule" "nsolid_console" {
   type              = "ingress"
   from_port         = 6753
   to_port           = 6753
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
+  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
   protocol          = "tcp"
-  description       = "Allow access to the nsolid console"
+  description       = "Allow access to the nsolid console from the ALB"
 }
 
 resource "aws_security_group" "Builder" {

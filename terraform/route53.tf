@@ -112,6 +112,17 @@ resource "aws_route53_record" "ses-compiler-explorer-com" {
   records = [aws_ses_domain_identity.compiler-explorer-com.verification_token]
 }
 
+
+resource "aws_route53_record" "nsolid-compiler-explorer-com" {
+  name    = "nsolid"
+  zone_id = module.compiler-explorer-com.zone_id
+  type    = "A"
+  alias {
+    name                   = aws_cloudfront_distribution.nsolid-compiler-explorer-com.domain_name
+    zone_id                = aws_cloudfront_distribution.nsolid-compiler-explorer-com.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
 ////////////////////////////////////////////////////
 
 module godbo-lt {

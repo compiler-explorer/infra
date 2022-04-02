@@ -544,3 +544,88 @@ resource "aws_wafv2_web_acl" "rate_limit" {
     sampled_requests_enabled   = true
   }
 }
+
+resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
+  origin {
+    domain_name = aws_alb.GccExplorerApp.dns_name
+    origin_id   = "ALB-compiler-explorer"
+    custom_origin_config {
+      http_port                = 80
+      https_port               = 443
+      origin_read_timeout      = 60
+      origin_keepalive_timeout = 60
+      origin_protocol_policy   = "https-only"
+      origin_ssl_protocols     = [
+        "TLSv1",
+        "TLSv1.2",
+        "TLSv1.1"
+      ]
+    }
+  }
+
+  enabled          = true
+  is_ipv6_enabled  = true
+  aliases          = [
+    "nsolid.compiler-explorer.com"
+  ]
+
+  viewer_certificate {
+    acm_certificate_arn      = data.aws_acm_certificate.godbolt-org-et-al.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.1_2016"
+  }
+
+  logging_config {
+    include_cookies = false
+    bucket          = "compiler-explorer-logs.s3.amazonaws.com"
+    prefix          = "cloudfront/"
+  }
+
+  http_version = "http2"
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "blacklist"
+      locations        = [
+        "CU",
+        "IR",
+        "KP",
+        "SD",
+        "SY"
+      ]
+    }
+  }
+
+  default_cache_behavior {
+    allowed_methods        = [
+      "HEAD",
+      "DELETE",
+      "POST",
+      "GET",
+      "OPTIONS",
+      "PUT",
+      "PATCH"
+    ]
+    cached_methods         = [
+      "HEAD",
+      "GET"
+    ]
+    forwarded_values {
+      cookies {
+        forward = "whitelist"
+        whitelisted_names = ["nsolid-session", "nsolid-refresh"]
+      }
+      query_string = true
+      headers      = [
+        "Accept",
+        "Host",
+        "CloudFront-Is-Mobile-Viewer"
+      ]
+    }
+    target_origin_id       = "ALB-compiler-explorer"
+    viewer_protocol_policy = "redirect-to-https"
+    compress               = true
+  }
+
+  web_acl_id = aws_wafv2_web_acl.rate_limit.arn
+}
