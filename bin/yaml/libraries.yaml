@@ -782,7 +782,7 @@ libraries:
         - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_INSTALL_PREFIX="." -DBUILD_STATIC_LIBS=OFF -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_HL_LIB=OFF -DHDF5_BUILD_TOOLS=OFF -DHDF5_BUILD_UTILS=OFF
         - /opt/compiler-explorer/cmake/bin/cmake --install . || true
         - cp -Rf include ..
-        - mkdir ../lib/x86_64
+        - mkdir -p ../lib/x86_64
         - cp -Rf build/bin/*.so* ../lib/x86_64
         - cd ..
         - rm -Rf build
