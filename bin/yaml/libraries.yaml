@@ -787,6 +787,8 @@ libraries:
       targets:
         - hdf5-1_12_1
         - hdf5-1_13_1
+      sharedliblink:
+        - hdf6
     nightly:
       install_always: true
       if: nightly
