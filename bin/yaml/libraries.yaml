@@ -764,7 +764,7 @@ libraries:
       repo: HDFGroup/hdf5
       method: clone_branch
       check_file: CMakeLists.txt
-      build_type: cmake
+      build_type: manual
       lib_type: shared
       make_targets:
         - hdf5-shared
