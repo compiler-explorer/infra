@@ -769,7 +769,8 @@ libraries:
       after_stage_script:
         - mkdir build
         - cd build
-        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_INSTALL_PREFIX="." -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF -DHDF5_BUILD_UTILS=OFF
+        - CC=/opt/compiler-explorer/gcc-10.2.0/bin/gcc CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX="." -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF -DHDF5_BUILD_UTILS=OFF
+        - /opt/compiler-explorer/cmake/bin/cmake --build .
         - /opt/compiler-explorer/cmake/bin/cmake --install .
         - cp -Rf include ..
         - mkdir -p ../lib/x86_64
