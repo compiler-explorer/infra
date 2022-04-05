@@ -783,7 +783,7 @@ libraries:
         - /opt/compiler-explorer/cmake/bin/cmake --install . || true
         - cp -Rf include ..
         - mkdir -p ../lib/x86_64
-        - cp -Rf build/bin/*.so* ../lib/x86_64
+        - cp -Rf bin/*.so* ../lib/x86_64
         - cd ..
         - rm -Rf build
       targets:
