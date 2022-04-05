@@ -841,7 +841,7 @@ libraries:
         targets:
           - trunk
         after_stage_script:
-          - cp /home/ubuntu/infra/bin/resources/catch_user_config.hpp src/src/catch2/catch_user_config.hpp
+          - cp /home/ubuntu/infra/bin/resources/catch_user_config.hpp src/catch2/catch_user_config.hpp
       expected-dark:
         type: github
         method: nightlyclone
