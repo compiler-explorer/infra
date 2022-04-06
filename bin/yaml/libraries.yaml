@@ -1458,6 +1458,13 @@ libraries:
         build_type: cmake
         targets:
           - trunk
+      highfive:
+        type: github
+        method: nightlyclone
+        repo: BlueBrain/HighFive
+        build_type: manual
+        targets:
+          - trunk
   cuda:
     cub:
       type: github
