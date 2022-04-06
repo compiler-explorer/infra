@@ -1463,6 +1463,7 @@ libraries:
         method: nightlyclone
         repo: BlueBrain/HighFive
         build_type: manual
+        check_file: include/highfive/H5Easy.hpp
         targets:
           - trunk
   cuda:
