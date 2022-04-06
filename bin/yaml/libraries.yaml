@@ -1458,7 +1458,7 @@ libraries:
         build_type: cmake
         targets:
           - trunk
-      HighFive:
+      highfive:
         type: github
         method: nightlyclone
         repo: BlueBrain/HighFive
