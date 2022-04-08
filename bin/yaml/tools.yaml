@@ -20,9 +20,7 @@ tools:
     package: osaca=={name}
     check_exe: bin/osaca --version
     targets:
-      - 0.3.14
-      - 0.4.6
-      - 0.4.7
+      - 0.4.8
   rustfmt:
     type: tarballs
     dir: rustfmt-{name}
