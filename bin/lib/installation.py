@@ -1022,6 +1022,62 @@ class PipInstallable(Installable):
         return f'PipInstallable({self.name}, {self.install_path})'
 
 
+@functools.lru_cache(maxsize=1)
+def solidity_available_releases(context: InstallationContext, list_url: str):
+    response = context.fetcher.get(list_url)
+    return response.json()['releases']
+
+
+class SingleFileInstallable(Installable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        self.url = self.config_get('url')
+        self.filename = self.config_get('filename')
+        self._setup_check_exe(self.install_path)
+
+    def stage(self) -> None:
+        self.install_context.clean_staging()
+        out_path = self.install_context.staging / self.install_path
+        out_path.mkdir()
+        out_file_path = out_path / self.filename
+        with out_file_path.open('wb') as f:
+            self.install_context.fetch_to(self.url, f)
+        out_file_path.chmod(0o755)
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        self.stage()
+        return self.install_context.compare_against_staging(self.install_path)
+
+    def install(self) -> bool:
+        if not super().install():
+            return False
+        self.stage()
+        self.install_context.move_from_staging(self.install_path)
+        return True
+
+    def __repr__(self) -> str:
+        return f'SingleFileInstallable({self.name}, {self.install_path})'
+
+
+class SolidityInstallable(SingleFileInstallable):
+    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path = self.config_get('dir')
+        artifacts = solidity_available_releases(self.install_context, self.url + "/list.json")
+        release_path = artifacts[self.target_name]
+        if self.target_name not in artifacts:
+            raise RuntimeError(f"Unable to find solidity {self.target_name}")
+        self.url = f"{self.url}/{release_path}"
+        self.filename = self.config_get('filename')
+        self._setup_check_exe(self.install_path)
+
+    def __repr__(self) -> str:
+        return f'SolidityInstallable({self.name}, {self.install_path})'
+
+
 def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
@@ -1078,6 +1134,8 @@ INSTALLER_TYPES = {
     'nightlytarballs': NightlyTarballInstallable,
     'nightly': NightlyInstallable,
     'script': ScriptInstallable,
+    'solidity': SolidityInstallable,
+    'singleFile': SingleFileInstallable,
     'github': GitHubInstallable,
     'gitlab': GitLabInstallable,
     'bitbucket': BitbucketInstallable,
