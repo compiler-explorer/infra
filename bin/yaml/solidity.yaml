@@ -6,6 +6,7 @@ compilers:
     filename: solc
     check_exe: solc --version
     targets:
+      - 0.3.6
       - 0.4.26
       - 0.5.17
       - 0.6.12
