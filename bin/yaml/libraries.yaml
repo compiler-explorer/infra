@@ -448,6 +448,24 @@ libraries:
       target_prefix: v
       targets:
         - "2021.10.0"
+        - "2022.03.0"
+    kumi:
+      type: github
+      repo: jfalcou/kumi
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "1.0"
+        - "2.0"
+        - "2.1"
+    raberu:
+      type: github
+      repo: jfalcou/raberu
+      check_file: README.md
+      target_prefix: v
+      targets:
+        - "1.0"
+        - "1.1"
     tts:
       type: github
       repo: jfalcou/tts
@@ -457,6 +475,7 @@ libraries:
         - "0.2"
         - "1.0"
         - "2.0"
+        - "2.1"
     hedley:
       type: github
       repo: nemequ/hedley
