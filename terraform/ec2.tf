@@ -100,13 +100,13 @@ resource "aws_instance" "BuilderNode" {
 
 resource "aws_instance" "CERunner" {
   ami                         = local.runner_image_id
-  iam_instance_profile        = aws_iam_instance_profile.Builder.name
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
   instance_type               = "c5.large"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
-  vpc_security_group_ids      = [aws_security_group.Builder.id]
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
   associate_public_ip_address = true
   source_dest_check           = false
   user_data                   = "runner"
