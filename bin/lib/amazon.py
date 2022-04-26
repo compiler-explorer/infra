@@ -1,6 +1,7 @@
 from datetime import datetime
 from operator import attrgetter
 from typing import List, Optional
+import logging
 
 from lib.env import Config, Environment
 from lib.releases import Version, Release, Hash, VersionSource
@@ -118,10 +119,14 @@ def _get_releases(source: VersionSource, prefix: str):
 
         size = result['Size']
         info_key = "/".join(split_key[:-1]) + "/" + version_str + ".txt"
-        o = s3_client.get_object(
-            Bucket='compiler-explorer',
-            Key=info_key
-        )
+        try:
+            o = s3_client.get_object(
+                Bucket='compiler-explorer',
+                Key=info_key
+            )
+        except s3_client.exceptions.NoSuchKey:
+            logging.warning("Ignoring broken key %s", key)
+            continue
         release_hash = Hash(o['Body'].read().decode("utf-8").strip())
         releases[version] = Release(version, branch, key, info_key, size, release_hash)
 
