@@ -39,6 +39,8 @@ def hash_file_for_s3(f):
 
 def get_directory_contents(basedir):
     for f in Path(basedir).rglob('*'):
+        if not f.is_file():
+            continue
         name = f.relative_to(basedir).as_posix()
         yield dict(name=name, path=f)
 
