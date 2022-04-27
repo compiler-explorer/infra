@@ -17,6 +17,11 @@ for img_file in "${IMG_DIR}"/**/*.img; do
   fi
 done
 
+if [ -z "${!mounts[*]}" ]; then
+  echo "Nothing to do, stopping"
+  exit
+fi
+
 # If we try and do this in the loop, the mountpoint and mount commands effectively
 # serialise and we end up blocking until the whole thing's done.
 for img_file in "${!mounts[@]}"; do
