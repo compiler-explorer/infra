@@ -21,6 +21,5 @@ done
 # serialise and we end up blocking until the whole thing's done.
 for img_file in "${!mounts[@]}"; do
   dst_path="${mounts[$img_file]}"
-  echo "$img_file -> $dst_path"
-  mount -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime &
-done
+  echo mount -v -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime
+done | xargs -d'\n' -n1 -P16 sh -c
