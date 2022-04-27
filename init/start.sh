@@ -105,7 +105,6 @@ export NSOLID_TAGS="${ENV}"
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV,NSOLID_COMMAND,NSOLID_APPNAME,NSOLID_TAGS -- \
     /opt/nsolid/bin/nsolid \
     -r esm \
-    -r ts-node/register \
     -- app.js \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
@@ -114,7 +113,6 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV,NSOLID_COMMAND,NSOLID_APPNAME
     --port 10240 \
     --metricsPort 10241 \
     --loki "http://127.0.0.1:3500" \
-    --static out/dist \
     --dist \
     ${COMPILERS_ARG} \
     ${EXTRA_ARGS}
