@@ -30,7 +30,7 @@ mount_opt() {
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
-    ./mount-all-img.sh
+    ./mount-all-img.sh &
 }
 
 get_discovered_compilers() {
