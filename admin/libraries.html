@@ -58,10 +58,11 @@
     </style>
 </head>
 <body>
-<div data-bind="simpleGrid: gridViewModel"></div>
-<div class="log-wrapper">
-    <textarea id="log" data-bind="visible: isLogVisible, text: selectedLog" readonly></textarea>
-</div>
+    <div><p>Build info available at <a href="https://conan.compiler-explorer.com/" target="_blank">https://conan.compiler-explorer.com/</a></p></div>
+    <div data-bind="simpleGrid: gridViewModel"></div>
+    <div class="log-wrapper">
+        <textarea id="log" data-bind="visible: isLogVisible, text: selectedLog" readonly></textarea>
+    </div>
 <script>
     function toLink(url) {
         return `<a href="${url}" target="_blank">${url}</a>`;
