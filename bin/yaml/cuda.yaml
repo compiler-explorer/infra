@@ -33,3 +33,5 @@ compilers:
         build: 470.57.02
       - name: 11.5.0
         build: 495.29.05
+      - name: 11.6.2
+        build: 510.47.03
