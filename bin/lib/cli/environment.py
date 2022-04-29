@@ -2,10 +2,13 @@ import time
 
 import click
 
-from lib.amazon import get_autoscaling_groups_for, as_client
+from lib.amazon import get_autoscaling_groups_for, as_client, get_current_release, get_current_notify, put_notify_file, \
+    delete_notify_file
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
+
+from lib.notify import handle_notify
 
 
 @cli.group()
@@ -43,14 +46,17 @@ def environment_start(cfg: Config):
               help='While updating, ensure at least PERCENT are healthy', default=75, show_default=True)
 @click.option('--motd', type=str, default='Site is being updated',
               help='Set the message of the day used during refresh', show_default=True)
+@click.option('--no-notify', type=bool)
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, no_notify: bool):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
     new instances (with the latest code), while ensuring there are some left to handle
     the traffic while we update."""
     set_update_message(cfg, motd)
+    current_release = get_current_release(cfg)
+
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg['AutoScalingGroupName']
         if asg['DesiredCapacity'] == 0:
@@ -96,6 +102,11 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
                 last_log = log
             if status in ('Successful', 'Failed', 'Cancelled'):
                 break
+    if not no_notify:  # Double negation because I don't know how to make a default cli flag be True
+        current_notify = get_current_notify()
+        if current_notify is not None:
+            handle_notify(current_notify, current_release.hash.hash)
+            delete_notify_file()
     set_update_message(cfg, '')
 
 

@@ -13,7 +13,8 @@ from lib.cli.runner import runner_discoveryexists
 
 from lib.amazon import download_release_file, download_release_fileobj, find_latest_release, find_release, \
     log_new_build, set_current_key, get_ssm_param, get_all_current, get_releases, remove_release, get_current_key, \
-    list_all_build_logs, list_period_build_logs, put_bouncelock_file, delete_bouncelock_file, has_bouncelock_file
+    list_all_build_logs, list_period_build_logs, put_bouncelock_file, delete_bouncelock_file, has_bouncelock_file, \
+    set_current_notify
 from lib.cdn import DeploymentJob
 from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
 from lib.cli import cli
@@ -61,8 +62,9 @@ def deploy_staticfiles(release) -> bool:
 @click.option('--branch', help='if version == latest, branch to get latest version from')
 @click.option('--raw/--no-raw', help='Set a raw path for a version')
 @click.option('--confirm', help='Skip confirmation questions', is_flag=True)
+@click.option('--notify', help='Update the notify file', is_flag=True)
 @click.argument('version')
-def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
+def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool, notify: bool):
     """Set the current version to VERSION for this environment.
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
@@ -111,6 +113,8 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             if not result.ok:
                 raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
             print("...done", json.loads(result.content.decode()))
+        if release and notify:
+            set_current_notify(release.hash.hash)
 
 
 @builds.command(name="rm_old")
