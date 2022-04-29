@@ -102,7 +102,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, no_not
                 last_log = log
             if status in ('Successful', 'Failed', 'Cancelled'):
                 break
-    if not no_notify:  # Double negation because I don't know how to make a default cli flag be True
+    if cfg.env.value == cfg.env.PROD and not no_notify:  # Double negation because I don't know how to make a default cli flag be True
         current_notify = get_current_notify()
         if current_notify is not None and current_release is not None:
             gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")

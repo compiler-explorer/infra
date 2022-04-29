@@ -103,8 +103,9 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
         if release:
-            print("Logging for notifications")
-            set_current_notify(release.hash.hash)
+            if cfg.env.value == cfg.env.PROD:
+                print("Logging for notifications")
+                set_current_notify(release.hash.hash)
             print("Marking as a release in sentry...")
             token = get_ssm_param("/compiler-explorer/sentryAuthToken")
             result = requests.post(
