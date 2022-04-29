@@ -104,7 +104,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, no_not
                 break
     if not no_notify:  # Double negation because I don't know how to make a default cli flag be True
         current_notify = get_current_notify()
-        if current_notify is not None:
+        if current_notify is not None and current_release is not None:
             gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
             handle_notify(current_notify, current_release.hash.hash, gh_token)
             delete_notify_file()
