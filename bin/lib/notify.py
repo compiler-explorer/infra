@@ -1,13 +1,14 @@
 import urllib.request
 import urllib.parse
 import json
-
-OWNER_REPO = ""
-ACCESS_TOKEN = ""
-USER_AGENT = ""
+from typing import List
 
 
-def post(entity: str, token: str, query: dict = None, dry= False) -> dict:
+OWNER_REPO = "compiler-explorer/compiler-explorer"
+USER_AGENT = "CE Live Now Notification Bot"
+
+
+def post(entity: str, token: str, query: dict = None, dry = False) -> dict:
     if query is None:
         query = {}
     path = entity
@@ -51,10 +52,10 @@ def get(entity: str, token: str, query: dict = None) -> dict:
     return json.loads(result.read())
 
 
-def paginated_get(entity: str, token: str, query: dict = None) -> [dict]:
+def paginated_get(entity: str, token: str, query: dict = None) -> List[dict]:
     if query is None:
         query = {}
-    result = []
+    result: List[dict] = []
     results_per_page = 50
     query["page"] = 1
     query["per_page"] = results_per_page
@@ -68,7 +69,7 @@ def paginated_get(entity: str, token: str, query: dict = None) -> [dict]:
     return result
 
 
-def list_inbetween_commits(end_commit: str, new_commit: str, token: str) -> [dict]:
+def list_inbetween_commits(end_commit: str, new_commit: str, token: str) -> List[dict]:
     commits = get(f"repos/{OWNER_REPO}/compare/{end_commit}...{new_commit}", token=token)
     return commits["commits"]
 
@@ -94,15 +95,15 @@ def get_linked_issues(pr: str, token: str):
         }
     }
     """ % pr
-    return post(f"graphql", {"query": query}, token=token)
+    return post(f"graphql", token, {"query": query})
 
 
-def get_issue_comments(issue: str, token: str) -> [dict]:
+def get_issue_comments(issue: str, token: str) -> List[dict]:
     return paginated_get(f"repos/{OWNER_REPO}/issues/{issue}/comments", token)
 
 
 def comment_on_issue(issue: str, msg: str, token: str):
-    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", {"body": msg}, token=token, dry=True)
+    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", token, {"body": msg}, dry=True)
     return result
 
 
@@ -110,12 +111,8 @@ def send_live_message(issue: str, token: str):
     comment_on_issue(issue, "This is now live", token=token)
 
 
-def get_edges(issue: dict) -> [dict]:
+def get_edges(issue: dict) -> List[dict]:
     return issue["data"]["repository"]["pullRequest"]["closingIssuesReferences"]["edges"]
-
-
-OWNER_REPO = "compiler-explorer/compiler-explorer"
-USER_AGENT = "CE Live Now Notification Bot"
 
 
 def handle_notify(base, new, token):

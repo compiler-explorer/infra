@@ -62,9 +62,8 @@ def deploy_staticfiles(release) -> bool:
 @click.option('--branch', help='if version == latest, branch to get latest version from')
 @click.option('--raw/--no-raw', help='Set a raw path for a version')
 @click.option('--confirm', help='Skip confirmation questions', is_flag=True)
-@click.option('--notify', help='Update the notify file', is_flag=True)
 @click.argument('version')
-def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool, notify: bool):
+def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
     """Set the current version to VERSION for this environment.
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
@@ -104,6 +103,8 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
         if release:
+            print("Logging for notifications")
+            set_current_notify(release.hash.hash)
             print("Marking as a release in sentry...")
             token = get_ssm_param("/compiler-explorer/sentryAuthToken")
             result = requests.post(
@@ -113,8 +114,6 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             if not result.ok:
                 raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
             print("...done", json.loads(result.content.decode()))
-        if release and notify:
-            set_current_notify(release.hash.hash)
 
 
 @builds.command(name="rm_old")
