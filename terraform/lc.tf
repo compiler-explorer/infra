@@ -20,7 +20,7 @@ resource "aws_launch_template" "CompilerExplorer-beta" {
   user_data              = local.beta_user_data
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "c5.large"
+  instance_type          = "c6i.large"
 
   tag_specifications {
     resource_type = "volume"
@@ -53,7 +53,7 @@ resource "aws_launch_template" "CompilerExplorer-staging" {
   user_data              = local.staging_user_data
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "c5.large"
+  instance_type          = "c6i.large"
 
   tag_specifications {
     resource_type = "volume"
@@ -85,7 +85,7 @@ resource "aws_launch_template" "CompilerExplorer-prod" {
   image_id               = local.image_id
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "c5.large"
+  instance_type          = "c6i.large" // This is overridden in the ASG
 
   tag_specifications {
     resource_type = "volume"

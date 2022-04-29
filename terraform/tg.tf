@@ -18,8 +18,8 @@ resource "aws_alb_target_group" "ce" {
   port                          = 80
   protocol                      = "HTTP"
   vpc_id                        = module.ce_network.vpc.id
-  // a minute to kick off old connections
-  deregistration_delay          = 60
+  // some time to kick off old connections
+  deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
   health_check {
     path                = "/healthcheck"

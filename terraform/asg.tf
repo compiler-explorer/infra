@@ -37,6 +37,15 @@ resource "aws_autoscaling_group" "prod-mixed" {
         launch_template_id = aws_launch_template.CompilerExplorer-prod.id
         version            = "$Latest"
       }
+      override {
+        instance_type = "c6i.large"
+      }
+      override {
+        instance_type = "c5.large"
+      }
+      override {
+        instance_type = "c5a.large"
+      }
     }
   }
 
