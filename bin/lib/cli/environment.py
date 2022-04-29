@@ -2,8 +2,8 @@ import time
 
 import click
 
-from lib.amazon import get_autoscaling_groups_for, as_client, get_current_release, get_current_notify, put_notify_file, \
-    delete_notify_file, get_ssm_param
+from lib.amazon import get_autoscaling_groups_for, as_client, get_current_release, get_current_notify, get_ssm_param, \
+    delete_notify_file
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment

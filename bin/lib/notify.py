@@ -94,7 +94,7 @@ def get_linked_issues(pr: str, token: str):
         }
     }
     """ % pr
-    return post(f"graphql", token, {"query": query})
+    return post("graphql", token, {"query": query})
 
 
 def get_issue_comments(issue: str, token: str) -> List[dict]:
