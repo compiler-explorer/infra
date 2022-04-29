@@ -3,121 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <title>Compilers Build Status</title>
-    <script src="knockout-3.4.2.js"></script>
-    <script src="knockout.simpleGrid.3.0.js"></script>
-    <script src="builds.js"></script>
+    <meta http-equiv="refresh" content="0; url=https://compiler-explorer.github.io/compiler-workflows/build-status" />
+    <script type="text/javascript">
+        window.location.href = "https://compiler-explorer.github.io/compiler-workflows/build-status"
+    </script>
     <link rel="icon" type="image/png"
           href="https://github.com/compiler-explorer/infra/blob/main/logo/favicon.png?raw=true"/>
     <style>
         html, body {
             background-color: #EEEEEE;
-        }
-
-        .navbar {
-            font-family: monospace;
-        }
-
-        .ko-grid {
-            width: 100%;
-        }
-
-        .ko-grid thead th {
-            border-bottom: 1px solid black;
-            user-select: none;
-        }
-
-        .ko-grid tbody tr:nth-child(odd),
-        .ko-grid thead th:nth-child(odd) {
-            background-color: #EEEEEE;
-        }
-
-        .ko-grid tbody tr:nth-child(even),
-        .ko-grid thead th:nth-child(even) {
-            background-color: #DDDDDD;
-        }
-
-        .ko-grid tbody td:nth-child(odd),
-        .ko-grid thead th:nth-child(odd) {
-            background-color: rgba(220, 220, 220, 0.5);
-        }
-
-        .ko-grid tbody td:nth-child(even),
-        .ko-grid thead th:nth-child(even) {
-            background-color: rgba(200, 200, 200, 0.5);
-        }
-
-        .ko-grid tbody td {
-            text-align: center;
-        }
-
-        .ko-grid-pageLinks {
-            background-color: #EEEEAA;
-            border-top: 1px solid #f3f3f3;
-        }
-
-        #log {
-            background-color: #f2f2f2;
-            box-sizing: border-box;
-            width: 100%;
-            height: 350px;
-        }
-
-        .navbar {
-            font-size: 18px;
-            border: 1px solid rgba(0, 0, 0, 0.2);
-            padding-bottom: 10px;
-        }
-
-        #main-nav {
-            list-style-type: none;
-            display: flex;
-            flex-direction: row;
-        }
-
-        #main-nav li {
-            text-align: center;
-            margin: 2px auto;
-            text-decoration: none;
-            color: black;
-        }
-
-        #log {
-            flex: 1 1 auto;
-            height: 95%;
-        }
-
-        html, body {
             height: 100%;
             margin: 0;
         }
-
-        .container {
-            height: 100%;
-            display: flex;
-            flex-flow: column;
-        }
-
     </style>
 </head>
 <body>
 <h1>Daily build status has moved</h1>
 <div>Up to date information is now found at <a href="https://compiler-explorer.github.io/compiler-workflows/build-status">https://compiler-explorer.github.io/compiler-workflows/build-status</a></div>
-<hr>
-<div class="container">
-    <nav class="navbar">
-        <ul id="main-nav">
-            <li>
-                Last update - <span data-bind="text: lastUpdate"></span>
-                <br>
-                <small>(Next - <span data-bind="text: nextUpdate"></span>)</small>
-            </li>
-        </ul>
-    </nav>
-    <div data-bind="simpleGrid: gridViewModel"></div>
-    <textarea id="log" data-bind="visible: isLogVisible, text: selectedLog" readonly></textarea>
-</div>
-<script>
-    init();
-</script>
 </body>
 </html>
