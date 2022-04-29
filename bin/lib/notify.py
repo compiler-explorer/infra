@@ -3,12 +3,11 @@ import urllib.parse
 import json
 from typing import List
 
-
 OWNER_REPO = "compiler-explorer/compiler-explorer"
 USER_AGENT = "CE Live Now Notification Bot"
 
 
-def post(entity: str, token: str, query: dict = None, dry = False) -> dict:
+def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
     if query is None:
         query = {}
     path = entity
