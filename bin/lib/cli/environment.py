@@ -3,7 +3,7 @@ import time
 import click
 
 from lib.amazon import get_autoscaling_groups_for, as_client, get_current_release, get_current_notify, put_notify_file, \
-    delete_notify_file
+    delete_notify_file, get_ssm_param
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
@@ -105,7 +105,8 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, no_not
     if not no_notify:  # Double negation because I don't know how to make a default cli flag be True
         current_notify = get_current_notify()
         if current_notify is not None:
-            handle_notify(current_notify, current_release.hash.hash)
+            gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
+            handle_notify(current_notify, current_release.hash.hash, gh_token)
             delete_notify_file()
     set_update_message(cfg, '')
 

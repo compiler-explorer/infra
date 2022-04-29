@@ -7,7 +7,7 @@ ACCESS_TOKEN = ""
 USER_AGENT = ""
 
 
-def post(entity: str, query: dict = None, dry=False) -> dict:
+def post(entity: str, token: str, query: dict = None, dry= False) -> dict:
     if query is None:
         query = {}
     path = entity
@@ -18,7 +18,7 @@ def post(entity: str, query: dict = None, dry=False) -> dict:
         data=querystring,
         headers={
             "User-Agent": USER_AGENT,
-            "Authorization": f"token {ACCESS_TOKEN}",
+            "Authorization": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         },
     )
@@ -29,7 +29,7 @@ def post(entity: str, query: dict = None, dry=False) -> dict:
     return json.loads(result.read())
 
 
-def get(entity: str, query: dict = None) -> dict:
+def get(entity: str, token: str, query: dict = None) -> dict:
     if query is None:
         query = {}
     path = entity
@@ -42,7 +42,7 @@ def get(entity: str, query: dict = None) -> dict:
         None,
         {
             "User-Agent": USER_AGENT,
-            "Authorization": f"token {ACCESS_TOKEN}",
+            "Authorization": f"token {token}",
             "Accept": "application/vnd.github.v3+json",
         },
     )
@@ -51,7 +51,7 @@ def get(entity: str, query: dict = None) -> dict:
     return json.loads(result.read())
 
 
-def paginated_get(entity: str, query: dict = None) -> [dict]:
+def paginated_get(entity: str, token: str, query: dict = None) -> [dict]:
     if query is None:
         query = {}
     result = []
@@ -59,7 +59,7 @@ def paginated_get(entity: str, query: dict = None) -> [dict]:
     query["page"] = 1
     query["per_page"] = results_per_page
     while True:
-        current_page_results = get(entity, query)
+        current_page_results = get(entity, token, query)
         result.extend(current_page_results)
         if len(current_page_results) == results_per_page:
             query["page"] += 1
@@ -68,17 +68,17 @@ def paginated_get(entity: str, query: dict = None) -> [dict]:
     return result
 
 
-def list_inbetween_commits(end_commit: str, new_commit: str) -> [dict]:
-    commits = get(f"repos/{OWNER_REPO}/compare/{end_commit}...{new_commit}")
+def list_inbetween_commits(end_commit: str, new_commit: str, token: str) -> [dict]:
+    commits = get(f"repos/{OWNER_REPO}/compare/{end_commit}...{new_commit}", token=token)
     return commits["commits"]
 
 
-def get_linked_pr(commit: str) -> dict:
-    pr = get(f"repos/{OWNER_REPO}/commits/{commit}/pulls")
+def get_linked_pr(commit: str, token: str) -> dict:
+    pr = get(f"repos/{OWNER_REPO}/commits/{commit}/pulls", token=token)
     return pr
 
 
-def get_linked_issues(pr: str):
+def get_linked_issues(pr: str, token: str):
     query = """
     query {
         repository(owner: "compiler-explorer", name: "compiler-explorer") {
@@ -94,45 +94,45 @@ def get_linked_issues(pr: str):
         }
     }
     """ % pr
-    return post(f"graphql", {"query": query})
+    return post(f"graphql", {"query": query}, token=token)
 
 
-def get_issue_comments(issue: str) -> [dict]:
-    return paginated_get(f"repos/{OWNER_REPO}/issues/{issue}/comments")
+def get_issue_comments(issue: str, token: str) -> [dict]:
+    return paginated_get(f"repos/{OWNER_REPO}/issues/{issue}/comments", token)
 
 
-def comment_on_issue(issue: str, msg: str):
-    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", {"body": msg}, dry=True)
+def comment_on_issue(issue: str, msg: str, token: str):
+    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", {"body": msg}, token=token, dry=True)
     return result
 
 
-def send_live_message(issue: str):
-    comment_on_issue(issue, "This is now live")
+def send_live_message(issue: str, token: str):
+    comment_on_issue(issue, "This is now live", token=token)
 
 
 def get_edges(issue: dict) -> [dict]:
     return issue["data"]["repository"]["pullRequest"]["closingIssuesReferences"]["edges"]
 
 
-OWNER_REPO = "compiler-explorer/compiler-explorer"  # sys.argv[1]
-ACCESS_TOKEN = "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"  # sys.argv[2]
-USER_AGENT = "CE bot"  # sys.argv[3]
+OWNER_REPO = "compiler-explorer/compiler-explorer"
+USER_AGENT = "CE Live Now Notification Bot"
 
 
-def handle_notify(base, new):
+def handle_notify(base, new, token):
     print(f'Notifying from {base} to {new}')
-    commits = list_inbetween_commits(base, new)
 
-    prs = [get_linked_pr(commit["sha"]) for commit in commits]
+    commits = list_inbetween_commits(base, new, token)
+
+    prs = [get_linked_pr(commit["sha"], token) for commit in commits]
     ids = [pr[0]["number"] for pr in prs]
-    linked_issues = [get_linked_issues(pr) for pr in ids]
+    linked_issues = [get_linked_issues(pr, token) for pr in ids]
     issues_ids = [get_edges(issue) for issue in linked_issues if len(get_edges(issue)) > 0]
 
     for edge in issues_ids:
         for node in edge:
             issue = node["node"]["number"]
-            comments = get_issue_comments(issue)
+            comments = get_issue_comments(issue, token)
             if not any(["This is now live" in comment["body"] for comment in comments]):
-                send_live_message(issue)
+                send_live_message(issue, token)
             else:
                 print(f"Skipping notifying {issue}, it's already been done")
