@@ -17,6 +17,12 @@ compilers:
         targets:
           - version: 11.2.0-3
           - version: 10.3.0-2
+      avr:
+        subdir: avr
+        target: avr-elf
+        toolprefix: avr-
+        targets:
+          - version: 11.2.0-4
       riscv64:
         subdir: riscv64
         target: riscv64-elf
