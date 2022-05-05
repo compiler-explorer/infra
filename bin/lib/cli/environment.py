@@ -46,9 +46,9 @@ def environment_start(cfg: Config):
               help='While updating, ensure at least PERCENT are healthy', default=75, show_default=True)
 @click.option('--motd', type=str, default='Site is being updated',
               help='Set the message of the day used during refresh', show_default=True)
-@click.option('--no-notify', type=bool)
+@click.option('--notify/--no-notify', help='Send GitHub notifications for newly released PRs', default=True)
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, no_notify: bool):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, notify: bool):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
@@ -102,7 +102,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, no_not
                 last_log = log
             if status in ('Successful', 'Failed', 'Cancelled'):
                 break
-    if cfg.env.value == cfg.env.PROD and not no_notify:  # Double negation because I don't know how to make a default cli flag be True
+    if cfg.env.value == cfg.env.PROD and notify:
         current_notify = get_current_notify()
         if current_notify is not None and current_release is not None:
             gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
