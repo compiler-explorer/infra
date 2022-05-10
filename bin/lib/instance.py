@@ -1,6 +1,6 @@
 import functools
 import logging
-import subprocess
+import socket
 from typing import Dict, Optional
 
 from lib.amazon import ec2, ec2_client, as_client, elb_client, get_releases, release_for
@@ -68,7 +68,7 @@ class Instance:
                     'if [[ -f /infra/.deploy/s3_key ]]; '
                     'then cat /infra/.deploy/s3_key; fi'
                 ]).strip()
-            except subprocess.CalledProcessError as e:
+            except socket.error as e:
                 logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod

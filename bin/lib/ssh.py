@@ -32,10 +32,9 @@ def running_on_ec2():
     return False
 
 
-def can_ssh_to(instance) -> bool:
-    if running_on_ec2():
-        return True
-    return instance.instance.public_ip_address is True
+def can_ssh_to(_instance) -> bool:
+    # We now restrict all ingress to nodes from outside ec2
+    return running_on_ec2()
 
 
 def ssh_address_for(instance):
@@ -99,7 +98,12 @@ def ssh_client_for(instance) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(hostname=ssh_address_for(instance), username='ubuntu', timeout=5)
+    client.connect(
+        hostname=ssh_address_for(instance),
+        username='ubuntu',
+        timeout=0.2,
+        banner_timeout=0.2,
+        auth_timeout=0.2)
     return client
 
 
