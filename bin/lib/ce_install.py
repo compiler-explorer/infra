@@ -42,6 +42,20 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
     return _context_match(split[0], installable) and _target_match(split[1], installable)
 
 
+def filter_aggregate(filters: list, installable: Installable):
+    # if there are no filters, accept it
+    if not filters:
+        return True
+
+    # check installable against all filters
+    # if no filters match installable, reject it
+    for filt in filters:
+        if filter_match(filt, installable):
+            return True
+
+    return False
+
+
 def main():
     parser = ArgumentParser(prog='ce_install',
                             description='Install binaries, libraries and compilers for Compiler Explorer')
@@ -107,11 +121,7 @@ def main():
     for installable in installables:
         installable.link(installables_by_name)
 
-    for filt in args.filter:
-        def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
-            return lambda installable: filter_match(x, installable)
-
-        installables = filter(make_f(), installables)
+    installables = filter(lambda installable: filter_aggregate(args.filter, installable), installables)
     installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
