@@ -55,10 +55,43 @@ def test_should_honour_root_matches():
     assert filter_match("/a/b/c", fake("a/b/c", "target"))
     assert not filter_match("/b/c", fake("a/b/c", "target"))
 
+
+def test_should_match_all_filters():
+    assert not filter_aggregate(["a", "b"], fake("a", "target"), 'conjunction')
+    assert not filter_aggregate(["a", "b"], fake("b", "target"), 'conjunction')
+    assert filter_aggregate(["a", "target"], fake("a", "target"), 'conjunction')
+
 def test_should_match_any_filter():
-    assert filter_aggregate(["a", "b"], fake("a", "target"))
-    assert filter_aggregate(["a", "b"], fake("b", "target"))
-    assert not filter_aggregate(["a", "b"], fake("c", "target"))
+    assert filter_aggregate(["a", "b"], fake("a", "target"), 'disjunction')
+    assert filter_aggregate(["a", "b"], fake("b", "target"), 'disjunction')
+    assert not filter_aggregate(["a", "b"], fake("c", "target"), 'disjunction')
+
+def test_all_should_match_all_filters():
+    test = [
+        fake("a/x", "target"), fake("a/y", "target"), fake("a/z", "target"), fake("a/z", "other"),
+        fake("b/x", "target"), fake("b/y", "target"), fake("b/z", "target"), fake("b/z", "other"),
+        fake("c/x", "target"), fake("c/y", "target"), fake("c/z", "target"), fake("c/z", "other"),
+    ]
+
+    filter1 = ["a", "b"]
+    test1 = list(filter(lambda installable: filter_aggregate(filter1, installable, 'conjunction'), test))
+    test1_answer = []
+    assert test1 == test1_answer
+
+    filter2 = ["a", "target"]
+    test2 = list(filter(lambda installable: filter_aggregate(filter2, installable, 'conjunction'), test))
+    test2_answer = [test[0],test[1],test[2]]
+    assert test2 == test2_answer
+
+    filter3 = ["target", "other"]
+    test3 = list(filter(lambda installable: filter_aggregate(filter3, installable, 'conjunction'), test))
+    test3_answer = []
+    assert test3 == test3_answer
+    
+    filter4 = ["c",  "z", "other"]
+    test4 = list(filter(lambda installable: filter_aggregate(filter4, installable, 'conjunction'), test))
+    test4_answer = [test[11]]
+    assert test4 == test4_answer
 
 def test_all_should_match_any_filter():
     test = [
@@ -68,21 +101,21 @@ def test_all_should_match_any_filter():
     ]
 
     filter1 = ["a", "b"]
-    test1 = list(filter(lambda installable: filter_aggregate(filter1, installable), test))
+    test1 = list(filter(lambda installable: filter_aggregate(filter1, installable, 'disjunction'), test))
     test1_answer = [test[0],test[1],test[2],test[3],test[4],test[5],test[6],test[7]]
     assert test1 == test1_answer
 
     filter2 = ["a", "b", "c/z"]
-    test2 = list(filter(lambda installable: filter_aggregate(filter2, installable), test))
+    test2 = list(filter(lambda installable: filter_aggregate(filter2, installable, 'disjunction'), test))
     test2_answer = [test[0],test[1],test[2],test[3],test[4],test[5],test[6],test[7],test[10],test[11]]
     assert test2 == test2_answer
 
     filter3 = ["a/x target", "b/z other", "c/z other"]
-    test3 = list(filter(lambda installable: filter_aggregate(filter3, installable), test))
-    test4_answer = [test[0],test[7],test[11]]
-    assert test3 == test4_answer
+    test3 = list(filter(lambda installable: filter_aggregate(filter3, installable, 'disjunction'), test))
+    test3_answer = [test[0],test[7],test[11]]
+    assert test3 == test3_answer
     
     filter4 = ["y",  "z"]
-    test4 = list(filter(lambda installable: filter_aggregate(filter4, installable), test))
+    test4 = list(filter(lambda installable: filter_aggregate(filter4, installable, 'disjunction'), test))
     test4_answer = [test[1],test[2],test[3],test[5],test[6],test[7],test[9],test[10],test[11]]
     assert test4 == test4_answer
