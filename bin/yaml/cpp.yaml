@@ -610,6 +610,7 @@ compilers:
           - concepts-trunk
           - embed-trunk
           - dang-main
+          - widberg-main
           - relocatable-trunk
           - autonsdmi-trunk
           - lifetime-trunk
