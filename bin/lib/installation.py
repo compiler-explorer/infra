@@ -50,7 +50,7 @@ def s3_available_compilers():
 
 class InstallationContext:
     def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
-                 cache: Optional[Path], yaml_dir: Path):
+                 cache: Optional[Path], yaml_dir: Path, allow_unsafe_ssl: bool):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -62,6 +62,7 @@ class InstallationContext:
             status_forcelist=[429, 500, 502, 503, 504],
             method_whitelist=["HEAD", "GET", "OPTIONS"]
         )
+        self.allow_unsafe_ssl = allow_unsafe_ssl
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
         http = requests.Session()
         http.mount("https://", adapter)
@@ -100,7 +101,11 @@ class InstallationContext:
 
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
-        request = self.fetcher.get(url, stream=True)
+        if (self.allow_unsafe_ssl):
+            request = self.fetcher.get(url, stream=True, verify=False)
+        else:
+            request = self.fetcher.get(url, stream=True)
+
         if not request.ok:
             self.error(f'Failed to fetch {url}: {request}')
             raise FetchFailure(f'Fetch failure for {url}: {request}')
