@@ -318,6 +318,13 @@ libraries:
       targets:
         - 1.3.3
         - 1.2.4
+    toml11:
+      type: github
+      repo: ToruNiina/toml11
+      check_file: toml.hpp
+      target_prefix: v
+      targets:
+        - 3.7.1
     trompeloeil:
       type: github
       repo: rollbear/trompeloeil
@@ -938,6 +945,14 @@ libraries:
         method: nightlyclone
         repo: marzer/tomlplusplus
         check_file: README.md
+        build_type: none
+        targets:
+          - trunk
+      toml11:
+        type: github
+        method: nightlyclone
+        repo: ToruNiina/toml11
+        check_file: toml.hpp
         build_type: none
         targets:
           - trunk
