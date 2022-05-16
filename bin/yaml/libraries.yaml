@@ -1595,6 +1595,14 @@ libraries:
     nightly:
       install_always: true
       if: nightly
+      avr-libstdcpp:
+        type: github
+        method: nightlyclone
+        repo: modm-io/avr-libstdcpp
+        build_type: manual
+        check_file: include/array
+        targets:
+          - trunk
       mir_core:
         type: github
         method: nightlyclone

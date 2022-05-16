@@ -70,9 +70,9 @@ if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
 fi
 
 #########################
-# x86-to-6502
+# x86-to-6502 old version
 
-if [[ ! -d ${OPT}/x86-to-6502/lefticus ]]; then
+if [[ ! -f ${OPT}/x86-to-6502/lefticus/x86-to-6502 ]]; then
     mkdir -p ${OPT}/x86-to-6502/lefticus
 
     mkdir -p /tmp/build
@@ -80,10 +80,59 @@ if [[ ! -d ${OPT}/x86-to-6502/lefticus ]]; then
 
     git clone https://github.com/lefticus/x86-to-6502.git lefticus
     pushd lefticus
+    git checkout 2a2ce54d32097558b81d014039309b68bce7aed8
     ${OPT}/cmake/bin/cmake .
     make
     mv x86-to-6502 ${OPT}/x86-to-6502/lefticus
     popd
+
+    popd
+    rm -rf /tmp/build
+fi
+
+#########################
+# x86-to-6502 new version
+
+if [[ ! -f ${OPT}/x86-to-6502/lefticus/6502-c++ ]]; then
+    mkdir -p ${OPT}/x86-to-6502/lefticus
+
+    mkdir -p /tmp/build
+    pushd /tmp/build
+
+    git clone https://github.com/lefticus/6502-cpp.git lefticus
+    pushd lefticus
+    mkdir -p build
+    cd build
+    CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ ${OPT}/cmake/bin/cmake ..
+    make 6502-c++
+    mv bin/6502-c++ ${OPT}/x86-to-6502/lefticus
+    popd
+
+    popd
+    rm -rf /tmp/build
+fi
+
+#########################
+# xa 6502 cross compiler
+
+if [[ ! -f ${OPT}/x86-to-6502/xa/bin/xa ]]; then
+    mkdir -p ${OPT}/x86-to-6502/xa/bin
+
+    mkdir -p /tmp/build
+    pushd /tmp/build
+
+    curl https://www.floodgap.com/retrotech/xa/dists/xa-2.3.13.tar.gz | tar xzf -
+    cd xa-2.3.13
+
+    make xa uncpk
+    mv xa ${OPT}/x86-to-6502/xa/bin/xa
+    mv reloc65 ${OPT}/x86-to-6502/xa/bin/reloc65
+    mv ldo65 ${OPT}/x86-to-6502/xa/bin/ldo65
+    mv file65 ${OPT}/x86-to-6502/xa/bin/file65
+    mv printcbm ${OPT}/x86-to-6502/xa/bin/printcbm
+    mv uncpk ${OPT}/x86-to-6502/xa/bin/uncpk
+
+    cd ..
 
     popd
     rm -rf /tmp/build
