@@ -64,6 +64,7 @@ def main():
     parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR', type=Path)
     parser.add_argument('--dry_run', default=False, action='store_true', help='dry run only')
     parser.add_argument('--force', default=False, action='store_true', help='force even if would otherwise skip')
+    parser.add_argument('--allow_unsafe_ssl', default=False, action='store_true', help='skip ssl certificate checks on https connections')
 
     parser.add_argument('--debug', default=False, action='store_true', help='log at debug')
     parser.add_argument('--log_to_console', default=False, action='store_true',
@@ -94,7 +95,7 @@ def main():
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
     context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
-                                  args.cache, args.yaml_dir)
+                                  args.cache, args.yaml_dir, args.allow_unsafe_ssl)
 
     installables = []
     for yaml_path in Path(args.yaml_dir).glob('*.yaml'):
