@@ -2,12 +2,16 @@ compilers:
   cuda:
     type: script
     dir: cuda/{name}
-    check_exe: bin/nvcc --version
+    check_exe: bin/nvcc --version && bin/nvrtc_cli --version
+    depends:
+      - compilers/c++/x86/gcc 10.2.0
     fetch:
       - https://developer.download.nvidia.com/compute/cuda/{name}/local_installers/cuda_{name}_{build}_linux.run combined.sh
+      - https://raw.githubusercontent.com/NVIDIA/jitify/6bc6e25e13300a8bc7520ed3bf977865201183b7/nvrtc_cli.cpp nvrtc_cli.cpp
     script: |
       mkdir -p cuda/{name}
       sh combined.sh --silent --toolkit --toolkitpath=$(pwd)/cuda/{name}
+      /opt/compiler-explorer/gcc-10.2.0/bin/g++ nvrtc_cli.cpp -o cuda/{name}/bin/nvrtc_cli -O3 -Wall -Wextra -std=c++11 -Icuda/{name}/include -Lcuda/{name}/lib64 -lnvrtc -Wl,--disable-new-dtags,-rpath,'$ORIGIN/../lib64'
     targets:
       - name: 11.0.2
         build: 450.51.05
