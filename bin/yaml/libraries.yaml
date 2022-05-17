@@ -95,6 +95,8 @@ libraries:
         - 1.5.0
         - 1.6.1
       build_type: cmake
+      extra_cmake_arg:
+        - -DBENCHMARK_ENABLE_TESTING=off
     googletest:
       type: github
       repo: google/googletest
@@ -828,6 +830,8 @@ libraries:
         build_type: cmake
         targets:
           - trunk
+        extra_cmake_arg:
+          - -DBENCHMARK_ENABLE_TESTING=off
       fmt:
         type: github
         method: nightlyclone
