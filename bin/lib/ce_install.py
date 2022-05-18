@@ -42,20 +42,17 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
     return _context_match(split[0], installable) and _target_match(split[1], installable)
 
 
-def filter_aggregate(filters: list, installable: Installable, filter_type: str = 'conjunction') -> bool:
+def filter_aggregate(filters: list, installable: Installable, filter_match_all: bool = True) -> bool:
     # if there are no filters, accept it
     if not filters:
         return True
 
-    if filter_type == 'conjunction':
+    if filter_match_all:
         # if installable matches all filters, accept it
         return all((False for filt in filters if not filter_match(filt, installable)))
-    elif filter_type == 'disjunction':
+    else:
         # if installable matches any filter, accept it
         return any((True for filt in filters if filter_match(filt, installable)))
-
-    # should not happen
-    raise RuntimeError(f'Unknown filter type {filter_type}')
 
 
 def main():
@@ -88,8 +85,10 @@ def main():
 
     parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
                         help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
-    parser.add_argument('--filter-type', default='conjunction', metavar='TYPE', choices=['conjunction', 'disjunction'],
-                        help='apply filters by conjunction or disjunction (default "conjunction")')
+    parser.add_argument('--filter-match-all', default=True, action='store_true',
+                        help='installables must pass all filters')
+    parser.add_argument('--filter-match-any', default=False, action='store_false', dest='filter_match_all',
+                        help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
                         choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash'],
@@ -125,7 +124,7 @@ def main():
     for installable in installables:
         installable.link(installables_by_name)
 
-    installables = filter(lambda installable: filter_aggregate(args.filter, installable, args.filter_type), installables)
+    installables = filter(lambda installable: filter_aggregate(args.filter, installable, args.filter_match_all), installables)
     installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
