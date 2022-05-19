@@ -312,6 +312,8 @@ compilers:
             - 10.2.0
             - 10.3.0
             - 11.2.0
+            - 11.3.0
+            - 12.1.0
         riscv32:
           arch_prefix: "riscv32-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -323,6 +325,8 @@ compilers:
             - 10.2.0
             - 10.3.0
             - 11.2.0
+            - 11.3.0
+            - 12.1.0
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
