@@ -47,12 +47,9 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     if not filters:
         return True
 
-    if filter_match_all:
-        # if installable matches all filters, accept it
-        return all((False for filt in filters if not filter_match(filt, installable)))
-    else:
-        # if installable matches any filter, accept it
-        return any((True for filt in filters if filter_match(filt, installable)))
+    # accept installable if it passes all filters (if filter_match_all is set) or any filters (otherwise)
+    filter_generator = (filter_match(filt, installable) for filt in filters)
+    return all(filter_generator) if filter_match_all else any(filter_generator)
 
 
 def main():
