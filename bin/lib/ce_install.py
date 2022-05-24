@@ -42,6 +42,16 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
     return _context_match(split[0], installable) and _target_match(split[1], installable)
 
 
+def filter_aggregate(filters: list, installable: Installable, filter_match_all: bool = True) -> bool:
+    # if there are no filters, accept it
+    if not filters:
+        return True
+
+    # accept installable if it passes all filters (if filter_match_all is set) or any filters (otherwise)
+    filter_generator = (filter_match(filt, installable) for filt in filters)
+    return all(filter_generator) if filter_match_all else any(filter_generator)
+
+
 def main():
     parser = ArgumentParser(prog='ce_install',
                             description='Install binaries, libraries and compilers for Compiler Explorer')
@@ -73,12 +83,16 @@ def main():
 
     parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
                         help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
+    parser.add_argument('--filter-match-all', default=True, action='store_true',
+                        help='installables must pass all filters')
+    parser.add_argument('--filter-match-any', default=False, action='store_false', dest='filter_match_all',
+                        help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
                         choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash'],
                         default='list',
                         nargs='?')
-    parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
+    parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
 
     args = parser.parse_args()
     formatter = logging.Formatter(fmt='%(asctime)s %(name)-15s %(levelname)-8s %(message)s')
@@ -108,11 +122,7 @@ def main():
     for installable in installables:
         installable.link(installables_by_name)
 
-    for filt in args.filter:
-        def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
-            return lambda installable: filter_match(x, installable)
-
-        installables = filter(make_f(), installables)
+    installables = filter(lambda installable: filter_aggregate(args.filter, installable, args.filter_match_all), installables)
     installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
