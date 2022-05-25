@@ -810,6 +810,24 @@ libraries:
       targets:
         - hdf5-1_12_1
         - hdf5-1_13_1
+    protobuf:
+      type: github
+      repo: protocolbuffers/protobuf
+      method: clone_branch
+      lib_type: shared
+      sharedliblink:
+        - protobuf
+        - protobuf-lite
+      target_prefix: v
+      targets:
+        - name: "3.20.1"
+          check_file: autogen.sh
+          build_type: make
+          prebuild_script:
+            - ./autogen.sh
+            - ./configure
+          make_targets:
+            - check
     nightly:
       install_always: true
       if: nightly
