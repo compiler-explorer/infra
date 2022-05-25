@@ -87,7 +87,7 @@ def test_all_should_match_all_filters():
     test3 = list(filter(lambda installable: filter_aggregate(filter3, installable, filter_match_all=True), test))
     test3_answer = []
     assert test3 == test3_answer
-    
+
     filter4 = ["c",  "z", "other"]
     test4 = list(filter(lambda installable: filter_aggregate(filter4, installable, filter_match_all=True), test))
     test4_answer = [test[11]]
@@ -114,7 +114,7 @@ def test_all_should_match_any_filter():
     test3 = list(filter(lambda installable: filter_aggregate(filter3, installable, filter_match_all=False), test))
     test3_answer = [test[0],test[7],test[11]]
     assert test3 == test3_answer
-    
+
     filter4 = ["y",  "z"]
     test4 = list(filter(lambda installable: filter_aggregate(filter4, installable, filter_match_all=False), test))
     test4_answer = [test[1],test[2],test[3],test[5],test[6],test[7],test[9],test[10],test[11]]
