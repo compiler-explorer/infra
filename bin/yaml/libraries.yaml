@@ -1495,7 +1495,7 @@ libraries:
         targets:
           - trunk
         after_stage_script:
-          - mkdir build
+          - mkdir -p build
           - cd build
           - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake -DCMAKE_INSTALL_PREFIX="." ..
           - /opt/compiler-explorer/cmake/bin/cmake --install .
