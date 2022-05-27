@@ -626,8 +626,8 @@ libraries:
       check_file: README.md
       build_type: cmake
       extra_cmake_arg:
-        - DCMAKE_BUILD_TYPE=Release
-        - DBUILD_SHARED_LIBS=on
+        - -DCMAKE_BUILD_TYPE=Release
+        - -DBUILD_SHARED_LIBS=on
       lib_type: shared
       targets:
         - v1.0
