@@ -619,6 +619,19 @@ libraries:
             - tbbmalloc_proxy_debug
       build_type: make
       lib_type: shared
+    libassert:
+      type: github
+      method: clone_branch
+      repo: jeremy-rifkin/libassert
+      check_file: README.md
+      build_type: cmake
+      extra_cmake_arg:
+        - DCMAKE_BUILD_TYPE=Release
+        - DBUILD_SHARED_LIBS=on
+      lib_type: shared
+      targets:
+        - v1.0
+        - v1.1
     eastl:
       type: github
       method: clone_branch
