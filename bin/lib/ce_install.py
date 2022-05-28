@@ -201,18 +201,16 @@ def main():
             if not installable.is_installed():
                 context.error(f"{installable.name} isn't installed")
                 continue
-            destination: Path = args.image_dir / f"{installable.install_path}.img"
+            destination: Path = Path(args.image_dir / f"{installable.install_path}.img")
             if not destination.exists():
                 context.error(f"Missing squash: {installable.name} (for {destination})")
                 continue
 
         for filename in os.listdir(args.image_dir):
-            imagefile = os.path.join(args.image_dir, filename)
-            if imagefile.is_file():
-                if filename.endswith(".img"):
-                    checkdir: Path = os.path.join("/opt/compiler-explorer/", filename[:-4])
-                    if not checkdir.exists():
-                        context.error(f"Missing mount point {checkdir}")
+            if filename.endswith(".img"):
+                checkdir = Path(os.path.join("/opt/compiler-explorer/", filename[:-4]))
+                if not checkdir.exists():
+                    context.error(f"Missing mount point {checkdir}")
 
     elif args.command == 'install':
         num_installed = 0
