@@ -161,7 +161,7 @@ compilers:
           - type: tarballs
             check_exe: bin/arm-none-eabi-g++ --version
             subdir: arm
-            dir: arm/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi
+            dir: arm/gcc-arm-none-eabi-11.2-2022.02
             untar_dir: gcc-arm-11.2-2022.02-x86_64-arm-none-eabi
             url: https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz
             compression: xz
