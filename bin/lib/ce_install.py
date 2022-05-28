@@ -51,14 +51,17 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     filter_generator = (filter_match(filt, installable) for filt in filters)
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
-def squash_mount_check(folder, subdir, context):
-    for filename in os.listdir(folder):
+def squash_mount_check(rootfolder, subdir, context):
+    for filename in os.listdir(os.path.join(rootfolder, subdir)):
         if filename.endswith(".img"):
             checkdir = Path(os.path.join("/opt/compiler-explorer/", subdir, filename[:-4]))
             if not checkdir.exists():
                 context.error(f"Missing mount point {checkdir}")
         else:
-            squash_mount_check(os.path.join(folder, filename), filename, context)
+            if subdir == "":
+                squash_mount_check(rootfolder, filename, context)
+            else:
+                squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
 
 def main():
     parser = ArgumentParser(prog='ce_install',
