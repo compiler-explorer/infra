@@ -89,7 +89,7 @@ def main():
                         help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
@@ -192,6 +192,28 @@ def main():
                 continue
             context.info(f"Squashing {installable.name}  to {destination}")
             installable.squash_to(destination)
+    elif args.command == 'squashcheck':
+        if not Path(args.image_dir).exists():
+            context.error(f"Missing squash directory {args.image_dir}")
+            exit(1)
+
+        for installable in installables:
+            if not installable.is_installed():
+                context.error(f"{installable.name} isn't installed")
+                continue
+            destination: Path = args.image_dir / f"{installable.install_path}.img"
+            if not destination.exists():
+                context.error(f"Missing squash: {installable.name} (for {destination})")
+                continue
+
+        for filename in os.listdir(args.image_dir):
+            imagefile = os.path.join(args.image_dir, filename)
+            if imagefile.is_file():
+                if filename.endswith(".img"):
+                    checkdir: Path = os.path.join("/opt/compiler-explorer/", filename[:-4])
+                    if not checkdir.exists():
+                        context.error(f"Missing mount point {checkdir}")
+
     elif args.command == 'install':
         num_installed = 0
         num_skipped = 0
