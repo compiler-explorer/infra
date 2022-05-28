@@ -1,6 +1,6 @@
 locals {
   image_id          = "ami-0b108983c68405d03"
-  staging_image_id  = "ami-0f98dcd644af7c845"
+  staging_image_id  = "ami-087e366bec40c4daf"
   beta_image_id     = "ami-0b108983c68405d03"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
