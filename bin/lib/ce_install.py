@@ -198,9 +198,6 @@ def main():
             exit(1)
 
         for installable in installables:
-            if not installable.is_installed():
-                context.error(f"{installable.name} isn't installed")
-                continue
             destination: Path = Path(args.image_dir / f"{installable.install_path}.img")
             if not destination.exists():
                 context.error(f"Missing squash: {installable.name} (for {destination})")
