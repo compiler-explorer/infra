@@ -23,3 +23,8 @@ compilers:
         - 2.13.02
         - 2.13.03
         - 2.14.02
+    beebasm:
+      type: s3tarballs
+      targets:
+        - "1.09"
+      check_exe: beebasm --help

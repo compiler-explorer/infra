@@ -33,6 +33,8 @@ mount_opt() {
     # don't be tempted to background this, it just causes everything to wedge
     # during startup (startup time I/O etc goes through the roof).
     ./mount-all-img.sh
+    
+    echo "Done mounting squash images"
 }
 
 get_discovered_compilers() {
@@ -60,6 +62,7 @@ get_released_code() {
 update_code() {
     local S3_KEY
     local CUR_S3_KEY=""
+    echo "Check to see if CE code needs updating"
     S3_KEY=$(curl -sL "https://s3.amazonaws.com/compiler-explorer/version/${BRANCH}")
     if [[ -f "${DEPLOY_DIR}/s3_key" ]]; then
         CUR_S3_KEY=$(cat "${DEPLOY_DIR}/s3_key")
