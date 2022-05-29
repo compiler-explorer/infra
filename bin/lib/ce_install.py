@@ -179,7 +179,7 @@ def main():
             if destination.exists() and not args.force:
                 context.info(f"Skipping {installable.name} as it already exists at {destination}")
                 continue
-            context.info(f"Squashing {installable.name}  to {destination}")
+            context.info(f"Squashing {installable.name} to {destination}")
             installable.squash_to(destination)
     elif args.command == 'install':
         num_installed = 0
