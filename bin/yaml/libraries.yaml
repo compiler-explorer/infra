@@ -629,6 +629,8 @@ libraries:
         - -DCMAKE_BUILD_TYPE=Release
         - -DBUILD_SHARED_LIBS=on
       lib_type: shared
+      sharedliblink:
+        - assert
       targets:
         - v1.0
         - v1.1
