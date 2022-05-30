@@ -631,9 +631,10 @@ libraries:
       lib_type: shared
       sharedliblink:
         - assert
+      target_prefix: v
       targets:
-        - v1.0
-        - v1.1
+        - "1.0"
+        - "1.1"
     eastl:
       type: github
       method: clone_branch
