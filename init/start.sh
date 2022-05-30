@@ -33,7 +33,7 @@ mount_opt() {
     # don't be tempted to background this, it just causes everything to wedge
     # during startup (startup time I/O etc goes through the roof).
     ./mount-all-img.sh
-    
+
     echo "Done mounting squash images"
 }
 
