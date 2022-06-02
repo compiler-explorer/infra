@@ -293,13 +293,6 @@ libraries:
       lib_type: static
       extra_cmake_arg:
         - -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_OBJECT_LIBS=OFF -DBUILD_TESTING=OFF -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF -DJSONCPP_WITH_CMAKE_PACKAGE=OFF -DJSONCPP_WITH_STRICT_ISO=OFF -DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF
-    mfem:
-       type: github
-       repo: mfem/mfem
-       build_type: cmake
-       lib_type: static
-       targets:
-         - master
     nsimd:
       type: s3tarballs
       s3_path_prefix: nsimd-{name}
@@ -1090,6 +1083,16 @@ libraries:
         build_type: none
         targets:
           - trunk
+      mfem:
+        type: github
+        method: nightlyclone
+        repo: mfem/mfem
+        build_type: cmake
+        lib_type: static
+        targets:
+          - trunk
+        staticliblink:
+          - mfem
       ofw:
         type: github
         method: nightlyclone
