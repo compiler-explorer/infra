@@ -1083,6 +1083,16 @@ libraries:
         build_type: none
         targets:
           - trunk
+      mfem:
+        type: github
+        method: nightlyclone
+        repo: mfem/mfem
+        build_type: cmake
+        lib_type: static
+        targets:
+          - trunk
+        staticliblink:
+          - mfem
       ofw:
         type: github
         method: nightlyclone
