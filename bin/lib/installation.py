@@ -20,7 +20,7 @@ import requests.adapters
 import yaml
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
-from bin.lib.rust_library_builder import RustLibraryBuilder
+from lib.rust_library_builder import RustLibraryBuilder
 
 from lib.amazon import list_compilers, list_s3_artifacts
 from lib.config_expand import is_value_type, expand_target
