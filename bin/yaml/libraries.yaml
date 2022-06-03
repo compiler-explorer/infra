@@ -1093,6 +1093,8 @@ libraries:
           - trunk
         staticliblink:
           - mfem
+        after_stage_script:
+          - cp /home/ubuntu/infra/bin/resources/mfem_config.hpp config/_config.hpp
       ofw:
         type: github
         method: nightlyclone
