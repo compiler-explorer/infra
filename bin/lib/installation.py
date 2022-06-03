@@ -375,7 +375,7 @@ class Installable:
     def is_installed(self) -> bool:
         if self.check_file == None:
             return True
- 
+
         if self._check_link and not self._check_link():
             self.debug('Check link returned false')
             return False
