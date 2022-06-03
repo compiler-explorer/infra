@@ -20,6 +20,7 @@ import requests.adapters
 import yaml
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
+from bin.lib.rust_library_builder import RustLibraryBuilder
 
 from lib.amazon import list_compilers, list_s3_artifacts
 from lib.config_expand import is_value_type, expand_target
@@ -372,6 +373,9 @@ class Installable:
         return True
 
     def is_installed(self) -> bool:
+        if self.check_file == None:
+            return True
+ 
         if self._check_link and not self._check_link():
             self.debug('Check link returned false')
             return False
@@ -416,13 +420,17 @@ class Installable:
         if self.build_config.build_type == "":
             raise RuntimeError('No build_type')
 
-        sourcefolder = os.path.join(self.install_context.destination, self.install_path)
-        builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
-                                 self.install_context, self.build_config)
-
-        if self.build_config.build_type == "cmake":
-            return builder.makebuild(buildfor)
-        elif self.build_config.build_type == "make":
+        if self.build_config.build_type in ["cmake", "make"]:
+            sourcefolder = os.path.join(self.install_context.destination, self.install_path)
+            builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
+                                    self.install_context, self.build_config)
+            if self.build_config.build_type == "cmake":
+                return builder.makebuild(buildfor)
+            elif self.build_config.build_type == "make":
+                return builder.makebuild(buildfor)
+        elif self.build_config.build_type == "cargo":
+            builder = RustLibraryBuilder(logger, self.language, self.context[-1], self.target_name,
+                                    self.install_context, self.build_config)
             return builder.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
@@ -481,6 +489,8 @@ class GitHubInstallable(Installable):
                 self.check_file = os.path.join(self.install_path, 'Makefile')
             elif self.build_config.build_type == "cake":
                 self.check_file = os.path.join(self.install_path, 'config.cake')
+            elif self.build_config.build_type == "cargo":
+                self.check_file = None
             else:
                 raise RuntimeError(f'Requires check_file ({last_context})')
         else:

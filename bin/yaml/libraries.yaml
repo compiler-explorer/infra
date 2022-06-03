@@ -1760,3 +1760,10 @@ libraries:
         build_type: none
         targets:
           - trunk
+  rust:
+    itoa:
+      type: github
+      repo: dtolnay/itoa
+      build_type: cargo
+      targets:
+        - 1.0.1
