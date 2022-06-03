@@ -85,6 +85,7 @@ class RustLibraryBuilder:
         if 'url' in self.libraryprops[self.libid]:
             self.buildconfig.url = self.libraryprops[self.libid]['url']
 
+    # pylint: disable=unused-argument
     def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType,
                          toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath):
         rustbinpath = os.path.dirname(compilerexe)
