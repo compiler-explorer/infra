@@ -149,6 +149,7 @@ libraries:
       targets:
         - 3.0.0-preview2
         - 3.0.0-preview3
+        - 3.0.1
     cctz:
       type: github
       repo: google/cctz
