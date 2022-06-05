@@ -149,7 +149,9 @@ libraries:
       targets:
         - 3.0.0-preview2
         - 3.0.0-preview3
-        - 3.0.1
+        - name: 3.0.1
+          after_stage_script:
+          - cp /home/ubuntu/infra/bin/resources/catch_user_config.hpp src/catch2/catch_user_config.hpp
     cctz:
       type: github
       repo: google/cctz
