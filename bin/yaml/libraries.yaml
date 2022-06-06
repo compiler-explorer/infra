@@ -97,14 +97,6 @@ libraries:
       build_type: cmake
       extra_cmake_arg:
         - -DBENCHMARK_ENABLE_TESTING=off
-    bmulti:
-      type: gitlab
-      method: nightlyclone
-      repo: correaa/boost-multi
-      check_file: include/multi/array.hpp
-      build_type: none
-      targets:
-        - trunk
     googletest:
       type: github
       repo: google/googletest
@@ -897,6 +889,14 @@ libraries:
         method: nightlyclone
         repo: g-truc/glm
         check_file: readme.md
+        build_type: none
+        targets:
+          - trunk
+      bmulti:
+        type: gitlab
+        method: nightlyclone
+        repo: correaa/boost-multi
+        check_file: include/multi/array.hpp
         build_type: none
         targets:
           - trunk
