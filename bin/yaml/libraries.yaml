@@ -13,7 +13,6 @@ libraries:
     boost:
       type: tarballs
       compression: bz2
-      underscore_name: "{{ name | replace('.', '_') }}"
       check_file: boost/version.hpp
       extract_only: boost_{{underscore_name}}/boost
       untar_dir: boost_{{underscore_name}}
