@@ -284,7 +284,7 @@ def main():
         sys.exit(0)
     elif args.command == 'reformat':
         libyaml = LibraryYaml(args.yaml_dir)
-        libyaml.Reformat()
+        libyaml.reformat()
 
     else:
         raise RuntimeError("Er, whoops")
