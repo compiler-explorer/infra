@@ -11,12 +11,12 @@ class LibraryYaml:
         self.Load()
 
     def Load(self):
-        with self.yaml_path.open() as yaml_file:
+        with self.yaml_path.open(encoding='utf-8', mode="r") as yaml_file:
             self.yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
 
     def Save(self):
-       with open(self.yaml_path, "w") as yaml_file:
-           yaml.dump(self.yaml_doc, yaml_file)
+        with self.yaml_path.open(encoding='utf-8', mode="w") as yaml_file:
+            yaml.dump(self.yaml_doc, yaml_file)
 
     def Reformat(self):
         self.Load()
