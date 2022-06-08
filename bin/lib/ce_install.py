@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import yaml
+from lib.library_yaml import LibraryYaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
@@ -100,7 +101,7 @@ def main():
                         help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
@@ -281,6 +282,10 @@ def main():
         if num_failed:
             sys.exit(1)
         sys.exit(0)
+    elif args.command == 'reformat':
+        libyaml = LibraryYaml(args.yaml_dir)
+        libyaml.Reformat()
+
     else:
         raise RuntimeError("Er, whoops")
 

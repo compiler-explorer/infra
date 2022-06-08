@@ -1138,7 +1138,7 @@ def _targets_from(node, enabled, context, name, base_config):
             if isinstance(target, float):
                 raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
-                target = {'name': target}
+                target = {'name': target, 'underscore_name': target.replace('.', '_')}
             yield expand_target(ChainMap(target, base_config), context)
 
 
