@@ -101,7 +101,7 @@ def main():
                         help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates', 'generaterustprops'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
@@ -290,8 +290,10 @@ def main():
         libyaml.add_top_rust_crates()
         libyaml.save()
 
+    elif args.command == 'generaterustprops':
         propfile = Path(os.path.join(os.curdir, 'props'))
         with propfile.open(mode="w", encoding="utf-8") as file:
+            libyaml = LibraryYaml(args.yaml_dir)
             props = libyaml.get_ce_properties_for_rust_libraries()
             file.write(props)
 

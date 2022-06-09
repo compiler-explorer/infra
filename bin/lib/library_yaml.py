@@ -54,6 +54,7 @@ class LibraryYaml:
                 all_libver_ids.append(libver.replace('.', ''))
 
             libverprops = f'libs.{libid}.name={libid}\n'
+            libverprops += f'libs.{libid}.url=https://crates.io/crates/{libid}\n'
             libverprops += f'libs.{libid}.versions='
             libverprops += ':'.join(all_libver_ids) + '\n'
 
