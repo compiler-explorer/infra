@@ -116,7 +116,7 @@ class RustLibraryBuilder:
                 f.write(f'{line}\n')
 
             if self.buildconfig.build_type == "cargo":
-                cargoline = f'$CARGO build --target-dir {buildfolder} >buildlog.txt 2>&1\n'
+                cargoline = f'$CARGO build --all-features --target-dir {buildfolder} >buildlog.txt 2>&1\n'
                 f.write(cargoline)
             else:
                 raise RuntimeError('Unknown build_type {self.buildconfig.build_type}')
