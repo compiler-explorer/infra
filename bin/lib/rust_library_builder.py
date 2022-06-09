@@ -450,12 +450,12 @@ class RustLibraryBuilder:
                 continue
 
             if compiler in self.buildconfig.skip_compilers:
-                self.logger.info(f'Skipping {compiler}')
+                self.logger.debug(f'Skipping {compiler}')
                 continue
 
             compiler_semver = version.parse(self.compilerprops[compiler]['semver'])
             if compiler_semver < min_compiler_version:
-                self.logger.info(f'Skipping {compiler} (too old)')
+                self.logger.debug(f'Skipping {compiler} (too old)')
                 continue
 
             if 'compilerType' in self.compilerprops[compiler]:
