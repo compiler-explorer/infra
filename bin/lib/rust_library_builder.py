@@ -13,6 +13,7 @@ from enum import Enum, unique
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Generator, TextIO
 
+from packaging import version
 import requests
 
 from lib.rust_crates import RustCrate
@@ -20,6 +21,8 @@ from lib.rust_crates import RustCrate
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.library_build_config import LibraryBuildConfig
+
+min_compiler_version = version.parse('1.59.0')
 
 build_supported_os = ['Linux']
 build_supported_buildtype = ['Debug']
@@ -76,6 +79,8 @@ class RustLibraryBuilder:
         else:
             [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(self.language, self.logger)
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
+
+        self.cached_source_folders: List[str] = []
 
         self.completeBuildConfig()
 
@@ -320,18 +325,25 @@ class RustLibraryBuilder:
         subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
                                 cwd=self.install_context.staging)
 
-    def download_library(self, build_folder):
-        source_folder = os.path.join(build_folder, 'source')
+    def download_library(self, build_folder, source_folder):
+        if not os.path.exists(os.path.join(source_folder, 'Cargo.toml')):
+            self.logger.info(f'Downloading sources for {self.libname}/{self.target_name}')
 
-        if self.buildconfig.repo:
-            self.clone_branch(source_folder)
-        else:
-            crate = RustCrate(self.libname, self.target_name)
-            url = crate.GetDownloadUrl()
-            tar_cmd = ['tar', 'zxf', '-']
-            tar_cmd += ['--strip-components', '1']
-            self.install_context.fetch_url_and_pipe_to(f'{url}', tar_cmd, source_folder)
+            if self.buildconfig.repo:
+                self.clone_branch(source_folder)
+            else:
+                crate = RustCrate(self.libname, self.target_name)
+                url = crate.GetDownloadUrl()
+                tar_cmd = ['tar', 'zxf', '-']
+                tar_cmd += ['--strip-components', '1']
+                self.install_context.fetch_url_and_pipe_to(f'{url}', tar_cmd, source_folder)
 
+    def get_source_folder(self):
+        source_folder = os.path.join(self.install_context.staging, f'source_{self.libname}_{self.target_name}')
+        if not source_folder in self.cached_source_folders:
+            if not os.path.exists(source_folder):
+                os.mkdir(source_folder)
+            self.cached_source_folders.append(source_folder)
         return source_folder
 
     def makebuildfor(self, compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
@@ -347,8 +359,8 @@ class RustLibraryBuilder:
         self.logger.debug(f'Buildfolder: {build_folder}')
 
         real_build_folder = os.path.join(build_folder, 'build')
-        source_folder = os.path.join(build_folder, 'source')
-        os.mkdir(source_folder)
+
+        source_folder = self.get_source_folder()
 
         self.writeconanfile(build_folder)
         self.writebuildscript(
@@ -364,7 +376,7 @@ class RustLibraryBuilder:
             if not self.forcebuild:
                 return BuildStatus.Skipped
 
-        source_folder = self.download_library(build_folder)
+        self.download_library(build_folder, source_folder)
 
         if not self.install_context.dry_run and not self.conanserverproxy_token:
             self.conanproxy_login()
@@ -396,6 +408,11 @@ class RustLibraryBuilder:
             shutil.rmtree(buildfolder, ignore_errors=True)
             self.logger.info(f'Removing {buildfolder}')
 
+    def cache_cleanup(self):
+        if not self.install_context.dry_run:
+            for folder in self.cached_source_folders:
+                shutil.rmtree(folder, ignore_errors=True)
+
     def upload_builds(self):
         if self.needs_uploading > 0:
             if not self.install_context.dry_run:
@@ -426,6 +443,11 @@ class RustLibraryBuilder:
                 self.logger.info(f'Skipping {compiler}')
                 continue
 
+            compiler_semver = version.parse(self.compilerprops[compiler]['semver'])
+            if compiler_semver < min_compiler_version:
+                self.logger.info(f'Skipping {compiler} (too old)')
+                continue
+
             if 'compilerType' in self.compilerprops[compiler]:
                 compilerType = self.compilerprops[compiler]['compilerType']
             else:
@@ -454,5 +476,7 @@ class RustLibraryBuilder:
 
             if builds_succeeded > 0:
                 self.upload_builds()
+
+        self.cache_cleanup()
 
         return [builds_succeeded, builds_skipped, builds_failed]
