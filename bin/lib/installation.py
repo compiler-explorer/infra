@@ -1093,6 +1093,11 @@ class SolidityInstallable(SingleFileInstallable):
         return f'SolidityInstallable({self.name}, {self.install_path})'
 
 
+class CratesIOInstallable(Installable):
+    def is_installed(self) -> bool:
+        return True
+
+
 def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
@@ -1156,7 +1161,8 @@ INSTALLER_TYPES = {
     'bitbucket': BitbucketInstallable,
     'rust': RustInstallable,
     'pip': PipInstallable,
-    'ziparchive': ZipArchiveInstallable
+    'ziparchive': ZipArchiveInstallable,
+    'cratesio': CratesIOInstallable,
 }
 
 

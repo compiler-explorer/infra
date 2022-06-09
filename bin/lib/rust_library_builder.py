@@ -15,6 +15,8 @@ from typing import Dict, Any, List, Optional, Generator, TextIO
 
 import requests
 
+from lib.rust_crates import RustCrate
+
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.library_build_config import LibraryBuildConfig
@@ -327,9 +329,18 @@ class RustLibraryBuilder:
         subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.target_name],
                                 cwd=self.install_context.staging)
 
-    def downloadlibrary(self, build_folder):
+    def download_library(self, build_folder):
         source_folder = os.path.join(build_folder, 'source')
-        self.clone_branch(source_folder)
+
+        if self.buildconfig.repo:
+            self.clone_branch(source_folder)
+        else:
+            crate = RustCrate(self.libname, self.target_name)
+            url = crate.GetDownloadUrl()
+            tar_cmd = ['tar', 'zxf', '-']
+            tar_cmd += ['--strip-components', '1']
+            self.install_context.fetch_url_and_pipe_to(f'{url}', tar_cmd, source_folder)
+
         return source_folder
 
     def makebuildfor(self, compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
@@ -344,7 +355,7 @@ class RustLibraryBuilder:
 
         self.logger.debug(f'Buildfolder: {build_folder}')
 
-        source_folder = self.downloadlibrary(build_folder)
+        source_folder = self.download_library(build_folder)
 
         real_build_folder = os.path.join(build_folder, 'build')
         self.writebuildscript(

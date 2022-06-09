@@ -23,6 +23,9 @@ class LibraryYaml:
         self.save()
 
     def add_rust_crate(self, libid, libversion):
+        if not 'rust' in self.yaml_doc['libraries']:
+            self.yaml_doc['libraries']['rust'] = dict()
+
         libraries_for_language = self.yaml_doc['libraries']['rust']
         if libid in libraries_for_language:
             if not libversion in libraries_for_language[libid]['targets']:
