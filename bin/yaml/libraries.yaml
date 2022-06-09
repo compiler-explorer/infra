@@ -1768,6 +1768,16 @@ libraries:
       targets:
       - 0.12.1
       type: cratesio
+    anyhow:
+      build_type: cargo
+      targets:
+      - 1.0.57
+      type: cratesio
+    arrayvec:
+      build_type: cargo
+      targets:
+      - 0.7.2
+      type: cratesio
     atty:
       build_type: cargo
       targets:
@@ -1778,6 +1788,11 @@ libraries:
       targets:
       - 1.1.0
       type: cratesio
+    backtrace:
+      build_type: cargo
+      targets:
+      - 0.3.65
+      type: cratesio
     base64:
       build_type: cargo
       targets:
@@ -1787,6 +1802,11 @@ libraries:
       build_type: cargo
       targets:
       - 1.3.2
+      type: cratesio
+    block-buffer:
+      build_type: cargo
+      targets:
+      - 0.10.2
       type: cratesio
     byteorder:
       build_type: cargo
@@ -1808,10 +1828,35 @@ libraries:
       targets:
       - 1.0.0
       type: cratesio
+    chrono:
+      build_type: cargo
+      targets:
+      - 0.4.19
+      type: cratesio
     clap:
       build_type: cargo
       targets:
       - 3.1.18
+      type: cratesio
+    contracts:
+      build_type: cargo
+      targets:
+      - 0.6.3
+      type: cratesio
+    crossbeam-channel:
+      build_type: cargo
+      targets:
+      - 0.5.4
+      type: cratesio
+    crossbeam-deque:
+      build_type: cargo
+      targets:
+      - 0.8.1
+      type: cratesio
+    crossbeam-epoch:
+      build_type: cargo
+      targets:
+      - 0.9.8
       type: cratesio
     crossbeam-utils:
       build_type: cargo
@@ -1823,6 +1868,46 @@ libraries:
       targets:
       - 0.10.3
       type: cratesio
+    either:
+      build_type: cargo
+      targets:
+      - 1.6.1
+      type: cratesio
+    env_logger:
+      build_type: cargo
+      targets:
+      - 0.9.0
+      type: cratesio
+    fnv:
+      build_type: cargo
+      targets:
+      - 1.0.7
+      type: cratesio
+    futures:
+      build_type: cargo
+      targets:
+      - 0.3.21
+      type: cratesio
+    futures-channel:
+      build_type: cargo
+      targets:
+      - 0.3.21
+      type: cratesio
+    futures-core:
+      build_type: cargo
+      targets:
+      - 0.3.21
+      type: cratesio
+    futures-task:
+      build_type: cargo
+      targets:
+      - 0.3.21
+      type: cratesio
+    futures-util:
+      build_type: cargo
+      targets:
+      - 0.3.21
+      type: cratesio
     generic-array:
       build_type: cargo
       targets:
@@ -1833,10 +1918,50 @@ libraries:
       targets:
       - 0.2.6
       type: cratesio
+    h2:
+      build_type: cargo
+      targets:
+      - 0.3.13
+      type: cratesio
+    hashbrown:
+      build_type: cargo
+      targets:
+      - 0.12.1
+      type: cratesio
+    heck:
+      build_type: cargo
+      targets:
+      - 0.4.0
+      type: cratesio
+    http:
+      build_type: cargo
+      targets:
+      - 0.2.8
+      type: cratesio
+    httparse:
+      build_type: cargo
+      targets:
+      - 1.7.1
+      type: cratesio
+    hyper:
+      build_type: cargo
+      targets:
+      - 0.14.19
+      type: cratesio
     idna:
       build_type: cargo
       targets:
       - 0.2.3
+      type: cratesio
+    indexmap:
+      build_type: cargo
+      targets:
+      - 1.8.2
+      type: cratesio
+    itertools:
+      build_type: cargo
+      targets:
+      - 0.10.3
       type: cratesio
     itoa:
       build_type: cargo
@@ -1863,10 +1988,40 @@ libraries:
       targets:
       - 0.4.17
       type: cratesio
+    matches:
+      build_type: cargo
+      targets:
+      - 0.1.9
+      type: cratesio
     memchr:
       build_type: cargo
       targets:
       - 2.5.0
+      type: cratesio
+    memoffset:
+      build_type: cargo
+      targets:
+      - 0.6.5
+      type: cratesio
+    miniz_oxide:
+      build_type: cargo
+      targets:
+      - 0.5.3
+      type: cratesio
+    mio:
+      build_type: cargo
+      targets:
+      - 0.8.3
+      type: cratesio
+    ndarray:
+      build_type: cargo
+      targets:
+      - 0.15.4
+      type: cratesio
+    num:
+      build_type: cargo
+      targets:
+      - 0.4.0
       type: cratesio
     num-integer:
       build_type: cargo
@@ -1883,10 +2038,20 @@ libraries:
       targets:
       - 1.13.1
       type: cratesio
+    num_traits:
+      build_type: cargo
+      targets:
+      - 0.2.15
+      type: cratesio
     once_cell:
       build_type: cargo
       targets:
       - 1.12.0
+      type: cratesio
+    opaque-debug:
+      build_type: cargo
+      targets:
+      - 0.3.0
       type: cratesio
     parking_lot:
       build_type: cargo
@@ -1902,6 +2067,26 @@ libraries:
       build_type: cargo
       targets:
       - 2.1.0
+      type: cratesio
+    pin-project-lite:
+      build_type: cargo
+      targets:
+      - 0.2.9
+      type: cratesio
+    pkg-config:
+      build_type: cargo
+      targets:
+      - 0.3.25
+      type: cratesio
+    ppv-lite86:
+      build_type: cargo
+      targets:
+      - 0.2.16
+      type: cratesio
+    proc-macro-hack:
+      build_type: cargo
+      targets:
+      - 0.5.19
       type: cratesio
     proc-macro2:
       build_type: cargo
@@ -1938,6 +2123,11 @@ libraries:
       targets:
       - 0.6.26
       type: cratesio
+    rustc_version:
+      build_type: cargo
+      targets:
+      - 0.4.0
+      type: cratesio
     ryu:
       build_type: cargo
       targets:
@@ -1952,6 +2142,11 @@ libraries:
       build_type: cargo
       targets:
       - 1.0.9
+      type: cratesio
+    semver-parser:
+      build_type: cargo
+      targets:
+      - 0.10.2
       type: cratesio
     serde:
       build_type: cargo
@@ -1968,10 +2163,20 @@ libraries:
       targets:
       - 1.0.81
       type: cratesio
+    slab:
+      build_type: cargo
+      targets:
+      - 0.4.6
+      type: cratesio
     smallvec:
       build_type: cargo
       targets:
       - 1.8.0
+      type: cratesio
+    socket2:
+      build_type: cargo
+      targets:
+      - 0.4.4
       type: cratesio
     strsim:
       build_type: cargo
@@ -1983,10 +2188,65 @@ libraries:
       targets:
       - 1.0.96
       type: cratesio
+    termcolor:
+      build_type: cargo
+      targets:
+      - 1.1.3
+      type: cratesio
+    textwrap:
+      build_type: cargo
+      targets:
+      - 0.15.0
+      type: cratesio
+    thiserror:
+      build_type: cargo
+      targets:
+      - 1.0.31
+      type: cratesio
+    thiserror-impl:
+      build_type: cargo
+      targets:
+      - 1.0.31
+      type: cratesio
+    thread_local:
+      build_type: cargo
+      targets:
+      - 1.1.4
+      type: cratesio
     time:
       build_type: cargo
       targets:
       - 0.3.9
+      type: cratesio
+    tokio:
+      build_type: cargo
+      targets:
+      - 1.19.2
+      type: cratesio
+    toml:
+      build_type: cargo
+      targets:
+      - 0.5.9
+      type: cratesio
+    typenum:
+      build_type: cargo
+      targets:
+      - 1.15.0
+      type: cratesio
+    unicode-bidi:
+      build_type: cargo
+      targets:
+      - 0.3.8
+      type: cratesio
+    unicode-normalization:
+      build_type: cargo
+      targets:
+      - 0.1.19
+      type: cratesio
+    unicode-segmentation:
+      build_type: cargo
+      targets:
+      - 1.9.0
       type: cratesio
     unicode-width:
       build_type: cargo
@@ -2003,10 +2263,25 @@ libraries:
       targets:
       - 2.2.2
       type: cratesio
+    vec_map:
+      build_type: cargo
+      targets:
+      - 0.8.2
+      type: cratesio
     version_check:
       build_type: cargo
       targets:
       - 0.9.4
+      type: cratesio
+    wide:
+      build_type: cargo
+      targets:
+      - 0.7.4
+      type: cratesio
+    winapi:
+      build_type: cargo
+      targets:
+      - 0.3.9
       type: cratesio
   zig:
     nightly:

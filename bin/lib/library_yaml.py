@@ -72,6 +72,6 @@ class LibraryYaml:
 
     def add_top_rust_crates(self):
         cratelisting = TopRustCrates()
-        crates = cratelisting.list(50)
+        crates = cratelisting.list(100)
         for crate in crates:
             self.add_rust_crate(crate['libid'], crate['libversion'])

@@ -101,7 +101,7 @@ def main():
                         help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates', 'generaterustprops'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates', 'generaterustprops', 'addcrate'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
@@ -289,13 +289,16 @@ def main():
         libyaml = LibraryYaml(args.yaml_dir)
         libyaml.add_top_rust_crates()
         libyaml.save()
-
     elif args.command == 'generaterustprops':
         propfile = Path(os.path.join(os.curdir, 'props'))
         with propfile.open(mode="w", encoding="utf-8") as file:
             libyaml = LibraryYaml(args.yaml_dir)
             props = libyaml.get_ce_properties_for_rust_libraries()
             file.write(props)
+    elif args.command == 'addcrate':
+        libyaml = LibraryYaml(args.yaml_dir)
+        libyaml.add_rust_crate(args.filter[0], args.filter[1])
+        libyaml.save()
 
     else:
         raise RuntimeError("Er, whoops")
