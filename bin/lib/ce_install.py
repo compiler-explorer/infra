@@ -290,6 +290,11 @@ def main():
         libyaml.add_top100_rust_crates()
         libyaml.save()
 
+        propfile = Path(os.path.join(os.curdir, 'props'))
+        with propfile.open(mode="w", encoding="utf-8") as file:
+            props = libyaml.get_ce_properties_for_rust_libraries()
+            file.write(props)
+
     else:
         raise RuntimeError("Er, whoops")
 

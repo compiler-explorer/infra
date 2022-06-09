@@ -22,7 +22,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.library_build_config import LibraryBuildConfig
 
-min_compiler_version = version.parse('1.59.0')
+min_compiler_version = version.parse('1.58.0')
 
 build_supported_os = ['Linux']
 build_supported_buildtype = ['Debug']
@@ -103,9 +103,14 @@ class RustLibraryBuilder:
         with open_script(Path(sourcefolder) / "build.sh") as f:
             f.write('#!/bin/sh\n\n')
 
-            f.write(f'RUSTPATH={rustpath}\n')
-            f.write(f'CARGO={rustbinpath}/cargo\n')
-            f.write(f'PATH={rustbinpath}\n')
+            f.write(f'export RUSTPATH={rustpath}\n')
+            f.write(f'export CARGO={rustbinpath}/cargo\n')
+
+            # note: this is the "linker" from etc/config/rust.amazon.properties
+            linkerpath = '/opt/compiler-explorer/gcc-11.1.0/bin'
+
+            f.write(f'export PATH={rustbinpath}:{linkerpath}\n')
+            f.write(f'export RUSTFLAGS=\"-C linker={linkerpath}/gcc\"\n')
 
             for line in self.buildconfig.prebuild_script:
                 f.write(f'{line}\n')
