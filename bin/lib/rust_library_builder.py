@@ -153,9 +153,10 @@ class RustLibraryBuilder:
             f.write(f'conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n')
 
     def writeconanfile(self, buildfolder):
+        underscoredlibname = self.libname.replace('-', '_')
         with (Path(buildfolder) / 'conanfile.py').open(mode='w', encoding='utf-8') as f:
             f.write('from conans import ConanFile, tools\n')
-            f.write(f'class {self.libname}Conan(ConanFile):\n')
+            f.write(f'class {underscoredlibname}Conan(ConanFile):\n')
             f.write(f'    name = "{self.libname}"\n')
             f.write(f'    version = "{self.target_name}"\n')
             f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
