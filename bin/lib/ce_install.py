@@ -287,7 +287,7 @@ def main():
         libyaml.reformat()
     elif args.command == 'addtoprustcrates':
         libyaml = LibraryYaml(args.yaml_dir)
-        libyaml.add_top100_rust_crates()
+        libyaml.add_top_rust_crates()
         libyaml.save()
 
         propfile = Path(os.path.join(os.curdir, 'props'))

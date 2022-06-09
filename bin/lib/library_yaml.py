@@ -69,7 +69,7 @@ class LibraryYaml:
 
         return header_properties_txt + properties_txt
 
-    def add_top100_rust_crates(self):
+    def add_top_rust_crates(self):
         cratelisting = TopRustCrates()
         crates = cratelisting.list(50)
         for crate in crates:
