@@ -268,18 +268,8 @@ class RustLibraryBuilder:
             buffer = fd.read()
             return json.loads(buffer)
 
-    def get_commit_hash(self, source_folder) -> str:
-        if os.path.exists(f'{source_folder}/.git'):
-            lastcommitinfo = subprocess.check_output(
-                ['git', '-C', source_folder, 'log', '-1', '--oneline', '--no-color']).decode('utf-8', 'ignore')
-            self.logger.debug(lastcommitinfo)
-            match = GITCOMMITHASH_RE.match(lastcommitinfo)
-            if match:
-                return match[1]
-            else:
-                return self.target_name
-        else:
-            return self.target_name
+    def get_commit_hash(self) -> str:
+        return self.target_name
 
     def has_failed_before(self):
         headers = {"Content-Type": "application/json"}
@@ -294,9 +284,10 @@ class RustLibraryBuilder:
 
     def is_already_uploaded(self, buildfolder, source_folder):
         annotations = self.get_build_annotations(buildfolder)
+        self.logger.debug('Annotations: ' + json.dumps(annotations))
 
         if 'commithash' in annotations:
-            commithash = self.get_commit_hash(source_folder)
+            commithash = self.get_commit_hash()
 
             return commithash == annotations['commithash']
         else:
@@ -307,12 +298,12 @@ class RustLibraryBuilder:
         if conanhash is None:
             raise RuntimeError(f'Error determining conan hash in {buildfolder}')
 
-        self.logger.info(f'commithash: {conanhash}')
+        self.logger.info(f'conanhash: {conanhash}')
 
         annotations = self.get_build_annotations(buildfolder)
         if 'commithash' not in annotations:
             self.upload_builds()
-        annotations['commithash'] = self.get_commit_hash(source_folder)
+        annotations['commithash'] = self.get_commit_hash()
 
         self.logger.info(annotations)
 
@@ -355,13 +346,14 @@ class RustLibraryBuilder:
 
         self.logger.debug(f'Buildfolder: {build_folder}')
 
-        source_folder = self.download_library(build_folder)
-
         real_build_folder = os.path.join(build_folder, 'build')
+        source_folder = os.path.join(build_folder, 'source')
+        os.mkdir(source_folder)
+
+        self.writeconanfile(build_folder)
         self.writebuildscript(
             real_build_folder, source_folder, compiler, options, exe, compiler_type, toolchain, buildos, buildtype,
             arch, stdver, stdlib, flagscombination, ld_path)
-        self.writeconanfile(build_folder)
 
         if not self.forcebuild and self.has_failed_before():
             self.logger.info("Build has failed before, not re-attempting")
@@ -371,6 +363,8 @@ class RustLibraryBuilder:
             self.logger.info("Build already uploaded")
             if not self.forcebuild:
                 return BuildStatus.Skipped
+
+        source_folder = self.download_library(build_folder)
 
         if not self.install_context.dry_run and not self.conanserverproxy_token:
             self.conanproxy_login()
