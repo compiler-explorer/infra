@@ -13,7 +13,7 @@ from enum import Enum, unique
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Generator, TextIO
 
-from packaging import version
+#from packaging import version
 import requests
 
 from lib.rust_crates import RustCrate
@@ -22,7 +22,8 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.library_build_config import LibraryBuildConfig
 
-min_compiler_version = version.parse('1.58.0')
+#min_compiler_version = version.parse('1.56.0')
+skip_compilers = ['nightly', 'beta', '(GCCRS)', '(rustc - GCC)', '(mrustc)']
 
 build_supported_os = ['Linux']
 build_supported_buildtype = ['Debug']
@@ -453,10 +454,14 @@ class RustLibraryBuilder:
                 self.logger.debug(f'Skipping {compiler}')
                 continue
 
-            compiler_semver = version.parse(self.compilerprops[compiler]['semver'])
-            if compiler_semver < min_compiler_version:
-                self.logger.debug(f'Skipping {compiler} (too old)')
+            if compiler in skip_compilers:
+                self.logger.debug(f'Skipping {compiler}')
                 continue
+
+            # compiler_semver = version.parse(self.compilerprops[compiler]['semver'])
+            # if compiler_semver < min_compiler_version:
+            #     self.logger.debug(f'Skipping {compiler} (too old)')
+            #     continue
 
             if 'compilerType' in self.compilerprops[compiler]:
                 compilerType = self.compilerprops[compiler]['compilerType']
