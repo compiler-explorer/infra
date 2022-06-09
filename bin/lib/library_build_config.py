@@ -20,6 +20,10 @@ class LibraryBuildConfig:
         self.package_extra_copy = self.config_get("package_extra_copy", [])
         self.skip_compilers = self.config_get("skip_compilers", [])
 
+        if self.build_type == "cargo":
+            self.domainurl = self.config_get("domainurl", "https://github.com")
+            self.repo = self.config_get("repo", "")
+
     def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
         if config_key not in self.config and default is None:
             raise RuntimeError(f"Missing required key '{config_key}'")

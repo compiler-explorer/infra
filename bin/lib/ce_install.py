@@ -101,7 +101,7 @@ def main():
                         help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
@@ -285,6 +285,15 @@ def main():
     elif args.command == 'reformat':
         libyaml = LibraryYaml(args.yaml_dir)
         libyaml.reformat()
+    elif args.command == 'addtoprustcrates':
+        libyaml = LibraryYaml(args.yaml_dir)
+        libyaml.add_top_rust_crates()
+        libyaml.save()
+
+        propfile = Path(os.path.join(os.curdir, 'props'))
+        with propfile.open(mode="w", encoding="utf-8") as file:
+            props = libyaml.get_ce_properties_for_rust_libraries()
+            file.write(props)
 
     else:
         raise RuntimeError("Er, whoops")
