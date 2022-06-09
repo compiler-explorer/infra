@@ -437,7 +437,7 @@ class RustLibraryBuilder:
         if buildfor != "":
             self.forcebuild = True
 
-        if buildfor == "all":
+        if buildfor == "forceall":
             self.forcebuild = True
         else:
             checkcompiler = buildfor
