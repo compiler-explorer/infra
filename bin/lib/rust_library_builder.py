@@ -437,9 +437,12 @@ class RustLibraryBuilder:
         if buildfor != "":
             self.forcebuild = True
 
-        checkcompiler = buildfor
-        if checkcompiler not in self.compilerprops:
-            self.logger.error(f'Unknown compiler {checkcompiler}')
+        if buildfor == "all":
+            self.forcebuild = True
+        else:
+            checkcompiler = buildfor
+            if checkcompiler not in self.compilerprops:
+                self.logger.error(f'Unknown compiler {checkcompiler}')
 
         for compiler in self.compilerprops:
             if checkcompiler != "" and compiler != checkcompiler:
