@@ -24,7 +24,7 @@ class TopRustCrates:
     def __init__(self):
         self.cratesio = 'https://crates.io'
 
-    def ListTopCrates(self, limit = 100):
+    def list(self, limit = 100):
         url = f'{self.cratesio}/api/v1/crates?page=1&per_page={limit}&sort=downloads'
         response = urllib.request.urlopen(url)
         data = json.loads(response.read())
