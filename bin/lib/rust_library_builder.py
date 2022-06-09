@@ -439,6 +439,7 @@ class RustLibraryBuilder:
 
         if buildfor == "forceall":
             self.forcebuild = True
+            checkcompiler = ""
         else:
             checkcompiler = buildfor
             if checkcompiler not in self.compilerprops:
