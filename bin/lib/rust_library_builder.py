@@ -107,7 +107,8 @@ class RustLibraryBuilder:
             f.write(f'export RUSTPATH={rustpath}\n')
             f.write(f'export CARGO={rustbinpath}/cargo\n')
 
-            linkerpath = os.path.join(build_method.linker, 'bin')
+            linkerpath = os.path.join(build_method['linker'], 'bin')
+            methodflags = build_method['build_method']
 
             f.write(f'export PATH={rustbinpath}:{linkerpath}\n')
             f.write(f'export RUSTFLAGS=\"-C linker={linkerpath}/gcc\"\n')
@@ -116,7 +117,7 @@ class RustLibraryBuilder:
                 f.write(f'{line}\n')
 
             if self.buildconfig.build_type == "cargo":
-                cargoline = f'$CARGO build {build_method.build_method} --target-dir {buildfolder} >> buildlog.txt 2>&1\n'
+                cargoline = f'$CARGO build {methodflags} --target-dir {buildfolder} >> buildlog.txt 2>&1\n'
                 f.write(cargoline)
             else:
                 raise RuntimeError('Unknown build_type {self.buildconfig.build_type}')
