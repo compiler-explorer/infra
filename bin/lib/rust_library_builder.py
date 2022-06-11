@@ -95,7 +95,7 @@ class RustLibraryBuilder:
 
     # pylint: disable=unused-argument
     def writebuildscript(self, buildfolder, sourcefolder, compiler, compileroptions, compilerexe, compilerType,
-                         toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath):
+                         toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, ldPath, build_method):
         rustbinpath = os.path.dirname(compilerexe)
         rustpath = os.path.dirname(rustbinpath)
         extraflags = ''
@@ -107,8 +107,7 @@ class RustLibraryBuilder:
             f.write(f'export RUSTPATH={rustpath}\n')
             f.write(f'export CARGO={rustbinpath}/cargo\n')
 
-            # note: this is the "linker" from etc/config/rust.amazon.properties
-            linkerpath = '/opt/compiler-explorer/gcc-11.1.0/bin'
+            linkerpath = build_method.linker
 
             f.write(f'export PATH={rustbinpath}:{linkerpath}\n')
             f.write(f'export RUSTFLAGS=\"-C linker={linkerpath}/gcc\"\n')
@@ -117,7 +116,7 @@ class RustLibraryBuilder:
                 f.write(f'{line}\n')
 
             if self.buildconfig.build_type == "cargo":
-                cargoline = f'$CARGO build --all-features --target-dir {buildfolder} >buildlog.txt 2>&1\n'
+                cargoline = f'$CARGO build {build_method.build_method} --target-dir {buildfolder} >> buildlog.txt 2>&1\n'
                 f.write(cargoline)
             else:
                 raise RuntimeError('Unknown build_type {self.buildconfig.build_type}')
@@ -305,7 +304,7 @@ class RustLibraryBuilder:
         else:
             return False
 
-    def set_as_uploaded(self, buildfolder, source_folder):
+    def set_as_uploaded(self, buildfolder, source_folder, build_method):
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f'Error determining conan hash in {buildfolder}')
@@ -317,6 +316,9 @@ class RustLibraryBuilder:
             self.upload_builds()
         annotations['commithash'] = self.get_commit_hash()
 
+        for key, value in build_method:
+            annotations[key] = value
+
         self.logger.info(annotations)
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
@@ -325,6 +327,15 @@ class RustLibraryBuilder:
         request = requests.post(url, data=json.dumps(annotations), headers=headers)
         if not request.ok:
             raise RuntimeError(f'Post failure for {url}: {request}')
+
+    def repair_annotations(self):
+        build_method = {
+            'build_method': '--all-features',
+            'linker': '/opt/compiler-explorer/gcc-11.1.0'}
+
+        build_folder = ''
+
+        self.set_as_uploaded(build_folder, '', build_method)
 
     def clone_branch(self, dest):
         subprocess.check_call(['git', 'clone', '-q', f'{self.buildconfig.domainurl}/{self.buildconfig.repo}.git', dest],
@@ -370,9 +381,14 @@ class RustLibraryBuilder:
         source_folder = self.get_source_folder()
 
         self.writeconanfile(build_folder)
+
+        build_method = {
+            'build_method': '--all-features',
+            'linker': '/opt/compiler-explorer/gcc-11.1.0'}
+
         self.writebuildscript(
             real_build_folder, source_folder, compiler, options, exe, compiler_type, toolchain, buildos, buildtype,
-            arch, stdver, stdlib, flagscombination, ld_path)
+            arch, stdver, stdlib, flagscombination, ld_path, build_method)
 
         if not self.forcebuild and self.has_failed_before():
             self.logger.info("Build has failed before, not re-attempting")
@@ -395,7 +411,7 @@ class RustLibraryBuilder:
                 build_status = self.executeconanscript(build_folder, arch, stdlib)
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
-                    self.set_as_uploaded(build_folder, source_folder)
+                    self.set_as_uploaded(build_folder, source_folder, build_method)
             else:
                 filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib)
                 self.logger.debug(f'Number of valid library binaries {filesfound}')
