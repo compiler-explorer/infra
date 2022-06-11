@@ -358,6 +358,22 @@ class RustLibraryBuilder:
 
     def makebuildfor(self, compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
                      flagscombination, ld_path):
+        build_method = {
+            'build_method': '--all-features',
+            'linker': '/opt/compiler-explorer/gcc-11.1.0'}
+        build_status = self.makebuildfor_by_method(compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
+                     flagscombination, ld_path, build_method)
+        if build_status == BuildStatus.Failed:
+            build_method = {
+                'build_method': '',
+                'linker': '/opt/compiler-explorer/gcc-11.1.0'}
+            build_status = self.makebuildfor_by_method(compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
+                        flagscombination, ld_path, build_method)
+
+        return build_status
+
+    def makebuildfor_by_method(self, compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
+                     flagscombination, ld_path, build_method):
         combined_hash = self.makebuildhash(compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib,
                                            flagscombination)
 
@@ -373,10 +389,6 @@ class RustLibraryBuilder:
         source_folder = self.get_source_folder()
 
         self.writeconanfile(build_folder)
-
-        build_method = {
-            'build_method': '--all-features',
-            'linker': '/opt/compiler-explorer/gcc-11.1.0'}
 
         self.writebuildscript(
             real_build_folder, source_folder, compiler, options, exe, compiler_type, toolchain, buildos, buildtype,
@@ -413,6 +425,10 @@ class RustLibraryBuilder:
 
         if build_status == BuildStatus.Ok:
             self.build_cleanup(build_folder)
+        elif build_status == BuildStatus.Failed:
+            self.logger.info("Build has failed")
+        elif build_status == BuildStatus.TimedOut:
+            self.logger.info("Build has timed out")
 
         return build_status
 
