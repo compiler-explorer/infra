@@ -329,15 +329,6 @@ class RustLibraryBuilder:
         if not request.ok:
             raise RuntimeError(f'Post failure for {url}: {request}')
 
-    def repair_annotations(self):
-        build_method = {
-            'build_method': '--all-features',
-            'linker': '/opt/compiler-explorer/gcc-11.1.0'}
-
-        build_folder = ''
-
-        self.set_as_uploaded(build_folder, '', build_method)
-
     def clone_branch(self, dest):
         subprocess.check_call(['git', 'clone', '-q', f'{self.buildconfig.domainurl}/{self.buildconfig.repo}.git', dest],
                                 cwd=self.install_context.staging)
