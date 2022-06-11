@@ -107,7 +107,7 @@ class RustLibraryBuilder:
             f.write(f'export RUSTPATH={rustpath}\n')
             f.write(f'export CARGO={rustbinpath}/cargo\n')
 
-            linkerpath = build_method.linker
+            linkerpath = os.path.join(build_method.linker, 'bin')
 
             f.write(f'export PATH={rustbinpath}:{linkerpath}\n')
             f.write(f'export RUSTFLAGS=\"-C linker={linkerpath}/gcc\"\n')
