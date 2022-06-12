@@ -373,7 +373,7 @@ class Installable:
         return True
 
     def is_installed(self) -> bool:
-        if self.check_file is None:
+        if self.check_file is None and not self.check_call:
             return True
 
         if self._check_link and not self._check_link():
