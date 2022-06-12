@@ -563,6 +563,12 @@ compilers:
         compression: bz2
         targets:
           - 2017-07-16
+    mlir:
+      type: s3tarballs
+      dir: "mlir-{name}"
+      check_exe: bin/mlir-translate --version
+      targets:
+        - 14.0.0
     tinycc:
       type: s3tarballs
       dir: "tinycc-{name}"
