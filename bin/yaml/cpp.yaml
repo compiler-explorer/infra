@@ -569,6 +569,7 @@ compilers:
       check_exe: bin/mlir-translate --version
       targets:
         - 14.0.0
+        - 14.0.5
     tinycc:
       type: s3tarballs
       dir: "tinycc-{name}"
