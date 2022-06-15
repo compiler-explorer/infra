@@ -108,7 +108,7 @@ def runner_start():
     for _ in range(60):
         try:
             r = exec_remote(instance, ["journalctl", "-u", "compiler-explorer", "-r", "-n", "1", "-q"])
-            if r.trim().includes("compiler-explorer.service: Succeeded."):
+            if "compiler-explorer.service: Succeeded." in r:
                 break
         except:  # pylint: disable=bare-except
             print("Waiting for startup to complete")
