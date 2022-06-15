@@ -669,6 +669,14 @@ libraries:
         targets:
         - trunk
         type: github
+      avr-libstdcpp:
+        build_type: manual
+        check_file: include/array
+        method: nightlyclone
+        repo: modm-io/avr-libstdcpp
+        targets:
+        - trunk
+        type: github
       benchmark:
         build_type: cmake
         check_file: README.md
