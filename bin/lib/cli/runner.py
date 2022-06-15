@@ -104,6 +104,18 @@ def runner_start():
         time.sleep(5)
     else:
         raise RuntimeError("Unable to get SSH access")
+
+    for _ in range(60):
+        try:
+            r = exec_remote(instance, ["journalctl", "-u", "compiler-explorer", "-r", "-n", "1", "-q"])
+            if r.includes("compiler-explorer.service: Succeeded."):
+                break
+        except:  # pylint: disable=bare-except
+            print("Waiting for startup to complete")
+        time.sleep(5)
+    else:
+        raise RuntimeError("Unable to get SSH access")
+
     print("Runner started OK")
 
 
