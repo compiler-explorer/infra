@@ -108,6 +108,7 @@ def runner_start():
     for _ in range(60):
         try:
             r = exec_remote(instance, ["journalctl", "-u", "compiler-explorer", "-r", "-n", "1", "-q"])
+            print(r)
             if r.includes("compiler-explorer.service: Succeeded."):
                 break
         except:  # pylint: disable=bare-except
