@@ -163,10 +163,10 @@ libraries:
       type: github
     curl:
       after_stage_script:
-      - cp /home/ubuntu/infra/bin/resources/curl_config.hpp include/curl/curl_config.hpp
+      - cp /home/ubuntu/infra/bin/resources/curl_config.h curl-{{name}}/include/curl/curl_config.h
       build_type: cmake
       check_file: CMakeLists.txt
-      dir: libs/curl-{{name}}
+      dir: libs/curl/{{name}}
       extra_cmake_arg:
       - -DOPENSSL_ROOT_DIR=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt
       lib_type: shared
