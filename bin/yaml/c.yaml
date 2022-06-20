@@ -67,3 +67,23 @@ compilers:
         check_file: chibicc
         targets:
           - main
+    cross:
+      type: s3tarballs
+      arch_prefix:
+      gcc:
+        s3_path_prefix: "{subdir}-gcc-{name}"
+        path_name: "{subdir}/gcc-{name}"
+        untar_dir: "gcc-{name}"
+        check_exe: "bin/{arch_prefix}-gcc --version"
+        arm64morello:
+          - type: tarballs
+            subdir: arm64morello
+            name: morello-10.1-alp1
+            arch_prefix: aarch64-none-elf
+            create_untar_dir: True
+            dir: arm64morello/gcc-aarch64-none-elf-10.1.morello-alp1-x86_64
+            untar_dir: gcc-aarch64-none-elf-10.1.morello-alp1-x86_64
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-morello/10.1.Morello-Alp1/binrel/arm-gnu-toolchain-10.1.Morello-Alp1-x86_64-aarch64-none-elf.tar.xz
+            compression: xz
+            targets:
+              - gcc-aarch64-none-elf-10.1.morello-alp1-x86_64 # name unused in this case
