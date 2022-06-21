@@ -593,6 +593,15 @@ libraries:
       - 13.0.1
       - 14.0.0
       type: s3tarballs
+    mlir:
+      check_file: include/mlir/InitAllPasses.h
+      path_name: libs/mlir/{name}
+      s3_path_prefix: mlir-{name}
+      subdir: libs/mlir/{name}
+      targets:
+        - 14.0.0
+        - 14.0.5
+      type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
       repo: Neargye/magic_enum
