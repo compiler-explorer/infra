@@ -1427,6 +1427,7 @@ libraries:
       - 0.9.1
       - 0.10.0
       - 0.11.0
+      - 0.12.0
       type: github
     scnlib:
       build_type: cmake
