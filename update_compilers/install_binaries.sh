@@ -19,11 +19,20 @@ fi
 #########################
 # cmake
 
-if [[ ! -x ${OPT}/cmake/bin/cmake ]]; then
-    mkdir cmake
-    fetch https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake
+if [[ ! -x ${OPT}/cmake-v3.18.2/bin/cmake ]]; then
+    cd ${OPT}
+    mkdir cmake-v3.18.2
+    fetch https://github.com/Kitware/CMake/releases/download/v3.18.2/cmake-3.18.2-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake-v3.18.2
 fi
 
+if [[ ! -x ${OPT}/cmake-v3.23.1/bin/cmake ]]; then
+    cd ${OPT}
+    mkdir cmake-v3.23.1
+    fetch https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake-v3.23.1
+fi
+
+rm -Rf ${OPT}/cmake
+ln -s ${OPT}/cmake-v3.23.1 ${OPT}/cmake
 
 #########################
 # pahole

@@ -46,6 +46,7 @@ compilers:
           - 9.2.0
           - 9.3.0
           - 9.4.0
+          - 9.5.0
           - 10.1.0
           - 10.2.0
           - 10.3.0
@@ -93,6 +94,8 @@ compilers:
               - 10.3.0
               - 11.1.0
               - 11.2.0
+              - 11.3.0
+              - 12.1.0
             nightly:
               if: nightly
               type: nightly
@@ -140,6 +143,33 @@ compilers:
             compression: bz2
             targets:
               - gcc-arm-none-eabi-10-2020-q4 # name unused in this case
+          - type: tarballs
+            check_exe: bin/arm-none-eabi-g++ --version
+            subdir: arm
+            dir: arm/gcc-arm-none-eabi-10.3-2021.07
+            untar_dir: gcc-arm-none-eabi-10.3-2021.07
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.07/gcc-arm-none-eabi-10.3-2021.07-x86_64-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-10.3-2021.07 # name unused in this case
+          - type: tarballs
+            check_exe: bin/arm-none-eabi-g++ --version
+            subdir: arm
+            dir: arm/gcc-arm-none-eabi-10.3-2021.10
+            untar_dir: gcc-arm-none-eabi-10.3-2021.10
+            url: https://developer.arm.com/-/media/Files/downloads/gnu-rm/10.3-2021.10/gcc-arm-none-eabi-10.3-2021.10-x86_64-linux.tar.bz2
+            compression: bz2
+            targets:
+              - gcc-arm-none-eabi-10.3-2021.10 # name unused in this case
+          - type: tarballs
+            check_exe: bin/arm-none-eabi-g++ --version
+            subdir: arm
+            dir: arm/gcc-arm-none-eabi-11.2-2022.02
+            untar_dir: gcc-arm-11.2-2022.02-x86_64-arm-none-eabi
+            url: https://developer.arm.com/-/media/Files/downloads/gnu/11.2-2022.02/binrel/gcc-arm-11.2-2022.02-x86_64-arm-none-eabi.tar.xz
+            compression: xz
+            targets:
+              - gcc-arm-11.2-2022.02-x86_64-arm-none-eabi # name unused in this case
           - type: tarballs
             # Not in a subdir
             check_exe: bin/arm-none-eabi-g++ --version
@@ -220,6 +250,8 @@ compilers:
             - 10.3.0
             - 11.1.0
             - 11.2.0
+            - 11.3.0
+            - 12.1.0
           nightly:
             if: nightly
             type: nightly
@@ -307,14 +339,26 @@ compilers:
           subdir: riscv64
           targets:
             - 8.2.0
+            - 8.5.0
+            - 9.4.0
             - 10.2.0
+            - 10.3.0
+            - 11.2.0
+            - 11.3.0
+            - 12.1.0
         riscv32:
           arch_prefix: "riscv32-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: riscv32
           targets:
             - 8.2.0
+            - 8.5.0
+            - 9.4.0
             - 10.2.0
+            - 10.3.0
+            - 11.2.0
+            - 11.3.0
+            - 12.1.0
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -519,6 +563,13 @@ compilers:
         compression: bz2
         targets:
           - 2017-07-16
+    mlir:
+      type: s3tarballs
+      dir: "mlir-{name}"
+      check_exe: bin/mlir-translate --version
+      targets:
+        - 14.0.0
+        - 14.0.5
     tinycc:
       type: s3tarballs
       dir: "tinycc-{name}"

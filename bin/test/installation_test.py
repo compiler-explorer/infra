@@ -22,7 +22,7 @@ weasel:
     targets:
     - moo
     """) == [
-        {'type': 'foo', 'name': 'moo', 'context': ['weasel']}
+        {'type': 'foo', 'name': 'moo', 'underscore_name': 'moo', 'context': ['weasel']}
     ]
 
 
@@ -38,7 +38,7 @@ weasel:
         - ook
     """) == [
         {'type': 'foo', 'base_config': 'baboon', 'weasel_config': 'weasel',
-         'context': ['weasel', 'baboon'], 'name': 'ook'}
+         'context': ['weasel', 'baboon'], 'name': 'ook', 'underscore_name': 'ook'}
     ]
 
 

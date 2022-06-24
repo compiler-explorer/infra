@@ -20,6 +20,7 @@ import requests.adapters
 import yaml
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
+from lib.rust_library_builder import RustLibraryBuilder
 
 from lib.amazon import list_compilers, list_s3_artifacts
 from lib.config_expand import is_value_type, expand_target
@@ -50,7 +51,7 @@ def s3_available_compilers():
 
 class InstallationContext:
     def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
-                 cache: Optional[Path], yaml_dir: Path):
+                 cache: Optional[Path], yaml_dir: Path, allow_unsafe_ssl: bool):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -62,6 +63,7 @@ class InstallationContext:
             status_forcelist=[429, 500, 502, 503, 504],
             method_whitelist=["HEAD", "GET", "OPTIONS"]
         )
+        self.allow_unsafe_ssl = allow_unsafe_ssl
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
         http = requests.Session()
         http.mount("https://", adapter)
@@ -100,7 +102,11 @@ class InstallationContext:
 
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
-        request = self.fetcher.get(url, stream=True)
+        if (self.allow_unsafe_ssl):
+            request = self.fetcher.get(url, stream=True, verify=False)
+        else:
+            request = self.fetcher.get(url, stream=True)
+
         if not request.ok:
             self.error(f'Failed to fetch {url}: {request}')
             raise FetchFailure(f'Fetch failure for {url}: {request}')
@@ -367,6 +373,9 @@ class Installable:
         return True
 
     def is_installed(self) -> bool:
+        if self.check_file is None and not self.check_call:
+            return True
+
         if self._check_link and not self._check_link():
             self.debug('Check link returned false')
             return False
@@ -411,13 +420,17 @@ class Installable:
         if self.build_config.build_type == "":
             raise RuntimeError('No build_type')
 
-        sourcefolder = os.path.join(self.install_context.destination, self.install_path)
-        builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
-                                 self.install_context, self.build_config)
-
-        if self.build_config.build_type == "cmake":
-            return builder.makebuild(buildfor)
-        elif self.build_config.build_type == "make":
+        if self.build_config.build_type in ["cmake", "make"]:
+            sourcefolder = os.path.join(self.install_context.destination, self.install_path)
+            builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
+                                    self.install_context, self.build_config)
+            if self.build_config.build_type == "cmake":
+                return builder.makebuild(buildfor)
+            elif self.build_config.build_type == "make":
+                return builder.makebuild(buildfor)
+        elif self.build_config.build_type == "cargo":
+            builder = RustLibraryBuilder(logger, self.language, self.context[-1], self.target_name,
+                                    self.install_context, self.build_config)
             return builder.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
@@ -476,6 +489,8 @@ class GitHubInstallable(Installable):
                 self.check_file = os.path.join(self.install_path, 'Makefile')
             elif self.build_config.build_type == "cake":
                 self.check_file = os.path.join(self.install_path, 'config.cake')
+            elif self.build_config.build_type == "cargo":
+                self.check_file = None
             else:
                 raise RuntimeError(f'Requires check_file ({last_context})')
         else:
@@ -1078,6 +1093,11 @@ class SolidityInstallable(SingleFileInstallable):
         return f'SolidityInstallable({self.name}, {self.install_path})'
 
 
+class CratesIOInstallable(Installable):
+    def is_installed(self) -> bool:
+        return True
+
+
 def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
@@ -1123,7 +1143,7 @@ def _targets_from(node, enabled, context, name, base_config):
             if isinstance(target, float):
                 raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
-                target = {'name': target}
+                target = {'name': target, 'underscore_name': target.replace('.', '_')}
             yield expand_target(ChainMap(target, base_config), context)
 
 
@@ -1141,7 +1161,8 @@ INSTALLER_TYPES = {
     'bitbucket': BitbucketInstallable,
     'rust': RustInstallable,
     'pip': PipInstallable,
-    'ziparchive': ZipArchiveInstallable
+    'ziparchive': ZipArchiveInstallable,
+    'cratesio': CratesIOInstallable,
 }
 
 

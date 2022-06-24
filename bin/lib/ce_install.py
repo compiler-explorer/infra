@@ -9,6 +9,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import yaml
+from lib.library_yaml import LibraryYaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
@@ -42,6 +43,27 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
     return _context_match(split[0], installable) and _target_match(split[1], installable)
 
 
+def filter_aggregate(filters: list, installable: Installable, filter_match_all: bool = True) -> bool:
+    # if there are no filters, accept it
+    if not filters:
+        return True
+
+    # accept installable if it passes all filters (if filter_match_all is set) or any filters (otherwise)
+    filter_generator = (filter_match(filt, installable) for filt in filters)
+    return all(filter_generator) if filter_match_all else any(filter_generator)
+
+def squash_mount_check(rootfolder, subdir, context):
+    for filename in os.listdir(os.path.join(rootfolder, subdir)):
+        if filename.endswith(".img"):
+            checkdir = Path(os.path.join("/opt/compiler-explorer/", subdir, filename[:-4]))
+            if not checkdir.exists():
+                context.error(f"Missing mount point {checkdir}")
+        else:
+            if subdir == "":
+                squash_mount_check(rootfolder, filename, context)
+            else:
+                squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
+
 def main():
     parser = ArgumentParser(prog='ce_install',
                             description='Install binaries, libraries and compilers for Compiler Explorer')
@@ -64,6 +86,7 @@ def main():
     parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR', type=Path)
     parser.add_argument('--dry_run', default=False, action='store_true', help='dry run only')
     parser.add_argument('--force', default=False, action='store_true', help='force even if would otherwise skip')
+    parser.add_argument('--allow_unsafe_ssl', default=False, action='store_true', help='skip ssl certificate checks on https connections')
 
     parser.add_argument('--debug', default=False, action='store_true', help='log at debug')
     parser.add_argument('--log_to_console', default=False, action='store_true',
@@ -72,12 +95,16 @@ def main():
 
     parser.add_argument('--buildfor', default='', metavar='BUILDFOR',
                         help='filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all')
+    parser.add_argument('--filter-match-all', default=True, action='store_true',
+                        help='installables must pass all filters')
+    parser.add_argument('--filter-match-any', default=False, action='store_false', dest='filter_match_all',
+                        help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates', 'generaterustprops', 'addcrate'],
                         default='list',
                         nargs='?')
-    parser.add_argument('filter', nargs='*', help='filter to apply', default=[])
+    parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
 
     args = parser.parse_args()
     formatter = logging.Formatter(fmt='%(asctime)s %(name)-15s %(levelname)-8s %(message)s')
@@ -94,7 +121,7 @@ def main():
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
     context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
-                                  args.cache, args.yaml_dir)
+                                  args.cache, args.yaml_dir, args.allow_unsafe_ssl)
 
     installables = []
     for yaml_path in Path(args.yaml_dir).glob('*.yaml'):
@@ -107,11 +134,7 @@ def main():
     for installable in installables:
         installable.link(installables_by_name)
 
-    for filt in args.filter:
-        def make_f(x=filt):  # see https://stupidpythonideas.blogspot.com/2016/01/for-each-loops-should-define-new.html
-            return lambda installable: filter_match(x, installable)
-
-        installables = filter(make_f(), installables)
+    installables = filter(lambda installable: filter_aggregate(args.filter, installable, args.filter_match_all), installables)
     installables = sorted(installables, key=lambda x: x.sort_key)
 
     if args.command == 'list':
@@ -179,8 +202,21 @@ def main():
             if destination.exists() and not args.force:
                 context.info(f"Skipping {installable.name} as it already exists at {destination}")
                 continue
-            context.info(f"Squashing {installable.name}  to {destination}")
+            context.info(f"Squashing {installable.name} to {destination}")
             installable.squash_to(destination)
+    elif args.command == 'squashcheck':
+        if not Path(args.image_dir).exists():
+            context.error(f"Missing squash directory {args.image_dir}")
+            exit(1)
+
+        for installable in installables:
+            destination: Path = Path(args.image_dir / f"{installable.install_path}.img")
+            if not destination.exists():
+                context.error(f"Missing squash: {installable.name} (for {destination})")
+                continue
+
+        squash_mount_check(args.image_dir, '', context)
+
     elif args.command == 'install':
         num_installed = 0
         num_skipped = 0
@@ -246,6 +282,24 @@ def main():
         if num_failed:
             sys.exit(1)
         sys.exit(0)
+    elif args.command == 'reformat':
+        libyaml = LibraryYaml(args.yaml_dir)
+        libyaml.reformat()
+    elif args.command == 'addtoprustcrates':
+        libyaml = LibraryYaml(args.yaml_dir)
+        libyaml.add_top_rust_crates()
+        libyaml.save()
+    elif args.command == 'generaterustprops':
+        propfile = Path(os.path.join(os.curdir, 'props'))
+        with propfile.open(mode="w", encoding="utf-8") as file:
+            libyaml = LibraryYaml(args.yaml_dir)
+            props = libyaml.get_ce_properties_for_rust_libraries()
+            file.write(props)
+    elif args.command == 'addcrate':
+        libyaml = LibraryYaml(args.yaml_dir)
+        libyaml.add_rust_crate(args.filter[0], args.filter[1])
+        libyaml.save()
+
     else:
         raise RuntimeError("Er, whoops")
 

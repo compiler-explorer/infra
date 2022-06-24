@@ -31,6 +31,15 @@ tools:
         url: https://github.com/rust-lang/rustfmt/releases/download/v1.4.36/rustfmt_linux-x86_64_v1.4.36.tar.gz
         strip_components: 1
         create_untar_dir: true
+  mmbutils:
+    type: github
+    method: nightlyclone
+    repo: sweharris/MMB_Utils
+    path_name: mmbutils
+    check_file: beeb
+    check_exe: ./beeb
+    targets:
+      - trunk
   asm-parser:
     type: tarballs
     dir: asm-parser

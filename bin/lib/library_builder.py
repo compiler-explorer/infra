@@ -492,7 +492,7 @@ class LibraryBuilder:
                   'utf-8'))
 
         self.logger.info(
-            f'Building {self.libname} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]')
+            f'Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]')
 
         return compiler + '_' + hasher.hexdigest()
 

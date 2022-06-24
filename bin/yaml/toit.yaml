@@ -1,0 +1,11 @@
+compilers:
+  toit:
+    type: tarballs
+    compression: gz
+    strip_components: 1
+    check_exe: bin/toit.run --version
+    url: https://github.com/toitlang/toit/releases/download/v{name}/toit-linux.tar.gz
+    dir: toit-{name}
+    create_untar_dir: true
+    targets:
+      - "1.6.14"
