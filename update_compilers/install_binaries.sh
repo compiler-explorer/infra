@@ -122,32 +122,6 @@ if [[ ! -f ${OPT}/x86-to-6502/lefticus/6502-c++ ]]; then
 fi
 
 #########################
-# xa 6502 cross compiler
-
-if [[ ! -f ${OPT}/x86-to-6502/xa/bin/xa ]]; then
-    mkdir -p ${OPT}/x86-to-6502/xa/bin
-
-    mkdir -p /tmp/build
-    pushd /tmp/build
-
-    curl https://www.floodgap.com/retrotech/xa/dists/xa-2.3.13.tar.gz | tar xzf -
-    cd xa-2.3.13
-
-    make xa uncpk
-    mv xa ${OPT}/x86-to-6502/xa/bin/xa
-    mv reloc65 ${OPT}/x86-to-6502/xa/bin/reloc65
-    mv ldo65 ${OPT}/x86-to-6502/xa/bin/ldo65
-    mv file65 ${OPT}/x86-to-6502/xa/bin/file65
-    mv printcbm ${OPT}/x86-to-6502/xa/bin/printcbm
-    mv uncpk ${OPT}/x86-to-6502/xa/bin/uncpk
-
-    cd ..
-
-    popd
-    rm -rf /tmp/build
-fi
-
-#########################
 # iwyu - include-what-you-use
 
 if [[ ! -d ${OPT}/iwyu/0.12 ]]; then
