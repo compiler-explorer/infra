@@ -116,6 +116,9 @@ class LibraryBuilder:
         elif self.buildconfig.lib_type == "shared":
             if self.buildconfig.sharedliblink == []:
                 self.buildconfig.sharedliblink = [f'{self.libname}']
+        elif self.buildconfig.lib_type == "cshared":
+            if self.buildconfig.sharedliblink == []:
+                self.buildconfig.sharedliblink = [f'{self.libname}']
 
         alternatelibs = []
         for lib in self.buildconfig.staticliblink:
@@ -364,8 +367,12 @@ class LibraryBuilder:
             for lib in self.buildconfig.sharedliblink:
                 f.write(f'find . -iname \'lib{lib}*.so*\' -type f,l -exec mv {{}} . \\;\n')
 
-        self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver,
-                                            extraflags)
+        if self.buildconfig.lib_type == "cshared":
+            self.setCurrentConanBuildParameters(buildos, buildtype, "cshared", "cshared", libcxx, arch, stdver,
+                                                extraflags)
+        else:
+            self.setCurrentConanBuildParameters(buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver,
+                                                extraflags)
 
     def setCurrentConanBuildParameters(self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver,
                                        extraflags):
@@ -431,6 +438,20 @@ class LibraryBuilder:
 
     def countValidLibraryBinaries(self, buildfolder, arch, stdlib):
         filesfound = 0
+
+        if self.buildconfig.lib_type == "cshared":
+            for lib in self.buildconfig.sharedliblink:
+                filepath = os.path.join(buildfolder, f'lib{lib}.so')
+                bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+                if ('libstdc++.so' not in bininfo.ldd_details and
+                    'libc++.so' not in bininfo.ldd_details):
+                    if arch == "":
+                        filesfound += 1
+                    elif arch == "x86" and 'ELF32' in bininfo.readelf_header_details:
+                        filesfound += 1
+                    elif arch == "x86_64" and 'ELF64' in bininfo.readelf_header_details:
+                        filesfound += 1
+            return filesfound
 
         for lib in self.buildconfig.staticliblink:
             filepath = os.path.join(buildfolder, f'lib{lib}.a')
@@ -715,7 +736,11 @@ class LibraryBuilder:
         if buildfor != "":
             self.forcebuild = True
 
-        if buildfor == "nonx86":
+        if self.buildconfig.lib_type == "cshared":
+            checkcompiler = self.buildconfig.use_compiler
+            if checkcompiler not in self.compilerprops:
+                self.logger.error(f'Unknown compiler {checkcompiler}')
+        elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
@@ -761,23 +786,24 @@ class LibraryBuilder:
                 continue
 
             stdlibs = ['']
-            if compiler in disable_clang_libcpp:
-                stdlibs = ['']
-            elif fixedStdlib:
-                self.logger.debug(f'Fixed stdlib {fixedStdlib}')
-                stdlibs = [fixedStdlib]
-            else:
-                if self.buildconfig.build_fixed_stdlib != "":
-                    if self.buildconfig.build_fixed_stdlib != "libstdc++":
-                        stdlibs = [self.buildconfig.build_fixed_stdlib]
+            if self.buildconfig.lib_type != 'cshared':
+                if compiler in disable_clang_libcpp:
+                    stdlibs = ['']
+                elif fixedStdlib:
+                    self.logger.debug(f'Fixed stdlib {fixedStdlib}')
+                    stdlibs = [fixedStdlib]
                 else:
-                    if compilerType == "":
-                        self.logger.debug('Gcc-like compiler')
-                    elif compilerType == "clang":
-                        self.logger.debug('Clang-like compiler')
-                        stdlibs = build_supported_stdlib
+                    if self.buildconfig.build_fixed_stdlib != "":
+                        if self.buildconfig.build_fixed_stdlib != "libstdc++":
+                            stdlibs = [self.buildconfig.build_fixed_stdlib]
                     else:
-                        self.logger.debug('Some other compiler')
+                        if compilerType == "":
+                            self.logger.debug('Gcc-like compiler')
+                        elif compilerType == "clang":
+                            self.logger.debug('Clang-like compiler')
+                            stdlibs = build_supported_stdlib
+                        else:
+                            self.logger.debug('Some other compiler')
 
             archs = build_supported_arch
 
