@@ -51,7 +51,7 @@ def s3_available_compilers():
 
 class InstallationContext:
     def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
-                 cache: Optional[Path], yaml_dir: Path, allow_unsafe_ssl: bool):
+                 cache: Optional[Path], yaml_dir: Path, allow_unsafe_ssl: bool, resource_dir: Path):
         self.destination = destination
         self.staging = staging
         self.s3_url = s3_url
@@ -75,6 +75,7 @@ class InstallationContext:
             self.info("Making uncached requests")
             self.fetcher = http
         self.yaml_dir = yaml_dir
+        self.resource_dir = resource_dir
 
     def debug(self, message: str) -> None:
         logger.debug(message)
@@ -1169,7 +1170,7 @@ INSTALLER_TYPES = {
 def installers_for(install_context, nodes, enabled):
     for target in targets_from(nodes, enabled,
                                dict(staging=install_context.staging, destination=install_context.destination,
-                                    yaml_dir=install_context.yaml_dir, now=datetime.now())):
+                                    yaml_dir=install_context.yaml_dir, resource_dir=install_context.resource_dir, now=datetime.now())):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:

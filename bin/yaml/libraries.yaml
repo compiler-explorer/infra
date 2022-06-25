@@ -88,7 +88,7 @@ libraries:
       - 3.0.0-preview2
       - 3.0.0-preview3
       - after_stage_script:
-        - cp /home/ubuntu/infra/bin/resources/catch_user_config.hpp src/catch2/catch_user_config.hpp
+        - cp {{resource_dir}}/catch_user_config.hpp src/catch2/catch_user_config.hpp
         name: 3.0.1
       type: github
     catch2v2:
@@ -163,7 +163,7 @@ libraries:
       type: github
     curl:
       after_stage_script:
-      - cp /home/ubuntu/infra/bin/resources/curl_config.h curl-{{name}}/include/curl/curl_config.h
+      - cp {{resource_dir}}/curl_config.h curl-{{name}}/include/curl/curl_config.h
       build_type: cmake
       check_file: CMakeLists.txt
       compression: xz
@@ -742,7 +742,7 @@ libraries:
         type: github
       catch2:
         after_stage_script:
-        - cp /home/ubuntu/infra/bin/resources/catch_user_config.hpp src/catch2/catch_user_config.hpp
+        - cp {{resource_dir}}/catch_user_config.hpp src/catch2/catch_user_config.hpp
         build_type: cmake
         make_targets:
         - Catch2
@@ -1104,7 +1104,7 @@ libraries:
         type: github
       mfem:
         after_stage_script:
-        - cp /home/ubuntu/infra/bin/resources/mfem_config.hpp config/_config.hpp
+        - cp {{resource_dir}}/mfem_config.hpp config/_config.hpp
         build_type: cmake
         lib_type: static
         method: nightlyclone
@@ -1290,7 +1290,7 @@ libraries:
         type: github
       unifex:
         after_stage_script:
-        - cp /home/ubuntu/infra/bin/resources/libunifex_config.hpp include/unifex/config.hpp
+        - cp {{resource_dir}}/libunifex_config.hpp include/unifex/config.hpp
         build_type: cmake
         make_targets:
         - unifex
@@ -1559,8 +1559,8 @@ libraries:
       type: github
     xercesc:
       after_stage_script:
-      - cp /home/ubuntu/infra/bin/resources/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
-      - cp /home/ubuntu/infra/bin/resources/XercesVersion.hpp src/xercesc/util/XercesVersion.hpp
+      - cp {{resource_dir}}/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
+      - cp {{resource_dir}}/XercesVersion.hpp src/xercesc/util/XercesVersion.hpp
       build_type: cmake
       check_file: README
       extra_cmake_arg:
