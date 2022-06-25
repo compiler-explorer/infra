@@ -81,6 +81,8 @@ def main():
                         help='look for S3 resources in BUCKET (default %(default)s)')
     parser.add_argument('--s3_dir', default='opt', metavar='DIR',
                         help='look for S3 resources in the bucket\'s subdirectory DIR (default %(default)s)')
+    parser.add_argument('--resource_dir', default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'resources'),
+                        help='look for installation resource files in DIR (default %(default)s', metavar='DIR')
     parser.add_argument('--yaml_dir', default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'yaml'),
                         help='look for installation yaml files in DIR (default %(default)s', metavar='DIR')
     parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR', type=Path)
@@ -121,7 +123,7 @@ def main():
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
     context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
-                                  args.cache, args.yaml_dir, args.allow_unsafe_ssl)
+                                  args.cache, args.yaml_dir, args.allow_unsafe_ssl, args.resource_dir)
 
     installables = []
     for yaml_path in Path(args.yaml_dir).glob('*.yaml'):
