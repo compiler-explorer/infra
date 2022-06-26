@@ -99,27 +99,7 @@ if [[ ! -f ${OPT}/x86-to-6502/lefticus/x86-to-6502 ]]; then
     rm -rf /tmp/build
 fi
 
-#########################
-# x86-to-6502 new version
-
-if [[ ! -f ${OPT}/x86-to-6502/lefticus/6502-c++ ]]; then
-    mkdir -p ${OPT}/x86-to-6502/lefticus
-
-    mkdir -p /tmp/build
-    pushd /tmp/build
-
-    git clone https://github.com/lefticus/6502-cpp.git lefticus
-    pushd lefticus
-    mkdir -p build
-    cd build
-    CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ ${OPT}/cmake/bin/cmake ..
-    make 6502-c++
-    mv bin/6502-c++ ${OPT}/x86-to-6502/lefticus
-    popd
-
-    popd
-    rm -rf /tmp/build
-fi
+# x86-to-6502 new version (6502-c++) is built by misc-builder
 
 #########################
 # iwyu - include-what-you-use
