@@ -49,3 +49,23 @@ tools:
     check_exe: asm-parser --version
     targets:
       - trunk
+  xa:
+    type: tarballs
+    dir: x86-to-6502/xa-{{name}}
+    untar_dir: xa-{{name}}
+    check_exe: bin/xa --version
+    url: https://www.floodgap.com/retrotech/xa/dists/xa-{{name}}.tar.gz
+    compression: gz
+    targets:
+      - 2.3.13
+    after_stage_script:
+      - mv xa-{{name}} xa-build
+      - mkdir -p xa-{{name}}/bin
+      - cd xa-build
+      - make xa uncpk
+      - mv xa ../xa-{{name}}/bin/xa
+      - mv reloc65 ../xa-{{name}}/bin/reloc65
+      - mv ldo65 ../xa-{{name}}/bin/ldo65
+      - mv file65 ../xa-{{name}}/bin/file65
+      - mv printcbm ../xa-{{name}}/bin/printcbm
+      - mv uncpk ../xa-{{name}}/bin/uncpk

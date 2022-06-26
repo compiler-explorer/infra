@@ -678,6 +678,12 @@ compilers:
         check_exe: bin/tcc -v
         targets:
           - trunk
+      6502-c++:
+        type: nightly
+        s3_name: 6502-c%2B%2B-{{name}}
+        check_exe: bin/6502-c++ --help
+        targets:
+          - trunk
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version

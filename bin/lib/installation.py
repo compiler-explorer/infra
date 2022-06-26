@@ -678,7 +678,8 @@ class NightlyInstallable(Installable):
         most_recent = max(current[compiler_name])
         self.info(f'Most recent {compiler_name} is {most_recent}')
         path_name_prefix = self.config_get('path_name_prefix', compiler_name)
-        self.s3_path = f'{compiler_name}-{most_recent}'
+        s3_name = self.config_get('s3_name', compiler_name)
+        self.s3_path = f'{s3_name}-{most_recent}'
         self.local_path = f'{path_name_prefix}-{most_recent}'
         self.install_path = os.path.join(self.subdir, f'{path_name_prefix}-{most_recent}')
         self.compiler_pattern = os.path.join(self.subdir, f'{path_name_prefix}-*')
