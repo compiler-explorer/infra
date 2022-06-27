@@ -48,6 +48,11 @@ compilers:
         untar_dir: sdcc
         targets:
           - 4.1.0
+    z88dk:
+      type: s3tarballs
+      check_exe: bin/zcc -h
+      targets:
+        - '2.1'
     nightly:
       if: nightly
       cc65:
