@@ -779,11 +779,13 @@ libraries:
         - trunk
         type: github
       cppcoro:
-        build_type: none
-        check_file: README.md
+        build_type: cmake
+        lib_type: static
         method: nightlyclone
         path_name: libs/cppcoro
-        repo: lewissbaker/cppcoro
+        repo: andreasbuhr/cppcoro
+        staticliblink:
+        - cppcoro
         targets:
         - trunk
         type: github
