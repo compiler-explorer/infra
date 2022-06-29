@@ -596,15 +596,6 @@ libraries:
       - 13.0.1
       - 14.0.0
       type: s3tarballs
-    mlir:
-      check_file: include/mlir/InitAllPasses.h
-      path_name: libs/mlir/{name}
-      s3_path_prefix: mlir-{name}
-      subdir: libs/mlir/{name}
-      targets:
-        - 14.0.0
-        - 14.0.5
-      type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
       repo: Neargye/magic_enum
@@ -612,6 +603,15 @@ libraries:
       targets:
       - 0.7.3
       type: github
+    mlir:
+      check_file: include/mlir/InitAllPasses.h
+      path_name: libs/mlir/{name}
+      s3_path_prefix: mlir-{name}
+      subdir: libs/mlir/{name}
+      targets:
+      - 14.0.0
+      - 14.0.5
+      type: s3tarballs
     mp-units:
       check_file: README.md
       method: clone_branch
@@ -1332,6 +1332,16 @@ libraries:
         targets:
         - trunk
         type: github
+      yomm2:
+        build_type: cmake
+        lib_type: static
+        method: nightlyclone
+        repo: jll63/yomm2
+        staticliblink:
+        - yomm2
+        targets:
+        - trunk
+        type: github
       ztdtext:
         build_type: none
         check_file: include/ztd/text.hpp
@@ -1604,6 +1614,16 @@ libraries:
       targets:
       - 0.4.16
       - 0.5.3
+      type: github
+    yomm2:
+      build_type: cmake
+      lib_type: static
+      repo: jll63/yomm2
+      staticliblink:
+      - yomm2
+      target_prefix: v
+      targets:
+      - 1.1.2
       type: github
   cuda:
     cub:
