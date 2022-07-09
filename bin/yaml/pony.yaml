@@ -3,7 +3,7 @@ compilers:
     type: tarballs
     compression: gz
     url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{name}/ponyc-x86-64-unknown-linux-gnu.tar.gz
-    check_exe: bin\ponyc -v
+    check_exe: bin/ponyc -v
     dir: ponyc-{name}
     strip_components: 1
     create_untar_dir: true
