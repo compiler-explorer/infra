@@ -317,8 +317,8 @@ class RustLibraryBuilder:
             self.upload_builds()
         annotations['commithash'] = self.get_commit_hash()
 
-        for key, value in build_method:
-            annotations[key] = value
+        for key in build_method:
+            annotations[key] = build_method[key]
 
         self.logger.info(annotations)
 
