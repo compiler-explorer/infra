@@ -358,13 +358,13 @@ class RustLibraryBuilder:
 
     def makebuildfor(self, compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
                      flagscombination, ld_path):
-        build_method = Dict({
+        build_method = dict({
             'build_method': '--all-features',
             'linker': '/opt/compiler-explorer/gcc-11.1.0'})
         build_status = self.makebuildfor_by_method(compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
                      flagscombination, ld_path, build_method)
         if build_status == BuildStatus.Failed:
-            build_method = Dict({
+            build_method = dict({
                 'build_method': '',
                 'linker': '/opt/compiler-explorer/gcc-11.1.0'})
             build_status = self.makebuildfor_by_method(compiler, options, exe, compiler_type, toolchain, buildos, buildtype, arch, stdver, stdlib,
