@@ -1167,14 +1167,6 @@ libraries:
         targets:
         - trunk
         type: github
-      ofw:
-        build_type: none
-        check_file: README.md
-        method: nightlyclone
-        repo: jfalcou/ofw
-        targets:
-        - trunk
-        type: github
       opencv:
         build_type: none
         check_file: README.md
