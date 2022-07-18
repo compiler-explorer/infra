@@ -502,39 +502,38 @@ class GitHubInstallable(Installable):
             return ['--recursive']
         return []
 
+    def _git(self, *git_args: str) -> str:
+        full_args = ['git'] + list(git_args)
+        self.debug(f"{shlex.join(full_args)}")
+        result = subprocess.check_output(full_args, cwd=self.install_context.staging).decode('utf-8').strip()
+        if result:
+            self.debug(f" -> {result}")
+        return result
+
     def clone_branch(self):
         dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
-            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
-                                  cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
-                                  cwd=self.install_context.staging)
+            self._git('clone', '-q', f'{self.domainurl}/{self.repo}.git', dest)
+            self._git('-C', dest, 'checkout', '-q', self.branch_name)
         else:
-            subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
-                                  cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', f'origin/{self.branch_name}'],
-                                  cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'branch', '-q', '-D', self.branch_name],
-                                  cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'checkout', '-q', self.branch_name],
-                                  cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'] + self._update_args(),
-                              cwd=self.install_context.staging)
+            self._git('-C', dest, 'fetch', '-q')
+            self._git('-C', dest, 'reset', '-q', '--hard', 'origin')
+            self._git('-C', dest, 'checkout', '-q', f'origin/{self.branch_name}')
+            self._git('-C', dest, 'branch', '-q', '-D', self.branch_name)
+            self._git('-C', dest, 'checkout', '-q', self.branch_name)
+        self._git('-C', dest, 'submodule', 'sync')
+        self._git('-C', dest, 'submodule', 'update', '--init', *self._update_args())
 
     def clone_default(self):
         dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
-            subprocess.check_call(['git', 'clone', '-q', f'{self.domainurl}/{self.repo}.git', dest],
-                                  cwd=self.install_context.staging)
+            self._git('clone', '-q', f'{self.domainurl}/{self.repo}.git', dest)
         else:
-            subprocess.check_call(['git', '-C', dest, 'fetch', '-q'], cwd=self.install_context.staging)
-            subprocess.check_call(['git', '-C', dest, 'reset', '-q', '--hard', 'origin'],
-                                  cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'sync'], cwd=self.install_context.staging)
-        subprocess.check_call(['git', '-C', dest, 'submodule', 'update', '--init'] + self._update_args(),
-                              cwd=self.install_context.staging)
+            self._git('-C', dest, 'fetch', '-q')
+            remote_name = self._git('-C', dest, 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}')
+            self._git('-C', dest, 'reset', '-q', '--hard', remote_name)
+        self._git('-C', dest, 'submodule', 'sync')
+        self._git('-C', dest, 'submodule', 'update', '--init', *self._update_args())
 
     def get_archive_url(self):
         return f'{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz'
