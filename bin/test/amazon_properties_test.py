@@ -13,9 +13,9 @@ logger.level = 9
 def test_should_have_staticliblink():
     [_compilers, _libraries] = get_properties_compilers_and_libraries('c++', logger)
     assert 'googletest' in _libraries
-    assert len(_libraries['googletest']['staticliblink']) > 0
-    assert _libraries['googletest']['staticliblink'][0] == 'gtestd'
-    assert _libraries['googletest']['staticliblink'][1] == 'gmockd'
+    assert len(_libraries['googletest']['versionprops']['trunk']['staticliblink']) > 0
+    assert _libraries['googletest']['versionprops']['trunk']['staticliblink'][0] == 'gtest'
+    assert _libraries['googletest']['versionprops']['trunk']['staticliblink'][1] == 'gmock'
 
 def test_googletest_should_have_versions():
     [_compilers, _libraries] = get_properties_compilers_and_libraries('c++', logger)
