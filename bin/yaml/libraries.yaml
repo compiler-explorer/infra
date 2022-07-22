@@ -984,6 +984,11 @@ libraries:
         - all
         method: nightlyclone
         repo: google/googletest
+        staticliblink:
+        - gtest
+        - gtest_main
+        - gmock
+        - gmock_main
         targets:
         - trunk
         type: github
