@@ -662,6 +662,7 @@ compilers:
           - embed-trunk
           - dang-main
           - widberg-main
+          - mizvekov-resugar
           - relocatable-trunk
           - autonsdmi-trunk
           - lifetime-trunk
