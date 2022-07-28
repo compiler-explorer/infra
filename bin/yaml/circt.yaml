@@ -1,0 +1,8 @@
+compilers:
+  nightly:
+    if: nightly
+    circt:
+      type: nightly
+      check_exe: bin/circt-opt --version
+      targets:
+        - trunk
