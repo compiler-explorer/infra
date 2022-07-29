@@ -52,7 +52,7 @@ compilers:
       type: s3tarballs
       check_exe: bin/zcc -h
       targets:
-        - '2.1'
+        - '2.2'
     nightly:
       if: nightly
       cc65:
