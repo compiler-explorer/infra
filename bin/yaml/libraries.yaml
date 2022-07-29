@@ -344,6 +344,7 @@ libraries:
       - 8.1.1
       type: github
     gemmlowp:
+      if: nightly
       build_type: none
       check_file: fixedpoint/fixedpoint.h
       method: nightlyclone
@@ -479,6 +480,7 @@ libraries:
       - development
       type: github
     lagom:
+      if: nightly
       after_stage_script:
       - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
       - echo -e "list(APPEND CMAKE_MODULE_PATH \"\$\\x7bCMAKE_CURRENT_LIST_DIR\\x7d/Meta/CMake\")"

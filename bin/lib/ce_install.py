@@ -205,7 +205,7 @@ def main():
                 context.info(f"Skipping {installable.name} as it already exists at {destination}")
                 continue
             if installable.nightly_like:
-                context.info(f"Skipping {installable.name} as it looks lke a nightly")
+                context.info(f"Skipping {installable.name} as it looks like a nightly")
                 continue
             context.info(f"Squashing {installable.name} to {destination}")
             installable.squash_to(destination)

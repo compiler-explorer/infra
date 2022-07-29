@@ -32,6 +32,7 @@ tools:
         strip_components: 1
         create_untar_dir: true
   mmbutils:
+    if: nightly
     type: github
     method: nightlyclone
     repo: sweharris/MMB_Utils
