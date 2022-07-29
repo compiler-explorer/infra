@@ -216,10 +216,11 @@ def main():
 
         for installable in installables:
             destination: Path = Path(args.image_dir / f"{installable.install_path}.img")
-            if not destination.exists():
+            if installable.nightly_like:
+                if destination.exists():
+                    context.error(f"Found squash: {installable.name} for nightly")
+            elif not destination.exists():
                 context.error(f"Missing squash: {installable.name} (for {destination})")
-            elif installable.nightly_like:
-                context.error(f"Found squash: {installable.name} for nightly")
 
         squash_mount_check(args.image_dir, '', context)
 
