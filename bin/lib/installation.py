@@ -414,6 +414,10 @@ class Installable:
             (int(num) if num else 0, non) for num, non in re.findall(r'([0-9]+)|([^0-9]+)', self.target_name)
         ]
 
+    @property
+    def nightly_like(self) -> bool:
+        return False
+
     def build(self, buildfor):
         if not self.is_library:
             raise RuntimeError('Nothing to build')
@@ -540,6 +544,10 @@ class GitHubInstallable(Installable):
 
     def get_archive_pipecommand(self):
         return ['tar', f'{self.decompress_flag}xf', '-']
+
+    @property
+    def nightly_like(self) -> bool:
+        return self.method == "nightlyclone"
 
     def stage(self):
         self.install_context.clean_staging()
@@ -687,6 +695,10 @@ class NightlyInstallable(Installable):
         self._setup_check_exe(self.install_path)
         self._setup_check_link(self.local_path, self.path_name_symlink)
 
+    @property
+    def nightly_like(self) -> bool:
+        return True
+
     def stage(self) -> None:
         self.install_context.clean_staging()
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
@@ -815,6 +827,10 @@ class NightlyTarballInstallable(TarballInstallable):
         self._setup_check_exe(self.install_path)
         self._setup_check_link(self.install_path, self.install_path_symlink)
 
+    @property
+    def nightly_like(self) -> bool:
+        return True
+
     def __repr__(self) -> str:
         return f'NightlyTarballInstallable({self.name}, {self.install_path})'
 
@@ -940,6 +956,10 @@ class RustInstallable(Installable):
         self._setup_check_exe(self.install_path)
         self.base_package = self.config_get('base_package')
         self.nightly_install_days = self.config_get('nightly_install_days', 0)
+
+    @property
+    def nightly_like(self) -> bool:
+        return self.nightly_install_days > 0
 
     def do_rust_install(self, component: str, install_to: Path) -> None:
         url = f'https://static.rust-lang.org/dist/{component}.tar.gz'

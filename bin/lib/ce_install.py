@@ -204,6 +204,9 @@ def main():
             if destination.exists() and not args.force:
                 context.info(f"Skipping {installable.name} as it already exists at {destination}")
                 continue
+            if installable.nightly_like:
+                context.info(f"Skipping {installable.name} as it looks lke a nightly")
+                continue
             context.info(f"Squashing {installable.name} to {destination}")
             installable.squash_to(destination)
     elif args.command == 'squashcheck':
@@ -215,7 +218,8 @@ def main():
             destination: Path = Path(args.image_dir / f"{installable.install_path}.img")
             if not destination.exists():
                 context.error(f"Missing squash: {installable.name} (for {destination})")
-                continue
+            elif installable.nightly_like:
+                context.error(f"Found squash: {installable.name} for nightly")
 
         squash_mount_check(args.image_dir, '', context)
 
