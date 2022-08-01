@@ -8,6 +8,7 @@ pylint
 pytest
 pyyaml
 requests
+types-python-dateutil
 types-PyYAML
 types-pkg_resources
 types-requests
