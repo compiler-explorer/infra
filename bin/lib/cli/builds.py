@@ -55,18 +55,7 @@ def deploy_staticfiles(release) -> bool:
         with DeploymentJob(f.name, 'ce-cdn.net', version=release.version, cache_control=cc) as job:
             return job.run()
 
-
-@builds.command(name='set_current')
-@click.pass_obj
-@click.option('--branch', help='if version == latest, branch to get latest version from')
-@click.option('--raw/--no-raw', help='Set a raw path for a version')
-@click.option('--confirm', help='Skip confirmation questions', is_flag=True)
-@click.argument('version')
-def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
-    """Set the current version to VERSION for this environment.
-
-    If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
-    """
+def __builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
         sys.exit(1)
@@ -112,6 +101,18 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
                 raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
             print("...done", json.loads(result.content.decode()))
 
+@builds.command(name='set_current')
+@click.pass_obj
+@click.option('--branch', help='if version == latest, branch to get latest version from')
+@click.option('--raw/--no-raw', help='Set a raw path for a version')
+@click.option('--confirm', help='Skip confirmation questions', is_flag=True)
+@click.argument('version')
+def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
+    """Set the current version to VERSION for this environment.
+
+    If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
+    """
+    __builds_set_current(cfg, branch, version, raw, confirm)
 
 @builds.command(name="rm_old")
 @click.option('--dry-run/--no-dry-run', help='dry run only')
