@@ -6,6 +6,7 @@ jinja2
 mypy
 pylint
 pytest
+python-dateutil
 pyyaml
 requests
 types-python-dateutil
