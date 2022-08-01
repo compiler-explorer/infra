@@ -1,5 +1,5 @@
 import json
-from typing import Sequence, Optional
+from typing import Sequence, Optional, Tuple
 
 import click
 import dateutil.parser
@@ -18,7 +18,7 @@ def format_ad(ad):
     return ADS_FORMAT.format(ad['id'], str(ad['filter']), f"{valid_from} - {valid_until}", ad['html'])
 
 
-def parse_valid_ranges(valid_from: Optional[str], valid_until: Optional[str]) -> (Optional[str], Optional[str]):
+def parse_valid_ranges(valid_from: Optional[str], valid_until: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
     from_date = None
     until_date = None
     if valid_from is not None:
