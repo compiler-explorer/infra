@@ -1463,6 +1463,7 @@ libraries:
       target_prefix: refs/tags/v
       targets:
       - '0.4'
+      - '1.1.2'
       type: github
     seastar:
       check_file: README.md
