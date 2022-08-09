@@ -1,0 +1,11 @@
+compilers:
+  hlsl:
+    dxc:
+      type: s3tarballs
+      check_exe: bin/dxc --version
+      targets:
+        - "1.7.2207"
+        - "1.6.2112"
+        - if: nightly
+          type: nightly
+          name: trunk
