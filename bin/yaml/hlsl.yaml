@@ -6,6 +6,9 @@ compilers:
       targets:
         - "1.7.2207"
         - "1.6.2112"
-        - if: nightly
-          type: nightly
-          name: trunk
+      nightly:
+        if: nightly
+        type: nightly
+        targets:
+          - name: trunk
+            compiler_name: dxc
