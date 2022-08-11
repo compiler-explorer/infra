@@ -35,7 +35,23 @@ compilers:
         build: 470.42.01
       - name: 11.4.1
         build: 470.57.02
+      - name: 11.4.2
+        build: 470.57.02
+      - name: 11.4.3
+        build: 470.82.01
+      - name: 11.4.4
+        build: 470.82.01
       - name: 11.5.0
         build: 495.29.05
+      - name: 11.5.1
+        build: 495.29.05
+      - name: 11.5.2
+        build: 495.29.05
+      - name: 11.6.0
+        build: 510.39.01
+      - name: 11.6.1
+        build: 510.47.03
       - name: 11.6.2
         build: 510.47.03
+      - name: 11.7.0
+        build: 515.43.04
