@@ -12,7 +12,7 @@ compilers:
         - rm doc-pdf.tar.gz
         - rm install.sh
         - cp {yaml_dir}/pascal/install_fpc.sh .
-        - . install_fpc.sh {name} {staging}/install
+        - . install_fpc.sh {name} $CE_STAGING_DIR/install
         - cd ..
         - rm -rf {dir}
         - mv install {dir}

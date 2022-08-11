@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import tempfile
 import time
+import uuid
 from collections import defaultdict, ChainMap
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -20,13 +21,13 @@ import requests.adapters
 import yaml
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
-from lib.rust_library_builder import RustLibraryBuilder
 
 from lib.amazon import list_compilers, list_s3_artifacts
 from lib.config_expand import is_value_type, expand_target
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
+from lib.rust_library_builder import RustLibraryBuilder
 
 VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
 
@@ -51,9 +52,11 @@ def s3_available_compilers():
 
 class InstallationContext:
     def __init__(self, destination: Path, staging: Path, s3_url: str, dry_run: bool, is_nightly_enabled: bool,
-                 cache: Optional[Path], yaml_dir: Path, allow_unsafe_ssl: bool, resource_dir: Path):
+                 cache: Optional[Path], yaml_dir: Path, allow_unsafe_ssl: bool, resource_dir: Path, keep_staging: bool):
         self.destination = destination
-        self.staging = staging
+        self._staging_root = staging
+        self._staging : Optional[Path] = None
+        self._keep_staging = keep_staging
         self.s3_url = s3_url
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
@@ -77,6 +80,18 @@ class InstallationContext:
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._remove_staging()
+
+    @property
+    def staging(self) -> Path:
+        if self._staging is None:
+            raise RuntimeError("A staging dir is required")
+        return self._staging
+
     def debug(self, message: str) -> None:
         logger.debug(message)
 
@@ -89,12 +104,17 @@ class InstallationContext:
     def error(self, message: str) -> None:
         logger.error(message)
 
-    def clean_staging(self) -> None:
-        self.debug(f"Cleaning staging dir {self.staging}")
-        if self.staging.is_dir():
+    def _remove_staging(self) -> None:
+        if self._staging is not None and self.staging.is_dir() and not self._keep_staging:
             subprocess.check_call(["chmod", "-R", "u+w", self.staging])
             shutil.rmtree(self.staging, ignore_errors=True)
-        self.debug(f"Recreating staging dir {self.staging}")
+
+    def make_staging_dir(self) -> None:
+        if self._staging is not None:
+            self.debug(f"Removing old staging dir {self.staging}")
+            self._remove_staging()
+        self._staging = self._staging_root / str(uuid.uuid4())
+        self.debug(f"Creating fresh staging dir {self.staging}")
         self.staging.mkdir(parents=True)
 
     def fetch_rest_query(self, url: str) -> Dict:
@@ -103,7 +123,7 @@ class InstallationContext:
 
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         self.debug(f'Fetching {url}')
-        if (self.allow_unsafe_ssl):
+        if self.allow_unsafe_ssl:
             request = self.fetcher.get(url, stream=True, verify=False)
         else:
             request = self.fetcher.get(url, stream=True)
@@ -275,7 +295,9 @@ class InstallationContext:
                     f.write(f'{line}\n')
 
             script_file.chmod(0o744)
-            subprocess.check_call([str(script_file)], cwd=from_path)
+            env = os.environ.copy()
+            env['CE_STAGING_DIR'] = str(self.staging)
+            subprocess.check_call([str(script_file)], cwd=from_path, env=env)
             script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
@@ -335,8 +357,10 @@ class Installable:
             self.error(f"Unable to find dependency {ke} in {all_installables}")
             raise
         dep_re = re.compile('%DEP([0-9]+)%')
+
         def dep_n(match):
             return str(self.install_context.destination / self.depends[int(match.group(1))].install_path)
+
         for k in self.check_env.keys():
             self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
 
@@ -359,7 +383,8 @@ class Installable:
         return self.install_always or not self.is_installed()
 
     def should_build(self):
-        return self.is_library and self.build_config.build_type != "manual" and self.build_config.build_type != "none" and self.build_config.build_type != ""
+        return (self.is_library and self.build_config.build_type != "manual"
+                and self.build_config.build_type != "none" and self.build_config.build_type != "")
 
     def install(self) -> bool:
         self.debug("Ensuring dependees are installed")
@@ -428,14 +453,14 @@ class Installable:
         if self.build_config.build_type in ["cmake", "make"]:
             sourcefolder = os.path.join(self.install_context.destination, self.install_path)
             builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
-                                    self.install_context, self.build_config)
+                                     self.install_context, self.build_config)
             if self.build_config.build_type == "cmake":
                 return builder.makebuild(buildfor)
             elif self.build_config.build_type == "make":
                 return builder.makebuild(buildfor)
         elif self.build_config.build_type == "cargo":
             builder = RustLibraryBuilder(logger, self.language, self.context[-1], self.target_name,
-                                    self.install_context, self.build_config)
+                                         self.install_context, self.build_config)
             return builder.makebuild(buildfor)
         else:
             raise RuntimeError('Unsupported build_type')
@@ -550,7 +575,7 @@ class GitHubInstallable(Installable):
         return self.method == "nightlyclone"
 
     def stage(self):
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(self.get_archive_url(), self.get_archive_pipecommand())
             dest = os.path.join(self.install_context.staging, self.untar_dir)
@@ -644,7 +669,7 @@ class S3TarballInstallable(Installable):
         self._setup_check_exe(self.install_path)
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         self.install_context.fetch_s3_and_pipe_to(self.s3_path, ['tar', f'{self.decompress_flag}xf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
@@ -700,7 +725,7 @@ class NightlyInstallable(Installable):
         return True
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         self.install_context.fetch_s3_and_pipe_to(f'{self.s3_path}.tar.xz', ['tar', 'Jxf', '-'])
         if self.strip:
             self.install_context.strip_exes(self.strip)
@@ -773,7 +798,7 @@ class TarballInstallable(Installable):
         self.num_to_keep = self.config_get('num_to_keep', 5)
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         self.install_context.fetch_url_and_pipe_to(f'{self.url}', self.tar_cmd, self.untar_to)
         if self.configure_command:
             self.install_context.stage_command(self.configure_command)
@@ -846,7 +871,7 @@ class ZipArchiveInstallable(Installable):
         self._setup_check_exe(self.install_path)
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         # Unzip does not support stdin piping so we need to create a file
         with (self.install_context.staging / 'distribution.zip').open('wb') as fd:
             self.install_context.fetch_to(self.url, fd)
@@ -910,7 +935,7 @@ class ScriptInstallable(Installable):
             self._setup_check_link(self.install_path, self.install_path_symlink)
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         for url in self.fetch:
             url, filename = url.split(' ')
             if url[:1] == '/':
@@ -970,7 +995,7 @@ class RustInstallable(Installable):
         self.install_context.remove_dir(untar_to)
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         arch_std_prefix = f'rust-std-{self.target_name}-'
         suffix = '.tar.gz'
         architectures = [artifact[len(arch_std_prefix):-len(suffix)] for artifact in
@@ -1028,7 +1053,7 @@ class PipInstallable(Installable):
         self.python = self.config_get('python')
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         venv = self.install_context.staging / self.install_path
         self.install_context.check_output([self.python, '-mvenv', str(venv)])
         self.install_context.check_output([str(venv / 'bin' / 'pip'), 'install', self.package])
@@ -1073,7 +1098,7 @@ class SingleFileInstallable(Installable):
         self._setup_check_exe(self.install_path)
 
     def stage(self) -> None:
-        self.install_context.clean_staging()
+        self.install_context.make_staging_dir()
         out_path = self.install_context.staging / self.install_path
         out_path.mkdir()
         out_file_path = out_path / self.filename
@@ -1189,8 +1214,9 @@ INSTALLER_TYPES = {
 
 def installers_for(install_context, nodes, enabled):
     for target in targets_from(nodes, enabled,
-                               dict(staging=install_context.staging, destination=install_context.destination,
-                                    yaml_dir=install_context.yaml_dir, resource_dir=install_context.resource_dir, now=datetime.now())):
+                               dict(destination=install_context.destination,
+                                    yaml_dir=install_context.yaml_dir, resource_dir=install_context.resource_dir,
+                                    now=datetime.now())):
         assert 'type' in target
         target_type = target['type']
         if target_type not in INSTALLER_TYPES:
