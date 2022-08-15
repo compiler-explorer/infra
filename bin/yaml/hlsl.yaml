@@ -16,9 +16,11 @@ compilers:
       type: tarballs
       url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/{name}/rga-linux-{name}.tgz
       compression: gz
-      dir: rga-{name}
+      dir: rga-{name}.{extra_number} # The folder inside has an additional build number
       check_exe: rga --version
       strip_components: 1
       targets:
         - name: 2.6.2
-          untar_dir: rga-{name}.38 # The folder inside has an additional build number
+          extra_number: 38
+        - name: 2.6.1
+          extra_number: 23
