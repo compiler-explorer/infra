@@ -12,3 +12,13 @@ compilers:
         targets:
           - name: trunk
             compiler_name: dxc
+    rga:
+      type: tarballs
+      url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/{name}/rga-linux-{name}.tgz
+      compression: gz
+      dir: rga-{name}
+      check_exe: rga --version
+      strip_components: 1
+      targets:
+        - name: 2.6.2
+          untar_dir: rga-{name}.38 # The folder inside has an additional build number
