@@ -6,6 +6,9 @@ from typing import List
 OWNER_REPO = "compiler-explorer/compiler-explorer"
 USER_AGENT = "CE Live Now Notification Bot"
 
+NOW_LIVE_LABEL = "live"
+NOW_LIVE_MESSAGE = "This is now live"
+
 
 def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
     if query is None:
@@ -74,25 +77,33 @@ def list_inbetween_commits(end_commit: str, new_commit: str, token: str) -> List
 
 
 def get_linked_pr(commit: str, token: str) -> dict:
+    """Returns a list whose items are the PR associated to each commit"""
     pr = get(f"repos/{OWNER_REPO}/commits/{commit}/pulls", token=token)
-    return pr
+    return pr[0] if len(pr) == 1 else {}
 
 
 def get_linked_issues(pr: str, token: str):
     query = """
-    query {
-        repository(owner: "compiler-explorer", name: "compiler-explorer") {
-            pullRequest(number: %s) {
-              closingIssuesReferences(first: 10) {
-                edges {
-                  node {
-                    number
-                  }
+query {
+  repository(owner: "compiler-explorer", name: "compiler-explorer") {
+    pullRequest(number: %s) {
+      closingIssuesReferences(first: 10) {
+        edges {
+          node {
+            labels(first: 10) {
+              edges {
+                node {
+                  name
                 }
               }
             }
+            number
+          }
         }
+      }
     }
+  }
+}
     """ % pr
     return post("graphql", token, {"query": query})
 
@@ -102,33 +113,67 @@ def get_issue_comments(issue: str, token: str) -> List[dict]:
 
 
 def comment_on_issue(issue: str, msg: str, token: str):
-    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", token, {"body": msg}, dry=True)
+    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", token, {"body": msg})
     return result
 
 
+def set_issue_labels(issue: str, labels: List[str], token: str):
+    post(f"repos/{OWNER_REPO}/issues/{issue}/labels", token, {"labels": labels})
+
+
+def should_send_comment_to_issue(issue: str, token: str):
+    """Only send a comment to the issue if nothing like the live message is there already"""
+    comments = get_issue_comments(issue, token)
+    return all([NOW_LIVE_MESSAGE not in comment["body"] for comment in comments])
+
+
 def send_live_message(issue: str, token: str):
-    comment_on_issue(issue, "This is now live", token=token)
+    set_issue_labels(issue, [NOW_LIVE_LABEL], token)
+    if should_send_comment_to_issue(issue, token):
+        comment_on_issue(issue, NOW_LIVE_MESSAGE, token)
 
 
 def get_edges(issue: dict) -> List[dict]:
     return issue["data"]["repository"]["pullRequest"]["closingIssuesReferences"]["edges"]
 
 
+def should_process_pr(pr_labels):
+    """Only process PRs that do not have the live label already set"""
+    return all([label["name"] != NOW_LIVE_LABEL for label in pr_labels])
+
+
+def should_notify_issue(edge) -> bool:
+    """We want to notify the issue if:
+       - there's one linked ("number" in edge) AND
+       - either:
+         - the linked issue has no labels ("labels" not in edge["node"]) OR
+         - the NOW_LIVE_LABEL label is not among its labels"""
+    return "number" in edge and (("labels" not in edge) or all(
+        [label["node"]["name"] != NOW_LIVE_LABEL for label in edge["labels"]["edges"]]))
+
+
 def handle_notify(base, new, token):
-    print(f'Notifying from {base} to {new}')
+    print(f'Checking for live notifications from {base} to {new}')
 
     commits = list_inbetween_commits(base, new, token)
-
     prs = [get_linked_pr(commit["sha"], token) for commit in commits]
-    ids = [pr[0]["number"] for pr in prs]
-    linked_issues = [get_linked_issues(pr, token) for pr in ids]
-    issues_ids = [get_edges(issue) for issue in linked_issues if len(get_edges(issue)) > 0]
 
-    for edge in issues_ids:
-        for node in edge:
-            issue = node["node"]["number"]
-            comments = get_issue_comments(issue, token)
-            if not any(["This is now live" in comment["body"] for comment in comments]):
-                send_live_message(issue, token)
+    for pr_data in prs:
+        pr_id = pr_data["number"]
+        if should_process_pr(pr_data["labels"]):
+            print(f"Notifying PR {pr_id}")
+            send_live_message(pr_id, token)
+
+            linked_issues = get_linked_issues(pr_id, token)
+            issues_edges = get_edges(linked_issues)
+            if len(issues_edges) == 1 and "node" in issues_edges[0]:
+                edge = issues_edges[0]["node"]
+                if should_notify_issue(edge):
+                    print(f"Notifying issue {edge['number']}")
+                    send_live_message(edge['number'], token)
+                else:
+                    print(f"Skipping notifying issue {edge['number']}")
             else:
-                print(f"Skipping notifying {issue}, it's already been done")
+                print(f"No issues in which to notify for PR {pr_id}")
+        else:
+            print(f"Skipping notifying PR {pr_id}")
