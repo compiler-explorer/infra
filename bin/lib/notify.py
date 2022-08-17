@@ -11,48 +11,55 @@ NOW_LIVE_MESSAGE = "This is now live"
 
 
 def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
-    if query is None:
-        query = {}
-    path = entity
-    querystring = json.dumps(query).encode()
-    print(f"Posting {path}")
-    req = urllib.request.Request(
-        f"https://api.github.com/{path}",
-        data=querystring,
-        headers={
-            "User-Agent": USER_AGENT,
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json",
-        },
-    )
-    if dry:
+    try:
+        if query is None:
+            query = {}
+        path = entity
+        querystring = json.dumps(query).encode()
+        print(f"Posting {path}")
+        req = urllib.request.Request(
+            f"https://api.github.com/{path}",
+            data=querystring,
+            headers={
+                "User-Agent": USER_AGENT,
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json",
+            },
+        )
+        if dry:
+            return {}
+        result = urllib.request.urlopen(req)
+        # It's ok not to check for error codes here. We'll throw either way
+        return json.loads(result.read())
+    except Exception:
+        print(f"Error while posting {entity}")
         return {}
-    result = urllib.request.urlopen(req)
-    # It's ok not to check for error codes here. We'll throw either way
-    return json.loads(result.read())
 
 
 def get(entity: str, token: str, query: dict = None) -> dict:
-    if query is None:
-        query = {}
-    path = entity
-    if query:
-        querystring = urllib.parse.urlencode(query)
-        path += f"?{querystring}"
-    print(f"Getting {path}")
-    req = urllib.request.Request(
-        f"https://api.github.com/{path}",
-        None,
-        {
-            "User-Agent": USER_AGENT,
-            "Authorization": f"token {token}",
-            "Accept": "application/vnd.github.v3+json",
-        },
-    )
-    result = urllib.request.urlopen(req)
-    # It's ok not to check for error codes here. We'll throw either way
-    return json.loads(result.read())
-
+    try:
+        if query is None:
+            query = {}
+        path = entity
+        if query:
+            querystring = urllib.parse.urlencode(query)
+            path += f"?{querystring}"
+        print(f"Getting {path}")
+        req = urllib.request.Request(
+            f"https://api.github.com/{path}",
+            None,
+            {
+                "User-Agent": USER_AGENT,
+                "Authorization": f"token {token}",
+                "Accept": "application/vnd.github.v3+json",
+            },
+        )
+        result = urllib.request.urlopen(req)
+        # It's ok not to check for error codes here. We'll throw either way
+        return json.loads(result.read())
+    except Exception as e:
+        print(f"Error while getting {entity}")
+        return {}
 
 def paginated_get(entity: str, token: str, query: dict = None) -> List[dict]:
     if query is None:
