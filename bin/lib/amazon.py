@@ -405,7 +405,7 @@ def has_notify_file():
             Key=notify_file_name()
         )
         return True
-    except s3_client.exceptions.NoSuchKey:
+    except (s3_client.exceptions.NoSuchKey, botocore.exceptions.ClientError):
         return False
 
 
