@@ -32,8 +32,7 @@ def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
     except Exception:
-        print(f"Error while posting {entity}")
-        return {}
+        raise RuntimeError(f"Error while posting {entity}")
 
 
 def get(entity: str, token: str, query: dict = None) -> dict:
@@ -58,8 +57,8 @@ def get(entity: str, token: str, query: dict = None) -> dict:
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
     except Exception as e:
-        print(f"Error while getting {entity}")
-        return {}
+        raise RuntimeError(f"Error while getting {entity}")
+
 
 def paginated_get(entity: str, token: str, query: dict = None) -> List[dict]:
     if query is None:
