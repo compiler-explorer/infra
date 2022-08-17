@@ -241,7 +241,8 @@ def save_event_file(cfg: Config, contents: str):
         Key=events_file_for(cfg),
         Body=contents,
         ACL='public-read',
-        CacheControl='public, max-age=60'
+        CacheControl='public, max-age=60',
+        ContentType='application/json'
     )
 
 
@@ -371,7 +372,7 @@ def put_bouncelock_file(cfg: Config):
         Key=bouncelock_file_for(cfg),
         Body='',
         ACL='public-read',
-        CacheControl='public, max-age=60'
+        ContentType='text/plain'
     )
 
 
@@ -399,7 +400,7 @@ def notify_file_name():
 
 def has_notify_file():
     try:
-        s3_client.get_object(
+        s3_client.head_object(
             Bucket='compiler-explorer',
             Key=notify_file_name()
         )
@@ -414,7 +415,7 @@ def put_notify_file(body: str):
         Key=notify_file_name(),
         Body=body,
         ACL='public-read',
-        CacheControl='public, max-age=60'
+        ContentType='text/plain'
     )
 
 
