@@ -15,7 +15,7 @@ from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
 from lib.library_yaml import LibraryYaml
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 def _context_match(context_query: str, installable: Installable) -> bool:
@@ -58,7 +58,7 @@ def squash_mount_check(rootfolder, subdir, context):
         if filename.endswith(".img"):
             checkdir = Path(os.path.join("/opt/compiler-explorer/", subdir, filename[:-4]))
             if not checkdir.exists():
-                context.error(f"Missing mount point {checkdir}")
+                _LOGGER.error("Missing mount point %s", checkdir)
         else:
             if subdir == "":
                 squash_mount_check(rootfolder, filename, context)
@@ -150,7 +150,7 @@ def _app(args: Namespace, context: InstallationContext):
         print("Installation candidates:")
         for installable in installables:
             print(installable.name)
-            logger.debug(installable)
+            _LOGGER.debug(installable)
         sys.exit(0)
     elif args.command == 'verify':
         num_ok = 0
@@ -158,10 +158,10 @@ def _app(args: Namespace, context: InstallationContext):
         for installable in installables:
             print(f"Checking {installable.name}")
             if not installable.is_installed():
-                context.info(f"{installable.name} is not installed")
+                _LOGGER.info("%s is not installed", installable.name)
                 num_not_ok += 1
             elif not installable.verify():
-                context.info(f"{installable.name} is not OK")
+                _LOGGER.info("%s is not OK", installable.name)
                 num_not_ok += 1
             else:
                 num_ok += 1
@@ -177,57 +177,57 @@ def _app(args: Namespace, context: InstallationContext):
                 print(f"{installable.name}: not installed")
         sys.exit(0)
     elif args.command == 'amazoncheck':
-        logger.debug('Starting Amazon Check')
+        _LOGGER.debug('Starting Amazon Check')
         languages = ['c', 'c++', 'd', 'cuda']
 
         for language in languages:
-            logger.info('Checking %s libraries', language)
-            [_, libraries] = get_properties_compilers_and_libraries(language, logger)
+            _LOGGER.info('Checking %s libraries', language)
+            [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER)
 
             for libraryid in libraries:
-                logger.debug('Checking %s', libraryid)
+                _LOGGER.debug('Checking %s', libraryid)
                 for version in libraries[libraryid]['versionprops']:
                     includepaths = libraries[libraryid]['versionprops'][version]['path']
                     for includepath in includepaths:
-                        logger.debug('Checking for library %s %s: %s', libraryid, version, includepath)
+                        _LOGGER.debug('Checking for library %s %s: %s', libraryid, version, includepath)
                         if not os.path.exists(includepath):
-                            logger.error('Path missing for library %s %s: %s', libraryid, version, includepath)
+                            _LOGGER.error('Path missing for library %s %s: %s', libraryid, version, includepath)
                         else:
-                            logger.debug('Found path for library %s %s: %s', libraryid, version, includepath)
+                            _LOGGER.debug('Found path for library %s %s: %s', libraryid, version, includepath)
 
                     libpaths = libraries[libraryid]['versionprops'][version]['libpath']
                     for libpath in libpaths:
-                        logger.debug('Checking for library %s %s: %s', libraryid, version, libpath)
+                        _LOGGER.debug('Checking for library %s %s: %s', libraryid, version, libpath)
                         if not os.path.exists(libpath):
-                            logger.error('Path missing for library %s %s: %s', libraryid, version, libpath)
+                            _LOGGER.error('Path missing for library %s %s: %s', libraryid, version, libpath)
                         else:
-                            logger.debug('Found path for library %s %s: %s', libraryid, version, libpath)
+                            _LOGGER.debug('Found path for library %s %s: %s', libraryid, version, libpath)
     elif args.command == 'squash':
         for installable in installables:
             if not installable.is_installed():
-                context.warn(f"{installable.name} wasn't installed; skipping squash")
+                _LOGGER.warning("%s wasn't installed; skipping squash", installable.name)
                 continue
             destination = args.image_dir / f"{installable.install_path}.img"
             if destination.exists() and not args.force:
-                context.info(f"Skipping {installable.name} as it already exists at {destination}")
+                _LOGGER.info("Skipping %s as it already exists at %s", installable.name, destination)
                 continue
             if installable.nightly_like:
-                context.info(f"Skipping {installable.name} as it looks like a nightly")
+                _LOGGER.info("Skipping %s as it looks like a nightly", installable.name)
                 continue
-            context.info(f"Squashing {installable.name} to {destination}")
+            _LOGGER.info("Squashing %s to %s", installable.name, destination)
             installable.squash_to(destination)
     elif args.command == 'squashcheck':
         if not Path(args.image_dir).exists():
-            context.error(f"Missing squash directory {args.image_dir}")
+            _LOGGER.error("Missing squash directory %s", args.image_dir)
             exit(1)
 
         for installable in installables:
             destination = Path(args.image_dir / f"{installable.install_path}.img")
             if installable.nightly_like:
                 if destination.exists():
-                    context.error(f"Found squash: {installable.name} for nightly")
+                    _LOGGER.error("Found squash: %s for nightly", installable.name)
             elif not destination.exists():
-                context.error(f"Missing squash: {installable.name} (for {destination})")
+                _LOGGER.error("Missing squash: %s (for %s)", installable.name, destination)
 
         squash_mount_check(args.image_dir, '', context)
 
@@ -241,19 +241,19 @@ def _app(args: Namespace, context: InstallationContext):
                 try:
                     if installable.install():
                         if not installable.is_installed():
-                            context.error(f"{installable.name} installed OK, but doesn't appear as installed after")
+                            _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
                             failed.append(installable.name)
                         else:
-                            context.info(f"{installable.name} installed OK")
+                            _LOGGER.info("%s installed OK", installable.name)
                             num_installed += 1
                     else:
-                        context.info(f"{installable.name} failed to install")
+                        _LOGGER.info("%s failed to install", installable.name)
                         failed.append(installable.name)
                 except Exception as e:  # pylint: disable=broad-except
-                    context.info(f"{installable.name} failed to install: {e}\n{traceback.format_exc(5)}")
+                    _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
                     failed.append(installable.name)
             else:
-                context.info(f"{installable.name} is already installed, skipping")
+                _LOGGER.info("%s is already installed, skipping", installable.name)
                 num_skipped += 1
         print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {len(failed)} failed installation')
         if len(failed):
@@ -274,23 +274,23 @@ def _app(args: Namespace, context: InstallationContext):
 
             if args.force or installable.should_build():
                 if not installable.is_installed():
-                    context.info(f"{installable.name} is not installed, unable to build")
+                    _LOGGER.info("%s is not installed, unable to build", installable.name)
                     num_skipped += 1
                 else:
                     try:
                         [num_installed, num_skipped, num_failed] = installable.build(args.buildfor)
                         if num_installed > 0:
-                            context.info(f"{installable.name} built OK")
+                            _LOGGER.info("%s built OK", installable.name)
                         elif num_failed:
-                            context.info(f"{installable.name} failed to build")
+                            _LOGGER.info("%s failed to build", installable.name)
                     except RuntimeError as e:
                         if args.buildfor:
                             raise e
                         else:
-                            context.info(f"{installable.name} failed to build: {e}")
+                            _LOGGER.info("%s failed to build: %s", installable.name, e)
                             num_failed += 1
             else:
-                context.info(f"{installable.name} is already built, skipping")
+                _LOGGER.info("%s is already built, skipping", installable.name)
                 num_skipped += 1
         print(f'{num_installed} packages built OK, {num_skipped} skipped, and {num_failed} failed build')
         if num_failed:
