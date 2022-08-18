@@ -605,7 +605,7 @@ compilers:
             rm -Rf ~/.intel
             rm -Rf ~/intel
             rm -Rf /var/intel/installercache
-            bash {script_filename} -s -a -s --action install --eula accept --install-dir {staging}/{dir}
+            bash {script_filename} -s -a -s --action install --eula accept --install-dir $CE_STAGING_DIR/{dir}
             rm -Rf ~/.intel
             rm -Rf ~/intel
             rm -Rf /var/intel/installercache

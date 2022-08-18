@@ -5,15 +5,15 @@ import logging.config
 import os
 import sys
 import traceback
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 import yaml
-from lib.library_yaml import LibraryYaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
+from lib.library_yaml import LibraryYaml
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,7 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     filter_generator = (filter_match(filt, installable) for filt in filters)
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
+
 def squash_mount_check(rootfolder, subdir, context):
     for filename in os.listdir(os.path.join(rootfolder, subdir)):
         if filename.endswith(".img"):
@@ -63,6 +64,7 @@ def squash_mount_check(rootfolder, subdir, context):
                 squash_mount_check(rootfolder, filename, context)
             else:
                 squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
+
 
 def main():
     parser = ArgumentParser(prog='ce_install',
@@ -81,16 +83,19 @@ def main():
                         help='look for S3 resources in BUCKET (default %(default)s)')
     parser.add_argument('--s3_dir', default='opt', metavar='DIR',
                         help='look for S3 resources in the bucket\'s subdirectory DIR (default %(default)s)')
-    parser.add_argument('--resource_dir', default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'resources'),
+    parser.add_argument('--resource_dir',
+                        default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'resources'),
                         help='look for installation resource files in DIR (default %(default)s', metavar='DIR')
     parser.add_argument('--yaml_dir', default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'yaml'),
                         help='look for installation yaml files in DIR (default %(default)s', metavar='DIR')
     parser.add_argument('--cache', metavar='DIR', help='cache requests at DIR', type=Path)
     parser.add_argument('--dry_run', default=False, action='store_true', help='dry run only')
     parser.add_argument('--force', default=False, action='store_true', help='force even if would otherwise skip')
-    parser.add_argument('--allow_unsafe_ssl', default=False, action='store_true', help='skip ssl certificate checks on https connections')
+    parser.add_argument('--allow_unsafe_ssl', default=False, action='store_true',
+                        help='skip ssl certificate checks on https connections')
 
     parser.add_argument('--debug', default=False, action='store_true', help='log at debug')
+    parser.add_argument('--keep-staging', default=False, action='store_true', help='keep the unique staging directory')
     parser.add_argument('--log_to_console', default=False, action='store_true',
                         help='log output to console, even if logging to a file is requested')
     parser.add_argument('--log', metavar='LOGFILE', help='log to LOGFILE')
@@ -103,7 +108,8 @@ def main():
                         help='installables must pass any filter (default "False")')
 
     parser.add_argument('command',
-                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash', 'squashcheck', 'reformat', 'addtoprustcrates', 'generaterustprops', 'addcrate'],
+                        choices=['list', 'install', 'check_installed', 'verify', 'amazoncheck', 'build', 'squash',
+                                 'squashcheck', 'reformat', 'addtoprustcrates', 'generaterustprops', 'addcrate'],
                         default='list',
                         nargs='?')
     parser.add_argument('filter', nargs='*', help='filters to apply', default=[])
@@ -122,23 +128,24 @@ def main():
         root_logger.addHandler(console_handler)
 
     s3_url = f'https://s3.amazonaws.com/{args.s3_bucket}/{args.s3_dir}'
-    context = InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
-                                  args.cache, args.yaml_dir, args.allow_unsafe_ssl, args.resource_dir)
+    _app(args, InstallationContext(args.dest, args.staging_dir, s3_url, args.dry_run, 'nightly' in args.enable,
+                                   args.cache, args.yaml_dir, args.allow_unsafe_ssl, args.resource_dir,
+                                   args.keep_staging))
 
+
+def _app(args: Namespace, context: InstallationContext):
     installables = []
     for yaml_path in Path(args.yaml_dir).glob('*.yaml'):
         with yaml_path.open() as yaml_file:
             yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
         for installer in installers_for(context, yaml_doc, args.enable):
             installables.append(installer)
-
     installables_by_name = {installable.name: installable for installable in installables}
     for installable in installables:
         installable.link(installables_by_name)
-
-    installables = filter(lambda installable: filter_aggregate(args.filter, installable, args.filter_match_all), installables)
-    installables = sorted(installables, key=lambda x: x.sort_key)
-
+    installables = sorted(filter(lambda installable: filter_aggregate(args.filter, installable, args.filter_match_all),
+                                 installables), key=lambda x: x.sort_key)
+    destination: Path
     if args.command == 'list':
         print("Installation candidates:")
         for installable in installables:
@@ -200,7 +207,7 @@ def main():
             if not installable.is_installed():
                 context.warn(f"{installable.name} wasn't installed; skipping squash")
                 continue
-            destination: Path = args.image_dir / f"{installable.install_path}.img"
+            destination = args.image_dir / f"{installable.install_path}.img"
             if destination.exists() and not args.force:
                 context.info(f"Skipping {installable.name} as it already exists at {destination}")
                 continue
@@ -215,7 +222,7 @@ def main():
             exit(1)
 
         for installable in installables:
-            destination: Path = Path(args.image_dir / f"{installable.install_path}.img")
+            destination = Path(args.image_dir / f"{installable.install_path}.img")
             if installable.nightly_like:
                 if destination.exists():
                     context.error(f"Found squash: {installable.name} for nightly")
