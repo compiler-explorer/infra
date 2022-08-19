@@ -34,7 +34,7 @@ VERSIONED_RE = re.compile(r'^(.*)-([0-9.]+)$')
 
 NO_DEFAULT = "__no_default__"
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 
 class FetchFailure(RuntimeError):
@@ -55,7 +55,7 @@ class StagingDir:
     def __init__(self, staging_dir: Path, keep_afterwards: bool):
         self._dir = staging_dir
         self._keep_afterwards = keep_afterwards
-        logger.debug("Creating staging dir %s")
+        _LOGGER.debug("Creating staging dir %s", self._dir)
         self._dir.mkdir(parents=True)
 
     @property
@@ -84,25 +84,13 @@ class InstallationContext:
         http.mount("https://", adapter)
         http.mount("http://", adapter)
         if cache:
-            self.info(f"Using cache {cache}")
+            _LOGGER.info("Using cache %s", cache)
             self.fetcher = CacheControl(http, cache=FileCache(cache))
         else:
-            self.info("Making uncached requests")
+            _LOGGER.info("Making uncached requests")
             self.fetcher = http
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
-
-    def debug(self, message: str) -> None:
-        logger.debug(message)
-
-    def info(self, message: str) -> None:
-        logger.info(message)
-
-    def warn(self, message: str) -> None:
-        logger.warning(message)
-
-    def error(self, message: str) -> None:
-        logger.error(message)
 
     @contextlib.contextmanager
     def new_staging_dir(self) -> Iterator[StagingDir]:
@@ -115,22 +103,22 @@ class InstallationContext:
                 shutil.rmtree(staging_dir.path, ignore_errors=True)
 
     def fetch_rest_query(self, url: str) -> Dict:
-        self.debug(f'Fetching {url}')
+        _LOGGER.debug('Fetching %s', url)
         return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
 
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
-        self.debug(f'Fetching {url}')
+        _LOGGER.debug('Fetching %s', url)
         if self.allow_unsafe_ssl:
             request = self.fetcher.get(url, stream=True, verify=False)
         else:
             request = self.fetcher.get(url, stream=True)
 
         if not request.ok:
-            self.error(f'Failed to fetch {url}: {request}')
+            _LOGGER.error('Failed to fetch %s: %s', url, request)
             raise FetchFailure(f'Fetch failure for {url}: {request}')
         fetched = 0
         length = int(request.headers.get('content-length', 0))
-        self.info(f'Fetching {url} ({length} bytes)')
+        _LOGGER.info('Fetching %s (%d bytes)', url, length)
         report_every_secs = 5
         report_time = time.time() + report_every_secs
         for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
@@ -139,9 +127,9 @@ class InstallationContext:
             now = time.time()
             if now >= report_time:
                 if length != 0:
-                    self.info(f'{100.0 * fetched / length:.1f}% of {url}...')
+                    _LOGGER.info('%.1f of %s...', 100.0 * fetched / length, url)
                 report_time = now + report_every_secs
-        self.info(f'100% of {url}')
+        _LOGGER.info('100%% of %s', url)
         fd.flush()
 
     def fetch_url_and_pipe_to(self, staging: StagingDir, url: str, command: Sequence[str],
@@ -153,11 +141,11 @@ class InstallationContext:
         with tempfile.TemporaryFile() as fd:
             self.fetch_to(url, fd)
             fd.seek(0)
-            self.info(f'Piping to {shlex.join(command)}')
+            _LOGGER.info('Piping to %s', shlex.join(command))
             subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
     def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Optional[Path] = None) -> None:
-        self.info(f'Staging with {shlex.join(command)}')
+        _LOGGER.info('Staging with %s', shlex.join(command))
         subprocess.check_call(command, cwd=str(cwd or staging.path))
 
     def fetch_s3_and_pipe_to(self, staging: StagingDir, s3: str, command: Sequence[str]) -> None:
@@ -171,13 +159,13 @@ class InstallationContext:
 
     def set_link(self, source: Path, dest: str) -> None:
         if self.dry_run:
-            self.info(f'Would symlink {source} to {dest}')
+            _LOGGER.info('Would symlink %s to %s', source, dest)
             return
 
         full_dest = self.destination / dest
         if full_dest.exists():
             full_dest.unlink()
-        self.info(f'Symlinking {dest} to {source}')
+        _LOGGER.info('Symlinking %s to %s', source, full_dest)
         os.symlink(str(source), str(full_dest))
 
     def glob(self, pattern: str) -> Collection[str]:
@@ -185,18 +173,18 @@ class InstallationContext:
 
     def remove_dir(self, directory: Union[str, Path]) -> None:
         if self.dry_run:
-            self.info(f'Would remove directory {directory} but in dry-run mode')
+            _LOGGER.info('Would remove directory %s but in dry-run mode', directory)
         else:
             shutil.rmtree(str(self.destination / directory), ignore_errors=True)
-            self.info(f'Removing {directory}')
+            _LOGGER.info('Removing %s', directory)
 
     def check_link(self, source: str, link: str) -> bool:
         try:
             link = self.read_link(link)
-            self.debug(f'readlink returned {link}')
+            _LOGGER.debug('readlink returned %s', link)
             return link == source
         except FileNotFoundError:
-            self.debug(f'File not found for {link}')
+            _LOGGER.debug('File not found for %s', link)
             return False
 
     def move_from_staging(self, staging: StagingDir, source_str: str, dest_str: Optional[str] = None,
@@ -206,19 +194,19 @@ class InstallationContext:
         source = staging.path / source_str
         dest = self.destination / dest_str
         if self.dry_run:
-            self.info(f'Would install {source} to {dest} but in dry-run mode')
+            _LOGGER.info('Would install %s to %s but in dry-run mode', source, dest)
             return
         dest.parent.mkdir(parents=True, exist_ok=True)
-        self.info(f'Moving from staging ({source}) to final destination ({dest})')
+        _LOGGER.info('Moving from staging (%s) to final destination (%s)', source, dest)
         if not source.is_dir():
             staging_contents = subprocess.check_output(['ls', '-l', str(staging.path)]).decode('utf-8')
-            self.info(f"Directory listing of staging:\n{staging_contents}")
+            _LOGGER.info("Directory listing of staging:\n%s", staging_contents)
             raise RuntimeError(f"Missing source '{source}'")
         # Some tar'd up GCCs are actually marked read-only...
         subprocess.check_call(["chmod", "u+w", source])
         state = ''
         if dest.is_dir():
-            self.info(f'Destination {dest} exists, temporarily moving out of the way (to {existing_dir_rename})')
+            _LOGGER.info('Destination %s exists, temporarily moving out of the way (to %s)', dest, existing_dir_rename)
             dest.replace(existing_dir_rename)
             state = 'old_renamed'
         try:
@@ -227,28 +215,28 @@ class InstallationContext:
                 state = 'old_needs_remove'
         finally:
             if state == 'old_needs_remove':
-                self.debug(f'Removing temporarily moved {existing_dir_rename}')
+                _LOGGER.debug('Removing temporarily moved %s', existing_dir_rename)
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == 'old_renamed':
-                self.warn('Moving old destination back')
+                _LOGGER.warning('Moving old destination back')
                 existing_dir_rename.replace(dest)
 
     def compare_against_staging(self, staging: StagingDir, source_str: str, dest_str: Optional[str] = None) -> bool:
         dest_str = dest_str or source_str
         source = staging.path / source_str
         dest = self.destination / dest_str
-        self.info(f'Comparing {source} vs {dest}...')
+        _LOGGER.info('Comparing %s vs %s...', source, dest)
         result = subprocess.call(['diff', '-r', source, dest])
         if result == 0:
-            self.info('Contents match')
+            _LOGGER.info('Contents match')
         else:
-            self.warn('Contents differ')
+            _LOGGER.warning('Contents differ')
         return result == 0
 
     def check_output(self, args: List[str], env: Optional[dict] = None, stderr_on_stdout=False) -> str:
         args = args[:]
         args[0] = str(self.destination / args[0])
-        logger.debug('Executing %s in %s', args, self.destination)
+        _LOGGER.debug('Executing %s in %s', args, self.destination)
         return subprocess.check_output(
             args,
             cwd=str(self.destination),
@@ -259,7 +247,7 @@ class InstallationContext:
     def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
         args = args[:]
         args[0] = str(self.destination / args[0])
-        logger.debug('Executing %s in %s', args, self.destination)
+        _LOGGER.debug('Executing %s in %s', args, self.destination)
         subprocess.check_call(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL)
 
     def strip_exes(self, staging: StagingDir, paths: Union[bool, List[str]]) -> None:
@@ -270,7 +258,7 @@ class InstallationContext:
         to_strip = []
         for path_part in paths:
             path = staging.path / path_part
-            logger.debug("Looking for executables to strip in %s", path)
+            _LOGGER.debug("Looking for executables to strip in %s", path)
             if not path.is_dir():
                 raise RuntimeError(f"While looking for files to strip, {path} was not a directory")
             for dirpath, _, filenames in os.walk(str(path)):
@@ -285,7 +273,7 @@ class InstallationContext:
     def run_script(self, staging: StagingDir, from_path: Union[str, Path], lines: List[str]) -> None:
         from_path = Path(from_path)
         if len(lines) > 0:
-            self.info('Running script')
+            _LOGGER.info('Running script')
             script_file = from_path / 'ce_script.sh'
             with script_file.open('w', encoding='utf-8') as f:
                 f.write('#!/bin/bash\n\nset -euo pipefail\n\n')
@@ -303,7 +291,7 @@ class InstallationContext:
 
     def set_rpath(self, elf_file: Path, rpath: str):
         # TODO: sometime we'll need a way of finding patchelf
-        self.info(f'Setting rpath of {elf_file} to {rpath}')
+        _LOGGER.info('Setting rpath of %s to %s', elf_file, rpath)
         subprocess.check_call([self.destination / 'patchelf-0.8' / 'src' / 'patchelf', '--set-rpath', rpath, elf_file])
 
 
@@ -334,6 +322,7 @@ class Installable:
         self.check_stderr_on_stdout = self.config.get('check_stderr_on_stdout', False)
         self.install_path = ''
         self.after_stage_script = self.config_get('after_stage_script', [])
+        self._logger = logging.getLogger(self.name)
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace('%PATH%', path_name).split('=', 1) for x in self.config_get('check_env', [])])
@@ -352,7 +341,7 @@ class Installable:
         try:
             self.depends = [all_installables[dep] for dep in self.depends]
         except KeyError as ke:
-            self.error(f"Unable to find dependency {ke} in {all_installables}")
+            self._logger.error("Unable to find dependency %s in %s", ke, all_installables)
             raise
         dep_re = re.compile('%DEP([0-9]+)%')
 
@@ -361,18 +350,6 @@ class Installable:
 
         for k in self.check_env.keys():
             self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
-
-    def debug(self, message: str) -> None:
-        self.install_context.debug(f'{self.name}: {message}')
-
-    def info(self, message: str) -> None:
-        self.install_context.info(f'{self.name}: {message}')
-
-    def warn(self, message: str) -> None:
-        self.install_context.warn(f'{self.name}: {message}')
-
-    def error(self, message: str) -> None:
-        self.install_context.error(f'{self.name}: {message}')
 
     def verify(self) -> bool:
         return True
@@ -385,15 +362,15 @@ class Installable:
                 and self.build_config.build_type != "none" and self.build_config.build_type != "")
 
     def install(self) -> bool:
-        self.debug("Ensuring dependees are installed")
+        self._logger.debug("Ensuring dependees are installed")
         any_missing = False
         for dependee in self.depends:
             if not dependee.is_installed():
-                self.warn("Required dependee {} not installed".format(dependee))
+                self._logger.warning("Required dependee %s not installed", dependee)
                 any_missing = True
         if any_missing:
             return False
-        self.debug("Dependees ok")
+        self._logger.debug("Dependees ok")
         return True
 
     def is_installed(self) -> bool:
@@ -401,12 +378,12 @@ class Installable:
             return True
 
         if self._check_link and not self._check_link():
-            self.debug('Check link returned false')
+            self._logger.debug('Check link returned false')
             return False
 
         if self.check_file:
             res = (self.install_context.destination / self.check_file).is_file()
-            self.debug(f'Check file for "{self.install_context.destination / self.check_file}" returned {res}')
+            self._logger.debug('Check file for "%s" returned %s', self.install_context.destination / self.check_file, res)
             return res
 
         try:
@@ -414,13 +391,13 @@ class Installable:
                 self.check_call,
                 env=self.check_env,
                 stderr_on_stdout=self.check_stderr_on_stdout)
-            self.debug(f'Check call returned {res_call}')
+            self._logger.debug('Check call returned %s', res_call)
             return True
         except FileNotFoundError:
-            self.debug(f'File not found for {self.check_call}')
+            self._logger.debug('File not found for %s', self.check_call)
             return False
         except subprocess.CalledProcessError:
-            self.debug(f'Got an error for {self.check_call}')
+            self._logger.debug('Got an error for %s', self.check_call)
             return False
 
     def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
@@ -450,14 +427,14 @@ class Installable:
 
         if self.build_config.build_type in ["cmake", "make"]:
             sourcefolder = os.path.join(self.install_context.destination, self.install_path)
-            builder = LibraryBuilder(logger, self.language, self.context[-1], self.target_name, sourcefolder,
+            builder = LibraryBuilder(_LOGGER, self.language, self.context[-1], self.target_name, sourcefolder,
                                      self.install_context, self.build_config)
             if self.build_config.build_type == "cmake":
                 return builder.makebuild(buildfor)
             elif self.build_config.build_type == "make":
                 return builder.makebuild(buildfor)
         elif self.build_config.build_type == "cargo":
-            builder = RustLibraryBuilder(logger, self.language, self.context[-1], self.target_name,
+            builder = RustLibraryBuilder(_LOGGER, self.language, self.context[-1], self.target_name,
                                          self.install_context, self.build_config)
             return builder.makebuild(buildfor)
         else:
@@ -468,7 +445,7 @@ class Installable:
         source_folder = self.install_context.destination / self.install_path
         temp_image = destination_image.with_suffix(".tmp")
         temp_image.unlink(missing_ok=True)
-        self.info(f"Squashing {source_folder}...")
+        self._logger.info("Squashing %s...", source_folder)
         self.install_context.check_call([
             "/usr/bin/mksquashfs",
             str(source_folder),
@@ -531,10 +508,10 @@ class GitHubInstallable(Installable):
 
     def _git(self, staging: StagingDir, *git_args: str) -> str:
         full_args = ['git'] + list(git_args)
-        self.debug(f"{shlex.join(full_args)}")
+        self._logger.debug(shlex.join(full_args))
         result = subprocess.check_output(full_args, cwd=staging.path).decode('utf-8').strip()
         if result:
-            self.debug(f" -> {result}")
+            self._logger.debug(" -> %s", result)
         return result
 
     def clone_branch(self, staging: StagingDir):
@@ -708,7 +685,7 @@ class NightlyInstallable(Installable):
         if compiler_name not in current:
             raise RuntimeError(f'Unable to find nightlies for {compiler_name}')
         most_recent = max(current[compiler_name])
-        self.info(f'Most recent {compiler_name} is {most_recent}')
+        self._logger.info('Most recent %s is %s', compiler_name, most_recent)
         path_name_prefix = self.config_get('path_name_prefix', compiler_name)
         s3_name = self.config_get('s3_name', compiler_name)
         self.s3_path = f'{s3_name}-{most_recent}'
@@ -909,12 +886,12 @@ class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         document = self.install_context.fetch_rest_query(self.config_get('url'))
-        # pylint: disable=eval-used
+        # pylint: disable-next=eval-used
         self.url = eval(self.config_get('query'), {}, dict(document=document))
         if not self.url:
-            self.warn('No installation candidate found')
+            self._logger.warning('No installation candidate found')
         else:
-            self.info(f'resolved to {self.url}')
+            self._logger.info('resolved to %s', self.url)
 
     def should_install(self) -> bool:
         if not self.url:
@@ -946,7 +923,7 @@ class ScriptInstallable(Installable):
             else:
                 with staging_path_filename.open('wb') as f:
                     self.install_context.fetch_to(url, f)
-            self.info(f'{url} -> {filename}')
+            self._logger.info('%s -> %s', url, filename)
         self.install_context.stage_command(staging, ['bash', '-c', self.script])
         if self.strip:
             self.install_context.strip_exes(staging, self.strip)
@@ -1006,7 +983,7 @@ class RustInstallable(Installable):
         suffix = '.tar.gz'
         architectures = [artifact[len(arch_std_prefix):-len(suffix)] for artifact in
                          s3_available_rust_artifacts(arch_std_prefix)]
-        self.info(f"Installing for these architectures: {', '.join(architectures or ['none'])}")
+        self._logger.info("Installing for these architectures: %s", ', '.join(architectures or ['none']))
         base_path = staging.path / f'rust-{self.target_name}'
         self.do_rust_install(staging, self.base_package, base_path)
         for architecture in architectures:
@@ -1026,7 +1003,7 @@ class RustInstallable(Installable):
                 # we start up the same time the next day and we get a 23hr58 minute old build and we
                 # don't reinstall.
                 age = datetime.now() - dtime + timedelta(minutes=30)
-                self.info(f"Nightly build {dest_dir} is {age} old")
+                self._logger.info("Nightly build %s is %s old", dest_dir, age)
                 if age.days > self.nightly_install_days:
                     return True
         return super().should_install()
