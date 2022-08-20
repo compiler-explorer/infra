@@ -163,3 +163,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
+  priority     = 5
+  action {
+    type             = "redirect"
+    redirect {
+      status_code = "HTTP_301"
+      host = "ce.grafana.net"
+      path = "/public-dashboards/326d9aa2606b4efea25f4458a4c3f065"
+      query = "orgId=0&refresh=1m"
+    }
+  }
+  condition {
+    host_header {
+      values = ["stats.compiler-explorer.com"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
