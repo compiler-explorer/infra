@@ -55,10 +55,21 @@ apt-get install -y \
     xz-utils
 
 pushd /tmp
-git clone https://github.com/apmorton/firejail.git
-cd firejail
+git clone https://github.com/apmorton/firejail.git firejail-apmorton
+cd firejail-apmorton
 git checkout 0.9.58.2-ce-patch.1
-./configure --enable-apparmor
+./configure --enable-apparmor --prefix /usr/local/firejail-0.9.58.2-ce-patch.1
+make "-j$(nproc)"
+make install
+popd
+
+ln -s /usr/local/firejail-0.9.58.2-ce-patch.1/bin/firejail /usr/local/bin
+
+pushd /tmp
+git clone https://github.com/netblue30/firejail.git
+cd firejail
+git checkout 0.9.70
+./configure --enable-apparmor --prefix /usr/local/firejail-0.9.70
 make "-j$(nproc)"
 make install
 popd
