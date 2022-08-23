@@ -1,18 +1,16 @@
-import click
 import boto3
 import os
 
 from lib.cli import cli
 
 
-@cli.group(name='librarystats')
-def librarystats_group():
+@cli.group()
+def library_stats():
     """Library stats things"""
 
 
-@librarystats_group.command(name='update')
-@click.pass_obj
-def librarystats_update():
+@library_stats.command(name='update')
+def library_stats_update():
     """Queries Athena for Library statistics and updates the public CSV."""
     client = boto3.client('athena')
 
