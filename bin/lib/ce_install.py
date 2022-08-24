@@ -9,7 +9,7 @@ import traceback
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import List, Optional, Tuple, Any
+from typing import List, Optional, Tuple
 
 import click
 import yaml
@@ -27,7 +27,10 @@ class CliContext:
     installation_context: InstallationContext
     enabled: List[str]
     filter_match_all: bool
-    pool: Any # but really multiprocessing.Pool, but mypy throws a fit
+    parallel: int
+
+    def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
+        return multiprocessing.Pool(processes=self.parallel)
 
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
@@ -171,7 +174,7 @@ def cli(
         installation_context=context,
         enabled=enable,
         filter_match_all=filter_match_all,
-        pool=multiprocessing.Pool(processes=parallel))
+        parallel=parallel)
 
 
 @cli.command(name="list")
@@ -272,16 +275,17 @@ def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Option
 def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path):
     """Create squashfs images for all targets matching FILTER."""
 
-    for installable, destination in [
-        (inst_and_dir[0], inst_and_dir[1])
-        for inst_and_dir in context.pool.map(partial(_to_squash, image_dir, force), context.get_installables(filter_))
-        if inst_and_dir is not None
-    ]:
-        if context.installation_context.dry_run:
-            _LOGGER.info("Would squash %s to %s", installable.name, destination)
-        else:
-            _LOGGER.info("Squashing %s to %s", installable.name, destination)
-            installable.squash_to(destination)
+    with context.pool() as pool:
+        for installable, destination in [
+            (inst_and_dir[0], inst_and_dir[1])
+            for inst_and_dir in pool.map(partial(_to_squash, image_dir, force), context.get_installables(filter_))
+            if inst_and_dir is not None
+        ]:
+            if context.installation_context.dry_run:
+                _LOGGER.info("Would squash %s to %s", installable.name, destination)
+            else:
+                _LOGGER.info("Squashing %s to %s", installable.name, destination)
+                installable.squash_to(destination)
 
 
 @cli.command()
