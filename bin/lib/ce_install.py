@@ -317,6 +317,10 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
     squash_mount_check(image_dir, '', context)
 
 
+def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
+    return installable, force or installable.should_install()
+
+
 @cli.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
@@ -326,26 +330,31 @@ def install(context: CliContext, filter_: List[str], force: bool):
     num_installed = 0
     num_skipped = 0
     failed = []
-    for installable in context.get_installables(filter_):
-        print(f"Installing {installable.name}")
-        if force or installable.should_install():
-            try:
-                if installable.install():
-                    if not installable.is_installed():
-                        _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
-                        failed.append(installable.name)
+
+    with context.pool() as pool:
+        for installable, should_install in pool.map(
+                partial(_should_install, force),
+                context.get_installables(filter_)
+        ):
+            print(f"Installing {installable.name}")
+            if should_install:
+                try:
+                    if installable.install():
+                        if not installable.is_installed():
+                            _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
+                            failed.append(installable.name)
+                        else:
+                            _LOGGER.info("%s installed OK", installable.name)
+                            num_installed += 1
                     else:
-                        _LOGGER.info("%s installed OK", installable.name)
-                        num_installed += 1
-                else:
-                    _LOGGER.info("%s failed to install", installable.name)
+                        _LOGGER.info("%s failed to install", installable.name)
+                        failed.append(installable.name)
+                except Exception as e:  # pylint: disable=broad-except
+                    _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
                     failed.append(installable.name)
-            except Exception as e:  # pylint: disable=broad-except
-                _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
-                failed.append(installable.name)
-        else:
-            _LOGGER.info("%s is already installed, skipping", installable.name)
-            num_skipped += 1
+            else:
+                _LOGGER.info("%s is already installed, skipping", installable.name)
+                num_skipped += 1
     print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {len(failed)} failed installation')
     if len(failed):
         print('Failed:')
