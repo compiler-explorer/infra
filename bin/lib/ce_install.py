@@ -2,12 +2,14 @@
 # coding=utf-8
 import logging
 import logging.config
+import multiprocessing
 import os
 import sys
 import traceback
 from dataclasses import dataclass
+from functools import partial
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple, Any
 
 import click
 import yaml
@@ -25,6 +27,7 @@ class CliContext:
     installation_context: InstallationContext
     enabled: List[str]
     filter_match_all: bool
+    pool: Any # but really multiprocessing.Pool, but mypy throws a fit
 
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
@@ -118,6 +121,9 @@ def squash_mount_check(rootfolder, subdir, context):
 @click.option("--allow-unsafe-ssl/-safe-ssl-only", help="Skip ssl certificate checks on https connections")
 @click.option('--keep-staging', is_flag=True, help='Keep the unique staging directory')
 @click.option("--filter-match-all/--filter-match-any", help="Filter expressions must all match / any match")
+@click.option("--parallel", type=int, default=min(8, multiprocessing.cpu_count()),
+              help="Limit the number of concurrent processes to N", metavar='N',
+              show_default=True)
 @click.pass_context
 def cli(
         ctx: click.Context,
@@ -135,7 +141,8 @@ def cli(
         allow_unsafe_ssl: bool,
         resource_dir: Path,
         keep_staging: bool,
-        filter_match_all: bool):
+        filter_match_all: bool,
+        parallel: int):
     """Install binaries, libraries and compilers for Compiler Explorer."""
     formatter = logging.Formatter(fmt='%(asctime)s %(name)-15s %(levelname)-8s %(message)s')
     root_logger = logging.getLogger()
@@ -163,7 +170,8 @@ def cli(
     ctx.obj = CliContext(
         installation_context=context,
         enabled=enable,
-        filter_match_all=filter_match_all)
+        filter_match_all=filter_match_all,
+        pool=multiprocessing.Pool(processes=parallel))
 
 
 @cli.command(name="list")
@@ -240,6 +248,20 @@ def amazon_check():
                         _LOGGER.debug('Found path for library %s %s: %s', libraryid, version, libpath)
 
 
+def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Optional[Tuple[Installable, Path]]:
+    if not installable.is_installed():
+        _LOGGER.warning("%s wasn't installed; skipping squash", installable.name)
+        return None
+    destination = image_dir / f"{installable.install_path}.img"
+    if destination.exists() and not force:
+        _LOGGER.info("Skipping %s as it already exists at %s", installable.name, destination)
+        return None
+    if installable.nightly_like:
+        _LOGGER.info("Skipping %s as it looks like a nightly", installable.name)
+        return None
+    return installable, destination
+
+
 @cli.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
@@ -249,19 +271,17 @@ def amazon_check():
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path):
     """Create squashfs images for all targets matching FILTER."""
-    for installable in context.get_installables(filter_):
-        if not installable.is_installed():
-            _LOGGER.warning("%s wasn't installed; skipping squash", installable.name)
-            continue
-        destination = image_dir / f"{installable.install_path}.img"
-        if destination.exists() and not force:
-            _LOGGER.info("Skipping %s as it already exists at %s", installable.name, destination)
-            continue
-        if installable.nightly_like:
-            _LOGGER.info("Skipping %s as it looks like a nightly", installable.name)
-            continue
-        _LOGGER.info("Squashing %s to %s", installable.name, destination)
-        installable.squash_to(destination)
+
+    for installable, destination in [
+        (inst_and_dir[0], inst_and_dir[1])
+        for inst_and_dir in context.pool.map(partial(_to_squash, image_dir, force), context.get_installables(filter_))
+        if inst_and_dir is not None
+    ]:
+        if context.installation_context.dry_run:
+            _LOGGER.info("Would squash %s to %s", installable.name, destination)
+        else:
+            _LOGGER.info("Squashing %s to %s", installable.name, destination)
+            installable.squash_to(destination)
 
 
 @cli.command()
