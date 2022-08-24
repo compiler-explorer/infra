@@ -4,6 +4,7 @@ import logging
 import logging.config
 import multiprocessing
 import os
+import signal
 import sys
 import traceback
 from dataclasses import dataclass
@@ -30,7 +31,12 @@ class CliContext:
     parallel: int
 
     def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
-        return multiprocessing.Pool(processes=self.parallel)
+        # https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
+        _LOGGER.info("Creating multiprocessing pool with %s workers", self.parallel)
+        original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        pool = multiprocessing.Pool(processes=self.parallel)
+        signal.signal(signal.SIGINT, original_sigint_handler)
+        return pool
 
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
