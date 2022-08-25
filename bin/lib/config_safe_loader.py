@@ -4,6 +4,7 @@ import yaml
 # With thanks to:
 # https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml
 
+
 class ConfigSafeLoader(yaml.SafeLoader):
     @classmethod
     def remove_implicit_resolver(cls, tag_to_remove):
@@ -12,13 +13,13 @@ class ConfigSafeLoader(yaml.SafeLoader):
 
         Takes care not to modify resolvers in super classes.
         """
-        if 'yaml_implicit_resolvers' not in cls.__dict__:
+        if "yaml_implicit_resolvers" not in cls.__dict__:
             cls.yaml_implicit_resolvers = cls.yaml_implicit_resolvers.copy()
 
         for first_letter, mappings in cls.yaml_implicit_resolvers.items():
-            cls.yaml_implicit_resolvers[first_letter] = [(tag, regexp)
-                                                         for tag, regexp in mappings
-                                                         if tag != tag_to_remove]
+            cls.yaml_implicit_resolvers[first_letter] = [
+                (tag, regexp) for tag, regexp in mappings if tag != tag_to_remove
+            ]
 
 
-ConfigSafeLoader.remove_implicit_resolver('tag:yaml.org,2002:timestamp')
+ConfigSafeLoader.remove_implicit_resolver("tag:yaml.org,2002:timestamp")

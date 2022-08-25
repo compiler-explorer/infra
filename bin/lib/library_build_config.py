@@ -2,6 +2,7 @@ from typing import Optional, Dict, Any
 
 valid_lib_types = ["static", "shared", "cshared"]
 
+
 class LibraryBuildConfig:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -25,7 +26,9 @@ class LibraryBuildConfig:
         self.skip_compilers = self.config_get("skip_compilers", [])
         self.use_compiler = self.config_get("use_compiler", "")
         if self.lib_type == "cshared" and self.use_compiler == "":
-            raise RuntimeError("When lib_type is cshared, it is required to supply a (cross)compiler with property use_compiler")
+            raise RuntimeError(
+                "When lib_type is cshared, it is required to supply a (cross)compiler with property use_compiler"
+            )
 
         if self.build_type == "cargo":
             self.domainurl = self.config_get("domainurl", "https://github.com")

@@ -12,29 +12,29 @@ def conan():
     """Conan instance management commands."""
 
 
-@conan.command(name='login')
+@conan.command(name="login")
 def conan_login():
     """Log in to the conan instance."""
     instance = ConanInstance.instance()
     run_remote_shell(instance)
 
 
-@conan.command(name='exec')
-@click.argument('remote_cmd', required=True, nargs=-1)
+@conan.command(name="exec")
+@click.argument("remote_cmd", required=True, nargs=-1)
 def conan_exec(remote_cmd: Sequence[str]):
     """Execute the REMOTE_CMD on the conan instance."""
     instance = ConanInstance.instance()
     exec_remote_to_stdout(instance, remote_cmd)
 
 
-@conan.command(name='restart')
+@conan.command(name="restart")
 def conan_restart():
     """Restart the conan instance."""
     instance = ConanInstance.instance()
     exec_remote(instance, ["sudo", "service", "ce-conan", "restart"])
 
 
-@conan.command(name='reloadwww')
+@conan.command(name="reloadwww")
 def conan_reloadwww():
     """Reload the conan web."""
     instance = ConanInstance.instance()
