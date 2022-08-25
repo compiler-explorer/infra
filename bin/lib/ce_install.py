@@ -392,8 +392,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
                         num_installed += 1
                     else:
                         if not installable.is_installed():
-                            _LOGGER.error("%s installed OK, but doesn't appear as installed after",
-                                          installable.name)
+                            _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
                             failed.append(installable.name)
                         else:
                             _LOGGER.info("%s installed OK", installable.name)
