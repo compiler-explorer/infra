@@ -40,7 +40,7 @@ class CliContext:
 
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
-        for yaml_path in Path(self.installation_context.yaml_dir).glob('*.yaml'):
+        for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
             with yaml_path.open() as yaml_file:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
             for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
@@ -49,20 +49,21 @@ class CliContext:
         for installable in installables:
             installable.link(installables_by_name)
         installables = sorted(
-            filter(lambda installable: filter_aggregate(args_filter, installable, self.filter_match_all),
-                   installables), key=lambda x: x.sort_key)
+            filter(lambda installable: filter_aggregate(args_filter, installable, self.filter_match_all), installables),
+            key=lambda x: x.sort_key,
+        )
         return installables
 
 
 def _context_match(context_query: str, installable: Installable) -> bool:
-    context = context_query.split('/')
-    root_only = context[0] == ''
+    context = context_query.split("/")
+    root_only = context[0] == ""
     if root_only:
         context = context[1:]
-        return installable.context[:len(context)] == context
+        return installable.context[: len(context)] == context
 
     for sub in range(0, len(installable.context) - len(context) + 1):
-        if installable.context[sub:sub + len(context)] == context:
+        if installable.context[sub : sub + len(context)] == context:
             return True
     return False
 
@@ -72,7 +73,7 @@ def _target_match(target: str, installable: Installable) -> bool:
 
 
 def filter_match(filter_query: str, installable: Installable) -> bool:
-    split = filter_query.split(' ', 1)
+    split = filter_query.split(" ", 1)
     if len(split) == 1:
         # We don't know if this is a target or context, so either work
         return _context_match(split[0], installable) or _target_match(split[0], installable)
@@ -103,57 +104,97 @@ def squash_mount_check(rootfolder, subdir, context):
 
 
 @click.group()
-@click.option("--dest", default=Path('/opt/compiler-explorer'), metavar='DEST',
-              type=click.Path(file_okay=False, path_type=Path),
-              help='Install with DEST as the installation root', show_default=True)
-@click.option('--staging-dir', default=Path('/opt/compiler-explorer/staging'), metavar='STAGEDIR',
-              type=click.Path(file_okay=False, path_type=Path),
-              help='Install to a unique subdirectory of STAGEDIR then rename in-place. Must be on the same drive as '
-                   'DEST for atomic rename/replace. Directory will be removed during install', show_default=True)
-@click.option("--debug/--no-debug", help='Turn on debugging')
-@click.option("--dry-run/--for-real", help='Dry run only')
-@click.option("--log-to-console", is_flag=True, help='Log output to console, even if logging to a file is requested')
-@click.option('--log', metavar='LOGFILE', help='Log to LOGFILE', type=click.Path(dir_okay=False, writable=True))
-@click.option('--s3-bucket', default='compiler-explorer', metavar='BUCKET',
-              help='Look for S3 resources in BUCKET', show_default=True)
-@click.option('--s3-dir', default='opt', metavar='DIR',
-              help='Look for S3 resources in the bucket\'s subdirectory DIR', show_default=True)
-@click.option('--enable', metavar='TYPE', multiple=True, help='Enable targets of type TYPE (e.g. "nightly")')
-@click.option('--cache', metavar='DIR', help='Cache requests at DIR',
-              type=click.Path(file_okay=False, writable=True, path_type=Path))
-@click.option('--yaml-dir', default=Path(__file__).resolve().parent.parent / 'yaml',
-              help='Look for installation yaml files in DIRs', metavar='DIR', show_default=True,
-              type=click.Path(exists=True, file_okay=False, path_type=Path))
-@click.option('--resource-dir', default=Path(__file__).resolve().parent.parent / 'resources',
-              help='Look for installation yaml files in DIRs', metavar='DIR', show_default=True,
-              type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.option(
+    "--dest",
+    default=Path("/opt/compiler-explorer"),
+    metavar="DEST",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Install with DEST as the installation root",
+    show_default=True,
+)
+@click.option(
+    "--staging-dir",
+    default=Path("/opt/compiler-explorer/staging"),
+    metavar="STAGEDIR",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Install to a unique subdirectory of STAGEDIR then rename in-place. Must be on the same drive as "
+    "DEST for atomic rename/replace. Directory will be removed during install",
+    show_default=True,
+)
+@click.option("--debug/--no-debug", help="Turn on debugging")
+@click.option("--dry-run/--for-real", help="Dry run only")
+@click.option("--log-to-console", is_flag=True, help="Log output to console, even if logging to a file is requested")
+@click.option("--log", metavar="LOGFILE", help="Log to LOGFILE", type=click.Path(dir_okay=False, writable=True))
+@click.option(
+    "--s3-bucket",
+    default="compiler-explorer",
+    metavar="BUCKET",
+    help="Look for S3 resources in BUCKET",
+    show_default=True,
+)
+@click.option(
+    "--s3-dir",
+    default="opt",
+    metavar="DIR",
+    help="Look for S3 resources in the bucket's subdirectory DIR",
+    show_default=True,
+)
+@click.option("--enable", metavar="TYPE", multiple=True, help='Enable targets of type TYPE (e.g. "nightly")')
+@click.option(
+    "--cache",
+    metavar="DIR",
+    help="Cache requests at DIR",
+    type=click.Path(file_okay=False, writable=True, path_type=Path),
+)
+@click.option(
+    "--yaml-dir",
+    default=Path(__file__).resolve().parent.parent / "yaml",
+    help="Look for installation yaml files in DIRs",
+    metavar="DIR",
+    show_default=True,
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
+@click.option(
+    "--resource-dir",
+    default=Path(__file__).resolve().parent.parent / "resources",
+    help="Look for installation yaml files in DIRs",
+    metavar="DIR",
+    show_default=True,
+    type=click.Path(exists=True, file_okay=False, path_type=Path),
+)
 @click.option("--allow-unsafe-ssl/-safe-ssl-only", help="Skip ssl certificate checks on https connections")
-@click.option('--keep-staging', is_flag=True, help='Keep the unique staging directory')
+@click.option("--keep-staging", is_flag=True, help="Keep the unique staging directory")
 @click.option("--filter-match-all/--filter-match-any", help="Filter expressions must all match / any match")
-@click.option("--parallel", type=int, default=min(8, multiprocessing.cpu_count()),
-              help="Limit the number of concurrent processes to N", metavar='N',
-              show_default=True)
+@click.option(
+    "--parallel",
+    type=int,
+    default=min(8, multiprocessing.cpu_count()),
+    help="Limit the number of concurrent processes to N",
+    metavar="N",
+    show_default=True,
+)
 @click.pass_context
 def cli(
-        ctx: click.Context,
-        dest: Path,
-        staging_dir: Path,
-        debug: bool,
-        log_to_console: bool,
-        log: Optional[str],
-        s3_bucket: str,
-        s3_dir: str,
-        dry_run: bool,
-        enable: List[str],
-        cache: Optional[Path],
-        yaml_dir: Path,
-        allow_unsafe_ssl: bool,
-        resource_dir: Path,
-        keep_staging: bool,
-        filter_match_all: bool,
-        parallel: int):
+    ctx: click.Context,
+    dest: Path,
+    staging_dir: Path,
+    debug: bool,
+    log_to_console: bool,
+    log: Optional[str],
+    s3_bucket: str,
+    s3_dir: str,
+    dry_run: bool,
+    enable: List[str],
+    cache: Optional[Path],
+    yaml_dir: Path,
+    allow_unsafe_ssl: bool,
+    resource_dir: Path,
+    keep_staging: bool,
+    filter_match_all: bool,
+    parallel: int,
+):
     """Install binaries, libraries and compilers for Compiler Explorer."""
-    formatter = logging.Formatter(fmt='%(asctime)s %(name)-15s %(levelname)-8s %(message)s')
+    formatter = logging.Formatter(fmt="%(asctime)s %(name)-15s %(levelname)-8s %(message)s")
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
     if log:
@@ -167,20 +208,18 @@ def cli(
     context = InstallationContext(
         destination=dest,
         staging_root=staging_dir,
-        s3_url=f'https://s3.amazonaws.com/{s3_bucket}/{s3_dir}',
+        s3_url=f"https://s3.amazonaws.com/{s3_bucket}/{s3_dir}",
         dry_run=dry_run,
-        is_nightly_enabled='nightly' in enable,
+        is_nightly_enabled="nightly" in enable,
         cache=cache,
         yaml_dir=yaml_dir,
         allow_unsafe_ssl=allow_unsafe_ssl,
         resource_dir=resource_dir,
-        keep_staging=keep_staging
+        keep_staging=keep_staging,
     )
     ctx.obj = CliContext(
-        installation_context=context,
-        enabled=enable,
-        filter_match_all=filter_match_all,
-        parallel=parallel)
+        installation_context=context, enabled=enable, filter_match_all=filter_match_all, parallel=parallel
+    )
 
 
 @cli.command(name="list")
@@ -211,7 +250,7 @@ def verify(context: CliContext, filter_: List[str]):
             num_not_ok += 1
         else:
             num_ok += 1
-    print(f'{num_ok} packages OK, {num_not_ok} not OK or not installed')
+    print(f"{num_ok} packages OK, {num_not_ok} not OK or not installed")
     if num_not_ok:
         sys.exit(1)
 
@@ -230,31 +269,31 @@ def check_installed(context: CliContext, filter_: List[str]):
 
 @cli.command()
 def amazon_check():
-    _LOGGER.debug('Starting Amazon Check')
-    languages = ['c', 'c++', 'd', 'cuda']
+    _LOGGER.debug("Starting Amazon Check")
+    languages = ["c", "c++", "d", "cuda"]
 
     for language in languages:
-        _LOGGER.info('Checking %s libraries', language)
+        _LOGGER.info("Checking %s libraries", language)
         [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER)
 
         for libraryid in libraries:
-            _LOGGER.debug('Checking %s', libraryid)
-            for version in libraries[libraryid]['versionprops']:
-                includepaths = libraries[libraryid]['versionprops'][version]['path']
+            _LOGGER.debug("Checking %s", libraryid)
+            for version in libraries[libraryid]["versionprops"]:
+                includepaths = libraries[libraryid]["versionprops"][version]["path"]
                 for includepath in includepaths:
-                    _LOGGER.debug('Checking for library %s %s: %s', libraryid, version, includepath)
+                    _LOGGER.debug("Checking for library %s %s: %s", libraryid, version, includepath)
                     if not os.path.exists(includepath):
-                        _LOGGER.error('Path missing for library %s %s: %s', libraryid, version, includepath)
+                        _LOGGER.error("Path missing for library %s %s: %s", libraryid, version, includepath)
                     else:
-                        _LOGGER.debug('Found path for library %s %s: %s', libraryid, version, includepath)
+                        _LOGGER.debug("Found path for library %s %s: %s", libraryid, version, includepath)
 
-                libpaths = libraries[libraryid]['versionprops'][version]['libpath']
+                libpaths = libraries[libraryid]["versionprops"][version]["libpath"]
                 for libpath in libpaths:
-                    _LOGGER.debug('Checking for library %s %s: %s', libraryid, version, libpath)
+                    _LOGGER.debug("Checking for library %s %s: %s", libraryid, version, libpath)
                     if not os.path.exists(libpath):
-                        _LOGGER.error('Path missing for library %s %s: %s', libraryid, version, libpath)
+                        _LOGGER.error("Path missing for library %s %s: %s", libraryid, version, libpath)
                     else:
-                        _LOGGER.debug('Found path for library %s %s: %s', libraryid, version, libpath)
+                        _LOGGER.debug("Found path for library %s %s: %s", libraryid, version, libpath)
 
 
 def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Optional[Tuple[Installable, Path]]:
@@ -274,9 +313,14 @@ def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Option
 @cli.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
-@click.option('--image-dir', default=Path('/opt/squash-images'), metavar='IMAGES',
-              type=click.Path(file_okay=False, path_type=Path),
-              help='Build images to IMAGES', show_default=True)
+@click.option(
+    "--image-dir",
+    default=Path("/opt/squash-images"),
+    metavar="IMAGES",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Build images to IMAGES",
+    show_default=True,
+)
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path):
     """Create squashfs images for all targets matching FILTER."""
@@ -295,9 +339,14 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
 
 @cli.command()
 @click.pass_obj
-@click.option('--image-dir', default=Path('/opt/squash-images'), metavar='IMAGES',
-              type=click.Path(file_okay=False, path_type=Path),
-              help='Look for images in IMAGES', show_default=True)
+@click.option(
+    "--image-dir",
+    default=Path("/opt/squash-images"),
+    metavar="IMAGES",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Look for images in IMAGES",
+    show_default=True,
+)
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
     """Check squash images matching FILTER."""
@@ -313,7 +362,7 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
         elif not destination.exists():
             _LOGGER.error("Missing squash: %s (for %s)", installable.name, destination)
 
-    squash_mount_check(image_dir, '', context)
+    squash_mount_check(image_dir, "", context)
 
 
 @cli.command()
@@ -350,22 +399,27 @@ def install(context: CliContext, filter_: List[str], force: bool):
             _LOGGER.info("%s is already installed, skipping", installable.name)
             num_skipped += 1
     print(
-        f'{num_installed} packages installed '
+        f"{num_installed} packages installed "
         f'{"(apparently; this was a dry-run)" if context.installation_context.dry_run else ""}OK, '
-        f'{num_skipped} skipped, and {len(failed)} failed installation')
+        f"{num_skipped} skipped, and {len(failed)} failed installation"
+    )
     if len(failed):
-        print('Failed:')
+        print("Failed:")
         for f in sorted(failed):
-            print(f'  {f}')
+            print(f"  {f}")
         sys.exit(1)
 
 
 @cli.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
-@click.option('--buildfor', default='', metavar='BUILDFOR',
-              help='Filter to only build for given compiler (should be a CE compiler identifier), '
-                   'leave empty to build for all')
+@click.option(
+    "--buildfor",
+    default="",
+    metavar="BUILDFOR",
+    help="Filter to only build for given compiler (should be a CE compiler identifier), "
+    "leave empty to build for all",
+)
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def build(context: CliContext, filter_: List[str], force: bool, buildfor: str):
     """Build library targets matching FILTER."""
@@ -398,7 +452,7 @@ def build(context: CliContext, filter_: List[str], force: bool, buildfor: str):
         else:
             _LOGGER.info("%s is already built, skipping", installable.name)
             num_skipped += 1
-    print(f'{num_installed} packages built OK, {num_skipped} skipped, and {num_failed} failed build')
+    print(f"{num_installed} packages built OK, {num_skipped} skipped, and {num_failed} failed build")
     if num_failed:
         sys.exit(1)
 
@@ -424,7 +478,7 @@ def add_top_rust_crates(context: CliContext):
 @click.pass_obj
 def generate_rust_props(context: CliContext):
     """Generate Rust property files for crates."""
-    propfile = Path(os.path.join(os.curdir, 'props'))
+    propfile = Path(os.path.join(os.curdir, "props"))
     with propfile.open(mode="w", encoding="utf-8") as file:
         libyaml = LibraryYaml(context.installation_context.yaml_dir)
         props = libyaml.get_ce_properties_for_rust_libraries()
@@ -443,8 +497,8 @@ def add_crate(context: CliContext, libid: str, libversion: str):
 
 
 def main():
-    cli(prog_name='ce_install')  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    cli(prog_name="ce_install")  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

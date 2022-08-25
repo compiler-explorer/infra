@@ -2,9 +2,9 @@ from lib.releases import Version, VersionSource
 
 
 def test_version_should_parse():
-    assert Version.from_string('1234') == Version(VersionSource.GITHUB, 1234)
-    assert Version.from_string('tr-123') == Version(VersionSource.TRAVIS, 123)
-    assert Version.from_string('gh-123') == Version(VersionSource.GITHUB, 123)
+    assert Version.from_string("1234") == Version(VersionSource.GITHUB, 1234)
+    assert Version.from_string("tr-123") == Version(VersionSource.TRAVIS, 123)
+    assert Version.from_string("gh-123") == Version(VersionSource.GITHUB, 123)
 
 
 def test_version_should_order_correctly_within_same_source():
@@ -20,4 +20,4 @@ def test_version_should_order_between_sources():
 
 
 def test_version_should_str_nicely():
-    assert f'{Version(VersionSource.GITHUB, 12)}' == 'gh-12'
+    assert f"{Version(VersionSource.GITHUB, 12)}" == "gh-12"
