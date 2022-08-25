@@ -282,16 +282,15 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
     """Create squashfs images for all targets matching FILTER."""
 
     with context.pool() as pool:
-        for installable, destination in [
-            (inst_and_dir[0], inst_and_dir[1])
-            for inst_and_dir in pool.map(partial(_to_squash, image_dir, force), context.get_installables(filter_))
-            if inst_and_dir is not None
-        ]:
-            if context.installation_context.dry_run:
-                _LOGGER.info("Would squash %s to %s", installable.name, destination)
-            else:
-                _LOGGER.info("Squashing %s to %s", installable.name, destination)
-                installable.squash_to(destination)
+        should_install_func = partial(_to_squash, image_dir, force)
+        to_do = filter(lambda x: x is not None, pool.map(should_install_func, context.get_installables(filter_)))
+
+    for installable, destination in to_do:
+        if context.installation_context.dry_run:
+            _LOGGER.info("Would squash %s to %s", installable.name, destination)
+        else:
+            _LOGGER.info("Squashing %s to %s", installable.name, destination)
+            installable.squash_to(destination)
 
 
 @cli.command()
