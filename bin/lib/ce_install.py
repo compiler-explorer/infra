@@ -316,6 +316,10 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
     squash_mount_check(image_dir, '', context)
 
 
+def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
+    return installable, force or installable.should_install()
+
+
 @cli.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
@@ -325,9 +329,13 @@ def install(context: CliContext, filter_: List[str], force: bool):
     num_installed = 0
     num_skipped = 0
     failed = []
-    for installable in context.get_installables(filter_):
+
+    with context.pool() as pool:
+        to_do = pool.map(partial(_should_install, force), context.get_installables(filter_))
+
+    for installable, should_install in to_do:
         print(f"Installing {installable.name}")
-        if force or installable.should_install():
+        if should_install:
             try:
                 if installable.install():
                     if context.installation_context.dry_run:
@@ -335,7 +343,8 @@ def install(context: CliContext, filter_: List[str], force: bool):
                         num_installed += 1
                     else:
                         if not installable.is_installed():
-                            _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
+                            _LOGGER.error("%s installed OK, but doesn't appear as installed after",
+                                          installable.name)
                             failed.append(installable.name)
                         else:
                             _LOGGER.info("%s installed OK", installable.name)
