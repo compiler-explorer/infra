@@ -301,12 +301,16 @@ def install(context: CliContext, filter_: List[str], force: bool):
         if force or installable.should_install():
             try:
                 if installable.install():
-                    if not installable.is_installed():
-                        _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
-                        failed.append(installable.name)
-                    else:
-                        _LOGGER.info("%s installed OK", installable.name)
+                    if context.installation_context.dry_run:
+                        _LOGGER.info("Assuming %s installed OK (dry run)", installable.name)
                         num_installed += 1
+                    else:
+                        if not installable.is_installed():
+                            _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
+                            failed.append(installable.name)
+                        else:
+                            _LOGGER.info("%s installed OK", installable.name)
+                            num_installed += 1
                 else:
                     _LOGGER.info("%s failed to install", installable.name)
                     failed.append(installable.name)
@@ -316,7 +320,10 @@ def install(context: CliContext, filter_: List[str], force: bool):
         else:
             _LOGGER.info("%s is already installed, skipping", installable.name)
             num_skipped += 1
-    print(f'{num_installed} packages installed OK, {num_skipped} skipped, and {len(failed)} failed installation')
+    print(
+        f'{num_installed} packages installed '
+        f'{"(apparently; this was a dry-run)" if context.installation_context.dry_run else ""}OK, '
+        f'{num_skipped} skipped, and {len(failed)} failed installation')
     if len(failed):
         print('Failed:')
         for f in sorted(failed):
