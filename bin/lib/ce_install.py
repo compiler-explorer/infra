@@ -331,34 +331,33 @@ def install(context: CliContext, filter_: List[str], force: bool):
     failed = []
 
     with context.pool() as pool:
-        for installable, should_install in pool.map(
-                partial(_should_install, force),
-                context.get_installables(filter_)
-        ):
-            print(f"Installing {installable.name}")
-            if should_install:
-                try:
-                    if installable.install():
-                        if context.installation_context.dry_run:
-                            _LOGGER.info("Assuming %s installed OK (dry run)", installable.name)
-                            num_installed += 1
-                        else:
-                            if not installable.is_installed():
-                                _LOGGER.error("%s installed OK, but doesn't appear as installed after",
-                                              installable.name)
-                                failed.append(installable.name)
-                            else:
-                                _LOGGER.info("%s installed OK", installable.name)
-                                num_installed += 1
+        to_do = pool.map(partial(_should_install, force), context.get_installables(filter_))
+
+    for installable, should_install in to_do:
+        print(f"Installing {installable.name}")
+        if should_install:
+            try:
+                if installable.install():
+                    if context.installation_context.dry_run:
+                        _LOGGER.info("Assuming %s installed OK (dry run)", installable.name)
+                        num_installed += 1
                     else:
-                        _LOGGER.info("%s failed to install", installable.name)
-                        failed.append(installable.name)
-                except Exception as e:  # pylint: disable=broad-except
-                    _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
+                        if not installable.is_installed():
+                            _LOGGER.error("%s installed OK, but doesn't appear as installed after",
+                                          installable.name)
+                            failed.append(installable.name)
+                        else:
+                            _LOGGER.info("%s installed OK", installable.name)
+                            num_installed += 1
+                else:
+                    _LOGGER.info("%s failed to install", installable.name)
                     failed.append(installable.name)
-            else:
-                _LOGGER.info("%s is already installed, skipping", installable.name)
-                num_skipped += 1
+            except Exception as e:  # pylint: disable=broad-except
+                _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
+                failed.append(installable.name)
+        else:
+            _LOGGER.info("%s is already installed, skipping", installable.name)
+            num_skipped += 1
     print(
         f'{num_installed} packages installed '
         f'{"(apparently; this was a dry-run)" if context.installation_context.dry_run else ""}OK, '
