@@ -383,17 +383,12 @@ class Installable:
             and self.build_config.build_type != ""
         )
 
-    def install(self) -> bool:
+    def install(self) -> None:
         self._logger.debug("Ensuring dependees are installed")
-        any_missing = False
         for dependee in self.depends:
             if not dependee.is_installed():
-                self._logger.warning("Required dependee %s not installed", dependee)
-                any_missing = True
-        if any_missing:
-            return False
+                dependee.install()
         self._logger.debug("Dependees ok")
-        return True
 
     def is_installed(self) -> bool:
         if self.check_file is None and not self.check_call:
@@ -536,7 +531,7 @@ class GitHubInstallable(Installable):
         else:
             self.check_file = f"{self.install_path}/{check_file}"
 
-    def _update_args(self):
+    def _update_args(self) -> List[str]:
         if self.recursive:
             return ["--recursive"]
         return []
@@ -549,7 +544,7 @@ class GitHubInstallable(Installable):
             self._logger.debug(" -> %s", result)
         return result
 
-    def clone_branch(self, staging: StagingDir):
+    def clone_branch(self, staging: StagingDir) -> None:
         dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
             self._git(staging, "clone", "-q", f"{self.domainurl}/{self.repo}.git", dest)
@@ -563,7 +558,7 @@ class GitHubInstallable(Installable):
         self._git(staging, "-C", dest, "submodule", "sync")
         self._git(staging, "-C", dest, "submodule", "update", "--init", *self._update_args())
 
-    def clone_default(self, staging: StagingDir):
+    def clone_default(self, staging: StagingDir) -> None:
         dest = os.path.join(self.install_context.destination, self.install_path)
         if not os.path.exists(dest):
             self._git(staging, "clone", "-q", f"{self.domainurl}/{self.repo}.git", dest)
@@ -574,17 +569,17 @@ class GitHubInstallable(Installable):
         self._git(staging, "-C", dest, "submodule", "sync")
         self._git(staging, "-C", dest, "submodule", "update", "--init", *self._update_args())
 
-    def get_archive_url(self):
+    def get_archive_url(self) -> str:
         return f"{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz"
 
-    def get_archive_pipecommand(self):
+    def get_archive_pipecommand(self) -> List[str]:
         return ["tar", f"{self.decompress_flag}xf", "-"]
 
     @property
     def nightly_like(self) -> bool:
         return self.method == "nightlyclone"
 
-    def stage(self, staging: StagingDir):
+    def stage(self, staging: StagingDir) -> None:
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(staging, self.get_archive_url(), self.get_archive_pipecommand())
             dest = os.path.join(staging.path, self.untar_dir)
@@ -602,23 +597,21 @@ class GitHubInstallable(Installable):
 
         self.install_context.run_script(staging, dest, self.after_stage_script)
 
-    def verify(self):
+    def verify(self) -> bool:
         if not super().verify():
             return False
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.untar_dir, self.install_path)
 
-    def install(self):
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             if self.subdir:
                 self.install_context.make_subdir(self.subdir)
             if self.method == "archive":
                 self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
-            return True
 
     def __repr__(self) -> str:
         return f"GitHubInstallable({self.name}, {self.install_path})"
@@ -693,9 +686,8 @@ class S3TarballInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.untar_dir, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             if self.subdir:
@@ -704,7 +696,6 @@ class S3TarballInstallable(Installable):
                 self.install_context.make_subdir(self.install_path)
 
             self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
-            return True
 
     def __repr__(self) -> str:
         return f"S3TarballInstallable({self.name}, {self.install_path})"
@@ -752,9 +743,8 @@ class NightlyInstallable(Installable):
     def should_install(self) -> bool:
         return True
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
 
@@ -766,8 +756,6 @@ class NightlyInstallable(Installable):
 
             self.install_context.move_from_staging(staging, self.local_path, self.install_path)
             self.install_context.set_link(Path(self.local_path), self.path_name_symlink)
-
-            return True
 
     def __repr__(self) -> str:
         return f"NightlyInstallable({self.name}, {self.install_path})"
@@ -826,9 +814,8 @@ class TarballInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.untar_path, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
 
@@ -842,7 +829,6 @@ class TarballInstallable(Installable):
             self.install_context.move_from_staging(staging, self.untar_path, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
-            return True
 
     def __repr__(self) -> str:
         return f"TarballInstallable({self.name}, {self.install_path})"
@@ -905,13 +891,11 @@ class ZipArchiveInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             self.install_context.move_from_staging(staging, self.install_path)
-            return True
 
     def __repr__(self) -> str:
         return f"ZipArchiveInstallable({self.name}, {self.install_path})"
@@ -970,15 +954,13 @@ class ScriptInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self):
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             self.install_context.move_from_staging(staging, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
-            return True
 
     def __repr__(self) -> str:
         return f"ScriptInstallable({self.name}, {self.install_path})"
@@ -1053,13 +1035,11 @@ class RustInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             self.install_context.move_from_staging(staging, self.install_path)
-            return True
 
     def __repr__(self) -> str:
         return f"RustInstallable({self.name}, {self.install_path})"
@@ -1087,9 +1067,8 @@ class PipInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
+        super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             mv_script = staging.path / "virtualenv-mv"
@@ -1101,7 +1080,6 @@ class PipInstallable(Installable):
                 self.install_context.check_output([str(mv_script), str(source), str(dest)])
 
             self.install_context.move_from_staging(staging, self.install_path, do_staging_move=mv_venv)
-            return True
 
     def __repr__(self) -> str:
         return f"PipInstallable({self.name}, {self.install_path})"
@@ -1136,13 +1114,10 @@ class SingleFileInstallable(Installable):
             self.stage(staging)
             return self.install_context.compare_against_staging(staging, self.install_path)
 
-    def install(self) -> bool:
-        if not super().install():
-            return False
+    def install(self) -> None:
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             self.install_context.move_from_staging(staging, self.install_path)
-        return True
 
     def __repr__(self) -> str:
         return f"SingleFileInstallable({self.name}, {self.install_path})"
