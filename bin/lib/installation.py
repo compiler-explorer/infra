@@ -158,7 +158,9 @@ class InstallationContext:
 
     def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Optional[Path] = None) -> None:
         _LOGGER.info("Staging with %s", shlex.join(command))
-        subprocess.check_call(command, cwd=str(cwd or staging.path))
+        env = os.environ.copy()
+        env["CE_STAGING_DIR"] = str(staging.path)
+        subprocess.check_call(command, cwd=str(cwd or staging.path), env=env)
 
     def fetch_s3_and_pipe_to(self, staging: StagingDir, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(staging, f"{self.s3_url}/{s3}", command)
@@ -299,9 +301,7 @@ class InstallationContext:
                     f.write(f"{line}\n")
 
             script_file.chmod(0o744)
-            env = os.environ.copy()
-            env["CE_STAGING_DIR"] = str(staging.path)
-            subprocess.check_call([str(script_file)], cwd=from_path, env=env)
+            self.stage_command(staging, str(script_file))
             script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
