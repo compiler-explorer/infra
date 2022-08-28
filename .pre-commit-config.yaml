@@ -34,7 +34,7 @@ repos:
     hooks:
       - id: test
         name: Run tests
-        entry: make static-checks test
+        entry: make test
         language: system
         types_or: [ python, shell ]
         pass_filenames: false
