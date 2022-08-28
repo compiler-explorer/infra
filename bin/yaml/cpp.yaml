@@ -626,6 +626,10 @@ compilers:
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18435/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
+        - name: 2022.1.0.137
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/18717/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
     intel-fortran:
       type: script
       dir: "intel-fortran-{name}"
@@ -652,6 +656,10 @@ compilers:
         - name: 2022.0.1.70
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18436/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2022.1.0.134
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/18703/l_fortran-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
     nightly:
       if: nightly

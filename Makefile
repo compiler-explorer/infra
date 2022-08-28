@@ -68,8 +68,7 @@ test: ce  ## Runs the tests
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
-	$(VIRTUALENV)/bin/mypy --install-types --ignore-missing-imports $(PY_SOURCE_ROOTS)
-	$(VIRTUALENV)/bin/pylint $(PY_SOURCE_ROOTS)
+	env SKIP=test $(VIRTUALENV)/bin/pre-commit run --all-files
 
 LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip

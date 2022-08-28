@@ -4,7 +4,6 @@ boto3>=1.17
 cachecontrol[filecache]
 click
 jinja2
-mypy
 packaging
 paramiko
 pre-commit
@@ -13,9 +12,3 @@ pytest
 python-dateutil
 pyyaml
 requests
-types-paramiko
-types-pkg_resources
-types-python-dateutil
-types-PyYAML
-types-requests
-types-toml

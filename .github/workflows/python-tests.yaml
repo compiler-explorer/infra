@@ -10,14 +10,10 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: 3.8
+          python-version: '3.10'
       - name: Install dependencies
-        run: |
-          make ce
-      - name: Check pre-commits
-        run: |
-          env SKIP=test make pre-commit
+        run: make ce
+      - name: Check static
+        run: make static-checks
       - name: tests
-        run: |
-          make test
-          make static-checks
+        run: make test
