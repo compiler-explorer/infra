@@ -11,5 +11,4 @@ requests
 aws-embedded-metrics  # only needed by lambda tests really
 paramiko
 packaging
-types-paramiko
 pre-commit
