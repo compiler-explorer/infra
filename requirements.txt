@@ -1,21 +1,21 @@
+aws-embedded-metrics  # only needed by lambda tests really
 awscli
 boto3>=1.17
 cachecontrol[filecache]
 click
 jinja2
 mypy
+packaging
+paramiko
+pre-commit
 pylint
 pytest
 python-dateutil
 pyyaml
 requests
+types-paramiko
+types-pkg_resources
 types-python-dateutil
 types-PyYAML
-types-pkg_resources
 types-requests
 types-toml
-aws-embedded-metrics  # only needed by lambda tests really
-paramiko
-packaging
-types-paramiko
-pre-commit
