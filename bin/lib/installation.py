@@ -14,6 +14,7 @@ import time
 import uuid
 from collections import defaultdict, ChainMap
 from datetime import datetime, timedelta
+from functools import partial
 from pathlib import Path
 from typing import Optional, Sequence, Collection, List, Union, Dict, Any, IO, Callable, Iterator
 
@@ -353,7 +354,7 @@ class Installable:
             self.check_call[0] = os.path.join(path_name, self.check_call[0])
 
     def _setup_check_link(self, source: str, link: str) -> None:
-        self._check_link = lambda: self.install_context.check_link(source, link)
+        self._check_link = partial(self.install_context.check_link, source, link)
 
     def link(self, all_installables: Dict[str, Installable]):
         try:
