@@ -30,6 +30,7 @@ from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 from lib.rust_library_builder import RustLibraryBuilder
+from lib.staging import StagingDir
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
 
@@ -50,18 +51,6 @@ def s3_available_compilers():
         if match:
             compilers[match.group(1)].append(match.group(2))
     return compilers
-
-
-class StagingDir:
-    def __init__(self, staging_dir: Path, keep_afterwards: bool):
-        self._dir = staging_dir
-        self._keep_afterwards = keep_afterwards
-        _LOGGER.debug("Creating staging dir %s", self._dir)
-        self._dir.mkdir(parents=True)
-
-    @property
-    def path(self) -> Path:
-        return self._dir
 
 
 class InstallationContext:

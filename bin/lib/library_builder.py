@@ -19,6 +19,7 @@ from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
 from lib.binary_info import BinaryInfo
 from lib.library_build_config import LibraryBuildConfig
+from lib.staging import StagingDir
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
@@ -739,12 +740,13 @@ class LibraryBuilder:
         stdlib,
         flagscombination,
         ld_path,
+        staging: StagingDir,
     ):
         combined_hash = self.makebuildhash(
             compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
         )
 
-        build_folder = os.path.join(self.install_context.staging, combined_hash)
+        build_folder = os.path.join(staging.path, combined_hash)
         if os.path.exists(build_folder):
             shutil.rmtree(build_folder, ignore_errors=True)
         os.makedirs(build_folder, exist_ok=True)
@@ -942,15 +944,23 @@ class LibraryBuilder:
             for args in itertools.product(
                 build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
-                buildstatus = self.makebuildfor(
-                    compiler, options, exe, compilerType, toolchain, *args, self.compilerprops[compiler]["ldPath"]
-                )
-                if buildstatus == BuildStatus.Ok:
-                    builds_succeeded = builds_succeeded + 1
-                elif buildstatus == BuildStatus.Skipped:
-                    builds_skipped = builds_skipped + 1
-                else:
-                    builds_failed = builds_failed + 1
+                with self.install_context.new_staging_dir() as staging:
+                    buildstatus = self.makebuildfor(
+                        compiler,
+                        options,
+                        exe,
+                        compilerType,
+                        toolchain,
+                        *args,
+                        self.compilerprops[compiler]["ldPath"],
+                        staging,
+                    )
+                    if buildstatus == BuildStatus.Ok:
+                        builds_succeeded = builds_succeeded + 1
+                    elif buildstatus == BuildStatus.Skipped:
+                        builds_skipped = builds_skipped + 1
+                    else:
+                        builds_failed = builds_failed + 1
 
             if builds_succeeded > 0:
                 self.upload_builds()
