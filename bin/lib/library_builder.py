@@ -864,6 +864,10 @@ class LibraryBuilder:
             else:
                 raise RuntimeError(f"Something is wrong with {compiler}")
 
+            if self.compilerprops[compiler]["compilerType"] == "clang-intel":
+                # hack for icpx so we don't get duplicate builds
+                compilerType = "gcc"
+
             exe = self.compilerprops[compiler]["exe"]
 
             if buildfor == "allclang" and compilerType != "clang":
