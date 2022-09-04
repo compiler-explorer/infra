@@ -164,7 +164,9 @@ def squash_mount_check(rootfolder, subdir, context):
 )
 @click.option("--allow-unsafe-ssl/-safe-ssl-only", help="Skip ssl certificate checks on https connections")
 @click.option("--keep-staging", is_flag=True, help="Keep the unique staging directory")
-@click.option("--filter-match-all/--filter-match-any", help="Filter expressions must all match / any match")
+@click.option(
+    "--filter-match-all/--filter-match-any", help="Filter expressions must all match / any match", default=True
+)
 @click.option(
     "--parallel",
     type=int,
