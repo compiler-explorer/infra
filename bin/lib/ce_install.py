@@ -374,8 +374,10 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
     if not installation_context.destination.is_symlink():
         click.echo(f"Destination {installation_context.destination} is not a CEFS root symlink!")
         sys.exit(1)
-    cefs_root_link = installation_context.destination.readlink()
+    root_link_to_update = installation_context.destination
+    cefs_root_link = root_link_to_update.readlink()
     while cefs_root_link.is_symlink():
+        root_link_to_update = cefs_root_link
         cefs_root_link = cefs_root_link.readlink()
     if not cefs_root_link.is_relative_to(cefs_root):
         click.echo(
@@ -414,9 +416,10 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
 
     new_squashfs_cefs = root_creator.cefs_path
     print(f"Output to {new_squashfs_cefs} replacing {cefs_root_link}")
+
     # TODO keep track of previous? then we can "undo"
-    Path("/home/mgodbolt/ce").unlink(missing_ok=True)
-    Path("/home/mgodbolt/ce").symlink_to(new_squashfs_cefs)
+    root_link_to_update.unlink(missing_ok=True)
+    root_link_to_update.symlink_to(new_squashfs_cefs)
 
 
 @cli.command()

@@ -1,10 +1,12 @@
+import getpass
 import logging
 import os
 import shutil
 import sys
 import subprocess
 from pathlib import Path
-from tempfile import mkdtemp, NamedTemporaryFile, TemporaryDirectory
+from tempfile import mkdtemp, TemporaryDirectory
+import datetime
 from typing import Optional, Mapping, List, Dict
 from dataclasses import dataclass
 
@@ -100,6 +102,18 @@ def install(context: CliContext):
         f"Note that the root {context.cefs_root} will appear empty, "
         f"but will automatically mount on demand when required."
     )
+
+
+@cli.command
+@click.pass_obj
+def create(context: CliContext):
+    """Create an empty image."""
+    creator = SquashFsCreator(squash_image_root=context.squash_image_root, cefs_root=context.cefs_root)
+    with creator as path:
+        image = CefsImage(cefs_root=context.cefs_root)
+        image.add_metadata(f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}")
+        image.render_to(path)
+    click.echo(f"Fresh new cefs root created at {creator.cefs_path}")
 
 
 class SquashFsCreator:
