@@ -10,12 +10,14 @@ import traceback
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import List, Optional, Tuple
 
 import click
 import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.cefs import CefsImage, SquashFsCreator
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
 from lib.library_yaml import LibraryYaml
@@ -337,6 +339,84 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
         else:
             _LOGGER.info("Squashing %s to %s", installable.name, destination)
             installable.squash_to(destination)
+
+
+CEFS_ROOT = Path("/cefs")
+
+
+@cli.command()
+@click.pass_obj
+@click.option("--force", is_flag=True, help="Force even if would otherwise skip")
+@click.option(
+    "--cefs-root",
+    default=Path("/cefs"),
+    metavar="CEFS_ROOT",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Install or assume cefs is installed at CEFS_ROOT",
+    show_default=True,
+)
+@click.option(
+    "--squash-image-root",
+    default=Path("/opt/cefs-images"),
+    metavar="IMAGE_DIR",
+    type=click.Path(file_okay=False, path_type=Path),
+    help="Store or look for squashfs images in IMAGE_DIR",
+    show_default=True,
+)
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image_root: Path, cefs_root: Path):
+    """Squash all things matching to a single root image."""
+
+    # check for things already installed in the _current_ root?
+
+    installation_context = context.installation_context
+
+    if not installation_context.destination.is_symlink():
+        click.echo(f"Destination {installation_context.destination} is not a CEFS root symlink!")
+        sys.exit(1)
+    cefs_root_link = installation_context.destination.readlink()
+    while cefs_root_link.is_symlink():
+        cefs_root_link = cefs_root_link.readlink()
+    if not cefs_root_link.is_relative_to(cefs_root):
+        click.echo(
+            f"Destination {installation_context.destination} is not a CEFS root symlink "
+            f"({cefs_root_link} not relative to {cefs_root})!"
+        )
+        sys.exit(1)
+    current_image = CefsImage(cefs_root=cefs_root, directory=installation_context.destination)
+    current_image.add_metadata(f"Information read from root image {cefs_root_link}")
+    for installable in context.get_installables(filter_):
+        if force or installable.is_installed():
+            dest_path = installation_context.destination / installable.install_path
+            if not dest_path.is_symlink():
+                _LOGGER.error("Found an installable that wasn't a symlink: %s", dest_path)
+                sys.exit(1)
+
+    install_creator = SquashFsCreator(squash_image_root=squash_image_root, cefs_root=cefs_root)
+    with install_creator as tmp_path:
+        installation_context._staging_root = tmp_path / "staging"
+        installation_context.destination = tmp_path
+        _LOGGER.info("Installing everything to a temp dir")
+        for installable in context.get_installables(filter_):
+            if Path(installable.install_path) not in current_image.catalog:
+                installable.install()
+                current_image.add_metadata(f"Installing {installable.install_path} from {installable}")
+
+    new_squashfs_cefs = install_creator.cefs_path
+    for installable in context.get_installables(filter_):
+        if Path(installable.install_path) not in current_image.catalog:
+            current_image.link_path(Path(installable.install_path), new_squashfs_cefs / installable.install_path)
+
+    _LOGGER.info("Building new root fs")
+    root_creator = SquashFsCreator(squash_image_root=squash_image_root, cefs_root=cefs_root)
+    with root_creator as tmp_path:
+        current_image.render_to(tmp_path)
+
+    new_squashfs_cefs = root_creator.cefs_path
+    print(f"Output to {new_squashfs_cefs} replacing {cefs_root_link}")
+    # TODO keep track of previous? then we can "undo"
+    Path("/home/mgodbolt/ce").unlink(missing_ok=True)
+    Path("/home/mgodbolt/ce").symlink_to(new_squashfs_cefs)
 
 
 @cli.command()

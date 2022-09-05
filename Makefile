@@ -1,6 +1,6 @@
 .NOTPARALLEL:
 
-PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "command -v python3.10 || command -v python3.9 || command -v python3.8 || echo .python3.8-not-found")
+PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "command -v python3.10 || command -v python3.9 || echo .python3.9-not-found")
 VIRTUALENV?=.env
 VIRTUALENV_DONE:=$(VIRTUALENV)/.done
 export PYTHONPATH=$(CURDIR)/bin
@@ -12,7 +12,7 @@ help: # with thanks to Ben Rady
 PACKER ?= ../packer
 
 $(PYTHON):
-	@echo "Python 3.8, 3.9 or 3.10 not found on path. Please install (sudo apt install python3.8 python3.8-venv or similar)"
+	@echo "Python 3.9 or 3.10 not found on path. Please install (sudo apt install python3.9 python3.9-venv or similar)"
 	@exit 1
 
 config.json: make_json.py | $(PYTHON)

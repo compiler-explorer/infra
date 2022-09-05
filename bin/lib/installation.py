@@ -690,8 +690,6 @@ class S3TarballInstallable(Installable):
             self.stage(staging)
             if self.subdir:
                 self.install_context.make_subdir(self.subdir)
-            elif self.install_path:
-                self.install_context.make_subdir(self.install_path)
 
             self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
             return True
