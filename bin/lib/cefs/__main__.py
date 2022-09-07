@@ -145,6 +145,7 @@ def create_root(context: CliContext, root: Path):
 # TODO handle old symlinks of trunk (and do trunk etc!)
 # TODO should "cefs_mountpoint" be onfigurable.
 # TODO should there be a magic file? should metadata.txt by .metadata.txt or indeed just that special file?
+# TODO should probably check on mksquashfs cmdline flags like block size, my laptop used 131072 block size but I swear another machine used 4k
 
 
 def main():
