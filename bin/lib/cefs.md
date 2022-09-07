@@ -27,16 +27,15 @@ The expectation is there's one big squashfs install image holding all the stable
 
 To set up you'll need to run `sudo cefs install`. (it needs root to fiddle with autofs)
 
-After that you'll need to hack it so `/opt/compiler-explorer` is a symlink to an empty root image. I've actually locally linked `/opt/compiler-explorer` to `/home/mgodbolt/ce` in this instance so I can update it quickly as a mortal user without making `/opt` writable.
+I locally link `/opt/compiler-explorer` to `~/ce` in this instance so I can update it quickly as a mortal user without making `/opt` writable to my user.
 
 To make an empty root like this:
 
 ```
 $ sudo ln -sfT ~/ce /opt/compiler-explorer  # one-time setup only as root
-$ cefs create
+$ cefs create-root ~/ce
 ...lots of output...
 Fresh new cefs root created at /cefs/662a3bd6f57ac05b28032dbb5dd2bb489e9761c7
-$ ln -sfT /cefs/662a3bd6f57ac05b28032dbb5dd2bb489e9761c7 ~/ce
 $ ls /opt/compiler-explorer
 metadata.txt
 $ cat /opt/compiler-explorer/metadata.txt

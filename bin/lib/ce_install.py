@@ -10,14 +10,13 @@ import traceback
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from typing import List, Optional, Tuple
 
 import click
 import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.cefs import CefsImage, SquashFsCreator
+from lib.cefs import CefsImage, SquashFsCreator, CefsRoot
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
 from lib.library_yaml import LibraryYaml
@@ -371,22 +370,9 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
 
     installation_context = context.installation_context
 
-    if not installation_context.destination.is_symlink():
-        click.echo(f"Destination {installation_context.destination} is not a CEFS root symlink!")
-        sys.exit(1)
-    root_link_to_update = installation_context.destination
-    cefs_root_link = root_link_to_update.readlink()
-    while cefs_root_link.is_symlink():
-        root_link_to_update = cefs_root_link
-        cefs_root_link = cefs_root_link.readlink()
-    if not cefs_root_link.is_relative_to(cefs_root):
-        click.echo(
-            f"Destination {installation_context.destination} is not a CEFS root symlink "
-            f"({cefs_root_link} not relative to {cefs_root})!"
-        )
-        sys.exit(1)
-    current_image = CefsImage(cefs_root=cefs_root, directory=installation_context.destination)
-    current_image.add_metadata(f"Information read from root image {cefs_root_link}")
+    cefs = CefsRoot(fs_root=installation_context.destination, cefs_root=cefs_root)
+
+    current_image = cefs.read_image()
     for installable in context.get_installables(filter_):
         if force or installable.is_installed():
             dest_path = installation_context.destination / installable.install_path
@@ -399,10 +385,19 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
         installation_context._staging_root = tmp_path / "staging"
         installation_context.destination = tmp_path
         _LOGGER.info("Installing everything to a temp dir")
+        num_installed = 0
         for installable in context.get_installables(filter_):
             if Path(installable.install_path) not in current_image.catalog:
                 installable.install()
+                if not installable.is_installed():
+                    _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
+                    sys.exit(1)
                 current_image.add_metadata(f"Installing {installable.install_path} from {installable}")
+                num_installed += 1
+
+    if not num_installed:
+        click.echo("No changes: not updating base image")
+        return
 
     new_squashfs_cefs = install_creator.cefs_path
     for installable in context.get_installables(filter_):
@@ -415,11 +410,9 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
         current_image.render_to(tmp_path)
 
     new_squashfs_cefs = root_creator.cefs_path
-    print(f"Output to {new_squashfs_cefs} replacing {cefs_root_link}")
 
-    # TODO keep track of previous? then we can "undo"
-    root_link_to_update.unlink(missing_ok=True)
-    root_link_to_update.symlink_to(new_squashfs_cefs)
+    click.echo(f"Built to {new_squashfs_cefs}")
+    cefs.update(new_squashfs_cefs)
 
 
 @cli.command()

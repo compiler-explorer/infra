@@ -1,14 +1,16 @@
+from __future__ import annotations
+
+import datetime
 import getpass
 import logging
 import os
 import shutil
-import sys
 import subprocess
+import sys
+from dataclasses import dataclass
 from pathlib import Path
 from tempfile import mkdtemp, TemporaryDirectory
-import datetime
 from typing import Optional, Mapping, List, Dict
-from dataclasses import dataclass
 
 import click
 
@@ -106,14 +108,28 @@ def install(context: CliContext):
 
 @cli.command
 @click.pass_obj
-def create(context: CliContext):
+def create_image(context: CliContext):
     """Create an empty image."""
+    created_path = _create_empty(context)
+    click.echo(f"Fresh new cefs root created at {created_path}")
+
+
+def _create_empty(context: CliContext) -> Path:
     creator = SquashFsCreator(squash_image_root=context.squash_image_root, cefs_root=context.cefs_root)
     with creator as path:
         image = CefsImage(cefs_root=context.cefs_root)
         image.add_metadata(f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}")
         image.render_to(path)
-    click.echo(f"Fresh new cefs root created at {creator.cefs_path}")
+    return creator.cefs_path
+
+
+@cli.command
+@click.argument("root", type=click.Path(file_okay=False, dir_okay=False, writable=True, path_type=Path), required=True)
+@click.pass_obj
+def create_root(context: CliContext, root: Path):
+    """Create an empty cefs root at ROOT."""
+    empty_path = _create_empty(context)
+    CefsRoot.create(base_image=empty_path, fs_root=root, cefs_root=context.cefs_root)
 
 
 class SquashFsCreator:
@@ -169,7 +185,7 @@ class SquashFsCreator:
             shutil.rmtree(self._path, ignore_errors=True)
 
 
-class BadCefsRoot(RuntimeError):
+class BadCefsImage(RuntimeError):
     pass
 
 
@@ -198,7 +214,7 @@ class CefsImage:
             if entry.is_symlink():
                 link = entry.readlink()
                 if not link.is_relative_to(self._cefs_root):
-                    raise BadCefsRoot(f"Found a symlink that wasn't a symlink to cefs: {entry} links to {link}")
+                    raise BadCefsImage(f"Found a symlink that wasn't a symlink to cefs: {entry} links to {link}")
                 _LOGGER.debug("Found existing %s -> %s", relative, link)
                 self._catalog[relative] = link
             elif entry.is_dir():
@@ -207,9 +223,9 @@ class CefsImage:
                 if relative == Path(METADATA_FILENAME):
                     self._metadata = entry.read_text(encoding="utf-8").splitlines(keepends=False)
                 else:
-                    raise BadCefsRoot(f"Found an unexpected file: {entry}")
+                    raise BadCefsImage(f"Found an unexpected file: {entry}")
             else:
-                raise BadCefsRoot(f"Found an unexpected entry: {entry}")
+                raise BadCefsImage(f"Found an unexpected entry: {entry}")
 
     def add_metadata(self, metadata: str) -> None:
         self._metadata.append(metadata)
@@ -236,6 +252,71 @@ class CefsImage:
             source_dir.symlink_to(dest)
 
 
+class BadCefsRoot(RuntimeError):
+    pass
+
+
+class CefsRoot:
+    """
+    Holds image about the root (ie a symlink) or a cefs.
+    TODO nomenclature is hard. image vs root?
+    """
+
+    def __init__(self, *, fs_root: Path, cefs_root: Path):
+        self._cefs_root = cefs_root
+        self._original_root = fs_root
+        self._root = fs_root
+        if not self._root.is_symlink():
+            raise BadCefsRoot(f"{self._root} is not a root - it's not a symlink")
+        root_link_to_update = self._root
+        self._image_root = root_link_to_update.readlink()
+        # Continue to follow along symlinks so the root can actually be a symlink to a symlink. We update the last
+        # symlink found along the path (to allow for `/some/root-owned` dir to symlink elsewhere: we actually update
+        # elsewhere.
+        while self._image_root.is_symlink():
+            _LOGGER.info(f"Following root symlink to {self._image_root}...")
+            self._root = self._image_root
+            self._image_root = self._root.readlink()
+
+        if not self._image_root.is_relative_to(cefs_root):
+            raise BadCefsRoot(
+                f"Destination {self._original_root} is not a CEFS root symlink "
+                f"({self._image_root} not relative to {self._cefs_root})!"
+            )
+
+    @classmethod
+    def create(cls, base_image: Path, fs_root: Path, cefs_root: Path) -> CefsRoot:
+        if fs_root.exists():
+            raise FileExistsError(f"{fs_root} already exists")
+        if not base_image.is_dir():
+            raise RuntimeError("Missing base image")
+        # Construct just to ensure it's a valid image.
+        CefsImage(cefs_root=cefs_root, directory=base_image)
+        fs_root.parent.mkdir(parents=True, exist_ok=True)
+        # TODO append a log?
+        fs_root.symlink_to(base_image, target_is_directory=True)
+        return cls(fs_root=fs_root, cefs_root=cefs_root)
+
+    @property
+    def fs_path(self) -> Path:
+        return self._root
+
+    @property
+    def image_root(self) -> Path:
+        return self._image_root
+
+    def read_image(self) -> CefsImage:
+        image = CefsImage(cefs_root=self._cefs_root, directory=self._image_root)
+        image.add_metadata(f"Information read from root image {self._image_root}")
+        return image
+
+    def update(self, new_path: Path) -> None:
+        # TODO append a log?
+        self._root.unlink(missing_ok=True)
+        self._root.symlink_to(new_path)
+        _LOGGER.info("Updated %s to %s", self._root, new_path)
+
+
 # TODO how to start the whole thing off? make an empty root and manually symlink it in position?
 # TODO cases where we have a GIANT image that only exists because one dir is in it
 #  ie repacking and refreshing old images
@@ -247,6 +328,7 @@ class CefsImage:
 # TODO detect cefs roots in `install` and redirect to buildroot?
 # TODO delete/etc
 # TODO handle old symlinks of trunk (and do trunk etc!)
+# TODO should "cefs_root" be onfigurable. better name?
 
 
 def main():

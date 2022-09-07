@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from lib.cefs import CefsImage, METADATA_FILENAME, BadCefsRoot
+from lib.cefs import CefsImage, METADATA_FILENAME, BadCefsImage
 
 
 @pytest.fixture
@@ -58,13 +58,13 @@ def test_cefs_can_read_existing_images_metadata(cefs_root: Path, image_root: Pat
 
 def test_cefs_is_upset_by_links_to_non_cefs(cefs_root: Path, image_root: Path, dest_root: Path):
     (image_root / "thing").symlink_to(dest_root)  # just a valid path not in cefs
-    with pytest.raises(BadCefsRoot, match="Found a symlink that wasn't a symlink to cefs"):
+    with pytest.raises(BadCefsImage, match="Found a symlink that wasn't a symlink to cefs"):
         CefsImage(directory=image_root, cefs_root=cefs_root)
 
 
 def test_cefs_is_upset_by_random_files(cefs_root: Path, image_root: Path, dest_root: Path):
     (image_root / "thing.txt").write_text("I am a mongoose", encoding="utf-8")
-    with pytest.raises(BadCefsRoot, match="Found an unexpected file"):
+    with pytest.raises(BadCefsImage, match="Found an unexpected file"):
         CefsImage(directory=image_root, cefs_root=cefs_root)
 
 
