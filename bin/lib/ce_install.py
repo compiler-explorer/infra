@@ -16,7 +16,9 @@ import click
 import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.cefs import CefsImage, SquashFsCreator, CefsRoot
+from lib.cefs.config import CefsConfig
+from lib.cefs.root import CefsFsRoot
+from lib.cefs.squash import SquashFsCreator
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installation import InstallationContext, installers_for, Installable
 from lib.library_yaml import LibraryYaml
@@ -347,11 +349,11 @@ CEFS_ROOT = Path("/cefs")
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
 @click.option(
-    "--cefs-root",
+    "--cefs-mountpoint",
     default=Path("/cefs"),
-    metavar="CEFS_ROOT",
+    metavar="MOUNTPOINT",
     type=click.Path(file_okay=False, path_type=Path),
-    help="Install or assume cefs is installed at CEFS_ROOT",
+    help="Install or assume cefs is to use MOUNTPOINT",
     show_default=True,
 )
 @click.option(
@@ -363,16 +365,16 @@ CEFS_ROOT = Path("/cefs")
     show_default=True,
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image_root: Path, cefs_root: Path):
+def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image_root: Path, cefs_mountpoint: Path):
     """Squash all things matching to a single root image."""
 
     # check for things already installed in the _current_ root?
 
     installation_context = context.installation_context
+    cefs_config = CefsConfig(mountpoint=cefs_mountpoint, image_root=squash_image_root)
+    fs_root = CefsFsRoot(fs_root=installation_context.destination, config=cefs_config)
 
-    cefs = CefsRoot(fs_root=installation_context.destination, cefs_root=cefs_root)
-
-    current_image = cefs.read_image()
+    current_image = fs_root.read_image()
     for installable in context.get_installables(filter_):
         if force or installable.is_installed():
             dest_path = installation_context.destination / installable.install_path
@@ -380,7 +382,7 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
                 _LOGGER.error("Found an installable that wasn't a symlink: %s", dest_path)
                 sys.exit(1)
 
-    install_creator = SquashFsCreator(squash_image_root=squash_image_root, cefs_root=cefs_root)
+    install_creator = SquashFsCreator(config=cefs_config)
     with install_creator as tmp_path:
         installation_context._staging_root = tmp_path / "staging"
         installation_context.destination = tmp_path
@@ -405,14 +407,14 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
             current_image.link_path(Path(installable.install_path), new_squashfs_cefs / installable.install_path)
 
     _LOGGER.info("Building new root fs")
-    root_creator = SquashFsCreator(squash_image_root=squash_image_root, cefs_root=cefs_root)
+    root_creator = SquashFsCreator(config=cefs_config)
     with root_creator as tmp_path:
         current_image.render_to(tmp_path)
 
     new_squashfs_cefs = root_creator.cefs_path
 
     click.echo(f"Built to {new_squashfs_cefs}")
-    cefs.update(new_squashfs_cefs)
+    fs_root.update(new_squashfs_cefs)
 
 
 @cli.command()
