@@ -291,7 +291,7 @@ class InstallationContext:
                     f.write(f"{line}\n")
 
             script_file.chmod(0o744)
-            self.stage_command(staging, str(script_file))
+            self.stage_command(staging, [str(script_file)], cwd=from_path)
             script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
