@@ -15,13 +15,6 @@ jobs:
         with:
           python-version: "${{ matrix.python-version }}"
           cache: pip
-      - name: test
-        run: |
-            which python
-            which python3
-            python --version
-            python3 --version
-            which python3.10
       - name: Install dependencies
         run: make ce
       - name: Check static
