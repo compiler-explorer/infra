@@ -5,12 +5,23 @@ on: [ push ]
 jobs:
   build:
     runs-on: ubuntu-20.04
+    strategy:
+        matrix:
+            python-version: [ 3.9, 3.10 ]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: test
+        run: |
+            which python
+            which python3
+            python --version
+            python3 --version
+            which python3.10
       - name: Install dependencies
         run: make ce
       - name: Check static
