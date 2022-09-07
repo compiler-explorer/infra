@@ -8,7 +8,6 @@ else
   ROOT_DIR=$(readlink -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../..")
 fi
 MY_NAME=$(basename "$0")
-echo ${ROOT_DIR}
 
 if ! make -sq -C "${ROOT_DIR}" ce; then
     echo "python environment is out of date"
