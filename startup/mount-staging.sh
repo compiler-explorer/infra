@@ -1,2 +1,2 @@
 
-source "${PWD}/startup/mount-prod.sh"
+source mount-prod.sh
