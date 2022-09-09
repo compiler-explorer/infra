@@ -44,7 +44,8 @@
         "apt-get -y update",
         "apt-get -y install git sudo curl rsyslog psmisc systemd",
         "cd /infra",
-        "env PACKER_SETUP=yes bash setup.sh --updated main 2>&1 | tee /tmp/setup.log"
+        "export FAKEAWS=1",
+        "env PACKER_SETUP=yes bash setup-node.sh --updated main 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]

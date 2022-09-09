@@ -11,9 +11,8 @@ COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
 echo Running in environment "${ENV}"
 
-get_conf() {
-    aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
-}
+# shellcheck disable=SC1090
+source "${PWD}/common-inc.sh"
 
 # shellcheck disable=SC1090
 source "${PWD}/startup/site-${ENV}.sh"
