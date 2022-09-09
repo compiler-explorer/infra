@@ -10,32 +10,16 @@ COMPILERS_ARG=
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
 echo Running in environment "${ENV}"
-# shellcheck disable=SC1090
-source "${PWD}/site-${ENV}.sh"
 
 get_conf() {
     aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
 
-mount_opt() {
-    mkdir -p /opt/compiler-explorer
-    mountpoint /opt/compiler-explorer || mount --bind /efs/compiler-explorer /opt/compiler-explorer
+# shellcheck disable=SC1090
+source "${PWD}/startup/site-${ENV}.sh"
 
-    mkdir -p /opt/intel
-    mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
-
-    mkdir -p /opt/arm
-    mountpoint /opt/arm || mount --bind /efs/arm /opt/arm
-
-    [ -f /opt/.health ] || touch /opt/.health
-    mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
-
-    # don't be tempted to background this, it just causes everything to wedge
-    # during startup (startup time I/O etc goes through the roof).
-    ./mount-all-img.sh
-
-    echo "Done mounting squash images"
-}
+# shellcheck disable=SC1090
+source "${PWD}/startup/mount-${ENV}.sh"
 
 get_discovered_compilers() {
     local DEST=$1
@@ -92,7 +76,9 @@ LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 
-mount_opt
+CEFSROOT_HASH=$(get_conf /compiler-explorer/cefsroot)
+
+mount_opt "${CEFSROOT_HASH}"
 update_code
 install_asmparser
 
