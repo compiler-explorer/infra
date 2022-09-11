@@ -383,7 +383,7 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
                 sys.exit(1)
 
     install_creator = SquashFsCreator(config=cefs_config)
-    with install_creator as tmp_path:
+    with install_creator.creation_path() as tmp_path:
         installation_context._staging_root = tmp_path / "staging"
         installation_context.destination = tmp_path
         _LOGGER.info("Installing everything to a temp dir")
@@ -408,7 +408,7 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
 
     _LOGGER.info("Building new root fs")
     root_creator = SquashFsCreator(config=cefs_config)
-    with root_creator as tmp_path:
+    with root_creator.creation_path() as tmp_path:
         current_image.render_to(tmp_path)
 
     new_squashfs_cefs = root_creator.cefs_path

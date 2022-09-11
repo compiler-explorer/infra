@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import shutil
+import contextlib
+import logging
 import subprocess
 from pathlib import Path
-from tempfile import TemporaryDirectory, mkdtemp
+from tempfile import TemporaryDirectory
+from typing import Optional, Iterable, Iterator
 
 from lib.cefs.config import CefsConfig
-
-
-import logging
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -16,15 +15,16 @@ _LOGGER = logging.getLogger(__name__)
 class SquashFsCreator:
     def __init__(self, config: CefsConfig):
         self._config = config
-        self._sha = None
+        self._sha: Optional[str] = None
 
-    def _close(self):
+    def import_existing_path(self, path: Path):
+        assert self._sha is None
         with TemporaryDirectory(prefix="ce-squash-builder") as tmp_dir:
             tmp_sqfs = Path(tmp_dir) / "temp.sqfs"
             subprocess.check_call(
                 [
-                    "/usr/bin/mksquashfs",
-                    str(self._path),
+                    "mksquashfs",
+                    str(path),
                     str(tmp_sqfs),
                     "-all-root",
                     "-root-mode",
@@ -34,7 +34,7 @@ class SquashFsCreator:
                     "zstd",
                 ]
             )
-            self._sha, _filename = subprocess.check_output(["/usr/bin/shasum", str(tmp_sqfs)]).decode("utf-8").split()
+            self._sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
             if not self.image.exists():
                 _LOGGER.info("New squashfs image: %s", self.image)
                 tmp_sqfs.replace(self.image)
@@ -52,14 +52,9 @@ class SquashFsCreator:
         assert self._sha is not None
         return self._config.mountpoint / self._sha
 
-    def __enter__(self):
-        self._path = Path(mkdtemp(prefix="ce-install-temp"))
-        return self._path
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        try:
-            if not exc_type:
-                self._close()
-        finally:
-            subprocess.check_call(["chmod", "-R", "u+w", str(self._path)])
-            shutil.rmtree(self._path, ignore_errors=True)
+    @contextlib.contextmanager
+    def creation_path(self) -> Iterator[Path]:
+        with TemporaryDirectory(prefix="ce-install-temp") as temp_dir:
+            tmp_path = Path(temp_dir)
+            yield tmp_path
+            self.import_existing_path(tmp_path)

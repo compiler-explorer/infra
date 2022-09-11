@@ -6,6 +6,7 @@
       <excludeFolder url="file://$MODULE_DIR$/.deploy" />
       <excludeFolder url="file://$MODULE_DIR$/.dist" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/.env" />
     </content>
     <orderEntry type="jdk" jdkName="Python for infra" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

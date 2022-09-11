@@ -116,7 +116,7 @@ def create_image(context: CliContext):
 
 def _create_empty(config: CefsConfig) -> Path:
     creator = SquashFsCreator(config)
-    with creator as path:
+    with creator.creation_path() as path:
         image = CefsRootImage(cefs_mountpoint=config.mountpoint)
         image.add_metadata(f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}")
         image.render_to(path)
@@ -132,6 +132,19 @@ def create_root(context: CliContext, root: Path):
     CefsFsRoot.create(base_image=empty_path, fs_root=root, config=context.config)
 
 
+@cli.command
+@click.argument("root", type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
+@click.pass_obj
+def import_image(context: CliContext, root: Path):
+    """Import an existing filesystem ROOT."""
+    # DOESNT work on cefs images as they contain symlinks and...that would be bad for consolidation
+    # todo check it isn't?
+    # todo maybe support exclusions? `-ef` one line per file
+    creator = SquashFsCreator(context.config)
+    creator.import_existing_path(root)
+    click.echo(f"Imported new cefs image created at {creator.cefs_path}")
+
+
 # TODO how to start the whole thing off? make an empty root and manually symlink it in position?
 # TODO cases where we have a GIANT image that only exists because one dir is in it
 #  ie repacking and refreshing old images
@@ -145,7 +158,12 @@ def create_root(context: CliContext, root: Path):
 # TODO handle old symlinks of trunk (and do trunk etc!)
 # TODO should "cefs_mountpoint" be onfigurable.
 # TODO should there be a magic file? should metadata.txt by .metadata.txt or indeed just that special file?
-# TODO should probably check on mksquashfs cmdline flags like block size, my laptop used 131072 block size but I swear another machine used 4k
+# TODO should probably check on mksquashfs cmdline flags like block size, my laptop used 131072 block size but I swear
+#  another machine used 4k
+# TODO can add metadata directly with `--pseudofile` magic:
+#  https://github.com/plougher/squashfs-tools/blob/a5df5dc42c564d10c1aebf2063fc30c26850ddc3/USAGE#L261
+# TODO installation from ce_install of nightly things won't work as they try to remove things, and we need a solution
+#  for that
 
 
 def main():
