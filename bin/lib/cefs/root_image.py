@@ -4,6 +4,8 @@ import logging
 from pathlib import Path
 from typing import Optional, Dict, List, Mapping
 
+from lib.cefs.config import CefsConfig
+
 _LOGGER = logging.getLogger(__name__)
 METADATA_FILENAME = "metadata.txt"
 
@@ -22,8 +24,8 @@ class CefsRootImage:
     metadata. TODO naming
     """
 
-    def __init__(self, *, cefs_mountpoint: Path, directory: Optional[Path] = None):
-        self._cefs_mountpoint = cefs_mountpoint.resolve(strict=True)
+    def __init__(self, *, config: CefsConfig, directory: Optional[Path] = None):
+        self._config = config
         self._catalog: Dict[Path, Path] = {}
         self._metadata: List[str] = []
 
@@ -36,7 +38,7 @@ class CefsRootImage:
             relative = entry.relative_to(root_path)
             if entry.is_symlink():
                 link = entry.readlink()
-                if not link.is_relative_to(self._cefs_mountpoint):
+                if not link.is_relative_to(self._config.mountpoint):
                     raise BadCefsImage(f"Found a symlink that wasn't a symlink to cefs: {entry} links to {link}")
                 _LOGGER.debug("Found existing %s -> %s", relative, link)
                 self._catalog[relative] = link
@@ -54,13 +56,22 @@ class CefsRootImage:
         self._metadata.append(metadata)
 
     def link_path(self, subdir: Path, cefs_link: Path):
-        if not cefs_link.is_relative_to(self._cefs_mountpoint):
+        if not cefs_link.is_relative_to(self._config.mountpoint):
             raise BadCefsLink(f"Link is not relative to cefs: {cefs_link}")
         self._catalog[subdir] = cefs_link
 
     @property
     def catalog(self) -> Mapping[Path, Path]:
         return self._catalog
+
+    @property
+    def dependent_images(self) -> List[Path]:
+        return sorted(
+            set(
+                (self._config.image_root / x.relative_to(self._config.mountpoint).parts[0]).with_suffix(".sqfs")
+                for x in self._catalog.values()
+            )
+        )
 
     @property
     def metadata(self) -> List[str]:

@@ -47,7 +47,7 @@ class CefsFsRoot:
         if not base_image.is_dir():
             raise RuntimeError("Missing base image")
         # Construct just to ensure it's a valid image.
-        CefsRootImage(cefs_mountpoint=config.mountpoint, directory=base_image)
+        CefsRootImage(config=config, directory=base_image)
         fs_root.parent.mkdir(parents=True, exist_ok=True)
         # TODO append a log?
         fs_root.symlink_to(base_image, target_is_directory=True)
@@ -62,7 +62,7 @@ class CefsFsRoot:
         return self._image_root
 
     def read_image(self) -> CefsRootImage:
-        image = CefsRootImage(cefs_mountpoint=self._config.mountpoint, directory=self._image_root)
+        image = CefsRootImage(config=self._config, directory=self._image_root)
         image.add_metadata(f"Information read from root image {self._image_root}")
         return image
 

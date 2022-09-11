@@ -106,36 +106,23 @@ def install(context: CliContext):
     )
 
 
-@cli.command
+@cli.group
+def image():
+    """Create and manipulate raw squashfs images."""
+
+
+@image.command(name="create")
 @click.pass_obj
-def create_image(context: CliContext):
+def create_root(context: CliContext):
     """Create an empty image."""
     created_path = _create_empty(context.config)
     click.echo(f"Fresh new cefs image created at {created_path}")
 
 
-def _create_empty(config: CefsConfig) -> Path:
-    creator = SquashFsCreator(config)
-    with creator.creation_path() as path:
-        image = CefsRootImage(cefs_mountpoint=config.mountpoint)
-        image.add_metadata(f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}")
-        image.render_to(path)
-    return creator.cefs_path
-
-
-@cli.command
-@click.argument("root", type=click.Path(file_okay=False, dir_okay=False, writable=True, path_type=Path), required=True)
-@click.pass_obj
-def create_root(context: CliContext, root: Path):
-    """Create an empty cefs root at ROOT."""
-    empty_path = _create_empty(context.config)
-    CefsFsRoot.create(base_image=empty_path, fs_root=root, config=context.config)
-
-
-@cli.command
+@image.command(name="import")
 @click.argument("root", type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
 @click.pass_obj
-def import_image(context: CliContext, root: Path):
+def import_cmd(context: CliContext, root: Path):
     """Import an existing filesystem ROOT."""
     # DOESNT work on cefs images as they contain symlinks and...that would be bad for consolidation
     # todo check it isn't?
@@ -143,6 +130,43 @@ def import_image(context: CliContext, root: Path):
     creator = SquashFsCreator(context.config)
     creator.import_existing_path(root)
     click.echo(f"Imported new cefs image created at {creator.cefs_path}")
+
+
+@image.command
+@click.argument("root", type=click.Path(exists=True, dir_okay=True, path_type=Path), required=True)
+@click.pass_obj
+def info(context: CliContext, root: Path):
+    """Get information on the cefs root at ROOT."""
+    image = CefsRootImage(config=context.config, directory=root)
+    click.echo("Paths supported:")
+    for path in image.catalog:
+        click.echo(f"  {path}")
+    click.echo("Images used:")
+    for path in image.dependent_images:
+        click.echo(f"  {path}")
+
+
+def _create_empty(config: CefsConfig) -> Path:
+    creator = SquashFsCreator(config)
+    with creator.creation_path() as path:
+        image = CefsRootImage(config=config)
+        image.add_metadata(f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}")
+        image.render_to(path)
+    return creator.cefs_path
+
+
+@cli.group
+def fs():
+    """Create and manipulate cefs filesystems."""
+
+
+@fs.command(name="create")
+@click.argument("root", type=click.Path(file_okay=False, dir_okay=False, writable=True, path_type=Path), required=True)
+@click.pass_obj
+def create_fs_root(context: CliContext, root: Path):
+    """Create an empty cefs filesystem at ROOT."""
+    empty_path = _create_empty(context.config)
+    CefsFsRoot.create(base_image=empty_path, fs_root=root, config=context.config)
 
 
 # TODO how to start the whole thing off? make an empty root and manually symlink it in position?
