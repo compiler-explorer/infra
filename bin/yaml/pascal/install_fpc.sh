@@ -9,21 +9,7 @@
 
 VERSION=$1
 FULLVERSION=$VERSION
-
 PARAMINSTALLPATH=$2
-
-askPrefix() {
-    askvar=$2
-    eval old=\$$askvar
-    eval printf \""$1 [$old] : "\"
-
-    if [ ! -z "$PARAMINSTALLPATH" ]; then
-        eval $askvar=\'$PARAMINSTALLPATH\'
-    else
-        read $askvar
-        eval test -z \"\$$askvar\" && eval $askvar=\'$old\'
-    fi
-}
 
 #
 #
@@ -32,7 +18,7 @@ CMDTAR="tar"
 TAR="$CMDTAR --no-same-owner"
 # Untar files ($3,optional) from  file ($1) to the given directory ($2)
 unztar() {
-    $TAR -xzf "$HERE/$1" -C "$2" $3
+    $TAR -xzf "$HERE/$1" -C "$2" "$3"
 }
 
 # Untar tar.gz file ($2) from file ($1) and untar result to the given directory ($3)
@@ -44,11 +30,13 @@ unztarfromtar() {
 # optionally filter result through sed ($3)
 listtarfiles() {
     askvar="$2"
-    if [ ! -z "$3" ]; then
+    # shellcheck disable=SC2034
+    if [ -n "$3" ]; then
         list=$($CMDTAR tvf "$1" | awk '{ print $(NF) }' | sed -n /"$3"/p)
     else
         list=$($CMDTAR tvf "$1" | awk '{ print $(NF) }')
     fi
+    # shellcheck disable=SC2086
     eval $askvar='$list'
 }
 
@@ -80,7 +68,7 @@ installbinary() {
         FPCTARGET="$1"
         CROSSPREFIX=
     else
-        FPCTARGET=$(echo $2 | sed 's/-$//')
+        FPCTARGET="${2%-}"
         CROSSPREFIX="$2"
     fi
 
@@ -135,8 +123,10 @@ installbinary() {
     ln -sfr "$LIBDIR/ppc${PPCSUFFIX}" "$EXECDIR/ppc${PPCSUFFIX}"
 
     echo "Installing rtl packages..."
+    local packages
     listtarfiles "$BINARYTAR" packages units-rtl
     for f in $packages; do
+        # shellcheck disable=SC2001
         p=$(echo "$f" | sed -e 's+^.*units-\([^\.]*\)\..*+\1+')
         echo "Installing $p"
         unztarfromtar "$BINARYTAR" "$f" "$PREFIX"
@@ -145,6 +135,7 @@ installbinary() {
     echo "Installing fcl..."
     listtarfiles "$BINARYTAR" packages units-fcl
     for f in $packages; do
+        # shellcheck disable=SC2001
         p=$(echo "$f" | sed -e 's+^.*units-\([^\.]*\)\..*+\1+')
         echo "Installing $p"
         unztarfromtar "$BINARYTAR" "$f" "$PREFIX"
@@ -155,6 +146,7 @@ installbinary() {
     for f in $packages; do
         if ! echo "$f" | grep -q fcl >/dev/null; then
             if ! echo "$f" | grep -q rtl >/dev/null; then
+                # shellcheck disable=SC2001
                 p=$(echo "$f" | sed -e 's+^.*units-\([^\.]*\)\..*+\1+')
                 echo "Installing $p"
                 unztarfromtar "$BINARYTAR" "$f" "$PREFIX"
@@ -163,14 +155,15 @@ installbinary() {
     done
 
     echo "Installing utilities..."
-    listtarfiles "$BINARYTAR" packages ${CROSSPREFIX}utils
+    listtarfiles "$BINARYTAR" packages "${CROSSPREFIX}utils"
     for f in $packages; do
+        # shellcheck disable=SC2001
         p=$(echo "$f" | sed -e 's+^.*utils-\([^\.]*\)\..*+\1+' -e 's+^.*\(utils\)[^\.]*\..*+\1+')
         echo "Installing $p"
         unztarfromtar "$BINARYTAR" "$f" "$PREFIX"
     done
 
-    rm -f *."$1".tar.gz
+    rm -f -- *."$1".tar.gz
 }
 
 # --------------------------------------------------------------------------
@@ -184,103 +177,21 @@ echo
 # Here we start the thing.
 HERE=$(pwd)
 
-OSNAME=$(uname -s | tr "[:upper:]" "[:lower:]")
-case "$OSNAME" in
-haiku)
-    # Install in /boot/common or /boot/home/config ?
-    if checkpath /boot/common/bin; then
-        PREFIX=/boot/common
-    else
-        PREFIX=/boot/home/config
-    fi
-    # If we can't write on prefix, we are probably
-    # on Haiku with package management system.
-    # In this case, we have to install fpc in the non-packaged subdir
-    if [ ! -w "$PREFIX" ]; then
-        PREFIX="$PREFIX/non-packaged"
-    fi
-    ;;
-freebsd)
-    PREFIX=/usr/local
-    ;;
-sunos)
-    # Check if GNU llinker is recent enough, version 2.21 is needed at least
-    GNU_LD=$(command -v gld)
-    supported_emulations=$("$GNU_LD" --target-help | sed -n "s|^\(elf.*\):|\1|p")
-    supports_elf_i386_sol2=$(echo $supported_emulations | grep -w elf_i386_sol2)
-    supports_elf_x86_64_sol2=$(echo $supported_emulations | grep -w elf_x86_64_sol2)
-    if [ "$supports_elf_i386_sol2" = "" ]; then
-        echo -n "GNU linker $GNU_LD does not support elf_i386_sol2 emulation, please consider "
-        echo "upgrading binutils package to at least version 2.21"
-    elif [ "$supports_elf_x86_64_sol2" = "" ]; then
-        echo -n "GNU linker $GNU_LD does not support elf_x86_64_sol2 emulation, please consider "
-        echo "upgrading binutils package to at least version 2.21"
-    fi
-    PREFIX=/usr/local
-    # Use GNU tar if present
-    if [ "$(command -v gtar)" != "" ]; then
-        CMDTAR=$(command -v gtar)
-        TAR="$CMDTAR --no-same-owner"
-    fi
-    echo "Using TAR binary=$CMDTAR"
-    ;;
-*)
-    # Install in /usr/local or /usr ?
-    if checkpath /usr/local/bin; then
-        PREFIX=/usr/local
-    else
-        PREFIX=/usr
-    fi
-    ;;
-esac
-
-# If we can't write on prefix, select subdir of home dir
-if [ ! -w "$PREFIX" ]; then
-    PREFIX="$HOME/fpc-$VERSION"
-fi
-
-case "$OSNAME" in
-haiku)
-    askPrefix "Install prefix (/boot/common or /boot/home/config) " PREFIX
-    ;;
-*)
-    askPrefix "Install prefix (/usr or /usr/local) " PREFIX
-    ;;
-esac
-
 # Support ~ expansion
-PREFIX=$(eval echo $PREFIX)
+PREFIX=$(eval echo "$PARAMINSTALLPATH")
 export PREFIX
 makedirhierarch "$PREFIX"
 
 # Set some defaults.
 LIBDIR="$PREFIX/lib/fpc/$VERSION"
-SRCDIR="$PREFIX/src/fpc-$VERSION"
 EXECDIR="$PREFIX/bin"
-
-BSDHIER=0
-case "$OSNAME" in
-*bsd)
-    BSDHIER=1
-    ;;
-esac
-
-DOCDIR="$PREFIX/share/doc/fpc-$VERSION"
-
-case "$OSNAME" in
-freebsd)
-    # normal examples are already installed in fpc-version. So added "demo"
-    DEMODIR="$PREFIX/share/examples/fpc-$VERSION/demo"
-    ;;
-*)
-    DEMODIR="$DOCDIR/examples"
-    ;;
-esac
 
 # Install all binary releases
 for f in *binary*.tar; do
-    target=$(echo $f | sed 's+^.*binary\.\(.*\)\.tar$+\1+')
-    cross=$(echo $f | sed 's+binary\..*\.tar$++')
+    # shellcheck disable=SC2001
+    target=$(echo "$f" | sed 's+^.*binary\.\(.*\)\.tar$+\1+')
+    # shellcheck disable=SC2001
+    cross=$(echo "$f" | sed 's+binary\..*\.tar$++')
 
     # cross install?
     if [ "$cross" != "" ]; then
@@ -289,7 +200,7 @@ for f in *binary*.tar; do
             echo "For a proper installation of a cross FPC the installation of a native FPC is required."
             exit 1
         else
-            if [ $(fpc -iV) != "$VERSION" ]; then
+            if [ "$(fpc -iV)" != "$VERSION" ]; then
                 echo "Warning: Native and cross FPC doesn't match; this could cause problems"
             fi
         fi
