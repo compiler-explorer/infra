@@ -20,7 +20,6 @@ repos:
     rev: v0.971
     hooks:
       - id: mypy
-        args: [--ignore-missing-imports]
         additional_dependencies:
             - types-PyYAML==6.0.11
             - types-attrs==19.1.0
