@@ -79,6 +79,7 @@ resource "aws_instance" "BuilderNode" {
   vpc_security_group_ids      = [aws_security_group.Builder.id]
   associate_public_ip_address = true
   source_dest_check           = false
+  user_data                   = "builder"
 
   root_block_device {
     volume_type           = "gp2"
