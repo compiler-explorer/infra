@@ -169,6 +169,22 @@ def create_fs_root(context: CliContext, root: Path):
     CefsFsRoot.create(base_image=empty_path, fs_root=root, config=context.config)
 
 
+@fs.command
+@click.argument("root", type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
+@click.pass_obj
+def consolidate(context: CliContext, root: Path):
+    """Consolidate a FS root into a single layer."""
+    cefs_root = CefsFsRoot(fs_root=root, config=context.config)
+    cefs_image = cefs_root.read_image()
+    cefs_image.consolidate()
+    _LOGGER.info("Building new root fs")
+    root_creator = SquashFsCreator(config=context.config)
+    with root_creator.creation_path() as tmp_path:
+        cefs_image.render_to(tmp_path)
+    # TODO if not changed by something else in the mean time...
+    cefs_root.update(root_creator.cefs_path)
+
+
 # TODO how to start the whole thing off? make an empty root and manually symlink it in position?
 # TODO cases where we have a GIANT image that only exists because one dir is in it
 #  ie repacking and refreshing old images
@@ -188,6 +204,8 @@ def create_fs_root(context: CliContext, root: Path):
 #  https://github.com/plougher/squashfs-tools/blob/a5df5dc42c564d10c1aebf2063fc30c26850ddc3/USAGE#L261
 # TODO installation from ce_install of nightly things won't work as they try to remove things, and we need a solution
 #  for that
+# TODO installation of libraries
+# TODO consolidation and other fs commands that take a while need to be defensive about changes while they're going.
 
 
 def main():

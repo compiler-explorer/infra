@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import subprocess
 from pathlib import Path
-from typing import Optional, Dict, List, Mapping
+from tempfile import TemporaryDirectory
+from typing import Optional, Dict, List, Mapping, Iterator
 
 from lib.cefs.config import CefsConfig
 
@@ -84,3 +86,57 @@ class CefsRootImage:
             source_dir = destination / entry
             source_dir.parent.mkdir(parents=True, exist_ok=True)
             source_dir.symlink_to(dest)
+
+    def _items_for(self, directory: Path, source_root: Path, dest_root: Path) -> Iterator[str]:
+        for item in directory.iterdir():
+            rel_path = dest_root / item.relative_to(source_root)
+            stat = item.lstat()
+            mode = f"0{oct(stat.st_mode & 0o7777)[2:]}"
+            uid = stat.st_uid
+            gid = stat.st_gid
+            if item.is_dir():
+                yield f'dir "{rel_path}" {mode} {uid} {gid}'
+                yield from self._items_for(directory=item, source_root=source_root, dest_root=dest_root)
+            elif item.is_file():
+                # TODO better hope there's no special characters as gensquashfs won't let the <location> have any...
+                yield f'file "{rel_path}" {mode} {uid} {gid} {item}'
+            elif item.is_symlink():
+                yield f'slink "{rel_path}" {mode} {uid} {gid} {item.readlink()}'
+            else:
+                raise RuntimeError(f"oh no {item}")  # TODO
+
+    def consolidate(self) -> None:
+        # TODO what if it's already one image? could still be consolidated e.g. if things were deleted in base image
+        # this might compact
+        # TODO put in squashfs build.py? or at least move functionality there
+        with TemporaryDirectory(prefix="ce-consolidate") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            tmp_sqfs = tmp_path / "temp.sqfs"
+            tmp_packfile = tmp_path / "packfile"
+            with tmp_packfile.open("w", encoding="utf-8") as tmp_packfile_file:
+                for entry, dest in self.catalog.items():
+                    _LOGGER.info("Finding things to consolidate: %s->%s", entry, dest)
+                    dest = dest.resolve(strict=True)
+                    for item in self._items_for(directory=dest, source_root=dest, dest_root=entry):
+                        tmp_packfile_file.write(f"{item}\n")
+            _LOGGER.info("Consolidating...")
+            subprocess.check_call(
+                [
+                    "gensquashfs",
+                    str(tmp_sqfs),
+                    "--pack-file",
+                    str(tmp_packfile),
+                    "--compressor",
+                    "zstd",
+                ]
+            )
+            sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
+            image = self._config.image_root / f"{sha}.sqfs"
+            if not image.exists():
+                _LOGGER.info("New squashfs image: %s", image)
+                tmp_sqfs.replace(image)
+            else:
+                _LOGGER.info("Existing: %s", image)
+                tmp_sqfs.unlink()
+        dest_image = self._config.mountpoint / sha
+        self._catalog = {entry: dest_image / entry for entry, dest in self._catalog.items()}
