@@ -466,20 +466,17 @@ def install(context: CliContext, filter_: List[str], force: bool):
         print(f"Installing {installable.name}")
         if should_install:
             try:
-                if installable.install():
-                    if context.installation_context.dry_run:
-                        _LOGGER.info("Assuming %s installed OK (dry run)", installable.name)
-                        num_installed += 1
-                    else:
-                        if not installable.is_installed():
-                            _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
-                            failed.append(installable.name)
-                        else:
-                            _LOGGER.info("%s installed OK", installable.name)
-                            num_installed += 1
+                installable.install()
+                if context.installation_context.dry_run:
+                    _LOGGER.info("Assuming %s installed OK (dry run)", installable.name)
+                    num_installed += 1
                 else:
-                    _LOGGER.info("%s failed to install", installable.name)
-                    failed.append(installable.name)
+                    if not installable.is_installed():
+                        _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
+                        failed.append(installable.name)
+                    else:
+                        _LOGGER.info("%s installed OK", installable.name)
+                        num_installed += 1
             except Exception as e:  # pylint: disable=broad-except
                 _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
                 failed.append(installable.name)
