@@ -98,6 +98,7 @@ compilers:
               - 11.2.0
               - 11.3.0
               - 12.1.0
+              - 12.2.0
             nightly:
               if: nightly
               type: nightly
@@ -235,6 +236,10 @@ compilers:
             - name: 12.1.0
               untar_dir: "gcc-{name}"
               check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            - name: 12.2.0
+              untar_dir: "gcc-{name}"
+              check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -257,6 +262,7 @@ compilers:
             - 11.2.0
             - 11.3.0
             - 12.1.0
+            - 12.2.0
           nightly:
             if: nightly
             type: nightly
@@ -273,11 +279,14 @@ compilers:
                 - 5.4.0
                 - 11.2.0
                 - 12.1.0
+                - 12.2.0
             mipsel:
               subdir: mipsel
               targets:
                 - 5.4.0
                 - name: 12.1.0
+                  arch_prefix: "{subdir}-multilib-linux-gnu"
+                - name: 12.2.0
                   arch_prefix: "{subdir}-multilib-linux-gnu"
             mips64:
               subdir: mips64
@@ -285,11 +294,14 @@ compilers:
                 - 5.4.0
                 - 11.2.0
                 - 12.1.0
+                - 12.2.0
             mips64el:
               subdir: mips64el
               targets:
                 - 5.4.0
                 - name: 12.1.0
+                  arch_prefix: "{subdir}-multilib-linux-uclibc"
+                - name: 12.2.0
                   arch_prefix: "{subdir}-multilib-linux-uclibc"
 
           - type: tarballs
@@ -358,6 +370,7 @@ compilers:
             - 11.2.0
             - 11.3.0
             - 12.1.0
+            - 12.2.0
         riscv32:
           arch_prefix: "riscv32-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -371,6 +384,8 @@ compilers:
             - 11.2.0
             - 11.3.0
             - 12.1.0
+            - name: 12.2.0
+              arch_prefix: "riscv32-unknown-linux-gnu"
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -401,6 +416,7 @@ compilers:
           targets:
             - 11.2.0
             - 12.1.0
+            - 12.2.0
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -411,6 +427,7 @@ compilers:
                 check_exe: "{arch_prefix}/bin/g++ --version"
               - name: 11.2.0
               - name: 12.1.0
+              - name: 12.2.0
           powerpc64:
             subdir: powerpc64
             targets:
@@ -418,6 +435,7 @@ compilers:
               - at13
               - 11.2.0
               - 12.1.0
+              - 12.2.0
           powerpc64le:
             subdir: powerpc64le
             targets:
@@ -426,6 +444,7 @@ compilers:
               - at13
               - 11.2.0
               - 12.1.0
+              - 12.2.0
         xtensa:
           esp32:
             arch_prefix: xtensa-esp32-elf

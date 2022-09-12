@@ -92,3 +92,9 @@ compilers:
             targets:
               - name: gcc-aarch64-none-elf-10.1.morello-alp1-x86_64
                 url: https://developer.arm.com/-/media/Files/downloads/gnu-morello/10.1.Morello-Alp1/binrel/arm-gnu-toolchain-10.1.Morello-Alp1-x86_64-aarch64-none-elf.tar.xz
+        msp430:
+          arch_prefix: "msp430-unknown-elf"
+          subdir: msp430
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-gcc --version"
+          targets:
+            - 12.2.0
