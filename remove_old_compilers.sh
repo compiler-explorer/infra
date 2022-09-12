@@ -44,6 +44,7 @@ remove_older clang-embed
 remove_older clang-dang-main
 remove_older clang-widberg-main
 remove_older llvm-spirv
+remove_older llvm-amdgpu
 remove_older go
 remove_older tinycc
 remove_older cc65
