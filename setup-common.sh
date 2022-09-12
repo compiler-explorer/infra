@@ -19,6 +19,7 @@ wait_for_apt
 apt-get -y update
 apt-get -y upgrade --force-yes
 apt-get -y install \
+  autofs \
   jq \
   libc6-arm64-cross \
   libdatetime-perl \
