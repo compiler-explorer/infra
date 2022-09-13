@@ -8,7 +8,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import click
 
@@ -185,6 +185,29 @@ def consolidate(context: CliContext, root: Path):
     cefs_root.update(root_creator.cefs_path)
 
 
+@fs.command(name="import")
+@click.option(
+    "--relative-to",
+    type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
+    required=True,
+    help="import relative to PATH",
+)
+@click.argument("root", type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
+@click.argument("directory", nargs=-1, type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
+@click.pass_obj
+def import_(context: CliContext, root: Path, relative_to: Path, directory: List[Path]):
+    """Import existing directories into a fs."""
+    cefs_root = CefsFsRoot(fs_root=root, config=context.config)
+    cefs_image = cefs_root.read_image()
+    cefs_image.import_existing(relative_to, directory)
+    _LOGGER.info("Building new root fs")
+    root_creator = SquashFsCreator(config=context.config)
+    with root_creator.creation_path() as tmp_path:
+        cefs_image.render_to(tmp_path)
+    # TODO if not changed by something else in the mean time...
+    cefs_root.update(root_creator.cefs_path)
+
+
 # TODO how to start the whole thing off? make an empty root and manually symlink it in position?
 # TODO cases where we have a GIANT image that only exists because one dir is in it
 #  ie repacking and refreshing old images
@@ -206,6 +229,7 @@ def consolidate(context: CliContext, root: Path):
 #  for that
 # TODO installation of libraries
 # TODO consolidation and other fs commands that take a while need to be defensive about changes while they're going.
+# TODO /opt/cefs/images instead? then /opt/cefs/fs symlinks to all fs roots?
 
 
 def main():

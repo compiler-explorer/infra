@@ -4,7 +4,7 @@ import logging
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Dict, List, Mapping, Iterator
+from typing import Optional, Dict, List, Mapping, Iterator, Iterable
 
 from lib.cefs.config import CefsConfig
 
@@ -109,7 +109,7 @@ class CefsRootImage:
         # TODO what if it's already one image? could still be consolidated e.g. if things were deleted in base image
         # this might compact
         # TODO put in squashfs build.py? or at least move functionality there
-        with TemporaryDirectory(prefix="ce-consolidate") as tmp_dir:
+        with TemporaryDirectory(prefix="cefs-consolidate") as tmp_dir:
             tmp_path = Path(tmp_dir)
             tmp_sqfs = tmp_path / "temp.sqfs"
             tmp_packfile = tmp_path / "packfile"
@@ -140,3 +140,40 @@ class CefsRootImage:
                 tmp_sqfs.unlink()
         dest_image = self._config.mountpoint / sha
         self._catalog = {entry: dest_image / entry for entry, dest in self._catalog.items()}
+
+    def import_existing(self, root_dir: Path, subdirs: Iterable[Path]) -> None:
+        with TemporaryDirectory(prefix="cefs-import") as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            tmp_sqfs = tmp_path / "temp.sqfs"
+            tmp_packfile = tmp_path / "packfile"
+            new_entries = []
+            with tmp_packfile.open("w", encoding="utf-8") as tmp_packfile_file:
+                for to_import in subdirs:
+                    entry = to_import.relative_to(root_dir)
+                    new_entries.append(entry)
+                    _LOGGER.info("Scanning for import: %s->%s", entry, to_import)
+                    to_import = to_import.resolve(strict=True)
+                    for item in self._items_for(directory=to_import, source_root=to_import, dest_root=entry):
+                        tmp_packfile_file.write(f"{item}\n")
+            _LOGGER.info("Importing...")
+            subprocess.check_call(
+                [
+                    "gensquashfs",
+                    str(tmp_sqfs),
+                    "--pack-file",
+                    str(tmp_packfile),
+                    "--compressor",
+                    "zstd",
+                ]
+            )
+            sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
+            image = self._config.image_root / f"{sha}.sqfs"
+            if not image.exists():
+                _LOGGER.info("New squashfs image: %s", image)
+                tmp_sqfs.replace(image)
+            else:
+                _LOGGER.info("Existing: %s", image)
+                tmp_sqfs.unlink()
+        dest_image = self._config.mountpoint / sha
+        for new_entry in new_entries:
+            self._catalog[new_entry] = dest_image / new_entry
