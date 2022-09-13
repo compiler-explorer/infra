@@ -149,7 +149,7 @@ class CefsRootImage:
             new_entries = []
             with tmp_packfile.open("w", encoding="utf-8") as tmp_packfile_file:
                 for to_import in subdirs:
-                    if not to_import.absolute():
+                    if not to_import.is_absolute():
                         to_import = root_dir / to_import
                         if not to_import.is_dir():
                             raise RuntimeError(f"{to_import} was not a directory when adding")

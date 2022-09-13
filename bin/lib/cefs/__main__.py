@@ -234,6 +234,7 @@ def import_(context: CliContext, root: Path, relative_to: Path, directory: List[
 # TODO rust libraries don't have install_path
 # TODO if we import (e.g.) `arm` wholesale, and then later add `arm/blah` as a sudirectory, need to "split" `arm` in the
 #  symlinks into its components
+# TODO  - can't move from one FS to another so should make sure temp is on dest drive or handle it.
 # useful cmd? ce_install list gcc --json --installed-only \
 #   | jq -r .install_path \
 #   | xargs cefs fs import --relative-to /opt/compiler-explorer ~/ce
