@@ -190,16 +190,17 @@ def consolidate(context: CliContext, root: Path):
     "--relative-to",
     type=click.Path(file_okay=False, dir_okay=True, path_type=Path),
     required=True,
-    help="import relative to PATH",
+    help="Import relative to PATH",
 )
+@click.option("--replace/--no-replace", help="Replace (or not) anything in the path")
 @click.argument("root", type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
 @click.argument("directory", nargs=-1, type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
 @click.pass_obj
-def import_(context: CliContext, root: Path, relative_to: Path, directory: List[Path]):
+def import_(context: CliContext, root: Path, relative_to: Path, directory: List[Path], replace: bool):
     """Import existing directories into a fs."""
     cefs_root = CefsFsRoot(fs_root=root, config=context.config)
     cefs_image = cefs_root.read_image()
-    cefs_image.import_existing(relative_to, directory)
+    cefs_image.import_existing(relative_to, directory, replace=replace)
     _LOGGER.info("Building new root fs")
     root_creator = SquashFsCreator(config=context.config)
     with root_creator.creation_path() as tmp_path:
@@ -230,6 +231,12 @@ def import_(context: CliContext, root: Path, relative_to: Path, directory: List[
 # TODO installation of libraries
 # TODO consolidation and other fs commands that take a while need to be defensive about changes while they're going.
 # TODO /opt/cefs/images instead? then /opt/cefs/fs symlinks to all fs roots?
+# TODO rust libraries don't have install_path
+# TODO if we import (e.g.) `arm` wholesale, and then later add `arm/blah` as a sudirectory, need to "split" `arm` in the
+#  symlinks into its components
+# useful cmd? ce_install list gcc --json --installed-only \
+#   | jq -r .install_path \
+#   | xargs cefs fs import --relative-to /opt/compiler-explorer ~/ce
 
 
 def main():

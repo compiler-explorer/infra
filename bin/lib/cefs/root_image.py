@@ -141,7 +141,7 @@ class CefsRootImage:
         dest_image = self._config.mountpoint / sha
         self._catalog = {entry: dest_image / entry for entry, dest in self._catalog.items()}
 
-    def import_existing(self, root_dir: Path, subdirs: Iterable[Path]) -> None:
+    def import_existing(self, root_dir: Path, subdirs: Iterable[Path], replace: bool = False) -> None:
         with TemporaryDirectory(prefix="cefs-import") as tmp_dir:
             tmp_path = Path(tmp_dir)
             tmp_sqfs = tmp_path / "temp.sqfs"
@@ -149,7 +149,17 @@ class CefsRootImage:
             new_entries = []
             with tmp_packfile.open("w", encoding="utf-8") as tmp_packfile_file:
                 for to_import in subdirs:
+                    if not to_import.absolute():
+                        to_import = root_dir / to_import
+                        if not to_import.is_dir():
+                            raise RuntimeError(f"{to_import} was not a directory when adding")
                     entry = to_import.relative_to(root_dir)
+                    if entry in self._catalog:
+                        if replace:
+                            _LOGGER.info("Replacing existing %s", entry)
+                        else:
+                            _LOGGER.info("Skipping existing %s", entry)
+                            continue
                     new_entries.append(entry)
                     _LOGGER.info("Scanning for import: %s->%s", entry, to_import)
                     to_import = to_import.resolve(strict=True)

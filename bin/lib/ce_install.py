@@ -207,7 +207,7 @@ def cli(
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
     if not log or log_to_console:
-        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
     context = InstallationContext(
@@ -229,12 +229,15 @@ def cli(
 
 @cli.command(name="list")
 @click.pass_obj
+@click.option("--json", is_flag=True, help="Output in JSON format")
+@click.option("--installed-only", is_flag=True, help="Only output installed targets")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: List[str]):
+def list_cmd(context: CliContext, filter_: List[str], json: bool, installed_only: bool):
     """List installation targets matching FILTER."""
-    print("Installation candidates:")
     for installable in context.get_installables(filter_):
-        print(installable.name)
+        if installed_only and not installable.is_installed():
+            continue
+        print(installable.to_json() if json else installable.name)
         _LOGGER.debug(installable)
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import glob
+import json
 import logging
 import os
 import re
@@ -303,6 +304,9 @@ class InstallationContext:
         subprocess.check_call([self.destination / "patchelf-0.8" / "src" / "patchelf", "--set-rpath", rpath, elf_file])
 
 
+SimpleJsonType = (int, float, str, bool)
+
+
 class Installable:
     _check_link: Optional[Callable[[], bool]]
     check_env: Dict
@@ -332,6 +336,12 @@ class Installable:
         self.install_path = ""
         self.after_stage_script = self.config_get("after_stage_script", [])
         self._logger = logging.getLogger(self.name)
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        return {key: value for key, value in self.__dict__.items() if isinstance(value, SimpleJsonType)}
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_json_dict())
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace("%PATH%", path_name).split("=", 1) for x in self.config_get("check_env", [])])
