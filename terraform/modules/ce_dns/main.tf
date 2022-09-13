@@ -52,7 +52,8 @@ resource "aws_route53_record" "spf" {
   ttl     = 3600
   records = [
     "v=spf1 include:_spf.google.com ~all",
-    "v=DMARC1;p=none;sp=quarantine;rua=mailto:matt+dmarc@${var.domain_name}"
+    "v=DMARC1;p=none;sp=quarantine;rua=mailto:matt+dmarc@${var.domain_name}",
+    "google-site-verification=uCqzvXJNW3IV25ZPjOmXyrTBA_dwzpo57znHNWU11s0"
   ]
 }
 
