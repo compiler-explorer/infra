@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Optional, List
 
 import click
+import humanfriendly
 
 from lib.cefs.config import CefsConfig
 from lib.cefs.root import CefsFsRoot
@@ -142,8 +143,8 @@ def info(context: CliContext, root: Path):
     for path in image.catalog:
         click.echo(f"  {path}")
     click.echo("Images used:")
-    for path in image.dependent_images:
-        click.echo(f"  {path}")
+    for size, path in sorted(((path.stat().st_size, path) for path in image.dependent_images), reverse=True):
+        click.echo(f"  {path} ({humanfriendly.format_size(size, binary=True)})")
 
 
 def _create_empty(config: CefsConfig) -> Path:

@@ -88,6 +88,7 @@ class CefsRootImage:
             source_dir.symlink_to(dest)
 
     def _items_for(self, directory: Path, source_root: Path, dest_root: Path) -> Iterator[str]:
+        # TODO er, glob?
         for item in directory.iterdir():
             rel_path = dest_root / item.relative_to(source_root)
             stat = item.lstat()
@@ -108,6 +109,7 @@ class CefsRootImage:
     def consolidate(self) -> None:
         # TODO what if it's already one image? could still be consolidated e.g. if things were deleted in base image
         # this might compact
+        # TODO keep some number of layers?
         # TODO put in squashfs build.py? or at least move functionality there
         with TemporaryDirectory(prefix="cefs-consolidate") as tmp_dir:
             tmp_path = Path(tmp_dir)
@@ -160,6 +162,7 @@ class CefsRootImage:
                         else:
                             _LOGGER.info("Skipping existing %s", entry)
                             continue
+                    self.metadata.append(f"Importing {to_import} as {entry}")
                     new_entries.append(entry)
                     _LOGGER.info("Scanning for import: %s->%s", entry, to_import)
                     to_import = to_import.resolve(strict=True)
