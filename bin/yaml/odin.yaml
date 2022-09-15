@@ -1,0 +1,10 @@
+compilers:
+  odin:
+    type: ziparchive
+    check_exe: odin version
+    url: https://github.com/odin-lang/Odin/releases/download/{name}/odin-ubuntu-amd64-{name}.zip
+    dir: odin-{name}
+    extract_into_dir: True
+    targets:
+      - dev-2022-09
+      - dev-2022-08

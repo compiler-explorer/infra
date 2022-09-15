@@ -854,9 +854,12 @@ class NightlyTarballInstallable(TarballInstallable):
 class ZipArchiveInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
-        self.install_path = self.config_get("dir")
         self.url = self.config_get("url")
-        self.folder_to_rename = self.config_get("folder")
+        self.install_path = self.config_get("dir")
+        self.extract_into_install_path = self.config_get("extract_into_dir", False)
+        self.folder_to_rename = self.config_get("folder", None)
+        if not self.extract_into_install_path and not self.folder_to_rename:
+            raise RuntimeError(f"Missing required key 'folder' or 'extract_into_dir' in {self.name}")
         self.configure_command = command_config(self.config_get("configure_command", []))
         self.strip = self.config_get("strip", False)
         self._setup_check_exe(self.install_path)
@@ -865,8 +868,12 @@ class ZipArchiveInstallable(Installable):
         # Unzip does not support stdin piping so we need to create a file
         with (staging.path / "distribution.zip").open("wb") as fd:
             self.install_context.fetch_to(self.url, fd)
-            self.install_context.stage_command(staging, ["unzip", fd.name])
-            self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
+            unzip_cmd = ["unzip", fd.name]
+            if self.extract_into_install_path:
+                unzip_cmd.extend(["-d", self.install_path])
+            self.install_context.stage_command(staging, unzip_cmd)
+            if self.folder_to_rename:
+                self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
         if self.configure_command:
             self.install_context.stage_command(staging, self.configure_command)
         if self.strip:
