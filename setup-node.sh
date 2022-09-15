@@ -13,6 +13,7 @@ curl -s https://dl.winehq.org/wine-builds/winehq.key | apt-key add -
 # TODO at some point see if we can upgrade wine
 apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
 apt-get install -y \
+    autofs \
     binutils-multiarch \
     bison \
     bzip2 \
@@ -108,3 +109,5 @@ systemctl daemon-reload
 systemctl enable compiler-explorer
 
 adduser --system --group ce
+
+bin/cefs install

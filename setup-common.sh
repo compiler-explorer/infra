@@ -41,9 +41,7 @@ mkdir -p /root/.aws /home/ubuntu/.aws
 echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
 chown -R ubuntu /home/ubuntu/.aws
 
-get_conf() {
-  aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
-}
+source common-inc.sh
 
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
