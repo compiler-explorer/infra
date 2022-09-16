@@ -397,11 +397,10 @@ compilers:
           type: tarballs
           compression: gz
           untar_dir: gcc-kalray-kvx-v{name}
-          dir: kvx-{name}
+          dir: "kvx/acb-{name}"
           arch_prefix: kvx-elf
           url: https://github.com/kalray/build-scripts/releases/download/v{name}/gcc-kalray-kvx-v{name}.tar.gz
           check_exe: "bin/{arch_prefix}-g++ --version"
-          subdir: kvx
           targets:
             - 4.1.0-cd1
             - 4.1.0-rc6
