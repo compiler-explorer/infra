@@ -495,6 +495,7 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_mana
     "CloudWatchFullAccess" : true,
     "AmazonDynamoDBFullAccess" : true,
     "AmazonSSMReadOnlyAccess" : true,
+    "service-role/AWSQuicksightAthenaAccess" : true,
   }
   role       = aws_iam_role.CompilerExplorerAdminNode.name
   policy_arn = "arn:aws:iam::aws:policy/${each.key}"
