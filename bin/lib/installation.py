@@ -212,7 +212,7 @@ class InstallationContext:
             _LOGGER.info("Directory listing of staging:\n%s", staging_contents)
             raise RuntimeError(f"Missing source '{source}'")
         # Some tar'd up GCCs are actually marked read-only...
-        subprocess.check_call(["chmod", "u+w", source])
+        subprocess.check_call(["chmod", "-R", "u+w", source])
         state = ""
         if dest.is_dir():
             _LOGGER.info("Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename)
@@ -290,7 +290,7 @@ class InstallationContext:
                 for line in lines:
                     f.write(f"{line}\n")
 
-            script_file.chmod(0o744)
+            script_file.chmod(0o755)
             self.stage_command(staging, [str(script_file)], cwd=from_path)
             script_file.unlink()
 
@@ -399,7 +399,7 @@ class Installable:
 
         try:
             binary = self.install_context.destination / self.check_call[0]
-            subprocess.check_call(["chmod", "u+x", binary])
+            binary.chmod(0o755)
             res_call = self.install_context.check_output(
                 self.check_call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
             )
