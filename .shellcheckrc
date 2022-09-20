@@ -1,0 +1,3 @@
+disable=SC2164  # cd and popd
+disable=SC2043  # loop will only execute once
+severity=error
