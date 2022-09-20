@@ -31,18 +31,19 @@ compilers:
           - '5.4'
           - '5.5'
           - '5.6'
+          - '5.7'
     # when the pre-release becomes a release, comment out the `5.x-nightly` section to allow reuse at a later time
-    5.7-nightly:
-      if: nightly
-      type: restQueryTarballs
-      install_always: true
-      url: https://swift.org/builds/swift-{name}-branch/ubuntu2004/latest-build.yml
-      query: |
-        'https://swift.org/builds/swift-{name}-branch/ubuntu2004/' \
-        + document['download'].replace('-ubuntu20.04.tar.gz', '') \
-        + '/' + document['download']
-      targets:
-        - '5.7'
+    #5.7-nightly:
+    #  if: nightly
+    #  type: restQueryTarballs
+    #  install_always: true
+    #  url: https://swift.org/builds/swift-{name}-branch/ubuntu2004/latest-build.yml
+    #  query: |
+    #    'https://swift.org/builds/swift-{name}-branch/ubuntu2004/' \
+    #    + document['download'].replace('-ubuntu20.04.tar.gz', '') \
+    #    + '/' + document['download']
+    #  targets:
+    #    - '5.7'
     nightly:
       if: nightly
       type: restQueryTarballs
