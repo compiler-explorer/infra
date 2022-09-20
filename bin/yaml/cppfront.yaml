@@ -1,0 +1,8 @@
+compilers:
+  cppfront:
+    if: nightly
+    type: nightly
+    s3_path_prefix: cppfront-{name}
+    check_exe: cppfront -version
+    targets:
+      - trunk
