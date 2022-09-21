@@ -583,6 +583,14 @@ compilers:
           - 13.0.1
           - 14.0.0
           - 15.0.0
+    llvm-amdgpu:
+      - type: s3tarballs
+        check_exe: bin/clang++ --version
+        targets:
+          - rocm-4.5.2
+          - rocm-5.0.2
+          - rocm-5.1.3
+          - rocm-5.2.3
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
@@ -716,6 +724,7 @@ compilers:
           - patmat-trunk
           - p1061-trunk
           - reflection-trunk
+          - amd-stg-open
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:
