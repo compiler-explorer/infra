@@ -6,6 +6,8 @@ compilers:
     dir: odin-{name}
     extract_into_folder: true
     folder: odin
+    after_stage_script:
+      - chmod 0755 odin
     targets:
       - dev-2022-09
       - dev-2022-08

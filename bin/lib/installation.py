@@ -398,8 +398,6 @@ class Installable:
             return res
 
         try:
-            binary = self.install_context.destination / self.check_call[0]
-            binary.chmod(0o755)
             res_call = self.install_context.check_output(
                 self.check_call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
             )
