@@ -724,7 +724,7 @@ compilers:
           - patmat-trunk
           - p1061-trunk
           - reflection-trunk
-          - amd-stg-open
+          - rocm-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:
