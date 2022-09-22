@@ -75,6 +75,13 @@ class CefsRootImage:
             )
         )
 
+    def remove(self, relative_path: Path) -> None:
+        if relative_path not in self._catalog:
+            # TODO one day consider splitting if this is a _subdir_ of an existing image...etc
+            raise FileNotFoundError(f"{relative_path} is not in, or directly mapped as a subdir")
+        self.add_metadata(f"Removing mapping from {relative_path} to {self._catalog[relative_path]}")
+        del self._catalog[relative_path]
+
     @property
     def metadata(self) -> List[str]:
         return self._metadata

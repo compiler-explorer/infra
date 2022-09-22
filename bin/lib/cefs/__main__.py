@@ -186,6 +186,31 @@ def consolidate(context: CliContext, root: Path):
     cefs_root.update(root_creator.cefs_path)
 
 
+@fs.command(name="rm")
+@click.argument("root", type=click.Path(file_okay=False, dir_okay=True, path_type=Path), required=True)
+@click.argument("path", nargs=-1, type=click.Path(path_type=Path), required=True)
+@click.pass_obj
+def fs_remove(context: CliContext, root: Path, path: List[Path]):
+    """Remove PATH entries from a filesystem at ROOT."""
+    cefs_root = CefsFsRoot(fs_root=root, config=context.config)
+    cefs_image = cefs_root.read_image()
+    print(cefs_image.catalog)
+    for pathlet in path:
+        # TODO smart guess at "did you mean relative to the root of the fs if not absolute?
+        if not pathlet.is_absolute():
+            raise RuntimeError("yeah for now needs to be absolute")
+        if not pathlet.is_relative_to(root):
+            raise RuntimeError(f"{pathlet} not relative to {root}")
+        relative = pathlet.relative_to(root)
+        cefs_image.remove(relative)
+    _LOGGER.info("Building new root fs")
+    root_creator = SquashFsCreator(config=context.config)
+    with root_creator.creation_path() as tmp_path:
+        cefs_image.render_to(tmp_path)
+    # TODO if not changed by something else in the mean time...
+    cefs_root.update(root_creator.cefs_path)
+
+
 @fs.command(name="import")
 @click.option(
     "--relative-to",
