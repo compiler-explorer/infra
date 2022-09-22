@@ -1268,6 +1268,14 @@ libraries:
         targets:
         - trunk
         type: github
+      tlexpected:
+        build_type: none
+        check_file: include/tl/expected.hpp
+        method: nightlyclone
+        repo: TartanLlama/expected
+        targets:
+          - trunk
+        type: github
       toml11:
         build_type: none
         check_file: toml.hpp
@@ -1523,6 +1531,13 @@ libraries:
         - tbb_debug
         - tbbmalloc_debug
         - tbbmalloc_proxy_debug
+      type: github
+    tlexpected:
+      check_file: include/tl/expected.hpp
+      repo: TartanLlama/expected
+      target_prefix: v
+      targets:
+        - 1.0.0
       type: github
     toml11:
       check_file: toml.hpp

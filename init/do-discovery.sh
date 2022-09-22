@@ -11,10 +11,6 @@ echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
 source "${PWD}/site-${ENV}.sh"
 
-get_conf() {
-    aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
-}
-
 get_released_code() {
     local DEST=$1
     local S3_KEY=$2
@@ -43,9 +39,6 @@ update_code() {
         get_released_code "${DEPLOY_DIR}" "${S3_KEY}"
     fi
 }
-
-LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
-LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
 cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile

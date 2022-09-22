@@ -5,12 +5,12 @@ set -ex
 CE_USER=ce
 NODE_VERSION="v12.18.0"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd ${DIR}
+cd "${DIR}"
 
 if [[ "$1" != "--updated" ]]; then
-    sudo -u ubuntu git -C ${DIR} pull
+    sudo -u ubuntu git -C "${DIR}" pull
     pwd
-    exec bash ${BASH_SOURCE[0]} --updated
+    exec bash "${BASH_SOURCE[0]}" --updated
     exit 0
 fi
 
@@ -74,7 +74,7 @@ echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/
 chown -R ubuntu /home/ubuntu/.aws
 
 get_conf() {
-    aws ssm get-parameter --name $1 | jq -r .Parameter.Value
+    aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
 
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
