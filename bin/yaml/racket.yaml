@@ -1,0 +1,11 @@
+compilers:
+  racket:
+    type: script
+    check_exe: bin/racket --version
+    dir: racket-{name}
+    fetch:
+      - https://download.racket-lang.org/releases/{name}/installers/racket-{name}-x86_64-linux-cs.sh racket-{name}.sh
+    script: |
+      sh racket-{name}.sh --in-place --dest ./racket-{name}
+    targets:
+      - "8.6"
