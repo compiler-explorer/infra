@@ -60,5 +60,3 @@ ce_squash() {
         echo "Skipping ce squash of $@ as target directory doesn't exist"
     fi
 }
-
-PATCHELF=${OPT}/patchelf-0.8/src/patchelf

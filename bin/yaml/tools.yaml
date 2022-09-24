@@ -70,3 +70,12 @@ tools:
       - mv file65 ../xa-{{name}}/bin/file65
       - mv printcbm ../xa-{{name}}/bin/printcbm
       - mv uncpk ../xa-{{name}}/bin/uncpk
+  patchelf:
+    type: tarballs
+    url: https://github.com/NixOS/patchelf/releases/download/{{name}}/patchelf-{{name}}-x86_64.tar.gz
+    compression: gz
+    dir: patchelf-{{name}}
+    untar_dir: .
+    check_exe: bin/patchelf --version
+    targets:
+      - 0.15.0
