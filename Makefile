@@ -61,6 +61,7 @@ poetry.toml: Makefile
 
 $(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
 	$(POETRY) install --sync
+	mkdir -p "$(dirname $@)"
 	@touch $@
 
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
