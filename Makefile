@@ -13,7 +13,7 @@ help: # with thanks to Ben Rady
 PACKER ?= ../packer
 
 $(SYS_PYTHON):
-	@echo "Python 3.8, 3.9 or 3.10 not found on path. Please install (sudo apt install python3.8 python3.8-venv or similar)"
+	@echo "Python 3.9 or 3.10 not found on path. Please install (sudo apt install python3.9 or similar)"
 	@exit 1
 
 config.json: make_json.py | $(PYTHON)
