@@ -3,7 +3,7 @@
 export POETRY_HOME=$(CURDIR)/.poetry
 POETRY:=$(POETRY_HOME)/bin/poetry
 POETRY_DEPS:=$(POETRY_HOME)/.deps
-SYS_PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "command -v python3.10 || command -v python3.9 || echo .python-not-found")
+SYS_PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin:$(PATH) bash -c "command -v python3.10 || command -v python3.9 || echo .python-not-found")
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
