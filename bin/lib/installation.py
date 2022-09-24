@@ -33,7 +33,6 @@ from lib.rust_library_builder import RustLibraryBuilder
 from lib.staging import StagingDir
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
-
 NO_DEFAULT = "__no_default__"
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,7 +99,8 @@ class InstallationContext:
             yield staging_dir
         finally:
             if not self._keep_staging:
-                subprocess.check_call(["chmod", "-R", "u+w", staging_dir.path])
+                if staging_dir.path.is_dir():
+                    subprocess.check_call(["chmod", "-R", "u+w", staging_dir.path])
                 shutil.rmtree(staging_dir.path, ignore_errors=True)
 
     def fetch_rest_query(self, url: str) -> Dict:
@@ -297,11 +297,6 @@ class InstallationContext:
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])
 
-    def set_rpath(self, elf_file: Path, rpath: str):
-        # TODO: sometime we'll need a way of finding patchelf
-        _LOGGER.info("Setting rpath of %s to %s", elf_file, rpath)
-        subprocess.check_call([self.destination / "patchelf-0.8" / "src" / "patchelf", "--set-rpath", rpath, elf_file])
-
 
 class Installable:
     _check_link: Optional[Callable[[], bool]]
@@ -359,6 +354,12 @@ class Installable:
 
         for k in self.check_env.keys():
             self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
+
+    def find_dependee(self, name: str) -> Installable:
+        for i in self.depends:
+            if i.name == name:
+                return i
+        raise RuntimeError(f"Missing dependee {name} - did you forget to add it as a dependency?")
 
     def verify(self) -> bool:
         return True
@@ -979,6 +980,8 @@ class RustInstallable(Installable):
         self._setup_check_exe(self.install_path)
         self.base_package = self.config_get("base_package")
         self.nightly_install_days = self.config_get("nightly_install_days", 0)
+        self.patchelf = self.config_get("patchelf")
+        self.depends_by_name.append(self.patchelf)
 
     @property
     def nightly_like(self) -> bool:
@@ -993,6 +996,13 @@ class RustInstallable(Installable):
         )
         self.install_context.remove_dir(untar_to)
 
+    def set_rpath(self, elf_file: Path, rpath: str) -> None:
+        patchelf = (
+            self.install_context.destination / self.find_dependee(self.patchelf).install_path / "bin" / "patchelf"
+        )
+        _LOGGER.info("Setting rpath of %s to %s", elf_file, rpath)
+        subprocess.check_call([patchelf, "--set-rpath", rpath, elf_file])
+
     def stage(self, staging: StagingDir) -> None:
         arch_std_prefix = f"rust-std-{self.target_name}-"
         suffix = ".tar.gz"
@@ -1005,9 +1015,9 @@ class RustInstallable(Installable):
         for architecture in architectures:
             self.do_rust_install(staging, f"rust-std-{self.target_name}-{architecture}", base_path)
         for binary in (b for b in (base_path / "bin").glob("*") if self.install_context.is_elf(b)):
-            self.install_context.set_rpath(binary, "$ORIGIN/../lib")
+            self.set_rpath(binary, "$ORIGIN/../lib")
         for shared_object in (base_path / "lib").glob("*.so"):
-            self.install_context.set_rpath(shared_object, "$ORIGIN")
+            self.set_rpath(shared_object, "$ORIGIN")
         self.install_context.remove_dir(base_path / "share")
 
     def should_install(self) -> bool:
