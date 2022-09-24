@@ -10,3 +10,4 @@ config.json
 node_modules
 /.mypy_cache
 /.dist
+/.poetry
