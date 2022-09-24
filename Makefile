@@ -3,7 +3,7 @@
 export POETRY_HOME=$(CURDIR)/.poetry
 POETRY:=$(POETRY_HOME)/bin/poetry
 POETRY_DEPS:=$(POETRY_HOME)/.deps
-SYS_PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "command -v python3.10 || command -v python3.9 || command -v python3.8 || echo .python3.8-not-found")
+SYS_PYTHON:=$(shell env PATH=/bin:/usr/bin:/usr/local/bin bash -c "command -v python3.10 || command -v python3.9 || echo .python-not-found")
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
@@ -16,7 +16,7 @@ $(SYS_PYTHON):
 	@echo "Python 3.9 or 3.10 not found on path. Please install (sudo apt install python3.9 or similar)"
 	@exit 1
 
-config.json: make_json.py | $(PYTHON)
+config.json: make_json.py | $(POETRY_DEPS)
 	$(POETRY) run python make_json.py
 
 .PHONY: packer
@@ -75,7 +75,7 @@ LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
 $(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
 	rm -rf $(LAMBDA_PACKAGE_DIR)
 	mkdir -p $(LAMBDA_PACKAGE_DIR)
-	$(PYTHON) -mpip install -r lambda/requirements.txt -t $(LAMBDA_PACKAGE_DIR)
+	$(POETRY) run python -mpip install -r lambda/requirements.txt -t $(LAMBDA_PACKAGE_DIR)
 	cp -R lambda/* $(LAMBDA_PACKAGE_DIR)
 	rm -f $(LAMBDA_PACKAGE)
 	cd $(LAMBDA_PACKAGE_DIR) && zip -r $(LAMBDA_PACKAGE) .
