@@ -35,7 +35,14 @@ apt-get -y install \
 apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip
-pip install --upgrade awscli
+
+mkdir /tmp/aws-install
+pushd /tmp/aws-install
+curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+unzip awscliv2.zip
+./aws/install
+popd
+rm -rf /tmp/aws-install
 
 mkdir -p /root/.aws /home/ubuntu/.aws
 echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
