@@ -10,6 +10,8 @@ import re
 
 import sys
 
+_TIMEOUT = 10.0
+
 parser = ArgumentParser()
 parser.add_argument("url")
 parser.add_argument("directory")
@@ -26,7 +28,7 @@ FILTERS = [
 
 
 def get(session, url, compiler, options, source, filters):
-    r = requests.post(
+    r = session.post(
         url + "api/compiler/" + compiler + "/compile",
         json={
             "source": source,
@@ -34,6 +36,7 @@ def get(session, url, compiler, options, source, filters):
             "filters": {key: True for key in filters},
         },
         headers={"Accept": "application/json"},
+        timeout=_TIMEOUT,
     )
 
     r.raise_for_status()
@@ -55,7 +58,7 @@ def get(session, url, compiler, options, source, filters):
 
 
 def get_compilers(url):
-    r = requests.get(url + "api/compilers", headers={"Accept": "application/json"})
+    r = requests.get(url + "api/compilers", headers={"Accept": "application/json"}, timeout=_TIMEOUT)
     r.raise_for_status()
     return list(sorted([url["id"] for url in r.json()]))
 
@@ -65,7 +68,7 @@ def main(args):
     compiler_json = os.path.join(args.directory, "compilers.json")
     compiler_map = {}
     if os.path.exists(compiler_json):
-        compiler_map = json.load(open(compiler_json))
+        compiler_map = json.load(open(compiler_json, encoding="utf-8"))
     if args.update_compilers:
         for compiler in compilers:
             if compiler not in compiler_map:
@@ -75,7 +78,7 @@ def main(args):
             if compiler not in compilers:
                 print("Compiler removed: " + compiler)
                 del compiler_map[compiler]
-        with open(compiler_json, "w") as f:
+        with open(compiler_json, "w", encoding="utf-8") as f:
             f.write(json.dumps(compiler_map, indent=2))
         print("Compilers updated to " + compiler_json)
         return 0
@@ -94,8 +97,8 @@ def main(args):
                 continue
             print("Testing " + test_dir)
             source_name = glob.glob(os.path.join(test_dir, "test.*"))[0]
-            source = open(source_name).read()
-            options = open(os.path.join(test_dir, "options")).read()
+            source = open(source_name, encoding="utf-8").read()
+            options = open(os.path.join(test_dir, "options"), encoding="utf-8").read()
             for compiler, enabled in compiler_map.iteritems():
                 if not enabled:
                     print(" Skipping compiler " + compiler)
@@ -109,12 +112,12 @@ def main(args):
                     expected_file = os.path.join(test_dir, ".".join(expected_filename))
                     result = get(session, args.url, compiler, options, source, filter_set)
                     if args.bless:
-                        with open(expected_file, "w") as f:
+                        with open(expected_file, "w", encoding="utf-8") as f:
                             f.write(json.dumps(result, indent=2))
                     else:
-                        expected = json.load(open(expected_file))
+                        expected = json.load(open(expected_file, encoding="utf-8"))
                         if expected != result:
-                            with open("/tmp/got.json", "w") as f:
+                            with open("/tmp/got.json", "w", encoding="utf-8") as f:
                                 f.write(json.dumps(result, indent=2))
                             raise RuntimeError("Differences in {}".format(expected_file))
 
