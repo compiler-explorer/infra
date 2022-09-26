@@ -384,6 +384,7 @@ data "aws_iam_policy_document" "CeBuilderStorageAccess" {
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
       "${aws_s3_bucket.compiler-explorer.arn}/dist/*",
+      "${aws_s3_bucket.ce-cdn-net.arn}/*",
     ]
   }
   statement {
