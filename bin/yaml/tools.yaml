@@ -16,7 +16,7 @@ tools:
   osaca:
     type: pip
     dir: osaca-{name}
-    python: /usr/bin/python3.8
+    python: /usr/bin/python3.10
     package: osaca=={name}
     check_exe: bin/osaca --version
     targets:
