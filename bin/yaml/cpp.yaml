@@ -418,6 +418,15 @@ compilers:
             - 11.2.0
             - 12.1.0
             - 12.2.0
+        sh:
+          arch_prefix: "sh-multilib-linux-gnu"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          subdir: sh
+          targets:
+            - name: 4.9.4
+              arch_prefix: "sh-unknown-elf"
+            - 9.5.0
+            - 12.2.0
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
