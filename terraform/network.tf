@@ -11,7 +11,6 @@ locals {
     "1b": "1",
     "1c": "4",
     "1d": "2",
-    "1e": "6",
     "1f": "5",
   }
   // All the subnet IDs, but not available until after planning, so can't be used in foreach. If you need this in
