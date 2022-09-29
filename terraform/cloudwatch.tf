@@ -210,3 +210,21 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
   comparison_operator = "LessThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy_prod_nodes" {
+  alarm_name         = "UnhealthyProdNodes"
+  alarm_description  = "Ensure there's at least one healthy node in production"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/ApplicationELB"
+  metric_name        = "UnHealthyHostCount"
+  statistic          = "Maximum"
+  dimensions         = {
+    LoadBalancer = aws_alb.GccExplorerApp.name
+    TargetGroup = aws_alb_target_group.ce["prod"].name
+  }
+
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
