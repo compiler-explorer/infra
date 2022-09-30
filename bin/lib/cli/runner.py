@@ -1,8 +1,11 @@
 import os
 import time
+from tempfile import NamedTemporaryFile
 from typing import Sequence
 
 import click
+import boto3
+import botocore.exceptions
 from lib.env import EnvironmentNoProd, EnvironmentNoRunner
 
 from lib.instance import RunnerInstance
@@ -44,31 +47,36 @@ def runner_discovery():
     exec_remote_to_stdout(instance, ["bash", "-c", "cd /infra && sudo /infra/init/do-discovery.sh"])
 
 
+def _s3_key_for(environment, version):
+    if environment == "prod":
+        key = f"dist/discovery/release/{version}.json"
+    else:
+        key = f"dist/discovery/{environment}/{version}.json"
+    return key
+
+
 @runner.command(name="uploaddiscovery")
 @click.argument("environment", required=True, type=click.Choice([env.value for env in EnvironmentNoRunner]))
 @click.argument("version", required=True)
 def runner_uploaddiscovery(environment: str, version: str):
     """Execute compiler discovery on the builder instance."""
-    localtemppath = f"/tmp/{version}.json"
-    if environment == "prod":
-        s3path = f"s3://compiler-explorer/dist/discovery/release/{version}.json"
-    else:
-        s3path = f"s3://compiler-explorer/dist/discovery/{environment}/{version}.json"
-
-    instance = RunnerInstance.instance()
-    get_remote_file(instance, "/home/ce/discovered-compilers.json", localtemppath)
-    os.system(f'aws s3 cp --storage-class REDUCED_REDUNDANCY --acl public-read "{localtemppath}" "{s3path}"')
-    os.remove(localtemppath)
+    with NamedTemporaryFile(suffix=".json") as temp_json_file:
+        get_remote_file(RunnerInstance.instance(), "/home/ce/discovered-compilers.json", temp_json_file.name)
+        temp_json_file.seek(0)
+        boto3.client("s3").put_object(
+            Bucket="compiler-explorer", Key=_s3_key_for(environment, version), Body=temp_json_file
+        )
 
 
 def runner_discoveryexists(environment: str, version: str):
     """Check if a discovery json file exists."""
-    if environment == "prod":
-        s3path = f"s3://compiler-explorer/dist/discovery/release/{version}.json"
-    else:
-        s3path = f"s3://compiler-explorer/dist/discovery/{environment}/{version}.json"
-    res = os.system(f'aws s3 ls "{s3path}" > /dev/null')
-    return res == 0
+    try:
+        boto3.client("s3").head_object(Bucket="compiler-explorer", Key=_s3_key_for(environment, version))
+    except botocore.exceptions.ClientError as e:
+        if e.response["Error"]["Code"] == "404":
+            return False
+        raise
+    return True
 
 
 @runner.command(name="safeforprod")
@@ -76,9 +84,11 @@ def runner_discoveryexists(environment: str, version: str):
 @click.argument("version", required=True)
 def runner_safeforprod(environment: str, version: str):
     """Mark discovery file as safe to use on production."""
-    s3pathfrom = f"s3://compiler-explorer/dist/discovery/{environment}/{version}.json"
-    s3pathto = f"s3://compiler-explorer/dist/discovery/release/{version}.json"
-    os.system(f'aws s3 cp --storage-class REDUCED_REDUNDANCY --acl public-read "{s3pathfrom}" "{s3pathto}"')
+    boto3.client("s3").copy_object(
+        Bucket="compiler-explorer",
+        CopySource=dict(Bucket="compiler-explorer", Key=_s3_key_for(environment, version)),
+        Key=_s3_key_for("prod", version),
+    )
 
 
 @runner.command(name="start")
