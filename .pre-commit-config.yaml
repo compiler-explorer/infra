@@ -34,6 +34,11 @@ repos:
       - id: shellcheck
   - repo: local
     hooks:
+      - id: pylint
+        name: pylint
+        entry: .poetry/bin/poetry run pylint
+        language: system
+        types: [python]
       - id: test
         name: Run tests
         entry: make test

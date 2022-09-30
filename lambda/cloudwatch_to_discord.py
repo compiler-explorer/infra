@@ -16,7 +16,7 @@ def lambda_handler(event, _context):
 
         headers = {"content-type": "application/json"}
         logging.info(discord_data)
-        response = requests.post(webhook_url, data=json.dumps(discord_data), headers=headers)
+        response = requests.post(webhook_url, data=json.dumps(discord_data), headers=headers, timeout=30)
 
         logging.info("Discord response: %s", response.status_code)
         logging.info(response.content)

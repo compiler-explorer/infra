@@ -21,6 +21,8 @@ from lib.binary_info import BinaryInfo
 from lib.library_build_config import LibraryBuildConfig
 from lib.staging import StagingDir
 
+_TIMEOUT = 600
+
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
 build_supported_arch = ["x86_64", "x86"]
@@ -604,7 +606,9 @@ class LibraryBuilder:
         login_body = defaultdict(lambda: [])
         login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
 
-        request = requests.post(url, data=json.dumps(login_body), headers={"Content-Type": "application/json"})
+        request = requests.post(
+            url, data=json.dumps(login_body), headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
+        )
         if not request.ok:
             self.logger.info(request.text)
             raise RuntimeError(f"Post failure for {url}: {request}")
@@ -639,7 +643,7 @@ class LibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        request = requests.post(url, data=json.dumps(buildparameters_copy), headers=headers)
+        request = requests.post(url, data=json.dumps(buildparameters_copy), headers=headers, timeout=_TIMEOUT)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
 
@@ -650,7 +654,7 @@ class LibraryBuilder:
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True)
+            request = requests.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
                 raise RuntimeError(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
@@ -678,7 +682,9 @@ class LibraryBuilder:
         headers = {"Content-Type": "application/json"}
 
         url = f"{conanserver_url}/hasfailedbefore"
-        request = requests.post(url, data=json.dumps(self.current_buildparameters_obj), headers=headers)
+        request = requests.post(
+            url, data=json.dumps(self.current_buildparameters_obj), headers=headers, timeout=_TIMEOUT
+        )
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
         else:
@@ -722,7 +728,7 @@ class LibraryBuilder:
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        request = requests.post(url, data=json.dumps(annotations), headers=headers)
+        request = requests.post(url, data=json.dumps(annotations), headers=headers, timeout=_TIMEOUT)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
 
