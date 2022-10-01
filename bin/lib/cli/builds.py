@@ -67,6 +67,7 @@ def deploy_staticfiles(release) -> bool:
 
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
+        f.flush()
         with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
             return job.run()
 
