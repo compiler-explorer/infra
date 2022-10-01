@@ -1,0 +1,12 @@
+compilers:
+  racket:
+    type: script
+    check_exe: bin/racket --version
+    dir: racket/racket-{name}
+    fetch:
+      - https://download.racket-lang.org/releases/{name}/installers/racket-{name}-x86_64-linux-cs.sh racket-{name}.sh
+    script: |
+      sh racket-{name}.sh --in-place --dest ./racket/racket-{name}
+      racket/racket-{name}/bin/raco pkg install -i --auto disassemble
+    targets:
+      - "8.6"
