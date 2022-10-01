@@ -1,4 +1,3 @@
-import os
 import time
 from tempfile import NamedTemporaryFile
 from typing import Sequence
