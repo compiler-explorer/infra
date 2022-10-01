@@ -407,7 +407,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
             num_skipped += 1
     print(
         f"{num_installed} packages installed "
-        f'{"(apparently; this was a dry-run)" if context.installation_context.dry_run else ""}OK, '
+        f'{"(apparently; this was a dry-run) " if context.installation_context.dry_run else ""}OK, '
         f"{num_skipped} skipped, and {len(failed)} failed installation"
     )
     if len(failed):
