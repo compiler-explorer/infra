@@ -34,7 +34,7 @@ from lib.staging import StagingDir
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
 NO_DEFAULT = "__no_default__"
-
+PathOrString = Union[Path, str]
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -67,6 +67,7 @@ class InstallationContext:
         keep_staging: bool,
     ):
         self.destination = destination
+        self._prior_installation = self.destination
         self._staging_root = staging_root
         self._keep_staging = keep_staging
         self.s3_url = s3_url
@@ -91,6 +92,10 @@ class InstallationContext:
             self.fetcher = http
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
+
+    @property
+    def prior_installation(self) -> Path:
+        return self._prior_installation
 
     @contextlib.contextmanager
     def new_staging_dir(self) -> Iterator[StagingDir]:
@@ -194,14 +199,14 @@ class InstallationContext:
     def move_from_staging(
         self,
         staging: StagingDir,
-        source_str: str,
-        dest_str: Optional[str] = None,
+        source: PathOrString,
+        dest: Optional[PathOrString] = None,
         do_staging_move=lambda source, dest: source.replace(dest),
     ) -> None:
-        dest_str = dest_str or source_str
+        dest = dest or source
         existing_dir_rename = staging.path / "temp_orig"
-        source = staging.path / source_str
-        dest = self.destination / dest_str
+        source = staging.path / source
+        dest = self.destination / dest
         if self.dry_run:
             _LOGGER.info("Would install %s to %s but in dry-run mode", source, dest)
             return
@@ -529,38 +534,73 @@ class GitHubInstallable(Installable):
             return ["--recursive"]
         return []
 
-    def _git(self, staging: StagingDir, *git_args: str) -> str:
-        full_args = ["git"] + list(git_args)
+    def _git(self, staging: StagingDir, *git_args: Union[str, Path]) -> str:
+        full_args = ["git"] + [str(x) for x in git_args]
         self._logger.debug(shlex.join(full_args))
         result = subprocess.check_output(full_args, cwd=staging.path).decode("utf-8").strip()
         if result:
             self._logger.debug(" -> %s", result)
         return result
 
-    def clone_branch(self, staging: StagingDir):
-        dest = os.path.join(self.install_context.destination, self.install_path)
-        if not os.path.exists(dest):
-            self._git(staging, "clone", "-q", f"{self.domainurl}/{self.repo}.git", dest)
-            self._git(staging, "-C", dest, "checkout", "-q", self.branch_name)
-        else:
-            self._git(staging, "-C", dest, "fetch", "-q")
-            self._git(staging, "-C", dest, "reset", "-q", "--hard", "origin")
-            self._git(staging, "-C", dest, "checkout", "-q", f"origin/{self.branch_name}")
-            self._git(staging, "-C", dest, "branch", "-q", "-D", self.branch_name)
-            self._git(staging, "-C", dest, "checkout", "-q", self.branch_name)
-        self._git(staging, "-C", dest, "submodule", "sync")
-        self._git(staging, "-C", dest, "submodule", "update", "--init", *self._update_args())
+    def clone(self, staging: StagingDir, remote_url: str, branch: Optional[str]) -> Path:
+        self._logger.info("Cloning %s, branch: %s", remote_url, branch or "(default)")
+        prior_installation = self.install_context.prior_installation / self.install_path
+        dest = staging.path / self.install_path
 
-    def clone_default(self, staging: StagingDir):
-        dest = os.path.join(self.install_context.destination, self.install_path)
-        if not os.path.exists(dest):
-            self._git(staging, "clone", "-q", f"{self.domainurl}/{self.repo}.git", dest)
+        # We assume the prior may be read only. If it exists we use it as a quick starting point only.
+        if prior_installation.exists():
+            self._logger.info(
+                "Bootstrapping from existing branch at %s", self._git_debug_status(staging, prior_installation)
+            )
+            self._git(staging, "clone", "-n", "-q", prior_installation, dest)
         else:
-            self._git(staging, "-C", dest, "fetch", "-q")
-            remote_name = self._git(staging, "-C", dest, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
-            self._git(staging, "-C", dest, "reset", "-q", "--hard", remote_name)
-        self._git(staging, "-C", dest, "submodule", "sync")
-        self._git(staging, "-C", dest, "submodule", "update", "--init", *self._update_args())
+            self._git(staging, "clone", "-n", "-q", remote_url, dest)
+
+        def _git(*git_args: Union[str, Path]) -> str:
+            return self._git(staging, "-C", dest, *git_args)
+
+        # Ensure we are pulling from the correct URL, and fetch latest.
+        _git("remote", "set-url", "origin", remote_url)
+        _git("fetch", "-q")
+
+        # Borrowed from github actions; this is how it "cleans" an existing directory prior to checkout.
+        if _git("branch", "--show-current"):
+            # detach if not detached
+            _git("checkout", "--detach")
+
+        # List and remove all local branches
+        for existing_branch in [
+            existing_branch.removeprefix("refs/heads/").removeprefix("refs/remotes/")
+            for existing_branch in _git("rev-parse", "--symbolic-full-name", "--branches").splitlines(keepends=False)
+            if existing_branch
+        ]:
+            _git("branch", "--delete", "--force", existing_branch)
+
+        _git("clean", "-ffdx")
+        _git("reset", "--hard", "HEAD")
+
+        if branch is None:
+            match_re = re.compile(r"^ref:\s+refs/heads/([^\s]+)\s+HEAD$")
+            for line in _git("ls-remote", "--symref", "origin", "HEAD").splitlines(keepends=False):
+                if match := match_re.match(line):
+                    branch = match.group(1)
+            if not branch:
+                raise RuntimeError("Unable to detect remote default branch")
+            self._logger.info("Detected remote default branch as '%s'", branch)
+        else:
+            branch = f"origin/{branch}"
+        _git("checkout", branch)
+
+        _git("submodule", "sync")
+        _git("submodule", "update", "--init", *self._update_args())
+        self._logger.info("Now at %s", self._git_debug_status(staging, dest))
+        return dest
+
+    def _git_debug_status(self, staging: StagingDir, git_dir: Path) -> str:
+        # These two are for debug output:
+        self._git(staging, "-C", git_dir, "status")
+        self._git(staging, "-C", git_dir, "log", "--oneline", "-n5")
+        return self._git(staging, "-C", git_dir, "rev-parse", "HEAD").strip()
 
     def get_archive_url(self):
         return f"{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz"
@@ -575,20 +615,20 @@ class GitHubInstallable(Installable):
     def stage(self, staging: StagingDir):
         if self.method == "archive":
             self.install_context.fetch_url_and_pipe_to(staging, self.get_archive_url(), self.get_archive_pipecommand())
-            dest = os.path.join(staging.path, self.untar_dir)
-        elif self.method == "clone_branch":
-            self.clone_branch(staging)
-            dest = os.path.join(self.install_context.destination, self.install_path)
-        elif self.method == "nightlyclone":
-            self.clone_default(staging)
-            dest = os.path.join(self.install_context.destination, self.install_path)
+            staged_dest = staging.path / self.untar_dir
+        elif self.method in ("clone_branch", "nightlyclone"):
+            staged_dest = self.clone(
+                staging,
+                remote_url=f"{self.domainurl}/{self.repo}.git",
+                branch=self.branch_name if self.method == "clone_branch" else None,
+            )
         else:
             raise RuntimeError(f"Unknown Github method {self.method}")
 
         if self.strip:
             self.install_context.strip_exes(staging, self.strip)
 
-        self.install_context.run_script(staging, dest, self.after_stage_script)
+        self.install_context.run_script(staging, staged_dest, self.after_stage_script)
 
     def verify(self):
         if not super().verify():
@@ -603,8 +643,9 @@ class GitHubInstallable(Installable):
             self.stage(staging)
             if self.subdir:
                 self.install_context.make_subdir(self.subdir)
-            if self.method == "archive":
-                self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
+            self.install_context.move_from_staging(
+                staging, self.untar_dir if self.method == "archive" else self.install_path, self.install_path
+            )
 
     def __repr__(self) -> str:
         return f"GitHubInstallable({self.name}, {self.install_path})"
