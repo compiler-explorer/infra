@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shlex
 import subprocess
 from pathlib import Path
@@ -98,8 +99,6 @@ class GitHubInstallable(Installable):
         _git("reset", "--hard", "HEAD")
 
         if branch is None:
-            import re
-
             match_re = re.compile(r"^ref:\s+refs/heads/([^\s]+)\s+HEAD$")
             for line in _git("ls-remote", "--symref", "origin", "HEAD").splitlines(keepends=False):
                 if match := match_re.match(line):
