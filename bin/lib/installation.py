@@ -596,10 +596,11 @@ class GitHubInstallable(Installable):
         self._logger.info("Now at %s", self._git_debug_status(staging, dest))
         return dest
 
-    def _git_debug_status(self, staging: StagingDir, git_dir: Path):
+    def _git_debug_status(self, staging: StagingDir, git_dir: Path) -> str:
+        # These two are for debug output:
         self._git(staging, "-C", git_dir, "status")
-        self._git(staging, "-C", git_dir, "rev-parse", "HEAD")
         self._git(staging, "-C", git_dir, "log", "--oneline", "-n5")
+        return self._git(staging, "-C", git_dir, "rev-parse", "HEAD").strip()
 
     def get_archive_url(self):
         return f"{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz"
