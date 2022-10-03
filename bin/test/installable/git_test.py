@@ -27,6 +27,8 @@ def fake_remote_repo_fixture(tmp_path) -> str:
     repo = tmp_path / "some-remote-repo"
     repo.mkdir()
     subprocess.check_call(["git", "init", str(repo)])
+    subprocess.check_call(["git", "-C", str(repo), "config", "--local", "user.email", "nobody@nowhere.not.real"])
+    subprocess.check_call(["git", "-C", str(repo), "config", "--local", "user.name", "Not a Real Person"])
     (repo / "some_file.txt").touch()
     subprocess.check_call(["git", "-C", str(repo), "add", "some_file.txt"])
     subprocess.check_call(["git", "-C", str(repo), "commit", "-minitial"])
