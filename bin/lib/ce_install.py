@@ -17,7 +17,9 @@ import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
-from lib.installation import InstallationContext, installers_for, Installable
+from lib.installation import installers_for
+from lib.installation_context import InstallationContext
+from lib.installable.installable import Installable
 from lib.library_yaml import LibraryYaml
 
 _LOGGER = logging.getLogger(__name__)
