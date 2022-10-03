@@ -542,14 +542,16 @@ class GitHubInstallable(Installable):
             self._logger.debug(" -> %s", result)
         return result
 
-    def clone(self, staging: StagingDir, branch: Optional[str]) -> Path:
+    def clone(self, staging: StagingDir, remote_url: str, branch: Optional[str]) -> Path:
+        self._logger.info("Cloning %s, branch: %s", remote_url, branch or "(default)")
         prior_installation = self.install_context.prior_installation / self.install_path
         dest = staging.path / self.install_path
-        remote_url = f"{self.domainurl}/{self.repo}.git"
 
         # We assume the prior may be read only. If it exists we use it as a quick starting point only.
         if prior_installation.exists():
-            self._git_debug_status(staging, prior_installation)
+            self._logger.info(
+                "Bootstrapping from existing branch at %s", self._git_debug_status(staging, prior_installation)
+            )
             self._git(staging, "clone", "-n", "-q", prior_installation, dest)
         else:
             self._git(staging, "clone", "-n", "-q", remote_url, dest)
@@ -578,14 +580,20 @@ class GitHubInstallable(Installable):
         _git("reset", "--hard", "HEAD")
 
         if branch is None:
-            branch = _git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")
+            match_re = re.compile(r"^ref:\s+refs/heads/([^\s]+)\s+HEAD$")
+            for line in _git("ls-remote", "--symref", "origin", "HEAD").splitlines(keepends=False):
+                if match := match_re.match(line):
+                    branch = match.group(1)
+            if not branch:
+                raise RuntimeError("Unable to detect remote default branch")
+            self._logger.info("Detected remote default branch as '%s'", branch)
         else:
             branch = f"origin/{branch}"
         _git("checkout", branch)
 
         _git("submodule", "sync")
         _git("submodule", "update", "--init", *self._update_args())
-        self._git_debug_status(staging, dest)
+        self._logger.info("Now at %s", self._git_debug_status(staging, dest))
         return dest
 
     def _git_debug_status(self, staging: StagingDir, git_dir: Path):
@@ -608,7 +616,11 @@ class GitHubInstallable(Installable):
             self.install_context.fetch_url_and_pipe_to(staging, self.get_archive_url(), self.get_archive_pipecommand())
             staged_dest = staging.path / self.untar_dir
         elif self.method in ("clone_branch", "nightlyclone"):
-            staged_dest = self.clone(staging, self.branch_name if self.method == "clone_branch" else None)
+            staged_dest = self.clone(
+                staging,
+                remote_url=f"{self.domainurl}/{self.repo}.git",
+                branch=self.branch_name if self.method == "clone_branch" else None,
+            )
         else:
             raise RuntimeError(f"Unknown Github method {self.method}")
 
