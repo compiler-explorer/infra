@@ -11,6 +11,9 @@ from typing import Union, Optional
 from lib.installable.installable import Installable
 from lib.staging import StagingDir
 
+_CLONE_METHODS = {"clone_branch", "nightlyclone"}
+_ARCHIVE_METHOD = "archive"
+_VALID_METHODS = _CLONE_METHODS | {_ARCHIVE_METHOD}
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -49,17 +52,17 @@ class GitHubInstallable(Installable):
     def __init__(self, install_context, config):
         super().__init__(install_context, config)
         last_context = self.context[-1]
-        self.repo = self.config_get("repo", "")
+        self.repo = self.config_get("repo")
         self.domainurl = self.config_get("domainurl", "https://github.com")
         self.method = self.config_get("method", "archive")
+        if self.method not in _VALID_METHODS:
+            raise RuntimeError(f"Not a valid method: {self.method}")
         self.decompress_flag = self.config_get("decompress_flag", "z")
         self.strip = False
         self.subdir = os.path.join("libs", self.config_get("subdir", last_context))
         self.target_prefix = self.config_get("target_prefix", "")
         self.branch_name = self.target_prefix + self.target_name
         self.install_path = self.config_get("path_name", os.path.join(self.subdir, self.branch_name))
-        if self.repo == "":
-            raise RuntimeError("Requires repo")
         self.recursive = self.config_get("recursive", True)
 
         splitrepo = self.repo.split("/")
@@ -142,19 +145,22 @@ class GitHubInstallable(Installable):
     def should_install(self) -> bool:
         if not super().should_install():
             return False
-        prior_installation = self.install_context.prior_installation / self.install_path
-        if prior_installation.exists():
-            branch = self.branch_name if self.method == "clone_branch" else self._find_remote_branch(prior_installation)
-            remote_hash = _remote_get_current_hash(self._logger, prior_installation, branch)
-            local_hash = _git_current_hash(self._logger, prior_installation)
-            needs_install = remote_hash != local_hash
-            self._logger.info(
-                "remote hash: %s, current hash %s, %s",
-                remote_hash,
-                local_hash,
-                "needs installation" if needs_install else "installation is up to date",
-            )
-            return needs_install
+        if self.method in _CLONE_METHODS:
+            prior_installation = self.install_context.prior_installation / self.install_path
+            if prior_installation.exists():
+                branch = (
+                    self.branch_name if self.method == "clone_branch" else self._find_remote_branch(prior_installation)
+                )
+                remote_hash = _remote_get_current_hash(self._logger, prior_installation, branch)
+                local_hash = _git_current_hash(self._logger, prior_installation)
+                needs_install = remote_hash != local_hash
+                self._logger.info(
+                    "remote hash: %s, current hash %s, %s",
+                    remote_hash,
+                    local_hash,
+                    "needs installation" if needs_install else "installation is up to date",
+                )
+                return needs_install
         return True
 
     def get_archive_url(self):
@@ -168,10 +174,10 @@ class GitHubInstallable(Installable):
         return self.method == "nightlyclone"
 
     def stage(self, staging: StagingDir):
-        if self.method == "archive":
+        if self.method == _ARCHIVE_METHOD:
             self.install_context.fetch_url_and_pipe_to(staging, self.get_archive_url(), self.get_archive_pipecommand())
             staged_dest = staging.path / self.untar_dir
-        elif self.method in ("clone_branch", "nightlyclone"):
+        elif self.method in _CLONE_METHODS:
             staged_dest = self.clone(
                 staging,
                 remote_url=f"{self.domainurl}/{self.repo}.git",

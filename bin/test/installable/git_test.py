@@ -14,7 +14,8 @@ import os
 @pytest.fixture(autouse=True, scope="session")
 def _ensure_no_git_set():
     # This env var is set during git hooks and interferes with the git stuff we do below.
-    del os.environ["GIT_INDEX_FILE"]
+    if "GIT_INDEX_FILE" in os.environ:
+        del os.environ["GIT_INDEX_FILE"]
 
 
 @pytest.fixture(name="fake_context")
@@ -53,7 +54,14 @@ def test_git_install_from_scratch(fake_context, staging_dir, tmp_path, fake_remo
     fake_context.prior_installation = tmp_path / "nonexistent"
     ghi = GitHubInstallable(
         fake_context,
-        dict(context=["outer", "inner"], name="fake", domainrepo="", repo=fake_remote_repo, check_file="fake-none"),
+        dict(
+            context=["outer", "inner"],
+            name="fake",
+            domainrepo="",
+            repo=fake_remote_repo,
+            check_file="fake-none",
+            method="nightlyclone",
+        ),
     )
     dest = ghi.clone(staging_dir, remote_url=fake_remote_repo, branch=None)
     assert dest.is_relative_to(staging_dir.path)
@@ -71,7 +79,14 @@ def previously_installed_ghi_ficture(fake_context, tmp_path, fake_remote_repo, s
     fake_context.prior_installation = fake_context.destination = prior_root
     ghi = GitHubInstallable(
         fake_context,
-        dict(context=["outer", "inner"], name="fake", domainrepo="", repo=fake_remote_repo, check_file="fake-none"),
+        dict(
+            context=["outer", "inner"],
+            name="fake",
+            domainrepo="",
+            repo=fake_remote_repo,
+            check_file="fake-none",
+            method="nightlyclone",
+        ),
     )
     # Fake out an installation at prior_version
     original = ghi.clone(staging_dir, remote_url=fake_remote_repo, branch=None)
