@@ -54,6 +54,9 @@ def _s3_key_for(environment, version):
     return key
 
 
+_S3_CONFIG = dict(ACL="public-read", StorageClass="REDUCED_REDUNDANCY")
+
+
 @runner.command(name="uploaddiscovery")
 @click.argument("environment", required=True, type=click.Choice([env.value for env in EnvironmentNoRunner]))
 @click.argument("version", required=True)
@@ -63,7 +66,7 @@ def runner_uploaddiscovery(environment: str, version: str):
         get_remote_file(RunnerInstance.instance(), "/home/ce/discovered-compilers.json", temp_json_file.name)
         temp_json_file.seek(0)
         boto3.client("s3").put_object(
-            Bucket="compiler-explorer", Key=_s3_key_for(environment, version), Body=temp_json_file
+            Bucket="compiler-explorer", Key=_s3_key_for(environment, version), Body=temp_json_file, **_S3_CONFIG
         )
 
 
@@ -87,6 +90,7 @@ def runner_safeforprod(environment: str, version: str):
         Bucket="compiler-explorer",
         CopySource=dict(Bucket="compiler-explorer", Key=_s3_key_for(environment, version)),
         Key=_s3_key_for("prod", version),
+        **_S3_CONFIG,
     )
 
 
