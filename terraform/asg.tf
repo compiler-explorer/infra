@@ -81,7 +81,7 @@ resource "aws_autoscaling_policy" "prod-mixed" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value = 75.0
+    target_value = 50.0
   }
 }
 
