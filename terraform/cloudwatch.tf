@@ -220,8 +220,8 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_prod_nodes" {
   metric_name        = "UnHealthyHostCount"
   statistic          = "Maximum"
   dimensions         = {
-    LoadBalancer = aws_alb.GccExplorerApp.name
-    TargetGroup = aws_alb_target_group.ce["prod"].name
+    LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
+    TargetGroup = aws_alb_target_group.ce["prod"].arn_suffix
   }
 
   threshold           = 1
