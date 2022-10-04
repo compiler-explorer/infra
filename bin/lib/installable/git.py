@@ -41,8 +41,7 @@ def _remote_get_current_hash(logger: logging.Logger, git_repo: Path, branch: str
 
 def _git_current_hash(logger: logging.Logger, git_dir: Path) -> str:
     # These two are for debug output:
-    _git_raw(logger, git_dir, "status")
-    _git_raw(logger, git_dir, "log", "--oneline", "-n5")
+    _git_raw(logger, git_dir, "log", "--oneline", "-n5")  # done for debug only
     return _git_raw(logger, git_dir, "rev-parse", "HEAD").strip()
 
 
