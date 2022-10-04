@@ -213,7 +213,7 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
 
 resource "aws_cloudwatch_metric_alarm" "unhealthy_prod_nodes" {
   alarm_name         = "UnhealthyProdNodes"
-  alarm_description  = "Ensure there's at least one healthy node in production"
+  alarm_description  = "Alert whenever a node becomes unhealthy"
   evaluation_periods = 1
   period             = 60
   namespace          = "AWS/ApplicationELB"
