@@ -1,7 +1,7 @@
 locals {
   subnets      = local.all_subnet_ids
-  // As of Mar 7 2022, startups are around 100s.
-  grace_period = 120
+  // As of Oct 3 2022, startups started taking >2m
+  grace_period = 160
   cooldown     = 180
 }
 
