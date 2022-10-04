@@ -43,7 +43,7 @@ class InstallationContext:
         resource_dir: Path,
         keep_staging: bool,
     ):
-        self.destination = destination
+        self._destination = destination
         self._prior_installation = self.destination
         self._staging_root = staging_root
         self._keep_staging = keep_staging
@@ -69,6 +69,10 @@ class InstallationContext:
             self.fetcher = http
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
+
+    @property
+    def destination(self) -> Path:
+        return self._destination
 
     @property
     def prior_installation(self) -> Path:

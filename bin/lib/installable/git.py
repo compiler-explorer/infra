@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 import shlex
@@ -9,6 +10,40 @@ from typing import Union, Optional
 
 from lib.installable.installable import Installable
 from lib.staging import StagingDir
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _git_raw(logger: logging.Logger, cwd: Path, *git_args: Union[str, Path]) -> str:
+    full_args = ["git"] + [str(x) for x in git_args]
+    _LOGGER.debug(shlex.join(full_args))
+    result = subprocess.check_output(full_args, cwd=cwd).decode("utf-8").strip()
+    if result:
+        logger.debug(" -> %s", result)
+    return result
+
+
+def _remote_default_branch_for(logger: logging.Logger, git_repo: Path) -> str:
+    match_re = re.compile(r"^ref:\s+refs/heads/([^\s]+)\s+HEAD$")
+    for line in _git_raw(logger, git_repo, "ls-remote", "--symref", "origin", "HEAD").splitlines(keepends=False):
+        if match := match_re.match(line):
+            return match.group(1)
+    raise RuntimeError(f"Unable to detect remote default branch for {git_repo}")
+
+
+def _remote_get_current_hash(logger: logging.Logger, git_repo: Path, branch: str) -> str:
+    match_re = re.compile(r"^([a-f0-9]+)\s+(.*)$")
+    for line in _git_raw(logger, git_repo, "ls-remote", "origin", branch).splitlines(keepends=False):
+        if (match := match_re.match(line)) is not None and match.group(2) == f"refs/heads/{branch}":
+            return match.group(1)
+    raise RuntimeError(f"Unable to get remote hash for {git_repo}:{branch}")
+
+
+def _git_current_hash(logger: logging.Logger, git_dir: Path) -> str:
+    # These two are for debug output:
+    _git_raw(logger, git_dir, "status")
+    _git_raw(logger, git_dir, "log", "--oneline", "-n5")
+    return _git_raw(logger, git_dir, "rev-parse", "HEAD").strip()
 
 
 class GitHubInstallable(Installable):
@@ -54,12 +89,7 @@ class GitHubInstallable(Installable):
         return []
 
     def _git(self, staging: StagingDir, *git_args: Union[str, Path]) -> str:
-        full_args = ["git"] + [str(x) for x in git_args]
-        self._logger.debug(shlex.join(full_args))
-        result = subprocess.check_output(full_args, cwd=staging.path).decode("utf-8").strip()
-        if result:
-            self._logger.debug(" -> %s", result)
-        return result
+        return _git_raw(self._logger, staging.path, *git_args)
 
     def clone(self, staging: StagingDir, remote_url: str, branch: Optional[str]) -> Path:
         self._logger.info("Cloning %s, branch: %s", remote_url, branch or "(default)")
@@ -69,7 +99,7 @@ class GitHubInstallable(Installable):
         # We assume the prior may be read only. If it exists we use it as a quick starting point only.
         if prior_installation.exists():
             self._logger.info(
-                "Bootstrapping from existing branch at %s", self._git_debug_status(staging, prior_installation)
+                "Bootstrapping from existing branch at %s", _git_current_hash(self._logger, prior_installation)
             )
             self._git(staging, "clone", "-n", "-q", prior_installation, dest)
         else:
@@ -98,28 +128,35 @@ class GitHubInstallable(Installable):
         _git("clean", "-ffdx")
         _git("reset", "--hard", "HEAD")
 
-        if branch is None:
-            match_re = re.compile(r"^ref:\s+refs/heads/([^\s]+)\s+HEAD$")
-            for line in _git("ls-remote", "--symref", "origin", "HEAD").splitlines(keepends=False):
-                if match := match_re.match(line):
-                    branch = match.group(1)
-            if not branch:
-                raise RuntimeError("Unable to detect remote default branch")
-            self._logger.info("Detected remote default branch as '%s'", branch)
-        else:
-            branch = f"origin/{branch}"
-        _git("checkout", branch)
+        _git("checkout", f"origin/{branch or self._find_remote_branch(dest)}")
 
         _git("submodule", "sync")
         _git("submodule", "update", "--init", *self._update_args())
-        self._logger.info("Now at %s", self._git_debug_status(staging, dest))
+        self._logger.info("Now at %s", _git_current_hash(self._logger, dest))
         return dest
 
-    def _git_debug_status(self, staging: StagingDir, git_dir: Path) -> str:
-        # These two are for debug output:
-        self._git(staging, "-C", git_dir, "status")
-        self._git(staging, "-C", git_dir, "log", "--oneline", "-n5")
-        return self._git(staging, "-C", git_dir, "rev-parse", "HEAD").strip()
+    def _find_remote_branch(self, git_repo: Path) -> str:
+        branch = _remote_default_branch_for(self._logger, git_repo)
+        self._logger.info("Detected remote default branch as '%s'", branch)
+        return branch
+
+    def should_install(self) -> bool:
+        if not super().should_install():
+            return False
+        prior_installation = self.install_context.prior_installation / self.install_path
+        if prior_installation.exists():
+            branch = self.branch_name if self.method == "clone_branch" else self._find_remote_branch(prior_installation)
+            remote_hash = _remote_get_current_hash(self._logger, prior_installation, branch)
+            local_hash = _git_current_hash(self._logger, prior_installation)
+            needs_install = remote_hash != local_hash
+            self._logger.info(
+                "remote hash: %s, current hash %s, %s",
+                remote_hash,
+                local_hash,
+                "needs installation" if needs_install else "installation is up to date",
+            )
+            return needs_install
+        return True
 
     def get_archive_url(self):
         return f"{self.domainurl}/{self.repo}/archive/{self.target_prefix}{self.target_name}.tar.gz"
