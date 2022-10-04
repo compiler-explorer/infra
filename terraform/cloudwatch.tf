@@ -224,7 +224,7 @@ resource "aws_cloudwatch_metric_alarm" "unhealthy_prod_nodes" {
     TargetGroup = aws_alb_target_group.ce["prod"].arn_suffix
   }
 
-  threshold           = 1
+  threshold           = 2 # effectively disabled
   comparison_operator = "GreaterThanOrEqualToThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
