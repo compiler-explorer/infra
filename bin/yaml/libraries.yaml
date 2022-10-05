@@ -442,7 +442,7 @@ libraries:
       targets:
       - 0.12.2
       type: github
-    hip-runtime-amd:
+    hip-amd:
       check_file: include/hip/hip_runtime.h
       path_name: libs/rocm/{name}
       s3_path_prefix: hip-amd-rocm-{name}
@@ -1670,7 +1670,7 @@ libraries:
       targets:
       - 1.8.0
       type: github
-    hip-runtime-amd:
+    hip-amd:
       check_file: include/hip/hip_runtime.h
       path_name: libs/rocm/{name}
       s3_path_prefix: hip-amd-rocm-{name}
