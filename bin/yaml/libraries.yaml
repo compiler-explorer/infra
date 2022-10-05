@@ -447,7 +447,7 @@ libraries:
       path_name: libs/rocm/{name}
       s3_path_prefix: hip-amd-rocm-{name}
       subdir: libs/rocm/{name}
-      untar_dir: opt/compiler-explorer/libs/rocm/{{name}}
+      untar_dir: hip-amd-rocm-{{name}}
       targets:
       - 4.5.2
       - 5.0.2
@@ -1675,7 +1675,7 @@ libraries:
       path_name: libs/rocm/{name}
       s3_path_prefix: hip-amd-rocm-{name}
       subdir: libs/rocm/{name}
-      untar_dir: opt/compiler-explorer/libs/rocm/{{name}}
+      untar_dir: hip-amd-rocm-{{name}}
       targets:
       - 4.5.2
       - 5.0.2
