@@ -299,6 +299,7 @@ libraries:
       targets:
       - 2021.10.0
       - 2022.03.0
+      - 2022.09.0
       type: github
     expected-dark:
       check_file: README.md
