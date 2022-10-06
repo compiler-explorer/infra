@@ -68,11 +68,11 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 
   # Message of the day stuff, served from s3
   ordered_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cached_methods         = [
+    cached_methods = [
       "GET",
       "HEAD"
     ]
@@ -89,11 +89,11 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 
   # Admin stuff, also served from s3
   ordered_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cached_methods         = [
+    cached_methods = [
       "GET",
       "HEAD"
     ]
@@ -109,7 +109,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   }
 
   default_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "HEAD",
       "DELETE",
       "POST",
@@ -118,7 +118,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       "PUT",
       "PATCH"
     ]
-    cached_methods         = [
+    cached_methods = [
       "HEAD",
       "GET"
     ]
@@ -208,11 +208,11 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
 
   # Message of the day stuff, served from s3
   ordered_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cached_methods         = [
+    cached_methods = [
       "GET",
       "HEAD"
     ]
@@ -229,11 +229,11 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
 
   # Admin stuff, also served from s3
   ordered_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cached_methods         = [
+    cached_methods = [
       "GET",
       "HEAD"
     ]
@@ -249,7 +249,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   }
 
   default_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "HEAD",
       "DELETE",
       "POST",
@@ -258,7 +258,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       "PUT",
       "PATCH"
     ]
-    cached_methods         = [
+    cached_methods = [
       "HEAD",
       "GET"
     ]
@@ -346,11 +346,11 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
 
   # Message of the day stuff, served from s3
   ordered_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cached_methods         = [
+    cached_methods = [
       "GET",
       "HEAD"
     ]
@@ -367,11 +367,11 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
 
   # Admin stuff, also served from s3
   ordered_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cached_methods         = [
+    cached_methods = [
       "GET",
       "HEAD"
     ]
@@ -387,7 +387,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   }
 
   default_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "HEAD",
       "DELETE",
       "POST",
@@ -396,7 +396,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
       "PUT",
       "PATCH"
     ]
-    cached_methods         = [
+    cached_methods = [
       "HEAD",
       "GET"
     ]
@@ -467,12 +467,12 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
   }
 
   default_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "HEAD",
       "GET",
       "OPTIONS"
     ]
-    cached_methods         = [
+    cached_methods = [
       "HEAD",
       "GET",
       "OPTIONS"
@@ -481,7 +481,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
       cookies {
         forward = "none"
       }
-      headers                 = [
+      headers = [
         # see https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/header-caching.html#header-caching-web-cors
         "Origin",
         "Access-Control-Request-Headers",
@@ -545,6 +545,85 @@ resource "aws_wafv2_web_acl" "rate_limit" {
   }
 }
 
+resource "aws_wafv2_ip_set" "banned-ipv4" {
+  name               = "banned-ipv4"
+  description        = "Banned ipv4"
+  scope              = "REGIONAL"
+  ip_address_version = "IPV4"
+  addresses          = []
+}
+
+resource "aws_wafv2_ip_set" "banned-ipv6" {
+  name               = "banned-ipv6"
+  description        = "Banned ipv6"
+  scope              = "REGIONAL"
+  ip_address_version = "IPV6"
+  addresses          = []
+}
+
+resource "aws_wafv2_web_acl" "banned-ips" {
+  name  = "deny-banned-ips"
+  scope = "REGIONAL" # TODO all these?
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "deny-ipv4"
+    priority = 0
+    action {
+      block {}
+    }
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.banned-ipv4.arn
+        ip_set_forwarded_ip_config {
+          fallback_behavior = "MATCH"
+          header_name       = "X-Forwarded-For"
+          position          = "ANY"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-ipv4"
+      sampled_requests_enabled   = true
+    }
+  }
+  rule {
+    name     = "deny-ipv6"
+    priority = 1
+    action {
+      block {}
+    }
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.banned-ipv6.arn
+        ip_set_forwarded_ip_config {
+          fallback_behavior = "MATCH"
+          header_name       = "X-Forwarded-For"
+          position          = "ANY"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-ipv6"
+      sampled_requests_enabled   = true
+    }
+  }
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "deny-banned-ips" # todo change
+    sampled_requests_enabled   = true
+  }
+}
+
+resource "aws_wafv2_web_acl_association" "alb-to-ban" {
+  resource_arn = aws_alb.GccExplorerApp.arn
+  web_acl_arn  = aws_wafv2_web_acl.banned-ips.arn
+}
+
 resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
   origin {
     domain_name = aws_alb.GccExplorerApp.dns_name
@@ -563,9 +642,9 @@ resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
     }
   }
 
-  enabled          = true
-  is_ipv6_enabled  = true
-  aliases          = [
+  enabled         = true
+  is_ipv6_enabled = true
+  aliases         = [
     "nsolid.compiler-explorer.com"
   ]
 
@@ -597,7 +676,7 @@ resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
   }
 
   default_cache_behavior {
-    allowed_methods        = [
+    allowed_methods = [
       "HEAD",
       "DELETE",
       "POST",
@@ -606,13 +685,13 @@ resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
       "PUT",
       "PATCH"
     ]
-    cached_methods         = [
+    cached_methods = [
       "HEAD",
       "GET"
     ]
     forwarded_values {
       cookies {
-        forward = "whitelist"
+        forward           = "whitelist"
         whitelisted_names = ["nsolid-session", "nsolid-refresh"]
       }
       query_string = true
