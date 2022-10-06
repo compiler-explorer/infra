@@ -1,6 +1,7 @@
 import functools
 import logging
 import socket
+from multiprocessing.pool import ThreadPool
 from typing import Dict, Optional
 
 import paramiko.ssh_exception
@@ -78,10 +79,11 @@ class Instance:
 
     @staticmethod
     def elb_instances(group_arn):
-        return [
-            Instance(health, group_arn)
-            for health in elb_client.describe_target_health(TargetGroupArn=group_arn)["TargetHealthDescriptions"]
-        ]
+        with ThreadPool(processes=16) as pool:
+            return pool.map(
+                lambda h: Instance(h, group_arn),
+                elb_client.describe_target_health(TargetGroupArn=group_arn)["TargetHealthDescriptions"],
+            )
 
 
 class AdminInstance:
