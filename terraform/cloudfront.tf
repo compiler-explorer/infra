@@ -144,7 +144,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
     error_caching_min_ttl = 5
     response_page_path    = "/admin/503.html"
   }
-  web_acl_id = aws_wafv2_web_acl.rate_limit.arn
+  web_acl_id = aws_wafv2_web_acl.compiler-explorer.arn
 }
 
 # TODO - the duplication is rubbish
@@ -284,7 +284,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     error_caching_min_ttl = 5
     response_page_path    = "/admin/503.html"
   }
-  web_acl_id = aws_wafv2_web_acl.rate_limit.arn
+  web_acl_id = aws_wafv2_web_acl.compiler-explorer.arn
 }
 
 resource "aws_cloudfront_distribution" "godbo-lt" {
@@ -423,7 +423,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
     response_page_path    = "/admin/503.html"
   }
 
-  web_acl_id = aws_wafv2_web_acl.rate_limit.arn
+  web_acl_id = aws_wafv2_web_acl.compiler-explorer.arn
 }
 
 resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
@@ -498,8 +498,8 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
   }
 }
 
-resource "aws_wafv2_web_acl" "rate_limit" {
-  name  = "RateLimitCompilerExplorer" # TODO change
+resource "aws_wafv2_web_acl" "compiler-explorer" {
+  name  = "CompilerExplorer"
   scope = "CLOUDFRONT"
   default_action {
     allow {}
@@ -569,14 +569,14 @@ resource "aws_wafv2_web_acl" "rate_limit" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "ce_rate_limited_blocked"
+      metric_name                = "deny-rate-limit"
       sampled_requests_enabled   = true
     }
   }
 
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "request_ok"
+    metric_name                = "ok"
     sampled_requests_enabled   = true
   }
 }
@@ -679,5 +679,5 @@ resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
     compress               = true
   }
 
-  web_acl_id = aws_wafv2_web_acl.rate_limit.arn
+  web_acl_id = aws_wafv2_web_acl.compiler-explorer.arn
 }
