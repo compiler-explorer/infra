@@ -550,7 +550,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     statement {
       rate_based_statement {
         // Limit to this many per 5 minutes (300 seconds)
-        limit              = 300
+        limit              = 1200
         aggregate_key_type = "IP"
         scope_down_statement {
           byte_match_statement {
