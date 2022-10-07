@@ -514,11 +514,6 @@ resource "aws_wafv2_web_acl" "rate_limit" {
     statement {
       ip_set_reference_statement {
         arn = aws_wafv2_ip_set.banned-ipv4.arn
-        ip_set_forwarded_ip_config {
-          fallback_behavior = "MATCH"
-          header_name       = "X-Forwarded-For"
-          position          = "ANY"
-        }
       }
     }
     visibility_config {
@@ -537,11 +532,6 @@ resource "aws_wafv2_web_acl" "rate_limit" {
     statement {
       ip_set_reference_statement {
         arn = aws_wafv2_ip_set.banned-ipv6.arn
-        ip_set_forwarded_ip_config {
-          fallback_behavior = "MATCH"
-          header_name       = "X-Forwarded-For"
-          position          = "ANY"
-        }
       }
     }
     visibility_config {
