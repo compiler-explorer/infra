@@ -499,18 +499,63 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
 }
 
 resource "aws_wafv2_web_acl" "rate_limit" {
-  name  = "RateLimitCompilerExplorer"
+  name  = "RateLimitCompilerExplorer" # TODO change
   scope = "CLOUDFRONT"
   default_action {
     allow {}
   }
 
   rule {
-    name     = "RateLimitPost"
+    name     = "deny-ipv4"
+    priority = 0
+    action {
+      block {}
+    }
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.banned-ipv4.arn
+        ip_set_forwarded_ip_config {
+          fallback_behavior = "MATCH"
+          header_name       = "X-Forwarded-For"
+          position          = "ANY"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-ipv4"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "deny-ipv6"
     priority = 1
     action {
-      //      block {}
-      count {}
+      block {}
+    }
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.banned-ipv6.arn
+        ip_set_forwarded_ip_config {
+          fallback_behavior = "MATCH"
+          header_name       = "X-Forwarded-For"
+          position          = "ANY"
+        }
+      }
+    }
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "deny-ipv6"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  rule {
+    name     = "RateLimitPost"
+    priority = 2
+    action {
+      block {}
     }
     statement {
       rate_based_statement {
@@ -538,9 +583,10 @@ resource "aws_wafv2_web_acl" "rate_limit" {
       sampled_requests_enabled   = true
     }
   }
+
   visibility_config {
     cloudwatch_metrics_enabled = true
-    metric_name                = "ce_rate_limited_ok"
+    metric_name                = "request_ok"
     sampled_requests_enabled   = true
   }
 }
@@ -548,7 +594,7 @@ resource "aws_wafv2_web_acl" "rate_limit" {
 resource "aws_wafv2_ip_set" "banned-ipv4" {
   name               = "banned-ipv4"
   description        = "Banned ipv4"
-  scope              = "REGIONAL"
+  scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
   addresses          = []
 }
@@ -556,72 +602,9 @@ resource "aws_wafv2_ip_set" "banned-ipv4" {
 resource "aws_wafv2_ip_set" "banned-ipv6" {
   name               = "banned-ipv6"
   description        = "Banned ipv6"
-  scope              = "REGIONAL"
+  scope              = "CLOUDFRONT"
   ip_address_version = "IPV6"
   addresses          = []
-}
-
-resource "aws_wafv2_web_acl" "banned-ips" {
-  name  = "deny-banned-ips"
-  scope = "REGIONAL" # TODO all these?
-  default_action {
-    allow {}
-  }
-
-  rule {
-    name     = "deny-ipv4"
-    priority = 0
-    action {
-      block {}
-    }
-    statement {
-      ip_set_reference_statement {
-        arn = aws_wafv2_ip_set.banned-ipv4.arn
-        ip_set_forwarded_ip_config {
-          fallback_behavior = "MATCH"
-          header_name       = "X-Forwarded-For"
-          position          = "ANY"
-        }
-      }
-    }
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "deny-ipv4"
-      sampled_requests_enabled   = true
-    }
-  }
-  rule {
-    name     = "deny-ipv6"
-    priority = 1
-    action {
-      block {}
-    }
-    statement {
-      ip_set_reference_statement {
-        arn = aws_wafv2_ip_set.banned-ipv6.arn
-        ip_set_forwarded_ip_config {
-          fallback_behavior = "MATCH"
-          header_name       = "X-Forwarded-For"
-          position          = "ANY"
-        }
-      }
-    }
-    visibility_config {
-      cloudwatch_metrics_enabled = true
-      metric_name                = "deny-ipv6"
-      sampled_requests_enabled   = true
-    }
-  }
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "deny-banned-ips" # todo change
-    sampled_requests_enabled   = true
-  }
-}
-
-resource "aws_wafv2_web_acl_association" "alb-to-ban" {
-  resource_arn = aws_alb.GccExplorerApp.arn
-  web_acl_arn  = aws_wafv2_web_acl.banned-ips.arn
 }
 
 resource "aws_cloudfront_distribution" "nsolid-compiler-explorer-com" {
