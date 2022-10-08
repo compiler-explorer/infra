@@ -11,10 +11,6 @@ resource "aws_cloudtrail" "audit" {
   is_multi_region_trail         = true
   enable_log_file_validation    = true
   depends_on = [aws_s3_bucket_policy.cloudtrail-bucket-policy]
-  # until https://github.com/terraform-providers/terraform-provider-aws/pull/5448 is fixed
-  lifecycle {
-    ignore_changes = [event_selector]
-  }
 }
 
 data "aws_iam_policy_document" "audit-s3-policy" {
@@ -55,14 +51,18 @@ resource "aws_s3_bucket" "cloudtrail" {
   tags                          = {
     S3-Bucket-Name = "cloudtrail.godbolt.org"
   }
+}
 
-  lifecycle_rule {
-    enabled = true
+resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
+  bucket = aws_s3_bucket.cloudtrail.id
+  rule {
+    id="delete_forever_after_200"
+    status = "Enabled"
     expiration {
       days = 200
     }
     noncurrent_version_expiration {
-      days = 1
+      noncurrent_days = 1
     }
   }
 }

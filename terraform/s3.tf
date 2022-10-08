@@ -1,3 +1,7 @@
+locals {
+  log_file_retention_days = 32  # One month, rounding up (See the privacy policy in the compiler explorer project)
+}
+
 resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
   acl    = "private"
@@ -13,17 +17,23 @@ resource "aws_s3_bucket" "compiler-explorer" {
     allowed_origins = ["*"]
     max_age_seconds = 3000
   }
-  # Keep only one month (rounding down) of cloudfront logs (See the privacy policy in the compiler explorer project)
-  lifecycle_rule {
-    enabled = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer" {
+  bucket = aws_s3_bucket.compiler-explorer.id
+  rule {
+    id     = "delete_cloudfront_logs_per_log_policy"
+    status = "Enabled"
     expiration {
-      days = 28
+      days = local.log_file_retention_days
     }
     noncurrent_version_expiration {
-      days = 1
+      noncurrent_days = 1
     }
-    # Covers both cloudfront-logs and cloudfront-logs-ce:
-    prefix  = "cloudfront-logs"
+    filter {
+      # Covers both cloudfront-logs and cloudfront-logs-ce:
+      prefix = "cloudfront-logs"
+    }
   }
 }
 
@@ -54,29 +64,29 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
     type        = "CanonicalUser"
     permissions = ["FULL_CONTROL"]
   }
+}
 
-  # Keep only one month of elb logs (See the privacy policy in the compiler explorer project)
-  lifecycle_rule {
-    enabled = true
-    expiration {
-      days = 32
+resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
+  bucket = aws_s3_bucket.compiler-explorer-logs.id
+  dynamic "rule" {
+    # Keep only one month of these logs (See the privacy policy in the compiler explorer project)
+    for_each = {
+      cloudfront = "cloudfront"
+      elb        = "elb"
     }
-    noncurrent_version_expiration {
-      days = 1
+    content {
+      id     = "delete_${rule.value}_per_log_policy"
+      status = "Enabled"
+      expiration {
+        days = local.log_file_retention_days
+      }
+      noncurrent_version_expiration {
+        noncurrent_days = 1
+      }
+      filter {
+        prefix = "${rule.value}/"
+      }
     }
-    prefix  = "elb/"
-  }
-
-  # Keep only one month of cloudfront logs (See the privacy policy in the compiler explorer project)
-  lifecycle_rule {
-    enabled = true
-    expiration {
-      days = 32
-    }
-    noncurrent_version_expiration {
-      days = 1
-    }
-    prefix  = "cloudfront/"
   }
 }
 
@@ -85,8 +95,8 @@ data "aws_billing_service_account" "main" {}
 data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
   // Allow external (public) access to certain directories on S3
   statement {
-    sid       = "PublicReadGetObjects"
-    actions   = ["s3:GetObject"]
+    sid     = "PublicReadGetObjects"
+    actions = ["s3:GetObject"]
     principals {
       identifiers = ["*"]
       type        = "*"
@@ -97,8 +107,8 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
     ]
   }
   statement {
-    sid       = "Allow listing of bucket (NB allows listing everything)"
-    actions   = ["s3:ListBucket"]
+    sid     = "Allow listing of bucket (NB allows listing everything)"
+    actions = ["s3:ListBucket"]
     principals {
       identifiers = ["*"]
       type        = "*"
@@ -112,7 +122,7 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
       identifiers = [data.aws_billing_service_account.main.arn]
       type        = "AWS"
     }
-    actions   = [
+    actions = [
       "s3:GetBucketAcl",
       "s3:GetBucketPolicy"
     ]
@@ -169,7 +179,24 @@ resource "aws_s3_bucket" "storage-godbolt-org" {
     noncurrent_version_expiration {
       days = 1
     }
-    prefix                                 = "cache/"
+    prefix = "cache/"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
+  bucket = aws_s3_bucket.storage-godbolt-org.id
+  rule {
+    id     = "Remove cached items"
+    status = "Enabled"
+    expiration {
+      days = 1
+    }
+    noncurrent_version_expiration {
+      noncurrent_days = 1
+    }
+    filter {
+      prefix = "cache/"
+    }
   }
 }
 
@@ -194,8 +221,8 @@ resource "aws_s3_bucket" "ce-cdn-net" {
 
 data "aws_iam_policy_document" "ce-cdn-net-s3-policy" {
   statement {
-    sid       = "PublicReadGetObjects"
-    actions   = ["s3:GetObject"]
+    sid     = "PublicReadGetObjects"
+    actions = ["s3:GetObject"]
     principals {
       identifiers = ["*"]
       type        = "*"
