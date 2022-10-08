@@ -220,6 +220,7 @@ resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
   metric_name        = "BlockedRequests"
   statistic          = "Maximum"
   dimensions         = {
+    WebACL = aws_wafv2_web_acl.compiler-explorer.name
     Rule = local.deny_rate_limit_name_metric_name
   }
 

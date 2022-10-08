@@ -548,7 +548,16 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     name     = "RateLimitPost"
     priority = 2
     action {
-      block {}
+      block {
+        custom_response {
+          response_code            = 429
+          custom_response_body_key = "blocked-ratelimit"
+          response_header {
+            name  = "Retry-After"
+            value = "300"
+          }
+        }
+      }
     }
     statement {
       rate_based_statement {
@@ -575,6 +584,12 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
       metric_name                = local.deny_rate_limit_name_metric_name
       sampled_requests_enabled   = true
     }
+  }
+
+  custom_response_body {
+    content      = "Your request has hit our rate limit. Please reduce the load you're putting on our site. Contact us on Discord if you feel this is in error."
+    content_type = "TEXT_PLAIN"
+    key          = "blocked-ratelimit"
   }
 
   visibility_config {
