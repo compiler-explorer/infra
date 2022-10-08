@@ -210,3 +210,20 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
   comparison_operator = "LessThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
+
+resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
+  alarm_name         = "WafIsThrottling"
+  alarm_description  = "We're seeing some amount of WAF client throttling, which may indicate a DoS or a WAF rate limit too low"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/WAFV2"
+  metric_name        = "BlockedRequests"
+  statistic          = "Maximum"
+  dimensions         = {
+    Rule = local.deny_rate_limit_name_metric_name
+  }
+
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}

@@ -1,3 +1,6 @@
+locals {
+  deny_rate_limit_name_metric_name = "deny-rate-limit"
+}
 data "aws_acm_certificate" "godbolt-org-et-al" {
   domain      = "godbolt.org"
   types       = ["AMAZON_ISSUED"]
@@ -569,7 +572,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     }
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "deny-rate-limit"
+      metric_name                = local.deny_rate_limit_name_metric_name
       sampled_requests_enabled   = true
     }
   }
