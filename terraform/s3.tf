@@ -170,17 +170,6 @@ resource "aws_s3_bucket" "storage-godbolt-org" {
   lifecycle {
     prevent_destroy = true
   }
-  lifecycle_rule {
-    enabled                                = true
-    abort_incomplete_multipart_upload_days = 7
-    expiration {
-      days = 1
-    }
-    noncurrent_version_expiration {
-      days = 1
-    }
-    prefix = "cache/"
-  }
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
