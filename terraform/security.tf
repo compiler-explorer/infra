@@ -319,13 +319,13 @@ resource "aws_security_group_rule" "nsolid" {
 }
 
 resource "aws_security_group_rule" "nsolid_console" {
-  security_group_id = aws_security_group.AdminNode.id
-  type              = "ingress"
-  from_port         = 6753
-  to_port           = 6753
+  security_group_id        = aws_security_group.AdminNode.id
+  type                     = "ingress"
+  from_port                = 6753
+  to_port                  = 6753
   source_security_group_id = aws_security_group.CompilerExplorerAlb.id
-  protocol          = "tcp"
-  description       = "Allow access to the nsolid console from the ALB"
+  protocol                 = "tcp"
+  description              = "Allow access to the nsolid console from the ALB"
 }
 
 resource "aws_security_group" "Builder" {

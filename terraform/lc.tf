@@ -10,9 +10,9 @@ locals {
 }
 
 resource "aws_launch_template" "CompilerExplorer-beta" {
-  name                   = "ce-beta"
-  description            = "Beta launch template"
-  ebs_optimized          = true
+  name          = "ce-beta"
+  description   = "Beta launch template"
+  ebs_optimized = true
   iam_instance_profile {
     arn = aws_iam_instance_profile.CompilerExplorerRole.arn
   }
@@ -43,9 +43,9 @@ resource "aws_launch_template" "CompilerExplorer-beta" {
 }
 
 resource "aws_launch_template" "CompilerExplorer-staging" {
-  name                   = "ce-staging"
-  description            = "Staging launch template"
-  ebs_optimized          = true
+  name          = "ce-staging"
+  description   = "Staging launch template"
+  ebs_optimized = true
   iam_instance_profile {
     arn = aws_iam_instance_profile.CompilerExplorerRole.arn
   }
@@ -76,9 +76,9 @@ resource "aws_launch_template" "CompilerExplorer-staging" {
 }
 
 resource "aws_launch_template" "CompilerExplorer-prod" {
-  name                   = "ce-prod"
-  description            = "Production launch template"
-  ebs_optimized          = true
+  name          = "ce-prod"
+  description   = "Production launch template"
+  ebs_optimized = true
   iam_instance_profile {
     arn = aws_iam_instance_profile.CompilerExplorerRole.arn
   }

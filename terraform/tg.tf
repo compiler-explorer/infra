@@ -36,10 +36,10 @@ resource "aws_alb_target_group" "nsolid" {
     create_before_destroy = true
   }
 
-  name                          = "nsolid"
-  port                          = 6753
-  protocol                      = "HTTP"
-  vpc_id                        = module.ce_network.vpc.id
+  name     = "nsolid"
+  port     = 6753
+  protocol = "HTTP"
+  vpc_id   = module.ce_network.vpc.id
 }
 
 resource "aws_alb_target_group_attachment" "admin-node" {

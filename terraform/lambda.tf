@@ -26,8 +26,8 @@ data "aws_iam_policy_document" "aws_lambda_stats" {
     resources = ["${aws_s3_bucket.compiler-explorer-logs.arn}/stats/*"]
   }
   statement {
-    sid       = "AccessSQS"
-    actions   = [
+    sid     = "AccessSQS"
+    actions = [
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
       "sqs:GetQueueAttributes",
@@ -36,8 +36,8 @@ data "aws_iam_policy_document" "aws_lambda_stats" {
     resources = [aws_sqs_queue.stats_queue.arn]
   }
   statement {
-    sid       = "ReadCompilerDb"
-    actions   = [
+    sid     = "ReadCompilerDb"
+    actions = [
       "dynamodb:Query"
     ]
     resources = [aws_dynamodb_table.compiler-builds.arn]
