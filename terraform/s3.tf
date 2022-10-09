@@ -4,13 +4,21 @@ locals {
 
 resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
-  acl    = "private"
   tags   = {
     S3-Bucket-Name = "compiler-explorer"
   }
   lifecycle {
     prevent_destroy = true
   }
+}
+
+resource "aws_s3_bucket_acl" "compiler-explorer" {
+  bucket = aws_s3_bucket.compiler-explorer.id
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_cors_configuration" "compiler-explorer" {
+  bucket = aws_s3_bucket.compiler-explorer.id
   cors_rule {
     allowed_headers = ["Authorization"]
     allowed_methods = ["GET"]
@@ -48,21 +56,32 @@ resource "aws_s3_bucket" "compiler-explorer-logs" {
   lifecycle {
     prevent_destroy = true
   }
+}
 
-  # not sure if we explicitly need to state the bucket owner gets full control
-  # when `acl = private` is not stated, but better safe than sorry
-  grant {
-    id          = data.aws_canonical_user_id.current.id
-    type        = "CanonicalUser"
-    permissions = ["FULL_CONTROL"]
-  }
+resource "aws_s3_bucket_acl" "compiler-explorer-logs" {
+  bucket = aws_s3_bucket.compiler-explorer-logs.id
+  access_control_policy {
+    owner {
+      id = data.aws_canonical_user_id.current.id
+    }
 
-  # awslogsdelivery account needs full control for cloudfront logging
-  # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
-  grant {
-    id          = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
-    type        = "CanonicalUser"
-    permissions = ["FULL_CONTROL"]
+    grant {
+      grantee {
+        id   = data.aws_canonical_user_id.current.id
+        type = "CanonicalUser"
+      }
+      permission = "FULL_CONTROL"
+    }
+
+    # awslogsdelivery account needs full control for cloudfront logging
+    # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/AccessLogs.html
+    grant {
+      grantee {
+        id   = "c4c1ede66af53448b93c283ce9448c4ba468c9432aa01d700d3878632f77d2d0"
+        type = "CanonicalUser"
+      }
+      permission = "FULL_CONTROL"
+    }
   }
 }
 
@@ -163,13 +182,17 @@ resource "aws_s3_bucket_policy" "compiler-explorer-logs" {
 
 resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
-  acl    = "private"
   tags   = {
     S3-Bucket-Name = "storage.godbolt.org"
   }
   lifecycle {
     prevent_destroy = true
   }
+}
+
+resource "aws_s3_bucket_acl" "storage-godbolt-org" {
+  bucket = aws_s3_bucket.storage-godbolt-org.id
+  acl    = "private"
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
@@ -191,20 +214,31 @@ resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
 
 resource "aws_s3_bucket" "ce-cdn-net" {
   bucket = "ce-cdn.net"
-  acl    = "private"
   tags   = {
     S3-Bucket-Name = "ce-cdn.net"
   }
   lifecycle {
     prevent_destroy = true
   }
+}
+
+resource "aws_s3_bucket_acl" "ce-cdn-net" {
+  bucket = aws_s3_bucket.ce-cdn-net.id
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_versioning" "ce-cdn-net" {
+  bucket = aws_s3_bucket.ce-cdn-net.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_cors_configuration" "ce-cdn-net" {
+  bucket = aws_s3_bucket.ce-cdn-net.id
   cors_rule {
     allowed_methods = ["GET"]
     allowed_origins = ["*"]
-  }
-
-  versioning {
-    enabled = true
   }
 }
 
