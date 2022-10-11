@@ -443,6 +443,18 @@ libraries:
       targets:
       - 0.12.2
       type: github
+    hip-amd:
+      check_file: include/hip/hip_runtime.h
+      path_name: libs/rocm/{name}
+      s3_path_prefix: hip-amd-rocm-{name}
+      subdir: libs/rocm/{name}
+      untar_dir: hip-amd-rocm-{{name}}
+      targets:
+      - 4.5.2
+      - 5.0.2
+      - 5.1.3
+      - 5.2.3
+      type: s3tarballs
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
