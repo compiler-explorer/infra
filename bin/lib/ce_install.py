@@ -371,44 +371,42 @@ CEFS_ROOT = Path("/cefs")
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image_root: Path, cefs_mountpoint: Path):
-    """Squash all things matching to a single root image."""
-
-    # check for things already installed in the _current_ root?
+    """Squash all things matching to a single layer."""
 
     installation_context = context.installation_context
     cefs_config = CefsConfig(mountpoint=cefs_mountpoint, image_root=squash_image_root)
     fs_root = CefsFsRoot(fs_root=installation_context.destination, config=cefs_config)
 
     current_image = fs_root.read_image()
+    to_install = []
     for installable in context.get_installables(filter_):
-        if force or installable.is_installed():
+        if force or installable.should_install():
+            to_install.append(installable)
             dest_path = installation_context.destination / installable.install_path
-            if not dest_path.is_symlink():
+            if dest_path.exists() and not dest_path.is_symlink():
                 _LOGGER.error("Found an installable that wasn't a symlink: %s", dest_path)
                 sys.exit(1)
 
     install_creator = SquashFsCreator(config=cefs_config)
     with install_creator.creation_path() as tmp_path:
+        _LOGGER.info("Installing everything to a temp dir: %s", tmp_path)
         installation_context.set_temp_destination(tmp_path)
-        _LOGGER.info("Installing everything to a temp dir")
         num_installed = 0
-        for installable in context.get_installables(filter_):
-            if Path(installable.install_path) not in current_image.catalog:
-                installable.install()
-                if not installable.is_installed():
-                    _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
-                    sys.exit(1)
-                current_image.add_metadata(f"Installing {installable.install_path} from {installable}")
-                num_installed += 1
+        for installable in to_install:
+            installable.install()
+            if not installable.is_installed():
+                _LOGGER.error("%s installed OK, but doesn't appear as installed after", installable.name)
+                sys.exit(1)
+            current_image.add_metadata(f"Installing {installable.install_path} from {installable}")
+            num_installed += 1
 
     if not num_installed:
         click.echo("No changes: not updating base image")
         return
 
     new_squashfs_cefs = install_creator.cefs_path
-    for installable in context.get_installables(filter_):
-        if Path(installable.install_path) not in current_image.catalog:
-            current_image.link_path(Path(installable.install_path), new_squashfs_cefs / installable.install_path)
+    for installable in to_install:
+        current_image.link_path(Path(installable.install_path), new_squashfs_cefs / installable.install_path)
 
     _LOGGER.info("Building new root fs")
     root_creator = SquashFsCreator(config=cefs_config)

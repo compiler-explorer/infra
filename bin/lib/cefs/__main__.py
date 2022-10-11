@@ -138,21 +138,23 @@ def import_cmd(context: CliContext, root: Path):
 @click.pass_obj
 def info(context: CliContext, root: Path):
     """Get information on the cefs root at ROOT."""
-    image = CefsRootImage(config=context.config, directory=root)
+    cefs_root_image = CefsRootImage(config=context.config, directory=root)
     click.echo("Paths supported:")
-    for path in image.catalog:
+    for path in cefs_root_image.catalog:
         click.echo(f"  {path}")
     click.echo("Images used:")
-    for size, path in sorted(((path.stat().st_size, path) for path in image.dependent_images), reverse=True):
+    for size, path in sorted(((path.stat().st_size, path) for path in cefs_root_image.dependent_images), reverse=True):
         click.echo(f"  {path} ({humanfriendly.format_size(size, binary=True)})")
 
 
 def _create_empty(config: CefsConfig) -> Path:
     creator = SquashFsCreator(config)
     with creator.creation_path() as path:
-        image = CefsRootImage(config=config)
-        image.add_metadata(f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}")
-        image.render_to(path)
+        cefs_root_image = CefsRootImage(config=config)
+        cefs_root_image.add_metadata(
+            f"Initial empty image created at {datetime.datetime.utcnow()} by {getpass.getuser()}"
+        )
+        cefs_root_image.render_to(path)
     return creator.cefs_path
 
 
@@ -248,8 +250,6 @@ def import_(context: CliContext, root: Path, relative_to: Path, directory: List[
 # TODO handle old symlinks of trunk (and do trunk etc!)
 # TODO should "cefs_mountpoint" be onfigurable.
 # TODO should there be a magic file? should metadata.txt by .metadata.txt or indeed just that special file?
-# TODO should probably check on mksquashfs cmdline flags like block size, my laptop used 131072 block size but I swear
-#  another machine used 4k
 # TODO can add metadata directly with `--pseudofile` magic:
 #  https://github.com/plougher/squashfs-tools/blob/a5df5dc42c564d10c1aebf2063fc30c26850ddc3/USAGE#L261
 # TODO installation from ce_install of nightly things won't work as they try to remove things, and we need a solution

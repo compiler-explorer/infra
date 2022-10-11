@@ -5,7 +5,7 @@ import logging
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Optional, Iterable, Iterator
+from typing import Optional, Iterator
 
 from lib.cefs.config import CefsConfig
 
@@ -26,7 +26,6 @@ class SquashFsCreator:
                     "mksquashfs",
                     str(path),
                     str(tmp_sqfs),
-                    "-all-root",
                     "-root-mode",
                     "755",
                     "-progress",

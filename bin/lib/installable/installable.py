@@ -195,10 +195,9 @@ class Installable:
         self._logger.info("Squashing %s...", source_folder)
         self.install_context.check_call(
             [
-                "/usr/bin/mksquashfs",
+                "mksquashfs",
                 str(source_folder),
                 str(temp_image),
-                "-all-root",
                 "-progress",
                 "-comp",
                 "zstd",

@@ -55,6 +55,7 @@ class CefsRootImage:
                 raise BadCefsImage(f"Found an unexpected entry: {entry}")
 
     def add_metadata(self, metadata: str) -> None:
+        # todo separate machine readable from human readable? add timestamp? json?
         self._metadata.append(metadata)
 
     def link_path(self, subdir: Path, cefs_link: Path):
