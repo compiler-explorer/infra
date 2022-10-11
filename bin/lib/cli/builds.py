@@ -67,6 +67,7 @@ def deploy_staticfiles(release) -> bool:
 
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
+        f.flush()
         with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
             return job.run()
 
@@ -125,6 +126,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
                 f"https://sentry.io/api/0/organizations/compiler-explorer/releases/{release.version}/deploys/",
                 data=dict(environment=cfg.env.value),
                 headers=dict(Authorization=f"Bearer {token}"),
+                timeout=30,
             )
             if not result.ok:
                 raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")

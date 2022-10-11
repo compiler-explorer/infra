@@ -18,7 +18,7 @@ resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
   extended_statistic  = "p90"
   period              = 15 * 60
 
-  dimensions          = {
+  dimensions = {
     LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
   }
   comparison_operator = "GreaterThanThreshold"
@@ -39,7 +39,7 @@ resource "aws_cloudwatch_metric_alarm" "spending_alert" {
   dimensions          = {
     Currency = "USD"
   }
-  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  alarm_actions = [data.aws_sns_topic.alert.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "budget_hit" {
@@ -55,7 +55,7 @@ resource "aws_cloudwatch_metric_alarm" "budget_hit" {
   dimensions          = {
     Currency = "USD"
   }
-  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  alarm_actions = [data.aws_sns_topic.alert.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "bankrupcy" {
@@ -71,11 +71,11 @@ resource "aws_cloudwatch_metric_alarm" "bankrupcy" {
   dimensions          = {
     Currency = "USD"
   }
-  alarm_actions       = [data.aws_sns_topic.alert.arn]
+  alarm_actions = [data.aws_sns_topic.alert.arn]
 }
 
 resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
-  for_each            = {
+  for_each = {
     "godbolt.org"           = aws_cloudfront_distribution.ce-godbolt-org,
     "compiler-explorer.com" = aws_cloudfront_distribution.compiler-explorer-com,
     "godbo.lt"              = aws_cloudfront_distribution.godbo-lt,
@@ -171,7 +171,7 @@ resource "aws_cloudwatch_metric_alarm" "high_traffic" {
   statistic           = "Sum"
   period              = 5 * 60
 
-  dimensions          = {
+  dimensions = {
     LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
   }
   comparison_operator = "GreaterThanOrEqualToThreshold"
@@ -179,14 +179,14 @@ resource "aws_cloudwatch_metric_alarm" "high_traffic" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "efs_burst_credit" {
-  alarm_name          = "EFS burst credit"
-  alarm_description   = "Making sure we have lots of EFS performance in the bank"
-  evaluation_periods  = 1
-  period              = 60
-  namespace           = "AWS/EFS"
-  metric_name         = "BurstCreditBalance"
-  statistic           = "Minimum"
-  dimensions          = {
+  alarm_name         = "EFS burst credit"
+  alarm_description  = "Making sure we have lots of EFS performance in the bank"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/EFS"
+  metric_name        = "BurstCreditBalance"
+  statistic          = "Minimum"
+  dimensions         = {
     FileSystemId = aws_efs_file_system.fs-db4c8192.id
   }
   threshold           = 20000000000
@@ -208,5 +208,23 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
 
   threshold           = 1
   comparison_operator = "LessThanThreshold"
+  alarm_actions       = [data.aws_sns_topic.alert.arn]
+}
+
+resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
+  alarm_name         = "WafIsThrottling"
+  alarm_description  = "We're seeing some amount of WAF client throttling, which may indicate a DoS or a WAF rate limit too low"
+  evaluation_periods = 1
+  period             = 60
+  namespace          = "AWS/WAFV2"
+  metric_name        = "BlockedRequests"
+  statistic          = "Maximum"
+  dimensions         = {
+    WebACL = aws_wafv2_web_acl.compiler-explorer.name
+    Rule   = local.deny_rate_limit_name_metric_name
+  }
+
+  threshold           = 0
+  comparison_operator = "GreaterThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }

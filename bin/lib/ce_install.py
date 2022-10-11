@@ -20,7 +20,9 @@ from lib.cefs.config import CefsConfig
 from lib.cefs.root import CefsFsRoot
 from lib.cefs.squash import SquashFsCreator
 from lib.config_safe_loader import ConfigSafeLoader
-from lib.installation import InstallationContext, installers_for, Installable
+from lib.installable.installable import Installable
+from lib.installation import installers_for
+from lib.installation_context import InstallationContext
 from lib.library_yaml import LibraryYaml
 
 _LOGGER = logging.getLogger(__name__)
@@ -387,8 +389,7 @@ def buildroot(context: CliContext, filter_: List[str], force: bool, squash_image
 
     install_creator = SquashFsCreator(config=cefs_config)
     with install_creator.creation_path() as tmp_path:
-        installation_context._staging_root = tmp_path / "staging"
-        installation_context.destination = tmp_path
+        installation_context.set_temp_destination(tmp_path)
         _LOGGER.info("Installing everything to a temp dir")
         num_installed = 0
         for installable in context.get_installables(filter_):
@@ -488,7 +489,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
             num_skipped += 1
     print(
         f"{num_installed} packages installed "
-        f'{"(apparently; this was a dry-run)" if context.installation_context.dry_run else ""}OK, '
+        f'{"(apparently; this was a dry-run) " if context.installation_context.dry_run else ""}OK, '
         f"{num_skipped} skipped, and {len(failed)} failed installation"
     )
     if len(failed):

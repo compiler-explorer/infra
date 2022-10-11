@@ -16,11 +16,11 @@ tools:
   osaca:
     type: pip
     dir: osaca-{name}
-    python: /usr/bin/python3.8
+    python: /usr/bin/python3.10
     package: osaca=={name}
     check_exe: bin/osaca --version
     targets:
-      - 0.4.8
+      - 0.4.11
   rustfmt:
     type: tarballs
     dir: rustfmt-{name}

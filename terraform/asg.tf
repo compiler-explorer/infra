@@ -1,7 +1,7 @@
 locals {
   subnets      = local.all_subnet_ids
-  // As of Mar 7 2022, startups are around 100s.
-  grace_period = 120
+  // As of Oct 3 2022, startups started taking >2m
+  grace_period = 160
   cooldown     = 180
 }
 
@@ -81,7 +81,7 @@ resource "aws_autoscaling_policy" "prod-mixed" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value = 75.0
+    target_value = 50.0
   }
 }
 
@@ -118,10 +118,10 @@ resource "aws_autoscaling_group" "staging" {
     id      = aws_launch_template.CompilerExplorer-staging.id
     version = "$Latest"
   }
-  max_size                  = 4
-  min_size                  = 0
-  name                      = "staging"
-  vpc_zone_identifier       = local.subnets
+  max_size            = 4
+  min_size            = 0
+  name                = "staging"
+  vpc_zone_identifier = local.subnets
 
   target_group_arns = [aws_alb_target_group.ce["staging"].arn]
 }

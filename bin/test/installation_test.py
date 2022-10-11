@@ -1,10 +1,8 @@
-from unittest.mock import MagicMock
-
 import pytest
 import yaml
 
 from lib.config_safe_loader import ConfigSafeLoader
-from lib.installation import targets_from, Installable, InstallationContext
+from lib.installation import targets_from
 
 
 def parse_targets(string_config, enabled=None):
@@ -169,23 +167,3 @@ boost:
       """
     )
     assert target["url"] == "https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2"
-
-
-@pytest.fixture(name="fake_context")
-def fake_context_fixture():
-    return MagicMock(spec=InstallationContext)
-
-
-def test_installable_sort(fake_context):
-    ab_c = Installable(fake_context, dict(context=["a", "b"], name="c"))
-    v1_2_3 = Installable(fake_context, dict(context=[], name="1.2.3"))
-    v10_1 = Installable(fake_context, dict(context=[], name="10.1"))
-    v10_1_alpha = Installable(fake_context, dict(context=[], name="10.1-alpha"))
-    v10_2 = Installable(fake_context, dict(context=[], name="10.2"))
-    assert sorted([v10_1, v10_1_alpha, ab_c, v1_2_3, v10_2], key=lambda x: x.sort_key) == [
-        v1_2_3,
-        v10_1,
-        v10_1_alpha,
-        v10_2,
-        ab_c,
-    ]
