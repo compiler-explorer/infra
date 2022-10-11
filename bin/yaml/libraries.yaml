@@ -154,6 +154,19 @@ libraries:
       - 1.0.0
       - 1.1.5
       type: github
+    copperspice:
+      build_type: none
+      check_file: include/cs-config.h
+      compression: bz2
+      create_untar_dir: true
+      dir: libs/copperspice/{{name}}
+      lib_type: shared
+      targets:
+      - 1.8.0
+      type: tarballs
+      untar_dir:
+        name: null
+      url: https://github.com/copperspice/copperspice/releases/download/cs-{{name}}/copperspice-{{name}}-ubuntu20.04-x64.tar.bz2
     cppitertools:
       check_file: README.md
       repo: ryanhaining/cppitertools
@@ -345,9 +358,9 @@ libraries:
       - 8.1.1
       type: github
     gemmlowp:
-      if: nightly
       build_type: none
       check_file: fixedpoint/fixedpoint.h
+      if: nightly
       method: nightlyclone
       repo: google/gemmlowp
       targets:
@@ -448,13 +461,13 @@ libraries:
       path_name: libs/rocm/{name}
       s3_path_prefix: hip-amd-rocm-{name}
       subdir: libs/rocm/{name}
-      untar_dir: hip-amd-rocm-{{name}}
       targets:
       - 4.5.2
       - 5.0.2
       - 5.1.3
       - 5.2.3
       type: s3tarballs
+      untar_dir: hip-amd-rocm-{{name}}
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
@@ -493,7 +506,6 @@ libraries:
       - development
       type: github
     lagom:
-      if: nightly
       after_stage_script:
       - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
       - echo -e "list(APPEND CMAKE_MODULE_PATH \"\$\\x7bCMAKE_CURRENT_LIST_DIR\\x7d/Meta/CMake\")"
@@ -512,6 +524,7 @@ libraries:
       - -DENABLE_UNICODE_DATABASE_DOWNLOAD=NO
       - -DENABLE_COMMONMARK_SPEC_DOWNLOAD=NO
       - -DCMAKE_EXE_LINKER_FLAGS=-latomic
+      if: nightly
       lib_type: shared
       make_targets:
       - all
@@ -1287,7 +1300,7 @@ libraries:
         method: nightlyclone
         repo: TartanLlama/expected
         targets:
-          - trunk
+        - trunk
         type: github
       toml11:
         build_type: none
@@ -1485,7 +1498,7 @@ libraries:
       target_prefix: refs/tags/v
       targets:
       - '0.4'
-      - '1.1.2'
+      - 1.1.2
       type: github
     seastar:
       check_file: README.md
@@ -1550,7 +1563,7 @@ libraries:
       repo: TartanLlama/expected
       target_prefix: v
       targets:
-        - 1.0.0
+      - 1.0.0
       type: github
     toml11:
       check_file: toml.hpp
