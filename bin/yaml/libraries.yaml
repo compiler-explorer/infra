@@ -164,8 +164,7 @@ libraries:
       targets:
       - 1.8.0
       type: tarballs
-      untar_dir:
-        name: null
+      untar_dir: '{{name}}'
       url: https://github.com/copperspice/copperspice/releases/download/cs-{{name}}/copperspice-{{name}}-ubuntu20.04-x64.tar.bz2
     cppitertools:
       check_file: README.md
