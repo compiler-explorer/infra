@@ -1285,6 +1285,13 @@ libraries:
         targets:
         - trunk
         type: github
+      stdexec:
+        check_file: include/stdexec/execution.hpp
+        method: nightlyclone
+        repo: NVIDIA/stdexec
+        targets:
+        - trunk
+        type: github
       taojson:
         build_type: none
         check_file: include/tao/json.hpp
