@@ -165,7 +165,7 @@ resource "aws_cloudwatch_metric_alarm" "high_traffic" {
   alarm_description   = "A high amount of traffic: did we just get slashdotted?"
   evaluation_periods  = 3
   datapoints_to_alarm = 3
-  threshold           = 5000
+  threshold           = 7500
   metric_name         = "RequestCount"
   namespace           = "AWS/ApplicationELB"
   statistic           = "Sum"
