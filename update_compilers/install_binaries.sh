@@ -21,8 +21,14 @@ if [[ ! -x ${OPT}/cmake-v3.23.1/bin/cmake ]]; then
     fetch https://github.com/Kitware/CMake/releases/download/v3.23.1/cmake-3.23.1-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake-v3.23.1
 fi
 
+if [[ ! -x ${OPT}/cmake-v3.25.0-rc2/bin/cmake ]]; then
+    cd "${OPT}"
+    mkdir cmake-v3.25.0-rc2
+    fetch https://github.com/Kitware/CMake/releases/download/v3.25.0-rc2/cmake-3.25.0-rc2-Linux-x86_64.tar.gz | tar zxf - --strip-components 1 -C cmake-v3.25.0-rc2
+fi
+
 rm -Rf "${OPT}/cmake"
-ln -s "${OPT}/cmake-v3.23.1" "${OPT}/cmake"
+ln -s "${OPT}/cmake-v3.25.0-rc2" "${OPT}/cmake"
 
 #########################
 # pahole
