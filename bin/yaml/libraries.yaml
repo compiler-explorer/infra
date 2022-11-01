@@ -1255,6 +1255,14 @@ libraries:
         targets:
         - trunk
         type: github
+      seqan3:
+        build_type: none
+        check_file: include/seqan3/version.hpp
+        method: nightlyclone
+        repo: seqan/seqan3
+        targets:
+        - trunk
+        type: github
       seastar:
         build_type: none
         check_file: README.md
@@ -1513,6 +1521,14 @@ libraries:
       repo: scylladb/seastar
       targets:
       - seastar-18.08.0
+      type: github
+    seqan3:
+      build_type: none
+      check_file: include/seqan3/version.hpp
+      method: clone_branch
+      repo: seqan/seqan3
+      targets:
+      - 3.2.0
       type: github
     sol2:
       build_type: none
