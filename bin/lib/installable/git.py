@@ -27,7 +27,7 @@ def _git_raw(logger: logging.Logger, cwd: Path, *git_args: Union[str, Path]) -> 
 
 
 def _remote_default_branch_for(logger: logging.Logger, git_repo: Path) -> str:
-    match_re = re.compile(r"^ref:\s+refs/heads/([^\s]+)\s+HEAD$")
+    match_re = re.compile(r"^ref:\s+refs/heads/(\S+)\s+HEAD$")
     for line in _git_raw(logger, git_repo, "ls-remote", "--symref", "origin", "HEAD").splitlines(keepends=False):
         if match := match_re.match(line):
             return match.group(1)
@@ -130,7 +130,10 @@ class GitHubInstallable(Installable):
         _git("clean", "-ffdx")
         _git("reset", "--hard", "HEAD")
 
-        _git("checkout", f"origin/{branch or self._find_remote_branch(dest)}")
+        to_checkout = branch or self._find_remote_branch(dest)
+        if _git("branch", "--list", f"origin/{to_checkout}").strip():
+            to_checkout = f"origin/{to_checkout}"
+        _git("checkout", to_checkout)
 
         _git("submodule", "sync")
         _git("submodule", "update", "--init", *self._update_args())
