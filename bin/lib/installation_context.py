@@ -114,7 +114,7 @@ class InstallationContext:
             now = time.time()
             if now >= report_time:
                 if length != 0:
-                    _LOGGER.info("%.1f of %s...", 100.0 * fetched / length, url)
+                    _LOGGER.info("%.1f%% of %s...", 100.0 * fetched / length, url)
                 report_time = now + report_every_secs
         _LOGGER.info("100%% of %s", url)
         fd.flush()
