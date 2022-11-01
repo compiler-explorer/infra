@@ -184,9 +184,17 @@ compilers:
               - gcc-arm-none-eabi-5_4-2016q3 # name unused in this case
           - type: tarballs
             frc:
-              - check_exe: roborio/bin/arm-frc{year}-linux-gnueabi-g++ --version
-                compression: gz
-                dir: arm/frc{year}-{name}
+              compression: gz
+              dir: arm/frc{year}-{name}
+              check_exe: bin/arm-frc{year}-linux-gnueabi-g++ --version
+              untar_dir: roborio-academic
+              url: https://github.com/wpilibsuite/opensdk/releases/download/v{year}-{build}/cortexa9_vfpv3-roborio-academic-{year}-x86_64-linux-gnu-Toolchain-{name}.tgz
+              targets:
+                - year: 2023
+                  build: 4
+                  name: 12.1.0
+              older:
+                check_exe: roborio/bin/arm-frc{year}-linux-gnueabi-g++ --version
                 untar_dir: frc{year}
                 url: https://github.com/wpilibsuite/toolchain-builder/releases/download/v{year}-{build}/FRC-{year}-Linux-Toolchain-{name}.tar.gz
                 targets:
@@ -197,15 +205,6 @@ compilers:
                     build: 1
                     name: 7.3.0
                     url: https://github.com/wpilibsuite/roborio-toolchain/releases/download/v{year}-{build}/FRC-{year}-Linux-Toolchain-{name}.tar.gz
-              - check_exe: bin/arm-frc{year}-linux-gnueabi-g++ --version
-                compression: gz
-                dir: arm/frc{year}-{name}
-                untar_dir: roborio-academic
-                url: https://github.com/wpilibsuite/opensdk/releases/download/v{year}-{build}/cortexa9_vfpv3-roborio-academic-{year}-x86_64-linux-gnu-Toolchain-{name}.tgz
-                targets:
-                  - year: 2023
-                    build: 4
-                    name: 12.1.0
           - type: tarballs
             arduino:
               check_exe: hardware/tools/avr/bin/avr-g++ --version
