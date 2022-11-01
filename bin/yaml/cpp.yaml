@@ -715,34 +715,30 @@ compilers:
           script: *intel-one-install-script
     nvhpc-sdk:
       type: script
+      dir: hpc_sdk/Linux_{arch}/{version}
       check_stderr_on_stdout: true
-      check_exe: hpc_sdk/Linux_{arch}/{version}/compilers/bin/nvc++ --version
+      check_exe: compilers/bin/nvc++ --version
+      fetch:
+        - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{{version|replace(".","")}}_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}.tar.gz
+      script: |
+        mkdir -p "nvhpc_sdk_{version}"
+        tar -f "nvhpc_sdk_{version}.tar.gz" -C "nvhpc_sdk_{version}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
+        rm -rf "nvhpc_sdk_{version}.tar.gz"
+        NVHPC_SILENT=true NVHPC_INSTALL_DIR=$CE_STAGING_DIR/hpc_sdk bash "nvhpc_sdk_{version}/install"
+        rm -rf "nvhpc_sdk_{version}"
       targets:
-        - arch: "x86_64"
+        - name: x86_64_22_7
+          arch: x86_64
           version: "22.7"
-          script: &nvhpc-sdk-install-script |
-            mkdir -p "nvhpc_sdk_{version}"
-            tar -f "nvhpc_sdk_{version}.tar.gz" -C "nvhpc_sdk_{version}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
-            rm -rf "nvhpc_sdk_{version}.tar.gz"
-            NVHPC_SILENT=true NVHPC_INSTALL_DIR=$CE_STAGING_DIR bash "nvhpc_sdk_{version}/install"
-            rm -rf "nvhpc_sdk_{version}"
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/22.7/nvhpc_2022_227_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}.tar.gz
-        - arch: "aarch64"
+        - name: aarch64_22_7
+          arch: aarch64
           version: "22.7"
-          script: *nvhpc-sdk-install-script
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/22.7/nvhpc_2022_227_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}.tar.gz
-        - arch: "x86_64"
+        - name: x86_64_22_9
+          arch: x86_64
           version: "22.9"
-          script: *nvhpc-sdk-install-script
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/22.9/nvhpc_2022_229_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}.tar.gz
-        - arch: "aarch64"
+        - name: aarch64_22_9
+          arch: aarch64
           version: "22.9"
-          script: *nvhpc-sdk-install-script
-          fetch:
-            - https://developer.download.nvidia.com/hpc-sdk/22.9/nvhpc_2022_229_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}.tar.gz
     nightly:
       if: nightly
       gcc:
