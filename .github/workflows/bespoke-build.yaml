@@ -23,7 +23,7 @@ on:
         default: build.sh
         required: true
 jobs:
-  bepoke-build:
+  bespoke-build:
     runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
     steps:
       - name: Start from a clean directory
