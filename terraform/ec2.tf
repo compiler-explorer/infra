@@ -151,21 +151,14 @@ resource "aws_instance" "GPUNode" {
     ]
   }
 
-  tag_specifications {
-    resource_type = "volume"
-
-    tags = {
-      Site = "CompilerExplorer"
-    }
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 24
+    delete_on_termination = false
   }
 
-  tag_specifications {
-    resource_type = "instance"
-
-    tags = {
-      Site        = "CompilerExplorer"
-      Environment = "GPU"
-      Name        = "GPUNode"
-    }
+  tags = {
+    Site        = "CompilerExplorer"
+    Name        = "GPUNode"
   }
 }
