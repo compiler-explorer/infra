@@ -75,7 +75,7 @@ resource "aws_alb_target_group" "gpu" {
   }
 }
 
-resource "aws_alb_target_group_attachment" "GPUServerTargetInstance" {
+resource "aws_alb_target_group_attachment" "CEGPUServerTargetInstance" {
   target_group_arn = aws_alb_target_group.gpu.id
   target_id        = aws_instance.GPUNode.id
   port             = 1081
