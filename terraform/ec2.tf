@@ -2,6 +2,7 @@ locals {
   runner_image_id  = "ami-0cc6fd5f52bd05b88"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
+  gpu_image_id     = "ami-0d5f3ae70c826d948"
   admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
@@ -127,5 +128,44 @@ resource "aws_instance" "CERunner" {
 
   tags = {
     Name = "CERunner"
+  }
+}
+
+resource "aws_instance" "GPUNode" {
+  ami                         = local.gpu_image_id
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
+  ebs_optimized               = false
+  instance_type               = "g4dn.xlarge"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+  user_data                   = "gpu"
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site = "CompilerExplorer"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "GPU"
+      Name        = "GPUNode"
+    }
   }
 }
