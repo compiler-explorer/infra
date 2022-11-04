@@ -7,8 +7,8 @@ resource "aws_cloudfront_distribution" "gpu-compiler-explorer-com" {
     domain_name = aws_alb.GccExplorerApp.dns_name
     origin_id   = "GccExplorerApp"
     custom_origin_config {
-      http_port                = 1080
-      https_port               = 1443
+      http_port                = 1081
+      https_port               = 1444
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
