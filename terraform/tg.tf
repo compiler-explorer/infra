@@ -61,7 +61,7 @@ resource "aws_alb_target_group" "gpu" {
     create_before_destroy = true
   }
   name                 = "GPUGroup"
-  port                 = 1080
+  port                 = 1081
   protocol             = "HTTP"
   vpc_id               = module.ce_network.vpc.id
   deregistration_delay = 15
@@ -78,5 +78,5 @@ resource "aws_alb_target_group" "gpu" {
 resource "aws_alb_target_group_attachment" "GPUServerTargetInstance" {
   target_group_arn = aws_alb_target_group.gpu.id
   target_id        = aws_instance.GPUNode.id
-  port             = 1080
+  port             = 1081
 }
