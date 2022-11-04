@@ -719,13 +719,33 @@ compilers:
       check_stderr_on_stdout: true
       check_exe: compilers/bin/nvc++ --version
       fetch:
-        - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{{version|replace(".","")}}_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}.tar.gz
+        - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{{version|replace(".","")}}_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
       script: |
-        mkdir -p "nvhpc_sdk_{version}"
-        tar -f "nvhpc_sdk_{version}.tar.gz" -C "nvhpc_sdk_{version}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
-        rm -rf "nvhpc_sdk_{version}.tar.gz"
-        NVHPC_SILENT=true NVHPC_INSTALL_DIR=$CE_STAGING_DIR/hpc_sdk bash "nvhpc_sdk_{version}/install"
-        rm -rf "nvhpc_sdk_{version}"
+        mkdir -p "nvhpc_sdk_{version}_{arch}";
+        tar -f "nvhpc_sdk_{version}_{arch}.tar.gz" -C "nvhpc_sdk_{version}_{arch}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
+        rm -rf "nvhpc_sdk_{version}_{arch}.tar.gz"
+
+        NVHPC_SILENT=true \
+        NVHPC_INSTALL_DIR=$CE_STAGING_DIR/hpc_sdk \
+          bash "nvhpc_sdk_{version}_{arch}/install"
+
+        rm -rf "nvhpc_sdk_{version}_{arch}"
+
+        if [[ "{arch}" == "x86_64" ]]; then
+          bash "$CE_STAGING_DIR/hpc_sdk/Linux_{arch}/{version}/compilers/bin/makelocalrc" \
+            -x "$CE_STAGING_DIR/hpc_sdk/Linux_{arch}/{version}/compilers/bin" \
+            -gcc /opt/compiler-explorer/gcc-12.2.0/bin/gcc \
+            -gpp /opt/compiler-explorer/gcc-12.2.0/bin/g++ \
+            -g77 /opt/compiler-explorer/gcc-12.2.0/bin/gfortran \
+            ;
+        elif [[ "{arch}" == "aarch64" ]]; then
+          bash "$CE_STAGING_DIR/hpc_sdk/Linux_{arch}/{version}/compilers/bin/makelocalrc" \
+            -x "$CE_STAGING_DIR/hpc_sdk/Linux_{arch}/{version}/compilers/bin" \
+            -gcc /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc \
+            -gpp /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++ \
+            -g77 /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gfortran \
+            ;
+        fi
       targets:
         - name: x86_64_22_7
           arch: x86_64
