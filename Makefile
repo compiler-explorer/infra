@@ -36,6 +36,10 @@ packer-admin: config.json  ## Builds the base image for the admin server
 packer-conan: config.json  ## Builds the base image for the CE conan-server
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-conan.json
 
+.PHONY: packer-gpu-node
+packer-gpu-node: config.json  ## Builds the base image for the CE conan-server
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-gpu-node.json
+
 .PHONY: packer-win
 packer-win: config.json  ## Builds the base image for the CE windows
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-win.json
