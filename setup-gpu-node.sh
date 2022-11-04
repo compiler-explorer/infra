@@ -89,7 +89,7 @@ echo "Installing node ${TARGET_NODE_VERSION}"
 curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
 popd
 
-cp nginx/nginx.conf /etc/nginx/nginx.conf
+cp nginx/nginx-gpu.conf /etc/nginx/nginx.conf
 systemctl restart nginx
 
 cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
