@@ -2,7 +2,7 @@ locals {
   runner_image_id  = "ami-0cc6fd5f52bd05b88"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
-  gpu_image_id     = "ami-0e81e8732857a38c6"
+  gpu_image_id     = "ami-06b394f7def740c02"
   admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
