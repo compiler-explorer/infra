@@ -250,7 +250,7 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
       "dynamodb:Scan",
       "dynamodb:Query"
     ]
-    resources = [aws_dynamodb_table.links.arn]
+    resources = [aws_dynamodb_table.links.arn,aws_dynamodb_table.gpulinks.arn]
   }
   statement {
     sid       = "S3AccessSid"
