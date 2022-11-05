@@ -110,6 +110,3 @@ update-initramfs -u
 
 # script from https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-verifications
 ./setup-gpu-node-devices.sh
-
-# /dev/nvidia-modeset
-/bin/nvidia-modprobe -m

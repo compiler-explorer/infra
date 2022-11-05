@@ -105,6 +105,7 @@ fi
 
 if [[ "${ENV}" == "gpu" ]]; then
   CE_PROP_ENV=gpu
+  /infra/setup-gpu-node-devices.sh
 fi
 
 # shellcheck disable=SC2086
