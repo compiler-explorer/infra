@@ -24,3 +24,6 @@ if /sbin/modprobe nvidia-uvm; then
 else
   exit 1
 fi
+
+# /dev/nvidia-modeset
+/bin/nvidia-modprobe -m
