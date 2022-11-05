@@ -37,8 +37,6 @@ resource "aws_dynamodb_table" "gpulinks" {
     prevent_destroy = true
   }
   billing_mode   = "PAY_PER_REQUEST"
-  read_capacity  = 1
-  write_capacity = 1
   hash_key       = "prefix"
   range_key      = "unique_subhash"
 
