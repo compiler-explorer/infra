@@ -12,6 +12,7 @@ from collections import defaultdict
 from enum import Enum, unique
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Generator, TextIO
+from urllib3.exceptions import ProtocolError
 
 # from packaging import version
 import requests
@@ -262,15 +263,38 @@ class RustLibraryBuilder:
                 return match[1]
         return None
 
+    def resil_post(self, url, json_data, headers=None):
+        request = None
+        retries = 3
+        last_error = ""
+        while retries > 0:
+            try:
+                if headers != None:
+                    request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
+                else:
+                    request = requests.post(
+                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
+                    )
+
+                retries = 0
+            except ProtocolError as e:
+                last_error = e
+                retries = retries - 1
+
+        if request == None:
+            request = {"ok": False, "text": last_error}
+
+        return request
+
     def conanproxy_login(self):
         url = f"{conanserver_url}/login"
 
         login_body = defaultdict(lambda: [])
         login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
 
-        request = requests.post(
-            url, data=json.dumps(login_body), headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-        )
+        req_data = json.dumps(login_body)
+
+        request = self.resil_post(url, req_data)
         if not request.ok:
             self.logger.info(request.text)
             raise RuntimeError(f"Post failure for {url}: {request}")
@@ -303,7 +327,8 @@ class RustLibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        request = requests.post(url, data=json.dumps(buildparameters_copy), headers=headers, timeout=_TIMEOUT)
+        req_data = json.dumps(buildparameters_copy)
+        request = self.resil_post(url, req_data, headers)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
 
@@ -328,12 +353,10 @@ class RustLibraryBuilder:
         return self.target_name
 
     def has_failed_before(self):
-        headers = {"Content-Type": "application/json"}
-
         url = f"{conanserver_url}/hasfailedbefore"
-        request = requests.post(
-            url, data=json.dumps(self.current_buildparameters_obj), headers=headers, timeout=_TIMEOUT
-        )
+        req_data = json.dumps(self.current_buildparameters_obj)
+
+        request = self.resil_post(url, req_data)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
         else:
@@ -369,9 +392,9 @@ class RustLibraryBuilder:
         self.logger.info(annotations)
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
-
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        request = requests.post(url, data=json.dumps(annotations), headers=headers, timeout=_TIMEOUT)
+
+        request = self.resil_post(url, json.dumps(annotations), headers)
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
 
