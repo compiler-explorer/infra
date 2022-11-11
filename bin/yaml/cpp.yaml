@@ -440,6 +440,24 @@ compilers:
           subdir: c6x
           targets:
             - 12.2.0
+        sparc:
+          arch_prefix: "sparc-unknown-linux-gnu"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          subdir: sparc
+          targets:
+            - 12.2.0
+        sparc64:
+          arch_prefix: "sparc64-multilib-linux-gnu"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          subdir: sparc64
+          targets:
+            - 12.2.0
+        sparc-leon:
+          arch_prefix: "sparc-leon-linux-uclibc"
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          subdir: sparc-leon
+          targets:
+            - 12.2.0
         loongarch64:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
