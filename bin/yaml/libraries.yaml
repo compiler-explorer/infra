@@ -24,9 +24,9 @@ libraries:
       - 1.4.1
       - 1.5.0
       - 1.6.1
-      - name: 1.6.2
-        after_stage_script:
+      - after_stage_script:
         - cp {{resource_dir}}/googlebenchmark_export.h include/benchmark/export.h
+        name: 1.6.2
       type: github
     benri:
       check_file: readme.md
@@ -183,7 +183,7 @@ libraries:
       check_file: CMakeLists.txt
       compression: xz
       depends:
-      - libraries/c++/openssl OpenSSL_1_1_1g
+      - libraries/c++/openssl 1_1_1g
       dir: libs/curl/{{name}}
       extra_cmake_arg:
       - -DOPENSSL_ROOT_DIR=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt
@@ -357,6 +357,8 @@ libraries:
       - 7.1.3
       - 8.0.1
       - 8.1.1
+      - 9.0.0
+      - 9.1.0
       type: github
     gemmlowp:
       build_type: none
@@ -1255,19 +1257,19 @@ libraries:
         targets:
         - trunk
         type: github
-      seqan3:
-        build_type: none
-        check_file: include/seqan3/version.hpp
-        method: nightlyclone
-        repo: seqan/seqan3
-        targets:
-        - trunk
-        type: github
       seastar:
         build_type: none
         check_file: README.md
         method: nightlyclone
         repo: scylladb/seastar
+        targets:
+        - trunk
+        type: github
+      seqan3:
+        build_type: none
+        check_file: include/seqan3/version.hpp
+        method: nightlyclone
+        repo: seqan/seqan3
         targets:
         - trunk
         type: github
@@ -1435,14 +1437,23 @@ libraries:
       - v2.2
       type: s3tarballs
     openssl:
-      build_type: manual
-      check_file: config
+      after_stage_script:
+      - cd {untar_dir}
+      - ./config --prefix="$PWD/x86_64/opt" --openssldir="$PWD/x86_64/ssl"
+      - make
+      - make install
+      - rm "{untar_dir}/x86_64/opt/lib/*.a"
+      build_type: none
+      check_file: x86_64/opt/lib/libssl.so.1.1
+      compression: gz
+      dir: libs/openssl/openssl_{name}
       lib_type: shared
-      repo: openssl/openssl
       targets:
-      - OpenSSL_1_1_1c
-      - OpenSSL_1_1_1g
-      type: github
+      - 1_1_1c
+      - 1_1_1g
+      type: tarballs
+      untar_dir: openssl-OpenSSL_{name}
+      url: https://github.com/openssl/openssl/archive/OpenSSL_{name}.tar.gz
     pegtl:
       check_file: README.md
       repo: taocpp/PEGTL
