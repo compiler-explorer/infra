@@ -15,6 +15,7 @@ from typing import Dict, Any, List, Optional, Generator, TextIO
 
 # from packaging import version
 import requests
+from lib.installation_context import InstallationContext
 
 from lib.rust_crates import RustCrate
 
@@ -62,7 +63,13 @@ def open_script(script: Path) -> Generator[TextIO, None, None]:
 
 class RustLibraryBuilder:
     def __init__(
-        self, logger, language: str, libname: str, target_name: str, install_context, buildconfig: LibraryBuildConfig
+        self,
+        logger,
+        language: str,
+        libname: str,
+        target_name: str,
+        install_context: InstallationContext,
+        buildconfig: LibraryBuildConfig,
     ):
         self.logger = logger
         self.language = language
