@@ -5,6 +5,7 @@ set -exuo pipefail
 finish() {
     ce builder stop
 }
+trap finish EXIT
 
 ce builder status
 ce builder start
@@ -44,9 +45,6 @@ build_rust_libraries() {
 }
 
 build_cpp_libraries
-
-trap finish EXIT
-
 build_rust_libraries
 
 exit ${BUILD_FAILED}
