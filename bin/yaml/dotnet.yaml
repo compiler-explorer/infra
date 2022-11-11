@@ -8,7 +8,8 @@ compilers:
       - -c
       - "/usr/bin/env DOTNET_CLI_HOME=/tmp /opt/compiler-explorer/{dir}/bin/coreclr/Linux.x64.Checked/.dotnet/dotnet --version"
     targets:
-      - v6.0.1
+      - v6.0.11
+      - v7.0.0
   dotnet_nuget:
     type: s3tarballs
     dir: dotnet_nuget-{name}
@@ -18,4 +19,5 @@ compilers:
       - -c
       - "cat /opt/compiler-explorer/{dir}/packages/microsoft.netcore.app.runtime.linux-x64/6.0.0/Microsoft.NETCore.App.versions.txt"
     targets:
-      - v6.0.0
+      - v6.0.11
+      - v7.0.0
