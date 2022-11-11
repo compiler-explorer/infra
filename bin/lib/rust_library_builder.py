@@ -15,6 +15,7 @@ from typing import Dict, Any, List, Optional, Generator, TextIO
 
 # from packaging import version
 import requests
+from lib.staging import StagingDir
 from lib.installation_context import InstallationContext
 
 from lib.rust_crates import RustCrate
@@ -374,28 +375,28 @@ class RustLibraryBuilder:
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
 
-    def clone_branch(self, dest):
+    def clone_branch(self, dest, staging: StagingDir):
         subprocess.check_call(
             ["git", "clone", "-q", f"{self.buildconfig.domainurl}/{self.buildconfig.repo}.git", dest],
-            cwd=self.install_context.staging,
+            cwd=staging.path,
         )
-        subprocess.check_call(["git", "-C", dest, "checkout", "-q", self.target_name], cwd=self.install_context.staging)
+        subprocess.check_call(["git", "-C", dest, "checkout", "-q", self.target_name], cwd=staging.path)
 
-    def download_library(self, build_folder, source_folder):
+    def download_library(self, build_folder, source_folder, staging: StagingDir):
         if not os.path.exists(os.path.join(source_folder, "Cargo.toml")):
             self.logger.info(f"Downloading sources for {self.libname}/{self.target_name}")
 
             if self.buildconfig.repo:
-                self.clone_branch(source_folder)
+                self.clone_branch(source_folder, staging)
             else:
                 crate = RustCrate(self.libname, self.target_name)
                 url = crate.GetDownloadUrl()
                 tar_cmd = ["tar", "zxf", "-"]
                 tar_cmd += ["--strip-components", "1"]
-                self.install_context.fetch_url_and_pipe_to(f"{url}", tar_cmd, source_folder)
+                self.install_context.fetch_url_and_pipe_to(staging, f"{url}", tar_cmd, source_folder)
 
-    def get_source_folder(self):
-        source_folder = os.path.join(self.install_context.staging, f"source_{self.libname}_{self.target_name}")
+    def get_source_folder(self, staging: StagingDir):
+        source_folder = os.path.join(staging.path, f"source_{self.libname}_{self.target_name}")
         if not source_folder in self.cached_source_folders:
             if not os.path.exists(source_folder):
                 os.mkdir(source_folder)
@@ -417,24 +418,8 @@ class RustLibraryBuilder:
         flagscombination,
         ld_path,
     ):
-        build_method = dict({"build_method": "--all-features", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
-        build_status = self.makebuildfor_by_method(
-            compiler,
-            options,
-            exe,
-            compiler_type,
-            toolchain,
-            buildos,
-            buildtype,
-            arch,
-            stdver,
-            stdlib,
-            flagscombination,
-            ld_path,
-            build_method,
-        )
-        if build_status == BuildStatus.Failed:
-            build_method = dict({"build_method": "", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
+        with self.install_context.new_staging_dir() as staging:
+            build_method = dict({"build_method": "--all-features", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
             build_status = self.makebuildfor_by_method(
                 compiler,
                 options,
@@ -449,7 +434,26 @@ class RustLibraryBuilder:
                 flagscombination,
                 ld_path,
                 build_method,
+                staging,
             )
+            if build_status == BuildStatus.Failed:
+                build_method = dict({"build_method": "", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
+                build_status = self.makebuildfor_by_method(
+                    compiler,
+                    options,
+                    exe,
+                    compiler_type,
+                    toolchain,
+                    buildos,
+                    buildtype,
+                    arch,
+                    stdver,
+                    stdlib,
+                    flagscombination,
+                    ld_path,
+                    build_method,
+                    staging,
+                )
 
         return build_status
 
@@ -468,12 +472,13 @@ class RustLibraryBuilder:
         flagscombination,
         ld_path,
         build_method,
+        staging: StagingDir,
     ):
         combined_hash = self.makebuildhash(
             compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
         )
 
-        build_folder = os.path.join(self.install_context.staging, combined_hash)
+        build_folder = os.path.join(staging.path, combined_hash)
         if os.path.exists(build_folder):
             shutil.rmtree(build_folder, ignore_errors=True)
         os.makedirs(build_folder, exist_ok=True)
@@ -482,7 +487,7 @@ class RustLibraryBuilder:
 
         real_build_folder = os.path.join(build_folder, "build")
 
-        source_folder = self.get_source_folder()
+        source_folder = self.get_source_folder(staging)
 
         self.writeconanfile(build_folder)
 
@@ -513,7 +518,7 @@ class RustLibraryBuilder:
             if not self.forcebuild:
                 return BuildStatus.Skipped
 
-        self.download_library(build_folder, source_folder)
+        self.download_library(build_folder, source_folder, staging)
 
         if not self.install_context.dry_run and not self.conanserverproxy_token:
             self.conanproxy_login()
