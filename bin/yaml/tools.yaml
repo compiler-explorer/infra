@@ -10,6 +10,17 @@ tools:
     symlink: cmake
     targets:
       - 3.24.3
+  ninja:
+    type: ziparchive
+    extract_into_folder: true
+    folder: ninja-v{name}
+    url: https://github.com/ninja-build/ninja/releases/download/v{name}/ninja-linux.zip
+    dir: ninja-v{name}
+    create_untar_dir: true
+    check_exe: ninja --help
+    symlink: ninja
+    targets:
+      - 1.11.1
   pvs-studio:
     if:
       - non-free
