@@ -14,9 +14,9 @@ BUILD_FAILED=0
 
 init_logspout() {
     local LOG_DEST_HOST
-    LOG_DEST_HOST=$(aws ssm get-parameter --name /compiler-explorer/logHost | jq -r .Parameter.Value)
+    LOG_DEST_HOST=$(aws ssm get-parameter --name /compiler-explorer/logDestHost | jq -r .Parameter.Value)
     local LOG_DEST_PORT
-    LOG_DEST_PORT=$(aws ssm get-parameter --name /compiler-explorer/logPort | jq -r .Parameter.Value)
+    LOG_DEST_PORT=$(aws ssm get-parameter --name /compiler-explorer/logDestPort | jq -r .Parameter.Value)
 
     ce builder exec -- sudo docker pull gliderlabs/logspout:latest
 
