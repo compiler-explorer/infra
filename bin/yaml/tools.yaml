@@ -1,4 +1,15 @@
 tools:
+  cmake:
+    type: tarballs
+    compression: gz
+    url: https://github.com/Kitware/CMake/releases/download/v{name}/cmake-{name}-Linux-x86_64.tar.gz
+    strip_components: 1
+    dir: cmake-v{name}
+    create_untar_dir: true
+    check_exe: bin/cmake --help
+    symlink: cmake
+    targets:
+      - 3.25.0-rc4
   pvs-studio:
     if:
       - non-free
