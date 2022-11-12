@@ -17,22 +17,24 @@ def is_list_of_strings_or_lists(value: Any) -> bool:
 
 
 def is_value_type(value: Any) -> bool:
-    return isinstance(value, str) \
-           or isinstance(value, bool) \
-           or isinstance(value, float) \
-           or isinstance(value, int) \
-           or is_list_of_strings(value) \
-           or is_list_of_strings_or_lists(value)
+    return (
+        isinstance(value, str)
+        or isinstance(value, bool)
+        or isinstance(value, float)
+        or isinstance(value, int)
+        or is_list_of_strings(value)
+        or is_list_of_strings_or_lists(value)
+    )
 
 
 def needs_expansion(target):
     for value in target.values():
         if is_list_of_strings(value):
             for v in value:
-                if '{' in v:
+                if "{" in v:
                     return True
         elif isinstance(value, str):
-            if '{' in value:
+            if "{" in value:
                 return True
     return False
 

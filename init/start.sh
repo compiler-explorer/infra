@@ -8,6 +8,7 @@ CE_USER=ce
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_ARG=
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
+CE_PROP_ENV=amazon
 
 echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
@@ -33,6 +34,8 @@ mount_opt() {
     # don't be tempted to background this, it just causes everything to wedge
     # during startup (startup time I/O etc goes through the roof).
     ./mount-all-img.sh
+
+    echo "Done mounting squash images"
 }
 
 get_discovered_compilers() {
@@ -60,6 +63,7 @@ get_released_code() {
 update_code() {
     local S3_KEY
     local CUR_S3_KEY=""
+    echo "Check to see if CE code needs updating"
     S3_KEY=$(curl -sL "https://s3.amazonaws.com/compiler-explorer/version/${BRANCH}")
     if [[ -f "${DEPLOY_DIR}/s3_key" ]]; then
         CUR_S3_KEY=$(cat "${DEPLOY_DIR}/s3_key")
@@ -99,19 +103,20 @@ if [[ "${ENV}" == "runner" ]]; then
   exit
 fi
 
-export NSOLID_COMMAND=172.30.0.214:9001
-export NSOLID_APPNAME="Compiler Explorer"
-export NSOLID_TAGS="${ENV}"
+if [[ "${ENV}" == "gpu" ]]; then
+  CE_PROP_ENV=gpu
+  /infra/setup-gpu-node-devices.sh
+fi
 
 # shellcheck disable=SC2086
-exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV,NSOLID_COMMAND,NSOLID_APPNAME,NSOLID_TAGS -- \
-    /opt/nsolid/bin/nsolid \
+exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
+    /opt/node/bin/node \
     -r esm \
     -- app.js \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
     --logPort "${LOG_DEST_PORT}" \
-    --env amazon \
+    --env ${CE_PROP_ENV} \
     --port 10240 \
     --metricsPort 10241 \
     --loki "http://127.0.0.1:3500" \

@@ -1,0 +1,10 @@
+compilers:
+  hook:
+    type: tarballs
+    compression: gz
+    check_exe: bin/hook --version
+    url: https://github.com/fabiosvm/hook-lang/releases/download/{name}/hook-{name}-linux-x64.tar.gz
+    untar_dir: hook-{name}-linux-x64
+    dir: hook/hook-{name}
+    targets:
+      - 0.1.0

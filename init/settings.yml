@@ -20,6 +20,12 @@ compiler:
     zigcxx:
         version: ANY
         libcxx: ANY
+    rust:
+        version: ANY
+        libcxx: ANY
+    cshared:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 

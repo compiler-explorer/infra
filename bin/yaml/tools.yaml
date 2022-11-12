@@ -16,11 +16,11 @@ tools:
   osaca:
     type: pip
     dir: osaca-{name}
-    python: /usr/bin/python3.8
+    python: /usr/bin/python3.10
     package: osaca=={name}
     check_exe: bin/osaca --version
     targets:
-      - 0.4.8
+      - 0.4.12
   rustfmt:
     type: tarballs
     dir: rustfmt-{name}
@@ -31,6 +31,16 @@ tools:
         url: https://github.com/rust-lang/rustfmt/releases/download/v1.4.36/rustfmt_linux-x86_64_v1.4.36.tar.gz
         strip_components: 1
         create_untar_dir: true
+  mmbutils:
+    if: nightly
+    type: github
+    method: nightlyclone
+    repo: sweharris/MMB_Utils
+    path_name: mmbutils
+    check_file: beeb
+    check_exe: ./beeb
+    targets:
+      - trunk
   asm-parser:
     type: tarballs
     dir: asm-parser
@@ -40,3 +50,32 @@ tools:
     check_exe: asm-parser --version
     targets:
       - trunk
+  xa:
+    type: tarballs
+    dir: x86-to-6502/xa-{{name}}
+    untar_dir: xa-{{name}}
+    check_exe: bin/xa --version
+    url: https://www.floodgap.com/retrotech/xa/dists/xa-{{name}}.tar.gz
+    compression: gz
+    targets:
+      - 2.3.13
+    after_stage_script:
+      - mv xa-{{name}} xa-build
+      - mkdir -p xa-{{name}}/bin
+      - cd xa-build
+      - make xa uncpk
+      - mv xa ../xa-{{name}}/bin/xa
+      - mv reloc65 ../xa-{{name}}/bin/reloc65
+      - mv ldo65 ../xa-{{name}}/bin/ldo65
+      - mv file65 ../xa-{{name}}/bin/file65
+      - mv printcbm ../xa-{{name}}/bin/printcbm
+      - mv uncpk ../xa-{{name}}/bin/uncpk
+  patchelf:
+    type: tarballs
+    url: https://github.com/NixOS/patchelf/releases/download/{{name}}/patchelf-{{name}}-x86_64.tar.gz
+    compression: gz
+    dir: patchelf-{{name}}
+    untar_dir: .
+    check_exe: bin/patchelf --version
+    targets:
+      - 0.15.0

@@ -1,7 +1,0 @@
-<component name="ProjectCodeStyleConfiguration">
-  <code_scheme name="Project" version="173">
-    <HCL-Terraform>
-      <option name="ARRAY_WRAPPING" value="5" />
-    </HCL-Terraform>
-  </code_scheme>
-</component>

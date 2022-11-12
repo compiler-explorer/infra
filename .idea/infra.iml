@@ -6,8 +6,12 @@
       <excludeFolder url="file://$MODULE_DIR$/.deploy" />
       <excludeFolder url="file://$MODULE_DIR$/.dist" />
       <excludeFolder url="file://$MODULE_DIR$/venv" />
+      <excludeFolder url="file://$MODULE_DIR$/.env" />
+      <excludeFolder url="file://$MODULE_DIR$/.mypy_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/.pytest_cache" />
+      <excludeFolder url="file://$MODULE_DIR$/.poetry" />
     </content>
-    <orderEntry type="jdk" jdkName="Python for infra" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Poetry (infra)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TestRunnerService">

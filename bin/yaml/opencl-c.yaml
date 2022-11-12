@@ -12,3 +12,8 @@ compilers:
           check_exe: "bin/llvm-spirv --version"
           targets:
             - trunk
+      clspv:
+        type: nightly
+        check_exe: "bin/clspv --version"
+        targets:
+          - main

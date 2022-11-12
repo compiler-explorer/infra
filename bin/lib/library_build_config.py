@@ -1,5 +1,8 @@
 from typing import Optional, Dict, Any
 
+valid_lib_types = ["static", "shared", "cshared"]
+
+
 class LibraryBuildConfig:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
@@ -7,6 +10,8 @@ class LibraryBuildConfig:
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
         self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
         self.lib_type = self.config_get("lib_type", "static")
+        if not self.lib_type in valid_lib_types:
+            raise RuntimeError(f"{self.lib_type} not a valid lib_type")
         self.staticliblink = self.config_get("staticliblink", [])
         self.sharedliblink = self.config_get("sharedliblink", [])
         self.url = "None"
@@ -19,6 +24,15 @@ class LibraryBuildConfig:
         self.make_utility = self.config_get("make_utility", "make")
         self.package_extra_copy = self.config_get("package_extra_copy", [])
         self.skip_compilers = self.config_get("skip_compilers", [])
+        self.use_compiler = self.config_get("use_compiler", "")
+        if self.lib_type == "cshared" and self.use_compiler == "":
+            raise RuntimeError(
+                "When lib_type is cshared, it is required to supply a (cross)compiler with property use_compiler"
+            )
+
+        if self.build_type == "cargo":
+            self.domainurl = self.config_get("domainurl", "https://github.com")
+            self.repo = self.config_get("repo", "")
 
     def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
         if config_key not in self.config and default is None:

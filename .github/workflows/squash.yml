@@ -15,18 +15,8 @@ jobs:
     steps:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
-      - uses: actions/checkout@v2
-      - name: Cache the environment
-        id: env-cache
-        uses: actions/cache@v2
-        with:
-          path: .env
-          key: ${{ runner.os }}-${{ hashFiles('requirements.txt') }}
-      - name: Mark cache as up to date
-        if: steps.env-cache.outputs.cache-hit == 'true'
-        run: touch .env/.done
+      - uses: actions/checkout@v3
       - name: Set up environment
-        if: steps.env-cache.outputs.cache-hit != 'true'
         run: make ce
         # relies on this being empty on cron
       - name: Squash ${{ github.event.inputs.squash }}

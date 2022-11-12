@@ -1,0 +1,8 @@
+compilers:
+  jakt:
+    if: nightly
+    type: nightly
+    s3_path_prefix: jakt-{name}
+    check_exe: bin/jakt --version
+    targets:
+      - trunk

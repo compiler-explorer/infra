@@ -16,6 +16,8 @@ if ! make -sq -C "${ROOT_DIR}" ce; then
     exit 1
 fi
 
-exec "${ROOT_DIR}/.env/bin/python3" \
+PYTHON_ENV=$(cd "${ROOT_DIR}" && "${ROOT_DIR}/.poetry/bin/poetry" env info --path)
+
+exec "${PYTHON_ENV}/bin/python" \
     -c "import sys; sys.path.append('${ROOT_DIR}/bin'); from lib.${MY_NAME} import main; main()" \
     "$@"

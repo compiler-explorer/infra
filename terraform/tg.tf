@@ -18,8 +18,8 @@ resource "aws_alb_target_group" "ce" {
   port                          = 80
   protocol                      = "HTTP"
   vpc_id                        = module.ce_network.vpc.id
-  // a minute to kick off old connections
-  deregistration_delay          = 60
+  // some time to kick off old connections
+  deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
   health_check {
     path                = "/healthcheck"
@@ -29,22 +29,6 @@ resource "aws_alb_target_group" "ce" {
     interval            = 10
     protocol            = "HTTP"
   }
-}
-
-resource "aws_alb_target_group" "nsolid" {
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  name                          = "nsolid"
-  port                          = 6753
-  protocol                      = "HTTP"
-  vpc_id                        = module.ce_network.vpc.id
-}
-
-resource "aws_alb_target_group_attachment" "admin-node" {
-  target_group_arn = aws_alb_target_group.nsolid.arn
-  target_id        = aws_instance.AdminNode.id
 }
 
 resource "aws_alb_target_group" "conan" {
@@ -70,4 +54,29 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   target_group_arn = aws_alb_target_group.conan.id
   target_id        = aws_instance.ConanNode.id
   port             = 1080
+}
+
+resource "aws_alb_target_group" "gpu" {
+  lifecycle {
+    create_before_destroy = true
+  }
+  name                 = "GPUGroup"
+  port                 = 1081
+  protocol             = "HTTP"
+  vpc_id               = module.ce_network.vpc.id
+  deregistration_delay = 15
+  health_check {
+    path                = "/healthcheck"
+    timeout             = 3
+    unhealthy_threshold = 3
+    healthy_threshold   = 2
+    interval            = 5
+    protocol            = "HTTP"
+  }
+}
+
+resource "aws_alb_target_group_attachment" "CEGPUServerTargetInstance" {
+  target_group_arn = aws_alb_target_group.gpu.id
+  target_id        = aws_instance.GPUNode.id
+  port             = 1081
 }

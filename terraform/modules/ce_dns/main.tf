@@ -8,9 +8,9 @@ resource "aws_route53_record" "address" {
     a    = "A"
     aaaa = "AAAA"
   }
-  zone_id  = aws_route53_zone.zone.zone_id
-  name     = var.top_level_name
-  type     = each.value
+  zone_id = aws_route53_zone.zone.zone_id
+  name    = var.top_level_name
+  type    = each.value
   alias {
     name                   = var.cloudfront_distribution.domain_name
     zone_id                = var.cloudfront_distribution.hosted_zone_id
@@ -52,7 +52,8 @@ resource "aws_route53_record" "spf" {
   ttl     = 3600
   records = [
     "v=spf1 include:_spf.google.com ~all",
-    "v=DMARC1;p=none;sp=quarantine;rua=mailto:matt+dmarc@${var.domain_name}"
+    "v=DMARC1;p=none;sp=quarantine;rua=mailto:matt+dmarc@${var.domain_name}",
+    "google-site-verification=uCqzvXJNW3IV25ZPjOmXyrTBA_dwzpo57znHNWU11s0"
   ]
 }
 

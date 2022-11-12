@@ -1,0 +1,7 @@
+compilers:
+  carbon:
+    if: nightly
+    type: nightly
+    check_exe: bin/carbon-explorer --version
+    targets:
+      - trunk

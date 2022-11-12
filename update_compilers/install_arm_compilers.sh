@@ -54,8 +54,8 @@ install_arm() {
     declare -A PACKAGE_DIRS
     for package in packages/*.deb; do
         ar p "$package" data.tar.bz2 | tar jxvf - --strip-components 3 -C "${TEMP_DIR}" ./opt/arm/
-        mkdir -p $package-control
-        ar p "$package" control.tar.gz | tar zxvf - -C $package-control
+        mkdir -p "$package-control"
+        ar p "$package" control.tar.gz | tar zxvf - -C "$package-control"
         CTRL="$package-control/control"
         SUMS="$package-control/md5sums"
         PACKAGE_NAME=$(grep '^Package: ' "${CTRL}" | cut -d\  -f2-)
@@ -66,7 +66,7 @@ install_arm() {
     for package in packages/*.deb; do
         if [[ -x "$package-control/postinst" ]]; then
             CTRL="$package-control/control"
-            UARCH=$(grep '^Microarch: ' "${CTRL}" | cut -d\  -f2- | tr A-Z a-z)
+            UARCH=$(grep '^Microarch: ' "${CTRL}" | cut -d\  -f2- | tr '[:upper:]' '[:lower:]')
             COMPILER=$(grep '^Depends: ' "${CTRL}" | cut -d\  -f2- | cut -d, -f1)
             PACKAGE_NAME=$(grep '^Package: ' "${CTRL}" | cut -d\  -f2-)
             # There's an imperfect mapping between the package names and the

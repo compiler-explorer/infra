@@ -27,6 +27,16 @@ compilers:
         - "1.16"
         - "1.17"
         - "1.18"
+        - "1.19"
+    tinygo:
+      type: tarballs
+      compression: gz
+      url: https://github.com/tinygo-org/tinygo/releases/download/v{name}/tinygo{name}.linux-amd64.tar.gz
+      check_exe: bin/tinygo version
+      dir: tinygo-{name}
+      untar_dir: tinygo
+      targets:
+        - 0.25.0
     nightly:
       if: nightly
       type: nightly

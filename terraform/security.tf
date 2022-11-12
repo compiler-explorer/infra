@@ -52,6 +52,16 @@ resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   description              = "Allow HTTP access from the ALB"
 }
 
+resource "aws_security_group_rule" "CE_GPUHttpFromAlb" {
+  security_group_id        = aws_security_group.CompilerExplorer.id
+  type                     = "ingress"
+  from_port                = 1081
+  to_port                  = 1081
+  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  protocol                 = "tcp"
+  description              = "Allow HTTP access from the ALB"
+}
+
 resource "aws_security_group_rule" "CE_HttpsFromAlb" {
   security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
@@ -67,6 +77,16 @@ resource "aws_security_group_rule" "CE_ConanHttpsFromAlb" {
   type                     = "ingress"
   from_port                = 1443
   to_port                  = 1443
+  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  protocol                 = "tcp"
+  description              = "Allow HTTPS access from the ALB"
+}
+
+resource "aws_security_group_rule" "CE_GPUHttpsFromAlb" {
+  security_group_id        = aws_security_group.CompilerExplorer.id
+  type                     = "ingress"
+  from_port                = 1444
+  to_port                  = 1444
   source_security_group_id = aws_security_group.CompilerExplorerAlb.id
   protocol                 = "tcp"
   description              = "Allow HTTPS access from the ALB"
@@ -97,6 +117,17 @@ resource "aws_security_group_rule" "ALB_ConanHttpsFromAnywhere" {
   type              = "ingress"
   from_port         = 1443
   to_port           = 1443
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "tcp"
+  description       = "Allow HTTPS access from anywhere"
+}
+
+resource "aws_security_group_rule" "ALB_GPUHttpsFromAnywhere" {
+  security_group_id = aws_security_group.CompilerExplorerAlb.id
+  type              = "ingress"
+  from_port         = 1444
+  to_port           = 1444
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
   protocol          = "tcp"
@@ -219,7 +250,7 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
       "dynamodb:Scan",
       "dynamodb:Query"
     ]
-    resources = [aws_dynamodb_table.links.arn]
+    resources = [aws_dynamodb_table.links.arn,aws_dynamodb_table.gpulinks.arn]
   }
   statement {
     sid       = "S3AccessSid"
@@ -308,26 +339,6 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   description              = "Allow port 3000 access from the ALB"
 }
 
-resource "aws_security_group_rule" "nsolid" {
-  security_group_id        = aws_security_group.AdminNode.id
-  type                     = "ingress"
-  from_port                = 9001
-  to_port                  = 9003
-  source_security_group_id = aws_security_group.CompilerExplorer.id
-  protocol                 = "tcp"
-  description              = "Let nodes talk to nsolid console"
-}
-
-resource "aws_security_group_rule" "nsolid_console" {
-  security_group_id = aws_security_group.AdminNode.id
-  type              = "ingress"
-  from_port         = 6753
-  to_port           = 6753
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
-  protocol          = "tcp"
-  description       = "Allow access to the nsolid console from the ALB"
-}
-
 resource "aws_security_group" "Builder" {
   vpc_id      = module.ce_network.vpc.id
   name        = "BuilderNodeSecGroup"
@@ -384,6 +395,7 @@ data "aws_iam_policy_document" "CeBuilderStorageAccess" {
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
       "${aws_s3_bucket.compiler-explorer.arn}/dist/*",
+      "${aws_s3_bucket.ce-cdn-net.arn}/*",
     ]
   }
   statement {
@@ -495,6 +507,7 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_mana
     "CloudWatchFullAccess" : true,
     "AmazonDynamoDBFullAccess" : true,
     "AmazonSSMReadOnlyAccess" : true,
+    "service-role/AWSQuicksightAthenaAccess" : true,
   }
   role       = aws_iam_role.CompilerExplorerAdminNode.name
   policy_arn = "arn:aws:iam::aws:policy/${each.key}"

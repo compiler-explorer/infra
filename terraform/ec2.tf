@@ -1,8 +1,9 @@
 locals {
-  runner_image_id  = "ami-036ac7864e15d2cdd"
+  runner_image_id  = "ami-0cc6fd5f52bd05b88"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
-  admin_subnet = module.ce_network.subnet["1a"].id
+  gpu_image_id     = "ami-01d05f46623827076"
+  admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
 resource "aws_instance" "AdminNode" {
@@ -79,6 +80,7 @@ resource "aws_instance" "BuilderNode" {
   vpc_security_group_ids      = [aws_security_group.Builder.id]
   associate_public_ip_address = true
   source_dest_check           = false
+  user_data                   = "builder"
 
   root_block_device {
     volume_type           = "gp2"
@@ -126,5 +128,37 @@ resource "aws_instance" "CERunner" {
 
   tags = {
     Name = "CERunner"
+  }
+}
+
+resource "aws_instance" "GPUNode" {
+  ami                         = local.gpu_image_id
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
+  ebs_optimized               = false
+  instance_type               = "g4dn.xlarge"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+  user_data                   = "gpu"
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 24
+    delete_on_termination = false
+  }
+
+  tags = {
+    Site        = "CompilerExplorer"
+    Name        = "GPUNode"
   }
 }

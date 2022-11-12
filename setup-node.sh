@@ -55,10 +55,21 @@ apt-get install -y \
     xz-utils
 
 pushd /tmp
-git clone https://github.com/apmorton/firejail.git
-cd firejail
+git clone https://github.com/apmorton/firejail.git firejail-apmorton
+cd firejail-apmorton
 git checkout 0.9.58.2-ce-patch.1
-./configure --enable-apparmor
+./configure --enable-apparmor --prefix /usr/local/firejail-0.9.58.2-ce-patch.1
+make "-j$(nproc)"
+make install
+popd
+
+ln -s /usr/local/firejail-0.9.58.2-ce-patch.1/bin/firejail /usr/local/bin
+
+pushd /tmp
+git clone https://github.com/netblue30/firejail.git
+cd firejail
+git checkout 0.9.70
+./configure --enable-apparmor --prefix /usr/local/firejail-0.9.70
 make "-j$(nproc)"
 make install
 popd
@@ -73,21 +84,10 @@ popd
 
 pushd /opt
 # node.js
-TARGET_NODE_VERSION=v16.13.1
+TARGET_NODE_VERSION=v16.17.1
 echo "Installing node ${TARGET_NODE_VERSION}"
-curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.gz" | tar zxf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
+curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
 popd
-
-# nsolid
-mkdir /tmp/nsolid
-pushd /tmp/nsolid
-NSOLID_VERSION=4.7.1
-curl -sL https://s3-us-west-2.amazonaws.com/nodesource-public-downloads/4.7.1/artifacts/bundles/nsolid-bundle-v${NSOLID_VERSION}-linux-x64.tar.gz | tar zxf - --strip-components 2
-
-mkdir /opt/nsolid
-tar zxf nsolid-v${NSOLID_VERSION}-gallium-linux-x64.tar.gz --strip-components 1 -C /opt/nsolid
-popd
-rm -rf /tmp/nsolid
 
 cp nginx/nginx.conf /etc/nginx/nginx.conf
 systemctl restart nginx

@@ -9,16 +9,14 @@ import paramiko
 import requests
 from requests.exceptions import ConnectTimeout
 
-logger = logging.getLogger('ssh')
+logger = logging.getLogger("ssh")
 
 
 @functools.lru_cache()
 def running_on_ec2():
     logger.debug("Checking to see if running on ec2...")
     try:
-        result = requests.get(
-            'http://169.254.169.254/latest/dynamic/instance-identity/document',
-            timeout=2)
+        result = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document", timeout=2)
         logger.debug("Result %s", result)
         if result.ok and result.json():
             logger.debug("Running on ec2")
@@ -32,10 +30,9 @@ def running_on_ec2():
     return False
 
 
-def can_ssh_to(instance) -> bool:
-    if running_on_ec2():
-        return True
-    return instance.instance.public_ip_address is True
+def can_ssh_to(_instance) -> bool:
+    # We now restrict all ingress to nodes from outside ec2
+    return running_on_ec2()
 
 
 def ssh_address_for(instance):
@@ -48,13 +45,12 @@ def ssh_address_for(instance):
 
 def run_remote_shell(instance, use_mosh: bool = False):
     logger.debug("Running remote shell on %s", instance)
-    ssh_command = 'ssh -o ConnectTimeout=5 ' \
-                  '-o UserKnownHostsFile=/dev/null ' \
-                  '-o StrictHostKeyChecking=no -o ' \
-                  'LogLevel=ERROR'
+    ssh_command = (
+        "ssh -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR"
+    )
     if use_mosh:
-        ssh_command = f'mosh --ssh=\'{ssh_command}\''
-    os.system(f'{ssh_command} ubuntu@{ssh_address_for(instance)}')
+        ssh_command = f"mosh --ssh='{ssh_command}'"
+    os.system(f"{ssh_command} ubuntu@{ssh_address_for(instance)}")
 
 
 def exec_remote(instance, command, ignore_errors: bool = False):
@@ -63,8 +59,8 @@ def exec_remote(instance, command, ignore_errors: bool = False):
     with ssh_client_for(instance) as client:
         (stdin, stdout, stderr) = client.exec_command(command)
         stdin.close()
-        stdout_text = stdout.read().decode('utf-8')
-        stderr_text = stderr.read().decode('utf-8')
+        stdout_text = stdout.read().decode("utf-8")
+        stderr_text = stderr.read().decode("utf-8")
         status = stdout.channel.recv_exit_status()
         if status == 0 or ignore_errors:
             return stdout_text
@@ -99,7 +95,9 @@ def ssh_client_for(instance) -> paramiko.SSHClient:
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    client.connect(hostname=ssh_address_for(instance), username='ubuntu', timeout=5)
+    client.connect(
+        hostname=ssh_address_for(instance), username="ubuntu", timeout=0.2, banner_timeout=0.2, auth_timeout=0.2
+    )
     return client
 
 

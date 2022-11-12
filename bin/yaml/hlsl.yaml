@@ -1,0 +1,26 @@
+compilers:
+  hlsl:
+    dxc:
+      type: s3tarballs
+      check_exe: bin/dxc --version
+      targets:
+        - "1.7.2207"
+        - "1.6.2112"
+      nightly:
+        if: nightly
+        type: nightly
+        targets:
+          - name: trunk
+            compiler_name: dxc
+    rga:
+      type: tarballs
+      url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/{name}/rga-linux-{name}.tgz
+      compression: gz
+      dir: rga-{name}.{extra_number} # The folder inside has an additional build number
+      check_exe: rga --version
+      strip_components: 1
+      targets:
+        - name: 2.6.2
+          extra_number: 38
+        - name: 2.6.1
+          extra_number: 23
