@@ -22,7 +22,6 @@ build_cpp_libraries() {
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
-        -e 'LOGSPOUT=ignore' \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
         bash "${COMMAND}" "c++" "all" "all"
@@ -38,7 +37,6 @@ build_rust_libraries() {
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
-        -e 'LOGSPOUT=ignore' \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
         bash "${COMMAND}" "rust" "all" "all"
