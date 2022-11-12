@@ -12,6 +12,24 @@ ce builder start
 
 BUILD_FAILED=0
 
+init_logspout() {
+    local LOG_DEST_HOST
+    LOG_DEST_HOST=$(aws ssm get-parameter --name /compiler-explorer/logHost | jq -r .Parameter.Value)
+    local LOG_DEST_PORT
+    LOG_DEST_PORT=$(aws ssm get-parameter --name /compiler-explorer/logPort | jq -r .Parameter.Value)
+
+    ce builder exec -- sudo docker pull gliderlabs/logspout:latest
+
+    ce builder exec -- sudo docker stop logspout || true
+    ce builder exec -- sudo docker rm logspout || true
+
+    ce builder exec -- sudo docker run --name logspout \
+        -d \
+        -v=/var/run/docker.sock:/tmp/docker.sock \
+        -e SYSLOG_HOSTNAME=librarybuilder \
+        gliderlabs/logspout "syslog+tls://${LOG_DEST_HOST}:${LOG_DEST_PORT}"
+}
+
 build_cpp_libraries() {
     local BUILD_NAME=librarycpp
     local COMMAND=build.sh
@@ -42,6 +60,7 @@ build_rust_libraries() {
         bash "${COMMAND}" "rust" "all" "all"
 }
 
+init_logspout
 build_cpp_libraries
 build_rust_libraries
 
