@@ -226,7 +226,7 @@ def save_event_file(cfg: Config, contents: str):
         Body=contents,
         ACL="public-read",
         CacheControl="public, max-age=60",
-        ContentType="application/json"
+        ContentType="application/json",
     )
 
 
@@ -361,7 +361,7 @@ def put_bouncelock_file(cfg: Config):
         Body="",
         ACL="public-read",
         CacheControl="public, max-age=60",
-        ContentType="text/plain"
+        ContentType="text/plain",
     )
 
 
@@ -378,15 +378,12 @@ def has_bouncelock_file(cfg: Config):
 
 
 def notify_file_name():
-    return 'ce-notify-file'
+    return "ce-notify-file"
 
 
 def has_notify_file():
     try:
-        s3_client.head_object(
-            Bucket='compiler-explorer',
-            Key=notify_file_name()
-        )
+        s3_client.head_object(Bucket="compiler-explorer", Key=notify_file_name())
         return True
     except (s3_client.exceptions.NoSuchKey, botocore.exceptions.ClientError):
         return False
@@ -394,19 +391,12 @@ def has_notify_file():
 
 def put_notify_file(body: str):
     s3_client.put_object(
-        Bucket='compiler-explorer',
-        Key=notify_file_name(),
-        Body=body,
-        ACL='public-read',
-        ContentType='text/plain'
+        Bucket="compiler-explorer", Key=notify_file_name(), Body=body, ACL="public-read", ContentType="text/plain"
     )
 
 
 def delete_notify_file():
-    s3_client.delete_object(
-        Bucket='compiler-explorer',
-        Key=notify_file_name()
-    )
+    s3_client.delete_object(Bucket="compiler-explorer", Key=notify_file_name())
 
 
 def set_current_notify(sha: str):
@@ -416,10 +406,7 @@ def set_current_notify(sha: str):
 
 def get_current_notify():
     try:
-        o = s3_client.get_object(
-            Bucket='compiler-explorer',
-            Key=notify_file_name()
-        )
-        return o['Body'].read().decode("utf-8")
+        o = s3_client.get_object(Bucket="compiler-explorer", Key=notify_file_name())
+        return o["Body"].read().decode("utf-8")
     except s3_client.exceptions.NoSuchKey:
         return None

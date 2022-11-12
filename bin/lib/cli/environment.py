@@ -2,8 +2,14 @@ import time
 
 import click
 
-from lib.amazon import get_autoscaling_groups_for, as_client, get_current_release, get_current_notify, get_ssm_param, \
-    delete_notify_file
+from lib.amazon import (
+    get_autoscaling_groups_for,
+    as_client,
+    get_current_release,
+    get_current_notify,
+    get_ssm_param,
+    delete_notify_file,
+)
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
@@ -57,7 +63,7 @@ def environment_start(cfg: Config):
     help="Set the message of the day used during refresh",
     show_default=True,
 )
-@click.option('--notify/--no-notify', help='Send GitHub notifications for newly released PRs', default=True)
+@click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs", default=True)
 @click.pass_obj
 def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, notify: bool):
     """Refreshes an environment.

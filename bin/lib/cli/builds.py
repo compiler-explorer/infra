@@ -28,7 +28,7 @@ from lib.amazon import (
     put_bouncelock_file,
     delete_bouncelock_file,
     has_bouncelock_file,
-    set_current_notify
+    set_current_notify,
 )
 from lib.cdn import DeploymentJob
 from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action

@@ -89,7 +89,8 @@ def get_linked_pr(commit: str, token: str) -> dict:
 
 
 def get_linked_issues(pr: str, token: str):
-    query = """
+    query = (
+        """
 query {
   repository(owner: "compiler-explorer", name: "compiler-explorer") {
     pullRequest(number: %s) {
@@ -110,7 +111,9 @@ query {
     }
   }
 }
-    """ % pr
+    """
+        % pr
+    )
     return post("graphql", token, {"query": query})
 
 
@@ -150,16 +153,17 @@ def should_process_pr(pr_labels):
 
 def should_notify_issue(edge) -> bool:
     """We want to notify the issue if:
-       - there's one linked ("number" in edge) AND
-       - either:
-         - the linked issue has no labels ("labels" not in edge["node"]) OR
-         - the NOW_LIVE_LABEL label is not among its labels"""
-    return "number" in edge and (("labels" not in edge) or all(
-        [label["node"]["name"] != NOW_LIVE_LABEL for label in edge["labels"]["edges"]]))
+    - there's one linked ("number" in edge) AND
+    - either:
+      - the linked issue has no labels ("labels" not in edge["node"]) OR
+      - the NOW_LIVE_LABEL label is not among its labels"""
+    return "number" in edge and (
+        ("labels" not in edge) or all([label["node"]["name"] != NOW_LIVE_LABEL for label in edge["labels"]["edges"]])
+    )
 
 
 def handle_notify(base, new, token):
-    print(f'Checking for live notifications from {base} to {new}')
+    print(f"Checking for live notifications from {base} to {new}")
 
     commits = list_inbetween_commits(base, new, token)
     prs = [get_linked_pr(commit["sha"], token) for commit in commits]
@@ -176,7 +180,7 @@ def handle_notify(base, new, token):
                 edge = issues_edges[0]["node"]
                 if should_notify_issue(edge):
                     print(f"Notifying issue {edge['number']}")
-                    send_live_message(edge['number'], token)
+                    send_live_message(edge["number"], token)
                 else:
                     print(f"Skipping notifying issue {edge['number']}")
             else:
