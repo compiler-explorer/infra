@@ -31,8 +31,8 @@ def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
         result = urllib.request.urlopen(req)
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
-    except Exception:
-        raise RuntimeError(f"Error while posting {entity}")
+    except Exception as exec:
+        raise RuntimeError(f"Error while posting {entity}") from exec
 
 
 def get(entity: str, token: str, query: dict = None) -> dict:
@@ -56,8 +56,8 @@ def get(entity: str, token: str, query: dict = None) -> dict:
         result = urllib.request.urlopen(req)
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
-    except Exception as e:
-        raise RuntimeError(f"Error while getting {entity}")
+    except Exception as exec:
+        raise RuntimeError(f"Error while getting {entity}") from exec
 
 
 def paginated_get(entity: str, token: str, query: dict = None) -> List[dict]:
