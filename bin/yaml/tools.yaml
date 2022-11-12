@@ -9,7 +9,7 @@ tools:
     check_exe: bin/cmake --help
     symlink: cmake
     targets:
-      - 3.25.0-rc4
+      - 3.24.3
   pvs-studio:
     if:
       - non-free
