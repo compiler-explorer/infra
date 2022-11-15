@@ -29,7 +29,8 @@ compilers:
         - "2.18"
         - "2.19"
     llvmmos:
-      type: tarballs
+      if: nightly
+      type: nightlytarballs
       compression: xz
       dir: llvm-mos-{name}
       check_exe: bin/clang --version
