@@ -56,29 +56,3 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   target_id        = aws_instance.ConanNode.id
   port             = 1080
 }
-
-// TODO remove me
-resource "aws_alb_target_group" "gpu" {
-  lifecycle {
-    create_before_destroy = true
-  }
-  name                 = "GPUGroup"
-  port                 = 1081
-  protocol             = "HTTP"
-  vpc_id               = module.ce_network.vpc.id
-  deregistration_delay = 15
-  health_check {
-    path                = "/healthcheck"
-    timeout             = 3
-    unhealthy_threshold = 3
-    healthy_threshold   = 2
-    interval            = 5
-    protocol            = "HTTP"
-  }
-}
-
-resource "aws_alb_target_group_attachment" "CEGPUServerTargetInstance" {
-  target_group_arn = aws_alb_target_group.gpu.id
-  target_id        = aws_instance.GPUNode.id
-  port             = 1081
-}
