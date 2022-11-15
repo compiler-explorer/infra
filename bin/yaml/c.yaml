@@ -28,6 +28,15 @@ compilers:
         - "2.17"
         - "2.18"
         - "2.19"
+    llvmmos:
+      type: tarballs
+      compression: xz
+      dir: llvm-mos-{name}
+      check_exe: bin/clang --version
+      url: https://github.com/llvm-mos/llvm-mos-sdk/releases/latest/download/llvm-mos-linux.tar.xz
+      untar_dir: llvm-mos
+      targets:
+        - trunk
     gcc:
       type: s3tarballs
       check_exe: bin/gcc -v
