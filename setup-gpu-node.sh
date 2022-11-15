@@ -4,7 +4,7 @@ set -exuo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-"${DIR}/setup-node.sh"
+bash "${DIR}/setup-node.sh"
 
 # setup nvidia drivers https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-nouveau-ubuntu
 
@@ -17,4 +17,4 @@ echo -e "blacklist nouveau\noptions nouveau modeset=0\n" > /etc/modprobe.d/black
 update-initramfs -u
 
 # script from https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-verifications
-./setup-gpu-node-devices.sh
+"${DIR}/setup-gpu-node-devices.sh"
