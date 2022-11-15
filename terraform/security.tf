@@ -52,6 +52,7 @@ resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   description              = "Allow HTTP access from the ALB"
 }
 
+// TODO remove these
 resource "aws_security_group_rule" "CE_GPUHttpFromAlb" {
   security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
@@ -250,7 +251,7 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
       "dynamodb:Scan",
       "dynamodb:Query"
     ]
-    resources = [aws_dynamodb_table.links.arn,aws_dynamodb_table.gpulinks.arn]
+    resources = [aws_dynamodb_table.links.arn]
   }
   statement {
     sid       = "S3AccessSid"

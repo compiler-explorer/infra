@@ -2,7 +2,7 @@ locals {
   runner_image_id  = "ami-0cc6fd5f52bd05b88"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
-  gpu_image_id     = "ami-01d05f46623827076"
+  gpu_image_id_old     = "ami-01d05f46623827076"
   admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
@@ -131,8 +131,9 @@ resource "aws_instance" "CERunner" {
   }
 }
 
+// TODO remove this
 resource "aws_instance" "GPUNode" {
-  ami                         = local.gpu_image_id
+  ami                         = local.gpu_image_id_old
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
   instance_type               = "g4dn.xlarge"
