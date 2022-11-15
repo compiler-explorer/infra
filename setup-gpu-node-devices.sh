@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 if /sbin/modprobe nvidia; then
   # Count the number of NVIDIA controllers found.
   NVDEVS=$(lspci | grep -i NVIDIA)
