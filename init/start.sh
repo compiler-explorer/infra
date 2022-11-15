@@ -8,7 +8,7 @@ CE_USER=ce
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_ARG=
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
-CE_PROP_ENV=amazon
+CE_PROP_ENV=--env amazon
 
 echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
@@ -111,7 +111,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     --suppressConsoleLog \
     --logHost "${LOG_DEST_HOST}" \
     --logPort "${LOG_DEST_PORT}" \
-    --env ${CE_PROP_ENV} \
+    ${CE_PROP_ENV} \
     --port 10240 \
     --metricsPort 10241 \
     --loki "http://127.0.0.1:3500" \

@@ -1,3 +1,4 @@
+// TODO delete me
 resource "aws_cloudfront_distribution" "gpu-compiler-explorer-com" {
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"

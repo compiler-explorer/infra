@@ -4,6 +4,7 @@ variable "ce-target-groups" {
     "prod"    = 1
     "staging" = 2
     "beta"    = 3
+    "gpu"     = 4
   }
 }
 
@@ -56,6 +57,7 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   port             = 1080
 }
 
+// TODO remove me
 resource "aws_alb_target_group" "gpu" {
   lifecycle {
     create_before_destroy = true

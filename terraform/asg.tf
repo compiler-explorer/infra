@@ -3,6 +3,9 @@ locals {
   // As of Oct 3 2022, startups started taking >2m
   grace_period = 160
   cooldown     = 180
+  // Current c5 on-demand price is 0.085. Yearly pre-pay is 0.05 (so this is same as prepaying a year)
+  // Historically we pay ~ 0.035
+  spot_price        = "0.05"
 }
 
 
@@ -124,4 +127,24 @@ resource "aws_autoscaling_group" "staging" {
   vpc_zone_identifier = local.subnets
 
   target_group_arns = [aws_alb_target_group.ce["staging"].arn]
+}
+
+resource "aws_autoscaling_group" "gpu" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  default_cooldown          = local.cooldown
+  health_check_grace_period = local.grace_period
+  health_check_type         = "ELB"
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-prod-gpu.id
+    version = "$Latest"
+  }
+  max_size            = 2
+  min_size            = 0
+  name                = "gpu"
+  vpc_zone_identifier = local.subnets
+
+  target_group_arns = [aws_alb_target_group.ce["gpu"].arn]
 }
