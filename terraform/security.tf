@@ -52,17 +52,6 @@ resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   description              = "Allow HTTP access from the ALB"
 }
 
-// TODO remove these
-resource "aws_security_group_rule" "CE_GPUHttpFromAlb" {
-  security_group_id        = aws_security_group.CompilerExplorer.id
-  type                     = "ingress"
-  from_port                = 1081
-  to_port                  = 1081
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
-  protocol                 = "tcp"
-  description              = "Allow HTTP access from the ALB"
-}
-
 resource "aws_security_group_rule" "CE_HttpsFromAlb" {
   security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
@@ -78,16 +67,6 @@ resource "aws_security_group_rule" "CE_ConanHttpsFromAlb" {
   type                     = "ingress"
   from_port                = 1443
   to_port                  = 1443
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
-  protocol                 = "tcp"
-  description              = "Allow HTTPS access from the ALB"
-}
-
-resource "aws_security_group_rule" "CE_GPUHttpsFromAlb" {
-  security_group_id        = aws_security_group.CompilerExplorer.id
-  type                     = "ingress"
-  from_port                = 1444
-  to_port                  = 1444
   source_security_group_id = aws_security_group.CompilerExplorerAlb.id
   protocol                 = "tcp"
   description              = "Allow HTTPS access from the ALB"
@@ -118,17 +97,6 @@ resource "aws_security_group_rule" "ALB_ConanHttpsFromAnywhere" {
   type              = "ingress"
   from_port         = 1443
   to_port           = 1443
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "tcp"
-  description       = "Allow HTTPS access from anywhere"
-}
-
-resource "aws_security_group_rule" "ALB_GPUHttpsFromAnywhere" {
-  security_group_id = aws_security_group.CompilerExplorerAlb.id
-  type              = "ingress"
-  from_port         = 1444
-  to_port           = 1444
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
   protocol          = "tcp"
