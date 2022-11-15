@@ -137,14 +137,28 @@ resource "aws_autoscaling_group" "gpu" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  launch_template {
-    id      = aws_launch_template.CompilerExplorer-prod-gpu.id
-    version = "$Latest"
-  }
   max_size            = 2
   min_size            = 0
   name                = "gpu"
   vpc_zone_identifier = local.subnets
+
+  mixed_instances_policy {
+    instances_distribution {
+      on_demand_allocation_strategy            = "prioritized"
+      // This base value is zero so we don't have any non-spot instances. We may wish to bump this if we have issues
+      // getting spot capacity.
+      on_demand_base_capacity                  = 0
+      on_demand_percentage_above_base_capacity = 0
+      spot_allocation_strategy                 = "lowest-price"
+      spot_instance_pools                      = 2
+    }
+    launch_template {
+      launch_template_specification {
+        launch_template_id = aws_launch_template.CompilerExplorer-prod-gpu.id
+        version            = "$Latest"
+      }
+    }
+  }
 
   target_group_arns = [aws_alb_target_group.ce["gpu"].arn]
 }
