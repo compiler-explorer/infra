@@ -8,7 +8,7 @@ CE_USER=ce
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_ARG=
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
-CE_PROP_ENV=--env amazon
+CE_PROP_ENV="--env amazon"
 
 echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
