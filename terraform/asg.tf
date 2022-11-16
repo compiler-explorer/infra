@@ -160,5 +160,39 @@ resource "aws_autoscaling_group" "gpu" {
     }
   }
 
+  enabled_metrics = [
+    "GroupDesiredCapacity",
+    "GroupInServiceCapacity",
+    "GroupInServiceInstances",
+    "GroupMaxSize",
+    "GroupMinSize",
+    "GroupPendingCapacity",
+    "GroupPendingInstances",
+    "GroupStandbyCapacity",
+    "GroupStandbyInstances",
+    "GroupTerminatingCapacity",
+    "GroupTerminatingInstances",
+    "GroupTotalCapacity",
+    "GroupTotalInstances",
+  ]
+
   target_group_arns = [aws_alb_target_group.ce["gpu"].arn]
+}
+
+
+resource "aws_autoscaling_policy" "gpu" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  autoscaling_group_name    = aws_autoscaling_group.gpu.name
+  name                      = "cpu-tracker"
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = local.grace_period + 30
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 75.0
+  }
 }
