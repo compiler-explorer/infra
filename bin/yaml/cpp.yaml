@@ -776,15 +776,12 @@ compilers:
         - name: x86_64_22_7
           arch: x86_64
           version: "22.7"
-#        - name: aarch64_22_7
-#          arch: aarch64
-#          version: "22.7"
         - name: x86_64_22_9
           arch: x86_64
           version: "22.9"
-#        - name: aarch64_22_9
-#          arch: aarch64
-#          version: "22.9"
+        - name: x86_64_22_11
+          arch: x86_64
+          version: "22.11"
     nightly:
       if: nightly
       gcc:
