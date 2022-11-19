@@ -42,7 +42,7 @@ build_cpp_libraries() {
         -v/opt:/opt:ro \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
-        bash "${COMMAND}" "c++" "all" "all"
+        bash "${COMMAND}" "c++" "all" "all" || true
 }
 
 build_rust_libraries() {
@@ -57,7 +57,7 @@ build_rust_libraries() {
         -v/opt:/opt:ro \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
-        bash "${COMMAND}" "rust" "all" "all"
+        bash "${COMMAND}" "rust" "all" "all" || true
 }
 
 init_logspout
