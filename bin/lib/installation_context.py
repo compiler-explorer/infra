@@ -173,6 +173,7 @@ class InstallationContext:
             _LOGGER.info("Removing %s", directory)
 
     def check_link(self, source: str, link: str) -> bool:
+        _LOGGER.debug("check link %s", link)
         try:
             link = self.read_link(link)
             _LOGGER.debug("readlink returned %s", link)
