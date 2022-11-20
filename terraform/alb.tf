@@ -27,6 +27,7 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   protocol          = "HTTP"
 }
 
+// TODO clean this repetition up
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-beta" {
   priority = 1
   action {
@@ -51,6 +52,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
     path_pattern {
       values = [
         "/staging*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-gpu" {
+  priority = 3
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["gpu"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/gpu*"
       ]
     }
   }
@@ -101,6 +118,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
 
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
+  priority = 3
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["gpu"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/gpu*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
+
 
 resource "aws_alb_listener" "ceconan-alb-listen-http" {
   default_action {
@@ -137,7 +170,7 @@ resource "aws_alb_target_group_attachment" "lambda-stats-endpoint" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
-  priority = 3
+  priority = 4
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.lambda.arn
@@ -167,27 +200,4 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
     }
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-}
-
-resource "aws_alb_listener" "gpu-alb-listen-http" {
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.gpu.arn
-  }
-
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
-  port              = 1081
-  protocol          = "HTTP"
-}
-
-resource "aws_alb_listener" "gpu-alb-listen-https" {
-  default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.gpu.arn
-  }
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
-  port              = 1444
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2015-05"
-  certificate_arn   = data.aws_acm_certificate.godbolt-org-et-al.arn
 }

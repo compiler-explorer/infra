@@ -6,6 +6,7 @@ class Environment(Enum):
     PROD = "prod"
     BETA = "beta"
     STAGING = "staging"
+    GPU = "gpu"
     RUNNER = "runner"
 
 

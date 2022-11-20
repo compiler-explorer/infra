@@ -26,6 +26,9 @@ compiler:
     cshared:
         version: ANY
         libcxx: ANY
+    llvmmos:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 

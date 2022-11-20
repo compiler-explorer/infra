@@ -744,8 +744,6 @@ compilers:
       dir: hpc_sdk/Linux_{arch}/{version}
       check_stderr_on_stdout: true
       check_exe: compilers/bin/nvc++ --version
-      fetch:
-        - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{{version|replace(".","")}}_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
       script: |
         mkdir -p "nvhpc_sdk_{version}_{arch}";
         tar -f "nvhpc_sdk_{version}_{arch}.tar.gz" -C "nvhpc_sdk_{version}_{arch}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
@@ -776,15 +774,21 @@ compilers:
         - name: x86_64_22_7
           arch: x86_64
           version: "22.7"
-#        - name: aarch64_22_7
-#          arch: aarch64
-#          version: "22.7"
+          dot_removed_version: "227"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{dot_removed_version}_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
         - name: x86_64_22_9
           arch: x86_64
           version: "22.9"
-#        - name: aarch64_22_9
-#          arch: aarch64
-#          version: "22.9"
+          dot_removed_version: "229"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{dot_removed_version}_Linux_{arch}_cuda_11.7.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_22_11
+          arch: x86_64
+          version: "22.11"
+          dot_removed_version: "2211"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{dot_removed_version}_Linux_{arch}_cuda_11.8.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
     nightly:
       if: nightly
       gcc:
