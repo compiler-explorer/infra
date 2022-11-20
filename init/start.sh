@@ -87,6 +87,11 @@ install_asmparser() {
     cp /opt/compiler-explorer/asm-parser/asm-parser /usr/local/bin
 }
 
+install_ninja() {
+    rm -f /usr/local/bin/ninja
+    cp /opt/compiler-explorer/ninja/ninja /usr/local/bin
+}
+
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
@@ -96,6 +101,7 @@ cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
 mount_opt
 update_code
 install_asmparser
+install_ninja
 
 cd "${DEPLOY_DIR}"
 
