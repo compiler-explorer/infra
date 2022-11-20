@@ -5,7 +5,7 @@ from typing import Sequence
 import click
 import boto3
 import botocore.exceptions
-from lib.env import EnvironmentNoProd, EnvironmentNoRunner
+from lib.env import Environment
 
 from lib.instance import RunnerInstance
 from lib.ssh import get_remote_file, run_remote_shell, exec_remote, exec_remote_to_stdout
@@ -58,7 +58,9 @@ _S3_CONFIG = dict(ACL="public-read", StorageClass="REDUCED_REDUNDANCY")
 
 
 @runner.command(name="uploaddiscovery")
-@click.argument("environment", required=True, type=click.Choice([env.value for env in EnvironmentNoRunner]))
+@click.argument(
+    "environment", required=True, type=click.Choice([env.value for env in Environment if env != Environment.RUNNER])
+)
 @click.argument("version", required=True)
 def runner_uploaddiscovery(environment: str, version: str):
     """Execute compiler discovery on the builder instance."""
@@ -82,7 +84,7 @@ def runner_discoveryexists(environment: str, version: str):
 
 
 @runner.command(name="safeforprod")
-@click.argument("environment", required=True, type=click.Choice([env.value for env in EnvironmentNoProd]))
+@click.argument("environment", required=True, type=click.Choice([env.value for env in Environment if not env.is_prod]))
 @click.argument("version", required=True)
 def runner_safeforprod(environment: str, version: str):
     """Mark discovery file as safe to use on production."""

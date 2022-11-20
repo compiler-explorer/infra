@@ -9,16 +9,13 @@ class Environment(Enum):
     GPU = "gpu"
     RUNNER = "runner"
 
+    @property
+    def keep_builds(self):
+        return self in (Environment.PROD, Environment.BETA, Environment.STAGING, Environment.GPU)
 
-class EnvironmentNoRunner(Enum):
-    PROD = "prod"
-    BETA = "beta"
-    STAGING = "staging"
-
-
-class EnvironmentNoProd(Enum):
-    BETA = "beta"
-    STAGING = "staging"
+    @property
+    def is_prod(self):
+        return self in (Environment.PROD, Environment.GPU)
 
 
 @dataclass(frozen=True)
