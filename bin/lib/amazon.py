@@ -184,7 +184,7 @@ def get_current_key(cfg: Config) -> Optional[str]:
 
 def get_all_current() -> List[str]:
     versions = []
-    for branch in ["release", "beta", "staging"]:
+    for branch in [env.value for env in Environment if env.keep_builds]:
         try:
             o = s3_client.get_object(Bucket="compiler-explorer", Key="version/{}".format(branch))
             versions.append(o["Body"].read().decode("utf-8").strip())
