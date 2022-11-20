@@ -49,6 +49,7 @@ class Installable:
         self.install_path = ""
         self.after_stage_script = self.config_get("after_stage_script", [])
         self._logger = logging.getLogger(self.name)
+        self.install_path_symlink = self.config_get("symlink", False)
 
     def to_json_dict(self) -> Dict[str, Any]:
         return {key: value for key, value in self.__dict__.items() if isinstance(value, SimpleJsonType)}
