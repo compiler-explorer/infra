@@ -1686,6 +1686,10 @@ libraries:
       - 7.0.0
       - 7.6.0
       - 8.0.3
+      - 8.0.5
+      - 8.1.0
+      - 9.0.0
+      - 9.0.1
       type: github
     xtensor:
       check_file: README.md
