@@ -708,6 +708,14 @@ compilers:
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18717/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
+        - name: 2022.2.0.8772
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/18849/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2022.2.1.16991
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/19049/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
     intel-fortran:
       type: script
       dir: "intel-fortran-{name}"
@@ -738,6 +746,14 @@ compilers:
         - name: 2022.1.0.134
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18703/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2022.2.0.8773
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/18909/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2022.2.1.16992
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/18998/l_fortran-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
     nvhpc-sdk:
       type: script
