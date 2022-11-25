@@ -5,5 +5,7 @@ compilers:
     untar_dir: Core_Root
     check_exe: .dotnet/dotnet --version
     targets:
-      - v6.0.11
+      - name: v6.0.11
+        check_env:
+          - DOTNET_CLI_HOME=/tmp
       - v7.0.0
