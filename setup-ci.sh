@@ -7,4 +7,4 @@ set -exuo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${DIR}"
 
-env EXTRA_NFS_ARGS="" MAKE_CONFIG_SUFFIX="-ci" "${DIR}/setup-common.sh"
+env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh" ci
