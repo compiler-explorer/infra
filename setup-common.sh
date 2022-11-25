@@ -4,7 +4,6 @@ set -exuo pipefail
 
 INSTALL_TYPE=${1:-non-ci}
 
-cock
 # https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
 wait_for_apt() {
   while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
