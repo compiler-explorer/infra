@@ -105,7 +105,7 @@ LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
 
 mkdir -p /etc/grafana
 cp /infra/grafana/agent.yaml /etc/grafana/agent.yaml.tpl
-cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
+cp "/infra/grafana/make-config${MAKE_CONFIG_SUFFIX:-}.sh" /etc/grafana/make-config.sh
 cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
 systemctl daemon-reload
 systemctl enable grafana-agent
