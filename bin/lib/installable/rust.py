@@ -46,7 +46,7 @@ class RustInstallable(Installable):
         untar_to = staging.path / "__temp_install__"
         self.install_context.fetch_url_and_pipe_to(staging, url, ["tar", "zxf", "-", "--strip-components=1"], untar_to)
         self.install_context.stage_command(
-            staging, ["./install.sh", f"--prefix={install_to}", "--verbose", "--without=rust-docs"], cwd=untar_to
+            staging, ["./install.sh", f"--prefix={install_to}", "--verbose"], cwd=untar_to
         )
         self.install_context.remove_dir(untar_to)
 
