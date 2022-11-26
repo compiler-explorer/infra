@@ -5,7 +5,9 @@ compilers:
     untar_dir: Core_Root
     check_exe: .dotnet/dotnet --version
     targets:
-      - trunk
+      - name: trunk
+        if: nightly
+        always_install: true
       - v7.0.0
       - name: v6.0.11
         check_env:
