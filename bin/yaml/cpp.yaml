@@ -839,6 +839,7 @@ compilers:
           - p1061-trunk
           - reflection-trunk
           - rocm-trunk
+          - ce-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:
