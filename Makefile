@@ -50,7 +50,7 @@ packer-builder: config.json  ## Builds the base image for the CE builder
 
 .PHONY: clean
 clean:  ## Cleans up anything
-	rm -rf $(POETRY)
+	rm -rf $(POETRY_HOME)
 
 .PHONY: update-admin
 update-admin:  ## Updates the admin website
