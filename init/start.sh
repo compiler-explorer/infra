@@ -89,7 +89,7 @@ install_asmparser() {
 
 install_ninja() {
     rm -f /usr/local/bin/ninja
-    cp /opt/compiler-explorer/ninja/ninja /usr/local/bin
+    cp "$(readlink -f /opt/compiler-explorer/ninja/ninja)" /usr/local/bin
 }
 
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
