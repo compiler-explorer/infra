@@ -7,7 +7,6 @@ compilers:
     targets:
       - name: trunk
         if: nightly
-        untar_dir: Core_Root
         type: nightly
       - v7.0.0
       - name: v6.0.11
