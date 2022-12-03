@@ -1000,9 +1000,10 @@ libraries:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        path_name: libs/folly
         repo: facebook/folly
         type: github
+        targets:
+        - trunk
       glm:
         build_type: none
         check_file: readme.md
