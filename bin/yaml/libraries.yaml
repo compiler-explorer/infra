@@ -2013,6 +2013,11 @@ libraries:
       targets:
       - 0.8.8
       type: cratesio
+    color-eyre:
+      build_type: cargo
+      targets:
+      - 0.6.2
+      type: cratesio
     digest:
       build_type: cargo
       targets:
@@ -2027,6 +2032,11 @@ libraries:
       build_type: cargo
       targets:
       - 0.9.0
+      type: cratesio
+    eyre:
+      build_type: cargo
+      targets:
+      - 0.6.8
       type: cratesio
     fnv:
       build_type: cargo
