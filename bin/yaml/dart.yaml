@@ -20,3 +20,8 @@ compilers:
       - 2.10.5
       - 2.9.3
       - 2.8.4
+    nightly:
+      if: nightly
+      url: https://storage.googleapis.com/dart-archive/channels/{name}/release/latest/sdk/dartsdk-linux-x64-release.zip
+      targets:
+        - dev
