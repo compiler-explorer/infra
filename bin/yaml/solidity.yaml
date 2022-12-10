@@ -11,3 +11,11 @@ compilers:
       - 0.6.12
       - 0.7.6
       - 0.8.21
+  solidity_zkevm:
+    type: solidity-zkevm
+    dir: zksolc-{name}
+    url: https://github.com/matter-labs/zksolc-bin/blob/main/linux-amd64
+    filename: zksolc
+    check_exe: zksolc --version
+    targets:
+      - 1.2.1
