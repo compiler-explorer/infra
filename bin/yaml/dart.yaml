@@ -22,6 +22,7 @@ compilers:
       - 2.8.4
     nightly:
       if: nightly
+      install_always: true
       url: https://storage.googleapis.com/dart-archive/channels/{name}/release/latest/sdk/dartsdk-linux-x64-release.zip
       targets:
         - dev
