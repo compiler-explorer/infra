@@ -89,9 +89,9 @@ def runner_discoveryexists(environment: str, version: str):
 
 def runner_check_discovery_json_contents(contents: str):
     if "/gpu/api" not in contents:
-        raise Exception("Discovery does not contain GPU instance compilers")
+        raise RuntimeError("Discovery does not contain GPU instance compilers")
     # if "godbolt.ms" not in contents:
-    #     raise Exception("Discovery does not contain MSVC instance compilers")
+    #     raise RuntimeError("Discovery does not contain MSVC instance compilers")
     print("Discovery json looks fine")
 
 
