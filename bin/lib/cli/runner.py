@@ -67,6 +67,10 @@ def runner_uploaddiscovery(environment: str, version: str):
     with NamedTemporaryFile(suffix=".json") as temp_json_file:
         get_remote_file(RunnerInstance.instance(), "/home/ce/discovered-compilers.json", temp_json_file.name)
         temp_json_file.seek(0)
+
+        runner_check_discovery_json_contents(temp_json_file.read().decode("utf-8"))
+        temp_json_file.seek(0)
+
         boto3.client("s3").put_object(
             Bucket="compiler-explorer", Key=_s3_key_for(environment, version), Body=temp_json_file, **_S3_CONFIG
         )
@@ -81,6 +85,22 @@ def runner_discoveryexists(environment: str, version: str):
             return False
         raise
     return True
+
+
+def runner_check_discovery_json_contents(contents: str):
+    if "/gpu/api" not in contents:
+        raise Exception("Discovery does not contain GPU instance compilers")
+    # if "godbolt.ms" not in contents:
+    #     raise Exception("Discovery does not contain MSVC instance compilers")
+    print("Discovery json looks fine")
+
+
+@runner.command(name="check_discovery_json")
+@click.argument("file", required=True)
+def runner_check_discovery_json(file: str):
+    """Check if a discovery json file contains all the right ingredients."""
+    with open(file, mode="r", encoding="utf-8") as f:
+        runner_check_discovery_json_contents(f.read())
 
 
 @runner.command(name="safeforprod")
