@@ -28,15 +28,22 @@ jobs:
     steps:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull
+      shell: bash
     - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+      shell: bash
     - name: Start runner
       run: ce runner start
+      shell: bash
     - name: Update infra on runner
       run: ce runner pull
+      shell: bash
     - name: Do Compiler discovery
       run: ce runner discovery
+      shell: bash
     - name: Upload discovered compilers
       run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} ${{ github.event.inputs.buildnumber }}
+      shell: bash
     - name: Shut down runner
       run: ce runner stop
+      shell: bash
