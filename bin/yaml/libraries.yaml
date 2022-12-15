@@ -759,6 +759,14 @@ libraries:
         targets:
         - trunk
         type: github
+      belleviews:
+        build_type: none
+        check_file: sources/belleviews.hpp
+        method: nightlyclone
+        repo: josuttis/belleviews
+        targets:
+        - trunk
+        type: github
       blaze:
         build_type: none
         check_file: LICENSE
