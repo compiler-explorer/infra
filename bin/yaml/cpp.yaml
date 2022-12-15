@@ -507,15 +507,15 @@ compilers:
               - 12.1.0
               - 12.2.0
         xtensa:
+          subdir: xtensa
+          url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.{compression}
+          untar_dir: "{arch_prefix}"
+          dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+          check_exe: "bin/{arch_prefix}-g++ --version"
+          type: tarballs
+          compression: gz
           esp32:
             arch_prefix: xtensa-esp32-elf
-            type: tarballs
-            compression: gz
-            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
-            untar_dir: "{arch_prefix}"
-            subdir: xtensa
-            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
-            check_exe: "bin/{arch_prefix}-g++ --version"
             targets:
               - name: 2019r2
                 base: "8_2_0"
@@ -529,15 +529,11 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
+              - name: 2022r1
+                base: "11_2_0"
+                compression: xz
           esp32s2:
             arch_prefix: xtensa-esp32s2-elf
-            type: tarballs
-            compression: gz
-            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
-            untar_dir: "{arch_prefix}"
-            subdir: xtensa
-            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
-            check_exe: "bin/{arch_prefix}-g++ --version"
             targets:
               - name: 2019r2
                 base: "8_2_0"
@@ -551,15 +547,11 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
+              - name: 2022r1
+                base: "11_2_0"
+                compression: xz
           esp32s3:
             arch_prefix: xtensa-esp32s3-elf
-            type: tarballs
-            compression: gz
-            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
-            untar_dir: "{arch_prefix}"
-            subdir: xtensa
-            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
-            check_exe: "bin/{arch_prefix}-g++ --version"
             targets:
               - name: 2020r3
                 base: "8_4_0"
@@ -567,6 +559,9 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
+              - name: 2022r1
+                base: "11_2_0"
+                compression: xz
     clang:
       - type: tarballs
         check_exe: bin/clang++ --version
