@@ -15,6 +15,7 @@ on:
         - misc
         - ocaml
         - python
+        - ispc
       version:
         description: The version to build (or architecture and version for cross)
         required: true
