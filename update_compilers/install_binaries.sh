@@ -8,14 +8,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 #########################
 # pahole
-
-TARGET_PAHOLE_VERSION=v1.24
-CURRENT_PAHOLE_VERSION=""
-if [[ -f "${OPT}/pahole/bin/pahole" ]]; then
-    CURRENT_PAHOLE_VERSION=$("${OPT}/pahole/bin/pahole" --version)
-fi
-
-if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
+if [[ ! -f "${OPT}/pahole/bin/pahole" ]]; then
     rm -Rf "${OPT}/pahole"
     mkdir -p "${OPT}/pahole"
 
@@ -33,7 +26,7 @@ if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
 
     rm -Rf /tmp/build/pahole
 
-    git clone --branch $TARGET_PAHOLE_VERSION --single-branch -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
+    git clone --branch master --single-branch -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
     git -C pahole submodule sync
     git -C pahole submodule update --init
     pushd pahole
