@@ -1000,9 +1000,10 @@ libraries:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        path_name: libs/folly
         repo: facebook/folly
         type: github
+        targets:
+        - trunk
       glm:
         build_type: none
         check_file: readme.md
@@ -1686,6 +1687,10 @@ libraries:
       - 7.0.0
       - 7.6.0
       - 8.0.3
+      - 8.0.5
+      - 8.1.0
+      - 9.0.0
+      - 9.0.1
       type: github
     xtensor:
       check_file: README.md
@@ -2008,6 +2013,11 @@ libraries:
       targets:
       - 0.8.8
       type: cratesio
+    color-eyre:
+      build_type: cargo
+      targets:
+      - 0.6.2
+      type: cratesio
     digest:
       build_type: cargo
       targets:
@@ -2022,6 +2032,11 @@ libraries:
       build_type: cargo
       targets:
       - 0.9.0
+      type: cratesio
+    eyre:
+      build_type: cargo
+      targets:
+      - 0.6.8
       type: cratesio
     fnv:
       build_type: cargo

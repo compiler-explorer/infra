@@ -141,7 +141,6 @@ class TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
-        self.install_path_symlink = self.config_get("symlink", False)
         self.untar_path = self.config_get("untar_dir", self.install_path)
         if self.config_get("create_untar_dir", False):
             self.untar_to = self.untar_path
@@ -245,6 +244,8 @@ class ZipArchiveInstallable(Installable):
         self.configure_command = command_config(self.config_get("configure_command", []))
         self.strip = self.config_get("strip", False)
         self._setup_check_exe(self.install_path)
+        if self.install_path_symlink:
+            self._setup_check_link(self.install_path, self.install_path_symlink)
 
     def stage(self, staging: StagingDir) -> None:
         # Unzip does not support stdin piping so we need to create a file
@@ -254,7 +255,8 @@ class ZipArchiveInstallable(Installable):
             if self.extract_into_folder:
                 unzip_cmd.extend(["-d", self.folder_to_rename])
             self.install_context.stage_command(staging, unzip_cmd)
-            self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
+            if self.folder_to_rename != self.install_path:
+                self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
         if self.configure_command:
             self.install_context.stage_command(staging, self.configure_command)
         if self.strip:
@@ -276,6 +278,8 @@ class ZipArchiveInstallable(Installable):
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             self.install_context.move_from_staging(staging, self.install_path)
+            if self.install_path_symlink:
+                self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
 
     def __repr__(self) -> str:
         return f"ZipArchiveInstallable({self.name}, {self.install_path})"

@@ -2,20 +2,13 @@ compilers:
   dotnet:
     type: s3tarballs
     dir: dotnet-{name}
-    untar_dir: artifacts
-    check_exe:
-      - /bin/bash
-      - -c
-      - "/usr/bin/env DOTNET_CLI_HOME=/tmp /opt/compiler-explorer/{dir}/bin/coreclr/Linux.x64.Checked/.dotnet/dotnet --version"
+    untar_dir: Core_Root
+    check_exe: .dotnet/dotnet --version
     targets:
-      - v6.0.1
-  dotnet_nuget:
-    type: s3tarballs
-    dir: dotnet_nuget-{name}
-    untar_dir: nuget
-    check_exe:
-      - /bin/bash
-      - -c
-      - "cat /opt/compiler-explorer/{dir}/packages/microsoft.netcore.app.runtime.linux-x64/6.0.0/Microsoft.NETCore.App.versions.txt"
-    targets:
-      - v6.0.0
+      - name: trunk
+        if: nightly
+        type: nightly
+      - v7.0.0
+      - name: v6.0.11
+        check_env:
+          - DOTNET_CLI_HOME=/tmp

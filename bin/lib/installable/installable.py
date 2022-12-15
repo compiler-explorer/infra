@@ -46,6 +46,7 @@ class Installable:
         self.install_path = ""
         self.after_stage_script = self.config_get("after_stage_script", [])
         self._logger = logging.getLogger(self.name)
+        self.install_path_symlink = self.config_get("symlink", False)
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace("%PATH%", path_name).split("=", 1) for x in self.config_get("check_env", [])])

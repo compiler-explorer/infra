@@ -2,6 +2,8 @@
 
 set -exuo pipefail
 
+INSTALL_TYPE=${1:-non-ci}
+
 # https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
 wait_for_apt() {
   while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
@@ -36,13 +38,15 @@ apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip
 
-mkdir /tmp/aws-install
-pushd /tmp/aws-install
-curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-unzip awscliv2.zip
-./aws/install
-popd
-rm -rf /tmp/aws-install
+if [ "$INSTALL_TYPE" != 'ci' ]; then
+  mkdir /tmp/aws-install
+  pushd /tmp/aws-install
+  curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  ./aws/install
+  popd
+  rm -rf /tmp/aws-install
+fi
 
 mkdir -p /root/.aws /home/ubuntu/.aws
 echo -e "[default]\nregion=us-east-1" | tee /root/.aws/config /home/ubuntu/.aws/config
@@ -103,7 +107,11 @@ LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
 
 mkdir -p /etc/grafana
 cp /infra/grafana/agent.yaml /etc/grafana/agent.yaml.tpl
-cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
+if [ "${INSTALL_TYPE}" = "ci" ]; then
+  cp /infra/grafana/make-config-ci.sh /etc/grafana/make-config.sh
+else
+  cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
+fi
 cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
 systemctl daemon-reload
 systemctl enable grafana-agent
@@ -133,7 +141,11 @@ cat >/etc/ssmtp/revaliases <<EOF
 ubuntu:admin@compiler-explorer.com:email-smtp.us-east-1.amazonaws.com
 EOF
 
-chfn -f 'Compiler Explorer Admin' ubuntu
+if [ "${INSTALL_TYPE}" = "ci" ]; then
+  chfn -f 'Compiler Explorer Admin' ubuntu
+else
+  chfn -f 'Compiler Explorer Build Agent' ubuntu
+fi
 chmod 640 /etc/ssmtp/*
 
 mount -a
