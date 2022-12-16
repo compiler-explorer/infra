@@ -8,40 +8,40 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 #########################
 # pahole
-if [[ ! -f "${OPT}/pahole/bin/pahole" ]]; then
-    rm -Rf "${OPT}/pahole"
-    mkdir -p "${OPT}/pahole"
+PAHOLE_INSTALL_DIR=$OPT/pahole
 
-    mkdir -p /tmp/build
-    pushd /tmp/build
+## install elfutils for libelf and libdwarf
+ELFUTILS_VERSION=0.188
+rm -Rf /tmp/elfutils-$ELFUTILS_VERSION
+fetch https://sourceware.org/elfutils/ftp/$ELFUTILS_VERSION/elfutils-$ELFUTILS_VERSION.tar.bz2 | tar jxf - -C /tmp/
+pushd /tmp/elfutils-$ELFUTILS_VERSION
+./configure --prefix=$PAHOLE_INSTALL_DIR --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
+make "-j$(nproc)"
+make install
+popd
+rm -Rf /tmp/elfutils-$ELFUTILS_VERSION
 
-    # Install elfutils for libelf and libdwarf
-    ELFUTILS_VERSION=0.188
-    fetch https://sourceware.org/elfutils/ftp/$ELFUTILS_VERSION/elfutils-$ELFUTILS_VERSION.tar.bz2 | tar jxf -
-    pushd elfutils-$ELFUTILS_VERSION
-    ./configure --prefix=${OPT}/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
-    make "-j$(nproc)"
-    make install
-    popd
+## cleanup before build
+PAHOLE_BUILD_DIR=/tmp/build/pahole
+rm -rf $PAHOLE_BUILD_DIR
+mkdir -p $PAHOLE_BUILD_DIR
+pushd $PAHOLE_BUILD_DIR
 
-    rm -Rf /tmp/build/pahole
-
-    git clone --branch master --single-branch -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
-    git -C pahole submodule sync
-    git -C pahole submodule update --init
-    pushd pahole
-    "${OPT}/cmake/bin/cmake" \
-        -D CMAKE_INSTALL_PREFIX:PATH="${OPT}/pahole" \
-        -D__LIB=lib \
-        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
-        .
-    make "-j$(nproc)"
-    make install
-    popd
-
-    popd
-    rm -rf /tmp/build
-fi
+## download and install
+git clone --branch master --single-branch -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
+pushd pahole
+git submodule sync
+git submodule update --init
+"${OPT}/cmake/bin/cmake" \
+    -D CMAKE_INSTALL_PREFIX:PATH="$PAHOLE_INSTALL_DIR" \
+    -D__LIB=lib \
+    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
+    .
+make "-j$(nproc)"
+make install
+popd
+popd
+rm -rf $PAHOLE_BUILD_DIR
 
 #########################
 # x86-to-6502 old version
