@@ -19,7 +19,7 @@ if [[ ! -f "${OPT}/pahole/bin/pahole" ]]; then
     ELFUTILS_VERSION=0.188
     fetch https://sourceware.org/elfutils/ftp/$ELFUTILS_VERSION/elfutils-$ELFUTILS_VERSION.tar.bz2 | tar jxf -
     pushd elfutils-$ELFUTILS_VERSION
-    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
+    ./configure --prefix=${OPT}/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
     make "-j$(nproc)"
     make install
     popd
