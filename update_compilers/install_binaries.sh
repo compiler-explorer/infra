@@ -38,6 +38,7 @@ if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
     git -C pahole submodule update --init
     pushd pahole
     "${OPT}/cmake/bin/cmake" \
+        -DCMAKE_BUILD_TYPE=Release \
         -D CMAKE_INSTALL_PREFIX:PATH="${OPT}/pahole" \
         -D__LIB=lib \
         -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
