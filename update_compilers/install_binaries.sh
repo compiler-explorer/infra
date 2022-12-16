@@ -15,7 +15,7 @@ ELFUTILS_VERSION=0.188
 rm -Rf /tmp/elfutils-$ELFUTILS_VERSION
 fetch https://sourceware.org/elfutils/ftp/$ELFUTILS_VERSION/elfutils-$ELFUTILS_VERSION.tar.bz2 | tar jxf - -C /tmp/
 pushd /tmp/elfutils-$ELFUTILS_VERSION
-./configure --prefix=$PAHOLE_INSTALL_DIR --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
+./configure --prefix="$PAHOLE_INSTALL_DIR" --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
 make "-j$(nproc)"
 make install
 popd
