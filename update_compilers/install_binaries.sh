@@ -7,51 +7,6 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${DIR}/common.inc"
 
 #########################
-# pahole
-
-TARGET_PAHOLE_VERSION=v1.19
-CURRENT_PAHOLE_VERSION=""
-if [[ -f "${OPT}/pahole/bin/pahole" ]]; then
-    CURRENT_PAHOLE_VERSION=$("${OPT}/pahole/bin/pahole" --version)
-fi
-
-if [[ "$TARGET_PAHOLE_VERSION" != "$CURRENT_PAHOLE_VERSION" ]]; then
-    rm -Rf "${OPT}/pahole"
-    mkdir -p "${OPT}/pahole"
-
-    mkdir -p /tmp/build
-    pushd /tmp/build
-
-    # Install elfutils for libelf and libdwarf
-    fetch https://sourceware.org/elfutils/ftp/0.182/elfutils-0.182.tar.bz2 | tar jxf -
-    pushd elfutils-0.182
-    ./configure --prefix=/opt/compiler-explorer/pahole --program-prefix="eu-" --enable-deterministic-archives --disable-debuginfod --disable-libdebuginfod
-    make "-j$(nproc)"
-    make install
-    popd
-
-    rm -Rf /tmp/build/pahole
-
-    git clone -q https://git.kernel.org/pub/scm/devel/pahole/pahole.git pahole
-    git -C pahole checkout v1.19
-    git -C pahole submodule sync
-    git -C pahole submodule update --init
-    pushd pahole
-    "${OPT}/cmake/bin/cmake" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -D CMAKE_INSTALL_PREFIX:PATH="${OPT}/pahole" \
-        -D__LIB=lib \
-        -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
-        .
-    make "-j$(nproc)"
-    make install
-    popd
-
-    popd
-    rm -rf /tmp/build
-fi
-
-#########################
 # x86-to-6502 old version
 
 if [[ ! -f ${OPT}/x86-to-6502/lefticus/x86-to-6502 ]]; then

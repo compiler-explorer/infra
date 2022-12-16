@@ -101,3 +101,9 @@ tools:
     check_exe: bin/patchelf --version
     targets:
       - 0.15.0
+  pahole:
+    if: nightly
+    type: nightly
+    check_exe: bin/pahole
+    targets:
+      - trunk
