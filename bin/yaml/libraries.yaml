@@ -1996,6 +1996,11 @@ libraries:
       targets:
       - 3.1.18
       type: cratesio
+    color-eyre:
+      build_type: cargo
+      targets:
+      - 0.6.2
+      type: cratesio
     contracts:
       build_type: cargo
       targets:
@@ -2020,11 +2025,6 @@ libraries:
       build_type: cargo
       targets:
       - 0.8.8
-      type: cratesio
-    color-eyre:
-      build_type: cargo
-      targets:
-      - 0.6.2
       type: cratesio
     digest:
       build_type: cargo
@@ -2281,6 +2281,11 @@ libraries:
       targets:
       - 0.6.3
       type: cratesio
+    rayon:
+      build_type: cargo
+      targets:
+      - 1.6.1
+      type: cratesio
     regex:
       build_type: cargo
       targets:
@@ -2350,6 +2355,11 @@ libraries:
       build_type: cargo
       targets:
       - 0.10.0
+      type: cratesio
+    subtle:
+      build_type: cargo
+      targets:
+      - 2.4.1
       type: cratesio
     syn:
       build_type: cargo
