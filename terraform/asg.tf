@@ -3,11 +3,7 @@ locals {
   // As of Oct 3 2022, startups started taking >2m
   grace_period = 160
   cooldown     = 180
-  // Current c5 on-demand price is 0.085. Yearly pre-pay is 0.05 (so this is same as prepaying a year)
-  // Historically we pay ~ 0.035
-  spot_price        = "0.05"
 }
-
 
 resource "aws_autoscaling_group" "prod-mixed" {
   lifecycle {
@@ -25,15 +21,13 @@ resource "aws_autoscaling_group" "prod-mixed" {
 
   mixed_instances_policy {
     instances_distribution {
-      on_demand_allocation_strategy            = "prioritized"
       // This base value is zero so we don't have any non-spot instances. We may wish to bump this if we have issues
       // getting spot capacity.
+      on_demand_allocation_strategy = "lowest-price"
       on_demand_base_capacity                  = 0
       on_demand_percentage_above_base_capacity = 0
-      spot_allocation_strategy                 = "lowest-price"
-      spot_instance_pools                      = 2
-      // we may consider upping this if we have issues fulfilling
-      spot_max_price                           = local.spot_price
+      spot_allocation_strategy                 = "price-capacity-optimized"
+      spot_instance_pools = 0
     }
     launch_template {
       launch_template_specification {
@@ -41,13 +35,21 @@ resource "aws_autoscaling_group" "prod-mixed" {
         version            = "$Latest"
       }
       override {
-        instance_type = "c6i.large"
-      }
-      override {
-        instance_type = "c5.large"
-      }
-      override {
-        instance_type = "c5a.large"
+        instance_requirements {
+          memory_mib {
+            min = 4096
+          }
+          vcpu_count {
+            min = 2
+          }
+          memory_gib_per_vcpu {
+            min = 2
+          }
+          accelerator_count {
+            max = 0
+          }
+          spot_max_price_percentage_over_lowest_price = 150
+        }
       }
     }
   }
@@ -137,10 +139,10 @@ resource "aws_autoscaling_group" "gpu" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  max_size            = 2
-  min_size            = 0
-  name                = "gpu"
-  vpc_zone_identifier = local.subnets
+  max_size                  = 2
+  min_size                  = 0
+  name                      = "gpu"
+  vpc_zone_identifier       = local.subnets
 
   mixed_instances_policy {
     instances_distribution {
@@ -149,8 +151,8 @@ resource "aws_autoscaling_group" "gpu" {
       // getting spot capacity.
       on_demand_base_capacity                  = 0
       on_demand_percentage_above_base_capacity = 0
-      spot_allocation_strategy                 = "lowest-price"
-      spot_instance_pools                      = 2
+      spot_allocation_strategy                 = "price-capacity-optimized"
+      spot_instance_pools = 0
     }
     launch_template {
       launch_template_specification {
