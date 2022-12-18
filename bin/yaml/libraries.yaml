@@ -2281,6 +2281,11 @@ libraries:
       targets:
       - 0.6.3
       type: cratesio
+    rayon:
+      build_type: cargo
+      targets:
+      - 1.6.1
+      type: cratesio
     regex:
       build_type: cargo
       targets:
