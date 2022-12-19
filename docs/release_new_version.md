@@ -89,4 +89,6 @@ This command accepts a few interesting options:
 
 Congratulations, you've bounced the live site to a new version!
 
+We now usually go to all the PR/issues that this new build implements and comment that they are now live in each of them.
+
 Please submit a PR to this document if you find that something could be better explained/is just plain wrong.
