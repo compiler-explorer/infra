@@ -80,7 +80,7 @@ There are instructions in the error message on how to bypass this if necessary, 
 ## Refresh prod
 
 Now that the version is set as current, running `ce --env prod environment refresh` will refresh the live instances,
-bringing them up-to-date with your new version. Go make your preferred brevage,
+bringing them up-to-date with your new version. Go make your preferred beverage,
 as this might take anywhere from 15min to an hour, depending on the number of active instances at this moment.
 
 This command accepts a few interesting options:
