@@ -25,3 +25,9 @@ compilers:
       - 4.11.2-flambda
       - 4.12.0
       - 4.12.0-flambda
+      - 4.13.1
+      - 4.13.1-flambda
+      - 4.14.0
+      - 4.14.0-flambda
+      - 5.0.0
+      - 5.0.0-flambda
