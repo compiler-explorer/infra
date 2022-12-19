@@ -35,14 +35,15 @@ Once there, `ce --env staging builds set_current gh-xxxx` will set the current b
 for staging to your identified build id.
 
 Note that `--env staging` comes before any command, and its default value is always `staging`,
-but uses it explicitly to be more clear as to what is running for which environment.
+but this document uses it explicitly to be more clear as to what is running for which environment.
 
 After passing the sanity checks (it will ask you to confirm what branch this comes from and in what env you're running the command in), the build has been marked as current.
 Note that these sanity checks are present in most commands,
 and we're always on the lookout for more places to put them, so if you find anything not secured by these checks,
 please do let us know.
 
-_If this fails due to some hash missmatch errors, you need to bump the hack version number in `webpack.config.esm.js`._
+_If this fails due to some hash missmatch errors, you need to bump the hack version number in `webpack.config.esm.js`,
+and restart this process with the new commit as the target._
 
 ## Bringing staging up
 
@@ -70,7 +71,7 @@ you can instead run `ce --env staging safeforprod gh-xxxx`, and it will create a
 ## Set current version in prod
 
 Now that you've tested that everything works correctly, 
-unning `ce --env prod builds set_current gh-xxxx` will mark your build as current for the prod environment.
+running `ce runner safeforprod staging gh-xxxx` will mark your build as current for the prod environment.
 
 _If this fails complaining that prod is currently bounce locked, it means that someone has blocked prod from updating.
 The usual reason is that a conference is currently running and we don't want to have any big changes at this moment.
