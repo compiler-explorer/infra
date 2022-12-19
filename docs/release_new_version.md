@@ -24,6 +24,10 @@ You need to fill 3 inputs:
  - **Branch**: The branch that your target commit belongs to. Usually `main`
  - **Build number**: The `gh-xxxx` id you identified
 
+Alternatively, you can use the GitHub CLI to run this workflow:
+
+`gh workflow run -R compiler-explorer/infra 'Compiler discovery' -f buildnumber=gh-xxxx`
+
 It usually takes less than 5 min. for the discovery to run.
 
 ## Set current version in staging
@@ -66,12 +70,12 @@ This is unsurprisingly accomplished by running `ce --env staging environment sto
 ## Mark discovery run as safe for production
 
 Instead of now rerunning the first step of compiler discovery for your commit but now for the prod environment,
-you can instead run `ce --env staging safeforprod gh-xxxx`, and it will create a compiler discovery result for prod.
+you can instead run `ce runner safeforprod staging gh-xxxx`, and it will create a compiler discovery result for prod.
 
 ## Set current version in prod
 
 Now that you've tested that everything works correctly,
-running `ce runner safeforprod staging gh-xxxx` will mark your build as current for the prod environment.
+running `ce --env prod builds set_current gh-xxxx` will mark your build as current for the prod environment.
 
 _If this fails complaining that prod is currently bounce locked, it means that someone has blocked prod from updating.
 The usual reason is that a conference is currently running and we don't want to have any big changes at this moment.
@@ -80,7 +84,7 @@ There are instructions in the error message on how to bypass this if necessary, 
 ## Refresh prod
 
 Now that the version is set as current, running `ce --env prod environment refresh` will refresh the live instances,
-bringing them up-to-date with your new version. Go make your preferred beverage,
+bringing them up-to-date with your new version. Go make your preferred brevage,
 as this might take anywhere from 15min to an hour, depending on the number of active instances at this moment.
 
 This command accepts a few interesting options:
