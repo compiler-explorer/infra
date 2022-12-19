@@ -29,8 +29,5 @@ compilers:
       - 4.13.1-flambda
       - 4.14.0
       - 4.14.0-flambda
-    multicore:
-      if: nightly
-      targets:
-        - "5.0"
-        - 5.0-flambda
+      - "5.0"
+      - 5.0-flambda
