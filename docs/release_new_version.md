@@ -1,15 +1,17 @@
 # Release new site version
 
-To release a new site version, you want to do the following steps.
-Each commit in the main branch generates a build artifact with id `gh-xxxx`,
-so first wait until the CI has generated it, and find the id of your target commit.
+This doc covers the process of releasing a new build version to the live site.
+
+First of all, note that each commit generates a build artifact with an id of `gh-xxxx`.
+It's important to first wait until the CI has generated such artifact, and then find the id of your target commit.
+(It will be tagged to your target commit automatically)
 
 ## Ensure your build has been sucesfully uploaded by CI
 
 Login into the admin node with `ce admin login`, and once there remeber to connect to the tmux session,
-with `tmux at` (Ctrl+B, D to dettach later instead of closing the connection).
+with `tmux at` (`Ctrl+B, D` by default to later dettach instead of closing the connection).
 
-Now run `ce --env staging builds list` and make sure that your target `gh-xxxx` is present.
+Now run `ce --env staging builds list` and make sure that your target `gh-xxxx` build is present.
 
 _If this is not the case, make sure that there were no errors in the CI, or ask around for help._
 
@@ -18,8 +20,8 @@ _If this is not the case, make sure that there were no errors in the CI, or ask 
 Run a "Compiler Discovery" workflow in https://github.com/compiler-explorer/infra/actions/workflows/compiler-discovery.yml
 
 You need to fill 3 inputs:
- - **Environment**: This is usually staging, but can be run for beta and prod too
- - **Branch**: The branch that your target commit belongs to
+ - **Environment**: This is usually `staging`, but can be run for `beta` and `prod` too
+ - **Branch**: The branch that your target commit belongs to. Usually `main`
  - **Build number**: The `gh-xxxx` id you identified 
  
 It usually takes less than 5 mins for the discovery to run.
