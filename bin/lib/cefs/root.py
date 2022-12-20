@@ -30,7 +30,7 @@ class CefsFsRoot:
         # symlink found along the path (to allow for `/some/root-owned` dir to symlink elsewhere: we actually update
         # elsewhere.
         while self._image_root.is_symlink():
-            _LOGGER.info(f"Following root symlink to {self._image_root}...")
+            _LOGGER.info("Following root symlink to %s...", self._image_root)
             self._root = self._image_root
             self._image_root = self._root.readlink()
 

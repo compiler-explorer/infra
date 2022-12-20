@@ -6,30 +6,30 @@ from lib.cefs.config import CefsConfig
 from lib.cefs.root_image import CefsRootImage, METADATA_FILENAME, BadCefsImage
 
 
-@pytest.fixture
-def cefs_mountpoint(tmp_path) -> Path:
+@pytest.fixture(name="cefs_mountpoint")
+def cefs_mountpoint_fixture(tmp_path) -> Path:
     result = tmp_path / "some-cefs-root"
     result.mkdir()
     return result
 
 
-@pytest.fixture
-def image_root(tmp_path) -> Path:
+@pytest.fixture(name="image_root")
+def image_root_fixture(tmp_path) -> Path:
     result = tmp_path / "some_image"
     result.mkdir()
     return result
 
 
-@pytest.fixture
-def dest_root(tmp_path) -> Path:
+@pytest.fixture(name="dest_root")
+def dest_root_fixture(tmp_path) -> Path:
     result = tmp_path / "dest"
     result.mkdir()
     return result
 
 
-@pytest.fixture
-def cefs_config(cefs_mountpoint, image_root) -> CefsConfig:
-    return CefsConfig(mountpoint=cefs_mountpoint, image_root=dest_root)
+@pytest.fixture(name="cefs_config")
+def cefs_config_fixture(cefs_mountpoint, image_root) -> CefsConfig:
+    return CefsConfig(mountpoint=cefs_mountpoint, image_root=image_root)
 
 
 def test_cefs_root_should_handle_no_initial_path(cefs_config):
@@ -44,7 +44,7 @@ def test_cefs_root_should_handle_empty_dirs(cefs_config: CefsConfig, image_root:
     assert not root.metadata
 
 
-def test_cefs_can_read_existing_images(cefs_config: CefsConfig, image_root: Path, dest_root: Path):
+def test_cefs_can_read_existing_images(cefs_config: CefsConfig, image_root: Path):
     (image_root / "thing").symlink_to(cefs_config.mountpoint / "thing")
     (image_root / "some" / "sub").mkdir(parents=True)
     (image_root / "some" / "sub" / "directory").symlink_to(cefs_config.mountpoint / "thing" / "in" / "subdir")
@@ -56,7 +56,7 @@ def test_cefs_can_read_existing_images(cefs_config: CefsConfig, image_root: Path
     assert not root.metadata
 
 
-def test_cefs_can_read_existing_images_metadata(cefs_config: CefsConfig, image_root: Path, dest_root: Path):
+def test_cefs_can_read_existing_images_metadata(cefs_config: CefsConfig, image_root: Path):
     (image_root / METADATA_FILENAME).write_text("Meta\nData\nFTW\n", encoding="utf-8")
     root = CefsRootImage(directory=image_root, config=cefs_config)
     assert root.metadata == ["Meta", "Data", "FTW"]
@@ -68,7 +68,7 @@ def test_cefs_is_upset_by_links_to_non_cefs(cefs_config: CefsConfig, image_root:
         CefsRootImage(directory=image_root, config=cefs_config)
 
 
-def test_cefs_is_upset_by_random_files(cefs_config: CefsConfig, image_root: Path, dest_root: Path):
+def test_cefs_is_upset_by_random_files(cefs_config: CefsConfig, image_root: Path):
     (image_root / "thing.txt").write_text("I am a mongoose", encoding="utf-8")
     with pytest.raises(BadCefsImage, match="Found an unexpected file"):
         CefsRootImage(directory=image_root, config=cefs_config)
