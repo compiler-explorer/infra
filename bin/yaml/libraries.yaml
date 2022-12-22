@@ -1585,7 +1585,7 @@ libraries:
       type: github
     strong_type:
       build_type: none
-      check_file: include/strong_type.hpp
+      check_file: include/strong_type/strong_type.hpp
       repo: rollbear/strong_type
       target_prefix: v
       targets:
