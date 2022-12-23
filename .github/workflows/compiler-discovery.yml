@@ -22,11 +22,8 @@ on:
         required: true
       skip_msvc_check:
         description: 'Skip MSVC check'
-        default: no
-        type: choice
-        options:
-        - no
-        - yes
+        default: false
+        type: boolean
         required: true
 
 jobs:
