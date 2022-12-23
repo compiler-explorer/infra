@@ -62,13 +62,14 @@ _S3_CONFIG = dict(ACL="public-read", StorageClass="REDUCED_REDUNDANCY")
     "environment", required=True, type=click.Choice([env.value for env in Environment if env != Environment.RUNNER])
 )
 @click.argument("version", required=True)
-def runner_uploaddiscovery(environment: str, version: str):
+@click.option("--skip-msvc-check", default=False, help="Skip checks for remote MSVC compilers")
+def runner_uploaddiscovery(environment: str, version: str, skip_msvc_check: bool):
     """Execute compiler discovery on the builder instance."""
     with NamedTemporaryFile(suffix=".json") as temp_json_file:
         get_remote_file(RunnerInstance.instance(), "/home/ce/discovered-compilers.json", temp_json_file.name)
         temp_json_file.seek(0)
 
-        runner_check_discovery_json_contents(temp_json_file.read().decode("utf-8"))
+        runner_check_discovery_json_contents(temp_json_file.read().decode("utf-8"), skip_msvc_check)
         temp_json_file.seek(0)
 
         boto3.client("s3").put_object(
@@ -87,20 +88,20 @@ def runner_discoveryexists(environment: str, version: str):
     return True
 
 
-def runner_check_discovery_json_contents(contents: str):
+def runner_check_discovery_json_contents(contents: str, skip_msvc_check: bool):
     if "/gpu/api" not in contents:
         raise RuntimeError("Discovery does not contain GPU instance compilers")
-    # if "godbolt.ms" not in contents:
-    #     raise RuntimeError("Discovery does not contain MSVC instance compilers")
+    if not skip_msvc_check and "godbolt.ms" not in contents:
+        raise RuntimeError("Discovery does not contain MSVC instance compilers")
     print("Discovery json looks fine")
 
 
 @runner.command(name="check_discovery_json")
 @click.argument("file", required=True)
-def runner_check_discovery_json(file: str):
+def runner_check_discovery_json(file: str, skip_msvc_check: bool):
     """Check if a discovery json file contains all the right ingredients."""
     with open(file, mode="r", encoding="utf-8") as f:
-        runner_check_discovery_json_contents(f.read())
+        runner_check_discovery_json_contents(f.read(), skip_msvc_check)
 
 
 @runner.command(name="safeforprod")

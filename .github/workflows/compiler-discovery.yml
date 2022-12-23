@@ -20,6 +20,14 @@ on:
         description: 'Build number'
         default: ''
         required: true
+      skip_msvc_check:
+        description: 'Skip MSVC check'
+        default: 'False'
+        type: choice
+        options:
+        - 'False'
+        - 'True'
+        required: true
 
 jobs:
   compilerdiscovery:
@@ -42,7 +50,7 @@ jobs:
       run: ce runner discovery
       shell: bash
     - name: Upload discovered compilers
-      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} ${{ github.event.inputs.buildnumber }}
+      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check ${{ github.events.inputs.skip_msvc_check }} ${{ github.event.inputs.buildnumber }}
       shell: bash
     - name: Shut down runner
       run: ce runner stop
