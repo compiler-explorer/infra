@@ -18,6 +18,7 @@ def lambda_handler(event, _context):
     for record in event.get("Records", []):
         try:
             parsed = parse_sns_message(json.loads(record["Sns"]["Message"]))
+            logging.info("Parsed as %s", parsed)
             if parsed.reason in (Reason.FailedHealthCheck, Reason.Unknown):
                 sns_client.publish(
                     TopicArn=topic_arn,
@@ -44,6 +45,7 @@ def lambda_handler(event, _context):
 class Reason(enum.Enum):
     Unknown = "Unknown"
     ScaledDown = "ScaledDown"
+    EnvironmentStop = "EnvironmentStop"
     FailedHealthCheck = "FailedHealthCheck"
 
 
@@ -65,6 +67,8 @@ def parse_sns_message(sns_message: dict) -> ParsedMessage:
     if "InvokingAlarms" in details:
         # Assume any alarm-based shutdown is reducing size
         reason = Reason.ScaledDown
+    elif "user request update" in cause:
+        reason = Reason.EnvironmentStop
     elif "ELB system health check failure" in cause:
         reason = Reason.FailedHealthCheck
     else:

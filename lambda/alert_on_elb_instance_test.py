@@ -73,6 +73,28 @@ SCALING_EVENT = dict(
     Event="autoscaling:EC2_INSTANCE_TERMINATE",
 )
 
+ENVIRONMENT_SHUTDOWN_EVENT = dict(
+    Origin="AutoScalingGroup",
+    Destination="EC2",
+    Progress=50,
+    AccountId="052730242331",
+    Description="Terminating EC2 instance: i-0bff86408fbe11f7a",
+    RequestId="80f97b64-a460-4d1c-a9b9-9d6d13452f4c",
+    EndTime="2022-12-23T20:54:08.286Z",
+    AutoScalingGroupARN="arn:aws:blah:autoScalingGroupName/staging",
+    ActivityId="80f97b64-a460-4d1c-a9b9-9d6d13452f4c",
+    StartTime="2022-12-23T20:49:01.400Z",
+    Service="AWS Auto Scaling",
+    Time="2022-12-23T20:54:08.286Z",
+    EC2InstanceId="i-0bff86408fbe11f7a",
+    StatusCode="InProgress",
+    StatusMessage="",
+    Details={"Subnet ID": "subnet-690ed81e", "Availability Zone": "us-east-1a"},
+    AutoScalingGroupName="staging",
+    Cause="At 2022-12-23T20:48:54Z a user request update of AutoScalingGroup constraints to min: 0, max: 4, desired: 0 changing the desired capacity from 1 to 0.  At 2022-12-23T20:49:01Z an instance was taken out of service in response to a difference between desired and actual capacity, shrinking the capacity from 1 to 0.  At 2022-12-23T20:49:01Z instance i-0bff86408fbe11f7a was selected for termination.",
+    Event="autoscaling:EC2_INSTANCE_TERMINATE",
+)
+
 
 def test_can_parse_unhealthy_event():
     result = parse_sns_message(UNHEALTHY_EVENT)
@@ -86,3 +108,10 @@ def test_can_parse_scaling_event():
     assert result.reason == Reason.ScaledDown
     assert result.environment == "prod"
     assert result.instance == "i-0d1835f80668172d7"
+
+
+def test_can_parse_shutdown_event():
+    result = parse_sns_message(ENVIRONMENT_SHUTDOWN_EVENT)
+    assert result.reason == Reason.EnvironmentStop
+    assert result.environment == "staging"
+    assert result.instance == "i-0bff86408fbe11f7a"
