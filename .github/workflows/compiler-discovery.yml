@@ -22,11 +22,11 @@ on:
         required: true
       skip_msvc_check:
         description: 'Skip MSVC check'
-        default: 'False'
+        default: no
         type: choice
         options:
-        - 'False'
-        - 'True'
+        - no
+        - yes
         required: true
 
 jobs:
@@ -36,22 +36,19 @@ jobs:
     steps:
     - name: Update infra
       run: cd /home/ubuntu/infra && git pull
-      shell: bash
     - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
-      shell: bash
     - name: Start runner
       run: ce runner start
-      shell: bash
     - name: Update infra on runner
       run: ce runner pull
-      shell: bash
     - name: Do Compiler discovery
       run: ce runner discovery
-      shell: bash
     - name: Upload discovered compilers
-      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check ${{ github.events.inputs.skip_msvc_check }} ${{ github.event.inputs.buildnumber }}
-      shell: bash
+      if: ${{ github.events.inputs.skip_msvc_check == 'no' }}
+      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check False ${{ github.event.inputs.buildnumber }}
+    - name: Upload discovered compilers without checking MSVC
+      if: ${{ github.events.inputs.skip_msvc_check == 'yes' }}
+      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check True ${{ github.event.inputs.buildnumber }}
     - name: Shut down runner
       run: ce runner stop
-      shell: bash
