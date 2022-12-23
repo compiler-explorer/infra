@@ -10,10 +10,10 @@ BASE_CW_URL = "https://console.aws.amazon.com/cloudwatch/home"
 REGION = "us-east-1"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-sns_client = boto3.client("sns")
 
 
 def lambda_handler(event, _context):
+    sns_client = boto3.client("sns")
     topic_arn = os.getenv("TOPIC_ARN")
     for record in event.get("Records", []):
         try:
