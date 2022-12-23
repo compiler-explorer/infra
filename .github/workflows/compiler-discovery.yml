@@ -42,10 +42,6 @@ jobs:
     - name: Do Compiler discovery
       run: ce runner discovery
     - name: Upload discovered compilers
-      if: ${{ github.event.inputs.skip_msvc_check == False }}
-      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check False ${{ github.event.inputs.buildnumber }}
-    - name: Upload discovered compilers without checking MSVC
-      if: ${{ github.event.inputs.skip_msvc_check == True }}
-      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check True ${{ github.event.inputs.buildnumber }}
+      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-msvc-check ${{ github.event.inputs.skip_msvc_check }} ${{ github.event.inputs.buildnumber }}
     - name: Shut down runner
       run: ce runner stop
