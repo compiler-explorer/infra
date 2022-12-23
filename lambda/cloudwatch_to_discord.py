@@ -5,6 +5,7 @@ import logging
 
 BASE_CW_URL = "https://console.aws.amazon.com/cloudwatch/home"
 REGION = "us-east-1"
+BASE_EC2_URL = f"https://{REGION}.console.aws.amazon.com/ec2/home?region={REGION}#InstanceDetails:instanceId="
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -36,6 +37,17 @@ def parse_sns_message(sns_message):
         url = f"{BASE_CW_URL}?region={REGION}#alarmsV2:alarm/{alarm_name}?"
         description = f"A [cloudwatch alarm]({url}) has posted to the SNS notification channel"
         title = f"CloudWatch Alert - {alarm_name}!"
+    elif "ElbInstanceType" in sns_message:
+        elb_type = sns_message["ElbInstanceType"]
+        parsed_message = [
+            dict(name="Environment", value=sns_message["Environment"], inline=False),
+            dict(name="Description", value=sns_message["Cause"], inline=False),
+            dict(name="Event", value=elb_type, inline=False),
+        ]
+        instance = sns_message["Instance"]
+        url = f"{BASE_EC2_URL}{instance}"
+        description = f"Instance [{instance}]({url}) was terminated with reason {elb_type}"
+        title = f"CloudWatch Alert - {elb_type}!"
     else:
         logging.error("Unparsed message: %s", sns_message)
         parsed_message = [

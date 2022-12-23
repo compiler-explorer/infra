@@ -29,7 +29,6 @@ EXAMPLE_TRAFFIC_EVENT = dict(
     },
 )
 
-
 EXAMPLE_ANOMALY_EVENT = dict(
     AlarmName="TrafficAnomaly",
     AlarmDescription="A traffic anomaly was detected (too much or too little)",
@@ -87,3 +86,15 @@ def test_can_parse_anomaly_event():
     import json
 
     print(json.dumps(result))
+
+
+def test_can_parse_our_own_elb_event():
+    result = parse_sns_message(
+        dict(
+            ElbInstanceType="FailedHealthCheck",
+            Environment="staging",
+            Cause="At 2022-12-23T19:00:11Z an instance was taken out of service in response to an ELB system health check failure.",
+            Instance="i-016dea8095930f564",
+        )
+    )
+    assert result["embeds"][0]["title"] == "CloudWatch Alert - FailedHealthCheck!"
