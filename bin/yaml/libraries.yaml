@@ -196,6 +196,20 @@ libraries:
       untar_dir: curl-{{name}}
       url: https://curl.se/download/curl-{{name}}.tar.xz
       use_compiler: clang1400
+    sqlite:
+      build_type: make
+      lib_type: cshared
+      sharedliblink:
+      - sqlite
+      type: tarballs
+      targets:
+        - name: 3.40.0
+          url: https://sqlite.org/2022/sqlite-autoconf-3400000.tar.gz
+          untar_dir: sqlite-autoconf-3400000
+      dir: libs/sqlite/{{name}}
+      compression: gz
+      use_compiler: g102
+      check_file: configure
     dataframe:
       build_type: cmake
       check_file: README.md
