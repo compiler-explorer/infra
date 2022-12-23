@@ -19,6 +19,29 @@ resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+data "aws_iam_policy_document" "aws_lambda_logging" {
+  statement {
+    sid="AllowLogging"
+    resources = ["arn:aws:logs:*:*:*"]
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "lambda_logging" {
+  name        = "aws_lambda_logging"
+  description = "Allow logging"
+  policy      = data.aws_iam_policy_document.aws_lambda_logging.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_logs" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.lambda_logging.arn
+}
+
 data "aws_iam_policy_document" "aws_lambda_stats" {
   statement {
     sid       = "WriteStatsLog"
@@ -46,13 +69,34 @@ data "aws_iam_policy_document" "aws_lambda_stats" {
 
 resource "aws_iam_policy" "aws_lambda_stats" {
   name        = "aws_lambda_stats_logs"
-  description = "Lambda stats policy (SNS, dynamodb)"
+  description = "Lambda stats policy (Stats, SQS, dynamodb)"
   policy      = data.aws_iam_policy_document.aws_lambda_stats.json
 }
 
 resource "aws_iam_role_policy_attachment" "aws_lambda_stats" {
   role       = aws_iam_role.iam_for_lambda.name
   policy_arn = aws_iam_policy.aws_lambda_stats.arn
+}
+
+data "aws_iam_policy_document" "alert_on_elb_instance" {
+  statement {
+    sid     = "AccessSNS"
+    actions = [
+      "sns:Publish",
+    ]
+    resources = [data.aws_sns_topic.alert.arn]
+  }
+}
+
+resource "aws_iam_policy" "alert_on_elb_instance" {
+  name        = "alert_on_elb_instance"
+  description = "Lambda elb instance policy (SNS)"
+  policy      = data.aws_iam_policy_document.alert_on_elb_instance.json
+}
+
+resource "aws_iam_role_policy_attachment" "alert_on_elb_instance" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.alert_on_elb_instance.arn
 }
 
 data "aws_ssm_parameter" "discord_webhook_url" {
@@ -94,6 +138,12 @@ resource "aws_lambda_function" "cloudwatch_to_discord" {
       WEBHOOK_URL = data.aws_ssm_parameter.discord_webhook_url.value
     }
   }
+  depends_on = [aws_cloudwatch_log_group.cloudwatch_to_discord]
+}
+
+resource "aws_cloudwatch_log_group" "cloudwatch_to_discord" {
+  name              = "/aws/lambda/cloudwatch_to_discord"
+  retention_in_days = 14
 }
 
 
@@ -103,6 +153,45 @@ resource "aws_lambda_permission" "with_sns" {
   function_name = aws_lambda_function.cloudwatch_to_discord.arn
   principal     = "sns.amazonaws.com"
   source_arn    = data.aws_sns_topic.alert.arn
+}
+
+resource "aws_cloudwatch_log_group" "alert_on_elb_instance" {
+  name              = "/aws/lambda/alert_on_elb_instance"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_function" "alert_on_elb_instance" {
+  description       = "Look at every ELB instance shutdown and post to SNS on failures"
+  s3_bucket         = data.aws_s3_object.lambda_zip.bucket
+  s3_key            = data.aws_s3_object.lambda_zip.key
+  s3_object_version = data.aws_s3_object.lambda_zip.version_id
+  source_code_hash  = chomp(data.aws_s3_object.lambda_zip_sha.body)
+  function_name     = "alert_on_elb_instance"
+  role              = aws_iam_role.iam_for_lambda.arn
+  handler           = "alert_on_elb_instance.lambda_handler"
+
+  runtime = "python3.8"
+
+  environment {
+    variables = {
+      TOPIC_ARN = data.aws_sns_topic.alert.arn
+    }
+  }
+  depends_on = [aws_cloudwatch_log_group.alert_on_elb_instance]
+}
+
+resource "aws_lambda_permission" "alert_elb_with_sns" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.alert_on_elb_instance.arn
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.elb-instance-terminate.arn
+}
+
+resource "aws_sns_topic_subscription" "alert_elb_with_sns" {
+  topic_arn = aws_sns_topic.elb-instance-terminate.arn
+  protocol = "lambda"
+  endpoint = aws_lambda_function.alert_on_elb_instance.arn
 }
 
 resource "aws_lambda_function" "stats" {
@@ -125,6 +214,13 @@ resource "aws_lambda_function" "stats" {
       COMPILER_BUILD_TABLE = aws_dynamodb_table.compiler-builds.name
     }
   }
+  depends_on = [aws_cloudwatch_log_group.stats]
+
+}
+
+resource "aws_cloudwatch_log_group" "stats" {
+  name              = "/aws/lambda/stats"
+  retention_in_days = 14
 }
 
 resource "aws_sqs_queue" "stats_queue" {
