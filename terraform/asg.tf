@@ -23,11 +23,11 @@ resource "aws_autoscaling_group" "prod-mixed" {
     instances_distribution {
       // This base value is zero so we don't have any non-spot instances. We may wish to bump this if we have issues
       // getting spot capacity.
-      on_demand_allocation_strategy = "lowest-price"
+      on_demand_allocation_strategy            = "lowest-price"
       on_demand_base_capacity                  = 0
       on_demand_percentage_above_base_capacity = 0
       spot_allocation_strategy                 = "price-capacity-optimized"
-      spot_instance_pools = 0
+      spot_instance_pools                      = 0
     }
     launch_template {
       launch_template_specification {
@@ -152,7 +152,7 @@ resource "aws_autoscaling_group" "gpu" {
       on_demand_base_capacity                  = 0
       on_demand_percentage_above_base_capacity = 0
       spot_allocation_strategy                 = "price-capacity-optimized"
-      spot_instance_pools = 0
+      spot_instance_pools                      = 0
     }
     launch_template {
       launch_template_specification {
@@ -197,4 +197,22 @@ resource "aws_autoscaling_policy" "gpu" {
     }
     target_value = 75.0
   }
+}
+
+resource "aws_sns_topic" "elb-instance-terminate" {
+  name = "ElbInstanceTerminate"
+}
+
+resource "aws_autoscaling_notification" "notify" {
+  group_names = [
+    aws_autoscaling_group.prod-mixed.name,
+    aws_autoscaling_group.gpu.name,
+    aws_autoscaling_group.staging.name,
+    aws_autoscaling_group.beta.name,
+  ]
+  notifications = [
+    "autoscaling:EC2_INSTANCE_TERMINATE"
+  ]
+
+  topic_arn = aws_sns_topic.elb-instance-terminate.arn
 }
