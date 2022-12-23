@@ -1583,6 +1583,20 @@ libraries:
       - 0.0.4
       - 1.0.0
       type: github
+    strong_type:
+      build_type: none
+      check_file: include/strong_type/strong_type.hpp
+      repo: rollbear/strong_type
+      target_prefix: v
+      targets:
+      - '7'
+      - '6'
+      - '5'
+      - '4'
+      - '3'
+      - '2'
+      - '1'
+      type: github
     tbb:
       build_type: make
       extra_make_arg:
