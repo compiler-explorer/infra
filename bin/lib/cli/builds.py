@@ -33,7 +33,7 @@ from lib.cdn import DeploymentJob
 from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
 from lib.cli import cli
 from lib.env import Config
-from lib.releases import Version
+from lib.releases import Version, Release, VersionSource
 
 
 @cli.group()
@@ -86,13 +86,13 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
         sys.exit(1)
-    to_set = None
-    release = None
+    to_set: Optional[str] = None
+    release: Optional[Release] = None
     if raw:
         to_set = version
     else:
         setting_latest = version == "latest"
-        release = find_latest_release(branch) if setting_latest else find_release(Version.from_string(version))
+        release = find_latest_release(branch or "") if setting_latest else find_release(Version.from_string(version))
         if not release:
             print("Unable to find version " + version)
             if setting_latest and branch != "":
@@ -105,7 +105,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print(f"Found release {release}")
             to_set = release.key
     if to_set is not None and release is not None:
-        if (cfg.env.value != "runner") and not runner_discoveryexists(cfg.env.value, release.version):
+        if (cfg.env.value != "runner") and not runner_discoveryexists(cfg.env.value, str(release.version)):
             if not confirm_action(
                 f"Compiler discovery has not run for {cfg.env.value}/{release.version}, are you sure you want to continue?"
             ):
@@ -139,22 +139,22 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 def builds_rm_old(dry_run: bool, max_age: int):
     """Remove all but the last MAX_AGE builds."""
     current = get_all_current()
-    max_builds: Dict[str, int] = defaultdict(int)
+    max_builds: Dict[VersionSource, int] = defaultdict(int)
     for release in get_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
     for release in get_releases():
         if release.key in current:
-            print("Skipping {} as it is a current version".format(release))
+            print(f"Skipping {release} as it is a current version")
         else:
             age = max_builds[release.version.source] - release.version.number
             if age > max_age:
                 if dry_run:
-                    print("Would remove build {}".format(release))
+                    print(f"Would remove build {release} (age {age})")
                 else:
-                    print("Removing build {}".format(release))
+                    print(f"Removing build {release} (age {age})")
                     remove_release(release)
             else:
-                print("Keeping build {}".format(release))
+                print(f"Keeping build {release} (age {age})")
 
 
 @builds.command(name="list")

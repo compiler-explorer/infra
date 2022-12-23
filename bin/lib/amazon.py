@@ -92,14 +92,14 @@ def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
     return result
 
 
-def remove_release(release):
+def remove_release(release: Release) -> None:
     s3_client.delete_objects(
         Bucket="compiler-explorer",
         Delete={"Objects": [{"Key": release.key}, {"Key": release.static_key}, {"Key": release.info_key}]},
     )
 
 
-def _get_releases(source: VersionSource, prefix: str):
+def _get_releases(source: VersionSource, prefix: str) -> List[Release]:
     paginator = s3_client.get_paginator("list_objects_v2")
     result_iterator = paginator.paginate(Bucket="compiler-explorer", Prefix=prefix)
 
@@ -136,11 +136,11 @@ def _get_releases(source: VersionSource, prefix: str):
     return list(releases.values())
 
 
-def get_releases():
+def get_releases() -> List[Release]:
     return _get_releases(VersionSource.TRAVIS, "dist/travis") + _get_releases(VersionSource.GITHUB, "dist/gh")
 
 
-def get_tools_releases():
+def get_tools_releases() -> List[Release]:
     return _get_releases(VersionSource.TRAVIS, "dist/tools")
 
 
@@ -152,31 +152,21 @@ def download_release_fileobj(key, fobj):
     s3_client.download_fileobj("compiler-explorer", key, fobj)
 
 
-def find_release(version):
+def find_release(version: Version) -> Optional[Release]:
     for r in get_releases():
         if r.version == version:
             return r
     return None
 
 
-def find_latest_release(branch):
+def find_latest_release(branch: str) -> Optional[Release]:
     releases = [release for release in get_releases() if branch == "" or release.branch == branch]
     return max(releases, key=attrgetter("version")) if len(releases) > 0 else None
 
 
-def branch_for_env(cfg: Config):
-    if cfg.env == Environment.PROD:
-        return "release"
-    return cfg.env.value
-
-
-def version_key_for_env(env):
-    return "version/{}".format(branch_for_env(env))
-
-
 def get_current_key(cfg: Config) -> Optional[str]:
     try:
-        o = s3_client.get_object(Bucket="compiler-explorer", Key=version_key_for_env(cfg))
+        o = s3_client.get_object(Bucket="compiler-explorer", Key=cfg.env.version_key)
         return o["Body"].read().decode("utf-8").strip()
     except s3_client.exceptions.NoSuchKey:
         return None
@@ -184,9 +174,9 @@ def get_current_key(cfg: Config) -> Optional[str]:
 
 def get_all_current() -> List[str]:
     versions = []
-    for branch in [env.value for env in Environment if env.keep_builds]:
+    for env in [env for env in Environment if env.keep_builds]:
         try:
-            o = s3_client.get_object(Bucket="compiler-explorer", Key="version/{}".format(branch))
+            o = s3_client.get_object(Bucket="compiler-explorer", Key=env.version_key)
             versions.append(o["Body"].read().decode("utf-8").strip())
         except s3_client.exceptions.NoSuchKey:
             pass
@@ -194,12 +184,12 @@ def get_all_current() -> List[str]:
 
 
 def set_current_key(cfg: Config, key: str):
-    s3_key = version_key_for_env(cfg)
+    s3_key = cfg.env.version_key
     print("Setting {} to {}".format(s3_key, key))
     s3_client.put_object(Bucket="compiler-explorer", Key=s3_key, Body=key, ACL="public-read")
 
 
-def release_for(releases, s3_key):
+def release_for(releases: List[Release], s3_key: str) -> Optional[Release]:
     for r in releases:
         if r.key == s3_key:
             return r
