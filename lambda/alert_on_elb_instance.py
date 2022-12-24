@@ -46,6 +46,7 @@ class Reason(enum.Enum):
     Unknown = "Unknown"
     ScaledDown = "ScaledDown"
     EnvironmentStop = "EnvironmentStop"
+    EnvironmentRefresh = "EnvironmentRefresh"
     FailedHealthCheck = "FailedHealthCheck"
 
 
@@ -71,6 +72,8 @@ def parse_sns_message(sns_message: dict) -> ParsedMessage:
         reason = Reason.EnvironmentStop
     elif "ELB system health check failure" in cause:
         reason = Reason.FailedHealthCheck
+    elif " was taken out of service in response to an instance refresh" in cause:
+        reason = Reason.EnvironmentRefresh
     else:
         reason = Reason.Unknown
 
