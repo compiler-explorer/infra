@@ -95,6 +95,28 @@ ENVIRONMENT_SHUTDOWN_EVENT = dict(
     Event="autoscaling:EC2_INSTANCE_TERMINATE",
 )
 
+INSTANCE_REFRESH_EVENT = dict(
+    Origin="AutoScalingGroup",
+    Destination="EC2",
+    Progress=50,
+    AccountId="052730242331",
+    Description="Terminating EC2 instance: i-0002075bea40ce1c8",
+    RequestId="e337b221-fe0f-4b01-abb1-a4664a94e326",
+    EndTime="2022-12-24T22:09:09.882Z",
+    AutoScalingGroupARN="arn:aws:blah:autoScalingGroupName/prod",
+    ActivityId="e337b221-fe0f-4b01-abb1-a4664a94e326",
+    StartTime="2022-12-24T22:03:59.612Z",
+    Service="AWS Auto Scaling",
+    Time="2022-12-24T22:09:09.882Z",
+    EC2InstanceId="i-0002075bea40ce1c8",
+    StatusCode="InProgress",
+    StatusMessage="",
+    Details={"Subnet ID": "subnet-1bed1d42", "Availability Zone": "us-east-1b"},
+    AutoScalingGroupName="prod",
+    Cause="At 2022-12-24T22:03:59Z an instance was taken out of service in response to an instance refresh.  At 2022-12-24T22:03:59Z instance i-0002075bea40ce1c8 was selected for termination.",
+    Event="autoscaling:EC2_INSTANCE_TERMINATE",
+)
+
 
 def test_can_parse_unhealthy_event():
     result = parse_sns_message(UNHEALTHY_EVENT)
@@ -115,3 +137,8 @@ def test_can_parse_shutdown_event():
     assert result.reason == Reason.EnvironmentStop
     assert result.environment == "staging"
     assert result.instance == "i-0bff86408fbe11f7a"
+
+
+def test_can_parse_refresh_event():
+    result = parse_sns_message(INSTANCE_REFRESH_EVENT)
+    assert result.reason == Reason.EnvironmentRefresh
