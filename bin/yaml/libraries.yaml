@@ -200,7 +200,7 @@ libraries:
       build_type: make
       lib_type: cshared
       sharedliblink:
-      - sqlite
+      - sqlite3
       type: tarballs
       targets:
         - name: 3.40.0
