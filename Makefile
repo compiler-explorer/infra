@@ -11,7 +11,7 @@ export PYTHONPATH=$(CURDIR)/bin
 help: # with thanks to Ben Rady
 	@grep -E '^[0-9a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-PACKER ?= ../packer
+PACKER ?= packer
 
 $(SYS_PYTHON):
 	@echo "Python 3.9 or 3.10 not found on path. Please install (sudo apt install python3.9 or similar)"
