@@ -12,3 +12,7 @@ apt-get install -y \
     samba-common \
     samba-common-bin \
     samba
+
+cp -f /infra/smb-server/smb.conf /etc/samba/smb.conf
+
+service smbd reload
