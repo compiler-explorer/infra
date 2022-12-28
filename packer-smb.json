@@ -61,9 +61,9 @@
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
         "apt-get -y install git",
-        "git clone https://github.com/compiler-explorer/infra.git /home/ubuntu/infra",
-        "chown -R ubuntu:ubuntu /home/ubuntu/infra",
-        "/home/ubuntu/infra/setup-smb.sh"
+        "git clone -b {{user `BRANCH`}} https://github.com/compiler-explorer/infra.git /infra",
+        "cd /infra",
+        "env PACKER_SETUP=yes bash setup-smb.sh 2>&1 | tee /tmp/setup.log"
       ]
     }
   ]
