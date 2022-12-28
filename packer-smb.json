@@ -44,6 +44,7 @@
   ],
 
   "variables": {
+    "BRANCH": "main",
     "MY_ACCESS_KEY": "",
     "MY_SECRET_KEY": ""
   },
@@ -57,6 +58,8 @@
         "set -euo pipefail",
         "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
         "export DEBIAN_FRONTEND=noninteractive",
+        "mkdir -p /root/.ssh",
+        "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
         "rm -rf /home/ubuntu/packer",
         "apt-get -y update",
