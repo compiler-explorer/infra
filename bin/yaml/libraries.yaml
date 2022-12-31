@@ -527,8 +527,6 @@ libraries:
     lagom:
       after_stage_script:
       - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
-      - echo -e "list(APPEND CMAKE_MODULE_PATH \"\$\\x7bCMAKE_CURRENT_LIST_DIR\\x7d/Meta/CMake\")"
-        >> CMakeLists.txt
       - echo "project(SerenityOS CXX)" >> CMakeLists.txt
       - echo "add_subdirectory(Meta/Lagom)" >> CMakeLists.txt
       - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/'
@@ -556,27 +554,39 @@ libraries:
       - lagom-compress
       - lagom-core
       - lagom-crypto
+      - lagom-dns
       - lagom-elf
       - lagom-gemini
       - lagom-gfx
+      - lagom-glsl
       - lagom-gl
-      - lagom-gml
+      - lagom-gpu
+      - lagom-gui
       - lagom-http
+      - lagom-idl
       - lagom-imap
       - lagom-ipc
       - lagom-js
       - lagom-line
-      - lagom-main
+      - lagom-locale
       - lagom-markdown
       - lagom-pdf
       - lagom-regex
       - lagom-shell
+      - lagom-softgpu
       - lagom-sql
+      - lagom-syntax
       - lagom-textcodec
+      - lagom-threading
       - lagom-tls
       - lagom-unicode
+      - lagom-video
       - lagom-wasm
+      - lagom-web
+      - lagom-websocket
+      - lagom-webview
       - lagom-x86
+      - lagom-xml
       targets:
       - trunk
       type: github
