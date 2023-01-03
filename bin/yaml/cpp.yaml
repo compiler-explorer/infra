@@ -682,6 +682,18 @@ compilers:
       check_exe: bin/tcc -v
       targets:
         - 0.9.27
+    cl430:
+      type: script
+      dir: "ti-cgt-msp430_{name}"
+      check_exe: bin/cl430 -version
+      targets:
+        - name: 21.6.1.LTS
+          fetch:
+            - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{name}/ti_cgt_msp430_{name}_linux-x64_installer.bin installer.bin
+          script: |
+            chmod +x installer.bin
+            ./installer.bin --unattendedmodeui none --mode unattended --prefix .
+            rm installer.bin
     intel-cpp:
       type: script
       dir: "intel-cpp-{name}"
