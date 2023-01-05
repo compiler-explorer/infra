@@ -430,7 +430,8 @@ compilers:
             - 4.8.0
             - 4.9.0
             - 4.10.0
-            - 4.11.0
+            - name: 4.11.1
+              url: https://github.com/kalray/build-scripts/releases/download/v{name}/gcc-kalray-kvx-ubuntu-20.04-v{name}.tar.gz
         s390x:
           arch_prefix: "{subdir}-ibm-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
