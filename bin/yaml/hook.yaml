@@ -8,3 +8,7 @@ compilers:
     dir: hook/hook-{name}
     targets:
       - 0.1.0
+    nightly:
+      if: nightly
+      type: nightlytarballs
+      install_always: true
