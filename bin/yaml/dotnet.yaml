@@ -8,7 +8,7 @@ compilers:
       - name: trunk
         if: nightly
         type: nightly
-      - v7.0.0
+      - v7.0.1
       - name: v6.0.11
         check_env:
           - DOTNET_CLI_HOME=/tmp
