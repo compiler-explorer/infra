@@ -55,7 +55,7 @@ Now staging needs to be brought up. This is done with `ce --env staging environm
 The message should be that the number of instances has been increased from 0 to 1 (Or more!)
 
 If this is not the case, it means that staging was already up and you'll need to instead refresh those instances.
-This is accomplished by running `ce --env staging environment restart`.
+This is accomplished by running `ce --env staging environment refresh`.
 This can take a bit until all the new nodes are healthy.
 
 Once this is done, the new version is running in https://godbolt.org/staging
