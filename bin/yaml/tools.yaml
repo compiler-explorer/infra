@@ -107,3 +107,22 @@ tools:
     check_exe: bin/pahole
     targets:
       - trunk
+  iwyu:
+    type: tarballs
+    url: https://include-what-you-use.org/downloads/include-what-you-use-0.12.src.tar.gz
+    compression: gz
+    check_exe: bin/include-what-you-use --version
+    dir: iwyu/{{name}}
+    depends:
+    - tools/cmake 3.24.3
+    - compilers/c++/clang 8.0.0
+    untar_dir: include-what-you-use
+    targets:
+    - name: "0.12"
+      after_stage_script:
+      - mv include-what-you-use iwyu-source
+      - mkdir build && cd build
+      - /opt/compiler-explorer/cmake/bin/cmake ../iwyu-source -DCMAKE_PREFIX_PATH=/opt/compiler-explorer/clang-8.0.0 -DCMAKE_INSTALL_PREFIX=../include-what-you-use
+      - /opt/compiler-explorer/cmake/bin/cmake --build . --target install
+      - cd ..
+      - ln -s /opt/compiler-explorer/clang-8.0.0/lib include-what-you-use/lib
