@@ -186,6 +186,41 @@ install_pcre() {
 
 install_pcre 8.45
 
+#########################
+# pcre2
+
+install_pcre2() {
+    for VERSION in "$@"; do
+        local DEST1=${OPT}/libs/libpcre2/${VERSION}/x86_64/lib
+        if [[ ! -d ${DEST1} ]]; then
+            rm -rf /tmp/pcre2
+            mkdir -p /tmp/pcre2
+            pushd /tmp/pcre2
+
+            fetch "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-${VERSION}/pcre2-${VERSION}.tar.gz" | tar zxf - --strip-components 1
+
+            mkdir -p build
+            pushd build
+            cmake "-DCMAKE_BUILD_TYPE=Release" "-DPCRE2_BUILD_PCRE2GREP=OFF" "-DPCRE2_BUILD_TESTS=OFF" "-DPCRE2_SUPPORT_UNICODE=ON" "-DPCRE2_SUPPORT_JIT=ON" ..
+            make
+
+            mkdir -p "${DEST1}"
+            cp libpcre2-8.a "${DEST1}"
+
+            popd
+            rm -rf build
+
+            popd
+            rm -rf /tmp/pcre
+        fi
+    done
+}
+
+install_pcre2 10.42
+
+#########################
+# libevent
+
 install_libevent() {
     for VERSION in "$@"; do
         local DEST1=${OPT}/libs/libevent/${VERSION}/x86_64/lib
@@ -194,7 +229,7 @@ install_libevent() {
             mkdir -p /tmp/libevent
             pushd /tmp/libevent
 
-            "fetch https://github.com/libevent/libevent/releases/download/release-${VERSION}-stable/libevent-${VERSION}-stable.tar.gz" | tar zxf - --strip-components 1
+            fetch "https://github.com/libevent/libevent/releases/download/release-${VERSION}-stable/libevent-${VERSION}-stable.tar.gz" | tar zxf - --strip-components 1
 
             export PKG_CONFIG_PATH=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt/lib/pkgconfig
             ./configure --disable-shared
