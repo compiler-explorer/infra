@@ -10,11 +10,13 @@ compilers:
     after_stage_script:
       - cd lib/crystal
       - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.2.0 and onward
+      - ln -s /opt/compiler-explorer/libs/libpcre2/10.42/x86_64/lib/libpcre2-8.a # for 1.7.0 and onward
       - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
       - cd lib
       - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.1.1 and before
       - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
     targets:
+      - 1.7.0
       - 1.6.2
       - 1.5.1
       - 1.4.1
