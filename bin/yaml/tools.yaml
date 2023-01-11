@@ -64,7 +64,8 @@ tools:
     targets:
       - trunk
   asm-parser:
-    type: tarballs
+    if: nightly
+    type: nightlytarballs
     dir: asm-parser
     create_untar_dir: true
     compression: xz
