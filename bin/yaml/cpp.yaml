@@ -529,8 +529,6 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
-              - name: 2022r1
-                base: "11_2_0"
           esp32s2:
             arch_prefix: xtensa-esp32s2-elf
             type: tarballs
@@ -553,8 +551,6 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
-              - name: 2022r1
-                base: "11_2_0"
           esp32s3:
             arch_prefix: xtensa-esp32s3-elf
             type: tarballs
@@ -571,8 +567,6 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
-              - name: 2022r1
-                base: "11_2_0"
     clang:
       - type: tarballs
         check_exe: bin/clang++ --version
