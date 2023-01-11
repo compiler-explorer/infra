@@ -144,19 +144,20 @@ class InstallationContext:
     def make_subdir(self, subdir: str) -> None:
         (self.destination / subdir).mkdir(parents=True, exist_ok=True)
 
-    def read_link(self, link: str) -> str:
-        return os.readlink(str(self.destination / link))
-
     def set_link(self, source: Path, dest: str) -> None:
         if self.dry_run:
             _LOGGER.info("Would symlink %s to %s", source, dest)
             return
 
+        full_source = self.destination / source
+        if not full_source.exists():
+            raise RuntimeError(f"During symlinking, {full_source} was not present")
         full_dest = self.destination / dest
         if full_dest.exists():
             full_dest.unlink()
-        _LOGGER.info("Symlinking %s to %s", source, full_dest)
-        os.symlink(str(source), str(full_dest))
+        relative_source = full_source.relative_to(Path(os.path.commonpath([full_source, full_dest])))
+        _LOGGER.info("Symlinking %s to %s", relative_source, full_dest)
+        full_dest.symlink_to(relative_source)
 
     def glob(self, pattern: str) -> Collection[str]:
         return [os.path.relpath(x, str(self.destination)) for x in glob.glob(str(self.destination / pattern))]
@@ -171,9 +172,10 @@ class InstallationContext:
     def check_link(self, source: str, link: str) -> bool:
         _LOGGER.debug("check link %s", link)
         try:
-            link = self.read_link(link)
-            _LOGGER.debug("readlink returned %s", link)
-            return link == source
+            link_dest = (self.destination / link).resolve(strict=True)
+            full_source = (self.destination / source).resolve(strict=True)
+            _LOGGER.debug("resolving link returned %s, comparing to %s", link_dest, full_source)
+            return full_source == link_dest
         except FileNotFoundError:
             _LOGGER.debug("File not found for %s", link)
             return False
