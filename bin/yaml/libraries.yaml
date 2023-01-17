@@ -1537,12 +1537,13 @@ libraries:
       - -DFEATURE_rpath=ON
       - -DFEATURE_relocatable=ON
       lib_type: shared
+      make_targets:
+      - Core
       targets:
       - name: 6.4.2
         url: https://download.qt.io/official_releases/qt/6.4/6.4.2/submodules/qtbase-everywhere-src-6.4.2.tar.xz
       type: tarballs
       untar_dir: qtbase-everywhere-src-{{name}}
-      use_compiler: clang1500
     raberu:
       check_file: README.md
       repo: jfalcou/raberu
