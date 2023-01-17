@@ -303,7 +303,7 @@ class LibraryBuilder:
 
             libparampaths = []
             archflag = ""
-            if arch == "":
+            if arch == "" or arch == "x86_64":
                 # note: native arch for the compiler, so most of the time 64, but not always
                 if os.path.exists(f"{toolchain}/lib64"):
                     libparampaths.append(f"{toolchain}/lib64")
@@ -328,8 +328,9 @@ class LibraryBuilder:
             for path in libparampaths:
                 ldflags += f"-L{path} "
 
-            ldlibpathsstr = ldPath
-            f.write(f'export LD_LIBRARY_PATHS="{ldlibpathsstr}"\n')
+            ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
+
+            f.write(f'export LD_LIBRARY_PATH="{ldlibpathsstr}"\n')
             f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
             f.write('export NUMCPUS="$(nproc)"\n')
 
