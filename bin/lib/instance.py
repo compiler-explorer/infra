@@ -6,7 +6,7 @@ from typing import Dict, Optional
 
 import paramiko.ssh_exception
 
-from lib.amazon import ec2, ec2_client, as_client, elb_client, get_releases, release_for
+from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases, release_for
 from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
@@ -195,7 +195,7 @@ class SMBServerInstance:
 def print_instances(instances, number=False):
     if number:
         print("   ", end="")
-    releases = get_releases()
+    releases = get_all_releases()
     print(STATUS_FORMAT.format("Address", "Instance Id", "State", "Type", "ELB", "Service", "Version"))
     count = 0
     for inst in instances:

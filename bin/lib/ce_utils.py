@@ -26,7 +26,7 @@ def describe_current_release(cfg: Config) -> str:
     current = get_current_key(cfg)
     if not current:
         return "none"
-    r = release_for(get_releases(), current)
+    r = release_for(get_releases(cfg), current)
     if r:
         return str(r)
     else:

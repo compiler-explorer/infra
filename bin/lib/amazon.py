@@ -99,7 +99,7 @@ def remove_release(release: Release) -> None:
     )
 
 
-def _get_releases(source: VersionSource, prefix: str) -> List[Release]:
+def _get_releases(source: VersionSource, prefix: str, archive_extension: str = ".tar.xz") -> List[Release]:
     paginator = s3_client.get_paginator("list_objects_v2")
     result_iterator = paginator.paginate(Bucket="compiler-explorer", Prefix=prefix)
 
@@ -107,14 +107,14 @@ def _get_releases(source: VersionSource, prefix: str) -> List[Release]:
     releases = {}
     for result in result_iterator.search("[Contents][]"):
         key = result["Key"]
-        if not key.endswith(".tar.xz"):
+        if not key.endswith(archive_extension):
             continue
         split_key = key.split("/")
         branch = "/".join(split_key[2:-1])
         version_str = split_key[-1].split(".")[0]
         version = Version.from_string(version_str, source)
 
-        if key.endswith(".static.tar.xz"):
+        if key.endswith(".static" + archive_extension):
             staticfiles[version] = key
             continue
 
@@ -136,8 +136,19 @@ def _get_releases(source: VersionSource, prefix: str) -> List[Release]:
     return list(releases.values())
 
 
-def get_releases() -> List[Release]:
-    return _get_releases(VersionSource.TRAVIS, "dist/travis") + _get_releases(VersionSource.GITHUB, "dist/gh")
+def get_releases(cfg: Config) -> List[Release]:
+    if cfg.env.is_windows:
+        return _get_releases(VersionSource.GITHUB, "dist/gh", ".zip")
+    else:
+        return _get_releases(VersionSource.TRAVIS, "dist/travis") + _get_releases(VersionSource.GITHUB, "dist/gh")
+
+
+def get_all_releases() -> List[Release]:
+    return (
+        _get_releases(VersionSource.TRAVIS, "dist/travis")
+        + _get_releases(VersionSource.GITHUB, "dist/gh")
+        + _get_releases(VersionSource.GITHUB, "dist/gh", ".zip")
+    )
 
 
 def get_tools_releases() -> List[Release]:
@@ -152,15 +163,15 @@ def download_release_fileobj(key, fobj):
     s3_client.download_fileobj("compiler-explorer", key, fobj)
 
 
-def find_release(version: Version) -> Optional[Release]:
-    for r in get_releases():
+def find_release(cfg: Config, version: Version) -> Optional[Release]:
+    for r in get_releases(cfg):
         if r.version == version:
             return r
     return None
 
 
-def find_latest_release(branch: str) -> Optional[Release]:
-    releases = [release for release in get_releases() if branch == "" or release.branch == branch]
+def find_latest_release(cfg: Config, branch: str) -> Optional[Release]:
+    releases = [release for release in get_releases(cfg) if branch == "" or release.branch == branch]
     return max(releases, key=attrgetter("version")) if len(releases) > 0 else None
 
 
