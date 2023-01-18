@@ -279,7 +279,7 @@ compilers:
             targets:
               - trunk
         bpf:
-          arch_prefix: "{subdir}-unknown"
+          arch_prefix: "{subdir}-unknown-none"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: bpf
           nightly:
