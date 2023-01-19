@@ -60,6 +60,8 @@ s3_client = LazyObjectWrapper(lambda: boto3.client("s3"))
 anon_s3_client = LazyObjectWrapper(_create_anon_s3_client)
 dynamodb_client = LazyObjectWrapper(lambda: boto3.client("dynamodb"))
 ssm_client = LazyObjectWrapper(lambda: boto3.client("ssm"))
+ecs = LazyObjectWrapper(lambda: boto3.resource("ecs"))
+ecs_client = LazyObjectWrapper(lambda: boto3.client("ecs"))
 LINKS_TABLE = "links"
 VERSIONS_LOGGING_TABLE = "versionslog"
 
