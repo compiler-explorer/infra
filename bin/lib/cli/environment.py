@@ -3,6 +3,7 @@ import time
 import click
 
 from lib.amazon import get_autoscaling_groups_for, as_client
+from lib.amazon_ecs import ECSEnvironments
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
@@ -17,25 +18,40 @@ def environment():
 @click.pass_obj
 def environment_status(cfg: Config):
     """Gets the status of an environment."""
-    for asg in get_autoscaling_groups_for(cfg):
-        print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
+    if cfg.env.is_windows:
+        ecs = ECSEnvironments()
+        [desired, _] = ecs.get_counts_for_config(cfg)
+        print(f"Found ECS service for {cfg.env.value} with desired instances {desired}")
+    else:
+        for asg in get_autoscaling_groups_for(cfg):
+            print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
 
 
 @environment.command(name="start")
 @click.pass_obj
 def environment_start(cfg: Config):
     """Starts up an environment by ensure its ASGs have capacity."""
-    for asg in get_autoscaling_groups_for(cfg):
-        group_name = asg["AutoScalingGroupName"]
-        if asg["MinSize"] > 0:
-            print(f"Skipping ASG {group_name} as it has a non-zero min size")
-            continue
-        prev = asg["DesiredCapacity"]
-        if prev:
-            print(f"Skipping ASG {group_name} as it has non-zero desired capacity")
-            continue
-        print(f"Updating {group_name} to have desired capacity 1 (from {prev})")
-        as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=1)
+    if cfg.env.is_windows:
+        ecs = ECSEnvironments()
+        [desired, _] = ecs.get_counts_for_config(cfg)
+        if desired > 0:
+            print(f"Skipping ECS {cfg.env.value} as it has a non-zero desired capacity")
+            return
+
+        print(f"Updating ECS {cfg.env.value} to have desired capacity 1 (from 0)")
+        ecs.update_desired_count(cfg, 1)
+    else:
+        for asg in get_autoscaling_groups_for(cfg):
+            group_name = asg["AutoScalingGroupName"]
+            if asg["MinSize"] > 0:
+                print(f"Skipping ASG {group_name} as it has a non-zero min size")
+                continue
+            prev = asg["DesiredCapacity"]
+            if prev:
+                print(f"Skipping ASG {group_name} as it has non-zero desired capacity")
+                continue
+            print(f"Updating {group_name} to have desired capacity 1 (from {prev})")
+            as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=1)
 
 
 @environment.command(name="refresh")
@@ -116,14 +132,24 @@ def environment_stop(cfg: Config):
         print("Operation aborted. This would bring down the site")
         print("If you know what you are doing, edit the code in bin/lib/cli/environment.py, function environment_stop")
     elif are_you_sure("stop environment", cfg):
-        for asg in get_autoscaling_groups_for(cfg):
-            group_name = asg["AutoScalingGroupName"]
-            if asg["MinSize"] > 0:
-                print(f"Skipping ASG {group_name} as it has a non-zero min size")
-                continue
-            prev = asg["DesiredCapacity"]
-            if not prev:
-                print(f"Skipping ASG {group_name} as it already zero desired capacity")
-                continue
-            print(f"Updating {group_name} to have desired capacity 0 (from {prev})")
-            as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=0)
+        if cfg.env.is_windows:
+            ecs = ECSEnvironments()
+            [prev, _] = ecs.get_counts_for_config(cfg)
+            if prev == 0:
+                print(f"Skipping ECS {cfg.env.value} as it already zero desired capacity")
+                return
+
+            print(f"Updating ECS {cfg.env.value} to have desired capacity 0 (from {prev})")
+            ecs.update_desired_count(cfg, 0)
+        else:
+            for asg in get_autoscaling_groups_for(cfg):
+                group_name = asg["AutoScalingGroupName"]
+                if asg["MinSize"] > 0:
+                    print(f"Skipping ASG {group_name} as it has a non-zero min size")
+                    continue
+                prev = asg["DesiredCapacity"]
+                if not prev:
+                    print(f"Skipping ASG {group_name} as it already zero desired capacity")
+                    continue
+                print(f"Updating {group_name} to have desired capacity 0 (from {prev})")
+                as_client.update_auto_scaling_group(AutoScalingGroupName=group_name, DesiredCapacity=0)

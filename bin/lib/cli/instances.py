@@ -10,7 +10,7 @@ from typing import Sequence, Dict
 
 import click
 
-from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group, ecs_client
+from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group
 from lib.ce_utils import describe_current_release, are_you_sure, logger, wait_for_autoscale_state, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
@@ -135,53 +135,6 @@ def instances_restart(cfg: Config, motd: str):
 def instances_status(cfg: Config):
     """Get the status of the instances."""
     print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
-
-
-@instances.command(name="ecs")
-@click.pass_obj
-def instances_ecs(cfg: Config):
-    clusters = ecs_client.list_clusters()
-    win_cluster = clusters["clusterArns"][0]
-
-    print(f"checking cluster {win_cluster}")
-
-    services = ecs_client.list_services(cluster=win_cluster)
-    serviceArns = services["serviceArns"]
-    service_to_check = serviceArns[0]
-
-    svc_descriptions = ecs_client.describe_services(cluster=win_cluster, services=[service_to_check])
-
-    desired_count = svc_descriptions["services"][0]["desiredCount"]
-    running_count = svc_descriptions["services"][0]["runningCount"]
-    print(f"Running ECS containers {running_count} out of desired {desired_count}")
-
-    # taskdefs = ecs_client.list_task_definitions() # returns nothing?
-    # json.dumps(taskdefs, indent=4, sort_keys=True, default=str)
-
-    tasks = ecs_client.list_tasks(cluster=win_cluster)
-    task0 = tasks["taskArns"][0]
-
-    task0desc = ecs_client.describe_tasks(cluster=win_cluster, tasks=[task0])
-    # print(json.dumps(task0desc, indent=4, sort_keys=True, default=str))
-    taskdef_arn = task0desc["tasks"][0]["taskDefinitionArn"]
-    taskdef_description = ecs_client.describe_task_definition(taskDefinition=taskdef_arn)
-    for env_var in taskdef_description["taskDefinition"]["containerDefinitions"][0]["environment"]:
-        if env_var["name"] == "CE_ENV" and env_var["value"] == cfg.env.value:
-            print(f'envvar {env_var["name"]} = {env_var["value"]} <- selected config')
-        else:
-            print(f'envvar {env_var["name"]} = {env_var["value"]}')
-    # print(json.dumps(taskdef_description, indent=4, sort_keys=True, default=str))
-
-    containers = task0desc["tasks"][0]["containers"]
-
-    # print(json.dumps(task0desc, indent=4, sort_keys=True, default=str))
-
-    print("Active containers:")
-    if len(containers) > 0:
-        for container in containers:
-            print(f'* {container["containerArn"]}')
-    else:
-        print("None?")
 
 
 def pick_instance(cfg: Config):
