@@ -1,7 +1,25 @@
 # import json
 from typing import Dict
 from lib.env import Config
-from lib.amazon import ecs_client
+from lib.amazon import ecs_client, ec2_client
+
+
+def get_detail_value(details, name):
+    for detail in details:
+        if detail["name"] == name:
+            return detail["value"]
+    raise RuntimeError(f"Value not found for {name} in details")
+
+
+def get_instance_details_for_task(task):
+    taskdetails = task["attachments"][0]["details"]
+
+    return {
+        "private_ip_address": get_detail_value(taskdetails, "privateIPv4Address"),
+        "state": task["lastStatus"],
+        "public_ip_address": task["PublicIp"],
+        "health": task["healthStatus"],
+    }
 
 
 class ECSEnvironments:
@@ -92,6 +110,26 @@ class ECSEnvironments:
                 containers += [task["containers"]]
 
         return containers
+
+    def get_public_ip_for_netintf(self, network_interface_id):
+        descriptions = ec2_client.describe_network_interfaces(NetworkInterfaceIds=[network_interface_id])
+        return descriptions["NetworkInterfaces"][0]["Association"]["PublicIp"]
+
+    def get_network_interface_id_of_task(self, task):
+        return get_detail_value(task["attachments"][0]["details"], "networkInterfaceId")
+
+    def get_tasks_for_config(self, cfg: Config):
+        tasks = []
+
+        taskdef = self._get_taskdef_for_config(cfg)
+        for task in self.tasks:
+            if task["taskDefinitionArn"] == taskdef["taskDefinitionArn"]:
+                netid = self.get_network_interface_id_of_task(task)
+                if netid:
+                    task["PublicIp"] = self.get_public_ip_for_netintf(netid)
+                tasks += [task]
+
+        return tasks
 
     def update_desired_count(self, cfg: Config, count):
         service = self.get_service_for_config(cfg)

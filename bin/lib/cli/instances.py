@@ -7,6 +7,7 @@ import subprocess
 import sys
 import time
 from typing import Sequence, Dict
+from lib.amazon_ecs import ECSEnvironments
 
 import click
 
@@ -14,7 +15,7 @@ from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group
 from lib.ce_utils import describe_current_release, are_you_sure, logger, wait_for_autoscale_state, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
-from lib.instance import print_instances, Instance
+from lib.instance import print_ecs_instances, print_instances, Instance
 from lib.ssh import exec_remote_all, run_remote_shell, exec_remote
 
 logger = logging.getLogger(__name__)
@@ -134,7 +135,12 @@ def instances_restart(cfg: Config, motd: str):
 @click.pass_obj
 def instances_status(cfg: Config):
     """Get the status of the instances."""
-    print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
+    if cfg.env.is_windows:
+        ecs = ECSEnvironments()
+        tasks = ecs.get_tasks_for_config(cfg)
+        print_ecs_instances(tasks)
+    else:
+        print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
 
 
 def pick_instance(cfg: Config):
