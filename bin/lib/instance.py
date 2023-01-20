@@ -11,7 +11,7 @@ from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases,
 from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
-ECS_STATUS_FORMAT = "{: <16} {: <16} {: <10} {: <10}"
+ECS_STATUS_FORMAT = "{: <16} {: <16} {: <12} {: <10}"
 logger = logging.getLogger("instance")
 
 
