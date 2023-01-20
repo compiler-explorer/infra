@@ -60,8 +60,11 @@ class ECSEnvironments:
         return res["taskArns"]
 
     def _get_task_descriptions(self, task_arns):
-        res = ecs_client.describe_tasks(cluster=self.default_cluster, tasks=task_arns)
-        return res["tasks"]
+        if len(task_arns) > 0:
+            res = ecs_client.describe_tasks(cluster=self.default_cluster, tasks=task_arns)
+            return res["tasks"]
+        else:
+            return []
 
     def _get_task_definition(self, taskdef_arn):
         res = ecs_client.describe_task_definition(taskDefinition=taskdef_arn)
