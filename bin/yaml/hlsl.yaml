@@ -1,4 +1,10 @@
 compilers:
+  nightly:
+    if: nightly
+    dxc:
+      type: nightly
+      targets:
+        - trunk
   hlsl:
     dxc:
       type: s3tarballs
@@ -6,12 +12,6 @@ compilers:
       targets:
         - "1.7.2207"
         - "1.6.2112"
-      nightly:
-        if: nightly
-        type: nightly
-        targets:
-          - name: trunk
-            compiler_name: dxc
     rga:
       type: tarballs
       url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/{name}/rga-linux-{name}.tgz
