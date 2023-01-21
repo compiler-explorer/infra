@@ -3,6 +3,7 @@ compilers:
     if: nightly
     dxc:
       type: nightly
+      check_exe: bin/dxc --version
       targets:
         - trunk
   hlsl:
