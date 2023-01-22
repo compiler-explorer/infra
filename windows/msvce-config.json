@@ -151,6 +151,11 @@
       },
       "cppcoro": null,
       "ctbignum": null,
+      "cthash": {
+        "url": "https://github.com/hanickadot/cthash",
+        "description": "Compile Time Hash",
+        "pretty_name": "CTHASH"
+      },
       "ctre": {
         "url": "https://github.com/hanickadot/compile-time-regular-expressions",
         "description": "Compile Time Regular Expressions",
