@@ -7,7 +7,11 @@ DefaultDependencies=no
 [Service]
 Type=oneshot
 SyslogIdentifier=instance-id
-ExecStart=cat /sys/devices/virtual/dmi/id/board_asset_tag
+# With reference to https://unix.stackexchange.com/questions/388483/delay-systemd-service-if-file-exist
+# but in reverse. And I'm sure there's a better way, like waiting for the appropriate target; but it's not at
+# all clear to me how to depend on "udevd mounts dmi data into /sys/" in systemd.
+ExecStartPre=/usr/bin/bash -c "while [ ! -f /sys/devices/virtual/dmi/id/board_asset_tag ]; do sleep 1; done"
+ExecStart=/usr/bin/cat /sys/devices/virtual/dmi/id/board_asset_tag
 
 [Install]
 WantedBy=basic.target
