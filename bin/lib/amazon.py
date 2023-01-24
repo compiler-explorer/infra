@@ -95,7 +95,9 @@ def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
 def remove_release(release: Release) -> None:
     s3_client.delete_objects(
         Bucket="compiler-explorer",
-        Delete={"Objects": [{"Key": release.key}, {"Key": release.static_key}, {"Key": release.info_key}]},
+        Delete=dict(
+            Objects=[dict(Key=key) for key in (release.key, release.static_key, release.info_key) if key is not None]
+        ),
     )
 
 
