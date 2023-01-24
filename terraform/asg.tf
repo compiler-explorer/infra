@@ -49,6 +49,8 @@ resource "aws_autoscaling_group" "prod-mixed" {
             max = 0
           }
           spot_max_price_percentage_over_lowest_price = 150
+          # older generations don't have DMI so we can't quickly log their instance id at startup
+          instance_generations = ["current"]
         }
       }
     }
