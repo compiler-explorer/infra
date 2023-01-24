@@ -97,7 +97,7 @@ class NightlyInstallable(Installable):
         self.path_name_symlink = self.config_get("symlink", os.path.join(self.subdir, f"{path_name_prefix}"))
         self.num_to_keep = self.config_get("num_to_keep", 5)
         self._setup_check_exe(self.install_path)
-        self._setup_check_link(self.local_path, self.path_name_symlink)
+        self._setup_check_link(self.install_path, self.path_name_symlink)
 
     @property
     def nightly_like(self) -> bool:
@@ -131,7 +131,7 @@ class NightlyInstallable(Installable):
                 self.install_context.remove_dir(to_remove)
 
             self.install_context.move_from_staging(staging, self.local_path, self.install_path)
-            self.install_context.set_link(Path(self.local_path), self.path_name_symlink)
+            self.install_context.set_link(Path(self.install_path), self.path_name_symlink)
 
     def __repr__(self) -> str:
         return f"NightlyInstallable({self.name}, {self.install_path})"

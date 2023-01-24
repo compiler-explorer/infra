@@ -114,6 +114,18 @@ class ConanInstance:
         return ConanInstance(_singleton_instance("ConanNode"))
 
 
+class SMBInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "smbserver"
+
+    @staticmethod
+    def instance():
+        return SMBInstance(_singleton_instance("CESMBServer"))
+
+
 class BuilderInstance:
     def __init__(self, instance):
         self.instance = instance
@@ -146,6 +158,28 @@ class RunnerInstance:
     @staticmethod
     def instance():
         return RunnerInstance(_singleton_instance("CERunner"))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state["Name"]
+
+
+class SMBServerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "runner"
+
+    @staticmethod
+    def instance():
+        return SMBServerInstance(_singleton_instance("CESMBServer"))
 
     def start(self):
         self.instance.start()

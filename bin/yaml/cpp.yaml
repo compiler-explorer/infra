@@ -279,8 +279,8 @@ compilers:
             targets:
               - trunk
         bpf:
-          arch_prefix: "{subdir}-unknown"
-          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          arch_prefix: "bpf-unknown-none"
+          check_exe: "{arch_prefix}/bin/bpf-unknown-g++ --version"
           subdir: bpf
           nightly:
             if: nightly
@@ -430,6 +430,8 @@ compilers:
             - 4.8.0
             - 4.9.0
             - 4.10.0
+            - name: 4.11.1
+              url: https://github.com/kalray/build-scripts/releases/download/v{name}/gcc-kalray-kvx-ubuntu-20.04-v{name}.tar.gz
         s390x:
           arch_prefix: "{subdir}-ibm-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -505,15 +507,15 @@ compilers:
               - 12.1.0
               - 12.2.0
         xtensa:
+          subdir: xtensa
+          url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.{compression}
+          untar_dir: "{arch_prefix}"
+          dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+          check_exe: "bin/{arch_prefix}-g++ --version"
+          type: tarballs
+          compression: gz
           esp32:
             arch_prefix: xtensa-esp32-elf
-            type: tarballs
-            compression: gz
-            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
-            untar_dir: "{arch_prefix}"
-            subdir: xtensa
-            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
-            check_exe: "bin/{arch_prefix}-g++ --version"
             targets:
               - name: 2019r2
                 base: "8_2_0"
@@ -527,15 +529,11 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
+              - name: 2022r1
+                base: "11_2_0"
+                compression: xz
           esp32s2:
             arch_prefix: xtensa-esp32s2-elf
-            type: tarballs
-            compression: gz
-            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
-            untar_dir: "{arch_prefix}"
-            subdir: xtensa
-            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
-            check_exe: "bin/{arch_prefix}-g++ --version"
             targets:
               - name: 2019r2
                 base: "8_2_0"
@@ -549,15 +547,11 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
+              - name: 2022r1
+                base: "11_2_0"
+                compression: xz
           esp32s3:
             arch_prefix: xtensa-esp32s3-elf
-            type: tarballs
-            compression: gz
-            url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.gz
-            untar_dir: "{arch_prefix}"
-            subdir: xtensa
-            dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
-            check_exe: "bin/{arch_prefix}-g++ --version"
             targets:
               - name: 2020r3
                 base: "8_4_0"
@@ -565,6 +559,9 @@ compilers:
                 base: "8_4_0"
               - name: 2021r2
                 base: "8_4_0"
+              - name: 2022r1
+                base: "11_2_0"
+                compression: xz
     clang:
       - type: tarballs
         check_exe: bin/clang++ --version
@@ -681,6 +678,18 @@ compilers:
       check_exe: bin/tcc -v
       targets:
         - 0.9.27
+    cl430:
+      type: script
+      dir: "ti-cgt-msp430_{name}"
+      check_exe: bin/cl430 -version
+      targets:
+        - name: 21.6.1.LTS
+          fetch:
+            - https://dr-download.ti.com/software-development/ide-configuration-compiler-or-debugger/MD-p4jWEYpR8n/{name}/ti_cgt_msp430_{name}_linux-x64_installer.bin installer.bin
+          script: |
+            chmod +x installer.bin
+            ./installer.bin --unattendedmodeui none --mode unattended --prefix .
+            rm installer.bin
     intel-cpp:
       type: script
       dir: "intel-cpp-{name}"

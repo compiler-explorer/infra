@@ -108,7 +108,7 @@ class Installable:
         self._logger.debug("Ensuring dependees are installed")
         for dependee in self.depends:
             if not dependee.is_installed():
-                self._logger.info("Installting required dependee %s", dependee)
+                self._logger.info("Installing required dependee %s", dependee)
                 dependee.install()
         self._logger.debug("Dependees installed")
 
