@@ -35,23 +35,22 @@ resource "aws_autoscaling_group" "prod-mixed" {
         version            = "$Latest"
       }
       override {
-        instance_requirements {
-          memory_mib {
-            min = 4096
-          }
-          vcpu_count {
-            min = 2
-          }
-          memory_gib_per_vcpu {
-            min = 2
-          }
-          accelerator_count {
-            max = 0
-          }
-          spot_max_price_percentage_over_lowest_price = 150
-          # older generations don't have DMI so we can't quickly log their instance id at startup
-          instance_generations = ["current"]
-        }
+        instance_type = "c6a.large"
+      }
+      override {
+        instance_type = "c6i.large"
+      }
+      override {
+        instance_type = "c5.large"
+      }
+      override {
+        instance_type = "c5n.large"
+      }
+      override {
+         instance_type = "c5a.large"
+      }
+      override {
+         instance_type = "c5ad.large"
       }
     }
   }
