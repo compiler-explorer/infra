@@ -19,6 +19,7 @@ def get_instance_details_for_task(task):
         "state": task["lastStatus"],
         "public_ip_address": task["PublicIp"],
         "health": task["healthStatus"],
+        "taskArn": task["taskArn"],
     }
 
 

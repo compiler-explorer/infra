@@ -11,7 +11,7 @@ from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases,
 from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
-ECS_STATUS_FORMAT = "{: <16} {: <16} {: <12} {: <10}"
+ECS_STATUS_FORMAT = "{: <16} {: <16} {: <12} {: <10} {: <10}"
 logger = logging.getLogger("instance")
 
 
@@ -226,7 +226,7 @@ def print_ecs_instances(instances, number=False):
     if number:
         print("   ", end="")
     # releases = get_all_releases()
-    print(ECS_STATUS_FORMAT.format("Private IP", "Public IP", "State", "Health"))
+    print(ECS_STATUS_FORMAT.format("Private IP", "Public IP", "State", "Health", "TaskArn"))
     count = 0
     for inst in instances:
         if number:
@@ -240,6 +240,10 @@ def print_ecs_instances(instances, number=False):
         details = get_instance_details_for_task(inst)
         print(
             ECS_STATUS_FORMAT.format(
-                details["private_ip_address"], details["public_ip_address"], details["state"], details["health"]
+                details["private_ip_address"],
+                details["public_ip_address"],
+                details["state"],
+                details["health"],
+                details["taskArn"],
             )
         )
