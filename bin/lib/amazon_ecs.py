@@ -77,11 +77,13 @@ class ECSEnvironments:
                     return envvar["value"]
         return ""
 
-    def _get_taskdef_for_config(self, cfg: Config):
+    def _get_taskdefs_for_config(self, cfg: Config):
+        all_taskdefs = []
         for taskdef_arn in self.task_definitions:
-            if self._get_ce_env(self.task_definitions[taskdef_arn]) == cfg.env.value:
-                return self.task_definitions[taskdef_arn]
-        return
+            taskenvvalue = self._get_ce_env(self.task_definitions[taskdef_arn])
+            if taskenvvalue == cfg.env.value:
+                all_taskdefs += [self.task_definitions[taskdef_arn]]
+        return all_taskdefs
 
     def _get_service_with_taskdef(self, taskdef):
         for service in self.services:
@@ -89,28 +91,37 @@ class ECSEnvironments:
                 return service
 
     def get_counts_for_config(self, cfg: Config):
-        taskdef = self._get_taskdef_for_config(cfg)
-        if taskdef:
-            service = self._get_service_with_taskdef(taskdef)
+        taskdefs = self._get_taskdefs_for_config(cfg)
+        if taskdefs and len(taskdefs) > 0:
+            counts = [0, 0]
+            for taskdef in taskdefs:
+                service = self._get_service_with_taskdef(taskdef)
+                if service:
+                    counts[0] += service["desiredCount"]
+                    counts[1] += service["runningCount"]
 
-            return [service["desiredCount"], service["runningCount"]]
+            return counts
         else:
             raise RuntimeError("Cant find task definition for config")
 
     def get_service_for_config(self, cfg: Config):
-        taskdef = self._get_taskdef_for_config(cfg)
-        if taskdef:
-            return self._get_service_with_taskdef(taskdef)
+        taskdefs = self._get_taskdefs_for_config(cfg)
+        if taskdefs and len(taskdefs) > 0:
+            for taskdef in taskdefs:
+                svc = self._get_service_with_taskdef(taskdef)
+                if svc:
+                    return svc
         else:
             return
 
     def get_containers_for_config(self, cfg: Config):
         containers = []
 
-        taskdef = self._get_taskdef_for_config(cfg)
+        taskdefs = self._get_taskdefs_for_config(cfg)
         for task in self.tasks:
-            if task["taskDefinitionArn"] == taskdef["taskDefinitionArn"]:
-                containers += [task["containers"]]
+            for taskdef in taskdefs:
+                if task["taskDefinitionArn"] == taskdef["taskDefinitionArn"]:
+                    containers += [task["containers"]]
 
         return containers
 
@@ -124,18 +135,22 @@ class ECSEnvironments:
     def get_tasks_for_config(self, cfg: Config):
         tasks = []
 
-        taskdef = self._get_taskdef_for_config(cfg)
+        taskdefs = self._get_taskdefs_for_config(cfg)
         for task in self.tasks:
-            if task["taskDefinitionArn"] == taskdef["taskDefinitionArn"]:
-                netid = self.get_network_interface_id_of_task(task)
-                if netid:
-                    task["PublicIp"] = self.get_public_ip_for_netintf(netid)
-                tasks += [task]
+            for taskdef in taskdefs:
+                if task["taskDefinitionArn"] == taskdef["taskDefinitionArn"]:
+                    netid = self.get_network_interface_id_of_task(task)
+                    if netid:
+                        task["PublicIp"] = self.get_public_ip_for_netintf(netid)
+                    tasks += [task]
 
         return tasks
 
     def update_desired_count(self, cfg: Config, count):
         service = self.get_service_for_config(cfg)
-        ecs_client.update_service(cluster=self.default_cluster, service=service["serviceArn"], desiredCount=count)
+        if service:
+            ecs_client.update_service(cluster=self.default_cluster, service=service["serviceArn"], desiredCount=count)
+        else:
+            print("Somethings messed up")
 
     # print(json.dumps(task0desc, indent=4, sort_keys=True, default=str))
