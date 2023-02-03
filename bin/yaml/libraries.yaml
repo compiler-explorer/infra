@@ -886,6 +886,14 @@ libraries:
         targets:
         - trunk
         type: github
+      cthash:
+        build_type: none
+        check_file: include/cthash/cthash.hpp
+        method: clone_branch
+        repo: hanickadot/cthash
+        targets:
+        - main
+        type: github
       ctre:
         build_type: none
         check_file: include/ctre.hpp
