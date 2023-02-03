@@ -100,8 +100,9 @@ function CreateCredAndRun {
     # $env:NODE_ENV = "production"
     # $env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
     # node --max_old_space_size=6000 -r esm -- app.js --dist --env ecs --env win32 --language "c++,pascal"
-    # Start-Process node -Credential $credential -NoNewWindow -Wait -ArgumentList $nodeargs
+    Start-Process node -Credential $credential -NoNewWindow -Wait -ArgumentList $nodeargs
 
+    return
     $psi = New-object System.Diagnostics.ProcessStartInfo
     $psi.CreateNoWindow = $true
     $psi.UseShellExecute = $false
