@@ -118,7 +118,6 @@ function CreateCredAndRun {
     $psi.FileName = "C:\Program Files\nodejs\node.exe"
     $psi.Arguments = $nodeargs
     $psi.Verb = "open"
-    $psi.EnvironmentVariables.Clear()
     $psi.EnvironmentVariables["NODE_ENV"] = "production"
     $psi.EnvironmentVariables["PATH"] = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
 
