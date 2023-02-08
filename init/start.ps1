@@ -37,7 +37,7 @@ function get_released_code {
     Expand-Archive -Path "/tmp/build.zip" -DestinationPath $DEPLOY_DIR
 }
 
-update_code
+#update_code
 
 # todo: this should be configured into the build
 Write-Host "Installing properties files"
@@ -73,7 +73,7 @@ function RecreateUser {
     }
 
     New-LocalUser -User $CE_USER -Password $securePassword -PasswordNeverExpires -FullName "CE" -Description "Special user for running Compiler Explorer";
-    Add-LocalGroupMember -Group "Power Users" -Member $CE_USER;
+    Add-LocalGroupMember -Group "Administrators" -Member $CE_USER;
 }
 
 function GetConf {
