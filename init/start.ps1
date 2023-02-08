@@ -109,8 +109,8 @@ function CreateCredAndRun {
     $psi = New-object System.Diagnostics.ProcessStartInfo
     $psi.CreateNoWindow = $true
     $psi.UseShellExecute = $false
-    $psi.UserName = $credential.UserName
-    $psi.Password = $credential.Password
+    $psi.UserName = $CE_USER
+    $psi.Password = $pass
     $psi.LoadUserProfile = $false
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
@@ -134,7 +134,7 @@ function CreateCredAndRun {
     $output = $process.StandardOutput.ReadToEnd()
     $err = $process.StandardError.ReadToEnd()
     Write-Host "Waiting"
-    $process.WaitForExit()
+    [void]$process.WaitForExit()
     Write-Host "Done waiting, output:"
     Write-Host $output
     Write-Host "err:"
