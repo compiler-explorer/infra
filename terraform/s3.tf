@@ -155,6 +155,14 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.compiler-explorer.arn}/*"]
   }
+  statement {
+    principals {
+      identifiers = ["arn:aws:iam::052730242331:user/sonar"]
+      type        = "AWS"
+    }
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}/opt-nonfree/sonar/*"]
+  }
 }
 
 data "aws_iam_policy_document" "compiler-explorer-logs-s3-policy" {
