@@ -73,7 +73,7 @@ function RecreateUser {
     }
 
     New-LocalUser -User $CE_USER -Password $securePassword -PasswordNeverExpires -FullName "CE" -Description "Special user for running Compiler Explorer";
-    Add-LocalGroupMember -Group "Users" -Member $CE_USER;
+    Add-LocalGroupMember -Group "Power Users" -Member $CE_USER;
 }
 
 function GetConf {
