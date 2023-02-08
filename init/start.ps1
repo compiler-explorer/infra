@@ -1,7 +1,7 @@
 
 New-SmbMapping -GlobalMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared'
 
-$env:CE_ENV = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data"
+$env:CE_ENV = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
@@ -29,6 +29,7 @@ function get_released_code {
     Invoke-WebRequest -Uri $URL -OutFile "/tmp/build.zip"
 
     Write-Host "Unzipping"
+    Remove-Item -Path "/compilerexplorer" -Force -Recurse
     New-Item -Path "./" -Name "compilerexplorer" -ItemType "directory" -Force
     Expand-Archive -Path "/tmp/build.zip" -DestinationPath $DEPLOY_DIR
 }
