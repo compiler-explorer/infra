@@ -1,8 +1,8 @@
 
 New-SmbMapping -GlobalMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared'
 
+$env:CE_ENV = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data"
 $DEPLOY_DIR = "/compilerexplorer"
-$BUILD_NUMBER = $env:BUILD_NUMBER
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
@@ -37,9 +37,9 @@ update_code
 
 # todo: this should be configured into the build
 Write-Host "Installing properties files"
-Copy-Item -Path "compiler-explorer.local.properties" -Destination "$DEPLOY_DIR/etc/config/compiler-explorer.local.properties"
-Copy-Item -Path "c++.win32.properties" -Destination "$DEPLOY_DIR/etc/config/c++.win32.properties"
-Copy-Item -Path "pascal.win32.properties" -Destination "$DEPLOY_DIR/etc/config/pascal.win32.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/compiler-explorer.local.properties" -OutFile "$DEPLOY_DIR/etc/config/compiler-explorer.local.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.win32.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.win32.properties"
 
 function DenyAccessByCE {
     param (
@@ -105,8 +105,8 @@ function CreateCredAndRun {
     $psi = New-object System.Diagnostics.ProcessStartInfo
     $psi.CreateNoWindow = $true
     $psi.UseShellExecute = $false
-    $psi.UserName = $credential.UserName
-    $psi.Password = $credential.Password
+    #$psi.UserName = $credential.UserName
+    #$psi.Password = $credential.Password
     $psi.LoadUserProfile = $false
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
