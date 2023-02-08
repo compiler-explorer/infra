@@ -1,6 +1,4 @@
 import datetime
-
-# import json
 import logging
 import shlex
 import subprocess
