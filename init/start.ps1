@@ -1,3 +1,6 @@
+do {
+  $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
+} until ($ping)
 
 New-SmbMapping -GlobalMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared'
 
