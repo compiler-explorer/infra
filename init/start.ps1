@@ -98,7 +98,7 @@ function CreateCredAndRun {
     $credential = New-Object System.Management.Automation.PSCredential($CE_USER,$pass);
     # DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
 
-    $nodeargs = ("--max_old_space_size=6000","-r","esm","--","app.js","--dist","--logHost",(GetLogHost),"--logPort",(GetLogPort),"--env","ecs","--env","win32","--language","c++,pascal")
+    $nodeargs = ("--max_old_space_size=6000","-r","esm","--","app.js","--dist","--suppressConsoleLog","--logHost",(GetLogHost),"--logPort",(GetLogPort),"--env","win32","--language","c++,pascal","--port","10240","--metricsPort","10241","--dist")
     Write-Host "Starting node with args " $nodeargs
 
     # $env:NODE_ENV = "production"
@@ -109,8 +109,8 @@ function CreateCredAndRun {
     $psi = New-object System.Diagnostics.ProcessStartInfo
     $psi.CreateNoWindow = $true
     $psi.UseShellExecute = $false
-    #$psi.UserName = $credential.UserName
-    #$psi.Password = $credential.Password
+    $psi.UserName = $credential.UserName
+    $psi.Password = $credential.Password
     $psi.LoadUserProfile = $false
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
@@ -121,7 +121,6 @@ function CreateCredAndRun {
     $psi.EnvironmentVariables.Clear()
     $psi.EnvironmentVariables["NODE_ENV"] = "production"
     $psi.EnvironmentVariables["PATH"] = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
-    $psi.WindowStyle = 1
 
     $psi
 
