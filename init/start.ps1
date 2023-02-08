@@ -29,6 +29,7 @@ function get_released_code {
     Invoke-WebRequest -Uri $URL -OutFile "/tmp/build.zip"
 
     Write-Host "Unzipping"
+    Remove-Item -Path "/compilerexplorer" -Force -Recursive
     New-Item -Path "./" -Name "compilerexplorer" -ItemType "directory" -Force
     Expand-Archive -Path "/tmp/build.zip" -DestinationPath $DEPLOY_DIR
 }
