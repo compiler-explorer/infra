@@ -6,7 +6,6 @@ from typing import Dict, Optional
 
 import paramiko.ssh_exception
 
-from lib.amazon_ecs import get_instance_details_for_task
 from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases, release_for
 from lib.ssh import exec_remote, can_ssh_to
 
@@ -218,32 +217,5 @@ def print_instances(instances, number=False):
                 inst.elb_health,
                 inst.service_status["SubState"],
                 running_version,
-            )
-        )
-
-
-def print_ecs_instances(instances, number=False):
-    if number:
-        print("   ", end="")
-    # releases = get_all_releases()
-    print(ECS_STATUS_FORMAT.format("Private IP", "Public IP", "State", "Health", "TaskArn"))
-    count = 0
-    for inst in instances:
-        if number:
-            print("{: <3}".format(count), end="")
-        count += 1
-        # running_version = release_for(releases, inst.running_version)
-        # if running_version:
-        #     running_version = "{} ({})".format(running_version.version, running_version.branch)
-        # else:
-        #     running_version = "(unknown {})".format(inst.running_version)
-        details = get_instance_details_for_task(inst)
-        print(
-            ECS_STATUS_FORMAT.format(
-                details["private_ip_address"],
-                details["public_ip_address"],
-                details["state"],
-                details["health"],
-                details["taskArn"],
             )
         )

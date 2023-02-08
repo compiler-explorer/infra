@@ -53,14 +53,6 @@ def run_remote_shell(instance, use_mosh: bool = False):
     os.system(f"{ssh_command} ubuntu@{ssh_address_for(instance)}")
 
 
-def run_ecs_remote_shell(task):
-    logger.debug("Running remote shell on %s", task["taskArn"])
-    execute_command = (
-        f"aws ecs execute-command --cluster CEWin --task {task['taskArn']} --interactive --command \"pwsh\""
-    )
-    os.system(f"{execute_command}")
-
-
 def exec_remote(instance, command, ignore_errors: bool = False):
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)

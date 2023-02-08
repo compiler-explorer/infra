@@ -7,7 +7,6 @@ import subprocess
 import sys
 import time
 from typing import Sequence, Dict
-from lib.amazon_ecs import ECSEnvironments
 
 import click
 
@@ -15,8 +14,8 @@ from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group
 from lib.ce_utils import describe_current_release, are_you_sure, logger, wait_for_autoscale_state, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment
-from lib.instance import print_ecs_instances, print_instances, Instance
-from lib.ssh import exec_remote_all, run_ecs_remote_shell, run_remote_shell, exec_remote
+from lib.instance import print_instances, Instance
+from lib.ssh import exec_remote_all, run_remote_shell, exec_remote
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +43,7 @@ def instances_exec_all(cfg: Config, remote_cmd: Sequence[str]):
 def instances_login(cfg: Config):
     """Log in to one of the instances."""
     instance = pick_instance(cfg)
-    if cfg.env.is_windows:
-        run_ecs_remote_shell(instance)
-    else:
-        run_remote_shell(instance)
+    run_remote_shell(instance)
 
 
 @instances.command(name="restart_one")
@@ -138,39 +134,20 @@ def instances_restart(cfg: Config, motd: str):
 @click.pass_obj
 def instances_status(cfg: Config):
     """Get the status of the instances."""
-    if cfg.env.is_windows:
-        ecs = ECSEnvironments()
-        tasks = ecs.get_tasks_for_config(cfg)
-        print_ecs_instances(tasks)
-    else:
-        print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
+    print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
 
 
 def pick_instance(cfg: Config):
-    if cfg.env.is_windows:
-        ecs = ECSEnvironments()
-        tasks = ecs.get_tasks_for_config(cfg)
-        if len(tasks) == 1:
-            return tasks[0]
-        else:
-            while True:
-                print_ecs_instances(tasks, number=True)
-                inst = input("Which instance? ")
-                try:
-                    return tasks[int(inst)]
-                except (ValueError, IndexError):
-                    pass
-    else:
-        elb_instances = Instance.elb_instances(target_group_arn_for(cfg))
-        if len(elb_instances) == 1:
-            return elb_instances[0]
-        while True:
-            print_instances(elb_instances, number=True)
-            inst = input("Which instance? ")
-            try:
-                return elb_instances[int(inst)]
-            except (ValueError, IndexError):
-                pass
+    elb_instances = Instance.elb_instances(target_group_arn_for(cfg))
+    if len(elb_instances) == 1:
+        return elb_instances[0]
+    while True:
+        print_instances(elb_instances, number=True)
+        inst = input("Which instance? ")
+        try:
+            return elb_instances[int(inst)]
+        except (ValueError, IndexError):
+            pass
 
 
 def pick_instances(cfg: Config):
