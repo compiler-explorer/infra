@@ -73,7 +73,7 @@ function RecreateUser {
     }
 
     New-LocalUser -User $CE_USER -Password $securePassword -PasswordNeverExpires -FullName "CE" -Description "Special user for running Compiler Explorer";
-    Add-LocalGroupMember -Group "Administrators" -Member $CE_USER;
+    Add-LocalGroupMember -Group "Users" -Member $CE_USER;
 }
 
 function GetConf {
@@ -107,7 +107,7 @@ function CreateCredAndRun {
     # Start-Process node -Credential $credential -NoNewWindow -Wait -ArgumentList $nodeargs
 
     $psi = New-object System.Diagnostics.ProcessStartInfo
-    $psi.CreateNoWindow = $false
+    $psi.CreateNoWindow = $true
     $psi.UseShellExecute = $false
     $psi.UserName = $CE_USER
     $psi.Password = $pass
