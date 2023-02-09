@@ -37,7 +37,7 @@ function get_released_code {
     Expand-Archive -Path "/tmp/build.zip" -DestinationPath $DEPLOY_DIR
 }
 
-#update_code
+update_code
 
 # todo: this should be configured into the build
 Write-Host "Installing properties files"
