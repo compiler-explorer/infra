@@ -107,10 +107,10 @@ function CreateCredAndRun {
     # Start-Process node -Credential $credential -NoNewWindow -Wait -ArgumentList $nodeargs
 
     $psi = New-object System.Diagnostics.ProcessStartInfo
-    $psi.CreateNoWindow = $true
+    $psi.CreateNoWindow = $false
     $psi.UseShellExecute = $false
-    #$psi.UserName = $CE_USER
-    #$psi.Password = $pass
+    $psi.UserName = $CE_USER
+    $psi.Password = $pass
     $psi.LoadUserProfile = $false
     $psi.RedirectStandardOutput = $true
     $psi.RedirectStandardError = $true
