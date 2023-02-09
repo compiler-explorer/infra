@@ -30,7 +30,7 @@ Start-Process "grafana-agent-installer.exe" -argumentlist "/S" -wait
 Write-Host "Downloading windows-exporter"
 Invoke-WebRequest -Uri "https://github.com/prometheus-community/windows_exporter/releases/download/v0.20.0/windows_exporter-0.20.0-amd64.msi" -OutFile "C:\tmp\windows_exporter-0.20.0-amd64.msi"
 Write-Host "Installing windows-exporter"
-Start-Process "msiexec" -argumentlist "/quiet /i indows_exporter-0.20.0-amd64.msi" -wait
+Start-Process "msiexec" -argumentlist "/quiet /i windows_exporter-0.20.0-amd64.msi" -wait
 Write-Host "Deleting tmp files"
 Remove-Item -Force -Path "windows_exporter-0.20.0-amd64.msi"
 
