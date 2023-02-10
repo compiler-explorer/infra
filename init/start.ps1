@@ -2,7 +2,23 @@ do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
 
-New-SmbMapping -GlobalMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared'
+function MountZ {
+    $exists = (Get-SmbMapping Z:) -as [bool]
+    if ($exists) {
+        Write-Host "Already mapped"
+        return
+    }
+
+    while (-not $exists) {
+        try {
+            Write-Host "Mapping Z:"
+            $exists = (New-SmbMapping -GlobalMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared') -as [bool]
+        } catch {
+        }
+    }
+}
+
+MountZ
 
 $env:CE_ENV = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
 $DEPLOY_DIR = "/compilerexplorer"
@@ -75,6 +91,7 @@ function GetLogHost {
 function GetLogPort {
     return GetConf -Name "/compiler-explorer/logDestPort";
 }
+
 function DenyAccessByCE {
     param (
         $Path
