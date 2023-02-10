@@ -37,12 +37,12 @@ Remove-Item -Force -Path "windows_exporter-0.20.0-amd64.msi"
 
 # todo populate C:\Program Files\Grafana Agent\agent-config.yaml with things
 
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/run.ps1" -OutFile "C:\tmp\Startup.ps1"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/main/packer/Startup.ps1" -OutFile "C:\tmp\Startup.ps1"
 
 $TaskParams = @{
     Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "c:\tmp\Startup.ps1"
     Trigger = New-ScheduledTaskTrigger -AtStartup
-    Principal = New-ScheduledTaskPrincipal -UserId "LOCALSERVICE" -LogonType ServiceAccount
+    Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\NetworkService" -LogonType ServiceAccount
     Settings = New-ScheduledTaskSettingsSet
 }
 New-ScheduledTask @TaskParams | Register-ScheduledTask "Startup"
