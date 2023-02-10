@@ -20,7 +20,7 @@ function MountZ {
 
 MountZ
 
-$env:CE_ENV = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
+$env:CE_ENV = (Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing).Content
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
