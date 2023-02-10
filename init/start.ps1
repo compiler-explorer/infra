@@ -11,6 +11,13 @@ $CE_USER = "ce"
 
 Set-DefaultAWSRegion -Region us-east-1
 
+function GetBetterHostname {
+    $meta = Invoke-WebRequest -Uri http://169.254.169.254/latest/meta-data/hostname -UseBasicParsing
+    return $meta.Content -replace ".ec2.internal",""
+}
+
+$env:COMPUTERNAME = GetBetterHostname
+
 function update_code {
     Write-Host "Current environment $CE_ENV"
     Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
