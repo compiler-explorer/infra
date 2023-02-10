@@ -16,6 +16,7 @@ from lib.amazon import (
     download_release_fileobj,
     find_latest_release,
     find_release,
+    get_all_releases,
     log_new_build,
     set_current_key,
     get_ssm_param,
@@ -61,6 +62,19 @@ def old_deploy_staticfiles(branch, versionfile):
     subprocess.call(["rm", "-Rf", "deploy"])
 
 
+def deploy_staticfiles_windows(release) -> bool:
+    print("Deploying static files to cdn (Windows)")
+    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
+
+    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
+        download_release_fileobj(release.static_key, f)
+        f.flush()
+        with DeploymentJob(
+            f.name, "ce-cdn.net", version=release.version, cache_control=cc, bucket_path="windows"
+        ) as job:
+            return job.run()
+
+
 def deploy_staticfiles(release) -> bool:
     print("Deploying static files to cdn")
     cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
@@ -92,7 +106,11 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
         to_set = version
     else:
         setting_latest = version == "latest"
-        release = find_latest_release(branch or "") if setting_latest else find_release(Version.from_string(version))
+        release = (
+            find_latest_release(cfg, branch or "")
+            if setting_latest
+            else find_release(cfg, Version.from_string(version))
+        )
         if not release:
             print("Unable to find version " + version)
             if setting_latest and branch != "":
@@ -105,7 +123,11 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print(f"Found release {release}")
             to_set = release.key
     if to_set is not None and release is not None:
-        if (cfg.env.value != "runner") and not runner_discoveryexists(cfg.env.value, str(release.version)):
+        if (
+            (cfg.env.value != "runner")
+            and not cfg.env.is_windows
+            and not runner_discoveryexists(cfg.env.value, str(release.version))
+        ):
             if not confirm_action(
                 f"Compiler discovery has not run for {cfg.env.value}/{release.version}, are you sure you want to continue?"
             ):
@@ -113,9 +135,14 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 
         log_new_build(cfg, to_set)
         if release and release.static_key:
-            if not deploy_staticfiles(release):
-                print("...aborted due to deployment failure!")
-                sys.exit(1)
+            if cfg.env.is_windows:
+                if not deploy_staticfiles_windows(release):
+                    print("...aborted due to deployment failure!")
+                    sys.exit(1)
+            else:
+                if not deploy_staticfiles(release):
+                    print("...aborted due to deployment failure!")
+                    sys.exit(1)
         else:
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
@@ -140,9 +167,9 @@ def builds_rm_old(dry_run: bool, max_age: int):
     """Remove all but the last MAX_AGE builds."""
     current = get_all_current()
     max_builds: Dict[VersionSource, int] = defaultdict(int)
-    for release in get_releases():
+    for release in get_all_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
-    for release in get_releases():
+    for release in get_all_releases():
         if release.key in current:
             print(f"Skipping {release} as it is a current version")
         else:
@@ -172,7 +199,7 @@ def builds_list(cfg: Config, branch: Sequence[str]):
 
     The --> indicates the build currently deployed in this environment."""
     current = get_current_key(cfg) or ""
-    releases = get_releases()
+    releases = get_releases(cfg)
     display_releases(current, set(branch), releases)
 
 

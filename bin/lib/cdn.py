@@ -9,6 +9,7 @@ from concurrent import futures
 from datetime import datetime
 from pathlib import Path
 from tempfile import mkdtemp
+from zipfile import ZipFile
 
 from lib.amazon import botocore, s3_client, force_lazy_init
 
@@ -81,6 +82,35 @@ class DeploymentJob:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__cleanup_tempdir()
+
+    def __unpack_zip(self):
+        if not self.tmpdir:
+            self.tmpdir = mkdtemp()
+
+        logger.debug('unpacking "%s" into "%s"', self.tar_file_path, self.tmpdir)
+        with ZipFile(self.tar_file_path) as zipfile:
+
+            def is_within_directory(directory, target):
+
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+
+                return prefix == abs_directory
+
+            def safe_extract(zipfile, path=".", members=None):
+
+                for member in zipfile.infolist():
+                    member_path = os.path.join(path, member.filename)
+                    if not is_within_directory(path, member_path):
+                        raise Exception("Attempted Path Traversal in Tar File")
+
+                zipfile.extractall(path, members)
+
+            safe_extract(zipfile, self.tmpdir)
+
+        return list(get_directory_contents(self.tmpdir))
 
     def __unpack_tar(self):
         # ensure temp dir exists
@@ -210,7 +240,10 @@ class DeploymentJob:
         # work around race condition with parallel lazy init of boto3
         force_lazy_init(s3_client)
 
-        files = self.__unpack_tar()
+        if ".zip" in self.tar_file_path:
+            files = self.__unpack_zip()
+        else:
+            files = self.__unpack_tar()
 
         with futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # calculate hashes for all the files

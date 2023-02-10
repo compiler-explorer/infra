@@ -8,14 +8,29 @@ class Environment(Enum):
     STAGING = "staging"
     GPU = "gpu"
     RUNNER = "runner"
+    WINPROD = "winprod"
+    WINSTAGING = "winstaging"
+    WINTEST = "wintest"
 
     @property
     def keep_builds(self):
-        return self in (Environment.PROD, Environment.BETA, Environment.STAGING, Environment.GPU)
+        return self in (
+            Environment.PROD,
+            Environment.BETA,
+            Environment.STAGING,
+            Environment.GPU,
+            Environment.WINPROD,
+            Environment.WINSTAGING,
+            Environment.WINTEST,
+        )
+
+    @property
+    def is_windows(self):
+        return self in (Environment.WINPROD, Environment.WINSTAGING, Environment.WINTEST)
 
     @property
     def is_prod(self):
-        return self in (Environment.PROD, Environment.GPU)
+        return self in (Environment.PROD, Environment.GPU, Environment.WINPROD)
 
     @property
     def branch_name(self) -> str:
