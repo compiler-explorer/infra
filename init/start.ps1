@@ -45,6 +45,26 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/wind
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.win32.properties"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.win32.properties"
 
+function GetConf {
+    Param(
+        $Name
+    )
+
+    try {
+        return (Get-SSMParameterValue -Name $Name).Parameters.Value;
+    }
+    catch {
+        return ""
+    }
+}
+
+function GetLogHost {
+    return GetConf -Name "/compiler-explorer/logDestHost";
+}
+
+function GetLogPort {
+    return GetConf -Name "/compiler-explorer/logDestPort";
+}
 function DenyAccessByCE {
     param (
         $Path
@@ -113,9 +133,11 @@ function InstallCERunTask {
     $Username = $Credential.GetNetworkCredential().Username
     $Password = $Credential.GetNetworkCredential().Password
 
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort)) -join " "
+
     $TaskParams = @{
         #Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "D:\git\compiler-explorer-image\init\run.ps1"
-        Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "c:\tmp\infra\init\run.ps1"
+        Action = New-ScheduledTaskAction -Execute "pwsh" -Argument $runargs
         Trigger = Get-CimClass "MSFT_TaskRegistrationTrigger" -Namespace "Root/Microsoft/Windows/TaskScheduler"
         Principal = New-ScheduledTaskPrincipal -UserId $Username -LogonType Password
         Settings = $Settings
