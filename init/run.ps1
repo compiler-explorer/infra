@@ -23,8 +23,7 @@ function GetLogPort {
 $env:NODE_ENV = "production"
 $env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
 
-$nodeargs = ("--max_old_space_size=6000","-r","esm","--","app.js","--dist","--logHost",(GetLogHost),"--logPort",(GetLogPort),"--env","win32","--language","c++,pascal")
-#$nodeargs = ("--max_old_space_size=6000","-r","esm","-r","ts-node/register","--","app.js","--dist","--logHost",(GetLogHost),"--logPort",(GetLogPort),"--env","win32","--language","c++,pascal")
+$nodeargs = ("--max_old_space_size=6000","-r","esm","--","app.js","--dist","--port","10240","--metricsPort","10241","--suppressConsoleLog","--logHost",(GetLogHost),"--logPort",(GetLogPort),"--env","win32","--language","c++,pascal")
 
 Set-Location -Path "C:\compilerexplorer"
 #Set-Location -Path "D:\git\compiler-explorer"
