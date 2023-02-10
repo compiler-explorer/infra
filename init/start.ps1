@@ -60,7 +60,7 @@ function GeneratePassword {
 }
 
 function RecreateUser {
-    Param(
+    param(
         $securePassword
     )
 
@@ -71,22 +71,56 @@ function RecreateUser {
 
     New-LocalUser -User $CE_USER -Password $securePassword -PasswordNeverExpires -FullName "CE" -Description "Special user for running Compiler Explorer";
     Add-LocalGroupMember -Group "Users" -Member $CE_USER;
+
+    ConfigureUserRights -SID (Get-LocalUser $CE_USER).SID
 }
 
-function GetConf {
-    Param(
-        $Name
+function ConfigureUserRights {
+    param(
+        [String] $SID
     )
 
-    return (Get-SSMParameterValue -Name $Name).Parameters.Value;
+    $tmpfile = "c:\tmp\secpol.cfg"
+    secedit /export /cfg $tmpfile
+    $secpol = (Get-Content $tmpfile)
+
+    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
+    $Index = [array]::IndexOf($secpol,$Value)
+
+    $NewValue = $Value + ",*" + $SID
+    $secpol.item($Index) = $NewValue
+
+    $secpol | out-file $tmpfile -Force
+    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile /areas USER_RIGHTS
+    Remove-Item -Path $tmpfile
+
+    gpupdate /Force
 }
 
-function GetLogHost {
-    return GetConf -Name "/compiler-explorer/logDestHost";
-}
+function InstallCERunTask {
+    param(
+        [PSCredential] $Credential
+    )
 
-function GetLogPort {
-    return GetConf -Name "/compiler-explorer/logDestPort";
+    Unregister-ScheduledTask "CE" -Confirm:$false
+
+    $Settings = New-ScheduledTaskSettingsSet -DontStopOnIdleEnd
+    $Settings.ExecutionTimeLimit = "PT0S"
+
+    $Username = $Credential.GetNetworkCredential().Username
+    $Password = $Credential.GetNetworkCredential().Password
+
+    $TaskParams = @{
+        #Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "D:\git\compiler-explorer-image\init\run.ps1"
+        Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "c:\tmp\infra\init\run.ps1"
+        Trigger = Get-CimClass "MSFT_TaskRegistrationTrigger" -Namespace "Root/Microsoft/Windows/TaskScheduler"
+        Principal = New-ScheduledTaskPrincipal -UserId $Username -LogonType Password
+        Settings = $Settings
+    }
+
+    New-ScheduledTask @TaskParams | Register-ScheduledTask "CE" -User $Username -Password $Password
+
+    Start-ScheduledTask "CE"
 }
 
 function CreateCredAndRun {
@@ -95,52 +129,7 @@ function CreateCredAndRun {
     $credential = New-Object System.Management.Automation.PSCredential($CE_USER,$pass);
     # DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
 
-    $nodeargs = ("--max_old_space_size=6000","-r","esm","--","app.js","--dist","--logHost",(GetLogHost),"--logPort",(GetLogPort),"--env","ecs","--env","win32","--language","c++,pascal")
-    Write-Host "Starting node with args " $nodeargs
-
-    # $env:NODE_ENV = "production"
-    # $env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
-    # node --max_old_space_size=6000 -r esm -- app.js --dist --env ecs --env win32 --language "c++,pascal"
-    # Start-Process node -Credential $credential -NoNewWindow -Wait -ArgumentList $nodeargs
-
-    $psi = New-object System.Diagnostics.ProcessStartInfo
-    $psi.CreateNoWindow = $true
-    $psi.UseShellExecute = $false
-    #$psi.UserName = $credential.UserName
-    #$psi.Password = $credential.Password
-    $psi.LoadUserProfile = $false
-    $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError = $true
-    $psi.WorkingDirectory = "C:\compilerexplorer"
-    $psi.FileName = "C:\Program Files\nodejs\node.exe"
-    $psi.Arguments = $nodeargs
-    $psi.Verb = "open"
-    $psi.EnvironmentVariables.Clear()
-    $psi.EnvironmentVariables["NODE_ENV"] = "production"
-    $psi.EnvironmentVariables["PATH"] = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
-    $psi.WindowStyle = 1
-
-    $psi
-
-    Write-Host "Created ProcessStartInfo thing"
-
-    $process = New-Object System.Diagnostics.Process
-    $process.StartInfo = $psi
-
-    Write-Host "Going to start the process"
-
-    $process.Start()
-    $output = $process.StandardOutput.ReadToEnd()
-    $err = $process.StandardError.ReadToEnd()
-    Write-Host "Waiting"
-    $process.WaitForExit()
-    Write-Host "Done waiting, output:"
-    Write-Host $output
-    Write-Host "err:"
-    Write-Host $err
-    Write-Host "The End"
+    InstallCERunTask -Credential $credential
 }
-
-Set-Location -Path $DEPLOY_DIR
 
 CreateCredAndRun
