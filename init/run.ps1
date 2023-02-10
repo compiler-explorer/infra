@@ -12,5 +12,5 @@ $nodeargs = ("--max_old_space_size=6000","-r","esm","--","app.js","--dist","--po
 Set-Location -Path "C:\compilerexplorer"
 #Set-Location -Path "D:\git\compiler-explorer"
 
-& 'C:\Program Files\nodejs\node.exe' $nodeargs
+& 'C:\Program Files\nodejs\node.exe' $nodeargs >> /tmp/node-log.txt
 #& 'D:\Program Files\nodejs\node.exe' $nodeargs
