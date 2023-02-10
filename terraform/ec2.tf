@@ -161,34 +161,3 @@ resource "aws_instance" "CESMBServer" {
     Name = "CESMBServer"
   }
 }
-
-resource "aws_instance" "JustAWinTest1" {
-  ami                         = "ami-02546d47c64168738"
-  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerWindowsRole.name
-  ebs_optimized               = false
-  instance_type               = "t2.large"
-  monitoring                  = false
-  key_name                    = "mattgodbolt"
-  subnet_id                   = local.admin_subnet
-  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
-  associate_public_ip_address = true
-  source_dest_check           = false
-  user_data                   = "wintest"
-
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 30
-    delete_on_termination = true
-  }
-
-  lifecycle {
-    ignore_changes = [
-      // Seemingly needed to not replace stopped instances
-      associate_public_ip_address
-    ]
-  }
-
-  tags = {
-    Name = "JustAWinTest"
-  }
-}

@@ -74,6 +74,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-gpu" {
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
 }
 
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-wintest" {
+  priority = 5
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["wintest"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/wintest*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
+}
+
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   default_action {
     type             = "forward"
@@ -128,6 +144,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
     path_pattern {
       values = [
         "/gpu*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
+  priority = 6
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["wintest"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/wintest*"
       ]
     }
   }
