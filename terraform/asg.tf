@@ -138,7 +138,8 @@ resource "aws_autoscaling_group" "wintest" {
   }
 
   default_cooldown          = local.cooldown
-  health_check_grace_period = local.grace_period
+  // override grace period until everything works
+  health_check_grace_period = 6000
   health_check_type         = "ELB"
   launch_template {
     id      = aws_launch_template.CompilerExplorer-wintest.id
