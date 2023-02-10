@@ -2,7 +2,8 @@ do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
 
-$env:CE_ENV = (Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing).Content
+$userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
+$env:CE_ENV = $userdata -as [string]
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
@@ -10,8 +11,8 @@ $CE_USER = "ce"
 Set-DefaultAWSRegion -Region us-east-1
 
 function GetBetterHostname {
-    $meta = Invoke-WebRequest -Uri http://169.254.169.254/latest/meta-data/hostname -UseBasicParsing
-    return $meta.Content -replace ".ec2.internal",""
+    $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
+    return $meta -as [string] -replace ".ec2.internal",""
 }
 
 $env:COMPUTERNAME = GetBetterHostname
