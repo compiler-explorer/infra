@@ -9,6 +9,9 @@ $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
+$infra = "/tmp/infra"
+$nginx_path = "/nginx"
+
 Set-DefaultAWSRegion -Region us-east-1
 
 function GetBetterHostname {
@@ -163,5 +166,46 @@ function CreateCredAndRun {
 
     InstallCERunTask -Credential $credential
 }
+
+function InstallNginx {
+    # should be moved to ../packer/InstallTools.ps1
+    Write-Host "Downloading nginx"
+    Invoke-WebRequest -Uri "https://nginx.org/download/nginx-1.23.3.zip" -OutFile "/tmp/nginx.zip"
+    Write-Host "Installing nginx"
+
+    Remove-Item -Path $nginx_path -Force -Recurse
+    Expand-Archive -Path "/tmp/nginx.zip" -DestinationPath "/tmp"
+    Move-Item -Path "/tmp/nginx-1.23.3" -Destination $nginx_path
+
+    Write-Host "Deleting tmp files"
+    Remove-Item -Force "/tmp/nginx.zip"
+
+    New-Item -Path "/tmp/log/nginx" -Force -ItemType Directory
+
+    Copy-Item -Path "$infra/nginx/nginx-win.conf" -Destination "$nginx_path/conf/nginx.conf" -Force
+}
+
+function RunNginx {
+    Unregister-ScheduledTask "nginx" -Confirm:$false
+
+    $Settings = New-ScheduledTaskSettingsSet -DontStopOnIdleEnd
+    $Settings.ExecutionTimeLimit = "PT0S"
+
+    $TaskParams = @{
+        Action = New-ScheduledTaskAction -Execute "$nginx_path/nginx.exe" -WorkingDirectory $nginx_path
+        Trigger = Get-CimClass "MSFT_TaskRegistrationTrigger" -Namespace "Root/Microsoft/Windows/TaskScheduler"
+        Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\NetworkService" -LogonType ServiceAccount
+        Settings = $Settings
+    }
+    New-ScheduledTask @TaskParams | Register-ScheduledTask "nginx"
+}
+
+function InstallAndRunNginx {
+    InstallNginx
+
+    RunNginx
+}
+
+InstallAndRunNginx
 
 CreateCredAndRun
