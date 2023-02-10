@@ -40,9 +40,9 @@ Remove-Item -Force -Path "windows_exporter-0.20.0-amd64.msi"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/main/packer/Startup.ps1" -OutFile "C:\tmp\Startup.ps1"
 
 $TaskParams = @{
-    Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "-NoLogo -ExecutionPolicy Bypass -NoProfile -NonInteractive C:\tmp\Startup.ps1"
+    Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "C:\tmp\Startup.ps1"
     Trigger = New-ScheduledTaskTrigger -AtStartup
-    Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\NetworkService" -LogonType ServiceAccount
+    Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount
     Settings = New-ScheduledTaskSettingsSet
 }
 New-ScheduledTask @TaskParams | Register-ScheduledTask "Startup"
