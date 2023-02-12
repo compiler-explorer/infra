@@ -1,5 +1,5 @@
-New-Item C:\tmp -ItemType Directory -Force
-Set-Location -Path C:\tmp
+New-Item /tmp -ItemType Directory -Force
+Set-Location -Path /tmp
 
 $nginx_path = "/nginx"
 
@@ -49,6 +49,15 @@ function InstallExporter {
     Remove-Item -Force -Path "windows_exporter-0.20.0-amd64.msi"
 }
 
+function InstallNssm {
+    Write-Host "Downloading nssm"
+    Invoke-WebRequest -Uri "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip" -OutFile "/tmp/nssm.zip"
+    Write-Host "Installing nssm"
+    Expand-Archive -Path "/tmp/nssm.zip" -DestinationPath "/tmp"
+    Move-Item -Path "/tmp/nssm-2.24-103-gdee49fc" -Destination "/nssm"
+    Remove-Item -Force -Path "/tmp/nssm.zip"
+}
+
 function InstallNginx {
     # should be moved to ../packer/InstallTools.ps1
     Write-Host "Downloading nginx"
@@ -65,20 +74,40 @@ function InstallNginx {
     New-Item -Path "/tmp/log/nginx" -Force -ItemType Directory
 }
 
+function InstallAsService {
+    param(
+        [string] $Name,
+        [string] $Exe,
+        [array] $Arguments,
+        [string] $WorkingDirectory,
+        [bool] $NetUser
+    )
+
+    $tmplog = "C:/tmp/log"
+    Write-Host "nssm.exe install $Name $Exe"
+    /nssm/win64/nssm.exe install $Name $Exe
+    if ($Arguments.Length -gt 0) {
+        Write-Host "nssm.exe set $Name AppParameters" ($Arguments -join " ")
+        /nssm/win64/nssm.exe set $Name AppParameters ($Arguments -join " ")
+    }
+    Write-Host "nssm.exe set $Name AppDirectory $WorkingDirectory"
+    /nssm/win64/nssm.exe set $Name AppDirectory $WorkingDirectory
+    Write-Host "nssm.exe set $Name AppStdout $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStdout "$tmplog/$Name-svc.log"
+    Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
+    if ($NetUser) {
+        Write-Host "nssm.exe set $Name ObjectName NT AUTHORITY\NetworkService"
+        /nssm/win64/nssm.exe set $Name ObjectName "NT AUTHORITY\NetworkService" ""
+    }
+    /nssm/win64/nssm.exe start $Name
+}
+
 function ConfigureNginx {
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/main/nginx/nginx-win.conf" -OutFile "C:\tmp\nginx-win.conf"
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/main/nginx/nginx-win.conf" -OutFile "/tmp/nginx-win.conf"
     Copy-Item -Path "/tmp/nginx-win.conf" -Destination "$nginx_path/conf/nginx.conf" -Force
 
-    $Settings = New-ScheduledTaskSettingsSet -DontStopOnIdleEnd
-    $Settings.ExecutionTimeLimit = "PT0S"
-
-    $TaskParams = @{
-        Action = New-ScheduledTaskAction -Execute "$nginx_path/nginx.exe" -WorkingDirectory $nginx_path
-        Trigger = New-ScheduledTaskTrigger -AtStartup
-        Principal = New-ScheduledTaskPrincipal -UserId "NT AUTHORITY\NetworkService" -LogonType ServiceAccount
-        Settings = $Settings
-    }
-    New-ScheduledTask @TaskParams | Register-ScheduledTask "nginx"
+    InstallAsService -Name "nginx" -Exe "$nginx_path/nginx.exe" -WorkingDirectory $nginx_path -NetUser $true
 }
 
 function InstallAndConfigureNginx {
@@ -90,16 +119,7 @@ function InstallAndConfigureNginx {
 function InstallCEStartup {
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/main/packer/Startup.ps1" -OutFile "C:\tmp\Startup.ps1"
 
-    $Settings = New-ScheduledTaskSettingsSet -DontStopOnIdleEnd
-    $Settings.ExecutionTimeLimit = "PT0S"
-
-    $TaskParams = @{
-        Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "C:\tmp\Startup.ps1"
-        Trigger = New-ScheduledTaskTrigger -AtStartup
-        Principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount
-        Settings = $Settings
-    }
-    New-ScheduledTask @TaskParams | Register-ScheduledTask "Startup"
+    InstallAsService -Name "cestartup" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments ("C:\tmp\Startup.ps1") -NetUser $false
 }
 
 InstallGIT
@@ -107,5 +127,6 @@ InstallNodeJS
 InstallAwsTools
 InstallGrafana
 InstallExporter
+InstallNssm
 InstallAndConfigureNginx
 InstallCEStartup
