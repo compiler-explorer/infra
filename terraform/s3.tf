@@ -12,6 +12,13 @@ resource "aws_s3_bucket" "compiler-explorer" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "compiler-explorer" {
+  bucket = aws_s3_bucket.compiler-explorer.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_acl" "compiler-explorer" {
   bucket = aws_s3_bucket.compiler-explorer.id
   acl    = "private"
@@ -41,6 +48,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer" {
     filter {
       # Covers both cloudfront-logs and cloudfront-logs-ce:
       prefix = "cloudfront-logs"
+    }
+  }
+
+  rule {
+    id     = "expire_deleted_files"
+    status = "Enabled"
+    noncurrent_version_expiration {
+      noncurrent_days = 7
     }
   }
 }
