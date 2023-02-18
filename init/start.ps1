@@ -8,12 +8,24 @@ $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
-Set-DefaultAWSRegion -Region us-east-1
+function InstallAwsTools {
+    Write-Host "Installing AWS tools, might take a while"
+    Start-Sleep -Seconds 1
+    pwsh -Command Install-Module -Name AWS.Tools.Common -Force
+    Start-Sleep -Seconds 5
+    pwsh -Command Install-Module -Name AWS.Tools.Installer -Force
+    Start-Sleep -Seconds 5
+    pwsh -Command Install-AWSToolsModule AWS.Tools.SimpleSystemsManagement -Force
+    Write-Host "Done installing AWS Tools"
+}
 
 function GetBetterHostname {
     $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
     return $meta -as [string] -replace ".ec2.internal",""
 }
+
+InstallAwsTools
+Set-DefaultAWSRegion -Region us-east-1
 
 $env:COMPUTERNAME = GetBetterHostname
 
@@ -119,32 +131,47 @@ function ConfigureUserRights {
     gpupdate /Force
 }
 
+function InstallAsService {
+    param(
+        [string] $Name,
+        [string] $Exe,
+        [array] $Arguments,
+        [string] $WorkingDirectory,
+        [PSCredential] $User
+    )
+
+    $tmplog = "C:/tmp/log"
+    Write-Host "nssm.exe install $Name $Exe"
+    /nssm/win64/nssm.exe install $Name $Exe
+    if ($Arguments.Length -gt 0) {
+        Write-Host "nssm.exe set $Name AppParameters" ($Arguments -join " ")
+        /nssm/win64/nssm.exe set $Name AppParameters ($Arguments -join " ")
+    }
+    Write-Host "nssm.exe set $Name AppDirectory $WorkingDirectory"
+    /nssm/win64/nssm.exe set $Name AppDirectory $WorkingDirectory
+    Write-Host "nssm.exe set $Name AppStdout $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStdout "$tmplog/$Name-svc.log"
+    Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
+
+    $Username = $Credential.GetNetworkCredential().Username
+    $Password = $Credential.GetNetworkCredential().Password
+
+    Write-Host "nssm.exe set $Name ObjectName user pwd"
+    /nssm/win64/nssm.exe set $Name ObjectName $Username $Password
+
+    Write-Host "nssm.exe start $Name"
+    /nssm/win64/nssm.exe start $Name
+}
+
 function InstallCERunTask {
     param(
         [PSCredential] $Credential
     )
 
-    Unregister-ScheduledTask "CE" -Confirm:$false
-
-    $Settings = New-ScheduledTaskSettingsSet -DontStopOnIdleEnd
-    $Settings.ExecutionTimeLimit = "PT0S"
-
-    $Username = $Credential.GetNetworkCredential().Username
-    $Password = $Credential.GetNetworkCredential().Password
-
     $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort)) -join " "
 
-    $TaskParams = @{
-        #Action = New-ScheduledTaskAction -Execute "pwsh" -Argument "D:\git\compiler-explorer-image\init\run.ps1"
-        Action = New-ScheduledTaskAction -Execute "pwsh" -Argument $runargs
-        Trigger = Get-CimClass "MSFT_TaskRegistrationTrigger" -Namespace "Root/Microsoft/Windows/TaskScheduler"
-        Principal = New-ScheduledTaskPrincipal -UserId $Username -LogonType Password
-        Settings = $Settings
-    }
-
-    New-ScheduledTask @TaskParams | Register-ScheduledTask "CE" -User $Username -Password $Password
-
-    Start-ScheduledTask "CE"
+    InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential
 }
 
 function CreateCredAndRun {

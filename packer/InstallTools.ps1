@@ -21,17 +21,6 @@ function InstallNodeJS {
     Remove-Item -Force "node-installer.msi"
 }
 
-function InstallAwsTools {
-    Write-Host "Installing AWS tools, might take a while"
-    Start-Sleep -Seconds 1
-    pwsh -Command Install-Module -Name AWS.Tools.Common -Force
-    Start-Sleep -Seconds 5
-    pwsh -Command Install-Module -Name AWS.Tools.Installer -Force
-    Start-Sleep -Seconds 5
-    pwsh -Command Install-AWSToolsModule AWS.Tools.SimpleSystemsManagement -Force
-    Write-Host "Done installing AWS Tools"
-}
-
 function InstallGrafana {
     Write-Host "Downloading Grafana agent"
     Invoke-WebRequest -Uri "https://github.com/grafana/agent/releases/download/v0.30.2/grafana-agent-installer.exe" -OutFile "C:\tmp\grafana-agent-installer.exe"
@@ -124,7 +113,6 @@ function InstallCEStartup {
 
 InstallGIT
 InstallNodeJS
-InstallAwsTools
 InstallGrafana
 InstallExporter
 InstallNssm
