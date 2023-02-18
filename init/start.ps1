@@ -112,8 +112,23 @@ function ConfigureUserRights {
     $NewValue = $Value + ",*" + $SID
     $secpol.item($Index) = $NewValue
 
+    $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" }
+    $Index = [array]::IndexOf($secpol,$Value)
+    if ($Index -eq -1) {
+        $Index = [array]::IndexOf($secpol, "[Registry Values]")
+        $idx2 = $Index + 1
+        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters=1"
+        $newpol = $secpol[0..$Index]
+        $newpol += ($NewValue)
+        $newpol += $secpol[$idx2..$secpol.Length]
+        $secpol = $newpol
+    } else {
+        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters=1"
+        $secpol.item($Index) = $NewValue
+    }
+
     $secpol | out-file $tmpfile -Force
-    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile /areas USER_RIGHTS
+    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile
     Remove-Item -Path $tmpfile
 
     gpupdate /Force
