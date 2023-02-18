@@ -9,13 +9,10 @@ $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
 function InstallAwsTools {
-    Write-Host "Installing AWS tools, might take a while"
-    Start-Sleep -Seconds 1
-    pwsh -Command Install-Module -Name AWS.Tools.Common -Force
-    Start-Sleep -Seconds 5
-    pwsh -Command Install-Module -Name AWS.Tools.Installer -Force
-    Start-Sleep -Seconds 5
-    pwsh -Command Install-AWSToolsModule AWS.Tools.SimpleSystemsManagement -Force
+    Write-Host "Installing AWS Tools Common"
+    Install-Module -Name AWS.Tools.Common -Force
+    Write-Host "Installing AWS Tools SimpleSystemsManagement"
+    Install-AWSToolsModule AWS.Tools.SimpleSystemsManagement -Force
     Write-Host "Done installing AWS Tools"
 }
 
