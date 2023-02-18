@@ -117,13 +117,13 @@ function ConfigureUserRights {
     if ($Index -eq -1) {
         $Index = [array]::IndexOf($secpol, "[Registry Values]")
         $idx2 = $Index + 1
-        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters=1"
+        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters=4,1"
         $newpol = $secpol[0..$Index]
         $newpol += ($NewValue)
         $newpol += $secpol[$idx2..$secpol.Length]
         $secpol = $newpol
     } else {
-        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters=1"
+        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters=4,1"
         $secpol.item($Index) = $NewValue
     }
 
