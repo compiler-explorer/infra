@@ -142,6 +142,9 @@ function InstallAsService {
     Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
     /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
 
+    Write-Host "nssm.exe set $Name AppExit Default Exit"
+    /nssm/win64/nssm.exe set $Name AppExit Default Exit
+
     $Username = $Credential.GetNetworkCredential().Username
     $Password = $Credential.GetNetworkCredential().Password
 

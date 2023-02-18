@@ -93,7 +93,8 @@ function InstallAsService {
         Write-Host "nssm.exe set $Name ObjectName NT AUTHORITY\NetworkService"
         /nssm/win64/nssm.exe set $Name ObjectName "NT AUTHORITY\NetworkService" ""
     }
-    /nssm/win64/nssm.exe start $Name
+    Write-Host "nssm.exe set $Name AppExit Default Exit"
+    /nssm/win64/nssm.exe set $Name AppExit Default Exit
 }
 
 function ConfigureNginx {
