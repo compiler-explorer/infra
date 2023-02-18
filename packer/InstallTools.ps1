@@ -3,6 +3,10 @@ Set-Location -Path /tmp
 
 $nginx_path = "/nginx"
 
+function InstallAwsTools {
+    Install-Module -Name AWSPowerShell.NetCore
+}
+
 function InstallGIT {
     Write-Host "Downloading GIT"
     Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.28.0.windows.1/Git-2.28.0-64-bit.exe" -OutFile "C:\tmp\Git-2.28.0-64-bit.exe"
@@ -111,6 +115,7 @@ function InstallCEStartup {
     InstallAsService -Name "cestartup" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments ("C:\tmp\Startup.ps1") -NetUser $false
 }
 
+InstallAwsTools
 InstallGIT
 InstallNodeJS
 InstallGrafana

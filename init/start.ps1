@@ -8,23 +8,11 @@ $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
-function InstallAwsTools {
-    $InstallAwsModules = ("AWS.Tools.Common","AWS.Tools.SimpleSystemsManagement")
-    $InstallAwsModules | 
-    ForEach-Object {
-        Write-Host "Installing $PSItem"
-        Find-Module -Name $PSItem
-        Save-Module -Name $PSItem -Path "$env:USERPROFILE\\Documents\WindowsPowerShell\Modules" -Force
-        Install-Module -Name $PSItem -Force
-    }
-}
-
 function GetBetterHostname {
     $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
     return $meta -as [string] -replace ".ec2.internal",""
 }
 
-InstallAwsTools
 Set-DefaultAWSRegion -Region us-east-1
 
 $env:COMPUTERNAME = GetBetterHostname
