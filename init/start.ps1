@@ -9,11 +9,14 @@ $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 
 function InstallAwsTools {
-    Write-Host "Installing AWS Tools Common"
-    Install-Module -Name AWS.Tools.Common -Force
-    Write-Host "Installing AWS Tools SimpleSystemsManagement"
-    Install-AWSToolsModule AWS.Tools.SimpleSystemsManagement -Force
-    Write-Host "Done installing AWS Tools"
+    $InstallAwsModules = ("AWS.Tools.Common","AWS.Tools.SimpleSystemsManagement")
+    $InstallAwsModules | 
+    ForEach-Object {
+        Write-Host "Installing $PSItem"
+        Find-Module -Name $PSItem
+        Save-Module -Name $PSItem -Path "$env:USERPROFILE\\Documents\WindowsPowerShell\Modules" -Force
+        Install-Module -Name $PSItem -Force
+    }
 }
 
 function GetBetterHostname {
