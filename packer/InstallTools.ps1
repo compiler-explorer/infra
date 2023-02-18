@@ -5,7 +5,7 @@ $nginx_path = "/nginx"
 
 function InstallAwsTools {
     Write-Host "Installing AWSPowerShell.NetCore"
-    Install-Module -Name AWSPowerShell.NetCore -Force
+    pwsh -Command "Install-Module -Name AWSPowerShell.NetCore -Force"
 }
 
 function InstallGIT {
