@@ -149,7 +149,7 @@ function InstallAsService {
     $Password = $Credential.GetNetworkCredential().Password
 
     Write-Host "nssm.exe set $Name ObjectName user pwd"
-    /nssm/win64/nssm.exe set $Name ObjectName $Username $Password
+    /nssm/win64/nssm.exe set $Name ObjectName "$Username" "$Password"
 
     Write-Host "nssm.exe start $Name"
     /nssm/win64/nssm.exe start $Name
