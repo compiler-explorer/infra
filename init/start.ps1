@@ -200,4 +200,6 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/wind
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.win32.properties"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.win32.properties"
 
+netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80
+
 CreateCredAndRun
