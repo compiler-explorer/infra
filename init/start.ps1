@@ -124,7 +124,8 @@ function InstallAsService {
         [string] $Exe,
         [array] $Arguments,
         [string] $WorkingDirectory,
-        [PSCredential] $User
+        [PSCredential] $User,
+        [string] $PlainTextPassword
     )
 
     $tmplog = "C:/tmp/log"
@@ -145,10 +146,9 @@ function InstallAsService {
     /nssm/win64/nssm.exe set $Name AppExit Default Exit
 
     $Username = $Credential.GetNetworkCredential().Username
-    $Password = $Credential.GetNetworkCredential().Password
 
     Write-Host "nssm.exe set $Name ObjectName user pwd"
-    /nssm/win64/nssm.exe set $Name ObjectName "$Username" "$Password"
+    /nssm/win64/nssm.exe set $Name ObjectName "$Username" "$PlainTextPassword"
 
     Write-Host "nssm.exe start $Name"
     /nssm/win64/nssm.exe start $Name
@@ -156,12 +156,13 @@ function InstallAsService {
 
 function InstallCERunTask {
     param(
-        [PSCredential] $Credential
+        [PSCredential] $Credential,
+        [string] $PlainTextPassword
     )
 
     $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort)) -join " "
 
-    InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential
+    InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -PlainTextPassword $PlainTextPassword
 }
 
 function CreateCredAndRun {
@@ -170,7 +171,7 @@ function CreateCredAndRun {
     $credential = New-Object System.Management.Automation.PSCredential($CE_USER,$pass);
     # DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
 
-    InstallCERunTask -Credential $credential
+    InstallCERunTask -Credential $credential -PlainTextPassword $pass
 }
 
 
