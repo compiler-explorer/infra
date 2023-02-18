@@ -14,7 +14,8 @@ function GetBetterHostname {
     return $meta -as [string] -replace ".ec2.internal",""
 }
 
-$env:COMPUTERNAME = GetBetterHostname
+$betterComputerName = GetBetterHostname
+Write-Host "AWS Hostname $betterComputerName"
 
 function update_code {
     Write-Host "Current environment $CE_ENV"
