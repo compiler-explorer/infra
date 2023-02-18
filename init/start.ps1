@@ -112,7 +112,7 @@ function ConfigureUserRights {
     $NewValue = $Value + ",*" + $SID
     $secpol.item($Index) = $NewValue
 
-    $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters" }
+    $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth" }
     $Index = [array]::IndexOf($secpol,$Value)
     if ($Index -eq -1) {
         $Index = [array]::IndexOf($secpol, "[Registry Values]")
