@@ -7,13 +7,12 @@ $env:CE_ENV = $userdata -as [string]
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
+$env:PATH = "$env:PATH;C:\Program Files\Amazon\AWSCLIV2"
 
 function GetBetterHostname {
     $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
     return $meta -as [string] -replace ".ec2.internal",""
 }
-
-Set-DefaultAWSRegion -Region us-east-1
 
 $env:COMPUTERNAME = GetBetterHostname
 
@@ -49,7 +48,7 @@ function GetConf {
     )
 
     try {
-        return (Get-SSMParameterValue -Name $Name).Parameters.Value;
+        return (aws ssm get-parameter --name "$Name" | ConvertFrom-Json).Parameter.Value
     }
     catch {
         return ""

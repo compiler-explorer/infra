@@ -4,8 +4,12 @@ Set-Location -Path /tmp
 $nginx_path = "/nginx"
 
 function InstallAwsTools {
-    Write-Host "Installing AWSPowerShell.NetCore"
-    pwsh -Command "Install-Module -Name AWSPowerShell.NetCore -Force"
+    Write-Host "Downloading AWS cli"
+    Invoke-WebRequest -Uri "https://awscli.amazonaws.com/AWSCLIV2.msi" -OutFile "C:\tmp\awscli.msi"
+    Write-Host "Installing AWS cli"
+    Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i awscli.msi" -wait
+    Write-Host "Deleting tmp files"
+    Remove-Item -Force "awscli.msi"
 }
 
 function InstallGIT {
