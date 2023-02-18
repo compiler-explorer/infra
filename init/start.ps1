@@ -148,8 +148,8 @@ function InstallAsService {
     $Username = $Credential.GetNetworkCredential().Username
     $PlainTextPassword = ConvertFrom-SecureString -SecureString $Password -AsPlainText
 
-    Write-Host "nssm.exe set $Name ObjectName $Username $PlainTextPassword"
-    /nssm/win64/nssm.exe set $Name ObjectName "$Username" "$PlainTextPassword"
+    Write-Host "nssm.exe set $Name ObjectName $env:COMPUTERNAME\$Username ..."
+    /nssm/win64/nssm.exe set $Name ObjectName "$env:COMPUTERNAME\$Username" "$PlainTextPassword"
 
     Write-Host "nssm.exe start $Name"
     /nssm/win64/nssm.exe start $Name
