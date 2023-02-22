@@ -174,10 +174,11 @@ function InstallAsService {
 function InstallCERunTask {
     param(
         [PSCredential] $Credential,
-        [securestring] $Password
+        [securestring] $Password,
+        [string] $CeEnv
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort)) -join " "
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort),"-CeEnv",$CeEnv) -join " "
 
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
 }
@@ -186,19 +187,36 @@ function CreateCredAndRun {
     $pass = GeneratePassword;
     RecreateUser $pass;
     $credential = New-Object System.Management.Automation.PSCredential($CE_USER,$pass);
-    # DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
+    DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
 
-    InstallCERunTask -Credential $credential -Password $pass
+    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV
 }
 
+function GetLatestCEWrapper {
+    Copy-Item -Path "Z:/cewrapper/cewrapper.exe" -Destination "/tmp/cewrapper.exe"
+    New-Item -Path "/cewrapper" -ItemType Directory -Force
+    Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
+}
+
+function InitializeAgentConfig {
+    $config = Get-Content -Path "/infra/grafana/agent-win.yaml"
+    $config = $config.Replace("@HOSTNAME@", $betterComputerName)
+    $config = $config.Replace("@ENV@", $CE_ENV)
+    $prom_pass = GetConf -Name "/compiler-explorer/promPassword"
+    $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
+    Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
+}
+
+GetLatestCEWrapper
+
+InitializeAgentConfig
 
 update_code
 
 # todo: this should be configured into the build
 Write-Host "Installing properties files"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/compiler-explorer.local.properties" -OutFile "$DEPLOY_DIR/etc/config/compiler-explorer.local.properties"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.win32.properties"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.win32.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.amazonwin.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.amazonwin.properties"
 
 netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80
 
