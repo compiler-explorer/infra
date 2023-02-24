@@ -194,7 +194,7 @@ function CreateCredAndRun {
 
 function GetLatestCEWrapper {
     Write-Host "Fetching latest CEWrapper.exe"
-    Copy-Item -Path "Z:/cewrapper/cewrapper.exe" -Destination "/tmp/cewrapper.exe"
+    Copy-Item -Path "Y:/cewrapper/cewrapper.exe" -Destination "/tmp/cewrapper.exe"
     New-Item -Path "/cewrapper" -ItemType Directory -Force
     Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
 }
@@ -213,8 +213,8 @@ function InitializeAgentConfig {
     Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
 }
 
-function MountZ {
-    $exists = (Get-SmbMapping Z:) -as [bool]
+function MountY {
+    $exists = (Get-SmbMapping Y:) -as [bool]
     if ($exists) {
         Write-Host "Already mapped"
         return
@@ -222,16 +222,22 @@ function MountZ {
 
     while (-not $exists) {
         try {
-            Write-Host "Mapping Z:"
-            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared') -as [bool]
+            Write-Host "Mapping Y:"
+            $exists = (New-SmbMapping -LocalPath 'Y:' -RemotePath '\\172.30.0.29\winshared') -as [bool]
         } catch {
         }
     }
 }
 
-MountZ
+function UnMountY {
+     Remove-SmbMapping -LocalPath 'Y:' -Force
+}
+
+MountY
 
 GetLatestCEWrapper
+
+UnMountY
 
 InitializeAgentConfig
 
