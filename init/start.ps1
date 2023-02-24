@@ -201,7 +201,7 @@ function GetLatestCEWrapper {
 
 function InitializeAgentConfig {
     Write-Host "Setting up Grafana Agent"
-    $config = Get-Content -Path "/infra/grafana/agent-win.yaml"
+    $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
     $config = $config.Replace("@HOSTNAME@", $betterComputerName)
     $config = $config.Replace("@ENV@", $CE_ENV)
     $prom_pass = ""
