@@ -193,16 +193,22 @@ function CreateCredAndRun {
 }
 
 function GetLatestCEWrapper {
+    Write-Host "Fetching latest CEWrapper.exe"
     Copy-Item -Path "Z:/cewrapper/cewrapper.exe" -Destination "/tmp/cewrapper.exe"
     New-Item -Path "/cewrapper" -ItemType Directory -Force
     Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
 }
 
 function InitializeAgentConfig {
+    Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/infra/grafana/agent-win.yaml"
     $config = $config.Replace("@HOSTNAME@", $betterComputerName)
     $config = $config.Replace("@ENV@", $CE_ENV)
-    $prom_pass = GetConf -Name "/compiler-explorer/promPassword"
+    $prom_pass = ""
+    try {
+        $prom_pass = GetConf -Name "/compiler-explorer/promPassword"
+    } catch {
+    }
     $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
     Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
 }
