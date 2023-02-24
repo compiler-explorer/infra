@@ -213,6 +213,24 @@ function InitializeAgentConfig {
     Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
 }
 
+function MountZ {
+    $exists = (Get-SmbMapping Z:) -as [bool]
+    if ($exists) {
+        Write-Host "Already mapped"
+        return
+    }
+
+    while (-not $exists) {
+        try {
+            Write-Host "Mapping Z:"
+            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.29\winshared') -as [bool]
+        } catch {
+        }
+    }
+}
+
+MountZ
+
 GetLatestCEWrapper
 
 InitializeAgentConfig
