@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from typing import List, Optional, Tuple
+from lib.compiler_versions import CompilerVersions
 
 import click
 import yaml
@@ -503,6 +504,17 @@ def add_crate(context: CliContext, libid: str, libversion: str):
     libyaml = LibraryYaml(context.installation_context.yaml_dir)
     libyaml.add_rust_crate(libid, libversion)
     libyaml.save()
+
+
+
+@cli.command()
+@click.pass_obj
+@click.option("--force", is_flag=True, help="Force even if would otherwise skip")
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def list_compiler_versions(context: CliContext, filter_: List[str], force: bool):
+    """List the current nightly compiler versions"""
+    compilerversions = CompilerVersions(_LOGGER)
+    _LOGGER.info(compilerversions.list(context.get_installables(filter_)))
 
 
 def main():
