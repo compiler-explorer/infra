@@ -103,11 +103,12 @@ data "aws_ssm_parameter" "discord_webhook_url" {
   name = "/admin/discord_webhook_url"
 }
 
-resource "aws_sns_topic_subscription" "sns_to_lambda" {
-  topic_arn = data.aws_sns_topic.alert.arn
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.cloudwatch_to_discord.arn
-}
+# Disabled for now as it's pretty chatty
+#resource "aws_sns_topic_subscription" "sns_to_lambda" {
+#  topic_arn = data.aws_sns_topic.alert.arn
+#  protocol  = "lambda"
+#  endpoint  = aws_lambda_function.cloudwatch_to_discord.arn
+#}
 
 data "aws_s3_object" "lambda_zip" {
   # Lambda zip is uploaded and rebuild by the Makefile: make upload-lambda
