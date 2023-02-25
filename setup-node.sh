@@ -84,7 +84,7 @@ popd
 
 pushd /opt
 # node.js
-TARGET_NODE_VERSION=v16.17.1
+TARGET_NODE_VERSION=v18.14.1
 echo "Installing node ${TARGET_NODE_VERSION}"
 curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
 popd
