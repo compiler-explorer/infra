@@ -46,7 +46,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer" {
       noncurrent_days = 1
     }
     filter {
-      # Covers both cloudfront-logs and cloudfront-logs-ce:
+      # Covers both cloudfront-logs and cloudfront-logs-ce:ami-020e4e9b0f0fecb06
       prefix = "cloudfront-logs"
     }
   }
