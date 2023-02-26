@@ -1,8 +1,8 @@
 locals {
-  image_id          = "ami-05b2da782614c7334"
-  staging_image_id  = "ami-05b2da782614c7334"
-  beta_image_id     = "ami-05b2da782614c7334"
-  gpu_image_id      = "ami-0b2bae0d7b6e8fd31"
+  image_id          = "ami-06340febf147ab245"
+  staging_image_id  = "ami-06340febf147ab245"
+  beta_image_id     = "ami-06340febf147ab245"
+  gpu_image_id      = "ami-020e4e9b0f0fecb06"
   wintest_image_id  = "ami-0955bd1b3484c824f"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
