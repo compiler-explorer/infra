@@ -213,6 +213,10 @@ function InitializeAgentConfig {
     Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
 }
 
+function GetSMBServerIP {
+    return "172.30.0.29"
+}
+
 function MountY {
     $exists = (Get-SmbMapping Y:) -as [bool]
     if ($exists) {
@@ -220,10 +224,11 @@ function MountY {
         return
     }
 
+    $smb_ip = GetSMBServerIP
     while (-not $exists) {
         try {
             Write-Host "Mapping Y:"
-            $exists = (New-SmbMapping -LocalPath 'Y:' -RemotePath '\\172.30.0.29\winshared') -as [bool]
+            $exists = (New-SmbMapping -LocalPath "Y:" -RemotePath "\\$smb_ip\winshared") -as [bool]
         } catch {
         }
     }
@@ -231,6 +236,48 @@ function MountY {
 
 function UnMountY {
      Remove-SmbMapping -LocalPath 'Y:' -Force
+}
+
+function GetConanServerIP {
+    return (Resolve-DnsName -Name "conan.compiler-explorer.com")[0].IPAddress
+}
+
+function GetLogHostIP {
+    $hostname = GetLogHost
+    $ip = (Resolve-DnsName -Name $hostname)[0].IPAddress
+    return $ip
+}
+
+function AddToHosts {
+    param(
+        [string] $Hostname
+    )
+
+    $ip = (Resolve-DnsName -Name $hostname)[0].IPAddress
+
+    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
+    $content = $content,($ip + " " + $Hostname)
+    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
+
+    return $ip
+}
+
+function ConfigureFirewall {
+    netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80 enable=yes
+
+    netsh advfirewall firewall add rule name="allow nginx all" dir=out program="c:\nginx\nginx.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow node all" dir=in program="C:\Program Files\nodejs\node.exe" action=allow enable=yes
+
+    $ip = GetSMBServerIP
+    netsh advfirewall firewall add rule name="Allow IP $ip" dir=out remoteip="$ip" action=allow enable=yes
+
+    $restrict = ("conan.compiler-explorer.com", (GetLogHost))
+    foreach ($hostname in $restrict) {
+        $ip = AddToHosts $hostname
+        netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
+    }
+
+    #netsh advfirewall firewall add rule name="block all else" dir=out action=block enable=yes
 }
 
 MountY
@@ -248,6 +295,5 @@ Write-Host "Installing properties files"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.amazonwin.properties"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.amazonwin.properties"
 
-netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80
-
+ConfigureFirewall
 CreateCredAndRun
