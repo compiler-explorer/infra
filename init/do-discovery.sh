@@ -52,8 +52,6 @@ cd "${DEPLOY_DIR}"
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/compiler-explorer/node/bin/node \
-    -r esm \
-    -r ts-node/register \
     -- app.js \
     --discoveryonly=/home/ce/discovered-compilers.json \
     --env amazon \

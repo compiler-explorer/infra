@@ -4,11 +4,17 @@ compilers:
     dir: dotnet-{name}
     untar_dir: Core_Root
     check_exe: .dotnet/dotnet --version
+    check_env:
+      - DOTNET_CLI_HOME=/tmp
     targets:
       - name: trunk
         if: nightly
         type: nightly
-      - v7.0.1
-      - name: v6.0.11
-        check_env:
-          - DOTNET_CLI_HOME=/tmp
+      - v6.0.11
+    newer:
+      s3_path_prefix: dotnet-{name}
+      untar_dir: dotnet-{name}
+      targets:
+        - v6.0.14
+        - v7.0.1
+        - v7.0.3

@@ -55,3 +55,11 @@ compilers:
         build: 510.47.03
       - name: 11.7.0
         build: 515.43.04
+      - name: 11.7.1
+        build: 515.65.01
+      - name: 11.8.0
+        build: 520.61.05
+      - name: 12.0.0
+        build: 525.60.13
+      - name: 12.0.1
+        build: 525.85.12

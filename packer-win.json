@@ -12,7 +12,7 @@
       "winrm_insecure": true,
       "source_ami_filter": {
         "filters": {
-          "name": "Windows_Server-2019-English-Full-Base*"
+          "name": "Windows_Server-2022-English-Core-Base-*"
         },
         "owners": [
           "801119661308"
@@ -43,7 +43,8 @@
     {
       "type": "powershell",
       "scripts": [
-        "./packer/SetUpDevTools.ps1"
+        "./packer/InstallPwsh.ps1",
+        "./packer/InstallTools.ps1"
       ]
     }
   ]

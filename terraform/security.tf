@@ -214,6 +214,12 @@ resource "aws_iam_role" "CompilerExplorerRole" {
   assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
 }
 
+resource "aws_iam_role" "CompilerExplorerWindowsRole" {
+  name               = "CompilerExplorerWindowsRole"
+  description        = "Compiler Explorer Windows node role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
 data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
   arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentServerPolicy"
 }
@@ -287,6 +293,11 @@ resource "aws_iam_instance_profile" "CompilerExplorerRole" {
   role = aws_iam_role.CompilerExplorerRole.name
 }
 
+resource "aws_iam_instance_profile" "CompilerExplorerWindowsRole" {
+  name = "CompilerExplorerWindowsRole"
+  role = aws_iam_role.CompilerExplorerWindowsRole.name
+}
+
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
@@ -305,6 +316,32 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AccessCeP
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Minimal" {
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+// CompilerExplorerRole but for Windows machines
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CloudWatchAgentServerPolicy" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CeModifyStoredState" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.CeModifyStoredState.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_AccessCeParams" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.AccessCeParams.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_ReadS3Minimal" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 // This is for the auth node temporarily to allow port 3000 from the alb
@@ -485,7 +522,6 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_mana
     "AmazonS3FullAccess" : true,
     "CloudWatchFullAccess" : true,
     "AmazonDynamoDBFullAccess" : true,
-    "AmazonSSMReadOnlyAccess" : true,
     "service-role/AWSQuicksightAthenaAccess" : true,
   }
   role       = aws_iam_role.CompilerExplorerAdminNode.name

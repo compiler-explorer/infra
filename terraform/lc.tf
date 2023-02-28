@@ -1,11 +1,13 @@
 locals {
-  image_id          = "ami-05b2da782614c7334"
-  staging_image_id  = "ami-05b2da782614c7334"
-  beta_image_id     = "ami-05b2da782614c7334"
-  gpu_image_id      = "ami-0b2bae0d7b6e8fd31"
+  image_id          = "ami-0969cc9e8421c61e1"
+  staging_image_id  = "ami-0969cc9e8421c61e1"
+  beta_image_id     = "ami-0969cc9e8421c61e1"
+  gpu_image_id      = "ami-086f4909d3a027294"
+  wintest_image_id  = "ami-0955bd1b3484c824f"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
   gpu_user_data     = base64encode("gpu")
+  wintest_user_data = base64encode("wintest")
 }
 
 resource "aws_launch_template" "CompilerExplorer-beta" {
@@ -134,6 +136,38 @@ resource "aws_launch_template" "CompilerExplorer-prod" {
       Site        = "CompilerExplorer"
       Environment = "Prod"
       Name        = "Prod"
+    }
+  }
+}
+
+resource "aws_launch_template" "CompilerExplorer-wintest" {
+  name          = "ce-wintest"
+  description   = "WinTest launch template"
+  ebs_optimized = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerWindowsRole.arn
+  }
+  image_id               = local.wintest_image_id
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  instance_type          = "c5ad.large"
+  user_data              = local.wintest_user_data
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site = "CompilerExplorer"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "Wintest"
+      Name        = "Wintest"
     }
   }
 }

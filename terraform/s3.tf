@@ -12,6 +12,13 @@ resource "aws_s3_bucket" "compiler-explorer" {
   }
 }
 
+resource "aws_s3_bucket_versioning" "compiler-explorer" {
+  bucket = aws_s3_bucket.compiler-explorer.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
 resource "aws_s3_bucket_acl" "compiler-explorer" {
   bucket = aws_s3_bucket.compiler-explorer.id
   acl    = "private"
@@ -39,8 +46,16 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer" {
       noncurrent_days = 1
     }
     filter {
-      # Covers both cloudfront-logs and cloudfront-logs-ce:
+      # Covers both cloudfront-logs and cloudfront-logs-ce:ami-020e4e9b0f0fecb06
       prefix = "cloudfront-logs"
+    }
+  }
+
+  rule {
+    id     = "expire_deleted_files"
+    status = "Enabled"
+    noncurrent_version_expiration {
+      noncurrent_days = 7
     }
   }
 }
@@ -154,6 +169,14 @@ data "aws_iam_policy_document" "compiler-explorer-s3-policy" {
     }
     actions   = ["s3:PutObject"]
     resources = ["${aws_s3_bucket.compiler-explorer.arn}/*"]
+  }
+  statement {
+    principals {
+      identifiers = ["arn:aws:iam::052730242331:user/sonar"]
+      type        = "AWS"
+    }
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}/opt-nonfree/sonar/*"]
   }
 }
 

@@ -5,6 +5,7 @@ variable "ce-target-groups" {
     "staging" = 2
     "beta"    = 3
     "gpu"     = 4
+    "wintest" = 5
   }
 }
 

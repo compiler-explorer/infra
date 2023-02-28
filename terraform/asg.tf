@@ -132,6 +132,27 @@ resource "aws_autoscaling_group" "staging" {
   target_group_arns = [aws_alb_target_group.ce["staging"].arn]
 }
 
+resource "aws_autoscaling_group" "wintest" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  default_cooldown          = local.cooldown
+  // override grace period until everything works
+  health_check_grace_period = 300
+  health_check_type         = "ELB"
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-wintest.id
+    version = "$Latest"
+  }
+  max_size            = 4
+  min_size            = 0
+  name                = "wintest"
+  vpc_zone_identifier = local.subnets
+
+  target_group_arns = [aws_alb_target_group.ce["wintest"].arn]
+}
+
 resource "aws_autoscaling_group" "gpu" {
   lifecycle {
     create_before_destroy = true
@@ -141,7 +162,7 @@ resource "aws_autoscaling_group" "gpu" {
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
   max_size                  = 2
-  min_size                  = 0
+  min_size                  = 1
   name                      = "gpu"
   vpc_zone_identifier       = local.subnets
 
