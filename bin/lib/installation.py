@@ -26,6 +26,16 @@ def targets_from(node, enabled, base_config=None):
     return _targets_from(node, enabled, [], "", base_config)
 
 
+def _check_if(enabled, node) -> bool:
+    if "if" not in node:
+        return True
+    if isinstance(node["if"], list):
+        condition = set(node["if"])
+    else:
+        condition = {node["if"]}
+    return set(enabled).intersection(condition) == condition
+
+
 def _targets_from(node, enabled, context, name, base_config):
     if not node:
         return
@@ -39,13 +49,8 @@ def _targets_from(node, enabled, context, name, base_config):
     if not isinstance(node, dict):
         return
 
-    if "if" in node:
-        if isinstance(node["if"], list):
-            condition = set(node["if"])
-        else:
-            condition = {node["if"]}
-        if set(enabled).intersection(condition) != condition:
-            return
+    if not _check_if(enabled, node):
+        return
 
     context = context[:]
     if name:
@@ -66,6 +71,8 @@ def _targets_from(node, enabled, context, name, base_config):
                 raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
                 target = {"name": target, "underscore_name": target.replace(".", "_")}
+            elif not _check_if(enabled, target):
+                continue
             yield expand_target(ChainMap(target, base_config), context)
 
 
