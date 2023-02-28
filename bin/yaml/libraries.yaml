@@ -138,6 +138,18 @@ libraries:
       targets:
       - '2.3'
       type: github
+    cereal:
+      check_file: README.md
+      repo: USCiLab/cereal
+      target_prefix: v
+      targets:
+      - 1.3.2
+      - 1.3.1
+      - 1.3.0
+      - 1.2.2
+      - 1.2.1
+      - 1.2.0
+      type: github
     cli11:
       build_type: none
       check_file: include/CLI/CLI.hpp
