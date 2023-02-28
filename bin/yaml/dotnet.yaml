@@ -4,6 +4,8 @@ compilers:
     dir: dotnet-{name}
     untar_dir: Core_Root
     check_exe: .dotnet/dotnet --version
+    check_env:
+      - DOTNET_CLI_HOME=/tmp
     targets:
       - name: trunk
         if: nightly
