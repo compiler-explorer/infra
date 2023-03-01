@@ -284,7 +284,7 @@ function ConfigureFirewall {
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
 
-    netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
+    netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
 MountY
