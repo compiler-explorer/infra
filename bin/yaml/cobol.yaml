@@ -1,0 +1,17 @@
+compilers:
+  cobol:
+    cobol:
+      type: tarballs
+      compression: tar
+      dir: gnucobol
+      url: https://sourceforge.net/projects/gnucobol/files/gnucobol/3.2/gnucobol-3.2-rc2.tar.bz2
+      check_exe: bin/cobc --version
+      after_stage_script:
+        - cd {dir}
+        - ./autogen.sh
+        - ./configure
+        - make
+        - make DESTDIR={dir} prefix={dir} install
+        - cd ..
+      targets:
+        - 3.2
