@@ -268,16 +268,23 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="allow nginx all" dir=out program="c:\nginx\nginx.exe" action=allow enable=yes
     netsh advfirewall firewall add rule name="allow node all" dir=in program="C:\Program Files\nodejs\node.exe" action=allow enable=yes
 
+    netsh advfirewall firewall add rule name="agent-windows all out" dir=out program="C:\Program Files\Grafana Agent\agent-windows-amd64.exe" action=allow enable=yes
+
+    netsh advfirewall firewall add rule name="allow ssm-agent all out" dir=out program="C:\Program Files\Amazon\SSM\ssm-agent-worker.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow ssm-agent all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-agent-worker.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow ssm-session all out" dir=out program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow ssm-session all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
+
     $ip = GetSMBServerIP
     netsh advfirewall firewall add rule name="Allow IP $ip" dir=out remoteip="$ip" action=allow enable=yes
 
-    $restrict = ("conan.compiler-explorer.com", (GetLogHost))
+    $restrict = ((GetLogHost))
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
 
-    #netsh advfirewall firewall add rule name="block all else" dir=out action=block enable=yes
+    netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound
 }
 
 MountY
