@@ -185,11 +185,17 @@ function InstallCERunTask {
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
 }
 
+function ConfigureFileRights {
+    DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
+    DenyAccessByCE -Path "C:\tmp\log\cestartup-svc.log"
+}
+
 function CreateCredAndRun {
     $pass = GeneratePassword;
     RecreateUser $pass;
     $credential = New-Object System.Management.Automation.PSCredential($CE_USER,$pass);
-    DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
+
+    ConfigureFileRights
 
     InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV
 }
