@@ -262,8 +262,15 @@ function AddToHosts {
     return $ip
 }
 
+function AddLocalHost {
+    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
+    $content = $content,("127.0.0.1 localhost")
+    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
+}
+
 function ConfigureFirewall {
     netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80 enable=yes
+    netsh advfirewall firewall add rule name="TCP Port 80" dir=out action=allow protocol=TCP localport=80 enable=yes
 
     netsh advfirewall firewall add rule name="allow nginx all" dir=out program="c:\nginx\nginx.exe" action=allow enable=yes
     netsh advfirewall firewall add rule name="allow node all" dir=in program="C:\Program Files\nodejs\node.exe" action=allow enable=yes
@@ -277,6 +284,8 @@ function ConfigureFirewall {
 
     $ip = GetSMBServerIP
     netsh advfirewall firewall add rule name="Allow IP $ip" dir=out remoteip="$ip" action=allow enable=yes
+
+    AddLocalHost
 
     $restrict = ((GetLogHost))
     foreach ($hostname in $restrict) {
