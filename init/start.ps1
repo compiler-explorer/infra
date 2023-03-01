@@ -8,6 +8,8 @@ $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 $env:PATH = "$env:PATH;C:\Program Files\Amazon\AWSCLIV2"
+$loghost = "todo"
+$logport = "80"
 
 function GetBetterHostname {
     $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
@@ -178,7 +180,7 @@ function InstallCERunTask {
         [string] $CeEnv
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort),"-CeEnv",$CeEnv) -join " "
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv) -join " "
 
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
 }
@@ -238,16 +240,6 @@ function UnMountY {
      Remove-SmbMapping -LocalPath 'Y:' -Force
 }
 
-function GetConanServerIP {
-    return (Resolve-DnsName -Name "conan.compiler-explorer.com")[0].IPAddress
-}
-
-function GetLogHostIP {
-    $hostname = GetLogHost
-    $ip = (Resolve-DnsName -Name $hostname)[0].IPAddress
-    return $ip
-}
-
 function AddToHosts {
     param(
         [string] $Hostname
@@ -283,7 +275,8 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="allow ssm-session all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
 
     $ip = GetSMBServerIP
-    netsh advfirewall firewall add rule name="Allow IP $ip" dir=out remoteip="$ip" action=allow enable=yes
+    netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
+    netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
 
     AddLocalHost
 
@@ -310,6 +303,9 @@ update_code
 Write-Host "Installing properties files"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.amazonwin.properties"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.amazonwin.properties"
+
+$loghost = GetLogHost
+$logport = GetLogPort
 
 ConfigureFirewall
 CreateCredAndRun
