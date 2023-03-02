@@ -292,6 +292,9 @@ function ConfigureFirewall {
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
 
+    # should disable dns, but has consequences to figure out
+    # netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
+
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
