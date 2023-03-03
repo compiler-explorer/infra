@@ -8,6 +8,8 @@ $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
 $env:PATH = "$env:PATH;C:\Program Files\Amazon\AWSCLIV2"
+$loghost = "todo"
+$logport = "80"
 
 function GetBetterHostname {
     $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
@@ -178,16 +180,22 @@ function InstallCERunTask {
         [string] $CeEnv
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",(GetLogHost),"-LogPort",(GetLogPort),"-CeEnv",$CeEnv) -join " "
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv) -join " "
 
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
+}
+
+function ConfigureFileRights {
+    DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
+    DenyAccessByCE -Path "C:\tmp\log\cestartup-svc.log"
 }
 
 function CreateCredAndRun {
     $pass = GeneratePassword;
     RecreateUser $pass;
     $credential = New-Object System.Management.Automation.PSCredential($CE_USER,$pass);
-    DenyAccessByCE -Path "C:\Program Files\Grafana Agent\agent-config.yaml"
+
+    ConfigureFileRights
 
     InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV
 }
@@ -238,16 +246,6 @@ function UnMountY {
      Remove-SmbMapping -LocalPath 'Y:' -Force
 }
 
-function GetConanServerIP {
-    return (Resolve-DnsName -Name "conan.compiler-explorer.com")[0].IPAddress
-}
-
-function GetLogHostIP {
-    $hostname = GetLogHost
-    $ip = (Resolve-DnsName -Name $hostname)[0].IPAddress
-    return $ip
-}
-
 function AddToHosts {
     param(
         [string] $Hostname
@@ -262,22 +260,42 @@ function AddToHosts {
     return $ip
 }
 
+function AddLocalHost {
+    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
+    $content = $content,("127.0.0.1 localhost")
+    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
+}
+
 function ConfigureFirewall {
     netsh advfirewall firewall add rule name="TCP Port 80" dir=in action=allow protocol=TCP localport=80 enable=yes
+    netsh advfirewall firewall add rule name="TCP Port 80" dir=out action=allow protocol=TCP localport=80 enable=yes
 
     netsh advfirewall firewall add rule name="allow nginx all" dir=out program="c:\nginx\nginx.exe" action=allow enable=yes
     netsh advfirewall firewall add rule name="allow node all" dir=in program="C:\Program Files\nodejs\node.exe" action=allow enable=yes
 
-    $ip = GetSMBServerIP
-    netsh advfirewall firewall add rule name="Allow IP $ip" dir=out remoteip="$ip" action=allow enable=yes
+    netsh advfirewall firewall add rule name="agent-windows all out" dir=out program="C:\Program Files\Grafana Agent\agent-windows-amd64.exe" action=allow enable=yes
 
-    $restrict = ("conan.compiler-explorer.com", (GetLogHost))
+    netsh advfirewall firewall add rule name="allow ssm-agent all out" dir=out program="C:\Program Files\Amazon\SSM\ssm-agent-worker.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow ssm-agent all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-agent-worker.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow ssm-session all out" dir=out program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
+    netsh advfirewall firewall add rule name="allow ssm-session all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
+
+    $ip = GetSMBServerIP
+    netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
+    netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
+
+    AddLocalHost
+
+    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
 
-    #netsh advfirewall firewall add rule name="block all else" dir=out action=block enable=yes
+    # should disable dns, but has consequences to figure out
+    netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
+
+    netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
 MountY
@@ -294,6 +312,9 @@ update_code
 Write-Host "Installing properties files"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.amazonwin.properties"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.amazonwin.properties"
+
+$loghost = GetLogHost
+$logport = GetLogPort
 
 ConfigureFirewall
 CreateCredAndRun
