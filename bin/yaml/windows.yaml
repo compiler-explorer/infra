@@ -1,4 +1,5 @@
 windows:
+  if: windows
   c++:
     x86:
       mingw-w64:
