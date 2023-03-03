@@ -110,6 +110,10 @@ class GitHubInstallable(Installable):
         def _git(*git_args: Union[str, Path]) -> str:
             return self._git(staging, "-C", dest, *git_args)
 
+        # Ensure we're not configured to do any detached background work which will get upset when we start moving
+        # things around. See https://github.com/compiler-explorer/compiler-explorer/issues/4813
+        _git("config", "gc.autodetach", "false")
+
         # Ensure we are pulling from the correct URL, and fetch latest.
         _git("remote", "set-url", "origin", remote_url)
         _git("fetch", "-q")
