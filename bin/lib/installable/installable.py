@@ -8,7 +8,7 @@ from functools import partial
 from pathlib import Path
 from typing import Optional, Callable, Dict, List, Any, Union
 
-from lib.installation_context import InstallationContext, is_windows
+from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 from lib.rust_library_builder import RustLibraryBuilder
