@@ -286,14 +286,14 @@ function ConfigureFirewall {
 
     AddLocalHost
 
-    $restrict = ((GetLogHost))
+    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
 
     # should disable dns, but has consequences to figure out
-    # netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
+    netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
 
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
