@@ -881,11 +881,11 @@ libraries:
         type: github
       crosscables:
         after_stage_script:
-        - cd libGroundfloor && sh devmake.sh && cd ..
-        - cd libJumpropes && sh devmake.sh && cd ..
-        - cd libJumpknots && sh devmake.sh && cd ..
-        - cd libMySQLBooks && sh devmake.sh && cd ..
-        - cd libChalkboard && sh devmake.sh && cd ..
+        - cd Groundfloor && sh devmake.sh && cd ..
+        - cd Jumpropes && sh devmake.sh && cd ..
+        - cd Jumpknots && sh devmake.sh && cd ..
+        - cd MySQLBooks && sh devmake.sh && cd ..
+        - cd Chalkboard && sh devmake.sh && cd ..
         build_type: cmake
         method: nightlyclone
         repo: partouf/crosscables
