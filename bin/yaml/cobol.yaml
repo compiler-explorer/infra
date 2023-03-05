@@ -1,10 +1,12 @@
-compilers:
-  cobol:
-    subdir: cobol
-    gnucobol:
-      path_name: "{subdir}/gnucobol-{name}"
-      s3_path_prefix: "gnucobol-{name}"
-      type: s3tarballs
-      check_exe: bin/cobc --version
-      targets:
-        - 3.2-rc2
+# Temporarily disabled as the built images contain references to libjson-c.so.4 which the admin node doesn't have...
+# and there's no backport for it
+#compilers:
+#  cobol:
+#    subdir: cobol
+#    gnucobol:
+#      path_name: "{subdir}/gnucobol-{name}"
+#      s3_path_prefix: "gnucobol-{name}"
+#      type: s3tarballs
+#      check_exe: bin/cobc --version
+#      targets:
+#        - 3.2-rc2
