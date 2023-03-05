@@ -4,7 +4,7 @@ windows:
     x86:
       mingw-w64:
         type: ziparchive
-        dir: "compilers/mingw-w64-{name}"
+        dir: "mingw-w64-{name}"
         folder: "mingw64"
         check_file: "bin/g++.exe"
         # check_exe: "bin/g++.exe --version"
