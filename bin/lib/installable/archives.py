@@ -252,7 +252,7 @@ class ZipArchiveInstallable(Installable):
         with (staging.path / "distribution.zip").open("wb") as fd:
             self.install_context.fetch_to(self.url, fd)
             if not is_windows():
-                unzip_cmd = ["unzip", fd.name]
+                unzip_cmd = ["unzip", "-q", fd.name]
             else:
                 unzip_cmd = ["tar", "-xf", fd.name]
             if self.extract_into_folder:
