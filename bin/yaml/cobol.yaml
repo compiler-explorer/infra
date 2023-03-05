@@ -1,0 +1,10 @@
+compilers:
+  cobol:
+    subdir: cobol
+    gnucobol:
+      path_name: "{subdir}/gnucobol-{name}"
+      s3_path_prefix: "gnucobol-{name}"
+      type: s3tarballs
+      check_exe: bin/cobc --version
+      targets:
+        - 3.2-rc2
