@@ -262,7 +262,9 @@ class ZipArchiveInstallable(Installable):
                 if not is_windows():
                     self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
                 else:
-                    self.install_context.stage_command(staging, ["cmd", "/C", "rename", self.folder_to_rename, self.install_path])
+                    self.install_context.stage_command(
+                        staging, ["cmd", "/C", "rename", self.folder_to_rename, self.install_path]
+                    )
 
         if self.configure_command:
             self.install_context.stage_command(staging, self.configure_command)

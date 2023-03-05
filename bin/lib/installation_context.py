@@ -24,8 +24,10 @@ from lib.staging import StagingDir
 _LOGGER = logging.getLogger(__name__)
 PathOrString = Union[Path, str]
 
+
 def is_windows():
-    return os.name == 'nt'
+    return os.name == "nt"
+
 
 class FetchFailure(RuntimeError):
     pass
