@@ -24,7 +24,7 @@ function MountZ {
 MountZ
 
 $env:NODE_ENV = "production"
-$env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
+#$env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
 
 $nodeargs = ("--max_old_space_size=6000","--","app.js","--debug","--dist","--port","10240","--metricsPort","10241","--suppressConsoleLog","--logHost",$LogHost,"--logPort",$LogPort,"--env","amazonwin","--env",$CeEnv,"--language","c++,pascal")
 
