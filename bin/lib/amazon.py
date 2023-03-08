@@ -92,12 +92,38 @@ def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
     return result
 
 
+def s3_file_exists(key: str) -> bool:
+    try:
+        s3_client.get_object(Bucket="compiler-explorer", Key=key)
+        return True
+    except s3_client.exceptions.NoSuchKey:
+        return False
+
+
+def get_key_counterpart(key: str) -> str:
+    if key.endswith(".tar.xz"):
+        return key.replace(".tar.xz", ".zip")
+    elif key.endswith(".zip"):
+        return key.replace(".zip", ".tar.xz")
+
+    return key
+
+
 def remove_release(release: Release) -> None:
+    files_to_delete = [release.key, release.static_key, release.info_key]
+
+    counterpart = get_key_counterpart(release.key)
+    if s3_file_exists(counterpart):
+        files_to_delete += counterpart
+
+    if release.static_key is not None:
+        counterpart_static = get_key_counterpart(release.static_key)
+        if s3_file_exists(counterpart_static):
+            files_to_delete += counterpart_static
+
     s3_client.delete_objects(
         Bucket="compiler-explorer",
-        Delete=dict(
-            Objects=[dict(Key=key) for key in (release.key, release.static_key, release.info_key) if key is not None]
-        ),
+        Delete=dict(Objects=[dict(Key=key) for key in files_to_delete if key is not None]),
     )
 
 
