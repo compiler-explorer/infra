@@ -310,7 +310,7 @@ update_code
 
 # these are only the wintest, the normal amazonwin.properties should be in the CE repo
 Write-Host "Installing properties files"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.wintest.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.win32.properties"
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.wintest.properties"
 
 $loghost = GetLogHost
