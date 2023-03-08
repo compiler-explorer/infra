@@ -23,7 +23,7 @@ function InstallGIT {
 
 function InstallNodeJS {
     Write-Host "Downloading NodeJS"
-    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v16.19.0/node-v16.19.0-x64.msi" -OutFile "C:\tmp\node-installer.msi"
+    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v18.14.2/node-v18.14.2-x64.msi" -OutFile "C:\tmp\node-installer.msi"
     Write-Host "Installing Node"
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i node-installer.msi" -wait
     Write-Host "Deleting tmp files"
