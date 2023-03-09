@@ -11,6 +11,7 @@ import tempfile
 from collections import defaultdict
 from enum import Enum, unique
 from pathlib import Path
+import time
 from typing import Dict, Any, List, Optional, Generator, TextIO
 
 import requests
@@ -644,9 +645,16 @@ class LibraryBuilder:
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
-        request = requests.post(url, data=json.dumps(buildparameters_copy), headers=headers, timeout=_TIMEOUT)
-        if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+        attempts = 0
+        while attempts < 3:
+            request = requests.post(url, data=json.dumps(buildparameters_copy), headers=headers, timeout=_TIMEOUT)
+            if not request.ok:
+                attempts += 1
+                time.sleep(1)
+            else:
+                return
+
+        self.logger.info(f"Post failure for {url}: {request}, but continuing anyway")
 
     def get_build_annotations(self, buildfolder):
         conanhash = self.get_conan_hash(buildfolder)
