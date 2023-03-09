@@ -1600,20 +1600,19 @@ libraries:
       - 3.2.0
       type: github
     simdjson:
-      build_type: none
+      build_type: cmake
+      make_targets:
+      - simdjson
+      lib_type: static
+      staticliblink:
+      - simdjson
       repo: simdjson/simdjson
-      type: script
-      dir: libs/simdjson/{name}
-      check_file: simdjson.h
+      type: github
+      check_file: include/simdjson.h
+      target_prefix: v
       targets:
       - 3.0.1
       - 3.1.5
-      fetch:
-      - https://github.com/simdjson/simdjson/releases/download/v{name}/simdjson.cpp simdjson.cpp
-      - https://github.com/simdjson/simdjson/releases/download/v{name}/simdjson.h simdjson.h
-      script: |
-        mkdir -p {dir}
-        mv simdjson.* "{dir}"
     sol2:
       build_type: none
       check_file: include/sol/sol.hpp
