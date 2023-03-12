@@ -94,9 +94,9 @@ def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
 
 def s3_file_exists(key: str) -> bool:
     try:
-        s3_client.get_object(Bucket="compiler-explorer", Key=key)
+        s3_client.head_object(Bucket="compiler-explorer", Key=key)
         return True
-    except s3_client.exceptions.NoSuchKey:
+    except:
         return False
 
 
