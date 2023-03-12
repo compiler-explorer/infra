@@ -38,10 +38,18 @@ apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip
 
+# This returns amd64 or ... aarch64?
+ARCH=$(dpkg --print-architecture)
+
+
 if [ "$INSTALL_TYPE" != 'ci' ]; then
   mkdir /tmp/aws-install
   pushd /tmp/aws-install
-  curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  if [ "$ARCH" == 'amd64' ]; then
+    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  else
+    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+  fi
   unzip awscliv2.zip
   ./aws/install
   popd
@@ -62,7 +70,13 @@ PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart
 pushd /tmp
-curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+
+if [ "$ARCH" == 'amd64' ]; then
+  curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+else
+  curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_arm64.tar.gz' | tar zxf -
+fi
+
 cp remote_syslog/remote_syslog /usr/local/bin/
 popd
 
@@ -97,9 +111,15 @@ cp /infra/init/log-instance-id.service /lib/systemd/system/log-instance-id.servi
 systemctl enable log-instance-id
 
 pushd /tmp
-curl -sLo agent-linux-amd64.zip 'https://github.com/grafana/agent/releases/download/v0.6.1/agent-linux-amd64.zip'
-unzip agent-linux-amd64.zip
-cp agent-linux-amd64 /usr/local/bin/grafana-agent
+
+if [ "$ARCH" == 'amd64' ]; then
+  curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.6.1/agent-linux-amd64.zip'
+else
+  curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.32.1/grafana-agent-linux-arm64.zip'
+fi
+
+unzip agent-linux.zip
+cp agent-linux /usr/local/bin/grafana-agent
 popd
 
 PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
