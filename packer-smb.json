@@ -8,15 +8,15 @@
       "source_ami_filter": {
           "filters": {
               "virtualization-type": "hvm",
-              "name": "ubuntu/images/*ubuntu-focal-20.04-amd64-server-*",
+              "name": "ubuntu/images/*ubuntu-focal-20.04-arm64-server-*",
               "root-device-type": "ebs"
           },
           "owners": ["099720109477"],
           "most_recent": true
       },
-      "instance_type": "c5.xlarge",
+      "instance_type": "t4g.large",
       "ssh_username": "ubuntu",
-      "ami_name": "ce-smb packer 20.04 @ {{timestamp}}",
+      "ami_name": "ce-smb arm packer 20.04 @ {{timestamp}}",
       "tags": {"Site":  "CompilerExplorer"},
       "run_volume_tags": {"Site":  "CompilerExplorer"},
       "associate_public_ip_address": true,
