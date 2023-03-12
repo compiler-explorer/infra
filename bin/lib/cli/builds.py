@@ -17,6 +17,7 @@ from lib.amazon import (
     find_latest_release,
     find_release,
     get_all_releases,
+    get_key_counterpart,
     log_new_build,
     set_current_key,
     get_ssm_param,
@@ -170,8 +171,12 @@ def builds_rm_old(dry_run: bool, max_age: int):
     for release in get_all_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
     for release in get_all_releases():
-        if release.key in current:
+        counterpart = get_key_counterpart(release.key)
+        if release.key in current or counterpart in current:
             print(f"Skipping {release} as it is a current version")
+            if dry_run:
+                if counterpart in current:
+                    print(f"Skipping because of counterpart {counterpart}")
         else:
             age = max_builds[release.version.source] - release.version.number
             if age > max_age:
