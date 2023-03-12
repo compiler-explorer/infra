@@ -83,7 +83,7 @@ def get_autoscaling_group(group_name):
 def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
     result = list(
         filter(
-            lambda r: cfg.env.value.lower() in r["AutoScalingGroupName"],
+            lambda r: cfg.env.value.lower() == r["AutoScalingGroupName"],
             as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
         )
     )
