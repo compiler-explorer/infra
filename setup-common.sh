@@ -110,6 +110,8 @@ systemctl enable remote-syslog
 cp /infra/init/log-instance-id.service /lib/systemd/system/log-instance-id.service
 systemctl enable log-instance-id
 
+GRAFANA_CONFIG=/infra/grafana/agent.yaml
+
 pushd /tmp
 
 if [ "$ARCH" == 'amd64' ]; then
@@ -120,6 +122,8 @@ else
   curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.32.1/grafana-agent-linux-arm64.zip'
   unzip agent-linux.zip
   cp grafana-agent-linux-arm64 /usr/local/bin/grafana-agent
+
+  GRAFANA_CONFIG=/infra/grafana/agent-latest.yaml
 fi
 
 popd
@@ -128,7 +132,7 @@ PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
 LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
 
 mkdir -p /etc/grafana
-cp /infra/grafana/agent.yaml /etc/grafana/agent.yaml.tpl
+cp $GRAFANA_CONFIG /etc/grafana/agent.yaml.tpl
 if [ "${INSTALL_TYPE}" = "ci" ]; then
   cp /infra/grafana/make-config-ci.sh /etc/grafana/make-config.sh
 else
