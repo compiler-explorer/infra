@@ -222,7 +222,7 @@ function InitializeAgentConfig {
 }
 
 function GetSMBServerIP {
-    return "172.30.0.29"
+    return "172.30.0.225"
 }
 
 function MountY {
