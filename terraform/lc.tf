@@ -186,7 +186,7 @@ resource "aws_launch_template" "CompilerExplorer-winstaging" {
   image_id               = local.winstaging_image_id
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "c5ad.large"
+  instance_type          = "m6i.large"
   user_data              = local.winstaging_user_data
 
   tag_specifications {
