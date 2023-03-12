@@ -114,12 +114,14 @@ pushd /tmp
 
 if [ "$ARCH" == 'amd64' ]; then
   curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.6.1/agent-linux-amd64.zip'
+  unzip agent-linux.zip
+  cp agent-linux-amd64 /usr/local/bin/grafana-agent
 else
   curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.32.1/grafana-agent-linux-arm64.zip'
+  unzip agent-linux.zip
+  cp grafana-agent-linux-arm64 /usr/local/bin/grafana-agent
 fi
 
-unzip agent-linux.zip
-cp agent-linux /usr/local/bin/grafana-agent
 popd
 
 PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
