@@ -96,7 +96,7 @@ def s3_file_exists(key: str) -> bool:
     try:
         s3_client.head_object(Bucket="compiler-explorer", Key=key)
         return True
-    except:
+    except s3_client.exceptions.ClientError:
         return False
 
 
