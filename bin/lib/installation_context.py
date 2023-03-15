@@ -100,9 +100,9 @@ class InstallationContext:
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         _LOGGER.debug("Fetching %s", url)
         if self.allow_unsafe_ssl:
-            request = self.fetcher.get(url, stream=True, verify=False)
+            request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
         else:
-            request = self.fetcher.get(url, stream=True)
+            request = self.fetcher.get(url, stream=True, allow_redirects=True)
 
         if not request.ok:
             _LOGGER.error("Failed to fetch %s: %s", url, request)
