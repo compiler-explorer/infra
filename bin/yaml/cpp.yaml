@@ -831,6 +831,14 @@ compilers:
           dot_removed_version: "2211"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_2022_{dot_removed_version}_Linux_{arch}_cuda_11.8.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_23_1
+          arch: x86_64
+          version: "23.1"
+          dot_removed_version: "231"
+          year: "2023"
+          ctk_ver: "12.0"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz    
     nightly:
       if: nightly
       gcc:
