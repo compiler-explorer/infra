@@ -290,6 +290,10 @@ function ConfigureFirewall {
 
     AddLocalHost
 
+    $ip = "169.254.169.254"
+    netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
+    netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
+
     $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "storage.godbolt.org.s3.us-east-1.amazonaws.com")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
