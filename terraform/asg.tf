@@ -34,23 +34,38 @@ resource "aws_autoscaling_group" "prod-mixed" {
         launch_template_id = aws_launch_template.CompilerExplorer-prod.id
         version            = "$Latest"
       }
+      // As of March 14 2023, we started seeing EFS issues running out of burst credit. We believe it's to do with
+      // machines no longer having enough RAM to reasonably FS cache on top of all the other stuff they're doing.
+      // We're bumping to m* instances from c* to give us more headroom.
       override {
-        instance_type = "c6a.large"
+        instance_type = "m5zn.large"
       }
       override {
-        instance_type = "c6i.large"
+        instance_type = "m5.large"
       }
       override {
-        instance_type = "c5.large"
+        instance_type = "m5n.large"
       }
       override {
-        instance_type = "c5n.large"
+        instance_type = "m5d.large"
       }
       override {
-         instance_type = "c5a.large"
+        instance_type = "m5a.large"
       }
       override {
-         instance_type = "c5ad.large"
+        instance_type = "m5ad.large"
+      }
+      override {
+        instance_type = "m6a.large"
+      }
+      override {
+        instance_type = "m6i.large"
+      }
+      override {
+        instance_type = "m6id.large"
+      }
+      override {
+        instance_type = "m6in.large"
       }
     }
   }
