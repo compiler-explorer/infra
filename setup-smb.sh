@@ -15,4 +15,7 @@ apt-get install -y \
 
 cp -f /infra/smb-server/smb.conf /etc/samba/smb.conf
 
+mkdir -p /winshared
+chown ubuntu:ubuntu /winshared
+
 service smbd reload
