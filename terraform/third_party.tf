@@ -7,7 +7,16 @@ module "oidc_repo_sonar_source" {
 
   openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
   repo                        = "SonarSource/sonar-cpp"
-  role_name                   = "sonar-source"
+  role_name                   = "SonarSource"
+
+  default_conditions = ["allow_all"]
+
+  # Restrict to just 'master' (the SS repo uses this and the oidc provider only supports 'main')
+  conditions                  = [{
+    test = "StringLike"
+    variable = "token.actions.githubusercontent.com:sub"
+    values = ["repo:SonarSource/sonar-cpp:ref:refs/heads/master"]
+  }]
 }
 
 data "aws_iam_policy_document" "s3" {

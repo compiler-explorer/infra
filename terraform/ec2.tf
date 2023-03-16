@@ -2,7 +2,7 @@ locals {
   runner_image_id  = "ami-0d23498d2df5d5e2c"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
-  smbserver_image_id = "ami-029c3274d42c3e7fb"
+  smbserver_image_id = "ami-07a58f9b03f608560"
   admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
@@ -38,7 +38,7 @@ resource "aws_instance" "ConanNode" {
   ami                         = local.conan_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "t2.micro"
+  instance_type               = "t3.micro"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
@@ -135,7 +135,7 @@ resource "aws_instance" "CESMBServer" {
   ami                         = local.smbserver_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "t2.micro"
+  instance_type               = "t4g.micro"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet

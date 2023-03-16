@@ -85,6 +85,28 @@ compilers:
     cross:
       type: s3tarballs
       arch_prefix:
+
+      compcert:
+        s3_path_prefix: "ccomp-{name}-{arch}"
+        check_exe: "bin/ccomp --version"
+        untar_dir: "CompCert-{arch}-{name}"
+        subdir: "compcert"
+        path_name: "{subdir}/CompCert-{arch}-{name}"
+        x86_32:
+          arch: "x86_32"
+          targets:
+            - "3.12"
+            - "3.11"
+            - "3.10"
+            - "3.9"
+        x86_64:
+          arch: "x86_64"
+          targets:
+            - "3.12"
+            - "3.11"
+            - "3.10"
+            - "3.9"
+
       gcc:
         s3_path_prefix: "{subdir}-gcc-{name}"
         path_name: "{subdir}/gcc-{name}"
