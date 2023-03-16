@@ -2,7 +2,7 @@ locals {
   runner_image_id  = "ami-0d23498d2df5d5e2c"
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
-  smbserver_image_id = "ami-07a58f9b03f608560"
+  smbserver_image_id = "ami-01e7c7963a9c4755d"
   admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
