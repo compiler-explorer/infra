@@ -246,12 +246,26 @@ function UnMountY {
      Remove-SmbMapping -LocalPath 'Y:' -Force
 }
 
+function GetResolvedIPAddress {
+    param(
+        [string] $Hostname
+    )
+
+    $resolved = Resolve-DnsName -Name $hostname
+    $first = $resolved[0]
+    if (!$first.IPAddress) {
+        return (GetResolvedIPAddress $first.NameHost)
+    } else {
+        return $first.IPAddress
+    }
+}
+
 function AddToHosts {
     param(
         [string] $Hostname
     )
 
-    $ip = (Resolve-DnsName -Name $hostname)[0].IPAddress
+    $ip = GetResolvedIPAddress $hostname
 
     $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
     $content = $content,($ip + " " + $Hostname)
