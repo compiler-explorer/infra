@@ -294,7 +294,7 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
 
-    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com")
+    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com", "prometheus-us-central1.grafana.net", "prometheus-prod-01-eu-west-0.grafana.net")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
