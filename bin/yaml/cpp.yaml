@@ -645,6 +645,7 @@ compilers:
           - 13.0.1
           - 14.0.0
           - 15.0.0
+          - 16.0.0
     clang-rocm:
       - type: s3tarballs
         dir:
