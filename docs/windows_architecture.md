@@ -27,7 +27,7 @@ Compilers are not running through appcontainer yet, but it does use cewrapper fo
 
 ### AMI
 
-The AMI is confused by running `packer/InstallPwsh.ps1` and `packer/InstallTools.ps1`. Despite installing powershell 7, these scripts will execute using the default powershell installed with Windows. At the end of installing the tools, a service is configured to execute the `packer/Startup.ps1` on startup of the instance.
+The AMI consists of running `packer/InstallPwsh.ps1` and `packer/InstallTools.ps1`. Despite installing powershell 7, these scripts will execute using the default powershell installed with Windows. At the end of installing the tools, a service is configured to execute the `packer/Startup.ps1` on startup of the instance.
 
 ### Startup
 
