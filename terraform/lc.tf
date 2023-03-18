@@ -207,3 +207,35 @@ resource "aws_launch_template" "CompilerExplorer-winstaging" {
     }
   }
 }
+
+resource "aws_launch_template" "CompilerExplorer-winprod" {
+  name          = "ce-winprod"
+  description   = "WinProd launch template"
+  ebs_optimized = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerWindowsRole.arn
+  }
+  image_id               = local.winprod_image_id
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  instance_type          = "m6i.large"  // This is overridden in the ASG
+  user_data              = local.winprod_user_data
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site = "CompilerExplorer"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "Winprod"
+      Name        = "Winprod"
+    }
+  }
+}
