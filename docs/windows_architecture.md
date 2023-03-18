@@ -21,7 +21,7 @@ The runtime .dll's (libstdc++, libpthread, etc) are sometimes needed for executi
 
 ## Compiler and tools restrictions
 
-Compilers are not running through appcontainer yet, but it does use cewrapper for execution. But it is running using the ce user which has certain restrictions that are setup in `init/start.ps1`.
+Compilers are not running through appcontainer yet, but it does use cewrapper for execution, and it's running using the ce user which has certain restrictions that are setup in `init/start.ps1`.
 
 ## Bootstrapping
 
