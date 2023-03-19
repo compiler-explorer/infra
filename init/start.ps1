@@ -223,6 +223,8 @@ function InitializeAgentConfig {
     }
     $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
     Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
+
+    Restart-Service -DisplayName "Grafana Agent"
 }
 
 function GetSMBServerIP {
