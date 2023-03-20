@@ -514,6 +514,15 @@ compilers:
               - 11.2.0
               - 12.1.0
               - 12.2.0
+        vax:
+          subdir: vax
+          type: s3tarballs
+          s3_path_prefix: "vax-netbsdelf-gcc-{name}"
+          path_name: "{subdir}/gcc-{name}"
+          untar_dir: "gcc-{name}"
+          check_exe: "bin/vax--netbsdelf-g++ --version"
+          targets:
+            - name: 10.4.0
         xtensa:
           subdir: xtensa
           url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.{compression}
