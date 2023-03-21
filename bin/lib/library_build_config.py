@@ -22,7 +22,6 @@ class LibraryBuildConfig:
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])
         self.make_utility = self.config_get("make_utility", "make")
-        self.package_extra_copy = self.config_get("package_extra_copy", [])
         self.skip_compilers = self.config_get("skip_compilers", [])
         self.use_compiler = self.config_get("use_compiler", "")
         if self.lib_type == "cshared" and self.use_compiler == "":
