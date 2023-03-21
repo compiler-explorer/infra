@@ -488,6 +488,7 @@ class LibraryBuilder:
         f.write('    author = "None"\n')
         f.write("    topics = None\n")
         f.write("    def package(self):\n")
+        f.write('        self.copy("*.h")\n')
 
         for lib in self.buildconfig.staticliblink:
             f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')

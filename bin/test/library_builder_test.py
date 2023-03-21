@@ -38,6 +38,7 @@ def test_can_write_conan_file(requests_mock):
     assert 'version = "target"' in lines
     assert 'description = "description"' in lines
     assert 'url = "https://some.url"' in lines
+    assert 'self.copy("*.h")' in lines
     assert 'self.copy("libstatic1*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libstatic2*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libshared1*.so*", dst="lib", keep_path=False)' in lines
