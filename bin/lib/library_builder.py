@@ -473,14 +473,9 @@ class LibraryBuilder:
             f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
 
     def write_conan_file_to(self, f: TextIO) -> None:
-        libsum = ""
-        for lib in self.buildconfig.staticliblink:
-            libsum += f'"{lib}",'
-
-        for lib in self.buildconfig.sharedliblink:
-            libsum += f'"{lib}",'
-
-        libsum = libsum[:-1]
+        libsum = ",".join(
+            f'"{lib}"' for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink)
+        )
 
         f.write("from conans import ConanFile, tools\n")
         f.write(f"class {self.libname}Conan(ConanFile):\n")
