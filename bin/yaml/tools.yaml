@@ -9,7 +9,7 @@ tools:
     check_exe: bin/cmake --help
     symlink: cmake
     targets:
-      - 3.25.1
+      - 3.26.1
   ninja:
     type: ziparchive
     extract_into_folder: true
