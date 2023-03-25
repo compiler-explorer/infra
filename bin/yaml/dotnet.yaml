@@ -2,6 +2,7 @@ compilers:
   dotnet:
     type: s3tarballs
     dir: dotnet-{name}
+    path_name: dotnet-{name}
     untar_dir: Core_Root
     check_exe: .dotnet/dotnet --version
     check_env:

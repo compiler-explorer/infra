@@ -669,6 +669,7 @@ libraries:
       - 13.0.1
       - 14.0.0
       - 15.0.0
+      - 16.0.0
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -881,11 +882,11 @@ libraries:
         type: github
       crosscables:
         after_stage_script:
-        - cd libGroundfloor && sh devmake.sh && cd ..
-        - cd libJumpropes && sh devmake.sh && cd ..
-        - cd libJumpknots && sh devmake.sh && cd ..
-        - cd libMySQLBooks && sh devmake.sh && cd ..
-        - cd libChalkboard && sh devmake.sh && cd ..
+        - cd Groundfloor && sh devmake.sh && cd ..
+        - cd Jumpropes && sh devmake.sh && cd ..
+        - cd Jumpknots && sh devmake.sh && cd ..
+        - cd MySQLBooks && sh devmake.sh && cd ..
+        - cd Chalkboard && sh devmake.sh && cd ..
         build_type: cmake
         method: nightlyclone
         repo: partouf/crosscables
@@ -1599,6 +1600,20 @@ libraries:
       targets:
       - 3.2.0
       type: github
+    simdjson:
+      build_type: cmake
+      make_targets:
+      - simdjson
+      lib_type: static
+      staticliblink:
+      - simdjson
+      repo: simdjson/simdjson
+      type: github
+      check_file: include/simdjson.h
+      target_prefix: v
+      targets:
+      - 3.0.1
+      - 3.1.5
     sol2:
       build_type: none
       check_file: include/sol/sol.hpp

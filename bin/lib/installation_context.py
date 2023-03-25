@@ -25,6 +25,10 @@ _LOGGER = logging.getLogger(__name__)
 PathOrString = Union[Path, str]
 
 
+def is_windows():
+    return os.name == "nt"
+
+
 class FetchFailure(RuntimeError):
     pass
 
@@ -89,7 +93,7 @@ class InstallationContext:
             yield staging_dir
         finally:
             if not self._keep_staging:
-                if staging_dir.path.is_dir():
+                if staging_dir.path.is_dir() and not is_windows():
                     subprocess.check_call(["chmod", "-R", "u+w", staging_dir.path])
                 shutil.rmtree(staging_dir.path, ignore_errors=True)
 
@@ -100,9 +104,9 @@ class InstallationContext:
     def fetch_to(self, url: str, fd: IO[bytes]) -> None:
         _LOGGER.debug("Fetching %s", url)
         if self.allow_unsafe_ssl:
-            request = self.fetcher.get(url, stream=True, verify=False)
+            request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
         else:
-            request = self.fetcher.get(url, stream=True)
+            request = self.fetcher.get(url, stream=True, allow_redirects=True)
 
         if not request.ok:
             _LOGGER.error("Failed to fetch %s: %s", url, request)
@@ -205,7 +209,8 @@ class InstallationContext:
             _LOGGER.info("Directory listing of staging:\n%s", staging_contents)
             raise RuntimeError(f"Missing source '{source}'")
         # Some tar'd up GCCs are actually marked read-only...
-        subprocess.check_call(["chmod", "-R", "u+w", source])
+        if not is_windows():
+            subprocess.check_call(["chmod", "-R", "u+w", source])
         state = ""
         if dest.is_dir():
             _LOGGER.info("Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename)
@@ -239,13 +244,21 @@ class InstallationContext:
         args = args[:]
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
-        return subprocess.check_output(
-            args,
-            cwd=str(self.destination),
-            env=env,
-            stdin=subprocess.DEVNULL,
-            stderr=subprocess.STDOUT if stderr_on_stdout else None,
-        ).decode("utf-8")
+        if not is_windows():
+            return subprocess.check_output(
+                args,
+                cwd=str(self.destination),
+                env=env,
+                stdin=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT if stderr_on_stdout else None,
+            ).decode("utf-8")
+        else:
+            return subprocess.check_output(
+                args,
+                cwd=str(self.destination),
+                stdin=subprocess.DEVNULL,
+                stderr=subprocess.STDOUT if stderr_on_stdout else None,
+            ).decode("utf-8")
 
     def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
         args = args[:]

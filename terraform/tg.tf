@@ -6,6 +6,8 @@ variable "ce-target-groups" {
     "beta"    = 3
     "gpu"     = 4
     "wintest" = 5
+    "winstaging" = 6
+    "winprod" = 7
   }
 }
 

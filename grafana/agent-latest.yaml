@@ -1,0 +1,94 @@
+prometheus:
+  wal_directory: /tmp/grafana-agent-wal
+  global:
+    scrape_interval: 15s
+  configs:
+    - name: agent
+      scrape_configs:
+        - job_name: compiler_explorer
+          static_configs:
+            - targets: [ 'localhost:10241' ]
+              labels:
+                agent_hostname: '@HOSTNAME@'
+                env: '@ENV@'
+          relabel_configs:
+            - source_labels: [ __address__ ]
+              target_label: instance
+              regex: (.*):(.*)
+              replacement: :$2
+              action: replace
+      remote_write:
+        - url: https://prometheus-us-central1.grafana.net/api/prom/push
+          basic_auth:
+            username: "16818"
+            password: '@PROM_PASSWORD@'
+integrations:
+  labels:
+    env: '@ENV@'
+  node_exporter:
+    enabled: true
+    disable_collectors:
+      - arp
+      - bonding
+      - boottime
+      - conntrack
+      - cpufreq
+      - diskstats
+      - hwmon
+      - infiniband
+      - mdadm
+      - entropy
+      - netclass
+      - netdev
+      - netstat
+      - thermal_zone
+      - time
+      - timex
+      - udp_queues
+    # ignore all filesystems besides root
+    filesystem_ignored_mount_points: "^/.+$"
+    metric_relabel_configs:
+      - source_labels: [ __name__, proto ]
+        regex: "node_nfs_requests_total;[^4]"
+        action: drop
+  prometheus_remote_write:
+    - url: https://prometheus-us-central1.grafana.net/api/prom/push
+      basic_auth:
+        username: "16818"
+        password: '@PROM_PASSWORD@'
+loki:
+  configs:
+  - name: "loki"
+    positions:
+      filename: /tmp/positions.yaml
+    clients:
+      - url: https://logs-prod-us-central1.grafana.net/api/prom/push
+        basic_auth:
+          username: "7398"
+          password: '@LOKI_PASSWORD@'
+    scrape_configs:
+      - job_name: journal
+        journal:
+          max_age: 12h
+          labels:
+            env: '@ENV@'
+            job: systemd-journal
+            host: '@HOSTNAME@'
+        relabel_configs:
+          - source_labels: [ '__journal__systemd_unit' ]
+            target_label: 'unit'
+      - job_name: push
+        loki_push_api:
+          use_incoming_timestamp: true
+          server:
+            http_listen_port: 3500
+            grpc_listen_port: 3600
+          labels:
+            env: '@ENV@'
+            host: '@HOSTNAME@'
+        relabel_configs:
+          # provide a default value for job if none is given
+          - source_labels: [ job ]
+            target_label: job
+            replacement: push
+            regex: ""

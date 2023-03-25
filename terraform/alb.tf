@@ -166,6 +166,37 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
 
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winstaging" {
+  priority = 7
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["winstaging"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/winstaging*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
+  priority = 8
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["winprod"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/winprod*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
 
 resource "aws_alb_listener" "ceconan-alb-listen-http" {
   default_action {

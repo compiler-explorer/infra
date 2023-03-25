@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
-from lib.installation_context import InstallationContext
+from lib.installation_context import InstallationContext, is_windows
 from lib.staging import StagingDir
 
 import re
@@ -251,12 +251,21 @@ class ZipArchiveInstallable(Installable):
         # Unzip does not support stdin piping so we need to create a file
         with (staging.path / "distribution.zip").open("wb") as fd:
             self.install_context.fetch_to(self.url, fd)
-            unzip_cmd = ["unzip", fd.name]
+            if not is_windows():
+                unzip_cmd = ["unzip", "-q", fd.name]
+            else:
+                unzip_cmd = ["tar", "-xf", fd.name]
             if self.extract_into_folder:
                 unzip_cmd.extend(["-d", self.folder_to_rename])
             self.install_context.stage_command(staging, unzip_cmd)
             if self.folder_to_rename != self.install_path:
-                self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
+                if not is_windows():
+                    self.install_context.stage_command(staging, ["mv", self.folder_to_rename, self.install_path])
+                else:
+                    self.install_context.stage_command(
+                        staging, ["cmd", "/C", "rename", self.folder_to_rename, self.install_path]
+                    )
+
         if self.configure_command:
             self.install_context.stage_command(staging, self.configure_command)
         if self.strip:

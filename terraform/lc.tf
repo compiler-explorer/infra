@@ -1,12 +1,16 @@
 locals {
-  image_id          = "ami-0969cc9e8421c61e1"
-  staging_image_id  = "ami-0969cc9e8421c61e1"
-  beta_image_id     = "ami-0969cc9e8421c61e1"
-  gpu_image_id      = "ami-086f4909d3a027294"
-  wintest_image_id  = "ami-0955bd1b3484c824f"
+  image_id          = "ami-0fdc5de4f17430359"
+  staging_image_id  = "ami-0fdc5de4f17430359"
+  beta_image_id     = "ami-0fdc5de4f17430359"
+  gpu_image_id      = "ami-0087af87e84769118"
+  winprod_image_id  = "ami-0a7c475695d005c4a"
+  winstaging_image_id  = "ami-0a7c475695d005c4a"
+  wintest_image_id  = "ami-0a7c475695d005c4a"
   staging_user_data = base64encode("staging")
   beta_user_data    = base64encode("beta")
   gpu_user_data     = base64encode("gpu")
+  winprod_user_data = base64encode("winprod")
+  winstaging_user_data = base64encode("winstaging")
   wintest_user_data = base64encode("wintest")
 }
 
@@ -168,6 +172,70 @@ resource "aws_launch_template" "CompilerExplorer-wintest" {
       Site        = "CompilerExplorer"
       Environment = "Wintest"
       Name        = "Wintest"
+    }
+  }
+}
+
+resource "aws_launch_template" "CompilerExplorer-winstaging" {
+  name          = "ce-winstaging"
+  description   = "WinStaging launch template"
+  ebs_optimized = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerWindowsRole.arn
+  }
+  image_id               = local.winstaging_image_id
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  instance_type          = "m6i.large"
+  user_data              = local.winstaging_user_data
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site = "CompilerExplorer"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "Winstaging"
+      Name        = "Winstaging"
+    }
+  }
+}
+
+resource "aws_launch_template" "CompilerExplorer-winprod" {
+  name          = "ce-winprod"
+  description   = "WinProd launch template"
+  ebs_optimized = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerWindowsRole.arn
+  }
+  image_id               = local.winprod_image_id
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  instance_type          = "m6i.large"  // This is overridden in the ASG
+  user_data              = local.winprod_user_data
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site = "CompilerExplorer"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "Winprod"
+      Name        = "Winprod"
     }
   }
 }

@@ -19,6 +19,10 @@ function GetBetterHostname {
 $betterComputerName = GetBetterHostname
 Write-Host "AWS Hostname $betterComputerName"
 
+function download_dskspd {
+    Invoke-WebRequest -Uri "https://github.com/microsoft/diskspd/releases/download/v2.1/DiskSpd.ZIP" -OutFile "/tmp/diskspd.zip"
+}
+
 function update_code {
     Write-Host "Current environment $CE_ENV"
     Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
@@ -219,10 +223,12 @@ function InitializeAgentConfig {
     }
     $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
     Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
+
+    Restart-Service -DisplayName "Grafana Agent"
 }
 
 function GetSMBServerIP {
-    return "172.30.0.29"
+    return "172.30.0.254"
 }
 
 function MountY {
@@ -246,12 +252,26 @@ function UnMountY {
      Remove-SmbMapping -LocalPath 'Y:' -Force
 }
 
+function GetResolvedIPAddress {
+    param(
+        [string] $Hostname
+    )
+
+    $resolved = Resolve-DnsName -Name $hostname
+    $first = $resolved[0]
+    if (!$first.IPAddress) {
+        return (GetResolvedIPAddress $first.NameHost)
+    } else {
+        return $first.IPAddress
+    }
+}
+
 function AddToHosts {
     param(
         [string] $Hostname
     )
 
-    $ip = (Resolve-DnsName -Name $hostname)[0].IPAddress
+    $ip = GetResolvedIPAddress $hostname
 
     $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
     $content = $content,($ip + " " + $Hostname)
@@ -286,7 +306,11 @@ function ConfigureFirewall {
 
     AddLocalHost
 
-    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com")
+    $ip = "169.254.169.254"
+    netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
+    netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
+
+    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com", "prometheus-us-central1.grafana.net")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
@@ -298,6 +322,8 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
+download_dskspd
+
 MountY
 
 GetLatestCEWrapper
@@ -308,10 +334,10 @@ InitializeAgentConfig
 
 update_code
 
-# todo: this should be configured into the build
+# these are only the wintest, the normal amazonwin.properties should be in the CE repo
 Write-Host "Installing properties files"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.amazonwin.properties"
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.amazonwin.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/c++.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/c++.wintest.properties"
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/windows-docker/main/pascal.win32.properties" -OutFile "$DEPLOY_DIR/etc/config/pascal.wintest.properties"
 
 $loghost = GetLogHost
 $logport = GetLogPort
