@@ -472,39 +472,35 @@ class LibraryBuilder:
             f.write("#!/bin/sh\n\n")
             f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
 
-    def writeconanfile(self, buildfolder):
-        libsum = ""
+    def write_conan_file_to(self, f: TextIO) -> None:
+        libsum = ",".join(
+            f'"{lib}"' for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink)
+        )
+
+        f.write("from conans import ConanFile, tools\n")
+        f.write(f"class {self.libname}Conan(ConanFile):\n")
+        f.write(f'    name = "{self.libname}"\n')
+        f.write(f'    version = "{self.target_name}"\n')
+        f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
+        f.write(f'    description = "{self.buildconfig.description}"\n')
+        f.write(f'    url = "{self.buildconfig.url}"\n')
+        f.write('    license = "None"\n')
+        f.write('    author = "None"\n')
+        f.write("    topics = None\n")
+        f.write("    def package(self):\n")
+
         for lib in self.buildconfig.staticliblink:
-            libsum += f'"{lib}",'
+            f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
 
         for lib in self.buildconfig.sharedliblink:
-            libsum += f'"{lib}",'
+            f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
 
-        libsum = libsum[:-1]
+        f.write("    def package_info(self):\n")
+        f.write(f"        self.cpp_info.libs = [{libsum}]\n")
 
+    def writeconanfile(self, buildfolder):
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
-            f.write("from conans import ConanFile, tools\n")
-            f.write(f"class {self.libname}Conan(ConanFile):\n")
-            f.write(f'    name = "{self.libname}"\n')
-            f.write(f'    version = "{self.target_name}"\n')
-            f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
-            f.write(f'    description = "{self.buildconfig.description}"\n')
-            f.write(f'    url = "{self.buildconfig.url}"\n')
-            f.write('    license = "None"\n')
-            f.write('    author = "None"\n')
-            f.write("    topics = None\n")
-            f.write("    def package(self):\n")
-
-            for lib in self.buildconfig.staticliblink:
-                f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
-
-            for lib in self.buildconfig.sharedliblink:
-                f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
-
-            for copyline in self.buildconfig.package_extra_copy:
-                f.write(f"        {copyline}\n")
-            f.write("    def package_info(self):\n")
-            f.write(f"        self.cpp_info.libs = [{libsum}]\n")
+            self.write_conan_file_to(f)
 
     def countValidLibraryBinaries(self, buildfolder, arch, stdlib):
         filesfound = 0
