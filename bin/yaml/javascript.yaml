@@ -1,0 +1,9 @@
+compilers:
+  javascript:
+    nightly:
+      if: nightly
+      d8:
+        type: nightly
+        check_exe: d8 --help
+        targets:
+          - name: trunk
