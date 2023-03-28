@@ -18,8 +18,15 @@ wait_for_apt
 sleep 5
 wait_for_apt
 
+# Disable unattended upgrades
+apt purge -y--auto-remove unattended-upgrades
+
 apt-get -y update
 apt-get -y upgrade --force-yes
+# Second update in case the first brought in something...FUD really from Matt not getting a new kernel when he wanted it
+apt-get -y update
+apt-get -y upgrade --force-yes
+
 apt-get -y install \
   jq \
   libc6-arm64-cross \
