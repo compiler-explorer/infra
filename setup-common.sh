@@ -22,10 +22,7 @@ wait_for_apt
 apt purge -y --auto-remove unattended-upgrades
 
 apt-get -y update
-apt-get -y upgrade --force-yes
-# Second update in case the first brought in something...FUD really from Matt not getting a new kernel when he wanted it
-apt-get -y update
-apt-get -y upgrade --force-yes
+apt-get -y dist-upgrade --force-yes
 
 apt-get -y install \
   jq \
