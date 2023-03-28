@@ -19,7 +19,7 @@ sleep 5
 wait_for_apt
 
 # Disable unattended upgrades
-apt purge -y--auto-remove unattended-upgrades
+apt purge -y --auto-remove unattended-upgrades
 
 apt-get -y update
 apt-get -y upgrade --force-yes
