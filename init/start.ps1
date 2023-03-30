@@ -181,10 +181,11 @@ function InstallCERunTask {
     param(
         [PSCredential] $Credential,
         [securestring] $Password,
-        [string] $CeEnv
+        [string] $CeEnv,
+        [string] $HostnameForLogging
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv) -join " "
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging) -join " "
 
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
 }
@@ -201,7 +202,7 @@ function CreateCredAndRun {
 
     ConfigureFileRights
 
-    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV
+    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName
 }
 
 function GetLatestCEWrapper {
