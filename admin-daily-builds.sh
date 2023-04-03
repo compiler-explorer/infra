@@ -62,6 +62,6 @@ build_rust_libraries() {
 
 init_logspout
 build_cpp_libraries
-build_rust_libraries
+# build_rust_libraries # disable until https://github.com/compiler-explorer/infra/issues/977 is fixed
 
 exit ${BUILD_FAILED}
