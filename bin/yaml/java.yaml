@@ -23,3 +23,9 @@ compilers:
       - name: 18.0.0
         url: https://download.java.net/java/GA/jdk18/43f95e8614114aeaa8e8a5fcf20a682d/36/GPL/openjdk-18_linux-x64_bin.tar.gz
         untar_dir: jdk-18
+      - name: 19.0.2
+        url: https://download.java.net/java/GA/jdk19.0.2/fdb695a9d9064ad6b064dc6df578380c/7/GPL/openjdk-19.0.2_linux-x64_bin.tar.gz
+        untar_dir: jdk-19
+      - name: 20.0.0
+        url: https://download.java.net/java/GA/jdk20/bdc68b4b9cbc4ebcb30745c85038d91d/36/GPL/openjdk-20_linux-x64_bin.tar.gz
+        untar_dir: jdk-20
