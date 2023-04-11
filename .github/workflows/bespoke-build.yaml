@@ -18,6 +18,7 @@ on:
         - ispc
         - cobol
         - d8
+        - vala
       version:
         description: The version to build (or architecture and version for cross)
         required: true
