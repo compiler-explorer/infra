@@ -158,7 +158,7 @@ class InstallationContext:
             raise RuntimeError(f"During symlinking, {full_source} was not present")
         full_dest = self.destination / dest
         _LOGGER.debug(f"Checking whether Symlink {full_dest} exists")
-        if full_dest.exists():
+        if full_dest.is_symlink():
             _LOGGER.debug("Symlink does exist, unlinking...")
             full_dest.unlink()
             _LOGGER.debug("Symlink should be unlinked")
