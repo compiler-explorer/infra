@@ -22,7 +22,8 @@ apt-get install -y \
     libldap2-dev \
     libpopt-dev \
     libtasn1-bin \
-    libjansson-dev
+    libjansson-dev \
+    python3-markdown
 
 cpan App::cpanminus
 cpanm Parse::Yapp
