@@ -9,6 +9,9 @@ env EXTRA_NFS_ARGS=",ro" "${DIR}/setup-common.sh"
 apt-get -y update
 apt-get -y install software-properties-common
 apt-get install -y \
+    pkg-config \
+    gcc-10 \
+    automake \
     gnutls-dev \
     liblmdb-dev \
     libgpgme-dev \
