@@ -8,7 +8,7 @@
       "source_ami_filter": {
           "filters": {
               "virtualization-type": "hvm",
-              "name": "ubuntu/images/*ubuntu-kinetic-22.10-arm64-server-*",
+              "name": "ubuntu/images/*ubuntu-jammy-22.04-arm64-server-*",
               "root-device-type": "ebs"
           },
           "owners": ["099720109477"],
@@ -16,7 +16,7 @@
       },
       "instance_type": "t4g.large",
       "ssh_username": "ubuntu",
-      "ami_name": "ce-smb arm packer 22.10 @ {{timestamp}}",
+      "ami_name": "ce-smb arm packer 22.04 @ {{timestamp}}",
       "tags": {"Site":  "CompilerExplorer"},
       "run_volume_tags": {"Site":  "CompilerExplorer"},
       "associate_public_ip_address": true,
