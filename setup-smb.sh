@@ -40,7 +40,7 @@ make install
 
 cd ..
 
-cp -f /infra/smb-server/smb.conf /etc/samba/smb.conf
+cp -f /infra/smb-server/smb.conf /usr/etc/samba/smb.conf
 
 mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
