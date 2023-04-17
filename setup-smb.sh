@@ -19,3 +19,6 @@ mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
 
 service smbd reload
+
+# run rsync on startup
+/infra/smb-server/rsync-share.sh
