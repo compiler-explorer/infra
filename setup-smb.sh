@@ -23,7 +23,8 @@ apt-get install -y \
     libpopt-dev \
     libtasn1-bin \
     libjansson-dev \
-    python3-markdown
+    python3-markdown \
+    python3-dnspython
 
 cpan App::cpanminus
 cpanm Parse::Yapp
