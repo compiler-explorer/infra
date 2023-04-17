@@ -12,6 +12,8 @@ apt-get install -y \
     pkg-config \
     gcc-10 \
     automake \
+    flex \
+    bison \
     gnutls-dev \
     liblmdb-dev \
     libgpgme-dev \
@@ -25,9 +27,8 @@ cpan App::cpanminus
 cpanm Parse::Yapp
 cpanm JSON
 
-git clone https://github.com/samba-team/samba
+git clone --depth 1 --branch samba-4.17.7 https://github.com/samba-team/samba
 cd samba
-git checkout samba-4.17.7
 
 ./configure --prefix=/usr --enable-fhs "--bundled-libraries=cmocka,popt,NONE" "--bundled-libraries=talloc,pytalloc-util,tdb,pytdb,ldb,pyldb,pyldb-util,tevent,pytevent,popt" --without-pam --with-shared-modules='!vfs_snapper'
 make
