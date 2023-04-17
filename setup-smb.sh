@@ -21,7 +21,8 @@ apt-get install -y \
     libacl1-dev \
     libldap2-dev \
     libpopt-dev \
-    libtasn1-bin
+    libtasn1-bin \
+    libjansson-dev
 
 cpan App::cpanminus
 cpanm Parse::Yapp
