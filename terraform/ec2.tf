@@ -3,6 +3,7 @@ locals {
   conan_image_id   = "ami-0b41dc7a318b530bd"
   builder_image_id = "ami-0ef4921e9d82c03fb"
   smbserver_image_id = "ami-01e7c7963a9c4755d"
+  smbtestserver_image_id = "ami-00049de383c4400c2"
   admin_subnet     = module.ce_network.subnet["1a"].id
 }
 
@@ -159,5 +160,36 @@ resource "aws_instance" "CESMBServer" {
 
   tags = {
     Name = "CESMBServer"
+  }
+}
+
+resource "aws_instance" "CESMBTestServer" {
+  ami                         = local.smbtestserver_image_id
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
+  ebs_optimized               = false
+  instance_type               = "t4g.micro"
+  monitoring                  = false
+  key_name                    = "mattgodbolt"
+  subnet_id                   = local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+  associate_public_ip_address = true
+  source_dest_check           = false
+  user_data                   = "smbserver"
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 100
+    delete_on_termination = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      // Seemingly needed to not replace stopped instances
+      associate_public_ip_address
+    ]
+  }
+
+  tags = {
+    Name = "CESMBTestServer"
   }
 }
