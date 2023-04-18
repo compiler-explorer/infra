@@ -396,6 +396,13 @@ compilers:
             - 11.3.0
             - 12.1.0
             - 12.2.0
+          nightly:
+            if: nightly
+            type: nightly
+            compiler_name: riscv64-gcc-trunk
+            path_name_prefix: gcc-trunk
+            targets:
+              - trunk
         riscv32:
           arch_prefix: "riscv32-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -411,6 +418,14 @@ compilers:
             - 12.1.0
             - name: 12.2.0
               arch_prefix: "riscv32-unknown-linux-gnu"
+          nightly:
+            if: nightly
+            type: nightly
+            compiler_name: riscv32-gcc-trunk
+            arch_prefix: "riscv32-unknown-linux-gnu"
+            path_name_prefix: gcc-trunk
+            targets:
+              - trunk
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -525,12 +540,14 @@ compilers:
             - name: 10.4.0
         xtensa:
           subdir: xtensa
-          url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.{compression}
+          url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-{release_name}-{host_type}.tar.{compression}
           untar_dir: "{arch_prefix}"
-          dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+          dir: "xtensa/{arch_prefix}-{release_name}"
           check_exe: "bin/{arch_prefix}-g++ --version"
           type: tarballs
           compression: gz
+          host_type: linux-amd64
+          release_name: "gcc{base}-esp-{name}"
           esp32:
             arch_prefix: xtensa-esp32-elf
             targets:
@@ -548,6 +565,11 @@ compilers:
                 base: "8_4_0"
               - name: 2022r1
                 base: "11_2_0"
+                compression: xz
+              - name: 12.2.0_20230208
+                base: "12.2.0_20230208"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
                 compression: xz
           esp32s2:
             arch_prefix: xtensa-esp32s2-elf
@@ -567,6 +589,11 @@ compilers:
               - name: 2022r1
                 base: "11_2_0"
                 compression: xz
+              - name: 12.2.0_20230208
+                base: "12.2.0_20230208"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
+                compression: xz
           esp32s3:
             arch_prefix: xtensa-esp32s3-elf
             targets:
@@ -578,6 +605,11 @@ compilers:
                 base: "8_4_0"
               - name: 2022r1
                 base: "11_2_0"
+                compression: xz
+              - name: 12.2.0_20230208
+                base: "12.2.0_20230208"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
                 compression: xz
     clang:
       - type: tarballs

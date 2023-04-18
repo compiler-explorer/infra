@@ -126,6 +126,18 @@ class SMBInstance:
         return SMBInstance(_singleton_instance("CESMBServer"))
 
 
+class SMBTestInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "smbtestserver"
+
+    @staticmethod
+    def instance():
+        return SMBTestInstance(_singleton_instance("CESMBTestServer"))
+
+
 class BuilderInstance:
     def __init__(self, instance):
         self.instance = instance
@@ -180,6 +192,28 @@ class SMBServerInstance:
     @staticmethod
     def instance():
         return SMBServerInstance(_singleton_instance("CESMBServer"))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state["Name"]
+
+
+class SMBTestServerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "runner"
+
+    @staticmethod
+    def instance():
+        return SMBTestServerInstance(_singleton_instance("CESMBTestServer"))
 
     def start(self):
         self.instance.start()

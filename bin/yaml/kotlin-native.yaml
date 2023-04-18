@@ -42,3 +42,5 @@ compilers:
         filename: kotlin-native-linux-x86_64-1.8.0
       - name: 1.8.10
         filename: kotlin-native-linux-x86_64-1.8.10
+      - name: 1.8.20
+        filename: kotlin-native-linux-x86_64-1.8.20

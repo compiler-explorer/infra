@@ -3,7 +3,7 @@ from typing import Sequence
 import click
 
 from lib.cli import cli
-from lib.instance import SMBInstance
+from lib.instance import SMBInstance, SMBTestInstance
 from lib.ssh import run_remote_shell, exec_remote_to_stdout
 
 
@@ -16,6 +16,13 @@ def smb():
 def smb_login():
     """Log in to the smb instance."""
     instance = SMBInstance.instance()
+    run_remote_shell(instance)
+
+
+@smb.command(name="logintest")
+def smb_logintest():
+    """Log in to the smb test instance."""
+    instance = SMBTestInstance.instance()
     run_remote_shell(instance)
 
 

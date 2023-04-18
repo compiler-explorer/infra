@@ -157,8 +157,11 @@ class InstallationContext:
         if not full_source.exists():
             raise RuntimeError(f"During symlinking, {full_source} was not present")
         full_dest = self.destination / dest
-        if full_dest.exists():
+        _LOGGER.debug("Checking whether Symlink %s exists", full_dest)
+        if full_dest.is_symlink():
+            _LOGGER.debug("Symlink does exist, unlinking...")
             full_dest.unlink()
+            _LOGGER.debug("Symlink should be unlinked")
         relative_source = full_source.relative_to(Path(os.path.commonpath([full_source, full_dest])))
         _LOGGER.info("Symlinking %s to %s", relative_source, full_dest)
         full_dest.symlink_to(relative_source)

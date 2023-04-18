@@ -77,7 +77,7 @@ resource "aws_cloudwatch_metric_alarm" "bankrupcy" {
 resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
   for_each = {
     "godbolt.org"           = aws_cloudfront_distribution.ce-godbolt-org,
-    "compiler-explorer.com" = aws_cloudfront_distribution.compiler-explorer-com,
+#    "compiler-explorer.com" = aws_cloudfront_distribution.compiler-explorer-com,
     "godbo.lt"              = aws_cloudfront_distribution.godbo-lt,
     "ce.cdn.net"            = aws_cloudfront_distribution.static-ce-cdn-net
   }
