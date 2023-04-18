@@ -23,6 +23,7 @@ class LibraryBuildConfig:
         self.make_targets = self.config_get("make_targets", [])
         self.make_utility = self.config_get("make_utility", "make")
         self.skip_compilers = self.config_get("skip_compilers", [])
+        self.copy_files = self.config_get("copy_files", [])
         self.use_compiler = self.config_get("use_compiler", "")
         if self.lib_type == "cshared" and self.use_compiler == "":
             raise RuntimeError(
