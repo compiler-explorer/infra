@@ -33,19 +33,23 @@ cpanm JSON
 git clone --depth 1 --branch samba-4.17.7 https://github.com/samba-team/samba
 cd samba
 
-./configure --prefix=/usr --enable-fhs "--bundled-libraries=cmocka,popt,NONE" "--bundled-libraries=talloc,pytalloc-util,tdb,pytdb,ldb,pyldb,pyldb-util,tevent,pytevent,popt" --without-pam --with-shared-modules='!vfs_snapper'
+./configure --enable-fhs --systemd-install-services "--bundled-libraries=cmocka,popt,NONE" "--bundled-libraries=talloc,pytalloc-util,tdb,pytdb,ldb,pyldb,pyldb-util,tevent,pytevent,popt" --without-pam --with-shared-modules='!vfs_snapper'
 make
 
 make install
 
 cd ..
 
-cp -f /infra/smb-server/smb.conf /usr/etc/samba/smb.conf
+cp /usr/local/samba/lib/systemd/system/* /etc/systemd/system/
+
+cp -f /infra/smb-server/smb.conf /usr/local/samba/etc/samba/smb.conf
 
 mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
 
-service smbd reload
+systemctl enable smb
+
+service smbd start
 
 # run rsync on startup
 #/infra/smb-server/rsync-share.sh
