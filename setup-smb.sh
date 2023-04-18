@@ -33,6 +33,12 @@ cpanm JSON
 git clone --depth 1 --branch samba-4.17.7 https://github.com/samba-team/samba
 cd samba
 
+# todo:
+#     --enable-fhs
+#            Use FHS-compliant paths (default no)
+#            You should consider using this together with:
+#            --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+
 ./configure --enable-fhs --systemd-install-services "--bundled-libraries=cmocka,popt,NONE" "--bundled-libraries=talloc,pytalloc-util,tdb,pytdb,ldb,pyldb,pyldb-util,tevent,pytevent,popt" --without-pam --with-shared-modules='!vfs_snapper'
 make
 
