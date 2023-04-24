@@ -28,7 +28,7 @@ def test_can_write_conan_file(requests_mock):
     build_config.sharedliblink = ["shared1", "shared2"]
     build_config.description = "description"
     build_config.url = "https://some.url"
-    lb = LibraryBuilder(logger, "lang", "somelib", "target", "src-folder", install_context, build_config)
+    lb = LibraryBuilder(logger, "lang", "somelib", "target", "src-folder", install_context, build_config, False)
     tio = io.StringIO()
     lb.write_conan_file_to(tio)
     conan_file = tio.getvalue()
