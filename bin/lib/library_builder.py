@@ -25,6 +25,7 @@ from lib.staging import StagingDir
 
 _TIMEOUT = 600
 compiler_popularity_treshhold = 1000
+popular_compilers: Dict[str, Any] = defaultdict(lambda: [])
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
@@ -93,6 +94,7 @@ class LibraryBuilder:
         sourcefolder: str,
         install_context,
         buildconfig: LibraryBuildConfig,
+        popular_compilers_only: bool,
     ):
         self.logger = logger
         self.language = language
@@ -114,8 +116,7 @@ class LibraryBuilder:
             [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(self.language, self.logger)
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 
-        self.popular_compilers: Dict[str, Any] = defaultdict(lambda: [])
-        self.check_compiler_popularity = False
+        self.check_compiler_popularity = popular_compilers_only
 
         self.completeBuildConfig()
 
@@ -870,16 +871,17 @@ class LibraryBuilder:
 
             reader = csv.DictReader(line.decode("utf-8") for line in fd.readlines())
             for row in reader:
-                self.popular_compilers[row["compiler"]] = int(row["times_used"])
+                popular_compilers[row["compiler"]] = int(row["times_used"])
 
     def is_popular_enough(self, compiler):
-        if self.popular_compilers.__len__() == 0:
+        if len(popular_compilers) == 0:
+            self.logger.debug("downloading compiler popularity csv")
             self.download_compiler_usage_csv()
 
-        if not compiler in self.popular_compilers:
+        if not compiler in popular_compilers:
             return False
 
-        if self.popular_compilers[compiler] < compiler_popularity_treshhold:
+        if popular_compilers[compiler] < compiler_popularity_treshhold:
             return False
 
         return True
@@ -937,7 +939,7 @@ class LibraryBuilder:
 
         for compiler in self.compilerprops:
             if not self.should_build_with_compiler(compiler, checkcompiler, buildfor):
-                self.logger.info(f"Skipping {compiler}")
+                self.logger.debug(f"Skipping {compiler}")
                 continue
 
             compilerType = self.get_compiler_type(compiler)

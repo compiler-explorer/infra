@@ -149,7 +149,7 @@ class Installable:
     def nightly_like(self) -> bool:
         return False
 
-    def build(self, buildfor):
+    def build(self, buildfor, popular_compilers_only):
         if not self.is_library:
             raise RuntimeError("Nothing to build")
 
@@ -166,6 +166,7 @@ class Installable:
                 sourcefolder,
                 self.install_context,
                 self.build_config,
+                popular_compilers_only,
             )
             if self.build_config.build_type == "cmake":
                 return builder.makebuild(buildfor)
