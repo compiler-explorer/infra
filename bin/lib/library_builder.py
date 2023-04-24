@@ -839,10 +839,44 @@ class LibraryBuilder:
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
 
+    def get_compiler_type(self, compiler):
+        compilerType = ""
+        if "compilerType" in self.compilerprops[compiler]:
+            compilerType = self.compilerprops[compiler]["compilerType"]
+        else:
+            raise RuntimeError(f"Something is wrong with {compiler}")
+
+        if self.compilerprops[compiler]["compilerType"] == "clang-intel":
+            # hack for icpx so we don't get duplicate builds
+            compilerType = "gcc"
+
+        return compilerType
+
+    def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
+        if checkcompiler != "" and compiler != checkcompiler:
+            return False
+
+        if compiler in self.buildconfig.skip_compilers:
+            return False
+
+        compilerType = self.get_compiler_type(compiler)
+
+        exe = self.compilerprops[compiler]["exe"]
+
+        if buildfor == "allclang" and compilerType != "clang":
+            return False
+        elif buildfor == "allicc" and "/icc" not in exe:
+            return False
+        elif buildfor == "allgcc" and compilerType != "":
+            return False
+
+        return True
+
     def makebuild(self, buildfor):
         builds_failed = 0
         builds_succeeded = 0
         builds_skipped = 0
+        checkcompiler = ""
 
         if buildfor != "":
             self.forcebuild = True
@@ -850,43 +884,28 @@ class LibraryBuilder:
         if self.buildconfig.lib_type == "cshared":
             checkcompiler = self.buildconfig.use_compiler
             if checkcompiler not in self.compilerprops:
-                self.logger.error(f"Unknown compiler {checkcompiler}")
+                self.logger.error(
+                    f"Unknown compiler {checkcompiler} to build cshared lib {self.buildconfig.sharedliblink}"
+                )
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
             self.forcebuild = True
             checkcompiler = ""
-        else:
+        elif buildfor != "":
             checkcompiler = buildfor
             if checkcompiler not in self.compilerprops:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
 
         for compiler in self.compilerprops:
-            if checkcompiler != "" and compiler != checkcompiler:
-                continue
-
-            if compiler in self.buildconfig.skip_compilers:
+            if not self.should_build_with_compiler(compiler, checkcompiler, buildfor):
                 self.logger.info(f"Skipping {compiler}")
                 continue
 
-            if "compilerType" in self.compilerprops[compiler]:
-                compilerType = self.compilerprops[compiler]["compilerType"]
-            else:
-                raise RuntimeError(f"Something is wrong with {compiler}")
-
-            if self.compilerprops[compiler]["compilerType"] == "clang-intel":
-                # hack for icpx so we don't get duplicate builds
-                compilerType = "gcc"
+            compilerType = self.get_compiler_type(compiler)
 
             exe = self.compilerprops[compiler]["exe"]
-
-            if buildfor == "allclang" and compilerType != "clang":
-                continue
-            elif buildfor == "allicc" and "/icc" not in exe:
-                continue
-            elif buildfor == "allgcc" and compilerType != "":
-                continue
 
             options = self.compilerprops[compiler]["options"]
 
