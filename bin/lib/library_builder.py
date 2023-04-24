@@ -1,4 +1,5 @@
 import contextlib
+import csv
 import glob
 import hashlib
 import itertools
@@ -23,6 +24,7 @@ from lib.library_build_config import LibraryBuildConfig
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
+compiler_popularity_treshhold = 1000
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
@@ -111,6 +113,9 @@ class LibraryBuilder:
         else:
             [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(self.language, self.logger)
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
+
+        self.popular_compilers: Dict[str, Any] = defaultdict(lambda: [])
+        self.check_compiler_popularity = False
 
         self.completeBuildConfig()
 
@@ -852,6 +857,33 @@ class LibraryBuilder:
 
         return compilerType
 
+    def download_compiler_usage_csv(self):
+        url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
+        with tempfile.TemporaryFile() as fd:
+            request = requests.get(url, stream=True, timeout=_TIMEOUT)
+            if not request.ok:
+                raise RuntimeError(f"Fetch failure for {url}: {request}")
+            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
+                fd.write(chunk)
+            fd.flush()
+            fd.seek(0)
+
+            reader = csv.DictReader(line.decode("utf-8") for line in fd.readlines())
+            for row in reader:
+                self.popular_compilers[row["compiler"]] = int(row["times_used"])
+
+    def is_popular_enough(self, compiler):
+        if self.popular_compilers.__len__() == 0:
+            self.download_compiler_usage_csv()
+
+        if not compiler in self.popular_compilers:
+            return False
+
+        if self.popular_compilers[compiler] < compiler_popularity_treshhold:
+            return False
+
+        return True
+
     def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
         if checkcompiler != "" and compiler != checkcompiler:
             return False
@@ -869,6 +901,11 @@ class LibraryBuilder:
             return False
         elif buildfor == "allgcc" and compilerType != "":
             return False
+
+        if self.check_compiler_popularity:
+            if not self.is_popular_enough(compiler):
+                self.logger.info(f"compiler {compiler} is not popular enough")
+                return False
 
         return True
 
