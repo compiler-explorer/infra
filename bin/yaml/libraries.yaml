@@ -1379,6 +1379,14 @@ libraries:
         targets:
         - trunk
         type: github
+      thinkcell:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: think-cell/think-cell-library
+        targets:
+        - trunk
+        type: github
       toml11:
         build_type: none
         check_file: toml.hpp
