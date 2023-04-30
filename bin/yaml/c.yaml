@@ -132,4 +132,5 @@ compilers:
           subdir: msp430
           check_exe: "{arch_prefix}/bin/{arch_prefix}-gcc --version"
           targets:
+            - 12.1.0
             - 12.2.0
