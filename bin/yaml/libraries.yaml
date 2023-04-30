@@ -72,6 +72,7 @@ libraries:
       - 1.79.0
       - 1.80.0
       - 1.81.0
+      - 1.82.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://boostorg.jfrog.io/artifactory/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
