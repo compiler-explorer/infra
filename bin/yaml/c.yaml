@@ -133,3 +133,4 @@ compilers:
           check_exe: "{arch_prefix}/bin/{arch_prefix}-gcc --version"
           targets:
             - 12.2.0
+            - 13.1.0
