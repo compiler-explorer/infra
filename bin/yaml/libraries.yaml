@@ -72,6 +72,7 @@ libraries:
       - 1.79.0
       - 1.80.0
       - 1.81.0
+      - 1.82.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://boostorg.jfrog.io/artifactory/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
@@ -1379,6 +1380,14 @@ libraries:
         targets:
         - trunk
         type: github
+      thinkcell:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: think-cell/think-cell-library
+        targets:
+        - trunk
+        type: github
       toml11:
         build_type: none
         check_file: toml.hpp
@@ -1652,6 +1661,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '11'
       - '10'
       - '9'
       - '8'
