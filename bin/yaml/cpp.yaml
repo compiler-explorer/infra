@@ -294,6 +294,8 @@ compilers:
           arch_prefix: "bpf-unknown-none"
           check_exe: "{arch_prefix}/bin/bpf-unknown-g++ --version"
           subdir: bpf
+          targets:
+            - 13.1.0
           nightly:
             if: nightly
             type: nightly
