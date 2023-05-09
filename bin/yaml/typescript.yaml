@@ -9,3 +9,12 @@ compilers:
     targets:
       - 0.0-pre-alpha20
       - 0.0-pre-alpha26
+  tsc-native-ub20:
+    type: tarballs
+    dir: tsc-{name}
+    untar_dir: tsc-ninja-release
+    compression: gz
+    check_exe: bin/tsc --version
+    url: https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v{name}/tsc-ub20.tar.gz
+    targets:
+      - 0.0-pre-alpha27
