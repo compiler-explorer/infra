@@ -151,6 +151,13 @@ libraries:
       - 1.2.1
       - 1.2.0
       type: github
+    cgal:
+      check_file: README.md
+      repo: CGAL/cgal.git
+      target_prefix: v
+      targets:
+      - 5.5.2
+      type: github
     cli11:
       build_type: none
       check_file: include/CLI/CLI.hpp
