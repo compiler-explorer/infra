@@ -38,4 +38,4 @@ def smb_exec(remote_cmd: Sequence[str]):
 def smb_sync():
     """Execute rsync on the smb instance."""
     instance = SMBInstance.instance()
-    exec_remote_to_stdout(instance, "/infra/smb-server/rsync-share.sh")
+    exec_remote_to_stdout(instance, "sh /infra/smb-server/rsync-share.sh")
