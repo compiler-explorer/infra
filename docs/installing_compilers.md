@@ -21,3 +21,9 @@ The directory `/opt/compiler-explorer` is required, otherwise you'll have to sup
 You can install a small amount of Windows compilers using ce_install.ps1, a regular powershell installation should be enough
 
 `./ce_install.ps1 --staging-dir "D:/tmp/staging" --dest "D:/efs/compilers" --enable windows install windows`
+
+### On CE infrastructure
+
+`sudo ce_install --staging-dir /efs/winshared/staging --dest /efs/winshared --enable windows install windows`
+
+`ce smb sync`
