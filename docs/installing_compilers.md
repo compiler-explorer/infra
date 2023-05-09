@@ -25,4 +25,5 @@ You can install a small amount of Windows compilers using ce_install.ps1, a regu
 ### On CE infrastructure
 
 `ce_install --dest /efs/winshared --enable windows install windows`
+
 `ce smb sync`
