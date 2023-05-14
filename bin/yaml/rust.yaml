@@ -104,3 +104,10 @@ compilers:
           check_exe: bin/mrustc --version
           targets:
             - master
+  rust-linux:
+    type: s3tarballs
+    subdir: rust-linux
+    s3_path_prefix: rust-linux-{name}
+    check_file: rust/libkernel.rmeta
+    targets:
+    - '6.3'
