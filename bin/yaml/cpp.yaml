@@ -197,7 +197,7 @@ compilers:
               url: https://github.com/wpilibsuite/opensdk/releases/download/v{year}-{build}/cortexa9_vfpv3-roborio-academic-{year}-x86_64-linux-gnu-Toolchain-{name}.tgz
               targets:
                 - year: 2023
-                  build: 4
+                  build: 9
                   name: 12.1.0
               older:
                 check_exe: roborio/bin/arm-frc{year}-linux-gnueabi-g++ --version
