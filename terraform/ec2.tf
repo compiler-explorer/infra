@@ -105,7 +105,7 @@ resource "aws_instance" "CERunner" {
   ami                         = local.runner_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "c5.large"
+  instance_type               = "c5.xlarge"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
