@@ -529,6 +529,16 @@ libraries:
       - 1.9.4
       - 1.9.5
       type: github
+    kokkos:
+      build_type: cmake
+      extra_cmake_arg:
+      - -DKokkos_ENABLE_SERIAL=ON
+      make_targets:
+      - kokkoscore
+      repo: kokkos/kokkos
+      targets:
+      - 4.0.01
+      type: github
     kumi:
       check_file: README.md
       repo: jfalcou/kumi
