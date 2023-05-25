@@ -531,8 +531,6 @@ libraries:
       type: github
     kokkos:
       build_type: cmake
-      extra_cmake_arg:
-      - -DKokkos_ENABLE_SERIAL=ON
       make_targets:
       - all
       repo: kokkos/kokkos
