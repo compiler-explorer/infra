@@ -534,7 +534,7 @@ libraries:
       extra_cmake_arg:
       - -DKokkos_ENABLE_SERIAL=ON
       make_targets:
-      - kokkoscore
+      - all
       repo: kokkos/kokkos
       targets:
       - 4.0.01
