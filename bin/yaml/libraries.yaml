@@ -217,20 +217,6 @@ libraries:
       untar_dir: curl-{{name}}
       url: https://curl.se/download/curl-{{name}}.tar.xz
       use_compiler: clang1400
-    sqlite:
-      build_type: make
-      lib_type: cshared
-      sharedliblink:
-      - sqlite3
-      type: tarballs
-      targets:
-        - name: 3.40.0
-          url: https://sqlite.org/2022/sqlite-autoconf-3400000.tar.gz
-          untar_dir: sqlite-autoconf-3400000
-      dir: libs/sqlite/{{name}}
-      compression: gz
-      use_compiler: g102
-      check_file: configure
     dataframe:
       build_type: cmake
       check_file: README.md
@@ -789,6 +775,14 @@ libraries:
         targets:
         - trunk
         type: github
+      belleviews:
+        build_type: none
+        check_file: sources/belleviews.hpp
+        method: nightlyclone
+        repo: josuttis/belleviews
+        targets:
+        - trunk
+        type: github
       benchmark:
         build_type: cmake
         check_file: README.md
@@ -805,14 +799,6 @@ libraries:
         check_file: readme.md
         method: nightlyclone
         repo: jansende/benri
-        targets:
-        - trunk
-        type: github
-      belleviews:
-        build_type: none
-        check_file: sources/belleviews.hpp
-        method: nightlyclone
-        repo: josuttis/belleviews
         targets:
         - trunk
         type: github
@@ -1066,9 +1052,9 @@ libraries:
         check_file: README.md
         method: nightlyclone
         repo: facebook/folly
-        type: github
         targets:
         - trunk
+        type: github
       glm:
         build_type: none
         check_file: readme.md
@@ -1379,19 +1365,19 @@ libraries:
         targets:
         - trunk
         type: github
-      tlexpected:
-        build_type: none
-        check_file: include/tl/expected.hpp
-        method: nightlyclone
-        repo: TartanLlama/expected
-        targets:
-        - trunk
-        type: github
       thinkcell:
         build_type: none
         check_file: README.md
         method: nightlyclone
         repo: think-cell/think-cell-library
+        targets:
+        - trunk
+        type: github
+      tlexpected:
+        build_type: none
+        check_file: include/tl/expected.hpp
+        method: nightlyclone
+        repo: TartanLlama/expected
         targets:
         - trunk
         type: github
@@ -1618,18 +1604,18 @@ libraries:
       type: github
     simdjson:
       build_type: cmake
+      check_file: include/simdjson.h
+      lib_type: static
       make_targets:
       - simdjson
-      lib_type: static
+      repo: simdjson/simdjson
       staticliblink:
       - simdjson
-      repo: simdjson/simdjson
-      type: github
-      check_file: include/simdjson.h
       target_prefix: v
       targets:
       - 3.0.1
       - 3.1.5
+      type: github
     sol2:
       build_type: none
       check_file: include/sol/sol.hpp
@@ -1662,6 +1648,20 @@ libraries:
       - 0.0.4
       - 1.0.0
       type: github
+    sqlite:
+      build_type: make
+      check_file: configure
+      compression: gz
+      dir: libs/sqlite/{{name}}
+      lib_type: cshared
+      sharedliblink:
+      - sqlite3
+      targets:
+      - name: 3.40.0
+        untar_dir: sqlite-autoconf-3400000
+        url: https://sqlite.org/2022/sqlite-autoconf-3400000.tar.gz
+      type: tarballs
+      use_compiler: g102
     strong_type:
       build_type: none
       check_file: include/strong_type/strong_type.hpp
@@ -2125,6 +2125,11 @@ libraries:
       build_type: cargo
       targets:
       - 0.8.8
+      type: cratesio
+    dashmap:
+      build_type: cargo
+      targets:
+      - 5.4.0
       type: cratesio
     digest:
       build_type: cargo
