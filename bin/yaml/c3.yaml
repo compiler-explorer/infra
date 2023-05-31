@@ -10,4 +10,4 @@ compilers:
     check_exe: c3c --version
     targets:
       - name: 0.4
-        url: https://github.com/c3lang/c3c/releases/download/0.4/c3-linux.tar.gz
+        url: https://github.com/c3lang/c3c/releases/download/0.4ubuntu20/c3-ubuntu-20.tar.gz
