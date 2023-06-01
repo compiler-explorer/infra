@@ -694,6 +694,8 @@ libraries:
       targets:
       - 14.0.0
       - 14.0.5
+      - 16.0.0
+      - trunk
       type: s3tarballs
     mp-units:
       check_file: README.md
