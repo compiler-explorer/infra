@@ -758,6 +758,7 @@ compilers:
         - 14.0.0
         - 14.0.5
         - 16.0.0
+        - trunk
     tinycc:
       type: s3tarballs
       dir: "tinycc-{name}"
