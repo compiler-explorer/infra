@@ -18,3 +18,5 @@ compilers:
     url: https://github.com/ASDAlexander77/TypeScriptCompiler/releases/download/v{name}/tsc-ub20.tar.gz
     targets:
       - 0.0-pre-alpha27
+      - 0.0-pre-alpha33
+
