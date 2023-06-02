@@ -529,6 +529,14 @@ libraries:
       - 1.9.4
       - 1.9.5
       type: github
+    kokkos:
+      build_type: cmake
+      make_targets:
+      - all
+      repo: kokkos/kokkos
+      targets:
+      - 4.0.01
+      type: github
     kumi:
       check_file: README.md
       repo: jfalcou/kumi
