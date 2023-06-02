@@ -31,7 +31,7 @@ compilers:
       if: nightly
       type: restQueryTarballs
       install_always: true
-      url: https://api.cloudsmith.io/packages/ponylang/nightlies/?query=unknown-linux-gnu
+      url: https://api.cloudsmith.io/packages/ponylang/nightlies/?query=x86-64-unknown-linux-ubuntu20.04
       query: document[0]['cdn_url']
       targets:
         - nightly
