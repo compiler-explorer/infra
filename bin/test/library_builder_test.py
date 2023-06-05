@@ -27,9 +27,8 @@ def test_can_write_conan_file(requests_mock):
     build_config.staticliblink = ["static1", "static2"]
     build_config.sharedliblink = ["shared1", "shared2"]
     build_config.copy_files = [
-        "*.h",
-        {"pattern": "*.pattern"},
-        {"pattern": "picky/install", "dest": "some/dest", "keep_path": True},
+        'self.copy("*", src="include", dst="include", keep_path=True)',
+        'self.copy("*.png", src="resources", dst="resources", keep_path=True)',
     ]
     build_config.description = "description"
     build_config.url = "https://some.url"
@@ -43,9 +42,8 @@ def test_can_write_conan_file(requests_mock):
     assert 'version = "target"' in lines
     assert 'description = "description"' in lines
     assert 'url = "https://some.url"' in lines
-    assert 'self.copy("*.h")' in lines
-    assert 'self.copy("*.pattern")' in lines
-    assert 'self.copy("picky/install", dst="some/dest", keep_path=True)' in lines
+    assert 'self.copy("*", src="include", dst="include", keep_path=True)' in lines
+    assert 'self.copy("*.png", src="resources", dst="resources", keep_path=True)' in lines
     assert 'self.copy("libstatic1*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libstatic2*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libshared1*.so*", dst="lib", keep_path=False)' in lines

@@ -498,16 +498,8 @@ class LibraryBuilder:
         f.write('    author = "None"\n')
         f.write("    topics = None\n")
         f.write("    def package(self):\n")
-        for copied_pattern in self.buildconfig.copy_files:
-            if isinstance(copied_pattern, str):
-                copy_args = [_quote(copied_pattern)]
-            else:
-                copy_args = [_quote(copied_pattern["pattern"])]
-                if (dest := copied_pattern.get("dest")) is not None:
-                    copy_args.append(f"dst={_quote(dest)}")
-                if (keep_path := copied_pattern.get("keep_path")) is not None:
-                    copy_args.append(f"keep_path={keep_path}")
-            f.write(f'        self.copy({", ".join(copy_args)})\n')
+        for copy_line in self.buildconfig.copy_files:
+            f.write(f"        {copy_line}\n")
 
         for lib in self.buildconfig.staticliblink:
             f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
