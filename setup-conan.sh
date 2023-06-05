@@ -30,7 +30,7 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv
+apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv sqlite3
 apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip3

@@ -429,8 +429,9 @@ def install(context: CliContext, filter_: List[str], force: bool):
     help="Filter to only build for given compiler (should be a CE compiler identifier), "
     "leave empty to build for all",
 )
+@click.option("--popular-compilers-only", is_flag=True, help="Only build with popular (enough) compilers")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def build(context: CliContext, filter_: List[str], force: bool, buildfor: str):
+def build(context: CliContext, filter_: List[str], force: bool, buildfor: str, popular_compilers_only: bool):
     """Build library targets matching FILTER."""
     num_installed = 0
     num_skipped = 0
@@ -447,7 +448,7 @@ def build(context: CliContext, filter_: List[str], force: bool, buildfor: str):
                 num_skipped += 1
             else:
                 try:
-                    [num_installed, num_skipped, num_failed] = installable.build(buildfor)
+                    [num_installed, num_skipped, num_failed] = installable.build(buildfor, popular_compilers_only)
                     if num_installed > 0:
                         _LOGGER.info("%s built OK", installable.name)
                     elif num_failed:

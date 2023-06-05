@@ -14,7 +14,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  max_size                  = 16
+  max_size                  = 24
   min_size                  = 2
   // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
   name                      = "prod"
@@ -198,7 +198,7 @@ resource "aws_autoscaling_group" "gpu" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  max_size                  = 2
+  max_size                  = 4
   min_size                  = 1
   name                      = "gpu"
   vpc_zone_identifier       = local.subnets

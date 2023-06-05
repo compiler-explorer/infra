@@ -105,7 +105,7 @@ resource "aws_instance" "CERunner" {
   ami                         = local.runner_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "c5.large"
+  instance_type               = "c5.xlarge"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
@@ -163,33 +163,33 @@ resource "aws_instance" "CESMBServer" {
   }
 }
 
-resource "aws_instance" "CESMBTestServer" {
-  ami                         = local.smbtestserver_image_id
-  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
-  ebs_optimized               = false
-  instance_type               = "t4g.micro"
-  monitoring                  = false
-  key_name                    = "mattgodbolt"
-  subnet_id                   = local.admin_subnet
-  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
-  associate_public_ip_address = true
-  source_dest_check           = false
-  user_data                   = "smbserver"
-
-  root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 100
-    delete_on_termination = true
-  }
-
-  lifecycle {
-    ignore_changes = [
-      // Seemingly needed to not replace stopped instances
-      associate_public_ip_address
-    ]
-  }
-
-  tags = {
-    Name = "CESMBTestServer"
-  }
-}
+//resource "aws_instance" "CESMBTestServer" {
+//  ami                         = local.smbtestserver_image_id
+//  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
+//  ebs_optimized               = false
+//  instance_type               = "t4g.micro"
+//  monitoring                  = false
+//  key_name                    = "mattgodbolt"
+//  subnet_id                   = local.admin_subnet
+//  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+//  associate_public_ip_address = true
+//  source_dest_check           = false
+//  user_data                   = "smbserver"
+//
+//  root_block_device {
+//    volume_type           = "gp2"
+//    volume_size           = 100
+//    delete_on_termination = true
+//  }
+//
+//  lifecycle {
+//    ignore_changes = [
+//      // Seemingly needed to not replace stopped instances
+//      associate_public_ip_address
+//    ]
+//  }
+//
+//  tags = {
+//    Name = "CESMBTestServer"
+//  }
+//}

@@ -1,11 +1,11 @@
 /*
  * Copyright (c) Facebook, Inc. and its affiliates.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License Version 2.0 with LLVM Exceptions
+ * (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *   https://llvm.org/LICENSE.txt
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -28,20 +28,24 @@
 #define UNIFEX_VERSION_MAJOR 0
 #define UNIFEX_VERSION_MINOR 1
 
-#define UNIFEX_NO_MEMORY_RESOURCE 1
-/* #undef UNIFEX_MEMORY_RESOURCE_HEADER */
-/* #undef UNIFEX_MEMORY_RESOURCE_NAMESPACE */
+#define UNIFEX_NO_MEMORY_RESOURCE 0
+#define UNIFEX_MEMORY_RESOURCE_HEADER <memory_resource>
+#define UNIFEX_MEMORY_RESOURCE_NAMESPACE std::pmr
 
-#if defined(__has_cpp_attribute)
+#if !defined(__has_cpp_attribute)
+#define UNIFEX_NO_UNIQUE_ADDRESS
+#elif !__has_cpp_attribute(no_unique_address)
+#define UNIFEX_NO_UNIQUE_ADDRESS
 // prior to clang-10, [[no_unique_address]] leads to bad codegen
-#if __has_cpp_attribute(no_unique_address) && \
-  (!defined(__clang__) || __clang_major__ > 9)
+#elif defined(__clang__) && __clang_major__ < 10
+#define UNIFEX_NO_UNIQUE_ADDRESS
+// GCC 10.3/11 introduced bug 98995, which fails to compile with no_uniq_addr.
+// See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=98995
+// For simplicity, assume anything above 9 is broken.
+#elif !defined(__clang__) && defined(__GNUC__) && (__GNUC__ > 9)
+#define UNIFEX_NO_UNIQUE_ADDRESS
+#else
 #define UNIFEX_NO_UNIQUE_ADDRESS [[no_unique_address]]
-#else
-#define UNIFEX_NO_UNIQUE_ADDRESS
-#endif
-#else
-#define UNIFEX_NO_UNIQUE_ADDRESS
 #endif
 
 #if !defined(UNIFEX_NO_COROUTINES)
@@ -56,7 +60,8 @@
 #  if __has_include(<coroutine>) && defined(__cpp_lib_coroutine)
 #    define UNIFEX_COROUTINES_HEADER <coroutine>
 #    define UNIFEX_COROUTINES_NAMESPACE std
-#  elif __has_include(<experimental/coroutine>)
+#  elif __has_include(<experimental/coroutine>) && \
+        !(defined(_MSC_VER) && defined(__clang__)) // clang-cl.exe
 #    define UNIFEX_COROUTINES_HEADER <experimental/coroutine>
 #    define UNIFEX_COROUTINES_NAMESPACE std::experimental
 #  else
@@ -79,8 +84,28 @@
 #endif
 
 #if !defined(UNIFEX_NO_LIBURING)
-#define UNIFEX_NO_LIBURING 1
+#  if __has_include(<liburing/io_uring.h>)
+#    define UNIFEX_LIBURING_HEADER <liburing/io_uring.h>
+#  elif __has_include(<linux/io_uring.h>)
+// some versions of gcc and clang: #define linux 1
+#    if defined(linux)
+#      undef linux
+#    endif
+#    define UNIFEX_LIBURING_HEADER <linux/io_uring.h>
+#  else
+#    undef UNIFEX_NO_LIBURING
+#    define UNIFEX_NO_LIBURING 1
+#  endif
+#  if __has_include(<linux/time_types.h>)
+#    define HAVE_LINUX_TIME_TYPES_H 1
+#  else
+#    define HAVE_LINUX_TIME_TYPES_H 0
+#  endif
 #endif
+
+#if !defined(UNIFEX_ENABLE_CONTINUATION_VISITATIONS)
+#define UNIFEX_ENABLE_CONTINUATION_VISITATIONS 0
+#endif //UNIFEX_ENABLE_CONTINUATION_VISITATIONS
 
 // UNIFEX_DECLARE_NON_DEDUCED_TYPE(type)
 // UNIFEX_USE_NON_DEDUCED_TYPE(type)
@@ -101,7 +126,7 @@
 // class foo_sender {
 //    template<
 //      typename Receiver,
-//      std::enable_if_t<is_callable_v<decltype(set_value), Receiver, foo>, int> = 0>
+//      std::enable_if_t<is_callable_v<tag_t<set_value>, Receiver, foo>, int> = 0>
 //    friend auto tag_invoke(tag_t<connect>, foo_sender&& s, Receiver&& r) -> foo_operation<Receiver> {
 //      return ...;
 //    }
@@ -114,7 +139,7 @@
 //     typename Receiver,
 //     UNIFEX_DECLARE_NON_DEDUCED_TYPE(CPO, tag_t<connect>),
 //     UNIFEX_DECLARE_NON_DEDUCED_TYPE(S, foo_sender),
-//     std::enable_if_t<is_callable_v<decltype(set_value), Receiver, foo>, int> = 0?
+//     std::enable_if_t<is_callable_v<tag_t<set_value>, Receiver, foo>, int> = 0?
 //   friend auto tag_invoke(
 //        UNIFEX_USE_NON_DEDUCED_TYPE(CPO, tag_t<connect>),
 //        UNIFEX_USE_NON_DEDUCED_TYPE(S, foo_sender)&& s,
@@ -125,7 +150,7 @@
 
 #if defined(_MSC_VER)
 # define UNIFEX_DECLARE_NON_DEDUCED_TYPE(NAME, ...) \
-  typename NAME, \
+  typename NAME = void, \
   std::enable_if_t<std::is_same_v<NAME, __VA_ARGS__>, int> = 0
  # define UNIFEX_USE_NON_DEDUCED_TYPE(NAME, ...) NAME
 #else
@@ -167,6 +192,7 @@
   #define UNIFEX_DIAGNOSTIC_IGNORE_INIT_LIST_LIFETIME
   #define UNIFEX_DIAGNOSTIC_IGNORE_FLOAT_EQUAL
   #define UNIFEX_DIAGNOSTIC_IGNORE_CPP2A_COMPAT
+  #define UNIFEX_DIAGNOSTIC_IGNORE_UNUSED_RESULT
 #else // ^^^ defined(_MSC_VER) ^^^ / vvv !defined(_MSC_VER) vvv
   #if defined(__GNUC__) || defined(__clang__)
     #define UNIFEX_PRAGMA(X) _Pragma(#X)
@@ -185,12 +211,15 @@
       UNIFEX_DIAGNOSTIC_IGNORE("-Wfloat-equal")
     #define UNIFEX_DIAGNOSTIC_IGNORE_CPP2A_COMPAT \
       UNIFEX_DIAGNOSTIC_IGNORE("-Wc++2a-compat")
+    #define UNIFEX_DIAGNOSTIC_IGNORE_UNUSED_RESULT \
+      UNIFEX_DIAGNOSTIC_IGNORE("-Wunused-result")
   #else
     #define UNIFEX_DIAGNOSTIC_PUSH
     #define UNIFEX_DIAGNOSTIC_POP
     #define UNIFEX_DIAGNOSTIC_IGNORE_INIT_LIST_LIFETIME
     #define UNIFEX_DIAGNOSTIC_IGNORE_FLOAT_EQUAL
     #define UNIFEX_DIAGNOSTIC_IGNORE_CPP2A_COMPAT
+    #define UNIFEX_DIAGNOSTIC_IGNORE_UNUSED_RESULT
   #endif
 #endif // MSVC/Generic configuration switch
 
@@ -209,6 +238,13 @@
   #define UNIFEX_NO_INLINE __declspec(noinline)
 #else
   #define UNIFEX_NO_INLINE
+#endif
+
+#if defined(__GNUC__) && !defined(__clang__) && (__GNUC__ == 9)
+  #define UNIFEX_INGORE_MAYBE_UNINITIALIZED_IN_GCC_9 \
+      UNIFEX_DIAGNOSTIC_IGNORE("-Wmaybe-uninitialized")
+#else
+  #define UNIFEX_INGORE_MAYBE_UNINITIALIZED_IN_GCC_9
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -234,4 +270,18 @@
   #endif
 #else
   #define UNIFEX_CLANG_DISABLE_OPTIMIZATION
+#endif
+
+#if !defined(UNIFEX_DEPRECATED_HEADER)
+  #ifdef __GNUC__
+    #define UNIFEX_PRAGMA(X) _Pragma(#X)
+    #define UNIFEX_DEPRECATED_HEADER(MSG) UNIFEX_PRAGMA(GCC warning MSG)
+  #elif defined(_MSC_VER)
+    #define UNIFEX_STRINGIZE_(MSG) #MSG
+    #define UNIFEX_STRINGIZE(MSG) UNIFEX_STRINGIZE_(MSG)
+    #define UNIFEX_DEPRECATED_HEADER(MSG) \
+        __pragma(message(__FILE__ "(" UNIFEX_STRINGIZE(__LINE__) ") : Warning: " MSG))
+  #endif
+#else
+  #define UNIFEX_DEPRECATED_HEADER(MSG) /**/
 #endif

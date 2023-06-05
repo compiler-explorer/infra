@@ -1,6 +1,8 @@
 .NOTPARALLEL:
 
 export POETRY_HOME=$(CURDIR)/.poetry
+# https://github.com/python-poetry/poetry/issues/1917
+export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
 POETRY:=$(POETRY_HOME)/bin/poetry
 POETRY_VENV=$(CURDIR)/.venv
 POETRY_DEPS:=$(POETRY_VENV)/.deps

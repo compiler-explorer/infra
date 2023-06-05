@@ -31,6 +31,7 @@ apt-get -y install \
   libtinfo5 \
   libwww-perl \
   nfs-common \
+  python-is-python3 \
   python3-pip \
   python3-venv \
   qemu-user-static \

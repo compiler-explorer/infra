@@ -16,6 +16,8 @@ the current user).  To get the beta and nightly-built latest compilers, add the 
 
 To list installation candidates, use `./bin/ce_install list`. A single installation can be installed by name.
 
+More info can be found [here](https://github.com/compiler-explorer/infra/blob/main/docs/installing_compilers.md)
+
 # Built compilers
 
 Status page to our daily built compilers https://compiler-explorer.github.io/compiler-workflows/build-status

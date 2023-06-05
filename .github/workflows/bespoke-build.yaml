@@ -19,6 +19,8 @@ on:
         - cobol
         - d8
         - vala
+        - dotnet
+        - rust-linux
       version:
         description: The version to build (or architecture and version for cross)
         required: true

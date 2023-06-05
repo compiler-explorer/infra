@@ -5,6 +5,8 @@ PATH=/home/ubuntu/infra/.env/bin:/home/ubuntu/infra/bin:/usr/local/sbin:/usr/loc
 00 00 * * * cronic bash -c "git -C /home/ubuntu/infra pull -q && make -C /home/ubuntu/infra ce"
 05 00 * * * cronic bash -c "crontab < /home/ubuntu/infra/crontab.admin"
 05 00 * * * cronic bash -c "sudo crontab < /home/ubuntu/infra/crontab.root.admin"
+30 23 * * 6 cronic bash -c "ce library-stats update"
+40 23 * * 6 cronic bash -c "ce compiler-stats update"
 10 00 * * * cronic bash -c "/home/ubuntu/infra/admin-daily-builds.sh"
 00 09 * * * cronic bash -c "/home/ubuntu/infra/remove_old_compilers.sh"
 05 09 * * * cronic bash -c "ce builds rm_old 7"

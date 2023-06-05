@@ -1,0 +1,13 @@
+compilers:
+  c3:
+    type: tarballs
+    compression: gz
+    dir: c3-{name}
+    folder: linux
+    strip_components: 1
+    create_untar_dir: true
+    strip: true
+    check_exe: c3c --version
+    targets:
+      - name: 0.4
+        url: https://github.com/c3lang/c3c/releases/download/0.4ubuntu20/c3-ubuntu-20.tar.gz

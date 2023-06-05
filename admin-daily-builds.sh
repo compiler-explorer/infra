@@ -37,12 +37,18 @@ build_cpp_libraries() {
     local CONAN_PASSWORD
     CONAN_PASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .Parameter.Value)
 
+    COMPILERS="popular-compilers-only"
+    DAYOFWEEK=$(date +"%u")
+    if [ "${DAYOFWEEK}" -eq 7 ]; then
+        COMPILERS="all"
+    fi
+
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
-        bash "${COMMAND}" "c++" "all" "all" || true
+        bash "${COMMAND}" "c++" "all" "${COMPILERS}" || true
 }
 
 build_rust_libraries() {
@@ -52,12 +58,18 @@ build_rust_libraries() {
     local CONAN_PASSWORD
     CONAN_PASSWORD=$(aws ssm get-parameter --name /compiler-explorer/conanpwd | jq -r .Parameter.Value)
 
+    COMPILERS="popular-compilers-only"
+    DAYOFWEEK=$(date +"%u")
+    if [ "${DAYOFWEEK}" -eq 7 ]; then
+        COMPILERS="all"
+    fi
+
     ce builder exec -- sudo docker run --rm --name "${BUILD_NAME}.build" \
         -v/home/ubuntu/.s3cfg:/root/.s3cfg:ro \
         -v/opt:/opt:ro \
         -e "CONAN_PASSWORD=${CONAN_PASSWORD}" \
         "compilerexplorer/library-builder" \
-        bash "${COMMAND}" "rust" "all" "all" || true
+        bash "${COMMAND}" "rust" "all" "${COMPILERS}" || true
 }
 
 init_logspout
