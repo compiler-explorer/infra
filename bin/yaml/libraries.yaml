@@ -529,6 +529,14 @@ libraries:
       - 1.9.4
       - 1.9.5
       type: github
+    kokkos:
+      build_type: cmake
+      make_targets:
+      - all
+      repo: kokkos/kokkos
+      targets:
+      - 4.0.01
+      type: github
     kumi:
       check_file: README.md
       repo: jfalcou/kumi
@@ -694,6 +702,7 @@ libraries:
       targets:
       - 14.0.0
       - 14.0.5
+      - 16.0.0
       type: s3tarballs
     mp-units:
       check_file: README.md
@@ -1209,7 +1218,15 @@ libraries:
         subdir: libs/llvm
         symlink: libs/llvm/{name}
         targets:
-        - trunk
+          - trunk
+        type: nightly
+      mlir:
+        check_file: include/mlir/InitAllPasses.h
+        path_name: libs/mlir/{name}
+        s3_path_prefix: mlir-{name}
+        subdir: libs/mlir/{name}
+        targets:
+          - trunk
         type: nightly
       magic_enum:
         check_file: include/magic_enum.hpp
