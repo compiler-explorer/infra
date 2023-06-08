@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#shellcheck disable=SC2086
+
 ROOT_DIR=$(readlink -f "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/..")
 
 # this restores the "default" settings.yml
@@ -10,8 +12,8 @@ conan config init
 conan remote clean
 
 # load the backed up remotes
-while read line; do
+while read -r line; do
   conan remote add $line
-done <$ROOT_DIR/conan/backup_remotes.txt
+done < "$ROOT_DIR/conan/backup_remotes.txt"
 
 # conan remote add conancenter https://center.conan.io True

@@ -287,6 +287,7 @@ class LibraryBuilder:
     def writebuildscript(
         self,
         buildfolder,
+        installfolder,
         sourcefolder,
         compiler,
         compileroptions,
@@ -373,6 +374,8 @@ class LibraryBuilder:
             ]
             configure_flags = " ".join(expanded_configure_flags)
 
+            make_utility = self.buildconfig.make_utility
+
             if self.buildconfig.build_type == "cmake":
                 expanded_cmake_args = [
                     self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
@@ -383,9 +386,50 @@ class LibraryBuilder:
                     toolchainparam = ""
                 else:
                     toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
-                cmakeline = f'cmake -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+
+                generator = ""
+                if make_utility == "ninja":
+                    generator = "-GNinja"
+
+                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
+
+                for line in self.buildconfig.prebuild_script:
+                    f.write(f"{line}\n")
+
+                extramakeargs = " ".join(
+                    ["-j$NUMCPUS"]
+                    + [
+                        self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
+                        for arg in self.buildconfig.extra_make_arg
+                    ]
+                )
+
+                if len(self.buildconfig.make_targets) != 0:
+                    if len(self.buildconfig.make_targets) == 1 and self.buildconfig.make_targets[0] == "all":
+                        f.write(f"cmake --build . {extramakeargs} > cemakelog_.txt 2>&1\n")
+                    else:
+                        for lognum, target in enumerate(self.buildconfig.make_targets):
+                            f.write(
+                                f"cmake --build . {extramakeargs} --target={target} > cemakelog_{lognum}.txt 2>&1\n"
+                            )
+                else:
+                    lognum = 0
+                    for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
+                        f.write(f"cmake --build . {extramakeargs} --target={lib} > cemakelog_{lognum}.txt 2>&1\n")
+                        lognum += 1
+
+                    if len(self.buildconfig.staticliblink) != 0:
+                        f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                    elif len(self.buildconfig.sharedliblink) != 0:
+                        f.write("libsfound=$(find . -iname 'lib*.so*')\n")
+
+                    f.write('if [ "$libsfound" = "" ]; then\n')
+                    f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
+                    f.write("fi\n")
+
+                f.write("cmake --install . > ceinstall_0.txt 2>&1\n")
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
                     f.write("make clean\n")
@@ -397,36 +441,34 @@ class LibraryBuilder:
                     if os.path.exists(configurepath):
                         f.write(f"./configure {configure_flags} > ceconfiglog.txt 2>&1\n")
 
-            for line in self.buildconfig.prebuild_script:
-                f.write(f"{line}\n")
+                for line in self.buildconfig.prebuild_script:
+                    f.write(f"{line}\n")
 
-            extramakeargs = " ".join(
-                ["-j$NUMCPUS"]
-                + [
-                    self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
-                    for arg in self.buildconfig.extra_make_arg
-                ]
-            )
+                extramakeargs = " ".join(
+                    ["-j$NUMCPUS"]
+                    + [
+                        self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
+                        for arg in self.buildconfig.extra_make_arg
+                    ]
+                )
 
-            make_utility = self.buildconfig.make_utility
+                if len(self.buildconfig.make_targets) != 0:
+                    for lognum, target in enumerate(self.buildconfig.make_targets):
+                        f.write(f"{make_utility} {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n")
+                else:
+                    lognum = 0
+                    for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
+                        f.write(f"{make_utility} {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n")
+                        lognum += 1
 
-            if len(self.buildconfig.make_targets) != 0:
-                for lognum, target in enumerate(self.buildconfig.make_targets):
-                    f.write(f"{make_utility} {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n")
-            else:
-                lognum = 0
-                for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-                    f.write(f"{make_utility} {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n")
-                    lognum += 1
+                    if len(self.buildconfig.staticliblink) != 0:
+                        f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                    elif len(self.buildconfig.sharedliblink) != 0:
+                        f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
-                if len(self.buildconfig.staticliblink) != 0:
-                    f.write("libsfound=$(find . -iname 'lib*.a')\n")
-                elif len(self.buildconfig.sharedliblink) != 0:
-                    f.write("libsfound=$(find . -iname 'lib*.so*')\n")
-
-                f.write('if [ "$libsfound" = "" ]; then\n')
-                f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
-                f.write("fi\n")
+                    f.write('if [ "$libsfound" = "" ]; then\n')
+                    f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                    f.write("fi\n")
 
             for lib in self.buildconfig.staticliblink:
                 f.write(f"find . -iname 'lib{lib}*.a' -type f -exec mv {{}} . \\;\n")
@@ -498,14 +540,18 @@ class LibraryBuilder:
         f.write('    author = "None"\n')
         f.write("    topics = None\n")
         f.write("    def package(self):\n")
-        for copy_line in self.buildconfig.copy_files:
-            f.write(f"        {copy_line}\n")
 
-        for lib in self.buildconfig.staticliblink:
-            f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
+        if self.buildconfig.package_install:
+            f.write('        self.copy("*", src="../install", dst=".", keep_path=True)\n')
+        else:
+            for copy_line in self.buildconfig.copy_files:
+                f.write(f"        {copy_line}\n")
 
-        for lib in self.buildconfig.sharedliblink:
-            f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
+            for lib in self.buildconfig.staticliblink:
+                f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
+
+            for lib in self.buildconfig.sharedliblink:
+                f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
 
         f.write("    def package_info(self):\n")
         f.write(f"        self.cpp_info.libs = [{libsum}]\n")
@@ -777,8 +823,12 @@ class LibraryBuilder:
 
         self.logger.debug(f"Buildfolder: {build_folder}")
 
+        install_folder = os.path.join(staging.path, "install")
+        self.logger.debug(f"Installfolder: {install_folder}")
+
         self.writebuildscript(
             build_folder,
+            install_folder,
             self.sourcefolder,
             compiler,
             options,

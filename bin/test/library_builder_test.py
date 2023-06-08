@@ -32,6 +32,7 @@ def test_can_write_conan_file(requests_mock):
     ]
     build_config.description = "description"
     build_config.url = "https://some.url"
+    build_config.package_install = False
     lb = LibraryBuilder(logger, "lang", "somelib", "target", "src-folder", install_context, build_config, False)
     tio = io.StringIO()
     lb.write_conan_file_to(tio)
