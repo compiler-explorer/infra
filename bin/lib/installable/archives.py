@@ -308,8 +308,13 @@ class RestQueryTarballInstallable(TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         document = self.install_context.fetch_rest_query(self.config_get("url"))
-        # pylint: disable-next=eval-used
-        self.url = eval(self.config_get("query"), {}, dict(document=document))
+        query = self.config_get("query")
+        try:
+            # pylint: disable-next=eval-used
+            self.url = eval(query, {}, dict(document=document))
+        except Exception:
+            self._logger.exception("Exception evaluating query '%s' for %s", query, self)
+            raise
         if not self.url:
             self._logger.warning("No installation candidate found")
         else:

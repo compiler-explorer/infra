@@ -958,6 +958,12 @@ compilers:
             check_exe: bin/flang
             after_stage_script:
               - chmod 0755 bin/flang
+      mlir:
+        type: nightly
+        dir: "mlir-{name}"
+        check_exe: bin/mlir-translate --version
+        targets:
+          - trunk
       tinycc:
         type: nightly
         check_exe: bin/tcc -v
