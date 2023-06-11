@@ -1489,13 +1489,55 @@ libraries:
         targets:
         - trunk
         type: github
+      ztdcuneicode:
+        build_type: cmake
+        make_targets:
+        - ztd.cuneicode
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/cuneicode
+        targets:
+        - main
+        type: github
+      ztdencodingtables:
+        build_type: cmake
+        make_targets:
+        - ztd.encoding_tables
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/encoding_tables
+        targets:
+        - main
+        type: github
+      ztdidk:
+        build_type: cmake
+        make_targets:
+        - ztd.idk
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/idk
+        targets:
+        - main
+        type: github
+      ztdstaticcontainers:
+        build_type: cmake
+        make_targets:
+        - ztd.static_containers
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/static_containers
+        targets:
+        - main
+        type: github
       ztdtext:
-        build_type: none
-        check_file: include/ztd/text.hpp
+        build_type: cmake
+        make_targets:
+        - ztd.text
+        check_file: README.md
         method: nightlyclone
         repo: soasis/text
         targets:
-        - trunk
+        - main
         type: github
       zug:
         build_type: none
