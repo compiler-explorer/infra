@@ -1499,6 +1499,8 @@ libraries:
         targets:
         - main
         type: github
+        staticliblink:
+          - ztd.cuneicode
       ztdencodingtables:
         build_type: cmake
         make_targets:
@@ -1509,6 +1511,8 @@ libraries:
         targets:
         - main
         type: github
+        staticliblink:
+          - ztd.encoding_tables
       ztdidk:
         build_type: cmake
         make_targets:
@@ -1519,6 +1523,8 @@ libraries:
         targets:
         - main
         type: github
+        staticliblink:
+          - ztd.idk
       ztdplatform:
         build_type: cmake
         make_targets:
@@ -1529,6 +1535,8 @@ libraries:
         targets:
         - main
         type: github
+        staticliblink:
+          - ztd.platform
       ztdstaticcontainers:
         build_type: none
         check_file: README.md
