@@ -1519,6 +1519,16 @@ libraries:
         targets:
         - main
         type: github
+      ztdplatform:
+        build_type: cmake
+        make_targets:
+        - ztd.platform
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/platform
+        targets:
+        - main
+        type: github
       ztdstaticcontainers:
         build_type: cmake
         make_targets:
