@@ -4,6 +4,7 @@ compilers:
     arm:
       type: tarballs
       compression: gz
+      check_exe: asmx-cli -v
       targets:
         - name: 2.0
         url: https://github.com/langprogramming-AsmX/AsmX/releases/download/v2.0/AsmX-v2.0.tar.gz
