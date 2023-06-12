@@ -1530,9 +1530,7 @@ libraries:
         - main
         type: github
       ztdstaticcontainers:
-        build_type: cmake
-        make_targets:
-        - ztd.static_containers
+        build_type: none
         check_file: README.md
         method: nightlyclone
         repo: soasis/static_containers
@@ -1540,9 +1538,7 @@ libraries:
         - main
         type: github
       ztdtext:
-        build_type: cmake
-        make_targets:
-        - ztd.text
+        build_type: none
         check_file: README.md
         method: nightlyclone
         repo: soasis/text
