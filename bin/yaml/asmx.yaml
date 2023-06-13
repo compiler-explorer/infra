@@ -1,6 +1,5 @@
 compilers:
   asmx:
-    type: asmx
     arm:
       type: tarballs
       compression: gz
