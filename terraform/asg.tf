@@ -122,7 +122,7 @@ resource "aws_autoscaling_group" "beta" {
 
   max_size            = 4
   min_size            = 0
-  name                = "spot-beta"
+  name                = "beta"
   vpc_zone_identifier = local.subnets
 
   target_group_arns = [aws_alb_target_group.ce["beta"].arn]
