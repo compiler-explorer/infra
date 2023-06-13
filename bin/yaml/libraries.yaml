@@ -1539,7 +1539,7 @@ libraries:
           - ztd.platform
       ztdstaticcontainers:
         build_type: none
-        check_file: README.md
+        check_file: LICENSE
         method: nightlyclone
         repo: soasis/static_containers
         targets:
