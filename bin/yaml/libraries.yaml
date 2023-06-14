@@ -7,46 +7,46 @@ libraries:
       repo: cs50/libcs50
       target_prefix: v
       targets:
-      - 9.1.0
+        - 9.1.0
       type: github
   c++:
     benchmark:
       build_type: cmake
       extra_cmake_arg:
-      - -DBENCHMARK_ENABLE_TESTING=off
+        - -DBENCHMARK_ENABLE_TESTING=off
       repo: google/benchmark
       subdir: google-benchmark
       target_prefix: v
       targets:
-      - 1.2.0
-      - 1.3.0
-      - 1.4.0
-      - 1.4.1
-      - 1.5.0
-      - 1.6.1
-      - after_stage_script:
-        - cp {{resource_dir}}/googlebenchmark_export.h include/benchmark/export.h
-        name: 1.6.2
+        - 1.2.0
+        - 1.3.0
+        - 1.4.0
+        - 1.4.1
+        - 1.5.0
+        - 1.6.1
+        - after_stage_script:
+            - cp {{resource_dir}}/googlebenchmark_export.h include/benchmark/export.h
+          name: 1.6.2
       type: github
     benri:
       check_file: readme.md
       repo: jansende/benri
       target_prefix: v
       targets:
-      - 2.0.1
-      - 2.1.1
+        - 2.0.1
+        - 2.1.1
       type: github
     blaze:
       check_file: LICENSE
       repo: blaze-lib/blaze
       target_prefix: v
       targets:
-      - '3.3'
-      - '3.4'
-      - '3.5'
-      - '3.6'
-      - '3.7'
-      - '3.8'
+        - "3.3"
+        - "3.4"
+        - "3.5"
+        - "3.6"
+        - "3.7"
+        - "3.8"
       type: bitbucket
     boost:
       check_file: boost/version.hpp
@@ -54,25 +54,25 @@ libraries:
       dir: libs/boost_{{underscore_name}}
       extract_only: boost_{{underscore_name}}/boost
       targets:
-      - 1.64.0
-      - 1.65.0
-      - 1.66.0
-      - 1.67.0
-      - 1.68.0
-      - 1.69.0
-      - 1.70.0
-      - 1.71.0
-      - 1.72.0
-      - 1.73.0
-      - 1.74.0
-      - 1.75.0
-      - 1.76.0
-      - 1.77.0
-      - 1.78.0
-      - 1.79.0
-      - 1.80.0
-      - 1.81.0
-      - 1.82.0
+        - 1.64.0
+        - 1.65.0
+        - 1.66.0
+        - 1.67.0
+        - 1.68.0
+        - 1.69.0
+        - 1.70.0
+        - 1.71.0
+        - 1.72.0
+        - 1.73.0
+        - 1.74.0
+        - 1.75.0
+        - 1.76.0
+        - 1.77.0
+        - 1.78.0
+        - 1.79.0
+        - 1.80.0
+        - 1.81.0
+        - 1.82.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://boostorg.jfrog.io/artifactory/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
@@ -81,21 +81,21 @@ libraries:
       method: clone_branch
       repo: edouarda/brigand
       targets:
-      - 1.3.0
+        - 1.3.0
       type: github
     catch2:
       build_type: cmake
       make_targets:
-      - Catch2
-      - Catch2WithMain
+        - Catch2
+        - Catch2WithMain
       repo: catchorg/Catch2
       target_prefix: v
       targets:
-      - 3.0.0-preview2
-      - 3.0.0-preview3
-      - after_stage_script:
-        - cp {{resource_dir}}/catch_user_config.hpp src/catch2/catch_user_config.hpp
-        name: 3.0.1
+        - 3.0.0-preview2
+        - 3.0.0-preview3
+        - after_stage_script:
+            - cp {{resource_dir}}/catch_user_config.hpp src/catch2/catch_user_config.hpp
+          name: 3.0.1
       type: github
     catch2v2:
       check_file: include/catch.hpp
@@ -103,60 +103,60 @@ libraries:
       subdir: catch2
       target_prefix: v
       targets:
-      - 2.2.2
-      - 2.2.3
-      - 2.3.0
-      - 2.4.0
-      - 2.4.1
-      - 2.4.2
-      - 2.5.0
-      - 2.6.0
-      - 2.6.1
-      - 2.7.0
-      - 2.7.1
-      - 2.7.2
-      - 2.8.0
-      - 2.9.0
-      - 2.9.1
-      - 2.9.2
-      - 2.10.0
-      - 2.10.1
-      - 2.10.2
-      - 2.11.0
-      - 2.11.1
-      - 2.11.2
-      - 2.11.3
-      - 2.12.0
-      - 2.12.1
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.4.0
+        - 2.4.1
+        - 2.4.2
+        - 2.5.0
+        - 2.6.0
+        - 2.6.1
+        - 2.7.0
+        - 2.7.1
+        - 2.7.2
+        - 2.8.0
+        - 2.9.0
+        - 2.9.1
+        - 2.9.2
+        - 2.10.0
+        - 2.10.1
+        - 2.10.2
+        - 2.11.0
+        - 2.11.1
+        - 2.11.2
+        - 2.11.3
+        - 2.12.0
+        - 2.12.1
       type: github
     cctz:
       build_type: cmake
       extra_cmake_arg:
-      - -DBUILD_TESTING=OFF
+        - -DBUILD_TESTING=OFF
       lib_type: static
       repo: google/cctz
       target_prefix: v
       targets:
-      - '2.3'
+        - "2.3"
       type: github
     cereal:
       check_file: README.md
       repo: USCiLab/cereal
       target_prefix: v
       targets:
-      - 1.3.2
-      - 1.3.1
-      - 1.3.0
-      - 1.2.2
-      - 1.2.1
-      - 1.2.0
+        - 1.3.2
+        - 1.3.1
+        - 1.3.0
+        - 1.2.2
+        - 1.2.1
+        - 1.2.0
       type: github
     cgal:
       check_file: README.md
       repo: CGAL/cgal
       target_prefix: v
       targets:
-      - 5.5.2
+        - 5.5.2
       type: github
     cli11:
       build_type: none
@@ -164,8 +164,8 @@ libraries:
       repo: CLIUtils/CLI11
       target_prefix: v
       targets:
-      - 1.9.1
-      - 2.0.0
+        - 1.9.1
+        - 2.0.0
       type: github
     cnl:
       build_type: none
@@ -173,9 +173,9 @@ libraries:
       repo: johnmcfarlane/cnl
       target_prefix: v
       targets:
-      - 1.x
-      - 1.0.0
-      - 1.1.5
+        - 1.x
+        - 1.0.0
+        - 1.1.5
       type: github
     copperspice:
       build_type: none
@@ -185,34 +185,34 @@ libraries:
       dir: libs/copperspice/{{name}}
       lib_type: shared
       targets:
-      - 1.8.0
+        - 1.8.0
       type: tarballs
-      untar_dir: '{{name}}'
+      untar_dir: "{{name}}"
       url: https://github.com/copperspice/copperspice/releases/download/cs-{{name}}/copperspice-{{name}}-ubuntu20.04-x64.tar.bz2
     cppitertools:
       check_file: README.md
       repo: ryanhaining/cppitertools
       target_prefix: v
       targets:
-      - '2.0'
-      - '1.0'
+        - "2.0"
+        - "1.0"
       type: github
     curl:
       after_stage_script:
-      - cp {{resource_dir}}/curl_config.h curl-{{name}}/include/curl/curl_config.h
+        - cp {{resource_dir}}/curl_config.h curl-{{name}}/include/curl/curl_config.h
       build_type: cmake
       check_file: CMakeLists.txt
       compression: xz
       depends:
-      - libraries/c++/openssl 1_1_1g
+        - libraries/c++/openssl 1_1_1g
       dir: libs/curl/{{name}}
       extra_cmake_arg:
-      - -DOPENSSL_ROOT_DIR=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt
+        - -DOPENSSL_ROOT_DIR=/opt/compiler-explorer/libs/openssl/openssl_1_1_1g/x86_64/opt
       lib_type: cshared
       sharedliblink:
-      - curl-d
+        - curl-d
       targets:
-      - 7.83.1
+        - 7.83.1
       type: tarballs
       untar_dir: curl-{{name}}
       url: https://curl.se/download/curl-{{name}}.tar.xz
@@ -221,7 +221,7 @@ libraries:
       build_type: make
       lib_type: cshared
       sharedliblink:
-      - sqlite3
+        - sqlite3
       type: tarballs
       targets:
         - name: 3.40.0
@@ -236,66 +236,66 @@ libraries:
       check_file: README.md
       repo: hosseinmoein/DataFrame
       targets:
-      - 1.19.0
+        - 1.19.0
       type: github
     date:
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
-      - -DBUILD_TZ_LIB=ON
+        - -DBUILD_TZ_LIB=ON
       make_targets:
-      - date-tz
+        - date-tz
       repo: HowardHinnant/date
       target_prefix: v
       targets:
-      - 3.0.1
+        - 3.0.1
       type: github
     dawjson:
       after_stage_script:
-      - mkdir build
-      - cd build
-      - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake
-        -DCMAKE_INSTALL_PREFIX="." ..
-      - /opt/compiler-explorer/cmake/bin/cmake --install .
-      - cp -Rf include ..
-      - cd ..
-      - rm -Rf build
+        - mkdir build
+        - cd build
+        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake
+          -DCMAKE_INSTALL_PREFIX="." ..
+        - /opt/compiler-explorer/cmake/bin/cmake --install .
+        - cp -Rf include ..
+        - cd ..
+        - rm -Rf build
       check_file: readme.md
       repo: beached/daw_json_link
       target_prefix: v
       targets:
-      - 2.9.11
+        - 2.9.11
       type: github
     dlib:
       build_type: cmake
       method: clone_branch
       repo: davisking/dlib
       targets:
-      - v19.7
-      - v19.9
-      - v19.10
+        - v19.7
+        - v19.9
+        - v19.10
       type: github
     doctest:
       check_file: README.md
       repo: onqtam/doctest
       targets:
-      - 1.2.9
-      - 2.0.0
-      - 2.0.1
-      - 2.1.0
-      - 2.2.0
-      - 2.2.1
-      - 2.2.2
-      - 2.2.3
-      - 2.3.0
-      - 2.3.1
-      - 2.3.2
-      - 2.3.3
-      - 2.3.4
-      - 2.3.5
-      - 2.3.6
-      - 2.3.7
-      - 2.3.8
+        - 1.2.9
+        - 2.0.0
+        - 2.0.1
+        - 2.1.0
+        - 2.2.0
+        - 2.2.1
+        - 2.2.2
+        - 2.2.3
+        - 2.3.0
+        - 2.3.1
+        - 2.3.2
+        - 2.3.3
+        - 2.3.4
+        - 2.3.5
+        - 2.3.6
+        - 2.3.7
+        - 2.3.8
       type: github
     eastl:
       build_type: none
@@ -303,54 +303,54 @@ libraries:
       method: clone_branch
       repo: electronicarts/EASTL
       targets:
-      - 3.12.01
-      - 3.12.04
-      - 3.12.07
-      - 3.12.08
-      - 3.13.00
-      - 3.13.02
-      - 3.13.03
-      - 3.13.04
-      - 3.13.05
-      - 3.13.06
-      - 3.14.00
-      - 3.14.01
-      - 3.14.02
-      - 3.14.03
-      - 3.14.06
-      - 3.15.00
-      - 3.16.01
-      - 3.16.05
+        - 3.12.01
+        - 3.12.04
+        - 3.12.07
+        - 3.12.08
+        - 3.13.00
+        - 3.13.02
+        - 3.13.03
+        - 3.13.04
+        - 3.13.05
+        - 3.13.06
+        - 3.14.00
+        - 3.14.01
+        - 3.14.02
+        - 3.14.03
+        - 3.14.06
+        - 3.15.00
+        - 3.16.01
+        - 3.16.05
       type: github
     eigen:
       check_file: README.md
       repo: libeigen/eigen
       target_prefix: v
       targets:
-      - 3.3.4
-      - 3.3.5
-      - 3.3.7
-      - 3.3.9
-      - 3.4.0
+        - 3.3.4
+        - 3.3.5
+        - 3.3.7
+        - 3.3.9
+        - 3.4.0
       type: gitlab
     entt:
       check_file: README.md
       repo: skypjack/entt
       target_prefix: v
       targets:
-      - 3.6.0
-      - 3.5.0
+        - 3.6.0
+        - 3.5.0
       type: github
     eve:
       check_file: README.md
       repo: jfalcou/eve
       target_prefix: v
       targets:
-      - 2021.10.0
-      - 2022.03.0
-      - 2022.09.0
-      - 2022.09.1
-      - 2023.02.15
+        - 2021.10.0
+        - 2022.03.0
+        - 2022.09.0
+        - 2022.09.1
+        - 2023.02.15
       type: github
     expected-dark:
       check_file: README.md
@@ -358,44 +358,44 @@ libraries:
       subdir: expected-lite
       target_prefix: v
       targets:
-      - 0.0.1
+        - 0.0.1
       type: github
     expected-lite:
       check_file: README.md
       repo: martinmoene/expected-lite
       target_prefix: v
       targets:
-      - 0.1.0
+        - 0.1.0
       type: github
     fastor:
       check_file: README.md
       repo: romeric/Fastor
       target_prefix: V
       targets:
-      - 0.6.3
+        - 0.6.3
       type: github
     fmt:
       build_type: cmake
       repo: fmtlib/fmt
       targets:
-      - 4.0.0
-      - 4.1.0
-      - 5.0.0
-      - 5.1.0
-      - 5.2.0
-      - 5.3.0
-      - 6.0.0
-      - 6.1.0
-      - 6.1.1
-      - 6.1.2
-      - 6.2.0
-      - 6.2.1
-      - 7.0.0
-      - 7.1.3
-      - 8.0.1
-      - 8.1.1
-      - 9.0.0
-      - 9.1.0
+        - 4.0.0
+        - 4.1.0
+        - 5.0.0
+        - 5.1.0
+        - 5.2.0
+        - 5.3.0
+        - 6.0.0
+        - 6.1.0
+        - 6.1.1
+        - 6.1.2
+        - 6.2.0
+        - 6.2.1
+        - 7.0.0
+        - 7.1.3
+        - 8.0.1
+        - 8.1.1
+        - 9.0.0
+        - 9.1.0
       type: github
     gemmlowp:
       build_type: none
@@ -404,30 +404,30 @@ libraries:
       method: nightlyclone
       repo: google/gemmlowp
       targets:
-      - trunk
+        - trunk
       type: github
     glm:
       check_file: readme.md
       repo: g-truc/glm
       targets:
-      - 0.9.8.5
-      - 0.9.9.0
-      - 0.9.9.1
-      - 0.9.9.2
-      - 0.9.9.3
-      - 0.9.9.4
-      - 0.9.9.5
-      - 0.9.9.6
-      - 0.9.9.7
-      - 0.9.9.8
+        - 0.9.8.5
+        - 0.9.9.0
+        - 0.9.9.1
+        - 0.9.9.2
+        - 0.9.9.3
+        - 0.9.9.4
+        - 0.9.9.5
+        - 0.9.9.6
+        - 0.9.9.7
+        - 0.9.9.8
       type: github
     googletest:
       build_type: cmake
       make_targets:
-      - all
+        - all
       repo: google/googletest
       targets:
-      - release-1.10.0
+        - release-1.10.0
       type: github
     gsl:
       check_file: README.md
@@ -435,66 +435,66 @@ libraries:
       subdir: GSL
       target_prefix: v
       targets:
-      - 1.0.0
-      - 2.0.0
-      - 2.1.0
-      - 3.0.0
-      - 3.0.1
+        - 1.0.0
+        - 2.0.0
+        - 2.1.0
+        - 3.0.0
+        - 3.0.1
       type: github
     hdf5:
       after_stage_script:
-      - mkdir build
-      - cd build
-      - CC=/opt/compiler-explorer/gcc-10.2.0/bin/gcc CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++
-        /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        -DCMAKE_INSTALL_PREFIX="." -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF
-        -DHDF5_BUILD_UTILS=OFF
-      - /opt/compiler-explorer/cmake/bin/cmake --build .
-      - /opt/compiler-explorer/cmake/bin/cmake --install .
-      - cp -Rf include ..
-      - mkdir -p ../lib/x86_64
-      - cp -Rf bin/*.so* ../lib/x86_64
-      - cd ..
-      - rm -Rf build
+        - mkdir build
+        - cd build
+        - CC=/opt/compiler-explorer/gcc-10.2.0/bin/gcc CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++
+          /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DCMAKE_INSTALL_PREFIX="." -DBUILD_TESTING=OFF -DHDF5_BUILD_EXAMPLES=OFF -DHDF5_BUILD_TOOLS=OFF
+          -DHDF5_BUILD_UTILS=OFF
+        - /opt/compiler-explorer/cmake/bin/cmake --build .
+        - /opt/compiler-explorer/cmake/bin/cmake --install .
+        - cp -Rf include ..
+        - mkdir -p ../lib/x86_64
+        - cp -Rf bin/*.so* ../lib/x86_64
+        - cd ..
+        - rm -Rf build
       build_type: manual
       check_file: CMakeLists.txt
       lib_type: shared
       method: clone_branch
       repo: HDFGroup/hdf5
       targets:
-      - hdf5-1_12_1
-      - hdf5-1_13_1
+        - hdf5-1_12_1
+        - hdf5-1_13_1
       type: github
     hedley:
       check_file: README.md
       repo: nemequ/hedley
       target_prefix: v
       targets:
-      - '12'
+        - "12"
       type: github
     hfsm:
       check_file: README.md
       repo: andrew-gresyk/HFSM
       targets:
-      - '0.8'
-      - '0.10'
+        - "0.8"
+        - "0.10"
       type: github
     hfsm2:
       check_file: README.md
       repo: andrew-gresyk/HFSM2
       targets:
-      - '1_2_1'
+        - "1_2_1"
       type: github
     highway:
       build_type: cmake
       check_file: hwy/highway.h
       lib_type: static
       make_targets:
-      - hwy
-      - hwy_contrib
+        - hwy
+        - hwy_contrib
       repo: google/highway
       targets:
-      - 0.12.2
+        - 0.12.2
       type: github
     hip-amd:
       check_file: include/hip/hip_runtime.h
@@ -502,11 +502,11 @@ libraries:
       s3_path_prefix: hip-amd-rocm-{name}
       subdir: libs/rocm/{name}
       targets:
-      - 4.5.2
-      - 5.0.2
-      - 5.1.3
-      - 5.2.3
-      - 5.3.2
+        - 4.5.2
+        - 5.0.2
+        - 5.1.3
+        - 5.2.3
+        - 5.3.2
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     jsoncons:
@@ -514,38 +514,38 @@ libraries:
       repo: danielaparker/jsoncons
       target_prefix: v
       targets:
-      - 0.168.3
+        - 0.168.3
       type: github
     jsoncpp:
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
-      - -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_OBJECT_LIBS=OFF -DBUILD_TESTING=OFF
-        -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF -DJSONCPP_WITH_CMAKE_PACKAGE=OFF
-        -DJSONCPP_WITH_STRICT_ISO=OFF -DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF
+        - -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF -DBUILD_OBJECT_LIBS=OFF -DBUILD_TESTING=OFF
+          -DJSONCPP_WITH_TESTS=OFF -DJSONCPP_WITH_POST_BUILD_UNITTEST=OFF -DJSONCPP_WITH_CMAKE_PACKAGE=OFF
+          -DJSONCPP_WITH_STRICT_ISO=OFF -DJSONCPP_WITH_PKGCONFIG_SUPPORT=OFF
       lib_type: static
       repo: open-source-parsers/jsoncpp
       targets:
-      - 1.9.4
-      - 1.9.5
+        - 1.9.4
+        - 1.9.5
       type: github
     kokkos:
       build_type: cmake
       make_targets:
-      - all
+        - all
       repo: kokkos/kokkos
       targets:
-      - 4.0.01
+        - 4.0.01
       type: github
     kumi:
       check_file: README.md
       repo: jfalcou/kumi
       target_prefix: v
       targets:
-      - '1.0'
-      - '2.0'
-      - '2.1'
-      - '3.0'
+        - "1.0"
+        - "2.0"
+        - "2.1"
+        - "3.0"
       type: github
     kvasir:
       check_file: README.md
@@ -553,103 +553,103 @@ libraries:
       path_name: libs/kvasir/mpl/trunk
       repo: kvasir-io/mpl
       targets:
-      - development
+        - development
       type: github
     lagom:
       after_stage_script:
-      - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
-      - echo "project(SerenityOS CXX)" >> CMakeLists.txt
-      - echo "add_subdirectory(Meta/Lagom)" >> CMakeLists.txt
-      - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/'
-        Meta/Lagom/CMakeLists.txt
-      - sed 's/cmakedefine01 \(\w\+\)/define \1 0/' AK/Debug.h.in > AK/Debug.h
+        - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
+        - echo "project(SerenityOS CXX)" >> CMakeLists.txt
+        - echo "add_subdirectory(Meta/Lagom)" >> CMakeLists.txt
+        - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/'
+          Meta/Lagom/CMakeLists.txt
+        - sed 's/cmakedefine01 \(\w\+\)/define \1 0/' AK/Debug.h.in > AK/Debug.h
       build_type: cmake
       check_file: CMakeLists.txt
       extra_cmake_arg:
-      - -DBUILD_LAGOM=ON
-      - -DENABLE_COMPILER_EXPLORER_BUILD=ON
-      - -GNinja
-      - -DENABLE_UNICODE_DATABASE_DOWNLOAD=NO
-      - -DENABLE_COMMONMARK_SPEC_DOWNLOAD=NO
-      - -DCMAKE_EXE_LINKER_FLAGS=-latomic
+        - -DBUILD_LAGOM=ON
+        - -DENABLE_COMPILER_EXPLORER_BUILD=ON
+        - -GNinja
+        - -DENABLE_UNICODE_DATABASE_DOWNLOAD=NO
+        - -DENABLE_COMMONMARK_SPEC_DOWNLOAD=NO
+        - -DCMAKE_EXE_LINKER_FLAGS=-latomic
       if: nightly
       lib_type: shared
       make_targets:
-      - all
+        - all
       make_utility: ninja
       method: nightlyclone
       repo: SerenityOS/serenity
       sharedliblink:
-      - lagom-archive
-      - lagom-audio
-      - lagom-compress
-      - lagom-core
-      - lagom-crypto
-      - lagom-dns
-      - lagom-elf
-      - lagom-gemini
-      - lagom-gfx
-      - lagom-glsl
-      - lagom-gl
-      - lagom-gpu
-      - lagom-gui
-      - lagom-http
-      - lagom-idl
-      - lagom-imap
-      - lagom-ipc
-      - lagom-js
-      - lagom-line
-      - lagom-locale
-      - lagom-markdown
-      - lagom-pdf
-      - lagom-regex
-      - lagom-shell
-      - lagom-softgpu
-      - lagom-sql
-      - lagom-syntax
-      - lagom-textcodec
-      - lagom-threading
-      - lagom-tls
-      - lagom-unicode
-      - lagom-video
-      - lagom-wasm
-      - lagom-web
-      - lagom-websocket
-      - lagom-webview
-      - lagom-x86
-      - lagom-xml
+        - lagom-archive
+        - lagom-audio
+        - lagom-compress
+        - lagom-core
+        - lagom-crypto
+        - lagom-dns
+        - lagom-elf
+        - lagom-gemini
+        - lagom-gfx
+        - lagom-glsl
+        - lagom-gl
+        - lagom-gpu
+        - lagom-gui
+        - lagom-http
+        - lagom-idl
+        - lagom-imap
+        - lagom-ipc
+        - lagom-js
+        - lagom-line
+        - lagom-locale
+        - lagom-markdown
+        - lagom-pdf
+        - lagom-regex
+        - lagom-shell
+        - lagom-softgpu
+        - lagom-sql
+        - lagom-syntax
+        - lagom-textcodec
+        - lagom-threading
+        - lagom-tls
+        - lagom-unicode
+        - lagom-video
+        - lagom-wasm
+        - lagom-web
+        - lagom-websocket
+        - lagom-webview
+        - lagom-x86
+        - lagom-xml
       targets:
-      - trunk
+        - trunk
       type: github
     libassert:
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DBUILD_SHARED_LIBS=on
+        - -DCMAKE_BUILD_TYPE=Release
+        - -DBUILD_SHARED_LIBS=on
       lib_type: shared
       method: clone_branch
       repo: jeremy-rifkin/libassert
       sharedliblink:
-      - assert
+        - assert
       target_prefix: v
       targets:
-      - '1.0'
-      - '1.1'
+        - "1.0"
+        - "1.1"
       type: github
     libguarded:
       check_file: README
       method: clone_branch
       repo: copperspice/cs_libguarded
       targets:
-      - libguarded-1.1.0
+        - libguarded-1.1.0
       type: github
     libsimdpp:
       check_file: README.md
       repo: p12tic/libsimdpp
       target_prefix: v
       targets:
-      - '2.1'
+        - "2.1"
       type: github
     libuv:
       build_type: manual
@@ -657,8 +657,8 @@ libraries:
       repo: libuv/libuv
       target_prefix: v
       targets:
-      - 1.37.0
-      - 1.38.1
+        - 1.37.0
+        - 1.38.1
       type: github
     llvm:
       check_file: include/llvm/Config/llvm-config.h
@@ -666,33 +666,33 @@ libraries:
       s3_path_prefix: llvm-{name}
       subdir: libs/llvm/{name}
       targets:
-      - 4.0.1
-      - 5.0.0
-      - 5.0.1
-      - 5.0.2
-      - 6.0.0
-      - 6.0.1
-      - 7.0.0
-      - 7.0.1
-      - 8.0.0
-      - 9.0.0
-      - 10.0.0
-      - 10.0.1
-      - 11.0.0
-      - 12.0.0
-      - 12.0.1
-      - 13.0.0
-      - 13.0.1
-      - 14.0.0
-      - 15.0.0
-      - 16.0.0
+        - 4.0.1
+        - 5.0.0
+        - 5.0.1
+        - 5.0.2
+        - 6.0.0
+        - 6.0.1
+        - 7.0.0
+        - 7.0.1
+        - 8.0.0
+        - 9.0.0
+        - 10.0.0
+        - 10.0.1
+        - 11.0.0
+        - 12.0.0
+        - 12.0.1
+        - 13.0.0
+        - 13.0.1
+        - 14.0.0
+        - 15.0.0
+        - 16.0.0
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
       repo: Neargye/magic_enum
       target_prefix: v
       targets:
-      - 0.7.3
+        - 0.7.3
       type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
@@ -700,20 +700,21 @@ libraries:
       s3_path_prefix: mlir-{name}
       subdir: libs/mlir/{name}
       targets:
-      - 14.0.0
-      - 14.0.5
-      - 16.0.0
+        - 14.0.0
+        - 14.0.5
+        - 16.0.0
       type: s3tarballs
     mp-units:
       check_file: README.md
       method: clone_branch
       repo: mpusz/units
       targets:
-      - v0.3.1
-      - v0.4.0
-      - v0.5.0
-      - v0.6.0
-      - v0.7.0
+        - v0.3.1
+        - v0.4.0
+        - v0.5.0
+        - v0.6.0
+        - v0.7.0
+        - v0.8.0
       type: github
     nightly:
       abseil:
@@ -721,74 +722,74 @@ libraries:
         check_file: README.md
         lib_type: static
         make_targets:
-        - all
+          - all
         method: nightlyclone
         path_name: libs/abseil
         repo: abseil/abseil-cpp
         staticliblink:
-        - absl_synchronization
-        - absl_str_format_internal
-        - absl_leak_check_disable
-        - absl_examine_stack
-        - absl_random_internal_distribution_test_util
-        - absl_random_internal_pool_urbg
-        - absl_stacktrace
-        - absl_bad_variant_access
-        - absl_random_internal_seed_material
-        - absl_graphcycles_internal
-        - absl_strerror
-        - absl_leak_check
-        - absl_random_internal_platform
-        - absl_flags_reflection
-        - absl_random_internal_randen_hwaes_impl
-        - absl_flags_usage
-        - absl_failure_signal_handler
-        - absl_flags_private_handle_accessor
-        - absl_log_severity
-        - absl_hash
-        - absl_hashtablez_sampler
-        - absl_exponential_biased
-        - absl_statusor
-        - absl_time
-        - absl_int128
-        - absl_demangle_internal
-        - absl_random_internal_randen_slow
-        - absl_raw_hash_set
-        - absl_base
-        - absl_throw_delegate
-        - absl_cord
-        - absl_random_seed_sequences
-        - absl_flags_parse
-        - absl_malloc_internal
-        - absl_bad_any_cast_impl
-        - absl_flags_program_name
-        - absl_flags_commandlineflag
-        - absl_flags
-        - absl_strings
-        - absl_random_internal_randen_hwaes
-        - absl_random_seed_gen_exception
-        - absl_city
-        - absl_strings_internal
-        - absl_flags_marshalling
-        - absl_raw_logging_internal
-        - absl_status
-        - absl_civil_time
-        - absl_spinlock_wait
-        - absl_scoped_set_env
-        - absl_periodic_sampler
-        - absl_debugging_internal
-        - absl_flags_usage_internal
-        - absl_symbolize
-        - absl_flags_commandlineflag_internal
-        - absl_flags_config
-        - absl_flags_internal
-        - absl_random_distributions
-        - absl_bad_optional_access
-        - absl_random_internal_randen
-        - absl_time_zone
-        - absl_wyhash
+          - absl_synchronization
+          - absl_str_format_internal
+          - absl_leak_check_disable
+          - absl_examine_stack
+          - absl_random_internal_distribution_test_util
+          - absl_random_internal_pool_urbg
+          - absl_stacktrace
+          - absl_bad_variant_access
+          - absl_random_internal_seed_material
+          - absl_graphcycles_internal
+          - absl_strerror
+          - absl_leak_check
+          - absl_random_internal_platform
+          - absl_flags_reflection
+          - absl_random_internal_randen_hwaes_impl
+          - absl_flags_usage
+          - absl_failure_signal_handler
+          - absl_flags_private_handle_accessor
+          - absl_log_severity
+          - absl_hash
+          - absl_hashtablez_sampler
+          - absl_exponential_biased
+          - absl_statusor
+          - absl_time
+          - absl_int128
+          - absl_demangle_internal
+          - absl_random_internal_randen_slow
+          - absl_raw_hash_set
+          - absl_base
+          - absl_throw_delegate
+          - absl_cord
+          - absl_random_seed_sequences
+          - absl_flags_parse
+          - absl_malloc_internal
+          - absl_bad_any_cast_impl
+          - absl_flags_program_name
+          - absl_flags_commandlineflag
+          - absl_flags
+          - absl_strings
+          - absl_random_internal_randen_hwaes
+          - absl_random_seed_gen_exception
+          - absl_city
+          - absl_strings_internal
+          - absl_flags_marshalling
+          - absl_raw_logging_internal
+          - absl_status
+          - absl_civil_time
+          - absl_spinlock_wait
+          - absl_scoped_set_env
+          - absl_periodic_sampler
+          - absl_debugging_internal
+          - absl_flags_usage_internal
+          - absl_symbolize
+          - absl_flags_commandlineflag_internal
+          - absl_flags_config
+          - absl_flags_internal
+          - absl_random_distributions
+          - absl_bad_optional_access
+          - absl_random_internal_randen
+          - absl_time_zone
+          - absl_wyhash
         targets:
-        - trunk
+          - trunk
         type: github
       avr-libstdcpp:
         build_type: manual
@@ -796,18 +797,18 @@ libraries:
         method: nightlyclone
         repo: modm-io/avr-libstdcpp
         targets:
-        - trunk
+          - trunk
         type: github
       benchmark:
         build_type: cmake
         check_file: README.md
         extra_cmake_arg:
-        - -DBENCHMARK_ENABLE_TESTING=off
+          - -DBENCHMARK_ENABLE_TESTING=off
         method: nightlyclone
         repo: google/benchmark
         subdir: google-benchmark
         targets:
-        - trunk
+          - trunk
         type: github
       benri:
         build_type: none
@@ -815,7 +816,7 @@ libraries:
         method: nightlyclone
         repo: jansende/benri
         targets:
-        - trunk
+          - trunk
         type: github
       belleviews:
         build_type: none
@@ -823,7 +824,7 @@ libraries:
         method: nightlyclone
         repo: josuttis/belleviews
         targets:
-        - trunk
+          - trunk
         type: github
       blaze:
         build_type: none
@@ -831,7 +832,7 @@ libraries:
         method: nightlyclone
         repo: blaze-lib/blaze
         targets:
-        - trunk
+          - trunk
         type: bitbucket
       bmulti:
         build_type: none
@@ -839,7 +840,7 @@ libraries:
         method: nightlyclone
         repo: correaa/boost-multi
         targets:
-        - trunk
+          - trunk
         type: gitlab
       brigand:
         build_type: none
@@ -847,19 +848,19 @@ libraries:
         method: nightlyclone
         repo: edouarda/brigand
         targets:
-        - trunk
+          - trunk
         type: github
       catch2:
         after_stage_script:
-        - cp {{resource_dir}}/catch_user_config.hpp src/catch2/catch_user_config.hpp
+          - cp {{resource_dir}}/catch_user_config.hpp src/catch2/catch_user_config.hpp
         build_type: cmake
         make_targets:
-        - Catch2
-        - Catch2WithMain
+          - Catch2
+          - Catch2WithMain
         method: nightlyclone
         repo: catchorg/Catch2
         targets:
-        - trunk
+          - trunk
         type: github
       cmcstl2:
         build_type: none
@@ -868,7 +869,7 @@ libraries:
         path_name: libs/cmcstl2
         repo: CaseyCarter/cmcstl2
         targets:
-        - trunk
+          - trunk
         type: github
       cnl:
         build_type: none
@@ -876,7 +877,7 @@ libraries:
         method: nightlyclone
         repo: johnmcfarlane/cnl
         targets:
-        - trunk
+          - trunk
         type: github
       cppcoro:
         build_type: cmake
@@ -885,9 +886,9 @@ libraries:
         path_name: libs/cppcoro
         repo: andreasbuhr/cppcoro
         staticliblink:
-        - cppcoro
+          - cppcoro
         targets:
-        - trunk
+          - trunk
         type: github
       cppitertools:
         build_type: none
@@ -895,20 +896,20 @@ libraries:
         method: nightlyclone
         repo: ryanhaining/cppitertools
         targets:
-        - trunk
+          - trunk
         type: github
       crosscables:
         after_stage_script:
-        - cd Groundfloor && sh devmake.sh && cd ..
-        - cd Jumpropes && sh devmake.sh && cd ..
-        - cd Jumpknots && sh devmake.sh && cd ..
-        - cd MySQLBooks && sh devmake.sh && cd ..
-        - cd Chalkboard && sh devmake.sh && cd ..
+          - cd Groundfloor && sh devmake.sh && cd ..
+          - cd Jumpropes && sh devmake.sh && cd ..
+          - cd Jumpknots && sh devmake.sh && cd ..
+          - cd MySQLBooks && sh devmake.sh && cd ..
+          - cd Chalkboard && sh devmake.sh && cd ..
         build_type: cmake
         method: nightlyclone
         repo: partouf/crosscables
         targets:
-        - trunk
+          - trunk
         type: github
       ctbignum:
         build_type: none
@@ -917,7 +918,7 @@ libraries:
         path_name: libs/ctbignum
         repo: niekbouman/ctbignum
         targets:
-        - trunk
+          - trunk
         type: github
       cthash:
         build_type: none
@@ -925,7 +926,7 @@ libraries:
         method: clone_branch
         repo: hanickadot/cthash
         targets:
-        - main
+          - main
         type: github
       ctre:
         build_type: none
@@ -933,53 +934,53 @@ libraries:
         method: clone_branch
         repo: hanickadot/compile-time-regular-expressions
         targets:
-        - main
-        - dfa
-        - v2
-        - ecma-unicode
+          - main
+          - dfa
+          - v2
+          - ecma-unicode
         type: github
       dataframe:
         build_type: cmake
         method: nightlyclone
         repo: hosseinmoein/DataFrame
         targets:
-        - trunk
+          - trunk
         type: github
       date:
         build_type: cmake
         check_file: README.md
         extra_cmake_arg:
-        - -DBUILD_TZ_LIB=ON
+          - -DBUILD_TZ_LIB=ON
         make_targets:
-        - date-tz
+          - date-tz
         method: nightlyclone
         repo: HowardHinnant/date
         targets:
-        - trunk
+          - trunk
         type: github
       dawjson:
         after_stage_script:
-        - mkdir -p build
-        - cd build
-        - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake
-          -DCMAKE_INSTALL_PREFIX="." ..
-        - /opt/compiler-explorer/cmake/bin/cmake --install .
-        - cp -Rf include ..
-        - cd ..
-        - rm -Rf build
+          - mkdir -p build
+          - cd build
+          - CXX=/opt/compiler-explorer/gcc-10.2.0/bin/g++ /opt/compiler-explorer/cmake/bin/cmake
+            -DCMAKE_INSTALL_PREFIX="." ..
+          - /opt/compiler-explorer/cmake/bin/cmake --install .
+          - cp -Rf include ..
+          - cd ..
+          - rm -Rf build
         build_type: none
         check_file: include/daw/json/daw_json_link.h
         method: nightlyclone
         repo: beached/daw_json_link
         targets:
-        - trunk
+          - trunk
         type: github
       dlib:
         build_type: cmake
         method: nightlyclone
         repo: davisking/dlib
         targets:
-        - trunk
+          - trunk
         type: github
       doctest:
         build_type: none
@@ -987,7 +988,7 @@ libraries:
         method: nightlyclone
         repo: onqtam/doctest
         targets:
-        - trunk
+          - trunk
         type: github
       eastl:
         build_type: none
@@ -996,7 +997,7 @@ libraries:
         recursive: false
         repo: electronicarts/EASTL
         targets:
-        - trunk
+          - trunk
         type: github
       eigen:
         build_type: none
@@ -1004,7 +1005,7 @@ libraries:
         method: nightlyclone
         repo: libeigen/eigen
         targets:
-        - vtrunk
+          - vtrunk
         type: gitlab
       enoki:
         build_type: none
@@ -1012,14 +1013,14 @@ libraries:
         method: nightlyclone
         repo: mitsuba-renderer/enoki
         targets:
-        - trunk
+          - trunk
         type: github
       entt:
         check_file: README.md
         method: nightlyclone
         repo: skypjack/entt
         targets:
-        - trunk
+          - trunk
         type: github
       etl:
         build_type: none
@@ -1028,7 +1029,7 @@ libraries:
         path_name: libs/etl
         repo: ETLCPP/etl
         targets:
-        - trunk
+          - trunk
         type: github
       eve:
         build_type: none
@@ -1036,7 +1037,7 @@ libraries:
         method: nightlyclone
         repo: jfalcou/eve
         targets:
-        - trunk
+          - trunk
         type: github
       expected-dark:
         build_type: none
@@ -1045,7 +1046,7 @@ libraries:
         repo: martinmoene/expected-dark
         subdir: expected-lite
         targets:
-        - trunk
+          - trunk
         type: github
       expected-lite:
         build_type: none
@@ -1053,7 +1054,7 @@ libraries:
         method: nightlyclone
         repo: martinmoene/expected-lite
         targets:
-        - trunk
+          - trunk
         type: github
       fastor:
         build_type: none
@@ -1061,14 +1062,14 @@ libraries:
         method: nightlyclone
         repo: romeric/Fastor
         targets:
-        - trunk
+          - trunk
         type: github
       fmt:
         build_type: cmake
         method: nightlyclone
         repo: fmtlib/fmt
         targets:
-        - trunk
+          - trunk
         type: github
       folly:
         build_type: none
@@ -1077,28 +1078,28 @@ libraries:
         repo: facebook/folly
         type: github
         targets:
-        - trunk
+          - trunk
       glm:
         build_type: none
         check_file: readme.md
         method: nightlyclone
         repo: g-truc/glm
         targets:
-        - trunk
+          - trunk
         type: github
       googletest:
         build_type: cmake
         make_targets:
-        - all
+          - all
         method: nightlyclone
         repo: google/googletest
         staticliblink:
-        - gtest
-        - gtest_main
-        - gmock
-        - gmock_main
+          - gtest
+          - gtest_main
+          - gmock
+          - gmock_main
         targets:
-        - trunk
+          - trunk
         type: github
       gsl:
         build_type: none
@@ -1107,7 +1108,7 @@ libraries:
         repo: Microsoft/GSL
         subdir: GSL
         targets:
-        - trunk
+          - trunk
         type: github
       gsl-lite:
         build_type: none
@@ -1116,7 +1117,7 @@ libraries:
         path_name: libs/gsl-lite
         repo: martinmoene/gsl-lite
         targets:
-        - trunk
+          - trunk
         type: github
       hedley:
         build_type: none
@@ -1124,7 +1125,7 @@ libraries:
         method: nightlyclone
         repo: nemequ/hedley
         targets:
-        - trunk
+          - trunk
         type: github
       hfsm_trunk:
         check_file: README.md
@@ -1132,7 +1133,7 @@ libraries:
         path_name: libs/hfsm/trunk
         repo: andrew-gresyk/HFSM
         targets:
-        - trunk
+          - trunk
         type: github
       highfive:
         build_type: manual
@@ -1140,19 +1141,19 @@ libraries:
         method: nightlyclone
         repo: BlueBrain/HighFive
         targets:
-        - trunk
+          - trunk
         type: github
       highway:
         build_type: cmake
         check_file: hwy/highway.h
         lib_type: static
         make_targets:
-        - hwy
-        - hwy_contrib
+          - hwy
+          - hwy_contrib
         method: nightlyclone
         repo: google/highway
         targets:
-        - trunk
+          - trunk
         type: github
       hotels-template-library:
         build_type: none
@@ -1160,7 +1161,7 @@ libraries:
         method: nightlyclone
         repo: google/hotels-template-library
         targets:
-        - trunk
+          - trunk
         type: github
       if: nightly
       immer:
@@ -1169,7 +1170,7 @@ libraries:
         method: nightlyclone
         repo: arximboldi/immer
         targets:
-        - trunk
+          - trunk
         type: github
       install_always: true
       kiwaku:
@@ -1178,7 +1179,7 @@ libraries:
         method: nightlyclone
         repo: jfalcou/kiwaku
         targets:
-        - trunk
+          - trunk
         type: github
       kumi:
         build_type: none
@@ -1186,7 +1187,7 @@ libraries:
         method: nightlyclone
         repo: jfalcou/kumi
         targets:
-        - trunk
+          - trunk
         type: github
       lager:
         build_type: none
@@ -1194,7 +1195,7 @@ libraries:
         method: nightlyclone
         repo: arximboldi/lager
         targets:
-        - trunk
+          - trunk
         type: github
       lexy_trunk:
         check_file: include/lexy/dsl.hpp
@@ -1202,7 +1203,7 @@ libraries:
         path_name: libs/lexy/trunk
         repo: foonathan/lexy
         targets:
-        - trunk
+          - trunk
         type: github
       libguarded:
         build_type: none
@@ -1210,7 +1211,7 @@ libraries:
         method: nightlyclone
         repo: copperspice/cs_libguarded
         targets:
-        - trunk
+          - trunk
         type: github
       llvm:
         build_type: none
@@ -1233,19 +1234,19 @@ libraries:
         method: nightlyclone
         repo: Neargye/magic_enum
         targets:
-        - trunk
+          - trunk
         type: github
       mfem:
         after_stage_script:
-        - cp {{resource_dir}}/mfem_config.hpp config/_config.hpp
+          - cp {{resource_dir}}/mfem_config.hpp config/_config.hpp
         build_type: cmake
         lib_type: static
         method: nightlyclone
         repo: mfem/mfem
         staticliblink:
-        - mfem
+          - mfem
         targets:
-        - trunk
+          - trunk
         type: github
       mp-coro:
         build_type: none
@@ -1253,7 +1254,7 @@ libraries:
         method: nightlyclone
         repo: mpusz/mp-coro
         targets:
-        - trunk
+          - trunk
         type: github
       mp-units:
         build_type: none
@@ -1261,7 +1262,7 @@ libraries:
         method: nightlyclone
         repo: mpusz/units
         targets:
-        - trunk
+          - trunk
         type: github
       namedtype:
         build_type: none
@@ -1270,7 +1271,7 @@ libraries:
         path_name: libs/NamedType
         repo: joboccara/NamedType
         targets:
-        - trunk
+          - trunk
         type: github
       nanorange:
         build_type: none
@@ -1279,7 +1280,7 @@ libraries:
         path_name: libs/nanorange
         repo: tcbrindle/NanoRange
         targets:
-        - trunk
+          - trunk
         type: github
       nlohmann_json:
         build_type: none
@@ -1287,7 +1288,7 @@ libraries:
         method: nightlyclone
         repo: nlohmann/json
         targets:
-        - trunk
+          - trunk
         type: github
       opencv:
         build_type: none
@@ -1296,7 +1297,7 @@ libraries:
         path_name: libs/opencv
         repo: opencv/opencv
         targets:
-        - trunk
+          - trunk
         type: github
       outcome:
         build_type: none
@@ -1305,7 +1306,7 @@ libraries:
         path_name: libs/outcome
         repo: ned14/outcome
         targets:
-        - trunk
+          - trunk
         type: github
       pegtl:
         build_type: none
@@ -1314,7 +1315,7 @@ libraries:
         repo: taocpp/PEGTL
         subdir: PEGTL
         targets:
-        - trunk
+          - trunk
         type: github
       pipes:
         build_type: none
@@ -1323,7 +1324,7 @@ libraries:
         path_name: libs/pipes
         repo: joboccara/pipes
         targets:
-        - trunk
+          - trunk
         type: github
       raberu:
         build_type: none
@@ -1331,7 +1332,7 @@ libraries:
         method: nightlyclone
         repo: jfalcou/raberu
         targets:
-        - trunk
+          - trunk
         type: github
       rangesv3:
         build_type: none
@@ -1339,7 +1340,7 @@ libraries:
         method: nightlyclone
         repo: ericniebler/range-v3
         targets:
-        - trunk
+          - trunk
         type: github
       seastar:
         build_type: none
@@ -1347,7 +1348,7 @@ libraries:
         method: nightlyclone
         repo: scylladb/seastar
         targets:
-        - trunk
+          - trunk
         type: github
       seqan3:
         build_type: none
@@ -1355,7 +1356,7 @@ libraries:
         method: nightlyclone
         repo: seqan/seqan3
         targets:
-        - trunk
+          - trunk
         type: github
       simde:
         build_type: none
@@ -1363,7 +1364,7 @@ libraries:
         method: nightlyclone
         repo: simd-everywhere/simde
         targets:
-        - trunk
+          - trunk
         type: github
       sol2:
         build_type: none
@@ -1371,7 +1372,7 @@ libraries:
         method: nightlyclone
         repo: ThePhD/sol2
         targets:
-        - trunk
+          - trunk
         type: github
       spy:
         build_type: none
@@ -1379,14 +1380,14 @@ libraries:
         method: nightlyclone
         repo: jfalcou/spy
         targets:
-        - trunk
+          - trunk
         type: github
       stdexec:
         check_file: include/stdexec/execution.hpp
         method: nightlyclone
         repo: NVIDIA/stdexec
         targets:
-        - trunk
+          - trunk
         type: github
       taojson:
         build_type: none
@@ -1394,7 +1395,7 @@ libraries:
         method: nightlyclone
         repo: taocpp/json
         targets:
-        - trunk
+          - trunk
         type: github
       tlexpected:
         build_type: none
@@ -1402,7 +1403,7 @@ libraries:
         method: nightlyclone
         repo: TartanLlama/expected
         targets:
-        - trunk
+          - trunk
         type: github
       thinkcell:
         build_type: none
@@ -1410,7 +1411,7 @@ libraries:
         method: nightlyclone
         repo: think-cell/think-cell-library
         targets:
-        - trunk
+          - trunk
         type: github
       toml11:
         build_type: none
@@ -1418,7 +1419,7 @@ libraries:
         method: nightlyclone
         repo: ToruNiina/toml11
         targets:
-        - trunk
+          - trunk
         type: github
       tomlplusplus:
         build_type: none
@@ -1426,7 +1427,7 @@ libraries:
         method: nightlyclone
         repo: marzer/tomlplusplus
         targets:
-        - trunk
+          - trunk
         type: github
       tts:
         build_type: none
@@ -1434,7 +1435,7 @@ libraries:
         method: nightlyclone
         repo: jfalcou/tts
         targets:
-        - trunk
+          - trunk
         type: github
       type_safe:
         build_type: none
@@ -1442,18 +1443,18 @@ libraries:
         method: nightlyclone
         repo: foonathan/type_safe
         targets:
-        - trunk
+          - trunk
         type: github
       unifex:
         after_stage_script:
-        - cp {{resource_dir}}/libunifex_config.hpp include/unifex/config.hpp
+          - cp {{resource_dir}}/libunifex_config.hpp include/unifex/config.hpp
         build_type: cmake
         make_targets:
-        - unifex
+          - unifex
         method: nightlyclone
         repo: facebookexperimental/libunifex
         targets:
-        - trunk
+          - trunk
         type: github
       xsimd:
         build_type: none
@@ -1461,7 +1462,7 @@ libraries:
         method: nightlyclone
         repo: xtensor-stack/xsimd
         targets:
-        - trunk
+          - trunk
         type: github
       xtensor:
         build_type: none
@@ -1469,7 +1470,7 @@ libraries:
         method: nightlyclone
         repo: QuantStack/xtensor
         targets:
-        - trunk
+          - trunk
         type: github
       xtl:
         build_type: none
@@ -1477,7 +1478,7 @@ libraries:
         method: nightlyclone
         repo: QuantStack/xtl
         targets:
-        - trunk
+          - trunk
         type: github
       yomm2:
         build_type: cmake
@@ -1485,55 +1486,55 @@ libraries:
         method: nightlyclone
         repo: jll63/yomm2
         staticliblink:
-        - yomm2
+          - yomm2
         targets:
-        - trunk
+          - trunk
         type: github
       ztdcuneicode:
         build_type: cmake
         make_targets:
-        - ztd.cuneicode
+          - ztd.cuneicode
         check_file: README.md
         method: nightlyclone
         repo: soasis/cuneicode
         targets:
-        - main
+          - main
         type: github
         staticliblink:
           - ztd.cuneicode
       ztdencodingtables:
         build_type: cmake
         make_targets:
-        - ztd.encoding_tables
+          - ztd.encoding_tables
         check_file: README.md
         method: nightlyclone
         repo: soasis/encoding_tables
         targets:
-        - main
+          - main
         type: github
         staticliblink:
           - ztd.encoding_tables
       ztdidk:
         build_type: cmake
         make_targets:
-        - ztd.idk
+          - ztd.idk
         check_file: README.md
         method: nightlyclone
         repo: soasis/idk
         targets:
-        - main
+          - main
         type: github
         staticliblink:
           - ztd.idk
       ztdplatform:
         build_type: cmake
         make_targets:
-        - ztd.platform
+          - ztd.platform
         check_file: README.md
         method: nightlyclone
         repo: soasis/platform
         targets:
-        - main
+          - main
         type: github
         staticliblink:
           - ztd.platform
@@ -1543,7 +1544,7 @@ libraries:
         method: nightlyclone
         repo: soasis/static_containers
         targets:
-        - main
+          - main
         type: github
       ztdtext:
         build_type: none
@@ -1551,7 +1552,7 @@ libraries:
         method: nightlyclone
         repo: soasis/text
         targets:
-        - main
+          - main
         type: github
       zug:
         build_type: none
@@ -1559,22 +1560,22 @@ libraries:
         method: nightlyclone
         repo: arximboldi/zug
         targets:
-        - trunk
+          - trunk
         type: github
     nlohmann_json:
       check_file: README.md
       repo: nlohmann/json
       target_prefix: v
       targets:
-      - 2.1.1
-      - 3.1.2
-      - 3.6.0
-      - 3.6.1
-      - 3.7.3
-      - 3.8.0
-      - 3.9.1
-      - 3.10.5
-      - 3.11.1
+        - 2.1.1
+        - 3.1.2
+        - 3.6.0
+        - 3.6.1
+        - 3.7.3
+        - 3.8.0
+        - 3.9.1
+        - 3.10.5
+        - 3.11.1
       type: github
     nsimd:
       check_file: x86_64/include/nsimd/nsimd.h
@@ -1582,23 +1583,23 @@ libraries:
       s3_path_prefix: nsimd-{name}
       subdir: libs/nsimd/{name}
       targets:
-      - v2.2
+        - v2.2
       type: s3tarballs
     openssl:
       after_stage_script:
-      - cd {untar_dir}
-      - ./config --prefix="$PWD/x86_64/opt" --openssldir="$PWD/x86_64/ssl"
-      - make
-      - make install
-      - rm "{untar_dir}/x86_64/opt/lib/*.a"
+        - cd {untar_dir}
+        - ./config --prefix="$PWD/x86_64/opt" --openssldir="$PWD/x86_64/ssl"
+        - make
+        - make install
+        - rm "{untar_dir}/x86_64/opt/lib/*.a"
       build_type: none
       check_file: x86_64/opt/lib/libssl.so.1.1
       compression: gz
       dir: libs/openssl/openssl_{name}
       lib_type: shared
       targets:
-      - 1_1_1c
-      - 1_1_1g
+        - 1_1_1c
+        - 1_1_1g
       type: tarballs
       untar_dir: openssl-OpenSSL_{name}
       url: https://github.com/openssl/openssl/archive/OpenSSL_{name}.tar.gz
@@ -1607,79 +1608,79 @@ libraries:
       repo: taocpp/PEGTL
       subdir: PEGTL
       targets:
-      - 2.8.0
+        - 2.8.0
       type: github
     protobuf:
       lib_type: shared
       method: clone_branch
       repo: protocolbuffers/protobuf
       sharedliblink:
-      - protobuf
-      - protobuf-lite
+        - protobuf
+        - protobuf-lite
       target_prefix: v
       targets:
-      - build_type: make
-        check_file: autogen.sh
-        make_targets:
-        - check
-        name: 3.20.1
-        prebuild_script:
-        - ./autogen.sh
-        - ./configure
+        - build_type: make
+          check_file: autogen.sh
+          make_targets:
+            - check
+          name: 3.20.1
+          prebuild_script:
+            - ./autogen.sh
+            - ./configure
       type: github
     pugixml:
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
-      - -DBUILD_TESTS=OFF
+        - -DBUILD_TESTS=OFF
       lib_type: static
       repo: zeux/pugixml
       target_prefix: v
       targets:
-      - 1.11.4
+        - 1.11.4
       type: github
     raberu:
       check_file: README.md
       repo: jfalcou/raberu
       target_prefix: v
       targets:
-      - '1.0'
-      - '1.1'
+        - "1.0"
+        - "1.1"
       type: github
     rangesv3:
       check_file: README.md
       method: clone_branch
       repo: ericniebler/range-v3
       targets:
-      - 0.3.0
-      - 0.3.5
-      - 0.3.6
-      - 0.4.0
-      - 0.9.1
-      - 0.10.0
-      - 0.11.0
-      - 0.12.0
+        - 0.3.0
+        - 0.3.5
+        - 0.3.6
+        - 0.4.0
+        - 0.9.1
+        - 0.10.0
+        - 0.11.0
+        - 0.12.0
       type: github
     scnlib:
       build_type: cmake
       extra_cmake_arg:
-      - -DSCN_TESTS=OFF
-      - -DSCN_EXAMPLES=OFF
-      - -DSCN_BENCHMARKS=OFF
-      - -DSCN_DOCS=OFF
+        - -DSCN_TESTS=OFF
+        - -DSCN_EXAMPLES=OFF
+        - -DSCN_BENCHMARKS=OFF
+        - -DSCN_DOCS=OFF
       make_targets:
-      - scn
+        - scn
       repo: eliaskosunen/scnlib
       target_prefix: refs/tags/v
       targets:
-      - '0.4'
-      - 1.1.2
+        - "0.4"
+        - 1.1.2
       type: github
     seastar:
       check_file: README.md
       repo: scylladb/seastar
       targets:
-      - seastar-18.08.0
+        - seastar-18.08.0
       type: github
     seqan3:
       build_type: none
@@ -1687,53 +1688,53 @@ libraries:
       method: clone_branch
       repo: seqan/seqan3
       targets:
-      - 3.2.0
+        - 3.2.0
       type: github
     simdjson:
       build_type: cmake
       make_targets:
-      - simdjson
+        - simdjson
       lib_type: static
       staticliblink:
-      - simdjson
+        - simdjson
       repo: simdjson/simdjson
       type: github
       check_file: include/simdjson.h
       target_prefix: v
       targets:
-      - 3.0.1
-      - 3.1.5
+        - 3.0.1
+        - 3.1.5
     sol2:
       build_type: none
       check_file: include/sol/sol.hpp
       method: clone_branch
       repo: ThePhD/sol2
       targets:
-      - v3.2.1
+        - v3.2.1
       type: github
     spdlog:
       build_type: cmake
       make_targets:
-      - spdlog
+        - spdlog
       path_name: libs/spdlog/{name}
       repo: gabime/spdlog
       skip_compilers:
-      - clang_autonsdmi
+        - clang_autonsdmi
       subdir: spdlog-{name}
       target_prefix: v
       targets:
-      - 1.5.0
-      - 1.6.0
-      - 1.6.1
-      - 1.7.0
-      - 1.8.0
+        - 1.5.0
+        - 1.6.0
+        - 1.6.1
+        - 1.7.0
+        - 1.8.0
       type: github
     spy:
       check_file: README.md
       repo: jfalcou/spy
       targets:
-      - 0.0.4
-      - 1.0.0
+        - 0.0.4
+        - 1.0.0
       type: github
     strong_type:
       build_type: none
@@ -1741,59 +1742,59 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
-      - '11'
-      - '10'
-      - '9'
-      - '8'
-      - '7'
-      - '6'
-      - '5'
-      - '4'
-      - '3'
-      - '2'
-      - '1'
+        - "11"
+        - "10"
+        - "9"
+        - "8"
+        - "7"
+        - "6"
+        - "5"
+        - "4"
+        - "3"
+        - "2"
+        - "1"
       type: github
     tbb:
       build_type: make
       extra_make_arg:
-      - compiler=%compilerTypeOrGcc%
-      - arch=%intelarch?%
+        - compiler=%compilerTypeOrGcc%
+        - arch=%intelarch?%
       lib_type: shared
       method: nightlyclone
       repo: oneapi-src/oneTBB
       targets:
-      - '2020.2'
-      - '2020.3'
-      - build_type: cmake
-        extra_cmake_arg:
-        - -DTBB_TEST=OF
-        name: 2021.4.0
-        sharedliblink:
-        - tbb_debug
-        - tbbmalloc_debug
-        - tbbmalloc_proxy_debug
+        - "2020.2"
+        - "2020.3"
+        - build_type: cmake
+          extra_cmake_arg:
+            - -DTBB_TEST=OF
+          name: 2021.4.0
+          sharedliblink:
+            - tbb_debug
+            - tbbmalloc_debug
+            - tbbmalloc_proxy_debug
       type: github
     tlexpected:
       check_file: include/tl/expected.hpp
       repo: TartanLlama/expected
       target_prefix: v
       targets:
-      - 1.0.0
+        - 1.0.0
       type: github
     toml11:
       check_file: toml.hpp
       repo: ToruNiina/toml11
       target_prefix: v
       targets:
-      - 3.7.1
+        - 3.7.1
       type: github
     tomlplusplus:
       check_file: README.md
       repo: marzer/tomlplusplus
       target_prefix: v
       targets:
-      - 1.3.3
-      - 1.2.4
+        - 1.3.3
+        - 1.2.4
       type: github
     trompeloeil:
       build_type: none
@@ -1801,33 +1802,33 @@ libraries:
       repo: rollbear/trompeloeil
       target_prefix: v
       targets:
-      - '28'
-      - '29'
-      - '30'
-      - '31'
-      - '32'
-      - '33'
-      - '34'
-      - '35'
-      - '36'
-      - '37'
-      - '38'
-      - '39'
-      - '40'
-      - '41'
-      - '42'
-      - '43'
-      - '44'
+        - "28"
+        - "29"
+        - "30"
+        - "31"
+        - "32"
+        - "33"
+        - "34"
+        - "35"
+        - "36"
+        - "37"
+        - "38"
+        - "39"
+        - "40"
+        - "41"
+        - "42"
+        - "43"
+        - "44"
       type: github
     tts:
       check_file: README.md
       repo: jfalcou/tts
       targets:
-      - '0.1'
-      - '0.2'
-      - '1.0'
-      - '2.0'
-      - '2.1'
+        - "0.1"
+        - "0.2"
+        - "1.0"
+        - "2.0"
+        - "2.1"
       type: github
     vcl:
       check_file: vectorclass.h
@@ -1835,8 +1836,8 @@ libraries:
       subdir: vcl
       target_prefix: v
       targets:
-      - 2.00.01
-      - 2.01.03
+        - 2.00.01
+        - 2.01.03
       type: github
     vcl1:
       check_file: vectorclass.h
@@ -1844,59 +1845,59 @@ libraries:
       subdir: vcl
       target_prefix: v
       targets:
-      - '1.30'
+        - "1.30"
       type: github
     xercesc:
       after_stage_script:
-      - cp {{resource_dir}}/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
-      - cp {{resource_dir}}/XercesVersion.hpp src/xercesc/util/XercesVersion.hpp
+        - cp {{resource_dir}}/Xerces_autoconf_config.hpp src/xercesc/util/Xerces_autoconf_config.hpp
+        - cp {{resource_dir}}/XercesVersion.hpp src/xercesc/util/XercesVersion.hpp
       build_type: cmake
       check_file: README
       extra_cmake_arg:
-      - -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
+        - -DBUILD_SHARED_LIBS=OFF -Dxmlch-type=uint16_t
       lib_type: static
       repo: apache/xerces-c
       target_prefix: v
       targets:
-      - 3.2.3
+        - 3.2.3
       type: github
     xsimd:
       check_file: README.md
       repo: xtensor-stack/xsimd
       targets:
-      - 6.1.4
-      - 7.0.0
-      - 7.6.0
-      - 8.0.3
-      - 8.0.5
-      - 8.1.0
-      - 9.0.0
-      - 9.0.1
+        - 6.1.4
+        - 7.0.0
+        - 7.6.0
+        - 8.0.3
+        - 8.0.5
+        - 8.1.0
+        - 9.0.0
+        - 9.0.1
       type: github
     xtensor:
       check_file: README.md
       repo: QuantStack/xtensor
       targets:
-      - 0.17.4
-      - 0.18.2
-      - 0.19.4
+        - 0.17.4
+        - 0.18.2
+        - 0.19.4
       type: github
     xtl:
       check_file: README.md
       repo: QuantStack/xtl
       targets:
-      - 0.4.16
-      - 0.5.3
+        - 0.4.16
+        - 0.5.3
       type: github
     yomm2:
       build_type: cmake
       lib_type: static
       repo: jll63/yomm2
       staticliblink:
-      - yomm2
+        - yomm2
       target_prefix: v
       targets:
-      - 1.1.2
+        - 1.1.2
       type: github
   cuda:
     cub:
@@ -1904,7 +1905,7 @@ libraries:
       method: clone_branch
       repo: NVIDIA/cub
       targets:
-      - 1.8.0
+        - 1.8.0
       type: github
     nightly:
       cucollections:
@@ -1912,7 +1913,7 @@ libraries:
         method: clone_branch
         repo: NVIDIA/cuCollections
         targets:
-        - dev
+          - dev
         type: github
       if: nightly
       install_always: true
@@ -1921,21 +1922,21 @@ libraries:
         method: nightlyclone
         repo: NVIDIA/libcudacxx
         targets:
-        - trunk
+          - trunk
         type: github
       nvtx:
         check_file: cpp/include/nvtx3/nvtx3.hpp
         method: clone_branch
         repo: NVIDIA/NVTX
         targets:
-        - dev
+          - dev
         type: github
       thrustcub:
         check_file: dependencies/cub/cub/cub.cuh
         method: nightlyclone
         repo: NVIDIA/thrust
         targets:
-        - trunk
+          - trunk
         type: github
     nvtx:
       check_file: c/include/nvtx3/nvToolsExt.h
@@ -1943,26 +1944,26 @@ libraries:
       repo: NVIDIA/NVTX
       target_prefix: v
       targets:
-      - 3.0.1
+        - 3.0.1
       type: github
     thrustcub:
       check_file: dependencies/cub/cub/cub.cuh
       method: clone_branch
       repo: NVIDIA/thrust
       targets:
-      - 1.9.9
-      - 1.9.10
-      - 1.9.10-1
-      - 1.10.0
-      - 1.11.0
-      - 1.12.0
-      - 1.12.1
-      - 1.13.0
-      - 1.13.1
-      - 1.14.0
-      - 1.15.0
-      - 1.16.0
-      - 1.17.0
+        - 1.9.9
+        - 1.9.10
+        - 1.9.10-1
+        - 1.10.0
+        - 1.11.0
+        - 1.12.0
+        - 1.12.1
+        - 1.13.0
+        - 1.13.1
+        - 1.14.0
+        - 1.15.0
+        - 1.16.0
+        - 1.17.0
       type: github
   d:
     mir-algorithm:
@@ -1971,13 +1972,13 @@ libraries:
       repo: libmir/mir-algorithm
       target_prefix: v
       targets:
-      - 0.5.17
-      - 0.6.13
-      - 0.6.21
-      - 0.9.5
-      - 1.0.0
-      - 1.1.0
-      - 3.7.17
+        - 0.5.17
+        - 0.6.13
+        - 0.6.21
+        - 0.9.5
+        - 1.0.0
+        - 1.1.0
+        - 3.7.17
       type: github
     mir-glas:
       check_file: README.md
@@ -1985,9 +1986,9 @@ libraries:
       repo: libmir/mir-glas
       target_prefix: v
       targets:
-      - 0.1.5
-      - 0.2.3
-      - 0.2.4
+        - 0.1.5
+        - 0.2.3
+        - 0.2.4
       type: github
     nightly:
       asdf:
@@ -1996,7 +1997,7 @@ libraries:
         path_name: libs/d/asdf-trunk
         repo: libmir/asdf
         targets:
-        - trunk
+          - trunk
         type: github
       cblas:
         check_file: README.md
@@ -2004,7 +2005,7 @@ libraries:
         path_name: libs/d/cblas-trunk
         repo: DlangScience/cblas
         targets:
-        - trunk
+          - trunk
         type: github
       dcompute:
         check_file: README.md
@@ -2012,7 +2013,7 @@ libraries:
         path_name: libs/d/dcompute-trunk
         repo: libmir/dcompute
         targets:
-        - trunk
+          - trunk
         type: github
       if: nightly
       install_always: true
@@ -2022,7 +2023,7 @@ libraries:
         path_name: libs/d/lapack-trunk
         repo: libmir/lapack
         targets:
-        - trunk
+          - trunk
         type: github
       mir_algorithm:
         check_file: README.md
@@ -2030,7 +2031,7 @@ libraries:
         path_name: libs/d/mir-algorithm-trunk
         repo: libmir/mir-algorithm
         targets:
-        - trunk
+          - trunk
         type: github
       mir_blas:
         check_file: README.md
@@ -2038,7 +2039,7 @@ libraries:
         path_name: libs/d/mir-blas-trunk
         repo: libmir/mir-blas
         targets:
-        - trunk
+          - trunk
         type: github
       mir_core:
         check_file: README.md
@@ -2046,7 +2047,7 @@ libraries:
         path_name: libs/d/mir-core-trunk
         repo: libmir/mir-core
         targets:
-        - trunk
+          - trunk
         type: github
       mir_glas:
         check_file: README.md
@@ -2054,7 +2055,7 @@ libraries:
         path_name: libs/d/mir-glas-trunk
         repo: libmir/mir-glas
         targets:
-        - trunk
+          - trunk
         type: github
       mir_integral:
         check_file: README.md
@@ -2062,7 +2063,7 @@ libraries:
         path_name: libs/d/mir-integral-trunk
         repo: libmir/mir-integral
         targets:
-        - trunk
+          - trunk
         type: github
       mir_lapack:
         check_file: README.md
@@ -2070,7 +2071,7 @@ libraries:
         path_name: libs/d/mir-lapack-trunk
         repo: libmir/mir-lapack
         targets:
-        - trunk
+          - trunk
         type: github
       mir_optim:
         check_file: README.md
@@ -2078,7 +2079,7 @@ libraries:
         path_name: libs/d/mir-optim-trunk
         repo: libmir/mir-optim
         targets:
-        - trunk
+          - trunk
         type: github
       mir_random:
         check_file: README.md
@@ -2086,553 +2087,553 @@ libraries:
         path_name: libs/d/mir-random-trunk
         repo: libmir/mir-random
         targets:
-        - trunk
+          - trunk
         type: github
   rust:
     aho-corasick:
       build_type: cargo
       targets:
-      - 0.7.18
+        - 0.7.18
       type: cratesio
     ansi_term:
       build_type: cargo
       targets:
-      - 0.12.1
+        - 0.12.1
       type: cratesio
     anyhow:
       build_type: cargo
       targets:
-      - 1.0.57
+        - 1.0.57
       type: cratesio
     arrayvec:
       build_type: cargo
       targets:
-      - 0.7.2
+        - 0.7.2
       type: cratesio
     atty:
       build_type: cargo
       targets:
-      - 0.2.14
+        - 0.2.14
       type: cratesio
     autocfg:
       build_type: cargo
       targets:
-      - 1.1.0
+        - 1.1.0
       type: cratesio
     backtrace:
       build_type: cargo
       targets:
-      - 0.3.65
+        - 0.3.65
       type: cratesio
     base64:
       build_type: cargo
       targets:
-      - 0.13.0
+        - 0.13.0
       type: cratesio
     bitflags:
       build_type: cargo
       targets:
-      - 1.3.2
+        - 1.3.2
       type: cratesio
     block-buffer:
       build_type: cargo
       targets:
-      - 0.10.2
+        - 0.10.2
       type: cratesio
     byteorder:
       build_type: cargo
       targets:
-      - 1.4.3
+        - 1.4.3
       type: cratesio
     bytes:
       build_type: cargo
       targets:
-      - 1.1.0
+        - 1.1.0
       type: cratesio
     cc:
       build_type: cargo
       targets:
-      - 1.0.73
+        - 1.0.73
       type: cratesio
     cfg-if:
       build_type: cargo
       targets:
-      - 1.0.0
+        - 1.0.0
       type: cratesio
     chrono:
       build_type: cargo
       targets:
-      - 0.4.19
+        - 0.4.19
       type: cratesio
     clap:
       build_type: cargo
       targets:
-      - 3.1.18
+        - 3.1.18
       type: cratesio
     color-eyre:
       build_type: cargo
       targets:
-      - 0.6.2
+        - 0.6.2
       type: cratesio
     contracts:
       build_type: cargo
       targets:
-      - 0.6.3
+        - 0.6.3
       type: cratesio
     crossbeam-channel:
       build_type: cargo
       targets:
-      - 0.5.4
+        - 0.5.4
       type: cratesio
     crossbeam-deque:
       build_type: cargo
       targets:
-      - 0.8.1
+        - 0.8.1
       type: cratesio
     crossbeam-epoch:
       build_type: cargo
       targets:
-      - 0.9.8
+        - 0.9.8
       type: cratesio
     crossbeam-utils:
       build_type: cargo
       targets:
-      - 0.8.8
+        - 0.8.8
       type: cratesio
     digest:
       build_type: cargo
       targets:
-      - 0.10.3
+        - 0.10.3
       type: cratesio
     either:
       build_type: cargo
       targets:
-      - 1.6.1
+        - 1.6.1
       type: cratesio
     env_logger:
       build_type: cargo
       targets:
-      - 0.9.0
+        - 0.9.0
       type: cratesio
     eyre:
       build_type: cargo
       targets:
-      - 0.6.8
+        - 0.6.8
       type: cratesio
     fnv:
       build_type: cargo
       targets:
-      - 1.0.7
+        - 1.0.7
       type: cratesio
     futures:
       build_type: cargo
       targets:
-      - 0.3.21
+        - 0.3.21
       type: cratesio
     futures-channel:
       build_type: cargo
       targets:
-      - 0.3.21
+        - 0.3.21
       type: cratesio
     futures-core:
       build_type: cargo
       targets:
-      - 0.3.21
+        - 0.3.21
       type: cratesio
     futures-task:
       build_type: cargo
       targets:
-      - 0.3.21
+        - 0.3.21
       type: cratesio
     futures-util:
       build_type: cargo
       targets:
-      - 0.3.21
+        - 0.3.21
       type: cratesio
     generic-array:
       build_type: cargo
       targets:
-      - 0.14.5
+        - 0.14.5
       type: cratesio
     getrandom:
       build_type: cargo
       targets:
-      - 0.2.6
+        - 0.2.6
       type: cratesio
     h2:
       build_type: cargo
       targets:
-      - 0.3.13
+        - 0.3.13
       type: cratesio
     hashbrown:
       build_type: cargo
       targets:
-      - 0.12.1
+        - 0.12.1
       type: cratesio
     heck:
       build_type: cargo
       targets:
-      - 0.4.0
+        - 0.4.0
       type: cratesio
     http:
       build_type: cargo
       targets:
-      - 0.2.8
+        - 0.2.8
       type: cratesio
     httparse:
       build_type: cargo
       targets:
-      - 1.7.1
+        - 1.7.1
       type: cratesio
     hyper:
       build_type: cargo
       targets:
-      - 0.14.19
+        - 0.14.19
       type: cratesio
     idna:
       build_type: cargo
       targets:
-      - 0.2.3
+        - 0.2.3
       type: cratesio
     indexmap:
       build_type: cargo
       targets:
-      - 1.8.2
+        - 1.8.2
       type: cratesio
     itertools:
       build_type: cargo
       targets:
-      - 0.10.3
+        - 0.10.3
       type: cratesio
     itoa:
       build_type: cargo
       targets:
-      - 1.0.2
+        - 1.0.2
       type: cratesio
     lazy_static:
       build_type: cargo
       targets:
-      - 1.4.0
+        - 1.4.0
       type: cratesio
     libc:
       build_type: cargo
       targets:
-      - 0.2.126
+        - 0.2.126
       type: cratesio
     lock_api:
       build_type: cargo
       targets:
-      - 0.4.7
+        - 0.4.7
       type: cratesio
     log:
       build_type: cargo
       targets:
-      - 0.4.17
+        - 0.4.17
       type: cratesio
     matches:
       build_type: cargo
       targets:
-      - 0.1.9
+        - 0.1.9
       type: cratesio
     memchr:
       build_type: cargo
       targets:
-      - 2.5.0
+        - 2.5.0
       type: cratesio
     memoffset:
       build_type: cargo
       targets:
-      - 0.6.5
+        - 0.6.5
       type: cratesio
     miniz_oxide:
       build_type: cargo
       targets:
-      - 0.5.3
+        - 0.5.3
       type: cratesio
     mio:
       build_type: cargo
       targets:
-      - 0.8.3
+        - 0.8.3
       type: cratesio
     ndarray:
       build_type: cargo
       targets:
-      - 0.15.4
+        - 0.15.4
       type: cratesio
     num:
       build_type: cargo
       targets:
-      - 0.4.0
+        - 0.4.0
       type: cratesio
     num-integer:
       build_type: cargo
       targets:
-      - 0.1.45
+        - 0.1.45
       type: cratesio
     num-traits:
       build_type: cargo
       targets:
-      - 0.2.15
+        - 0.2.15
       type: cratesio
     num_cpus:
       build_type: cargo
       targets:
-      - 1.13.1
+        - 1.13.1
       type: cratesio
     num_traits:
       build_type: cargo
       targets:
-      - 0.2.15
+        - 0.2.15
       type: cratesio
     once_cell:
       build_type: cargo
       targets:
-      - 1.12.0
+        - 1.12.0
       type: cratesio
     opaque-debug:
       build_type: cargo
       targets:
-      - 0.3.0
+        - 0.3.0
       type: cratesio
     parking_lot:
       build_type: cargo
       targets:
-      - 0.12.1
+        - 0.12.1
       type: cratesio
     parking_lot_core:
       build_type: cargo
       targets:
-      - 0.9.3
+        - 0.9.3
       type: cratesio
     percent-encoding:
       build_type: cargo
       targets:
-      - 2.1.0
+        - 2.1.0
       type: cratesio
     pin-project-lite:
       build_type: cargo
       targets:
-      - 0.2.9
+        - 0.2.9
       type: cratesio
     pkg-config:
       build_type: cargo
       targets:
-      - 0.3.25
+        - 0.3.25
       type: cratesio
     ppv-lite86:
       build_type: cargo
       targets:
-      - 0.2.16
+        - 0.2.16
       type: cratesio
     proc-macro-hack:
       build_type: cargo
       targets:
-      - 0.5.19
+        - 0.5.19
       type: cratesio
     proc-macro2:
       build_type: cargo
       targets:
-      - 1.0.39
+        - 1.0.39
       type: cratesio
     quote:
       build_type: cargo
       targets:
-      - 1.0.18
+        - 1.0.18
       type: cratesio
     rand:
       build_type: cargo
       targets:
-      - 0.8.5
+        - 0.8.5
       type: cratesio
     rand_chacha:
       build_type: cargo
       targets:
-      - 0.3.1
+        - 0.3.1
       type: cratesio
     rand_core:
       build_type: cargo
       targets:
-      - 0.6.3
+        - 0.6.3
       type: cratesio
     rayon:
       build_type: cargo
       targets:
-      - 1.6.1
+        - 1.6.1
       type: cratesio
     regex:
       build_type: cargo
       targets:
-      - 1.5.6
+        - 1.5.6
       type: cratesio
     regex-syntax:
       build_type: cargo
       targets:
-      - 0.6.26
+        - 0.6.26
       type: cratesio
     rustc_version:
       build_type: cargo
       targets:
-      - 0.4.0
+        - 0.4.0
       type: cratesio
     ryu:
       build_type: cargo
       targets:
-      - 1.0.10
+        - 1.0.10
       type: cratesio
     scopeguard:
       build_type: cargo
       targets:
-      - 1.1.0
+        - 1.1.0
       type: cratesio
     semver:
       build_type: cargo
       targets:
-      - 1.0.9
+        - 1.0.9
       type: cratesio
     semver-parser:
       build_type: cargo
       targets:
-      - 0.10.2
+        - 0.10.2
       type: cratesio
     serde:
       build_type: cargo
       targets:
-      - 1.0.137
+        - 1.0.137
       type: cratesio
     serde_derive:
       build_type: cargo
       targets:
-      - 1.0.137
+        - 1.0.137
       type: cratesio
     serde_json:
       build_type: cargo
       targets:
-      - 1.0.81
+        - 1.0.81
       type: cratesio
     slab:
       build_type: cargo
       targets:
-      - 0.4.6
+        - 0.4.6
       type: cratesio
     smallvec:
       build_type: cargo
       targets:
-      - 1.8.0
+        - 1.8.0
       type: cratesio
     socket2:
       build_type: cargo
       targets:
-      - 0.4.4
+        - 0.4.4
       type: cratesio
     strsim:
       build_type: cargo
       targets:
-      - 0.10.0
+        - 0.10.0
       type: cratesio
     subtle:
       build_type: cargo
       targets:
-      - 2.4.1
+        - 2.4.1
       type: cratesio
     syn:
       build_type: cargo
       targets:
-      - 1.0.96
+        - 1.0.96
       type: cratesio
     termcolor:
       build_type: cargo
       targets:
-      - 1.1.3
+        - 1.1.3
       type: cratesio
     textwrap:
       build_type: cargo
       targets:
-      - 0.15.0
+        - 0.15.0
       type: cratesio
     thiserror:
       build_type: cargo
       targets:
-      - 1.0.31
+        - 1.0.31
       type: cratesio
     thiserror-impl:
       build_type: cargo
       targets:
-      - 1.0.31
+        - 1.0.31
       type: cratesio
     thread_local:
       build_type: cargo
       targets:
-      - 1.1.4
+        - 1.1.4
       type: cratesio
     time:
       build_type: cargo
       targets:
-      - 0.3.9
+        - 0.3.9
       type: cratesio
     tokio:
       build_type: cargo
       targets:
-      - 1.19.2
+        - 1.19.2
       type: cratesio
     toml:
       build_type: cargo
       targets:
-      - 0.5.9
+        - 0.5.9
       type: cratesio
     typenum:
       build_type: cargo
       targets:
-      - 1.15.0
+        - 1.15.0
       type: cratesio
     unicode-bidi:
       build_type: cargo
       targets:
-      - 0.3.8
+        - 0.3.8
       type: cratesio
     unicode-normalization:
       build_type: cargo
       targets:
-      - 0.1.19
+        - 0.1.19
       type: cratesio
     unicode-segmentation:
       build_type: cargo
       targets:
-      - 1.9.0
+        - 1.9.0
       type: cratesio
     unicode-width:
       build_type: cargo
       targets:
-      - 0.1.9
+        - 0.1.9
       type: cratesio
     unicode-xid:
       build_type: cargo
       targets:
-      - 0.2.3
+        - 0.2.3
       type: cratesio
     url:
       build_type: cargo
       targets:
-      - 2.2.2
+        - 2.2.2
       type: cratesio
     vec_map:
       build_type: cargo
       targets:
-      - 0.8.2
+        - 0.8.2
       type: cratesio
     version_check:
       build_type: cargo
       targets:
-      - 0.9.4
+        - 0.9.4
       type: cratesio
     wide:
       build_type: cargo
       targets:
-      - 0.7.4
+        - 0.7.4
       type: cratesio
     winapi:
       build_type: cargo
       targets:
-      - 0.3.9
+        - 0.3.9
       type: cratesio
   zig:
     nightly:
@@ -2644,11 +2645,11 @@ libraries:
         method: nightlyclone
         repo: MasterQ32/zig-args
         targets:
-        - trunk
+          - trunk
         type: github
     zig-args:
       check_file: README.md
       repo: MasterQ32/zig-args
       targets:
-      - '0.1'
+        - "0.1"
       type: github
