@@ -11,6 +11,7 @@ on:
         options:
         - gcc
         - gcc-cross
+        - go
         - clang
         - misc
         - ocaml
