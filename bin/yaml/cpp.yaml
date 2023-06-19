@@ -804,6 +804,18 @@ compilers:
             chmod +x installer.bin
             ./installer.bin --unattendedmodeui none --mode unattended --prefix .
             rm installer.bin
+    intel-os-cpp:
+      type: script
+      dir: "intel-os-cpp-{name}"
+      check_exe: bin/clang++ --version
+      check_stderr_on_stdout: true
+      targets:
+        - name: 2023.0618
+          fetch:
+            - https://github.com/intel/llvm/releases/download/sycl-nightly%2F20230618/dpcpp-compiler.tar.gz dpcpp-compiler.tar.gz
+          script: &intel-os-install-script |
+            mkdir {dir}
+            tar zxf dpcpp-compiler.tar.gz -C {dir} --strip-components=1
     intel-cpp:
       type: script
       dir: "intel-cpp-{name}"
