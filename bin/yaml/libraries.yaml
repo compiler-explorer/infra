@@ -1596,7 +1596,9 @@ libraries:
       - -DFEATURE_relocatable=ON
       lib_type: shared
       make_targets:
-      - all
+      - rcc
+      - tracegen
+      - Core
       make_utility: ninja
       sharedliblink:
       - Qt6Core

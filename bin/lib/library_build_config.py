@@ -18,6 +18,7 @@ class LibraryBuildConfig:
         self.description = ""
         self.configure_flags = self.config_get("configure_flags", [])
         self.prebuild_script = self.config_get("prebuild_script", [])
+        self.postbuild_script = self.config_get("postbuild_script", [])
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])

@@ -470,11 +470,15 @@ class LibraryBuilder:
                     f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
                     f.write("fi\n")
 
-            for lib in self.buildconfig.staticliblink:
-                f.write(f"find . -iname 'lib{lib}*.a' -type f -exec mv {{}} . \\;\n")
+            if not self.buildconfig.package_install:
+                for lib in self.buildconfig.staticliblink:
+                    f.write(f"find . -iname 'lib{lib}*.a' -type f -exec mv {{}} . \\;\n")
 
-            for lib in self.buildconfig.sharedliblink:
-                f.write(f"find . -iname 'lib{lib}*.so*' -type f,l -exec mv {{}} . \\;\n")
+                for lib in self.buildconfig.sharedliblink:
+                    f.write(f"find . -iname 'lib{lib}*.so*' -type f,l -exec mv {{}} . \\;\n")
+
+            for line in self.buildconfig.postbuild_script:
+                f.write(f"{line}\n")
 
         if self.buildconfig.lib_type == "cshared":
             self.setCurrentConanBuildParameters(
@@ -606,8 +610,12 @@ class LibraryBuilder:
 
         return filesfound
 
-    def executeconanscript(self, buildfolder, arch, stdlib):
-        filesfound = self.countValidLibraryBinaries(buildfolder, arch, stdlib)
+    def executeconanscript(self, buildfolder, install_folder, arch, stdlib):
+        if self.buildconfig.package_install:
+            filesfound = self.countValidLibraryBinaries(Path(install_folder) / "lib", arch, stdlib)
+        else:
+            filesfound = self.countValidLibraryBinaries(buildfolder, arch, stdlib)
+
         if filesfound != 0:
             if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
                 self.logger.info("Export succesful")
@@ -864,7 +872,7 @@ class LibraryBuilder:
         if build_status == BuildStatus.Ok:
             self.writeconanscript(build_folder)
             if not self.install_context.dry_run:
-                build_status = self.executeconanscript(build_folder, arch, stdlib)
+                build_status = self.executeconanscript(build_folder, install_folder, arch, stdlib)
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
                     self.set_as_uploaded(build_folder)
