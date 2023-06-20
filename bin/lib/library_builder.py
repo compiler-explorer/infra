@@ -429,7 +429,8 @@ class LibraryBuilder:
                     f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
                     f.write("fi\n")
 
-                f.write("cmake --install . > ceinstall_0.txt 2>&1\n")
+                if self.buildconfig.package_install:
+                    f.write("cmake --install . > ceinstall_0.txt 2>&1\n")
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
                     f.write("make clean\n")
