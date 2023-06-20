@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -15,6 +16,8 @@ from lib.rust_library_builder import RustLibraryBuilder
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
+
+SimpleJsonType = (int, float, str, bool)
 
 
 class Installable:
@@ -47,6 +50,12 @@ class Installable:
         self.after_stage_script = self.config_get("after_stage_script", [])
         self._logger = logging.getLogger(self.name)
         self.install_path_symlink = self.config_get("symlink", False)
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        return {key: value for key, value in self.__dict__.items() if isinstance(value, SimpleJsonType)}
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_json_dict())
 
     def _setup_check_exe(self, path_name: str) -> None:
         self.check_env = dict([x.replace("%PATH%", path_name).split("=", 1) for x in self.config_get("check_env", [])])
@@ -188,10 +197,9 @@ class Installable:
         self._logger.info("Squashing %s...", source_folder)
         self.install_context.check_call(
             [
-                "/usr/bin/mksquashfs",
+                "mksquashfs",
                 str(source_folder),
                 str(temp_image),
-                "-all-root",
                 "-progress",
                 "-comp",
                 "zstd",
