@@ -19,7 +19,7 @@ import requests
 from lib.staging import StagingDir
 from lib.installation_context import InstallationContext
 
-from lib.rust_crates import RustCrate
+from lib.rust_crates import RustCrate, get_builder_user_agent_id
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
@@ -412,11 +412,13 @@ class RustLibraryBuilder:
             if self.buildconfig.repo:
                 self.clone_branch(source_folder, staging)
             else:
-                crate = RustCrate(self.libname, self.target_name)
+                crate = RustCrate(self.libname, self.target_name, get_builder_user_agent_id())
                 url = crate.GetDownloadUrl()
                 tar_cmd = ["tar", "zxf", "-"]
                 tar_cmd += ["--strip-components", "1"]
-                self.install_context.fetch_url_and_pipe_to(staging, f"{url}", tar_cmd, source_folder)
+                self.install_context.fetch_url_and_pipe_to(
+                    staging, url, command=tar_cmd, subdir=source_folder, agent=get_builder_user_agent_id()
+                )
 
     def get_source_folder(self, staging: StagingDir):
         source_folder = os.path.join(staging.path, f"source_{self.libname}_{self.target_name}")
