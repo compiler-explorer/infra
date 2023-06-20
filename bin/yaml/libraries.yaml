@@ -72,6 +72,7 @@ libraries:
       - 1.79.0
       - 1.80.0
       - 1.81.0
+      - 1.82.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://boostorg.jfrog.io/artifactory/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
@@ -149,6 +150,13 @@ libraries:
       - 1.2.2
       - 1.2.1
       - 1.2.0
+      type: github
+    cgal:
+      check_file: README.md
+      repo: CGAL/cgal
+      target_prefix: v
+      targets:
+      - 5.5.2
       type: github
     cli11:
       build_type: none
@@ -388,6 +396,7 @@ libraries:
       - 8.1.1
       - 9.0.0
       - 9.1.0
+      - 10.0.0
       type: github
     gemmlowp:
       build_type: none
@@ -520,6 +529,14 @@ libraries:
       targets:
       - 1.9.4
       - 1.9.5
+      type: github
+    kokkos:
+      build_type: cmake
+      make_targets:
+      - all
+      repo: kokkos/kokkos
+      targets:
+      - 4.0.01
       type: github
     kumi:
       check_file: README.md
@@ -686,6 +703,7 @@ libraries:
       targets:
       - 14.0.0
       - 14.0.5
+      - 16.0.0
       type: s3tarballs
     mp-units:
       check_file: README.md
@@ -697,6 +715,7 @@ libraries:
       - v0.5.0
       - v0.6.0
       - v0.7.0
+      - v0.8.0
       type: github
     nightly:
       abseil:
@@ -1201,7 +1220,15 @@ libraries:
         subdir: libs/llvm
         symlink: libs/llvm/{name}
         targets:
-        - trunk
+          - trunk
+        type: nightly
+      mlir:
+        check_file: include/mlir/InitAllPasses.h
+        path_name: libs/mlir/{name}
+        s3_path_prefix: mlir-{name}
+        subdir: libs/mlir/{name}
+        targets:
+          - trunk
         type: nightly
       magic_enum:
         check_file: include/magic_enum.hpp
@@ -1379,6 +1406,14 @@ libraries:
         targets:
         - trunk
         type: github
+      thinkcell:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: think-cell/think-cell-library
+        targets:
+        - trunk
+        type: github
       toml11:
         build_type: none
         check_file: toml.hpp
@@ -1456,13 +1491,69 @@ libraries:
         targets:
         - trunk
         type: github
+      ztdcuneicode:
+        build_type: cmake
+        make_targets:
+        - ztd.cuneicode
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/cuneicode
+        targets:
+        - main
+        type: github
+        staticliblink:
+          - ztd.cuneicode
+      ztdencodingtables:
+        build_type: cmake
+        make_targets:
+        - ztd.encoding_tables
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/encoding_tables
+        targets:
+        - main
+        type: github
+        staticliblink:
+          - ztd.encoding_tables
+      ztdidk:
+        build_type: cmake
+        make_targets:
+        - ztd.idk
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/idk
+        targets:
+        - main
+        type: github
+        staticliblink:
+          - ztd.idk
+      ztdplatform:
+        build_type: cmake
+        make_targets:
+        - ztd.platform
+        check_file: README.md
+        method: nightlyclone
+        repo: soasis/platform
+        targets:
+        - main
+        type: github
+        staticliblink:
+          - ztd.platform
+      ztdstaticcontainers:
+        build_type: none
+        check_file: LICENSE
+        method: nightlyclone
+        repo: soasis/static_containers
+        targets:
+        - main
+        type: github
       ztdtext:
         build_type: none
-        check_file: include/ztd/text.hpp
+        check_file: README.md
         method: nightlyclone
         repo: soasis/text
         targets:
-        - trunk
+        - main
         type: github
       zug:
         build_type: none
@@ -1652,6 +1743,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '11'
       - '10'
       - '9'
       - '8'
@@ -1725,6 +1817,9 @@ libraries:
       - '39'
       - '40'
       - '41'
+      - '42'
+      - '43'
+      - '44'
       type: github
     tts:
       check_file: README.md

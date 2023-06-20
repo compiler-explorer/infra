@@ -108,6 +108,13 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
     set_update_message(cfg, "")
 
 
+@environment.command(name="clearmsg")
+@click.pass_obj
+def update_clearmsg(cfg: Config):
+    """Clears the 'Site is being updated' message."""
+    set_update_message(cfg, "")
+
+
 @environment.command(name="stop")
 @click.pass_obj
 def environment_stop(cfg: Config):

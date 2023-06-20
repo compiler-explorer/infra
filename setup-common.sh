@@ -18,8 +18,12 @@ wait_for_apt
 sleep 5
 wait_for_apt
 
+# Disable unattended upgrades
+apt purge -y --auto-remove unattended-upgrades
+
 apt-get -y update
-apt-get -y upgrade --force-yes
+apt-get -y dist-upgrade --force-yes
+
 apt-get -y install \
   autofs \
   jq \
@@ -29,6 +33,7 @@ apt-get -y install \
   libwww-perl \
   nfs-common \
   python3.9 \
+  python-is-python3 \
   python3-pip \
   python3.9-venv \
   qemu-user-static \

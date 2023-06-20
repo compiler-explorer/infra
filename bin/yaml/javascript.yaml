@@ -1,0 +1,14 @@
+compilers:
+  javascript:
+    d8:
+      type: s3tarballs
+      check_exe: d8 --help
+      targets:
+        - '11.3'
+    nightly:
+      if: nightly
+      d8:
+        type: nightly
+        check_exe: d8 --help
+        targets:
+          - name: trunk

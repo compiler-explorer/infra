@@ -81,6 +81,8 @@ compilers:
         - 1.66.0
         - 1.67.0
         - 1.68.0
+        - 1.69.0
+        - 1.70.0
       nightly:
         if: nightly
         targets:
@@ -103,3 +105,10 @@ compilers:
           check_exe: bin/mrustc --version
           targets:
             - master
+  rust-linux:
+    type: s3tarballs
+    subdir: rust-linux
+    s3_path_prefix: rust-linux-{name}
+    check_file: rust/libkernel.rmeta
+    targets:
+    - '6.3'

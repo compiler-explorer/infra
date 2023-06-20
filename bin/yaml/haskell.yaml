@@ -37,3 +37,9 @@ compilers:
           deb: 10
         - name: 9.2.2
           deb: 10
+        - name: 9.4.5
+          deb: 10
+          dir: ghc-{name}-x86_64-unknown-linux
+        - name: 9.6.1
+          deb: 10
+          dir: ghc-{name}-x86_64-unknown-linux

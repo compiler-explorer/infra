@@ -11,6 +11,7 @@ on:
         options:
         - gcc
         - gcc-cross
+        - go
         - clang
         - misc
         - ocaml
@@ -18,6 +19,9 @@ on:
         - ispc
         - cobol
         - d8
+        - vala
+        - dotnet
+        - rust-linux
       version:
         description: The version to build (or architecture and version for cross)
         required: true

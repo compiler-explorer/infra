@@ -54,8 +54,11 @@ compilers:
           - 11.1.0
           - 11.2.0
           - 11.3.0
+          - 11.4.0
           - 12.1.0
           - 12.2.0
+          - 12.3.0
+          - 13.1.0
     cross:
       type: s3tarballs
       arch_prefix:
@@ -100,8 +103,11 @@ compilers:
               - 11.1.0
               - 11.2.0
               - 11.3.0
+              - 11.4.0
               - 12.1.0
               - 12.2.0
+              - 12.3.0
+              - 13.1.0
             nightly:
               if: nightly
               type: nightly
@@ -194,7 +200,7 @@ compilers:
               url: https://github.com/wpilibsuite/opensdk/releases/download/v{year}-{build}/cortexa9_vfpv3-roborio-academic-{year}-x86_64-linux-gnu-Toolchain-{name}.tgz
               targets:
                 - year: 2023
-                  build: 4
+                  build: 9
                   name: 12.1.0
               older:
                 check_exe: roborio/bin/arm-frc{year}-linux-gnueabi-g++ --version
@@ -250,6 +256,12 @@ compilers:
             - name: 12.2.0
               untar_dir: "gcc-{name}"
               check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            - name: 12.3.0
+              untar_dir: "gcc-{name}"
+              check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            - name: 13.1.0
+              untar_dir: "gcc-{name}"
+              check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
 
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
@@ -275,8 +287,11 @@ compilers:
             - 11.1.0
             - 11.2.0
             - 11.3.0
+            - 11.4.0
             - 12.1.0
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
           nightly:
             if: nightly
             type: nightly
@@ -288,6 +303,8 @@ compilers:
           arch_prefix: "bpf-unknown-none"
           check_exe: "{arch_prefix}/bin/bpf-unknown-g++ --version"
           subdir: bpf
+          targets:
+            - 13.1.0
           nightly:
             if: nightly
             type: nightly
@@ -305,6 +322,8 @@ compilers:
                 - 11.2.0
                 - 12.1.0
                 - 12.2.0
+                - 12.3.0
+                - 13.1.0
             mipsel:
               subdir: mipsel
               targets:
@@ -313,6 +332,10 @@ compilers:
                   arch_prefix: "{subdir}-multilib-linux-gnu"
                 - name: 12.2.0
                   arch_prefix: "{subdir}-multilib-linux-gnu"
+                - name: 12.3.0
+                  arch_prefix: "{subdir}-multilib-linux-gnu"
+                - name: 13.1.0
+                  arch_prefix: "{subdir}-multilib-linux-gnu"
             mips64:
               subdir: mips64
               targets:
@@ -320,6 +343,8 @@ compilers:
                 - 11.2.0
                 - 12.1.0
                 - 12.2.0
+                - 12.3.0
+                - 13.1.0
             mips64el:
               subdir: mips64el
               targets:
@@ -327,6 +352,10 @@ compilers:
                 - name: 12.1.0
                   arch_prefix: "{subdir}-multilib-linux-uclibc"
                 - name: 12.2.0
+                  arch_prefix: "{subdir}-multilib-linux-uclibc"
+                - name: 12.3.0
+                  arch_prefix: "{subdir}-multilib-linux-uclibc"
+                - name: 13.1.0
                   arch_prefix: "{subdir}-multilib-linux-uclibc"
 
           - type: tarballs
@@ -348,6 +377,12 @@ compilers:
                 untar_dir: nanomips-linux-musl/2021.11-02
                 url: https://github.com/MediaTek-Labs/nanomips-gnu-toolchain/releases/download/nanoMIPS-2021.11-02/MediaTek.GNU.Tools.2021.11-02.for.nanoMIPS.Linux.CentOS-6.x86_64.tar.gz
                 compression: gz
+        m68k:
+          subdir: m68k
+          arch_prefix: m68k-unknown-elf
+          check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+          targets:
+            - 13.1.0
         mrisc32:
           nightly:
             if: nightly
@@ -394,8 +429,18 @@ compilers:
             - 10.3.0
             - 11.2.0
             - 11.3.0
+            - 11.4.0
             - 12.1.0
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
+          nightly:
+            if: nightly
+            type: nightly
+            compiler_name: riscv64-gcc-trunk
+            path_name_prefix: gcc-trunk
+            targets:
+              - trunk
         riscv32:
           arch_prefix: "riscv32-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -408,9 +453,22 @@ compilers:
             - 10.3.0
             - 11.2.0
             - 11.3.0
+            - 11.4.0
             - 12.1.0
             - name: 12.2.0
               arch_prefix: "riscv32-unknown-linux-gnu"
+            - name: 12.3.0
+              arch_prefix: "riscv32-unknown-linux-gnu"
+            - name: 13.1.0
+              arch_prefix: "riscv32-unknown-linux-gnu"
+          nightly:
+            if: nightly
+            type: nightly
+            compiler_name: riscv32-gcc-trunk
+            arch_prefix: "riscv32-unknown-linux-gnu"
+            path_name_prefix: gcc-trunk
+            targets:
+              - trunk
         k1:
           arch_prefix: "k1-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -448,6 +506,8 @@ compilers:
             - 11.2.0
             - 12.1.0
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
         sh:
           arch_prefix: "sh-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -456,36 +516,48 @@ compilers:
             - 4.9.4
             - 9.5.0
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
         c6x:
           arch_prefix: "tic6x-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: c6x
           targets:
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
         sparc:
           arch_prefix: "sparc-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: sparc
           targets:
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
         sparc64:
           arch_prefix: "sparc64-multilib-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: sparc64
           targets:
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
         sparc-leon:
           arch_prefix: "sparc-leon-linux-uclibc"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: sparc-leon
           targets:
-            - 12.2.0
+            - 12.2.0-1
+            - 12.3.0
+            - 13.1.0
         loongarch64:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
           subdir: loongarch64
           targets:
             - 12.2.0
+            - 12.3.0
+            - 13.1.0
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -497,6 +569,8 @@ compilers:
               - name: 11.2.0
               - name: 12.1.0
               - name: 12.2.0
+              - name: 12.3.0
+              - name: 13.1.0
           powerpc64:
             subdir: powerpc64
             targets:
@@ -505,6 +579,8 @@ compilers:
               - 11.2.0
               - 12.1.0
               - 12.2.0
+              - 12.3.0
+              - 13.1.0
           powerpc64le:
             subdir: powerpc64le
             targets:
@@ -514,6 +590,8 @@ compilers:
               - 11.2.0
               - 12.1.0
               - 12.2.0
+              - 12.3.0
+              - 13.1.0
         vax:
           subdir: vax
           type: s3tarballs
@@ -525,12 +603,14 @@ compilers:
             - name: 10.4.0
         xtensa:
           subdir: xtensa
-          url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-gcc{base}-esp-{name}-linux-amd64.tar.{compression}
+          url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-{release_name}-{host_type}.tar.{compression}
           untar_dir: "{arch_prefix}"
-          dir: "xtensa/{arch_prefix}-gcc{base}-esp-{name}"
+          dir: "xtensa/{arch_prefix}-{release_name}"
           check_exe: "bin/{arch_prefix}-g++ --version"
           type: tarballs
           compression: gz
+          host_type: linux-amd64
+          release_name: "gcc{base}-esp-{name}"
           esp32:
             arch_prefix: xtensa-esp32-elf
             targets:
@@ -548,6 +628,11 @@ compilers:
                 base: "8_4_0"
               - name: 2022r1
                 base: "11_2_0"
+                compression: xz
+              - name: 12.2.0_20230208
+                base: "12.2.0_20230208"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
                 compression: xz
           esp32s2:
             arch_prefix: xtensa-esp32s2-elf
@@ -567,6 +652,11 @@ compilers:
               - name: 2022r1
                 base: "11_2_0"
                 compression: xz
+              - name: 12.2.0_20230208
+                base: "12.2.0_20230208"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
+                compression: xz
           esp32s3:
             arch_prefix: xtensa-esp32s3-elf
             targets:
@@ -578,6 +668,11 @@ compilers:
                 base: "8_4_0"
               - name: 2022r1
                 base: "11_2_0"
+                compression: xz
+              - name: 12.2.0_20230208
+                base: "12.2.0_20230208"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
                 compression: xz
     clang:
       - type: tarballs
@@ -755,6 +850,14 @@ compilers:
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/19049/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
+        - name: 2023.0.0.25393
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/19123/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2023.1.0.46347
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/89283df8-c667-47b0-b7e1-c4573e37bd3e/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
     intel-fortran:
       type: script
       dir: "intel-fortran-{name}"
@@ -793,6 +896,14 @@ compilers:
         - name: 2022.2.1.16992
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/irc_nas/18998/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2023.0.0.25394
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/irc_nas/19105/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2023.1.0.46348
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/150e0430-63df-48a0-8469-ecebff0a1858/l_fortran-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
     nvhpc-sdk:
       type: script
@@ -852,6 +963,22 @@ compilers:
           ctk_ver: "12.0"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_23_3
+          arch: x86_64
+          version: "23.3"
+          dot_removed_version: "233"
+          year: "2023"
+          ctk_ver: "12.0"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_23_5
+          arch: x86_64
+          version: "23.5"
+          dot_removed_version: "235"
+          year: "2023"
+          ctk_ver: "12.1"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
     nightly:
       if: nightly
       gcc:
@@ -891,6 +1018,12 @@ compilers:
             check_exe: bin/flang
             after_stage_script:
               - chmod 0755 bin/flang
+      mlir:
+        type: nightly
+        dir: "mlir-{name}"
+        check_exe: bin/mlir-translate --version
+        targets:
+          - trunk
       tinycc:
         type: nightly
         check_exe: bin/tcc -v

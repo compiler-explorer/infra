@@ -1,4 +1,5 @@
 import contextlib
+import csv
 import glob
 import hashlib
 import itertools
@@ -23,6 +24,8 @@ from lib.library_build_config import LibraryBuildConfig
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
+compiler_popularity_treshhold = 1000
+popular_compilers: Dict[str, Any] = defaultdict(lambda: [])
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
@@ -91,6 +94,7 @@ class LibraryBuilder:
         sourcefolder: str,
         install_context,
         buildconfig: LibraryBuildConfig,
+        popular_compilers_only: bool,
     ):
         self.logger = logger
         self.language = language
@@ -111,6 +115,8 @@ class LibraryBuilder:
         else:
             [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(self.language, self.logger)
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
+
+        self.check_compiler_popularity = popular_compilers_only
 
         self.completeBuildConfig()
 
@@ -472,39 +478,35 @@ class LibraryBuilder:
             f.write("#!/bin/sh\n\n")
             f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
 
-    def writeconanfile(self, buildfolder):
-        libsum = ""
+    def write_conan_file_to(self, f: TextIO) -> None:
+        libsum = ",".join(
+            f'"{lib}"' for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink)
+        )
+
+        f.write("from conans import ConanFile, tools\n")
+        f.write(f"class {self.libname}Conan(ConanFile):\n")
+        f.write(f'    name = "{self.libname}"\n')
+        f.write(f'    version = "{self.target_name}"\n')
+        f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
+        f.write(f'    description = "{self.buildconfig.description}"\n')
+        f.write(f'    url = "{self.buildconfig.url}"\n')
+        f.write('    license = "None"\n')
+        f.write('    author = "None"\n')
+        f.write("    topics = None\n")
+        f.write("    def package(self):\n")
+
         for lib in self.buildconfig.staticliblink:
-            libsum += f'"{lib}",'
+            f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
 
         for lib in self.buildconfig.sharedliblink:
-            libsum += f'"{lib}",'
+            f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
 
-        libsum = libsum[:-1]
+        f.write("    def package_info(self):\n")
+        f.write(f"        self.cpp_info.libs = [{libsum}]\n")
 
+    def writeconanfile(self, buildfolder):
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
-            f.write("from conans import ConanFile, tools\n")
-            f.write(f"class {self.libname}Conan(ConanFile):\n")
-            f.write(f'    name = "{self.libname}"\n')
-            f.write(f'    version = "{self.target_name}"\n')
-            f.write('    settings = "os", "compiler", "build_type", "arch", "stdver", "flagcollection"\n')
-            f.write(f'    description = "{self.buildconfig.description}"\n')
-            f.write(f'    url = "{self.buildconfig.url}"\n')
-            f.write('    license = "None"\n')
-            f.write('    author = "None"\n')
-            f.write("    topics = None\n")
-            f.write("    def package(self):\n")
-
-            for lib in self.buildconfig.staticliblink:
-                f.write(f'        self.copy("lib{lib}*.a", dst="lib", keep_path=False)\n')
-
-            for lib in self.buildconfig.sharedliblink:
-                f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
-
-            for copyline in self.buildconfig.package_extra_copy:
-                f.write(f"        {copyline}\n")
-            f.write("    def package_info(self):\n")
-            f.write(f"        self.cpp_info.libs = [{libsum}]\n")
+            self.write_conan_file_to(f)
 
     def countValidLibraryBinaries(self, buildfolder, arch, stdlib):
         filesfound = 0
@@ -843,10 +845,77 @@ class LibraryBuilder:
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
 
+    def get_compiler_type(self, compiler):
+        compilerType = ""
+        if "compilerType" in self.compilerprops[compiler]:
+            compilerType = self.compilerprops[compiler]["compilerType"]
+        else:
+            raise RuntimeError(f"Something is wrong with {compiler}")
+
+        if self.compilerprops[compiler]["compilerType"] == "clang-intel":
+            # hack for icpx so we don't get duplicate builds
+            compilerType = "gcc"
+
+        return compilerType
+
+    def download_compiler_usage_csv(self):
+        url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
+        with tempfile.TemporaryFile() as fd:
+            request = requests.get(url, stream=True, timeout=_TIMEOUT)
+            if not request.ok:
+                raise RuntimeError(f"Fetch failure for {url}: {request}")
+            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
+                fd.write(chunk)
+            fd.flush()
+            fd.seek(0)
+
+            reader = csv.DictReader(line.decode("utf-8") for line in fd.readlines())
+            for row in reader:
+                popular_compilers[row["compiler"]] = int(row["times_used"])
+
+    def is_popular_enough(self, compiler):
+        if len(popular_compilers) == 0:
+            self.logger.debug("downloading compiler popularity csv")
+            self.download_compiler_usage_csv()
+
+        if not compiler in popular_compilers:
+            return False
+
+        if popular_compilers[compiler] < compiler_popularity_treshhold:
+            return False
+
+        return True
+
+    def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
+        if checkcompiler != "" and compiler != checkcompiler:
+            return False
+
+        if compiler in self.buildconfig.skip_compilers:
+            return False
+
+        compilerType = self.get_compiler_type(compiler)
+
+        exe = self.compilerprops[compiler]["exe"]
+
+        if buildfor == "allclang" and compilerType != "clang":
+            return False
+        elif buildfor == "allicc" and "/icc" not in exe:
+            return False
+        elif buildfor == "allgcc" and compilerType != "":
+            return False
+
+        if self.check_compiler_popularity:
+            if not self.is_popular_enough(compiler):
+                self.logger.info(f"compiler {compiler} is not popular enough")
+                return False
+
+        return True
+
     def makebuild(self, buildfor):
         builds_failed = 0
         builds_succeeded = 0
         builds_skipped = 0
+        checkcompiler = ""
 
         if buildfor != "":
             self.forcebuild = True
@@ -854,43 +923,28 @@ class LibraryBuilder:
         if self.buildconfig.lib_type == "cshared":
             checkcompiler = self.buildconfig.use_compiler
             if checkcompiler not in self.compilerprops:
-                self.logger.error(f"Unknown compiler {checkcompiler}")
+                self.logger.error(
+                    f"Unknown compiler {checkcompiler} to build cshared lib {self.buildconfig.sharedliblink}"
+                )
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
             self.forcebuild = True
             checkcompiler = ""
-        else:
+        elif buildfor != "":
             checkcompiler = buildfor
             if checkcompiler not in self.compilerprops:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
 
         for compiler in self.compilerprops:
-            if checkcompiler != "" and compiler != checkcompiler:
+            if not self.should_build_with_compiler(compiler, checkcompiler, buildfor):
+                self.logger.debug(f"Skipping {compiler}")
                 continue
 
-            if compiler in self.buildconfig.skip_compilers:
-                self.logger.info(f"Skipping {compiler}")
-                continue
-
-            if "compilerType" in self.compilerprops[compiler]:
-                compilerType = self.compilerprops[compiler]["compilerType"]
-            else:
-                raise RuntimeError(f"Something is wrong with {compiler}")
-
-            if self.compilerprops[compiler]["compilerType"] == "clang-intel":
-                # hack for icpx so we don't get duplicate builds
-                compilerType = "gcc"
+            compilerType = self.get_compiler_type(compiler)
 
             exe = self.compilerprops[compiler]["exe"]
-
-            if buildfor == "allclang" and compilerType != "clang":
-                continue
-            elif buildfor == "allicc" and "/icc" not in exe:
-                continue
-            elif buildfor == "allgcc" and compilerType != "":
-                continue
 
             options = self.compilerprops[compiler]["options"]
 
