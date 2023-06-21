@@ -82,6 +82,12 @@ compilers:
         check_file: chibicc
         targets:
           - main
+      movfuscator:
+        type: nightly
+        s3_name: movfuscator-{{name}}
+        check_exe: bin/movcc --version
+        targets:
+          - trunk
     cross:
       type: s3tarballs
       arch_prefix:
