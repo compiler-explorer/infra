@@ -532,10 +532,9 @@ libraries:
       type: github
     kokkos:
       build_type: cmake
-      extra_cmake_arg:
-      - -DCMAKE_INSTALL_PREFIX="."
       make_targets:
-      - install
+      - all
+      package_install: True
       repo: kokkos/kokkos
       targets:
       - 4.0.01
