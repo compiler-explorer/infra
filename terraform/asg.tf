@@ -218,6 +218,18 @@ resource "aws_autoscaling_group" "gpu" {
         launch_template_id = aws_launch_template.CompilerExplorer-prod-gpu.id
         version            = "$Latest"
       }
+      override {
+        instance_type = "g4dn.xlarge"
+      }
+      override {
+        instance_type = "g5g.2xlarge"
+      }
+      override {
+        instance_type = "g5g.xlarge"
+      }
+      override {
+        instance_type = "g4dn.2xlarge"
+      }
     }
   }
 
