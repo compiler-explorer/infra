@@ -85,7 +85,7 @@ compilers:
       movfuscator:
         type: nightly
         s3_name: movfuscator-{{name}}
-        check_exe: bin/movcc --version
+        check_exe: build/lcc --version
         targets:
           - trunk
     cross:
