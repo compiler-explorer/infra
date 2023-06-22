@@ -1655,9 +1655,7 @@ libraries:
       - -DFEATURE_gui=OFF
       lib_type: shared
       make_targets:
-      - rcc
-      - tracegen
-      - Core
+      - all
       make_utility: ninja
       sharedliblink:
       - Qt6Core
