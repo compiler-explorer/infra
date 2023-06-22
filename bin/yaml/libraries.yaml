@@ -1652,8 +1652,7 @@ libraries:
       - -DQT_BUILD_TESTS_BY_DEFAULT=OFF
       - -DFEATURE_rpath=ON
       - -DFEATURE_relocatable=ON
-      - -DFEATURE_opengl=OFF
-      - -DFEATURE_opengl_desktop=OFF
+      - -DFEATURE_gui=OFF
       lib_type: shared
       make_targets:
       - rcc
