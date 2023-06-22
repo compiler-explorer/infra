@@ -695,6 +695,7 @@ class LibraryBuilder:
         loggingfiles += glob.glob(buildfolder + "/cecmake*.txt")
         loggingfiles += glob.glob(buildfolder + "/ceconfiglog.txt")
         loggingfiles += glob.glob(buildfolder + "/cemake*.txt")
+        loggingfiles += glob.glob(buildfolder + "/ceinstall*.txt")
 
         logging_data = ""
         for logfile in loggingfiles:
