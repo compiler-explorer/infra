@@ -97,12 +97,21 @@ class InstallationContext:
         _LOGGER.debug("Fetching %s", url)
         return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
 
-    def fetch_to(self, url: str, fd: IO[bytes]) -> None:
+    def fetch_to(self, url: str, fd: IO[bytes], agent: str = "") -> None:
         _LOGGER.debug("Fetching %s", url)
-        if self.allow_unsafe_ssl:
-            request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
+
+        if agent:
+            headers = {"User-Agent": agent}
+
+            if self.allow_unsafe_ssl:
+                request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True, headers=headers)
+            else:
+                request = self.fetcher.get(url, stream=True, allow_redirects=True, headers=headers)
         else:
-            request = self.fetcher.get(url, stream=True, allow_redirects=True)
+            if self.allow_unsafe_ssl:
+                request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
+            else:
+                request = self.fetcher.get(url, stream=True, allow_redirects=True)
 
         if not request.ok:
             _LOGGER.error("Failed to fetch %s: %s", url, request)
@@ -124,14 +133,14 @@ class InstallationContext:
         fd.flush()
 
     def fetch_url_and_pipe_to(
-        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Union[Path, str] = "."
+        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Union[Path, str] = ".", agent: str = ""
     ) -> None:
         untar_dir = staging.path / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
         # We stream to a temporary file first before then piping this to the command
         # as sometimes the command can take so long the URL endpoint closes the door on us
         with tempfile.TemporaryFile() as fd:
-            self.fetch_to(url, fd)
+            self.fetch_to(url, fd, agent)
             fd.seek(0)
             _LOGGER.info("Piping to %s", shlex.join(command))
             subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
