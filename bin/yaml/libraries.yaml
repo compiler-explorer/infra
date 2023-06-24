@@ -536,6 +536,10 @@ libraries:
       - all
       package_install: True
       repo: kokkos/kokkos
+      staticliblink:
+      - kokkoscore
+      - kokkoscontainers
+      - kokkossimd
       targets:
       - 4.0.01
       type: github
