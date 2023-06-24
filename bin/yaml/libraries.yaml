@@ -534,7 +534,12 @@ libraries:
       build_type: cmake
       make_targets:
       - all
+      package_install: True
       repo: kokkos/kokkos
+      staticliblink:
+      - kokkoscore
+      - kokkoscontainers
+      - kokkossimd
       targets:
       - 4.0.01
       type: github
