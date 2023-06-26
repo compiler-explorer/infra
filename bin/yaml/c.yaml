@@ -85,6 +85,9 @@ compilers:
       movfuscator:
         type: nightly
         s3_name: movfuscator-{{name}}
+        check_env:
+          - MOVINCLUDE=/opt/compiler-explorer/movfuscator-trunk/build/include
+          - MOVGCCINCLUDE=/opt/compiler-explorer/movfuscator-trunk/build/gcc/include
         check_exe: build/lcc --version
         targets:
           - trunk
