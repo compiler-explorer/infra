@@ -82,6 +82,13 @@ compilers:
         check_file: chibicc
         targets:
           - main
+      movfuscator:
+        type: nightly
+        check_env:
+          - MOVBUILDDIR=/opt/compiler-explorer/movfuscator-trunk/build
+        check_exe: build/lcc --version
+        targets:
+          - trunk
     cross:
       type: s3tarballs
       arch_prefix:
