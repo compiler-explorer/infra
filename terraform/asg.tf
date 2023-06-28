@@ -199,7 +199,7 @@ resource "aws_autoscaling_group" "gpu" {
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
   max_size                  = 4
-  min_size                  = 1
+  min_size                  = 2
   name                      = "gpu"
   vpc_zone_identifier       = local.subnets
 
