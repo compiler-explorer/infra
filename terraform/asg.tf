@@ -222,12 +222,6 @@ resource "aws_autoscaling_group" "gpu" {
         instance_type = "g4dn.xlarge"
       }
       override {
-        instance_type = "g5g.2xlarge"
-      }
-      override {
-        instance_type = "g5g.xlarge"
-      }
-      override {
         instance_type = "g4dn.2xlarge"
       }
     }
