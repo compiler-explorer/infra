@@ -1,0 +1,20 @@
+name: Force Squashfs-ify a compiler
+
+on:
+  workflow_dispatch:
+    inputs:
+      squash:
+        description: Things to squash
+        default: ''
+        required: true
+jobs:
+  squash:
+    runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
+    steps:
+      - name: Start from a clean directory
+        uses: AutoModality/action-clean@v1.1.0
+      - uses: actions/checkout@v3
+      - name: Set up environment
+        run: make ce
+      - name: Squash ${{ github.event.inputs.squash }}
+        run: bin/ce_install squash --force ${{ github.event.inputs.squash }}
