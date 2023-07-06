@@ -429,6 +429,10 @@ libraries:
       repo: google/googletest
       targets:
       - release-1.10.0
+      - release-1.11.0
+      - release-1.12.0
+      - release-1.12.1
+      - v1.13.0
       type: github
     gsl:
       check_file: README.md
