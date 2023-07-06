@@ -724,7 +724,7 @@ compilers:
           - 16.0.0
     clang-assert:
       - type: tarballs
-        check_exe: bin/clang-cc --version
+        check_exe: bin/clang --version
         dir: clang-{name}-assert
         url: https://storage.yandexcloud.net/clang-assert/clang-{name}-assert.tar.xz
         compression: xz
