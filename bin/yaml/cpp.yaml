@@ -722,6 +722,46 @@ compilers:
           - 14.0.0
           - 15.0.0
           - 16.0.0
+    clang-assert:
+      - type: tarballs
+        check_exe: bin/clang-cc --version
+        dir: clang-{name}-assert
+        url: https://storage.yandexcloud.net/clang-assert/clang-{name}-assert.tar.xz
+        compression: xz
+        targets:
+          - name: 2.6.0
+      - type: tarballs
+        check_exe: bin/clang++ --version
+        dir: clang-{name}-assert
+        url: https://storage.yandexcloud.net/clang-assert/clang-{name}-assert.tar.xz
+        compression: xz
+        targets:
+          - name: 2.7.0
+          - name: 2.8.0
+          - name: 2.9.0
+          - name: 3.0.0
+          - name: 3.1.0
+          - name: 3.2.0
+          - name: 3.3.0
+          - name: 3.4.0
+          - name: 3.5.0
+          - name: 3.6.0
+          - name: 3.7.0
+          - name: 3.8.0
+          - name: 3.9.0
+          - name: 4.0.0
+          - name: 5.0.0
+          - name: 6.0.0
+          - name: 7.0.0
+          - name: 8.0.0
+          - name: 9.0.0
+          - name: 10.0.0
+          - name: 11.0.0
+          - name: 12.0.0
+          - name: 13.0.0
+          - name: 14.0.0
+          - name: 15.0.0
+          - name: 16.0.0
     clang-rocm:
       - type: s3tarballs
         dir:
