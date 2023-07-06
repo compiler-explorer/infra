@@ -208,7 +208,7 @@ resource "aws_autoscaling_group" "gpu" {
       on_demand_allocation_strategy            = "prioritized"
       // This base value is zero so we don't have any non-spot instances. We may wish to bump this if we have issues
       // getting spot capacity.
-      on_demand_base_capacity                  = 0
+      on_demand_base_capacity                  = 1
       on_demand_percentage_above_base_capacity = 0
       spot_allocation_strategy                 = "price-capacity-optimized"
       spot_instance_pools                      = 0
