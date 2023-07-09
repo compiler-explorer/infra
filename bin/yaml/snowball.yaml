@@ -10,4 +10,4 @@ compilers:
     check_exe: bin/snowball --version
     targets:
       - name: '0.0.7'
-        url: https://github.com/snowball-lang/snowball/releases/download/v0.0.7/snowball-linux-x86_64.tar.gz
+        url: https://github.com/snowball-lang/snowball/releases/download/v0.0.7-hotfix/snowball-ce-specific-x86_64.tar.gz
