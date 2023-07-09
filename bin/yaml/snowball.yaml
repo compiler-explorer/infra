@@ -1,0 +1,13 @@
+compilers:
+  snowball:
+    type: tarballs
+    compression: gz
+    dir: snowball-{name}
+    create_untar_dir: true
+    strip_components: 1
+    build: snowball-{name}-release
+    toolchain: cmake
+    check_exe: bin/snowball --version
+    targets:
+      - name: '0.0.7'
+        url: https://github.com/snowball-lang/snowball/releases/download/v0.0.7/snowball-linux-x86_64.tar.gz
