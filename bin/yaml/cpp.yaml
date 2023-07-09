@@ -745,14 +745,23 @@ compilers:
           - 10.0.0
           - 10.0.1
           - 11.0.0
+          - assertions-11.0.0
           - 11.0.1
+          - assertions-11.0.1
           - 12.0.0
+          - assertions-12.0.0
           - 12.0.1
+          - assertions-12.0.1
           - 13.0.0
+          - assertions-13.0.0
           - 13.0.1
+          - assertions-13.0.1
           - 14.0.0
+          - assertions-14.0.0
           - 15.0.0
+          - assertions-15.0.0
           - 16.0.0
+          - assertions-16.0.0
     clang-rocm:
       - type: s3tarballs
         dir:
