@@ -13,7 +13,7 @@ on:
         - gcc-cross
         - go
         - clang
-        - clang-20.04
+        - clang-18.04
         - misc
         - ocaml
         - python
