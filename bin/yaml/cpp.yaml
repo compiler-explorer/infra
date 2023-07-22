@@ -720,6 +720,27 @@ compilers:
             suffix: x86_64-linux-gnu-ubuntu-16.04
       - type: s3tarballs
         check_exe: bin/clang++ --version
+        endilll-assertions:
+          type: tarballs
+          url: https://storage.yandexcloud.net/clang-assert/clang-{name}-assert.tar.xz
+          compression: xz
+          dir: clang-assertions-{name}
+          untar_dir: clang-{name}-assert
+          targets:
+          - name: 2.6.0
+            check_exe: bin/clang --version
+          - 2.7.0
+          - 3.0.0
+          - 3.1.0
+          - 3.2.0
+          - 3.3.0
+          - 3.4.0
+          - 3.5.0
+          - 3.6.0
+          - 3.7.0
+          - 3.8.0
+          - 3.9.0
+          - 4.0.0
         targets:
           - name: 3.2
             compression: gz
