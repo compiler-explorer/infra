@@ -721,9 +721,8 @@ compilers:
       - type: s3tarballs
         check_exe: bin/clang++ --version
         endilll-assertions:
-          type: tarballs
-          url: https://storage.yandexcloud.net/clang-assert/clang-{name}-assert.tar.xz
-          compression: xz
+          type: s3tarballs
+          s3_path_prefix: clang-assertions-{name}-from-endilll
           dir: clang-assertions-{name}
           untar_dir: clang-{name}-assert
           targets:
