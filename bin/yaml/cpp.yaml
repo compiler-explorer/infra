@@ -725,6 +725,7 @@ compilers:
           s3_path_prefix: clang-assertions-{name}-from-endilll
           dir: clang-assertions-{name}
           untar_dir: clang-{name}-assert
+          path_name: clang-{name}-assert
           targets:
           - name: 2.6.0
             check_exe: bin/clang --version
