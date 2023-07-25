@@ -729,6 +729,8 @@ compilers:
           - name: 2.6.0
             check_exe: bin/clang --version
           - 2.7.0
+          - 2.8.0
+          - 2.9.0
           - 3.0.0
           - 3.1.0
           - 3.2.0
@@ -775,7 +777,7 @@ compilers:
           - 9.0.1
           - assertions-9.0.1
           - 10.0.0
-          - assertions-10.0.1
+          - assertions-10.0.0
           - 10.0.1
           - assertions-10.0.1
           - 11.0.0
