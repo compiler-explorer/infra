@@ -3,7 +3,7 @@ data "aws_sns_topic" "alert" {
 }
 
 locals {
-  approx_monthly_budget = 1200
+  approx_monthly_budget = 2200
   alert_every           = 200
 }
 
