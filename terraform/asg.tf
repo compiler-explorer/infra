@@ -206,9 +206,9 @@ resource "aws_autoscaling_group" "gpu" {
   mixed_instances_policy {
     instances_distribution {
       on_demand_allocation_strategy            = "prioritized"
-      // This base value is zero so we don't have any non-spot instances. We may wish to bump this if we have issues
-      // getting spot capacity.
-      on_demand_base_capacity                  = 0
+      // We need to have at least one here or we seem to never get any capacity. This is expensive
+      // but without it we get issues with autodiscovery if GPUs are down, and lots of alerts.
+      on_demand_base_capacity                  = 1
       on_demand_percentage_above_base_capacity = 0
       spot_allocation_strategy                 = "price-capacity-optimized"
       spot_instance_pools                      = 0
