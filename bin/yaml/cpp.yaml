@@ -60,6 +60,7 @@ compilers:
           - 12.2.0
           - 12.3.0
           - 13.1.0
+          - 13.2.0
     cross:
       type: s3tarballs
       arch_prefix:
