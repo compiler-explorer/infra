@@ -1,0 +1,8 @@
+compilers:
+  v:
+    type: ziparchive
+    dir: v-{name}
+    url: https://github.com/vlang/v/releases/download/weekly.{name}/v_linux.zip
+    check_exe: v --version
+    targets: 
+      - 2023.30
