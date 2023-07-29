@@ -647,6 +647,19 @@ libraries:
       - '1.0'
       - '1.1'
       type: github
+    libbpf:
+      build_type: make
+      check_file: README.md
+      lib_type: shared
+      method: clone_branch
+      repo: libbpf/libbpf
+      sharedliblink:
+      - bpf
+      target_prefix: v
+      targets:
+      - '1.0.0'
+      - '1.2.2'
+      type: github
     libguarded:
       check_file: README
       method: clone_branch
