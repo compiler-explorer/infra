@@ -16,7 +16,8 @@ compilers:
       - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.1.1 and before
       - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
     targets:
-      - 1.8.1
+      - 1.9.2
+      - 1.8.2
       - 1.7.3
       - 1.6.2
       - 1.5.1
