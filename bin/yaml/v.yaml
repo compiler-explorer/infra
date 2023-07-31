@@ -6,6 +6,7 @@ compilers:
     folder: v
     check_exe: v --version
     after_stage_script:
-      - export VMODULES=$HOME/.vmodules
-    targets: 
+      - export VMODULES=/opt/compiler-explorer/v-{name}/.vmodules
+    targets:
       - '2023.30'
+
