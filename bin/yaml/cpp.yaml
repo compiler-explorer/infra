@@ -823,13 +823,12 @@ compilers:
     clang-hexagon:
       - type: tarballs
         check_exe: x86_64-linux-gnu/bin/clang++ --version
-        dir: clang+llvm-16.0.5-cross-hexagon-unknown-linux-musl
-        url: https://codelinaro.jfrog.io/artifactory/codelinaro-toolchain-for-hexagon/v16.0.5/clang+llvm-16.0.5-cross-hexagon-unknown-linux-musl.tar.xz
+        dir: clang+llvm-{name}-{suffix}
+        url: https://codelinaro.jfrog.io/artifactory/codelinaro-toolchain-for-hexagon/v{name}/clang+llvm-{name}-{suffix}.tar.xz
         compression: xz
-        strip: true
         targets:
           - name: 16.0.5
-            suffix: clang+llvm-16.0.5-cross-hexagon-unknown-linux-musl0
+            suffix: cross-hexagon-unknown-linux-musl
     clang-rocm:
       - type: s3tarballs
         dir:
