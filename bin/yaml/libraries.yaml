@@ -1866,6 +1866,13 @@ libraries:
       - '2.0'
       - '2.1'
       type: github
+    ureact:
+      check_file: include/ureact/version.hpp
+      repo: YarikTH/ureact
+      targets:
+      - main
+      - dev
+      type: github
     vcl:
       check_file: vectorclass.h
       repo: vectorclass/version2
