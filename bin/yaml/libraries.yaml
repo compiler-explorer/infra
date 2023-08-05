@@ -1926,14 +1926,12 @@ libraries:
       - 0.5.3
       type: github
     yomm2:
-      build_type: cmake
-      lib_type: static
+      build_type: none
+      check_file: include/yorel/yomm2.hpp
       repo: jll63/yomm2
-      staticliblink:
-      - yomm2
       target_prefix: v
       targets:
-      - 1.1.2
+      - 1.4.0
       type: github
   cuda:
     cub:
