@@ -62,6 +62,7 @@ compilers:
         - 1.30.0
         - 1.31.0
         - 1.32.1
+        - 1.33.0
         # the ldc2-* files on s3 from "getldc_s3" in the install bash scripts are now unused (TODO remove once we move over and are sure (25/4/2020)
     dmd:
       type: tarballs
