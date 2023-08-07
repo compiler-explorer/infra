@@ -820,6 +820,15 @@ compilers:
           - assertions-15.0.0
           - 16.0.0
           - assertions-16.0.0
+    clang-hexagon:
+      - type: tarballs
+        check_exe: x86_64-linux-gnu/bin/clang++ --version
+        dir: clang+llvm-{name}-{suffix}
+        url: https://codelinaro.jfrog.io/artifactory/codelinaro-toolchain-for-hexagon/v{name}/clang+llvm-{name}-{suffix}.tar.xz
+        compression: xz
+        targets:
+          - name: 16.0.5
+            suffix: cross-hexagon-unknown-linux-musl
     clang-rocm:
       - type: s3tarballs
         dir:
