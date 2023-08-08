@@ -1,4 +1,5 @@
 name: Compiler discovery
+run-name: Discovery for ${{ inputs.environment }} ${{ inputs.branch }} build ${{ inputs.buildnumber }
 
 on:
   workflow_dispatch:
