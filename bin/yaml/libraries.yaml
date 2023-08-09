@@ -1881,6 +1881,8 @@ libraries:
       type: github
     ureact:
       check_file: include/ureact/version.hpp
+      if: nightly
+      method: nightlyclone
       repo: YarikTH/ureact
       targets:
       - main
