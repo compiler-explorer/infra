@@ -11,7 +11,7 @@ from typing import Union, Optional
 from lib.installable.installable import Installable
 from lib.staging import StagingDir
 
-_CLONE_METHODS = {"clone_branch", "nightlyclone"}
+_CLONE_METHODS = {"clone_branch", "nightlyclone", "nightlybranch"}
 _ARCHIVE_METHOD = "archive"
 _VALID_METHODS = _CLONE_METHODS | {_ARCHIVE_METHOD}
 _LOGGER = logging.getLogger(__name__)
@@ -85,6 +85,8 @@ class GitHubInstallable(Installable):
         else:
             self.check_file = f"{self.install_path}/{check_file}"
 
+        self.install_always = self.install_always or self.nightly_like
+
     def _update_args(self):
         if self.recursive:
             return ["--recursive"]
@@ -149,6 +151,9 @@ class GitHubInstallable(Installable):
         self._logger.info("Detected remote default branch as '%s'", branch)
         return branch
 
+    def uses_explicit_branch(self) -> bool:
+        return self.method == "clone_branch" or self.method == "nightlybranch"
+
     def should_install(self) -> bool:
         if not super().should_install():
             return False
@@ -156,7 +161,7 @@ class GitHubInstallable(Installable):
             prior_installation = self.install_context.prior_installation / self.install_path
             if prior_installation.exists():
                 branch = (
-                    self.branch_name if self.method == "clone_branch" else self._find_remote_branch(prior_installation)
+                    self.branch_name if self.uses_explicit_branch() else self._find_remote_branch(prior_installation)
                 )
                 remote_hash = _remote_get_current_hash(self._logger, prior_installation, branch)
                 local_hash = _git_current_hash(self._logger, prior_installation)
@@ -178,7 +183,7 @@ class GitHubInstallable(Installable):
 
     @property
     def nightly_like(self) -> bool:
-        return self.method == "nightlyclone"
+        return self.method == "nightlyclone" or self.method == "nightlybranch"
 
     def stage(self, staging: StagingDir):
         if self.method == _ARCHIVE_METHOD:
@@ -188,7 +193,7 @@ class GitHubInstallable(Installable):
             staged_dest = self.clone(
                 staging,
                 remote_url=f"{self.domainurl}/{self.repo}.git",
-                branch=self.branch_name if self.method == "clone_branch" else None,
+                branch=self.branch_name if self.uses_explicit_branch() else None,
             )
         else:
             raise RuntimeError(f"Unknown Github method {self.method}")
