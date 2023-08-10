@@ -5,8 +5,7 @@ compilers:
     url: https://github.com/vlang/v/releases/download/weekly.{name}/v_linux.zip
     folder: v
     check_exe: v --version
-    after_stage_script:
-      - export VMODULES=/opt/compiler-explorer/v-{name}/.vmodules
+    check_env:
+      - VMODULES=%PATH%/.vmodules
     targets:
       - '2023.30'
-
