@@ -1,0 +1,11 @@
+compilers:
+  v:
+    type: ziparchive
+    dir: v-{name}
+    url: https://github.com/vlang/v/releases/download/weekly.{name}/v_linux.zip
+    folder: v
+    check_exe: v --version
+    check_env:
+      - VMODULES=%PATH%/.vmodules
+    targets:
+      - '2023.30'
