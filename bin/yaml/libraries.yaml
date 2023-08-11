@@ -1882,7 +1882,7 @@ libraries:
     ureact:
       check_file: include/ureact/version.hpp
       if: nightly
-      method: nightlyclone
+      method: nightlybranch
       repo: YarikTH/ureact
       targets:
       - main
