@@ -524,6 +524,12 @@ libraries:
       targets:
       - development
       type: github
+    kyosu:
+      check_file: README.md
+      repo: jfalcou/kyosu
+      targets:
+      - main
+      type: github
     lagom:
       after_stage_script:
       - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
@@ -1154,6 +1160,12 @@ libraries:
         repo: jfalcou/kumi
         targets:
         - trunk
+        type: github
+      kyosu:
+        check_file: README.md
+        repo: jfalcou/kyosu
+        targets:
+        - main
         type: github
       lager:
         build_type: none
