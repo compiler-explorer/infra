@@ -1093,6 +1093,7 @@ compilers:
           - reflection-trunk
           - rocm-trunk
           - ce-trunk
+          - clangir-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang
             after_stage_script:
