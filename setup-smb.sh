@@ -30,7 +30,7 @@ cpan App::cpanminus
 cpanm Parse::Yapp
 cpanm JSON
 
-git clone --depth 1 --branch samba-4.17.7 https://github.com/samba-team/samba
+git clone --depth 1 --branch samba-4.18.5 https://github.com/samba-team/samba
 cd samba
 
 # todo:
@@ -53,9 +53,9 @@ cp -f /infra/smb-server/smb.conf /usr/local/samba/etc/samba/smb.conf
 mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
 
-systemctl enable smb
+# systemctl enable smb
 
-service smbd start
+# service smbd start
 
 # run rsync on startup
 #/infra/smb-server/rsync-share.sh
