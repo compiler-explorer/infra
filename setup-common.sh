@@ -38,6 +38,7 @@ apt-get -y install \
   ssmtp \
   unzip \
   wget \
+  rsyslog \
   curl
 
 apt-get -y autoremove
