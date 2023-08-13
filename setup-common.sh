@@ -37,7 +37,8 @@ apt-get -y install \
   qemu-user-static \
   ssmtp \
   unzip \
-  wget
+  wget \
+  curl
 
 apt-get -y autoremove
 pip3 install --upgrade pip
