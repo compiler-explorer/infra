@@ -29,6 +29,9 @@ compiler:
     llvmmos:
         version: ANY
         libcxx: ANY
+    clang-hexagon:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 
