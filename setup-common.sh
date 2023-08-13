@@ -39,6 +39,7 @@ apt-get -y install \
   unzip \
   wget \
   rsyslog \
+  systemctl \
   curl
 
 apt-get -y autoremove
