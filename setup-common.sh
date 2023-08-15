@@ -182,10 +182,10 @@ else
 fi
 chmod 640 /etc/ssmtp/*
 
-if [[ "${LOCALPACK}" == '1' ]]; then
-  echo "skipping nfs mount"
-else
+if [ -z "$LOCALPACK" ]; then
   mount -a
+else
+  echo "skipping nfs mount"
 fi
 
 cd /home/ubuntu/

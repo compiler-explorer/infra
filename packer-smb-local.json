@@ -10,8 +10,7 @@
   "variables": {
     "BRANCH": "main",
     "MY_ACCESS_KEY": "",
-    "MY_SECRET_KEY": "",
-    "LOCALPACK": ""
+    "MY_SECRET_KEY": ""
   },
 
   "provisioners": [
@@ -40,6 +39,7 @@
         "set -e",
         "export DEBIAN_FRONTEND=noninteractive",
         "mkdir -p /root/.ssh",
+        "export LOCALPACK=1",
         "cp /home/ubuntu/packer/known_hosts /root/.ssh/",
         "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
         "rm -rf /home/ubuntu/packer",
