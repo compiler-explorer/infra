@@ -55,9 +55,11 @@ cp -f /infra/smb-server/smb.conf /usr/local/samba/etc/samba/smb.conf
 mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
 
-# systemctl enable smb
+systemctl enable winbind
+systemctl enable nmb
+systemctl enable smb
 
-# service smbd start
+systemctl start smb
 
 # run rsync on startup
 #/infra/smb-server/rsync-share.sh
