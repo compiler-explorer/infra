@@ -26,6 +26,8 @@ apt-get install -y \
     python3-markdown \
     python3-dnspython
 
+export PERL_MM_USE_DEFAULT=1
+
 cpan App::cpanminus
 cpanm Parse::Yapp
 cpanm JSON
