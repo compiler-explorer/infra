@@ -37,10 +37,15 @@ apt-get -y install \
   qemu-user-static \
   ssmtp \
   unzip \
-  wget \
-  rsyslog \
-  systemctl \
-  curl
+  wget
+
+if [ -z "$LOCALPACK" ]; then
+else
+  apt-get -y install \
+    rsyslog \
+    systemctl \
+    curl
+fi
 
 apt-get -y autoremove
 pip3 install --upgrade pip
