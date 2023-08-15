@@ -46,6 +46,10 @@ packer-gpu-node: config.json  ## Builds the base image for the CE gpu nodes
 packer-smb: config.json  ## Builds the base image for the CE smb-server
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-smb.json
 
+.PHONY: packer-smb-local
+packer-smb-local: config.json  ## Builds the base image for the CE smb-server for local testing
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-smb-local.json
+
 .PHONY: packer-win
 packer-win: config.json  ## Builds the base image for the CE windows
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-win.json
