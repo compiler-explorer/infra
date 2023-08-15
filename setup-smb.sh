@@ -59,7 +59,7 @@ systemctl enable winbind
 systemctl enable nmb
 systemctl enable smb
 
-systemctl start smb
+# systemctl start smb
 
 # run rsync on startup
 #/infra/smb-server/rsync-share.sh
