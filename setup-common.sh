@@ -39,13 +39,6 @@ apt-get -y install \
   unzip \
   wget
 
-if [ -n "$LOCALPACK" ]; then
-  apt-get -y install \
-    rsyslog \
-    systemctl \
-    curl
-fi
-
 apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip
@@ -186,11 +179,7 @@ else
 fi
 chmod 640 /etc/ssmtp/*
 
-if [ -z "$LOCALPACK" ]; then
-  mount -a
-else
-  echo "skipping nfs mount"
-fi
+mount -a
 
 cd /home/ubuntu/
 
