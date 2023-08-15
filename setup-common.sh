@@ -39,8 +39,7 @@ apt-get -y install \
   unzip \
   wget
 
-if [ -z "$LOCALPACK" ]; then
-else
+if [ -n "$LOCALPACK" ]; then
   apt-get -y install \
     rsyslog \
     systemctl \
