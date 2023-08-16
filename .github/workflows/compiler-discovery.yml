@@ -1,5 +1,5 @@
 name: Compiler discovery
-run-name: Discovery for ${{ github.events.inputs.environment }} ${{ github.events.inputs.branch }} build ${{ github.events.inputs.buildnumber }}
+run-name: Discovery for ${{ inputs.environment }} ${{ inputs.branch }} build ${{ inputs.buildnumber }}
 
 on:
   workflow_dispatch:
