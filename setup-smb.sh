@@ -32,7 +32,7 @@ cpan App::cpanminus
 cpanm Parse::Yapp
 cpanm JSON
 
-git clone --depth 1 --branch samba-4.18.5 https://github.com/samba-team/samba
+git clone --depth 1 https://github.com/compiler-explorer/samba
 cd samba
 
 # todo:
@@ -48,18 +48,11 @@ make install
 
 cd ..
 
-cp /usr/local/samba/lib/systemd/system/* /etc/systemd/system/
-
 cp -f /infra/smb-server/smb.conf /usr/local/samba/etc/samba/smb.conf
 
 mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
 
-systemctl enable winbind
-systemctl enable nmb
-systemctl enable smb
-
-# systemctl start smb
 
 # run rsync on startup
 #/infra/smb-server/rsync-share.sh
