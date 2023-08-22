@@ -10,6 +10,13 @@ libraries:
       - 9.1.0
       type: github
   c++:
+    async_simple:
+      build_type: none
+      repo: alibaba/async_simple
+      check_file: README.md
+      targets:
+      - '1.2'
+      type: github
     benchmark:
       build_type: cmake
       extra_cmake_arg:
