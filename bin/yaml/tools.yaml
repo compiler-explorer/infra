@@ -42,7 +42,7 @@ tools:
     package: osaca=={name}
     check_exe: bin/osaca --version
     targets:
-      - 0.5.0
+      - 0.5.2
   rustfmt:
     type: tarballs
     dir: rustfmt-{name}
