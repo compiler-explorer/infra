@@ -370,7 +370,10 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
 
 
 def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
-    return installable, force or installable.should_install()
+    try:
+        return installable, force or installable.should_install()
+    except Exception as ex:
+        raise RuntimeError(f"Unable to install {installable}") from ex
 
 
 @cli.command()
