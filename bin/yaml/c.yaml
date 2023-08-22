@@ -6,6 +6,12 @@ compilers:
       check_file: bin/cproc
       targets:
         - master
+    C-LC3-Compiler:
+      if: nightly
+      type: nightly
+      check_exe: lc3-compile --version
+      targets:
+        - trunk
     ppci:
       type: tarballs
       compression: gz
