@@ -11,11 +11,11 @@ compilers:
       - name: trunk
         if: nightly
         type: nightly
-      - v6.0.11
     newer:
       s3_path_prefix: dotnet-{name}
       untar_dir: dotnet-{name}
       targets:
+        - v6.0.11
         - v6.0.14
         - v6.0.18
         - v7.0.1
