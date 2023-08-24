@@ -509,7 +509,7 @@ class RustLibraryBuilder:
         ld_path,
         build_method,
         staging: StagingDir,
-        source_staging: StagingDir
+        source_staging: StagingDir,
     ):
         combined_hash = self.makebuildhash(
             compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
@@ -599,7 +599,7 @@ class RustLibraryBuilder:
             for folder in self.cached_source_folders:
                 shutil.rmtree(folder, ignore_errors=True)
         else:
-            self.logger.info(f"Would clean crate cache, but in dry-run mode")
+            self.logger.info("Would clean crate cache, but in dry-run mode")
 
     def upload_builds(self):
         if self.needs_uploading > 0:
@@ -661,9 +661,16 @@ class RustLibraryBuilder:
                 ldPath = ""
 
                 for args in itertools.product(
-                    build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
+                    build_supported_os,
+                    build_supported_buildtype,
+                    archs,
+                    stdvers,
+                    stdlibs,
+                    build_supported_flagscollection,
                 ):
-                    buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, *args, ldPath, source_staging)
+                    buildstatus = self.makebuildfor(
+                        compiler, options, exe, compilerType, toolchain, *args, ldPath, source_staging
+                    )
                     if buildstatus == BuildStatus.Ok:
                         builds_succeeded = builds_succeeded + 1
                     elif buildstatus == BuildStatus.Skipped:
