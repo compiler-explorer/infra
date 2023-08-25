@@ -1618,7 +1618,6 @@ libraries:
       type: github
     simdjson:
       build_type: cmake
-      check_file: include/simdjson.h
       make_targets:
       - simdjson
       lib_type: static
@@ -1626,6 +1625,7 @@ libraries:
       - simdjson
       repo: simdjson/simdjson
       type: github
+      check_file: include/simdjson.h
       target_prefix: v
       targets:
       - 3.0.1
