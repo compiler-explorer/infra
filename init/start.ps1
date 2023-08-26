@@ -51,14 +51,16 @@ function get_released_code {
 
 function GetConf {
     Param(
-        $Name
+        $Name,
+        $Default = ""
     )
 
     try {
         return (aws ssm get-parameter --name "$Name" | ConvertFrom-Json).Parameter.Value
     }
     catch {
-        return ""
+        Write-Host "GetConf($Name) raised Exception: $_"
+        return $Default
     }
 }
 
@@ -182,10 +184,11 @@ function InstallCERunTask {
         [PSCredential] $Credential,
         [securestring] $Password,
         [string] $CeEnv,
-        [string] $HostnameForLogging
+        [string] $HostnameForLogging,
+        [string] $SMBServer
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging) -join " "
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging,"-SMBServer",$SMBServer) -join " "
 
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
 }
@@ -202,7 +205,9 @@ function CreateCredAndRun {
 
     ConfigureFileRights
 
-    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName
+    $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
+
+    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName -SMBServer $SMBServer
 }
 
 function GetLatestCEWrapper {
@@ -233,7 +238,20 @@ function InitializeAgentConfig {
 }
 
 function GetSMBServerIP {
-    return "172.30.0.254"
+    Param(
+        [string] $CeEnv
+    )
+
+    $configPath = "/compiler-explorer/smbserverProd"
+    if ($CeEnv -like "*staging") {
+        $configPath = "/compiler-explorer/smbserverStaging"
+    } elseif ($CeEnv -like "*test") {
+        $configPath = "/compiler-explorer/smbserverTest"
+    }
+
+    $smbserver = GetConf -Name $configPath -Default "smb-address-unknown";
+
+    return $smbserver
 }
 
 function MountY {
@@ -243,12 +261,13 @@ function MountY {
         return
     }
 
-    $smb_ip = GetSMBServerIP
+    $smb_ip = GetSMBServerIP -CeEnv "prod"
     while (-not $exists) {
         try {
             Write-Host "Mapping Y:"
             $exists = (New-SmbMapping -LocalPath "Y:" -RemotePath "\\$smb_ip\winshared") -as [bool]
         } catch {
+            Write-Host "New-SmbMapping for Y:\ -> \\$smb_ip\winshared failed: $_"
         }
     }
 }
@@ -305,7 +324,7 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="allow ssm-session all out" dir=out program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
     netsh advfirewall firewall add rule name="allow ssm-session all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
 
-    $ip = GetSMBServerIP
+    $ip = GetSMBServerIP -CeEnv $CE_ENV
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
 

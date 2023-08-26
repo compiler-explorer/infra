@@ -3,7 +3,8 @@ param(
     $LogHost,
     $LogPort,
     $CeEnv,
-    $HostnameForLogging
+    $HostnameForLogging,
+    $SMBServer
 )
 
 function MountZ {
@@ -16,7 +17,7 @@ function MountZ {
     while (-not $exists) {
         try {
             Write-Host "Mapping Z:"
-            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.254\winshared') -as [bool]
+            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath "\\$SMBServer\winshared") -as [bool]
         } catch {
         }
     }
