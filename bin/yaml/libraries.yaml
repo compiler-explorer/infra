@@ -1886,6 +1886,14 @@ libraries:
       - main
       - dev
       type: github
+    reactive_plus_plus:
+      check_file: src/rpp/rpp/rpp.hpp
+      repo: victimsnino/ReactivePlusPlus
+      method: nightlyclone
+      targets:
+      - v1
+      - v2
+      type: github
     vcl:
       check_file: vectorclass.h
       repo: vectorclass/version2
