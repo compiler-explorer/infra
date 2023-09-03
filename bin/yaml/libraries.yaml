@@ -1731,7 +1731,7 @@ libraries:
     reactive_plus_plus:
       check_file: src/rpp/rpp/rpp.hpp
       repo: victimsnino/ReactivePlusPlus
-      # if: nightly
+      if: nightly
       method: nightlybranch
       targets:
       - v0.2.3
