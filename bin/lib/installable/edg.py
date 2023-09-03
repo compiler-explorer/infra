@@ -98,7 +98,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         with script_path.open("w") as out:
             out.write(
                 shim_gcc_shell(
-                    install_dir=Path(self.install_path),
+                    install_dir=self.install_context.destination / self.install_path,
                     gcc=compiler_path,
                     c_includes=c_includes,
                     cpp_includes=cpp_includes,
