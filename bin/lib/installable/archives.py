@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import functools
+import logging
 import os
+import subprocess
+import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
+import shlex
 from typing import Dict, Any
 
+from lib import amazon
 from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
 from lib.installation_context import InstallationContext, is_windows
@@ -15,6 +20,8 @@ from lib.staging import StagingDir
 import re
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class S3TarballInstallable(Installable):
@@ -48,8 +55,12 @@ class S3TarballInstallable(Installable):
         self.strip = self.config_get("strip", False)
         self._setup_check_exe(self.install_path)
 
+    def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:
+        # Extension point for subclasses
+        self.install_context.fetch_s3_and_pipe_to(staging, s3_path, command)
+
     def stage(self, staging: StagingDir) -> None:
-        self.install_context.fetch_s3_and_pipe_to(staging, self.s3_path, ["tar", f"{self.decompress_flag}xf", "-"])
+        self.fetch_and_pipe_to(staging, self.s3_path, ["tar", f"{self.decompress_flag}xf", "-"])
         if self.strip:
             self.install_context.strip_exes(staging, self.strip)
 
@@ -327,3 +338,20 @@ class RestQueryTarballInstallable(TarballInstallable):
 
     def __repr__(self) -> str:
         return f"RestQueryTarballInstallable({self.name}, {self.install_path})"
+
+
+class NonFreeS3TarballInstallable(S3TarballInstallable):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
+        super().__init__(install_context, config)
+
+    def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:
+        untar_dir = staging.path
+        untar_dir.mkdir(exist_ok=True, parents=True)
+        with tempfile.TemporaryFile() as fd:
+            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{s3_path}", fd)
+            fd.seek(0)
+            _LOGGER.info("Piping to %s", shlex.join(command))
+            subprocess.check_call(command, stdin=fd, cwd=untar_dir)
+
+    def __repr__(self) -> str:
+        return f"NonFreeS3TarballInstallable({self.name}, {self.install_path})"

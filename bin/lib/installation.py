@@ -11,7 +11,9 @@ from lib.installable.archives import (
     NightlyTarballInstallable,
     ZipArchiveInstallable,
     RestQueryTarballInstallable,
+    NonFreeS3TarballInstallable,
 )
+from lib.installable.edg import EdgCompilerInstallable
 from lib.installable.git import GitHubInstallable, GitLabInstallable, BitbucketInstallable
 from lib.installable.installable import SingleFileInstallable
 from lib.installable.python import PipInstallable
@@ -92,6 +94,8 @@ _INSTALLER_TYPES = {
     "pip": PipInstallable,
     "ziparchive": ZipArchiveInstallable,
     "cratesio": CratesIOInstallable,
+    "non-free-s3tarballs": NonFreeS3TarballInstallable,
+    "edg": EdgCompilerInstallable,
 }
 
 

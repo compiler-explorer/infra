@@ -378,15 +378,15 @@ compilers:
                 url: https://codescape.mips.com/components/toolchain/2020.06-01/Codescape.GNU.Tools.Package.2020.06-01.for.MIPS.MTI.Bare.Metal.CentOS-6.x86_64.tar.gz
                 compression: gz
         nanomips:
-            subdir: nanomips
-            type: tarballs
-            check_exe: "bin/nanomips-linux-musl-g++ --version"
-            targets:
-              - name: 6.3.0
-                dir: nanomips/nanomips-linux-musl/2021.11-02
-                untar_dir: nanomips-linux-musl/2021.11-02
-                url: https://github.com/MediaTek-Labs/nanomips-gnu-toolchain/releases/download/nanoMIPS-2021.11-02/MediaTek.GNU.Tools.2021.11-02.for.nanoMIPS.Linux.CentOS-6.x86_64.tar.gz
-                compression: gz
+          subdir: nanomips
+          type: tarballs
+          check_exe: "bin/nanomips-linux-musl-g++ --version"
+          targets:
+            - name: 6.3.0
+              dir: nanomips/nanomips-linux-musl/2021.11-02
+              untar_dir: nanomips-linux-musl/2021.11-02
+              url: https://github.com/MediaTek-Labs/nanomips-gnu-toolchain/releases/download/nanoMIPS-2021.11-02/MediaTek.GNU.Tools.2021.11-02.for.nanoMIPS.Linux.CentOS-6.x86_64.tar.gz
+              compression: gz
         m68k:
           subdir: m68k
           arch_prefix: m68k-unknown-elf
@@ -748,22 +748,22 @@ compilers:
           untar_dir: clang-{name}-assert
           path_name: clang-assertions-{name}
           targets:
-          - name: 2.6.0
-            check_exe: bin/clang --version
-          - 2.7.0
-          - 2.8.0
-          - 2.9.0
-          - 3.0.0
-          - 3.1.0
-          - 3.2.0
-          - 3.3.0
-          - 3.4.0
-          - 3.5.0
-          - 3.6.0
-          - 3.7.0
-          - 3.8.0
-          - 3.9.0
-          - 4.0.0
+            - name: 2.6.0
+              check_exe: bin/clang --version
+            - 2.7.0
+            - 2.8.0
+            - 2.9.0
+            - 3.0.0
+            - 3.1.0
+            - 3.2.0
+            - 3.3.0
+            - 3.4.0
+            - 3.5.0
+            - 3.6.0
+            - 3.7.0
+            - 3.8.0
+            - 3.9.0
+            - 4.0.0
         targets:
           - name: 3.2
             compression: gz
@@ -839,6 +839,27 @@ compilers:
           - 5.1.3
           - 5.2.3
           - 5.3.2
+    edg:
+      if: non-free
+      type: edg
+      compression: gz
+      s3_path_prefix: edg-compiler/v{edg_version}
+      untar_dir: edg-compiler
+      scraper: edg-compiler/edg-scrape-compiler.2023.7.18.zip
+      macro_gen: edg-compiler/make_predef_macro_table
+      scrape_cmd: bin/edg-scrape-compiler
+      path_name: edg-{name}
+      gcc:
+        compiler_type: gcc
+        macro_output_dir: bases/gnu/lib
+        check_exe: eccp-scripts/eccp-gcc --version
+        targets:
+          - name: 6.5-gcc-13
+            edg_version: '6.5'
+            compiler_type: gcc
+            depends:
+              - compilers/c++/x86/gcc 13.2.0
+
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}

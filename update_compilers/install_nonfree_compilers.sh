@@ -16,13 +16,18 @@ ce_install tools
 ce_squash tools
 
 ##################################
+# EDG compilers
+ce_install edg
+ce_squash edg
+
+##################################
 # Intel compilers
 for compiler in \
     intel.tar.gz; do
     DIR=${compiler%.tar.*}
     if [[ ! -d ${DIR} ]]; then
         s3fetch ${S3URL}/$compiler | tar zxf -
-        do_strip ${DIR}
+        do_strip "${DIR}"
     fi
 done
 

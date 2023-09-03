@@ -127,8 +127,11 @@ class Installable:
         except FileNotFoundError:
             self._logger.debug("File not found for %s", self.check_call)
             return False
-        except subprocess.CalledProcessError:
-            self._logger.debug("Got an error for %s", self.check_call)
+        except PermissionError:
+            self._logger.debug("Permissions error %s", self.check_call)
+            return False
+        except subprocess.CalledProcessError as cpe:
+            self._logger.debug("Got an error for %s: %s", self.check_call, cpe)
             return False
 
     def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
