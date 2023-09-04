@@ -1641,12 +1641,12 @@ libraries:
       lib_type: cshared
       make_targets:
       - all
+      package_install: true
       repo: PCRE2Project/pcre2
       targets:
       - pcre2-10.42
       type: github
       use_compiler: g105
-      package_install: true
     pegtl:
       check_file: README.md
       repo: taocpp/PEGTL
