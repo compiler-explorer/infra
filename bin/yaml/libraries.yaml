@@ -1630,6 +1630,22 @@ libraries:
       type: tarballs
       untar_dir: openssl-OpenSSL_{name}
       url: https://github.com/openssl/openssl/archive/OpenSSL_{name}.tar.gz
+    pcre2:
+      build_type: cmake
+      check_file: README.md
+      extra_cmake_arg:
+      - -DBUILD_SHARED_LIBS=ON
+      - -DBUILD_STATIC_LIBS=OFF
+      - -DPCRE2_BUILD_TESTS=OFF
+      - -DPCRE2_BUILD_PCRE2_16=ON
+      lib_type: cshared
+      make_targets:
+      - all
+      repo: PCRE2Project/pcre2
+      targets:
+      - pcre2-10.42
+      type: github
+      use_compiler: g105
     pegtl:
       check_file: README.md
       repo: taocpp/PEGTL
