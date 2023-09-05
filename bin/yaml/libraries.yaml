@@ -1733,12 +1733,13 @@ libraries:
       type: github
     reactive_plus_plus:
       check_file: src/rpp/rpp/rpp.hpp
+      method: clone_branch
       repo: victimsnino/ReactivePlusPlus
-      if: nightly
-      method: nightlybranch
       targets:
       - v0.2.3
-      - v2
+      - if: nightly
+        method: nightlybranch
+        name: v2
       type: github
     scnlib:
       build_type: cmake
