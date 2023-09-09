@@ -612,19 +612,10 @@ class LibraryBuilder:
         return filesfound
 
     def executeconanscript(self, buildfolder, install_folder, arch, stdlib):
-        if self.buildconfig.package_install:
-            filesfound = self.countValidLibraryBinaries(Path(install_folder) / "lib", arch, stdlib)
+        if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
+            self.logger.info("Export succesful")
+            return BuildStatus.Ok
         else:
-            filesfound = self.countValidLibraryBinaries(buildfolder, arch, stdlib)
-
-        if filesfound != 0:
-            if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
-                self.logger.info("Export succesful")
-                return BuildStatus.Ok
-            else:
-                return BuildStatus.Failed
-        else:
-            self.logger.info("No binaries found to export")
             return BuildStatus.Failed
 
     def executebuildscript(self, buildfolder):
@@ -681,7 +672,7 @@ class LibraryBuilder:
             response = json.loads(request.content)
             self.conanserverproxy_token = response["token"]
 
-    def save_build_logging(self, builtok, buildfolder):
+    def save_build_logging(self, builtok, buildfolder, extralogtext):
         if builtok == BuildStatus.Failed:
             url = f"{conanserver_url}/buildfailed"
         elif builtok == BuildStatus.Ok:
@@ -705,7 +696,7 @@ class LibraryBuilder:
             logging_data = logging_data + "\n\n" + "BUILD TIMED OUT!!"
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
-        buildparameters_copy["logging"] = logging_data
+        buildparameters_copy["logging"] = logging_data + "\n\n" + extralogtext
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
@@ -854,6 +845,7 @@ class LibraryBuilder:
             ld_path,
         )
         self.writeconanfile(build_folder)
+        extralogtext = ""
 
         if not self.forcebuild and self.has_failed_before():
             self.logger.info("Build has failed before, not re-attempting")
@@ -872,18 +864,25 @@ class LibraryBuilder:
 
         build_status = self.executebuildscript(build_folder)
         if build_status == BuildStatus.Ok:
-            self.writeconanscript(build_folder)
-            if not self.install_context.dry_run:
-                build_status = self.executeconanscript(build_folder, install_folder, arch, stdlib)
-                if build_status == BuildStatus.Ok:
-                    self.needs_uploading += 1
-                    self.set_as_uploaded(build_folder)
+            if self.buildconfig.package_install:
+                filesfound = self.countValidLibraryBinaries(Path(install_folder) / "lib", arch, stdlib)
             else:
                 filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib)
-                self.logger.debug(f"Number of valid library binaries {filesfound}")
+
+            if filesfound != 0:
+                self.writeconanscript(build_folder)
+                if not self.install_context.dry_run:
+                    build_status = self.executeconanscript(build_folder, install_folder, arch, stdlib)
+                    if build_status == BuildStatus.Ok:
+                        self.needs_uploading += 1
+                        self.set_as_uploaded(build_folder)
+            else:
+                extralogtext = "No binaries found to export"
+                self.logger.info("No binaries found to export")
+                build_status = BuildStatus.Failed
 
         if not self.install_context.dry_run:
-            self.save_build_logging(build_status, build_folder)
+            self.save_build_logging(build_status, build_folder, extralogtext)
 
         if build_status == BuildStatus.Ok:
             if self.buildconfig.build_type == "cmake":
