@@ -1643,6 +1643,10 @@ libraries:
       - all
       package_install: true
       repo: PCRE2Project/pcre2
+      sharedliblink:
+      - pcre2-8
+      - pcre2-16
+      - pcre2-posix
       targets:
       - pcre2-10.42
       type: github
