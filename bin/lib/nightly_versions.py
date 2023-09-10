@@ -1,5 +1,6 @@
 from lib.amazon import dynamodb_client
 
+
 class NightlyVersions:
     table_name: str = "nightly-version"
 
@@ -10,8 +11,8 @@ class NightlyVersions:
                 "exe": {"S": exe},
                 "modified": {"N": modified},
                 "version": {"S": version},
-                "full_version": {"S": full_version}
-            }
+                "full_version": {"S": full_version},
+            },
         )
         return
 
@@ -27,6 +28,7 @@ class NightlyVersions:
                 "exe": item["exe"]["S"],
                 "version": item["version"]["S"],
                 "full_version": item["full_version"]["S"],
-                "modified": item["modified"]["N"]}
+                "modified": item["modified"]["N"],
+            }
         else:
-            None
+            return None
