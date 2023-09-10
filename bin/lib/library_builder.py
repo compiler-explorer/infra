@@ -636,7 +636,7 @@ class LibraryBuilder:
 
         return filesfound
 
-    def executeconanscript(self, buildfolder, install_folder, arch, stdlib):
+    def executeconanscript(self, buildfolder):
         if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
             self.logger.info("Export succesful")
             return BuildStatus.Ok
@@ -882,7 +882,7 @@ class LibraryBuilder:
             if filesfound != 0:
                 self.writeconanscript(build_folder)
                 if not self.install_context.dry_run:
-                    build_status = self.executeconanscript(build_folder, install_folder, arch, stdlib)
+                    build_status = self.executeconanscript(build_folder)
                     if build_status == BuildStatus.Ok:
                         self.needs_uploading += 1
                         self.set_as_uploaded(build_folder)
