@@ -56,6 +56,28 @@ resource "aws_dynamodb_table" "versionslog" {
   }
 }
 
+resource "aws_dynamodb_table" "nightly-version" {
+  name = "nightly-version"
+  lifecycle {
+    ignore_changes = [
+      read_capacity,
+      write_capacity
+    ]
+    prevent_destroy = true
+  }
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "exe"
+
+  attribute {
+    name = "exe"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = false
+  }
+}
+
 resource "aws_dynamodb_table" "compiler-builds" {
   name = "compiler-builds"
   lifecycle {
