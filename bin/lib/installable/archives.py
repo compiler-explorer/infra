@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import socket
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -23,6 +24,8 @@ import re
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
 
 _LOGGER = logging.getLogger(__name__)
+
+running_on_admin_node = socket.gethostname() == "admin-node"
 
 
 class S3TarballInstallable(Installable):
@@ -132,6 +135,9 @@ class NightlyInstallable(Installable):
         return True
 
     def save_version(self, exe: str, res_call: str):
+        if not running_on_admin_node:
+            return
+
         relative_exe = "/".join(exe.split("/")[1:])
         if self.install_path_symlink:
             fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
