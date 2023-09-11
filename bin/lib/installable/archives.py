@@ -16,6 +16,7 @@ from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
 from lib.installation_context import InstallationContext, is_windows
 from lib.staging import StagingDir
+from lib.nightly_versions import NightlyVersions
 
 import re
 
@@ -129,6 +130,21 @@ class NightlyInstallable(Installable):
 
     def should_install(self) -> bool:
         return True
+
+    def save_version(self, exe: str, res_call: str):
+        relative_exe = "/".join(exe.split("/")[1:])
+        if self.install_path_symlink:
+            fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+        elif self.path_name_symlink:
+            fullpath = self.install_context.destination / self.path_name_symlink / relative_exe
+        else:
+            fullpath = self.install_context.destination / exe
+
+        stat = fullpath.lstat()
+        modified = stat.st_mtime
+
+        Nightlies = NightlyVersions()
+        Nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def install(self) -> None:
         super().install()

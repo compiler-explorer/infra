@@ -103,6 +103,10 @@ class Installable:
                 dependee.install()
         self._logger.debug("Dependees installed")
 
+    # pylint: disable=unused-argument
+    def save_version(self, exe: str, res_call: str):
+        return
+
     def is_installed(self) -> bool:
         if self.check_file is None and not self.check_call:
             return True
@@ -122,6 +126,9 @@ class Installable:
             res_call = self.install_context.check_output(
                 self.check_call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
             )
+
+            self.save_version(self.check_call[0], res_call)
+
             self._logger.debug("Check call returned %s", res_call)
             return True
         except FileNotFoundError:
