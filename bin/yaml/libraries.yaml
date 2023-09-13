@@ -2045,6 +2045,13 @@ libraries:
         targets:
         - trunk
         type: github
+      cccl:
+        check_file: README.md
+        method: nightlyclone
+        repo: NVIDIA/cccl
+        targets:
+        - trunk
+        type: github
     nvtx:
       check_file: c/include/nvtx3/nvToolsExt.h
       method: clone_branch
@@ -2071,6 +2078,13 @@ libraries:
       - 1.15.0
       - 1.16.0
       - 1.17.0
+      type: github
+    cccl:
+      check_file: README.md
+      method: clone_branch
+      repo: NVIDIA/cccl
+      targets:
+      - 2.2.0
       type: github
   d:
     mir-algorithm:
