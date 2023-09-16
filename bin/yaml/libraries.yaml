@@ -2083,6 +2083,7 @@ libraries:
       check_file: README.md
       method: clone_branch
       repo: NVIDIA/cccl
+      target_prefix: v
       targets:
       - 2.2.0
       type: github
