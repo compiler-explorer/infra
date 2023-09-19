@@ -20,8 +20,8 @@ def shim_gcc_shell(install_dir: Path, gcc: Path, c_includes: str, cpp_includes: 
 set -euo pipefail
 
 export EDG_INSTALL_DIR="{install_dir}"
-export EDG_GCC_INCL_SCRAPE="${cpp_includes}"
-export EDG_GCC_CINCL_SCRAPE="${c_includes}"
+export EDG_GCC_INCL_SCRAPE="{cpp_includes}"
+export EDG_GCC_CINCL_SCRAPE="{c_includes}"
 export EDG_CPFE_DEFAULT_OPTIONS="--gnu {version}"
 export EDG_C_TO_OBJ_COMPILER="{gcc}"
 
