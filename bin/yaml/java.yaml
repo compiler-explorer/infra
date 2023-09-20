@@ -29,3 +29,6 @@ compilers:
       - name: 20.0.0
         url: https://download.java.net/java/GA/jdk20/bdc68b4b9cbc4ebcb30745c85038d91d/36/GPL/openjdk-20_linux-x64_bin.tar.gz
         untar_dir: jdk-20
+      - name: 21.0.0
+        url: https://download.java.net/java/GA/jdk21/fd2272bbf8e04c3dbaee13770090416c/35/GPL/openjdk-21_linux-x64_bin.tar.gz
+        untar_dir: jdk-21
