@@ -19,10 +19,6 @@ function GetBetterHostname {
 $betterComputerName = GetBetterHostname
 Write-Host "AWS Hostname $betterComputerName"
 
-function download_dskspd {
-    Invoke-WebRequest -Uri "https://github.com/microsoft/diskspd/releases/download/v2.1/DiskSpd.ZIP" -OutFile "/tmp/diskspd.zip"
-}
-
 function update_code {
     Write-Host "Current environment $CE_ENV"
     Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
@@ -346,7 +342,6 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
-download_dskspd
 
 MountY
 
