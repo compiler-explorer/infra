@@ -150,6 +150,40 @@ function ConfigureUserRights {
     gpupdate /Force
 }
 
+function InstallAsSystemService {
+    param(
+        [string] $Name,
+        [string] $Exe,
+        [array] $Arguments,
+        [string] $WorkingDirectory
+    )
+
+    $tmplog = "C:/tmp/log"
+    Write-Host "nssm.exe install $Name $Exe"
+    /nssm/win64/nssm.exe install $Name $Exe
+    if ($Arguments.Length -gt 0) {
+        Write-Host "nssm.exe set $Name AppParameters" ($Arguments -join " ")
+        /nssm/win64/nssm.exe set $Name AppParameters ($Arguments -join " ")
+    }
+    Write-Host "nssm.exe set $Name AppDirectory $WorkingDirectory"
+    /nssm/win64/nssm.exe set $Name AppDirectory $WorkingDirectory
+    Write-Host "nssm.exe set $Name AppStdout $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStdout "$tmplog/$Name-svc.log"
+    Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
+
+    Write-Host "nssm.exe set $Name AppExit Default Exit"
+    /nssm/win64/nssm.exe set $Name AppExit Default Exit
+
+    Write-Host "nssm.exe set $Name Start SERVICE_DEMAND_START"
+    /nssm/win64/nssm.exe set $Name Start SERVICE_DEMAND_START
+
+    Write-Host "nssm.exe reset $Name ObjectName"
+    /nssm/win64/nssm.exe reset $Name ObjectName
+
+    Write-Host "nssm.exe start $Name"
+    /nssm/win64/nssm.exe start $Name
+}
 
 function InstallAsService {
     param(
@@ -186,6 +220,14 @@ function InstallAsService {
 
     Write-Host "nssm.exe start $Name"
     /nssm/win64/nssm.exe start $Name
+}
+
+function InstallAndRunCEAsSystem {
+    $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
+
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CE_ENV,"-HostnameForLogging",$betterComputerName,"-SMBServer",$SMBServer) -join " "
+
+    InstallAsSystemService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs
 }
 
 function InstallCERunTask {
@@ -376,4 +418,6 @@ $loghost = GetLogHost
 $logport = GetLogPort
 
 ConfigureFirewall
-CreateCredAndRun
+
+#CreateCredAndRun
+InstallAndRunCEAsSystem
