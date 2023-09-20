@@ -101,20 +101,10 @@ function RecreateUser {
     ConfigureUserRights -SID (Get-LocalUser $CE_USER).SID
 }
 
-function ConfigureUserRights {
-    param(
-        [String] $SID
-    )
-
+function ConfigureSmbRights {
     $tmpfile = "c:\tmp\secpol.cfg"
     secedit /export /cfg $tmpfile
     $secpol = (Get-Content $tmpfile)
-
-    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
-    $Index = [array]::IndexOf($secpol,$Value)
-
-    $NewValue = $Value + ",*" + $SID
-    $secpol.item($Index) = $NewValue
 
     $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth" }
     $Index = [array]::IndexOf($secpol,$Value)
@@ -137,6 +127,29 @@ function ConfigureUserRights {
 
     gpupdate /Force
 }
+
+function ConfigureUserRights {
+    param(
+        [String] $SID
+    )
+
+    $tmpfile = "c:\tmp\secpol.cfg"
+    secedit /export /cfg $tmpfile
+    $secpol = (Get-Content $tmpfile)
+
+    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
+    $Index = [array]::IndexOf($secpol,$Value)
+
+    $NewValue = $Value + ",*" + $SID
+    $secpol.item($Index) = $NewValue
+
+    $secpol | out-file $tmpfile -Force
+    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile
+    Remove-Item -Path $tmpfile
+
+    gpupdate /Force
+}
+
 
 function InstallAsService {
     param(
@@ -342,6 +355,7 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
+ConfigureSmbRights
 
 MountY
 
