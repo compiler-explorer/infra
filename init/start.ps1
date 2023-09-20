@@ -87,7 +87,7 @@ function GeneratePassword {
 
 function RecreateUser {
     param(
-        $securePassword
+        [securestring] $securePassword
     )
 
     $exists = (Get-LocalUser $CE_USER -ErrorAction Ignore) -as [bool];
