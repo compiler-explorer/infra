@@ -36,9 +36,7 @@ build_supported_stdlib = [""]
 build_supported_flags = [""]
 build_supported_flagscollection = [[""]]
 
-disable_clang_libcpp = []
-disable_clang_32bit = disable_clang_libcpp.copy()
-disable_clang_libcpp += [""]
+disable_clang_libcpp = [""]
 
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 _supports_x86: Dict[str, Any] = defaultdict(lambda: [])
@@ -196,32 +194,10 @@ class FortranLibraryBuilder:
         fullenv["LD_LIBRARY_PATH"] = ldPath
 
         if compilerType == "":
-            if "icpx" in exe:
-                return arch == "x86" or arch == "x86_64"
-            elif "icc" in exe:
-                output = subprocess.check_output([exe, "--help"], env=fullenv).decode("utf-8", "ignore")
-                if arch == "x86":
-                    arch = "-m32"
-                elif arch == "x86_64":
-                    arch = "-m64"
-            else:
-                if "zapcc" in exe:
-                    return arch == "x86" or arch == "x86_64"
-                else:
-                    try:
-                        output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
-                    except subprocess.CalledProcessError as e:
-                        output = e.output.decode("utf-8", "ignore")
-        elif compilerType == "clang":
-            folder = os.path.dirname(exe)
-            llcexe = os.path.join(folder, "llc")
-            if os.path.exists(llcexe):
-                try:
-                    output = subprocess.check_output([llcexe, "--version"], env=fullenv).decode("utf-8", "ignore")
-                except subprocess.CalledProcessError as e:
-                    output = e.output.decode("utf-8", "ignore")
-            else:
-                output = ""
+            try:
+                output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
+            except subprocess.CalledProcessError as e:
+                output = e.output.decode("utf-8", "ignore")
         else:
             output = ""
 
@@ -318,6 +294,12 @@ class FortranLibraryBuilder:
 
                 f.write(f"export CC={compilerexecc}\n")
                 f.write(f"export CXX={compilerexecxx}\n")
+            elif (compilerexe.endswith("ifort") or compilerexe.endswith("ifx")) and toolchain:
+                compilerexecc = toolchain + "/bin/gcc"
+                compilerexecxx = toolchain + "/bin/g++"
+
+                f.write(f"export CC={compilerexecc}\n")
+                f.write(f"export CXX={compilerexecxx}\n")
 
             libparampaths = ["./lib"]
 
@@ -346,7 +328,7 @@ class FortranLibraryBuilder:
             extraflags = " ".join(x for x in flagscombination)
 
             if compilerType == "":
-                compilerTypeOrGcc = "gccfortran"
+                compilerTypeOrGcc = "fortran"
             else:
                 compilerTypeOrGcc = compilerType
 
@@ -356,9 +338,9 @@ class FortranLibraryBuilder:
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
 
-                f.write(f"export FPM_FC={compilerexe}\n")
-                f.write(f"export FPM_FFLAGS={fortran_flags}\n")
-                f.write(f"export FPM_LDFLAGS={ldflags} {rpathflags}\n")
+                f.write(f'export FPM_FC="{compilerexe}"\n')
+                f.write(f'export FPM_FFLAGS="{fortran_flags}"\n')
+                f.write(f'export FPM_LDFLAGS="{ldflags} {rpathflags}"\n')
 
                 f.write("/opt/compiler-explorer/fpm-0.9.0/fpm build > cefpmbuildlog.txt 2>&1\n")
 
@@ -923,28 +905,25 @@ class FortranLibraryBuilder:
 
             archs = build_supported_arch
 
-            if compiler in disable_clang_32bit:
-                archs = ["x86_64"]
-            else:
-                if self.buildconfig.build_fixed_arch != "":
-                    if not self.does_compiler_support(
-                        exe,
-                        compilerType,
-                        self.buildconfig.build_fixed_arch,
-                        self.compilerprops[compiler]["options"],
-                        self.compilerprops[compiler]["ldPath"],
-                    ):
-                        self.logger.debug(
-                            f"Compiler {compiler} does not support fixed arch {self.buildconfig.build_fixed_arch}"
-                        )
-                        continue
-                    else:
-                        archs = [self.buildconfig.build_fixed_arch]
-
-                if not self.does_compiler_support_x86(
-                    exe, compilerType, self.compilerprops[compiler]["options"], self.compilerprops[compiler]["ldPath"]
+            if self.buildconfig.build_fixed_arch != "":
+                if not self.does_compiler_support(
+                    exe,
+                    compilerType,
+                    self.buildconfig.build_fixed_arch,
+                    self.compilerprops[compiler]["options"],
+                    self.compilerprops[compiler]["ldPath"],
                 ):
-                    archs = [""]
+                    self.logger.debug(
+                        f"Compiler {compiler} does not support fixed arch {self.buildconfig.build_fixed_arch}"
+                    )
+                    continue
+                else:
+                    archs = [self.buildconfig.build_fixed_arch]
+
+            if not self.does_compiler_support_x86(
+                exe, compilerType, self.compilerprops[compiler]["options"], self.compilerprops[compiler]["ldPath"]
+            ):
+                archs = [""]
 
             if buildfor == "nonx86" and archs[0] != "":
                 continue
