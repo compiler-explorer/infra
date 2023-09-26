@@ -19,3 +19,21 @@ windows:
             url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{name}/winlibs-x86_64-posix-seh-gcc-12.1.0-llvm-14.0.6-mingw-w64ucrt-10.0.0-r3.zip
           - name: "11.3.0-14.0.3-10.0.0-ucrt-r3"
             url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{name}/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64ucrt-10.0.0-r3.zip
+  tools:
+    cmake:
+      type: ziparchive
+      url: https://github.com/Kitware/CMake/releases/download/v{name}/cmake-{name}-windows-x86_64.zip
+      dir: cmake-v{name}
+      check_file: "bin/cmake.exe"
+      folder: "cmake-{name}-windows-x86_64"
+      targets:
+        - 3.27.6
+    ninja:
+      type: ziparchive
+      url: https://github.com/ninja-build/ninja/releases/download/v{name}/ninja-win.zip
+      dir: ninja-v{name}
+      folder: "bin"
+      extract_into_folder: true
+      check_file: "ninja.exe"
+      targets:
+        - 1.11.1
