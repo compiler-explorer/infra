@@ -1621,7 +1621,7 @@ libraries:
       - ./config --prefix="$PWD/x86_64/opt" --openssldir="$PWD/x86_64/ssl"
       - make
       - make install
-      - rm "{untar_dir}/x86_64/opt/lib/*.a"
+      - rm ./x86_64/opt/lib/*.a
       build_type: none
       check_file: x86_64/opt/lib/libssl.so.1.1
       compression: gz
