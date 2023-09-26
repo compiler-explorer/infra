@@ -2214,6 +2214,36 @@ libraries:
         targets:
         - trunk
         type: github
+  fortran:
+    forcompile:
+      check_file: fpm.toml
+      repo: gha3mi/forcompile
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    http-client:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: fortran-lang/http-client
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+      requires_tree_copy: true
+      prebuild_script:
+      - curl -o curl.tgz -s -q https://conan.compiler-explorer.com/v1/files/curl/7.83.1/curl/7.83.1/0/package/882d9e2501226719fb02e24cda07ede0af8fb77d/0/conan_package.tgz?signature=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJyZXNvdXJjZV9wYXRoIjoiY3VybC83LjgzLjEvY3VybC83LjgzLjEvMC9wYWNrYWdlLzg4MmQ5ZTI1MDEyMjY3MTlmYjAyZTI0Y2RhMDdlZGUwYWY4ZmI3N2QvMC9jb25hbl9wYWNrYWdlLnRneiIsInVzZXJuYW1lIjpudWxsLCJmaWxlc2l6ZSI6bnVsbCwiZXhwIjoxNjk1NzQ1MjIzfQ.VusVGZ9BdfFvKVErhKeKA37x2EinDFp7LIaszO646FM
+      - tar -xzf curl.tgz
+      - cp lib/libcurl-d.so lib/libcurl.so
+      - export FPM_CFLAGS=-I/opt/compiler-explorer/libs/curl/7.83.1/include
+      staticliblink:
+      - http
+    json-fortran:
+      check_file: fpm.toml
+      repo: jacobwilliams/json-fortran
+      targets:
+      - 8.3.0
+      type: github
   rust:
     aho-corasick:
       build_type: cargo
