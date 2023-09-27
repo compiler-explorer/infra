@@ -8,7 +8,6 @@ export PATH=$PATH:/home/ubuntu/node/bin
 cd /home/ubuntu/ceconan/conanproxy
 git pull
 
-npm i -g npm
 npm i
 
 CESECRET=$(aws ssm get-parameter --name /compiler-explorer/conanproxysecret | jq -r .Parameter.Value)
