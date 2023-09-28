@@ -23,6 +23,7 @@ compilers:
         - 2.13.02
         - 2.13.03
         - 2.14.02
+        - 2.16.01
     beebasm:
       type: s3tarballs
       targets:
