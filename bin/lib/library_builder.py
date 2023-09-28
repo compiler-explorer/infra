@@ -327,7 +327,7 @@ class LibraryBuilder:
         flagscombination,
         ldPath,
     ):
-        with open_script(Path(buildfolder) / "build.sh") as f:
+        with open_script(Path(buildfolder) / "cebuild.sh") as f:
             f.write("#!/bin/sh\n\n")
             compilerexecc = compilerexe[:-2]
             if compilerexe.endswith("clang++"):
@@ -645,7 +645,7 @@ class LibraryBuilder:
 
     def executebuildscript(self, buildfolder):
         try:
-            if subprocess.call(["./build.sh"], cwd=buildfolder, timeout=build_timeout) == 0:
+            if subprocess.call(["./cebuild.sh"], cwd=buildfolder, timeout=build_timeout) == 0:
                 self.logger.info(f"Build succeeded in {buildfolder}")
                 return BuildStatus.Ok
             else:
