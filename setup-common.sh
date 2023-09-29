@@ -120,9 +120,9 @@ setup_grafana() {
     local GRAFANA_VERSION=0.36.2
 
     pushd /tmp
-    curl -sLo agent-linux.zip "https://github.com/grafana/agent/releases/download/v${GRAFANA_VERSION}/agent-linux-${ARCH}.zip"
+    curl -sLo agent-linux.zip "https://github.com/grafana/agent/releases/download/v${GRAFANA_VERSION}/grafana-agent-linux-${ARCH}.zip"
     unzip agent-linux.zip
-    cp "agent-linux-${ARCH}" /usr/local/bin/grafana-agent
+    cp "grafana-agent-linux-${ARCH}" /usr/local/bin/grafana-agent
     popd
 
     local PROM_PASSWORD, LOKI_PASSWORD
