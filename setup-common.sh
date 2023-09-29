@@ -125,7 +125,8 @@ setup_grafana() {
     cp "grafana-agent-linux-${ARCH}" /usr/local/bin/grafana-agent
     popd
 
-    local PROM_PASSWORD, LOKI_PASSWORD
+    local PROM_PASSWORD
+    local LOKI_PASSWORD
     PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
     LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
     mkdir -p /etc/grafana
