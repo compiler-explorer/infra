@@ -1,5 +1,3 @@
-server:
-  http_listen_port: 12345
 prometheus:
   wal_directory: /tmp/grafana-agent-wal
   global:
@@ -59,36 +57,38 @@ integrations:
         username: "16818"
         password: '@PROM_PASSWORD@'
 loki:
-  positions:
-    filename: /tmp/positions.yaml
-  clients:
-    - url: https://logs-prod-us-central1.grafana.net/api/prom/push
-      basic_auth:
-        username: "7398"
-        password: '@LOKI_PASSWORD@'
-  scrape_configs:
-    - job_name: journal
-      journal:
-        max_age: 12h
-        labels:
-          env: '@ENV@'
-          job: systemd-journal
-          host: '@HOSTNAME@'
-      relabel_configs:
-        - source_labels: [ '__journal__systemd_unit' ]
-          target_label: 'unit'
-    - job_name: push
-      loki_push_api:
-        use_incoming_timestamp: true
-        server:
-          http_listen_port: 3500
-          grpc_listen_port: 3600
-        labels:
-          env: '@ENV@'
-          host: '@HOSTNAME@'
-      relabel_configs:
-        # provide a default value for job if none is given
-        - source_labels: [ job ]
-          target_label: job
-          replacement: push
-          regex: ""
+  configs:
+  - name: "loki"
+    positions:
+      filename: /tmp/positions.yaml
+    clients:
+      - url: https://logs-prod-us-central1.grafana.net/api/prom/push
+        basic_auth:
+          username: "7398"
+          password: '@LOKI_PASSWORD@'
+    scrape_configs:
+      - job_name: journal
+        journal:
+          max_age: 12h
+          labels:
+            env: '@ENV@'
+            job: systemd-journal
+            host: '@HOSTNAME@'
+        relabel_configs:
+          - source_labels: [ '__journal__systemd_unit' ]
+            target_label: 'unit'
+      - job_name: push
+        loki_push_api:
+          use_incoming_timestamp: true
+          server:
+            http_listen_port: 3500
+            grpc_listen_port: 3600
+          labels:
+            env: '@ENV@'
+            host: '@HOSTNAME@'
+        relabel_configs:
+          # provide a default value for job if none is given
+          - source_labels: [ job ]
+            target_label: job
+            replacement: push
+            regex: ""
