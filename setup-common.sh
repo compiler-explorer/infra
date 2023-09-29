@@ -115,41 +115,36 @@ systemctl enable remote-syslog
 cp /infra/init/log-instance-id.service /lib/systemd/system/log-instance-id.service
 systemctl enable log-instance-id
 
-GRAFANA_CONFIG=/infra/grafana/agent.yaml
+setup_grafana() {
+    local GRAFANA_CONFIG=/infra/grafana/agent.yaml
+    local GRAFANA_VERSION=0.36.2
 
-pushd /tmp
+    pushd /tmp
+    curl -sLo agent-linux.zip "https://github.com/grafana/agent/releases/download/v${GRAFANA_VERSION}/agent-linux-${ARCH}.zip"
+    unzip agent-linux.zip
+    cp "agent-linux-${ARCH}" /usr/local/bin/grafana-agent
+    popd
 
-if [ "$ARCH" == 'amd64' ]; then
-  curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.6.1/agent-linux-amd64.zip'
-  unzip agent-linux.zip
-  cp agent-linux-amd64 /usr/local/bin/grafana-agent
-else
-  curl -sLo agent-linux.zip 'https://github.com/grafana/agent/releases/download/v0.32.1/grafana-agent-linux-arm64.zip'
-  unzip agent-linux.zip
-  cp grafana-agent-linux-arm64 /usr/local/bin/grafana-agent
-
-  GRAFANA_CONFIG=/infra/grafana/agent-latest.yaml
-fi
-
-popd
-
-PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
-LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
-
-mkdir -p /etc/grafana
-cp $GRAFANA_CONFIG /etc/grafana/agent.yaml.tpl
-if [ "${INSTALL_TYPE}" = "ci" ]; then
-  cp /infra/grafana/make-config-ci.sh /etc/grafana/make-config.sh
-else
-  cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
-fi
-cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
-systemctl daemon-reload
-systemctl enable grafana-agent
-
-sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
-chmod 600 /etc/grafana/agent.yaml.tpl
+    local PROM_PASSWORD, LOKI_PASSWORD
+    PROM_PASSWORD=$(get_conf /compiler-explorer/promPassword)
+    LOKI_PASSWORD=$(get_conf /compiler-explorer/lokiPassword)
+    mkdir -p /etc/grafana
+    cp $GRAFANA_CONFIG /etc/grafana/agent.yaml.tpl
+    sed -i "s/@PROM_PASSWORD@/${PROM_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+    sed -i "s/@LOKI_PASSWORD@/${LOKI_PASSWORD}/g" /etc/grafana/agent.yaml.tpl
+    chmod 600 /etc/grafana/agent.yaml.tpl
+    if [ "${INSTALL_TYPE}" = "ci" ]; then
+      cp /infra/grafana/make-config-ci.sh /etc/grafana/make-config.sh
+    elif [ "${INSTALL_TYPE}" = "admin" ]; then
+      cp /infra/grafana/make-config-admin.sh /etc/grafana/make-config.sh
+    else
+      cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
+    fi
+    cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
+    systemctl daemon-reload
+    systemctl enable grafana-agent
+}
+setup_grafana
 
 mkdir -p /efs
 if ! grep "/efs nfs" /etc/fstab; then
