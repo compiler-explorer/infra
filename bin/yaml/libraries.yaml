@@ -391,6 +391,7 @@ libraries:
       - 9.0.0
       - 9.1.0
       - 10.0.0
+      - 10.1.1
       type: github
     gemmlowp:
       build_type: none
@@ -559,12 +560,6 @@ libraries:
       targets:
       - development
       type: github
-    kyosu:
-      check_file: README.md
-      repo: jfalcou/kyosu
-      targets:
-      - main
-      type: github
     lagom:
       after_stage_script:
       - echo "cmake_minimum_required(VERSION 3.16)" > CMakeLists.txt
@@ -709,6 +704,7 @@ libraries:
       - 14.0.0
       - 15.0.0
       - 16.0.0
+      - 17.0.1
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -738,6 +734,7 @@ libraries:
       - v0.6.0
       - v0.7.0
       - v0.8.0
+      - v2.0.0
       type: github
     nightly:
       abseil:
@@ -1213,10 +1210,12 @@ libraries:
         - trunk
         type: github
       kyosu:
+        build_type: none
         check_file: README.md
+        method: nightlyclone
         repo: jfalcou/kyosu
         targets:
-        - main
+        - trunk
         type: github
       lager:
         build_type: none
@@ -1618,7 +1617,7 @@ libraries:
       - ./config --prefix="$PWD/x86_64/opt" --openssldir="$PWD/x86_64/ssl"
       - make
       - make install
-      - rm "{untar_dir}/x86_64/opt/lib/*.a"
+      - rm ./x86_64/opt/lib/*.a
       build_type: none
       check_file: x86_64/opt/lib/libssl.so.1.1
       compression: gz
@@ -2007,6 +2006,14 @@ libraries:
       - 1.4.0
       type: github
   cuda:
+    cccl:
+      check_file: README.md
+      method: clone_branch
+      repo: NVIDIA/cccl
+      target_prefix: v
+      targets:
+      - 2.2.0
+      type: github
     cub:
       check_file: cub/cub.cuh
       method: clone_branch
@@ -2015,6 +2022,13 @@ libraries:
       - 1.8.0
       type: github
     nightly:
+      cccl:
+        check_file: README.md
+        method: nightlyclone
+        repo: NVIDIA/cccl
+        targets:
+        - trunk
+        type: github
       cucollections:
         check_file: include/cuco/static_map.cuh
         method: clone_branch

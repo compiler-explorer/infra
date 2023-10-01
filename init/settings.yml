@@ -35,6 +35,9 @@ compiler:
     clang-hexagon:
         version: ANY
         libcxx: ANY
+    edg:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 

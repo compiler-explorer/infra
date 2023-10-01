@@ -12,7 +12,7 @@ if [[ "$1" != "--updated" ]]; then
   exit 0
 fi
 
-env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
+env EXTRA_NFS_ARGS="" INSTALL_TYPE="admin" "${DIR}/setup-common.sh"
 
 apt -y install mosh fish jq cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
 chsh ubuntu -s /usr/bin/fish

@@ -19,10 +19,6 @@ function GetBetterHostname {
 $betterComputerName = GetBetterHostname
 Write-Host "AWS Hostname $betterComputerName"
 
-function download_dskspd {
-    Invoke-WebRequest -Uri "https://github.com/microsoft/diskspd/releases/download/v2.1/DiskSpd.ZIP" -OutFile "/tmp/diskspd.zip"
-}
-
 function update_code {
     Write-Host "Current environment $CE_ENV"
     Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
@@ -91,7 +87,7 @@ function GeneratePassword {
 
 function RecreateUser {
     param(
-        $securePassword
+        [securestring] $securePassword
     )
 
     $exists = (Get-LocalUser $CE_USER -ErrorAction Ignore) -as [bool];
@@ -105,20 +101,10 @@ function RecreateUser {
     ConfigureUserRights -SID (Get-LocalUser $CE_USER).SID
 }
 
-function ConfigureUserRights {
-    param(
-        [String] $SID
-    )
-
+function ConfigureSmbRights {
     $tmpfile = "c:\tmp\secpol.cfg"
     secedit /export /cfg $tmpfile
     $secpol = (Get-Content $tmpfile)
-
-    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
-    $Index = [array]::IndexOf($secpol,$Value)
-
-    $NewValue = $Value + ",*" + $SID
-    $secpol.item($Index) = $NewValue
 
     $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth" }
     $Index = [array]::IndexOf($secpol,$Value)
@@ -140,6 +126,63 @@ function ConfigureUserRights {
     Remove-Item -Path $tmpfile
 
     gpupdate /Force
+}
+
+function ConfigureUserRights {
+    param(
+        [String] $SID
+    )
+
+    $tmpfile = "c:\tmp\secpol.cfg"
+    secedit /export /cfg $tmpfile
+    $secpol = (Get-Content $tmpfile)
+
+    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
+    $Index = [array]::IndexOf($secpol,$Value)
+
+    $NewValue = $Value + ",*" + $SID
+    $secpol.item($Index) = $NewValue
+
+    $secpol | out-file $tmpfile -Force
+    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile
+    Remove-Item -Path $tmpfile
+
+    gpupdate /Force
+}
+
+function InstallAsSystemService {
+    param(
+        [string] $Name,
+        [string] $Exe,
+        [array] $Arguments,
+        [string] $WorkingDirectory
+    )
+
+    $tmplog = "C:/tmp/log"
+    Write-Host "nssm.exe install $Name $Exe"
+    /nssm/win64/nssm.exe install $Name $Exe
+    if ($Arguments.Length -gt 0) {
+        Write-Host "nssm.exe set $Name AppParameters" ($Arguments -join " ")
+        /nssm/win64/nssm.exe set $Name AppParameters ($Arguments -join " ")
+    }
+    Write-Host "nssm.exe set $Name AppDirectory $WorkingDirectory"
+    /nssm/win64/nssm.exe set $Name AppDirectory $WorkingDirectory
+    Write-Host "nssm.exe set $Name AppStdout $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStdout "$tmplog/$Name-svc.log"
+    Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
+
+    Write-Host "nssm.exe set $Name AppExit Default Exit"
+    /nssm/win64/nssm.exe set $Name AppExit Default Exit
+
+    Write-Host "nssm.exe set $Name Start SERVICE_DEMAND_START"
+    /nssm/win64/nssm.exe set $Name Start SERVICE_DEMAND_START
+
+    Write-Host "nssm.exe reset $Name ObjectName"
+    /nssm/win64/nssm.exe reset $Name ObjectName
+
+    Write-Host "nssm.exe start $Name"
+    /nssm/win64/nssm.exe start $Name
 }
 
 function InstallAsService {
@@ -177,6 +220,14 @@ function InstallAsService {
 
     Write-Host "nssm.exe start $Name"
     /nssm/win64/nssm.exe start $Name
+}
+
+function InstallAndRunCEAsSystem {
+    $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
+
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CE_ENV,"-HostnameForLogging",$betterComputerName,"-SMBServer",$SMBServer) -join " "
+
+    InstallAsSystemService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs
 }
 
 function InstallCERunTask {
@@ -346,7 +397,7 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
-download_dskspd
+ConfigureSmbRights
 
 MountY
 
@@ -367,4 +418,6 @@ $loghost = GetLogHost
 $logport = GetLogPort
 
 ConfigureFirewall
-CreateCredAndRun
+
+#CreateCredAndRun
+InstallAndRunCEAsSystem

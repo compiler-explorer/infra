@@ -259,6 +259,9 @@ class NightlyTarballInstallable(TarballInstallable):
         self._setup_check_exe(self.install_path)
         self._setup_check_link(self.install_path, self.install_path_symlink)
 
+    def should_install(self) -> bool:
+        return True
+
     @property
     def nightly_like(self) -> bool:
         return True
