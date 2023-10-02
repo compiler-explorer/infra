@@ -27,6 +27,8 @@ _LOGGER = logging.getLogger(__name__)
 
 running_on_admin_node = socket.gethostname() == "admin-node"
 
+nightlies: NightlyVersions = NightlyVersions(_LOGGER)
+
 
 class S3TarballInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
@@ -149,8 +151,8 @@ class NightlyInstallable(Installable):
         stat = fullpath.lstat()
         modified = stat.st_mtime
 
-        Nightlies = NightlyVersions()
-        Nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
+        nightlies = NightlyVersions(self._logger)
+        nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def install(self) -> None:
         super().install()
