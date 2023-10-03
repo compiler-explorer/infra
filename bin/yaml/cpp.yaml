@@ -112,6 +112,16 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+            arm-unknown:
+              - check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+                path_name: "{subdir}/gcc-arm-unknown-{name}"
+                s3_path_prefix: "arm-unknown-gcc-{name}"
+                arch_prefix: arm-unknown-eabi
+                dir: arm/gcc-arm-unknown-eabi-{name}
+                untar_dir: gcc-{name}
+                targets:
+                  - 13.2.0
+
             nightly:
               if: nightly
               type: nightly
