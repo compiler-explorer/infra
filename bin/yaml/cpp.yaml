@@ -1140,6 +1140,7 @@ compilers:
           - patmat-trunk
           - p1061-trunk
           - reflection-trunk
+          - variadic-friends-trunk
           - rocm-trunk
           - ce-trunk
           - clangir-trunk
