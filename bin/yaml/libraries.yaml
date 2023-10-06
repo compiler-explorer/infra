@@ -205,6 +205,16 @@ libraries:
       - '2.0'
       - '1.0'
       type: github
+    cpptrace:
+      type: github
+      repo: jeremy-rifkin/cpptrace
+      build_type: cmake
+      lib_type: shared
+      make_targets:
+      - cpptrace
+      target_prefix: v
+      targets:
+        - 0.2.1
     curl:
       after_stage_script:
       - cp {{resource_dir}}/curl_config.h curl-{{name}}/include/curl/curl_config.h
