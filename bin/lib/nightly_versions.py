@@ -1,9 +1,9 @@
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
-import json
 
 class NightlyVersions:
-    table_name: str = "nightly-version"
+    version_table_name: str = "nightly-version"
+    exe_table_name: str = "nightly-exe"
 
     def __init__(self, logger):
         self.logger = logger
@@ -48,15 +48,24 @@ class NightlyVersions:
     def update_version(self, exe: str, modified: str, version: str, full_version: str):
         compiler_ids = self.getCompilerIdsByExe(exe)
         dynamodb_client.put_item(
-            TableName=self.table_name,
+            TableName=self.version_table_name,
             Item={
                 "exe": {"S": exe},
                 "modified": {"N": modified},
                 "version": {"S": version},
                 "full_version": {"S": full_version},
-                "compilerids": {"SS": compiler_ids},
             },
         )
+
+        for id in compiler_ids:
+            dynamodb_client.put_item(
+                TableName=self.exe_table_name,
+                Item={
+                    "id": {"S": id},
+                    "exe": {"S": exe},
+                },
+            )
+
         return
 
     def get_version(self, exe: str):
