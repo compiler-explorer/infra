@@ -212,6 +212,8 @@ libraries:
       lib_type: shared
       make_targets:
       - cpptrace
+      sharedliblink:
+      - cpptrace
       target_prefix: v
       targets:
         - 0.2.1
