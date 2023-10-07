@@ -151,7 +151,6 @@ class NightlyInstallable(Installable):
         stat = fullpath.lstat()
         modified = stat.st_mtime
 
-        nightlies = NightlyVersions(self._logger)
         nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def install(self) -> None:

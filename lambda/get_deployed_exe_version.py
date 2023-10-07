@@ -6,7 +6,8 @@ versionTablename = "nightly-version"
 nightlyExeTablename = "nightly-exe"
 db_client = boto3.client("dynamodb")
 
-def lambda_handler(event, context):
+
+def lambda_handler(event):
     if not ("queryStringParameters" in event):
         return defaultError("No event.queryStringParameters")
 
@@ -29,45 +30,32 @@ def lambda_handler(event, context):
 
     return respondWithVersion(item["Item"])
 
+
 def respondWithVersion(version: Dict):
     return dict(
         statusCode=200,
-        headers={
-            "content-type": "application/json"
-        },
-        body=json.dumps({
-            "exe": version["exe"]["S"],
-            "version": version["version"]["S"],
-            "full_version": version["full_version"]["S"],
-        })
+        headers={"content-type": "application/json"},
+        body=json.dumps(
+            {
+                "exe": version["exe"]["S"],
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+            }
+        ),
     )
+
 
 def defaultError(errortext: str):
-    return dict(statusCode=404,
-                headers={
-                    "content-type": "application/json"
-                },
-                body=json.dumps({"error": errortext}))
+    return dict(statusCode=404, headers={"content-type": "application/json"}, body=json.dumps({"error": errortext}))
+
 
 def getExeVersion(exe):
-    return db_client.get_item(
-        TableName = versionTablename,
-        Key = dict(
-            exe = dict(
-                S = exe
-            )
-        )
-    )
+    return db_client.get_item(TableName=versionTablename, Key=dict(exe=dict(S=exe)))
 
-def getExePathByCompilerId(id):
-    return db_client.get_item(
-        TableName = nightlyExeTablename,
-        Key = dict(
-            id = dict(
-                S = id
-            )
-        )
-    )
+
+def getExePathByCompilerId(compiler_id):
+    return db_client.get_item(TableName=nightlyExeTablename, Key=dict(id=dict(S=compiler_id)))
+
 
 # obj: Dict = dict(
 #     Item = dict(
