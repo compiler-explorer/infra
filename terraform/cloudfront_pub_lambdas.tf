@@ -42,27 +42,37 @@ resource "aws_cloudfront_distribution" "lambdas-compiler-explorer-com" {
   }
 
   default_cache_behavior {
-    allowed_methods = [
-      "HEAD",
-      "GET"
-    ]
-    cached_methods = [
-      "HEAD",
-      "GET"
-    ]
+    allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = "S3-compiler-explorer"
+
     forwarded_values {
+      query_string = false
+
       cookies {
         forward = "none"
       }
-      query_string = true
-      headers      = [
-        "Accept",
-        "Host"
-      ]
     }
-    target_origin_id       = aws_apigatewayv2_api.ce_pub_lambdas.id
-    viewer_protocol_policy = "redirect-to-https"
-    compress               = true
+
+    viewer_protocol_policy = "allow-all"
+    min_ttl                = 0
+    default_ttl            = 3600
+    max_ttl                = 86400
+  }
+
+  ordered_cache_behavior {
+    path_pattern     = "/prod/*"
+    allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+    cached_methods   = ["GET", "HEAD"]
+    target_origin_id = aws_apigatewayv2_api.ce_pub_lambdas.id
+    cache_policy_id  = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # CachingDisabled
+    origin_request_policy_id = "b689b0a8-53d0-40ab-baf2-68738e2966ac" # AllViewerExceptHostHeader
+    response_headers_policy_id = "60669652-455b-4ae9-85a4-c4c02393f86c" # SimpleCORS
+
+    min_ttl                = 60
+    default_ttl            = 1800
     max_ttl                = 3600
+    compress               = true
+    viewer_protocol_policy = "https-only"
   }
 }
