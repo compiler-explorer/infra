@@ -7,7 +7,7 @@ nightlyExeTablename = "nightly-exe"
 db_client = boto3.client("dynamodb")
 
 
-def lambda_handler(event):
+def lambda_handler(event, _context):
     if not ("queryStringParameters" in event):
         return defaultError("No event.queryStringParameters")
 
