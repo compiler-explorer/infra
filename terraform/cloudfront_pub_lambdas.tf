@@ -1,5 +1,9 @@
 resource "aws_cloudfront_distribution" "lambdas-compiler-explorer-com" {
   origin {
+    domain_name = "compiler-explorer.s3.amazonaws.com"
+    origin_id   = "S3-compiler-explorer"
+  }
+  origin {
     domain_name = "${aws_apigatewayv2_api.ce_pub_lambdas.id}.execute-api.us-east-1.amazonaws.com"
     origin_id   = aws_apigatewayv2_api.ce_pub_lambdas.id
     custom_origin_config {
