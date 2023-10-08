@@ -33,7 +33,7 @@ jobs:
 
     steps:
     - name: Update infra
-      run: cd /home/ubuntu/infra && git pull
+      run: cd /home/ubuntu/infra && git pull && make ce
     - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
     - name: Start runner
