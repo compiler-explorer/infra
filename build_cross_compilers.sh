@@ -3,6 +3,7 @@
 set -exuo pipefail
 
 finish() {
+    # shellcheck disable=SC2317
     ce builder stop
 }
 trap finish EXIT
