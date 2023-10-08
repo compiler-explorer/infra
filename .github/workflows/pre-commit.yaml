@@ -1,4 +1,4 @@
-name: Ensure pre-commit hooks have been rung
+name: Ensure pre-commit hooks have been run
 
 on:
   push:
@@ -13,5 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install pre-commit
         run: sudo apt install -y pre-commit
+      - name: Ensure virtualenv set up for pylint
+        run: make ce
       - name: Run all pre-commit hooks (except python tests)
         run: env SKIP=test pre-commit run --all
