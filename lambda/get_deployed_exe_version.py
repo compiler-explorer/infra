@@ -11,6 +11,10 @@ def lambda_handler(event, _context):
     if not ("queryStringParameters" in event):
         return defaultError("No event.queryStringParameters")
 
+    jsonp = ""
+    if "jsonp" in event["queryStringParameters"]:
+        jsonp = event["queryStringParameters"]["jsonp"]
+
     item = False
     if "id" in event["queryStringParameters"]:
         exeItem = getExePathByCompilerId(event["queryStringParameters"]["id"])
@@ -28,21 +32,35 @@ def lambda_handler(event, _context):
         if not item or not "Item" in item:
             return defaultError("No exe found based on path " + exe)
 
-    return respondWithVersion(item["Item"])
+    return respondWithVersion(item["Item"], jsonp)
 
 
-def respondWithVersion(version: Dict):
-    return dict(
-        statusCode=200,
-        headers={"content-type": "application/json"},
-        body=json.dumps(
-            {
-                "exe": version["exe"]["S"],
-                "version": version["version"]["S"],
-                "full_version": version["full_version"]["S"],
-            }
-        ),
-    )
+def respondWithVersion(version: Dict, jsonp: str):
+    if jsonp:
+        return dict(
+            statusCode=200,
+            headers={"content-type": "application/javascript"},
+            body=jsonp
+            + "("
+            + json.dumps(
+                {
+                    "version": version["version"]["S"],
+                    "full_version": version["full_version"]["S"],
+                }
+            )
+            + ");",
+        )
+    else:
+        return dict(
+            statusCode=200,
+            headers={"content-type": "application/json"},
+            body=json.dumps(
+                {
+                    "version": version["version"]["S"],
+                    "full_version": version["full_version"]["S"],
+                }
+            ),
+        )
 
 
 def defaultError(errortext: str):
