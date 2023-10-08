@@ -104,5 +104,5 @@ resource "aws_lambda_permission" "with_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.get_deployed_exe_version.arn
   principal     = "apigateway.amazonaws.com"
-  source_arn = "${aws_apigatewayv2_api.ce_pub_lambdas.execution_arn}/*/*"
+  source_arn = "${aws_apigatewayv2_api.ce_pub_api.execution_arn}/*/*"
 }
