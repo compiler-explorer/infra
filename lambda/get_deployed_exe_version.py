@@ -9,7 +9,7 @@ db_client = boto3.client("dynamodb")
 
 def lambda_handler(event, _context):
     if not ("queryStringParameters" in event):
-        return defaultError("No event.queryStringParameters")
+        return default_error("No event.queryStringParameters")
 
     jsonp = ""
     if "jsonp" in event["queryStringParameters"]:
@@ -17,25 +17,25 @@ def lambda_handler(event, _context):
 
     item = False
     if "id" in event["queryStringParameters"]:
-        exeItem = getExePathByCompilerId(event["queryStringParameters"]["id"])
+        exeItem = get_exe_path_by_compiler_id(event["queryStringParameters"]["id"])
         if not exeItem or not "Item" in exeItem:
-            return defaultError("No exe found based on id " + event["queryStringParameters"]["id"])
+            return default_error("No exe found based on id " + event["queryStringParameters"]["id"])
         else:
             exe = exeItem["Item"]["exe"]["S"]
-            item = getExeVersion(exe)
+            item = get_exe_version(exe)
             if not item or not "Item" in item:
-                return defaultError("No exe found based on path " + exe)
+                return default_error("No exe found based on path " + exe)
 
     if "exe" in event["queryStringParameters"]:
         exe = event["queryStringParameters"]["exe"]
-        item = getExeVersion(exe)
+        item = get_exe_version(exe)
         if not item or not "Item" in item:
-            return defaultError("No exe found based on path " + exe)
+            return default_error("No exe found based on path " + exe)
 
-    return respondWithVersion(item["Item"], jsonp)
+    return respond_with_version(item["Item"], jsonp)
 
 
-def respondWithVersion(version: Dict, jsonp: str):
+def respond_with_version(version: Dict, jsonp: str):
     if jsonp:
         return dict(
             statusCode=200,
@@ -63,24 +63,13 @@ def respondWithVersion(version: Dict, jsonp: str):
         )
 
 
-def defaultError(errortext: str):
+def default_error(errortext: str):
     return dict(statusCode=404, headers={"content-type": "application/json"}, body=json.dumps({"error": errortext}))
 
 
-def getExeVersion(exe):
+def get_exe_version(exe):
     return db_client.get_item(TableName=versionTablename, Key=dict(exe=dict(S=exe)))
 
 
-def getExePathByCompilerId(compiler_id):
+def get_exe_path_by_compiler_id(compiler_id):
     return db_client.get_item(TableName=nightlyExeTablename, Key=dict(id=dict(S=compiler_id)))
-
-
-# obj: Dict = dict(
-#     Item = dict(
-#         exe = dict(S = "bla.exe"),
-#         version = dict(S = "1.0"),
-#         full_version = dict(S = "1.0 copyright etc")
-#     )
-# )
-# ver = respondWithVersion(obj["Item"])
-# print(ver)
