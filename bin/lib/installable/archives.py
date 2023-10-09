@@ -141,7 +141,7 @@ class NightlyInstallable(Installable):
             return
 
         # exe is something like "gcc-trunk-20231008/bin/g++" here
-        #  but we need the actual symlinked destination path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
         relative_exe = "/".join(exe.split("/")[1:])
         if self.install_path_symlink:
             fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
