@@ -150,7 +150,7 @@ class NightlyInstallable(Installable):
         else:
             fullpath = self.install_context.destination / exe
 
-        stat = fullpath.lstat()
+        stat = fullpath.stat()
         modified = stat.st_mtime
 
         nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
