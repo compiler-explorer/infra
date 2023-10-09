@@ -12,42 +12,42 @@ class NightlyVersions:
         [self.c, _] = get_properties_compilers_and_libraries("c", logger)
         [self.fortran, _] = get_properties_compilers_and_libraries("fortran", logger)
 
-    def asCCompiler(self, exe: str):
+    def as_c_compiler(self, exe: str):
         if exe.endswith("/g++"):
             return exe[:-3] + "gcc"
         if exe.endswith("/clang++"):
             return exe[:-2]
         return exe
 
-    def asFortranCompiler(self, exe: str):
+    def as_fortran_compiler(self, exe: str):
         if exe.endswith("/g++"):
             return exe[:-3] + "gfortran"
         return exe
 
-    def getCompilerIdsByExe(self, exe: str):
-        ids = []
+    def get_compiler_ids(self, exe: str):
+        ids = set()
 
         for compiler_id in self.cpp:
             compiler = self.cpp[compiler_id]
             if exe == compiler["exe"]:
-                ids.append(compiler_id)
+                ids.add(compiler_id)
 
-        cexe = self.asCCompiler(exe)
+        cexe = self.as_c_compiler(exe)
         for compiler_id in self.c:
             compiler = self.c[compiler_id]
             if cexe == compiler["exe"]:
-                ids.append(compiler_id)
+                ids.add(compiler_id)
 
-        fortranexe = self.asFortranCompiler(exe)
+        fortranexe = self.as_fortran_compiler(exe)
         for compiler_id in self.fortran:
             compiler = self.fortran[compiler_id]
             if fortranexe == compiler["exe"]:
-                ids.append(compiler_id)
+                ids.add(compiler_id)
 
         return ids
 
     def update_version(self, exe: str, modified: str, version: str, full_version: str):
-        compiler_ids = self.getCompilerIdsByExe(exe)
+        compiler_ids = self.get_compiler_ids(exe)
         dynamodb_client.put_item(
             TableName=self.version_table_name,
             Item={
