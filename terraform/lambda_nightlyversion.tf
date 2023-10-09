@@ -2,7 +2,6 @@
     Lambda get_deployed_exe_version
     Rights to log and read from dynamodb tables nightly-version and nightly-exe
     API Gateway can execute the lambda
-    Cloudfront connects to the API Gateway
  */
 
 
