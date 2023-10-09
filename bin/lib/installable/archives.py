@@ -138,6 +138,7 @@ class NightlyInstallable(Installable):
 
     def save_version(self, exe: str, res_call: str):
         if not running_on_admin_node:
+            self._logger.warn("Not running on admin node - not saving compiler version info to AWS")
             return
 
         # exe is something like "gcc-trunk-20231008/bin/g++" here
