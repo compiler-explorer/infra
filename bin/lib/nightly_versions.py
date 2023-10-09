@@ -8,9 +8,15 @@ class NightlyVersions:
 
     def __init__(self, logger):
         self.logger = logger
-        [self.cpp, _] = get_properties_compilers_and_libraries("c++", logger)
-        [self.c, _] = get_properties_compilers_and_libraries("c", logger)
-        [self.fortran, _] = get_properties_compilers_and_libraries("fortran", logger)
+        self.props_loaded = False
+
+    def load_ce_properties(self):
+        if not self.props_loaded:
+            [self.cpp, _] = get_properties_compilers_and_libraries("c++", self.logger)
+            [self.c, _] = get_properties_compilers_and_libraries("c", self.logger)
+            [self.fortran, _] = get_properties_compilers_and_libraries("fortran", self.logger)
+            [self.rust, _] = get_properties_compilers_and_libraries("rust", self.logger)
+            self.props_loaded = True
 
     def as_c_compiler(self, exe: str):
         if exe.endswith("/g++"):
@@ -25,10 +31,17 @@ class NightlyVersions:
         return exe
 
     def get_compiler_ids(self, exe: str):
+        self.load_ce_properties()
+
         ids = set()
 
         for compiler_id in self.cpp:
             compiler = self.cpp[compiler_id]
+            if exe == compiler["exe"]:
+                ids.add(compiler_id)
+
+        for compiler_id in self.rust:
+            compiler = self.rust[compiler_id]
             if exe == compiler["exe"]:
                 ids.add(compiler_id)
 
