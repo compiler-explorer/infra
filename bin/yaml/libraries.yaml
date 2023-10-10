@@ -640,6 +640,8 @@ libraries:
       - trunk
       type: github
     libassert:
+      type: github
+      repo: jeremy-rifkin/libassert
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
@@ -647,14 +649,14 @@ libraries:
       - -DBUILD_SHARED_LIBS=on
       lib_type: shared
       method: clone_branch
-      repo: jeremy-rifkin/libassert
       sharedliblink:
       - assert
       target_prefix: v
       targets:
       - '1.0'
       - '1.1'
-      type: github
+      - '1.2'
+      - '1.2.1'
     libbpf:
       build_type: make
       check_file: README.md
