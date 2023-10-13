@@ -5,6 +5,8 @@ compilers:
     dir: julia-{name}
     check_exe: bin/julia --version
     targets:
+      - name: 1.9.3
+        url: https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.3-linux-x86_64.tar.gz
       - name: 1.8.5
         url: https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.5-linux-x86_64.tar.gz
       - name: 1.7.3
