@@ -8,40 +8,48 @@ class NightlyVersions:
     version_table_name: str = "nightly-version"
     exe_table_name: str = "nightly-exe"
     props_loaded: bool = False
-    cpp: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+
+    ada: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     c: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    circt: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    clean: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    cpp_for_opencl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    cpp: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    cppx: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     fortran: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    go: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    hlsl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    ispc: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    javascript: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    mlir: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    pony: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     rust: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     swift: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    clean: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    mlir: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    ispc: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    go: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    circt: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     zig: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    hlsl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    javascript: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    cpp_for_opencl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
     def __init__(self, logger):
         self.logger = logger
 
     def load_ce_properties(self):
         if not self.props_loaded:
-            [self.cpp, _] = get_properties_compilers_and_libraries("c++", self.logger)
+            [self.ada, _] = get_properties_compilers_and_libraries("ada", self.logger)
             [self.c, _] = get_properties_compilers_and_libraries("c", self.logger)
+            [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger)
+            [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger)
+            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger)
+            [self.cpp, _] = get_properties_compilers_and_libraries("c++", self.logger)
+            [self.cppx, _] = get_properties_compilers_and_libraries("cppx", self.logger)
             [self.fortran, _] = get_properties_compilers_and_libraries("fortran", self.logger)
+            [self.go, _] = get_properties_compilers_and_libraries("go", self.logger)
+            [self.hlsl, _] = get_properties_compilers_and_libraries("hlsl", self.logger)
+            [self.ispc, _] = get_properties_compilers_and_libraries("ispc", self.logger)
+            [self.javascript, _] = get_properties_compilers_and_libraries("javascript", self.logger)
+            [self.mlir, _] = get_properties_compilers_and_libraries("mlir", self.logger)
+            [self.pony, _] = get_properties_compilers_and_libraries("pony", self.logger)
             [self.rust, _] = get_properties_compilers_and_libraries("rust", self.logger)
             [self.swift, _] = get_properties_compilers_and_libraries("swift", self.logger)
-            [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger)
-            [self.mlir, _] = get_properties_compilers_and_libraries("mlir", self.logger)
-            [self.ispc, _] = get_properties_compilers_and_libraries("ispc", self.logger)
-            [self.go, _] = get_properties_compilers_and_libraries("go", self.logger)
-            [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger)
             [self.zig, _] = get_properties_compilers_and_libraries("zig", self.logger)
-            [self.hlsl, _] = get_properties_compilers_and_libraries("hlsl", self.logger)
-            [self.javascript, _] = get_properties_compilers_and_libraries("javascript", self.logger)
-            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger)
+
             self.props_loaded = True
 
     def as_c_compiler(self, exe: str):
@@ -56,6 +64,11 @@ class NightlyVersions:
             return exe[:-3] + "gfortran"
         return exe
 
+    def as_ada_compiler(self, exe: str):
+        if exe.endswith("/g++"):
+            return exe[:-3] + "gnat"
+        return exe
+
     def collect_compiler_ids_for(self, ids: set, exe: str, compilers: Dict[str, Dict[str, Any]]):
         for compiler_id in compilers:
             compiler = compilers[compiler_id]
@@ -67,24 +80,27 @@ class NightlyVersions:
 
         ids: Set = set()
 
+        ada_exe = self.as_ada_compiler(exe)
+        c_exe = self.as_c_compiler(exe)
+        fortran_exe = self.as_fortran_compiler(exe)
+
+        self.collect_compiler_ids_for(ids, ada_exe, self.ada)
+        self.collect_compiler_ids_for(ids, c_exe, self.c)
+        self.collect_compiler_ids_for(ids, exe, self.circt)
+        self.collect_compiler_ids_for(ids, exe, self.clean)
+        self.collect_compiler_ids_for(ids, c_exe, self.cpp_for_opencl)
         self.collect_compiler_ids_for(ids, exe, self.cpp)
+        self.collect_compiler_ids_for(ids, exe, self.cppx)
+        self.collect_compiler_ids_for(ids, fortran_exe, self.fortran)
+        self.collect_compiler_ids_for(ids, exe, self.go)
+        self.collect_compiler_ids_for(ids, exe, self.hlsl)
+        self.collect_compiler_ids_for(ids, exe, self.ispc)
+        self.collect_compiler_ids_for(ids, exe, self.javascript)
+        self.collect_compiler_ids_for(ids, exe, self.mlir)
+        self.collect_compiler_ids_for(ids, exe, self.pony)
         self.collect_compiler_ids_for(ids, exe, self.rust)
         self.collect_compiler_ids_for(ids, exe, self.swift)
-        self.collect_compiler_ids_for(ids, exe, self.clean)
-        self.collect_compiler_ids_for(ids, exe, self.mlir)
-        self.collect_compiler_ids_for(ids, exe, self.ispc)
-        self.collect_compiler_ids_for(ids, exe, self.go)
-        self.collect_compiler_ids_for(ids, exe, self.circt)
         self.collect_compiler_ids_for(ids, exe, self.zig)
-        self.collect_compiler_ids_for(ids, exe, self.hlsl)
-        self.collect_compiler_ids_for(ids, exe, self.javascript)
-        self.collect_compiler_ids_for(ids, exe, self.cpp_for_opencl)
-
-        cexe = self.as_c_compiler(exe)
-        self.collect_compiler_ids_for(ids, cexe, self.c)
-
-        fortranexe = self.as_fortran_compiler(exe)
-        self.collect_compiler_ids_for(ids, fortranexe, self.fortran)
 
         return ids
 
