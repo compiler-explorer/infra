@@ -110,9 +110,9 @@ class Installable:
         self._logger.debug("Dependees installed")
 
     def save_version(self, exe: str, res_call: str):
-        # if not running_on_admin_node:
-        #     self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
-        #     return
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+            return
 
         if not self.nightly_like:
             return
