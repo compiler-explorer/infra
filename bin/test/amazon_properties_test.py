@@ -62,5 +62,14 @@ def test_googletest_should_have_versions():
 
 # def test_should_contain_mrustc():
 #     [_compilers, _libraries] = get_properties_compilers_and_libraries('rust', logger, False)
-#     print(_compilers)
 #     assert 'mrustc-master' in _compilers
+
+# def test_should_contain_objcgsnapshot():
+#     [_compilers, _libraries] = get_properties_compilers_and_libraries('objc', logger, False)
+#     assert 'objcgsnapshot' in _compilers
+#     assert 'exe' in _compilers['objcgsnapshot']
+
+# def test_should_contain_objcppgsnapshot():
+#     [_compilers, _libraries] = get_properties_compilers_and_libraries('objc++', logger, False)
+#     assert 'objcppgsnapshot' in _compilers
+#     assert 'exe' in _compilers['objcppgsnapshot']
