@@ -113,6 +113,17 @@ resource "aws_route53_record" "ses-compiler-explorer-com" {
   records = [aws_ses_domain_identity.compiler-explorer-com.verification_token]
 }
 
+resource "aws_route53_record" "api-compiler-explorer-com" {
+  name    = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name
+  type    = "A"
+  zone_id = module.compiler-explorer-com.zone_id
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
 
 ////////////////////////////////////////////////////
 

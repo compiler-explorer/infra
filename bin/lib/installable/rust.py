@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import functools
 import os
+import socket
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any
+from lib.nightly_versions import NightlyVersions
 
 from lib.amazon import list_s3_artifacts
 from lib.installable.installable import Installable
@@ -15,6 +17,10 @@ from lib.staging import StagingDir
 import logging
 
 _LOGGER = logging.getLogger(__name__)
+
+running_on_admin_node = socket.gethostname() == "admin-node"
+
+nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 @functools.lru_cache(maxsize=512)
@@ -100,6 +106,27 @@ class RustInstallable(Installable):
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
             self.install_context.move_from_staging(staging, self.install_path)
+
+    def save_version(self, exe: str, res_call: str):
+        if not self.nightly_like:
+            return
+
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+            return
+
+        # exe is something like "gcc-trunk-20231008/bin/g++" here
+        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+        relative_exe = "/".join(exe.split("/")[1:])
+        if self.install_path_symlink:
+            fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+        else:
+            fullpath = self.install_context.destination / exe
+
+        stat = fullpath.stat()
+        modified = stat.st_mtime
+
+        nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def __repr__(self) -> str:
         return f"RustInstallable({self.name}, {self.install_path})"

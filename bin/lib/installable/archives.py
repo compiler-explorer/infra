@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import socket
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -16,12 +17,17 @@ from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
 from lib.installation_context import InstallationContext, is_windows
 from lib.staging import StagingDir
+from lib.nightly_versions import NightlyVersions
 
 import re
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
 
 _LOGGER = logging.getLogger(__name__)
+
+running_on_admin_node = socket.gethostname() == "admin-node"
+
+nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 class S3TarballInstallable(Installable):
@@ -129,6 +135,26 @@ class NightlyInstallable(Installable):
 
     def should_install(self) -> bool:
         return True
+
+    def save_version(self, exe: str, res_call: str):
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+            return
+
+        # exe is something like "gcc-trunk-20231008/bin/g++" here
+        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+        relative_exe = "/".join(exe.split("/")[1:])
+        if self.install_path_symlink:
+            fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+        elif self.path_name_symlink:
+            fullpath = self.install_context.destination / self.path_name_symlink / relative_exe
+        else:
+            fullpath = self.install_context.destination / exe
+
+        stat = fullpath.stat()
+        modified = stat.st_mtime
+
+        nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def install(self) -> None:
         super().install()
