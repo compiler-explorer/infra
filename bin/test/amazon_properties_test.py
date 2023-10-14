@@ -59,3 +59,8 @@ def test_googletest_should_have_versions():
 # def test_should_contain_optionsforclang800():
 #     [_compilers, _libraries] = get_properties_compilers_and_libraries('c++', logger)
 #     assert '--gcc-toolchain=/opt/compiler-explorer/gcc-8.3.0' in _compilers['clang800']['options']
+
+# def test_should_contain_mrustc():
+#     [_compilers, _libraries] = get_properties_compilers_and_libraries('rust', logger, False)
+#     print(_compilers)
+#     assert 'mrustc-master' in _compilers

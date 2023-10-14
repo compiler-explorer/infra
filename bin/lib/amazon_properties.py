@@ -20,7 +20,7 @@ def get_specific_library_version_details(libraries, libid, library_version):
 COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
-def get_properties_compilers_and_libraries(language, logger):
+def get_properties_compilers_and_libraries(language, logger, filter_binary_support: bool = True):
     _compilers: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     _libraries: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
@@ -124,26 +124,27 @@ def get_properties_compilers_and_libraries(language, logger):
             else:
                 _compilers[compiler][key] = val
 
-    logger.debug("Removing compilers that are not available or do not support binaries")
-    keys_to_remove = set()
-    for compiler in _compilers:
-        if "supportsBinary" in _compilers[compiler] and not _compilers[compiler]["supportsBinary"]:
-            logger.debug("%s does not supportsBinary", compiler)
-            keys_to_remove.add(compiler)
-        elif "compilerType" in _compilers[compiler] and _compilers[compiler]["compilerType"] == "wine-vc":
-            keys_to_remove.add(compiler)
-            logger.debug("%s is wine", compiler)
-        elif "exe" in _compilers[compiler]:
-            exe = _compilers[compiler]["exe"]
-            if not os.path.exists(exe):
+    if filter_binary_support:
+        logger.debug("Removing compilers that are not available or do not support binaries")
+        keys_to_remove = set()
+        for compiler in _compilers:
+            if "supportsBinary" in _compilers[compiler] and not _compilers[compiler]["supportsBinary"]:
+                logger.debug("%s does not supportsBinary", compiler)
                 keys_to_remove.add(compiler)
-                logger.debug("%s does not exist (looked for %s)", compiler, exe)
-        else:
-            keys_to_remove.add(compiler)
-            logger.debug("%s didn't have the required config keys", compiler)
+            elif "compilerType" in _compilers[compiler] and _compilers[compiler]["compilerType"] == "wine-vc":
+                keys_to_remove.add(compiler)
+                logger.debug("%s is wine", compiler)
+            elif "exe" in _compilers[compiler]:
+                exe = _compilers[compiler]["exe"]
+                if not os.path.exists(exe):
+                    keys_to_remove.add(compiler)
+                    logger.debug("%s does not exist (looked for %s)", compiler, exe)
+            else:
+                keys_to_remove.add(compiler)
+                logger.debug("%s didn't have the required config keys", compiler)
 
-    for compiler in keys_to_remove:
-        logger.debug("removing %s", compiler)
-        del _compilers[compiler]
+        for compiler in keys_to_remove:
+            logger.debug("removing %s", compiler)
+            del _compilers[compiler]
 
     return [_compilers, _libraries]
