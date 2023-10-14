@@ -253,20 +253,32 @@ class InstallationContext:
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
         if not is_windows():
-            return subprocess.check_output(
+            output = subprocess.run(
                 args,
                 cwd=str(self.destination),
                 env=env,
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT if stderr_on_stdout else None,
-            ).decode("utf-8")
+                capture_output=True,
+                check=True,
+            )
         else:
-            return subprocess.check_output(
+            output = subprocess.run(
                 args,
                 cwd=str(self.destination),
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT if stderr_on_stdout else None,
-            ).decode("utf-8")
+                capture_output=True,
+                check=True,
+            )
+
+        fulloutput = ''
+        if output.stdout != None:
+            fulloutput += output.stdout.decode("utf-8")
+        if output.stderr != None:
+            fulloutput += output.stderr.decode("utf-8")
+
+        return fulloutput
 
     def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
         args = args[:]
