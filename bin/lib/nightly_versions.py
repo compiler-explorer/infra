@@ -89,7 +89,7 @@ class NightlyVersions:
     def collect_compiler_ids_for(self, ids: set, exe: str, compilers: Dict[str, Dict[str, Any]]):
         for compiler_id in compilers:
             compiler = compilers[compiler_id]
-            if exe == compiler["exe"]:
+            if "exe" in compiler and exe == compiler["exe"]:
                 ids.add(compiler_id)
 
     def get_compiler_ids(self, exe: str):

@@ -112,17 +112,17 @@ def get_properties_compilers_and_libraries(language, logger, filter_binary_suppo
     logger.debug("Reading properties for compilers")
     for line in lines:
         if line.startswith("compiler."):
-            key, val = line.split("=", 1)
-            matches = COMPILEROPT_RE.match(key)
+            compilerkey, compilervalue = line.split("=", 1)
+            matches = COMPILEROPT_RE.match(compilerkey)
             if not matches:
-                raise RuntimeError(f"Not a valid compiler? {key}={val}")
+                raise RuntimeError(f"Not a valid compiler? {compilerkey}={compilervalue}")
             compiler = matches[2]
-            key = matches[3]
+            compilerid = matches[3]
 
             if key == "supportsBinary":
-                _compilers[compiler][key] = val == "true"
+                _compilers[compiler][compilerid] = compilervalue == "true"
             else:
-                _compilers[compiler][key] = val
+                _compilers[compiler][compilerid] = compilervalue
 
     if filter_binary_support:
         logger.debug("Removing compilers that are not available or do not support binaries")
