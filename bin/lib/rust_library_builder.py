@@ -25,7 +25,6 @@ from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.library_build_config import LibraryBuildConfig
 
 _TIMEOUT = 600
-# min_compiler_version = version.parse('1.56.0')
 skip_compilers = ["nightly", "beta", "gccrs-snapshot", "mrustc-master", "rustccggcc-master"]
 
 build_supported_os = ["Linux"]
