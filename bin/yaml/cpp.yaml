@@ -1160,7 +1160,7 @@ compilers:
       mlir:
         type: nightly
         dir: "mlir-{name}"
-        check_exe: bin/mlir-translate --version
+        check_exe: bin/mlir-opt --version
         targets:
           - trunk
       tinycc:
