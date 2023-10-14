@@ -10,6 +10,7 @@ class NightlyVersions:
     props_loaded: bool = False
 
     ada: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    assembly: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     c: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     circle: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     circt: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
@@ -34,6 +35,7 @@ class NightlyVersions:
     def load_ce_properties(self):
         if not self.props_loaded:
             [self.ada, _] = get_properties_compilers_and_libraries("ada", self.logger)
+            [self.assembly, _] = get_properties_compilers_and_libraries("assembly", self.logger)
             [self.c, _] = get_properties_compilers_and_libraries("c", self.logger)
             [self.circle, _] = get_properties_compilers_and_libraries("circle", self.logger)
             [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger)
@@ -54,6 +56,18 @@ class NightlyVersions:
 
             self.props_loaded = True
 
+    def as_assembly_compiler(self, exe: str):
+        if exe.endswith("/g++"):
+            return exe[:-3] + "as"
+        if exe.endswith("/clang++"):
+            return exe[:-7] + "llvm-mc"
+        return exe
+
+    def as_ada_compiler(self, exe: str):
+        if exe.endswith("/g++"):
+            return exe[:-3] + "gnat"
+        return exe
+
     def as_c_compiler(self, exe: str):
         if exe.endswith("/g++"):
             return exe[:-3] + "gcc"
@@ -64,11 +78,6 @@ class NightlyVersions:
     def as_fortran_compiler(self, exe: str):
         if exe.endswith("/g++"):
             return exe[:-3] + "gfortran"
-        return exe
-
-    def as_ada_compiler(self, exe: str):
-        if exe.endswith("/g++"):
-            return exe[:-3] + "gnat"
         return exe
 
     def collect_compiler_ids_for(self, ids: set, exe: str, compilers: Dict[str, Dict[str, Any]]):
@@ -85,8 +94,10 @@ class NightlyVersions:
         ada_exe = self.as_ada_compiler(exe)
         c_exe = self.as_c_compiler(exe)
         fortran_exe = self.as_fortran_compiler(exe)
+        assembly_exe = self.as_assembly_compiler(exe)
 
         self.collect_compiler_ids_for(ids, ada_exe, self.ada)
+        self.collect_compiler_ids_for(ids, assembly_exe, self.assembly)
         self.collect_compiler_ids_for(ids, c_exe, self.c)
         self.collect_compiler_ids_for(ids, exe, self.circle)
         self.collect_compiler_ids_for(ids, exe, self.circt)
