@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional, Generator, TextIO
 from urllib3.exceptions import ProtocolError
 
-# from packaging import version
 import requests
 from lib.staging import StagingDir
 from lib.installation_context import InstallationContext
