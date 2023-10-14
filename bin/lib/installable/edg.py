@@ -35,6 +35,9 @@ export EDG_PRELINK_PATH="$EDG_INSTALL_DIR/bin/edg_prelink"
 export ECCP="$EDG_INSTALL_DIR/bin/eccp"
 export EDG_RUNTIME_LIB="edgrt"
 
+# Add options for static linking.
+export EDG_OBJ_TO_EXEC_DEFAULT_OPTIONS="-static -z muldefs"
+
 # Execute the real eccp driver script.
 exec "$EDG_INSTALL_DIR/bin/eccp" $@
 """
