@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional, Iterator, Dict, IO, Sequence, Union, Collection, List
 
 import requests
+import requests.adapters
 import yaml
 from cachecontrol import CacheControl
 from cachecontrol.caches import FileCache
@@ -58,7 +59,7 @@ class InstallationContext:
             total=10,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
         )
         self.allow_unsafe_ssl = allow_unsafe_ssl
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
