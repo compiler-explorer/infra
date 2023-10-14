@@ -102,12 +102,12 @@ def get_properties_compilers_and_libraries(language, logger, filter_binary_suppo
                     groups[subgroupname]["supportsBinary"] = groups[group]["supportsBinary"]
                 if "ldPath" not in groups[subgroupname] and "ldPath" in groups[group]:
                     groups[subgroupname]["ldPath"] = groups[group]["ldPath"]
-
-            _compilers[compiler]["options"] = groups[group].get("options", "")
-            _compilers[compiler]["compilerType"] = groups[group].get("compilerType", "")
-            _compilers[compiler]["supportsBinary"] = groups[group].get("supportsBinary", True)
-            _compilers[compiler]["ldPath"] = groups[group].get("ldPath", "")
-            _compilers[compiler]["group"] = group
+            else:
+                _compilers[compiler]["options"] = groups[group].get("options", "")
+                _compilers[compiler]["compilerType"] = groups[group].get("compilerType", "")
+                _compilers[compiler]["supportsBinary"] = groups[group].get("supportsBinary", True)
+                _compilers[compiler]["ldPath"] = groups[group].get("ldPath", "")
+                _compilers[compiler]["group"] = group
 
     logger.debug("Reading properties for compilers")
     for line in lines:
