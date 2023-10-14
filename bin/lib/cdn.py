@@ -104,7 +104,7 @@ class DeploymentJob:
                 for member in zipfile.infolist():
                     member_path = os.path.join(path, member.filename)
                     if not is_within_directory(path, member_path):
-                        raise Exception("Attempted Path Traversal in Tar File")
+                        raise RuntimeError("Attempted Path Traversal in Tar File")
 
                 zipfile.extractall(path, members)
 
@@ -135,7 +135,7 @@ class DeploymentJob:
                 for member in tar.getmembers():
                     member_path = os.path.join(path, member.name)
                     if not is_within_directory(path, member_path):
-                        raise Exception("Attempted Path Traversal in Tar File")
+                        raise RuntimeError("Attempted Path Traversal in Tar File")
 
                 tar.extractall(path, members, numeric_owner=numeric_owner)
 
