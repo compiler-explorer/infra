@@ -110,11 +110,11 @@ class Installable:
         self._logger.debug("Dependees installed")
 
     def save_version(self, exe: str, res_call: str):
-        if not running_on_admin_node:
-            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+        if not self.nightly_like:
             return
 
-        if not self.nightly_like:
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
             return
 
         # exe is something like "gcc-trunk-20231008/bin/g++" here
@@ -183,7 +183,7 @@ class Installable:
 
     @property
     def nightly_like(self) -> bool:
-        return self.target_name in ["nightly", "trunk", "master", "main"]
+        return self.install_always or self.target_name in ["nightly", "trunk", "master", "main"]
 
     def build(self, buildfor, popular_compilers_only):
         if not self.is_library:

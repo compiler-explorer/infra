@@ -11,6 +11,7 @@ class NightlyVersions:
 
     ada: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     c: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    circle: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     circt: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     clean: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     cpp_for_opencl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
@@ -34,6 +35,7 @@ class NightlyVersions:
         if not self.props_loaded:
             [self.ada, _] = get_properties_compilers_and_libraries("ada", self.logger)
             [self.c, _] = get_properties_compilers_and_libraries("c", self.logger)
+            [self.circle, _] = get_properties_compilers_and_libraries("circle", self.logger)
             [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger)
             [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger)
             [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger)
@@ -86,6 +88,7 @@ class NightlyVersions:
 
         self.collect_compiler_ids_for(ids, ada_exe, self.ada)
         self.collect_compiler_ids_for(ids, c_exe, self.c)
+        self.collect_compiler_ids_for(ids, exe, self.circle)
         self.collect_compiler_ids_for(ids, exe, self.circt)
         self.collect_compiler_ids_for(ids, exe, self.clean)
         self.collect_compiler_ids_for(ids, c_exe, self.cpp_for_opencl)
