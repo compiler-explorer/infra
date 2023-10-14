@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any, Dict, Set
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
 
@@ -12,6 +12,8 @@ class NightlyVersions:
     c: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     fortran: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     rust: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    swift: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    clean: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
     def __init__(self, logger):
         self.logger = logger
@@ -22,6 +24,8 @@ class NightlyVersions:
             [self.c, _] = get_properties_compilers_and_libraries("c", self.logger)
             [self.fortran, _] = get_properties_compilers_and_libraries("fortran", self.logger)
             [self.rust, _] = get_properties_compilers_and_libraries("rust", self.logger)
+            [self.swift, _] = get_properties_compilers_and_libraries("swift", self.logger)
+            [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger)
             self.props_loaded = True
 
     def as_c_compiler(self, exe: str):
@@ -36,37 +40,36 @@ class NightlyVersions:
             return exe[:-3] + "gfortran"
         return exe
 
+    def collect_compiler_ids_for(self, ids: set, exe: str, compilers: Dict[str, Dict[str, Any]]):
+        for compiler_id in compilers:
+            compiler = compilers[compiler_id]
+            if exe == compiler["exe"]:
+                ids.add(compiler_id)
+
     def get_compiler_ids(self, exe: str):
         self.load_ce_properties()
 
-        ids = set()
+        ids: Set = set()
 
-        for compiler_id in self.cpp:
-            compiler = self.cpp[compiler_id]
-            if exe == compiler["exe"]:
-                ids.add(compiler_id)
-
-        for compiler_id in self.rust:
-            compiler = self.rust[compiler_id]
-            if exe == compiler["exe"]:
-                ids.add(compiler_id)
+        self.collect_compiler_ids_for(ids, exe, self.cpp)
+        self.collect_compiler_ids_for(ids, exe, self.rust)
+        self.collect_compiler_ids_for(ids, exe, self.swift)
+        self.collect_compiler_ids_for(ids, exe, self.clean)
 
         cexe = self.as_c_compiler(exe)
-        for compiler_id in self.c:
-            compiler = self.c[compiler_id]
-            if cexe == compiler["exe"]:
-                ids.add(compiler_id)
+        self.collect_compiler_ids_for(ids, cexe, self.c)
 
         fortranexe = self.as_fortran_compiler(exe)
-        for compiler_id in self.fortran:
-            compiler = self.fortran[compiler_id]
-            if fortranexe == compiler["exe"]:
-                ids.add(compiler_id)
+        self.collect_compiler_ids_for(ids, fortranexe, self.fortran)
 
         return ids
 
     def update_version(self, exe: str, modified: str, version: str, full_version: str):
         compiler_ids = self.get_compiler_ids(exe)
+        if len(compiler_ids) == 0:
+            self.logger.warning(f"No compiler ids found for {exe} - not saving compiler version info to AWS")
+            return
+
         dynamodb_client.put_item(
             TableName=self.version_table_name,
             Item={

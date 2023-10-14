@@ -3,10 +3,12 @@ from __future__ import annotations
 import logging
 import os
 import re
+import socket
 import subprocess
 from functools import partial
 from pathlib import Path
 from typing import Optional, Callable, Dict, List, Any, Union
+from lib.nightly_versions import NightlyVersions
 
 from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
@@ -15,6 +17,10 @@ from lib.rust_library_builder import RustLibraryBuilder
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
+
+running_on_admin_node = socket.gethostname() == "admin-node"
+
+nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 class Installable:
@@ -103,9 +109,29 @@ class Installable:
                 dependee.install()
         self._logger.debug("Dependees installed")
 
-    # pylint: disable=unused-argument
     def save_version(self, exe: str, res_call: str):
-        return
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+            return
+
+        if not self.nightly_like:
+            return
+
+        # exe is something like "gcc-trunk-20231008/bin/g++" here
+        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+
+        # note: NightlyInstallable also has "path_name_symlink", so this function is overridden there
+
+        relative_exe = "/".join(exe.split("/")[1:])
+        if self.install_path_symlink:
+            fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+        else:
+            fullpath = self.install_context.destination / exe
+
+        stat = fullpath.stat()
+        modified = stat.st_mtime
+
+        nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def is_installed(self) -> bool:
         if self.check_file is None and not self.check_call:
@@ -157,7 +183,7 @@ class Installable:
 
     @property
     def nightly_like(self) -> bool:
-        return False
+        return self.target_name in ["nightly", "trunk", "master", "main"]
 
     def build(self, buildfor, popular_compilers_only):
         if not self.is_library:
