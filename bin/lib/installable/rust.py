@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import functools
 import os
-import socket
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any
-from lib.nightly_versions import NightlyVersions
 
 from lib.amazon import list_s3_artifacts
 from lib.installable.installable import Installable
@@ -17,10 +15,6 @@ from lib.staging import StagingDir
 import logging
 
 _LOGGER = logging.getLogger(__name__)
-
-running_on_admin_node = socket.gethostname() == "admin-node"
-
-nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 @functools.lru_cache(maxsize=512)

@@ -272,7 +272,7 @@ class InstallationContext:
                 check=True,
             )
 
-        fulloutput = ''
+        fulloutput = ""
         if output.stdout != None:
             fulloutput += output.stdout.decode("utf-8")
         if output.stderr != None:

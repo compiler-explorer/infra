@@ -1,7 +1,8 @@
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any, Dict, Set
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
+
 
 class NightlyVersions:
     version_table_name: str = "nightly-version"
@@ -48,7 +49,7 @@ class NightlyVersions:
     def get_compiler_ids(self, exe: str):
         self.load_ce_properties()
 
-        ids = set()
+        ids: Set = set()
 
         self.collect_compiler_ids_for(ids, exe, self.cpp)
         self.collect_compiler_ids_for(ids, exe, self.rust)
