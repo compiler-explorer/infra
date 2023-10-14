@@ -1,3 +1,5 @@
+from collections import defaultdict
+from typing import Any, Dict
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
 
@@ -5,10 +7,14 @@ from lib.amazon_properties import get_properties_compilers_and_libraries
 class NightlyVersions:
     version_table_name: str = "nightly-version"
     exe_table_name: str = "nightly-exe"
+    props_loaded: bool = False
+    cpp: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    c: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    fortran: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    rust: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
     def __init__(self, logger):
         self.logger = logger
-        self.props_loaded = False
 
     def load_ce_properties(self):
         if not self.props_loaded:

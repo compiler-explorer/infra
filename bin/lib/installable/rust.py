@@ -22,6 +22,7 @@ running_on_admin_node = socket.gethostname() == "admin-node"
 
 nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
+
 @functools.lru_cache(maxsize=512)
 def s3_available_rust_artifacts(prefix):
     dist_prefix = "dist/"
