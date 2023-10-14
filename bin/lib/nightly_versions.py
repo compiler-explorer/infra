@@ -14,6 +14,14 @@ class NightlyVersions:
     rust: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     swift: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     clean: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    mlir: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    ispc: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    go: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    circt: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    zig: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    hlsl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    javascript: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    cpp_for_opencl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
     def __init__(self, logger):
         self.logger = logger
@@ -26,6 +34,14 @@ class NightlyVersions:
             [self.rust, _] = get_properties_compilers_and_libraries("rust", self.logger)
             [self.swift, _] = get_properties_compilers_and_libraries("swift", self.logger)
             [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger)
+            [self.mlir, _] = get_properties_compilers_and_libraries("mlir", self.logger)
+            [self.ispc, _] = get_properties_compilers_and_libraries("ispc", self.logger)
+            [self.go, _] = get_properties_compilers_and_libraries("go", self.logger)
+            [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger)
+            [self.zig, _] = get_properties_compilers_and_libraries("zig", self.logger)
+            [self.hlsl, _] = get_properties_compilers_and_libraries("hlsl", self.logger)
+            [self.javascript, _] = get_properties_compilers_and_libraries("javascript", self.logger)
+            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger)
             self.props_loaded = True
 
     def as_c_compiler(self, exe: str):
@@ -55,6 +71,14 @@ class NightlyVersions:
         self.collect_compiler_ids_for(ids, exe, self.rust)
         self.collect_compiler_ids_for(ids, exe, self.swift)
         self.collect_compiler_ids_for(ids, exe, self.clean)
+        self.collect_compiler_ids_for(ids, exe, self.mlir)
+        self.collect_compiler_ids_for(ids, exe, self.ispc)
+        self.collect_compiler_ids_for(ids, exe, self.go)
+        self.collect_compiler_ids_for(ids, exe, self.circt)
+        self.collect_compiler_ids_for(ids, exe, self.zig)
+        self.collect_compiler_ids_for(ids, exe, self.hlsl)
+        self.collect_compiler_ids_for(ids, exe, self.javascript)
+        self.collect_compiler_ids_for(ids, exe, self.cpp_for_opencl)
 
         cexe = self.as_c_compiler(exe)
         self.collect_compiler_ids_for(ids, cexe, self.c)
