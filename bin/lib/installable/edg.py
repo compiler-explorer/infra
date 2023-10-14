@@ -50,7 +50,6 @@ exec "$EDG_INSTALL_DIR/bin/eccp" $@
 
 def _shim_default_shell(install_dir: Path, gcc: Path, **_kwargs) -> str:
     return f"""#!/bin/bash
-#!/bin/bash
 set -euo pipefail
 
 export EDG_INSTALL_DIR="{install_dir}"
