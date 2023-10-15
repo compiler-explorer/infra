@@ -152,7 +152,14 @@ def test_should_install_when_nightly(fake_context_nightly, tmp_path, fake_remote
     fake_context_nightly.prior_installation = fake_context_nightly.destination = tmp_path / "nonexistent"
     ghi = GitHubInstallable(
         fake_context_nightly,
-        dict(context=["outer", "inner"], name="fake", domainrepo="", method="nightlyclone", repo=fake_remote_repo, check_file="fake-none"),
+        dict(
+            context=["outer", "inner"],
+            name="fake",
+            domainrepo="",
+            method="nightlyclone",
+            repo=fake_remote_repo,
+            check_file="fake-none",
+        ),
     )
     assert ghi.should_install()
 
