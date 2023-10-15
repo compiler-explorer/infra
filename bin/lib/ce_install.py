@@ -142,6 +142,7 @@ def squash_mount_check(rootfolder, subdir, context):
     show_default=True,
 )
 @click.option("--enable", metavar="TYPE", multiple=True, help='Enable targets of type TYPE (e.g. "nightly")')
+@click.option("--only-nightly", is_flag=True, help="Only install the nightly targets")
 @click.option(
     "--cache",
     metavar="DIR",
@@ -189,6 +190,7 @@ def cli(
     s3_dir: str,
     dry_run: bool,
     enable: List[str],
+    only_nightly: bool,
     cache: Optional[Path],
     yaml_dir: Path,
     allow_unsafe_ssl: bool,
@@ -215,6 +217,7 @@ def cli(
         s3_url=f"https://s3.amazonaws.com/{s3_bucket}/{s3_dir}",
         dry_run=dry_run,
         is_nightly_enabled="nightly" in enable,
+        only_nightly=only_nightly,
         cache=cache,
         yaml_dir=yaml_dir,
         allow_unsafe_ssl=allow_unsafe_ssl,
@@ -222,7 +225,10 @@ def cli(
         keep_staging=keep_staging,
     )
     ctx.obj = CliContext(
-        installation_context=context, enabled=enable, filter_match_all=filter_match_all, parallel=parallel
+        installation_context=context,
+        enabled=enable,
+        filter_match_all=filter_match_all,
+        parallel=parallel,
     )
 
 
