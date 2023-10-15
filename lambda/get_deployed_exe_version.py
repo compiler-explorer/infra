@@ -55,9 +55,9 @@ def respond_with_version(version: Dict, jsonp: str):
             statusCode=200,
             headers={
                 "content-type": "application/json",
-                "cache-control": "max-age=86400, public",
-                "max-age": "86400",
-                "s-maxage": "86400",
+                "cache-control": "max-age=3600, public",
+                "max-age": "3600",
+                "s-maxage": "3600",
             },
             body=json.dumps(
                 {
