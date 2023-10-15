@@ -95,7 +95,10 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             _LOGGER.info("Running %s", shlex.join(checked_command))
             subprocess.check_call(checked_command, cwd=unzip_dir)
 
-        compiler_path = backend_path / "bin" / self._compiler_type
+        if self._compiler_type == "default":
+            compiler_path = backend_path / "bin" / "gcc"
+        else:
+            compiler_path = backend_path / "bin" / self._compiler_type
 
         def _query(lang: str, query_type: str) -> str:
             command_to_run = [
