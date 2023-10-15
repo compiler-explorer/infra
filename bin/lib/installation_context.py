@@ -260,7 +260,7 @@ class InstallationContext:
                 env=env,
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT if stderr_on_stdout else None,
-                capture_output=True,
+                stdout=subprocess.PIPE,
                 check=True,
             )
         else:
@@ -269,7 +269,7 @@ class InstallationContext:
                 cwd=str(self.destination),
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT if stderr_on_stdout else None,
-                capture_output=True,
+                stdout=subprocess.PIPE,
                 check=True,
             )
 
