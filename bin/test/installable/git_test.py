@@ -26,7 +26,16 @@ def _ensure_no_global_config():
 
 @pytest.fixture(name="fake_context")
 def fake_context_fixture():
-    return mock.Mock(spec_set=InstallationContext)
+    ctx = mock.Mock(spec=InstallationContext)
+    ctx.only_nightly = False
+    return ctx
+
+
+@pytest.fixture(name="fake_context_nightly")
+def fake_context_nightly_fixture():
+    ctx = mock.Mock(spec=InstallationContext)
+    ctx.only_nightly = True
+    return ctx
 
 
 @pytest.fixture(name="staging_path")
@@ -126,6 +135,24 @@ def test_should_install_when_not_present(fake_context, tmp_path, fake_remote_rep
     ghi = GitHubInstallable(
         fake_context,
         dict(context=["outer", "inner"], name="fake", domainrepo="", repo=fake_remote_repo, check_file="fake-none"),
+    )
+    assert ghi.should_install()
+
+
+def test_should_not_install_when_not_nightly(fake_context_nightly, tmp_path, fake_remote_repo):
+    fake_context_nightly.prior_installation = fake_context_nightly.destination = tmp_path / "nonexistent"
+    ghi = GitHubInstallable(
+        fake_context_nightly,
+        dict(context=["outer", "inner"], name="fake", domainrepo="", repo=fake_remote_repo, check_file="fake-none"),
+    )
+    assert not ghi.should_install()
+
+
+def test_should_install_when_nightly(fake_context_nightly, tmp_path, fake_remote_repo):
+    fake_context_nightly.prior_installation = fake_context_nightly.destination = tmp_path / "nonexistent"
+    ghi = GitHubInstallable(
+        fake_context_nightly,
+        dict(context=["outer", "inner"], name="fake", domainrepo="", method="nightlyclone", repo=fake_remote_repo, check_file="fake-none"),
     )
     assert ghi.should_install()
 
