@@ -58,7 +58,7 @@ def respond_with_version(version: Dict, jsonp: str):
                 "cache-control": "max-age=86400, public",
                 "max-age": "86400",
                 "s-maxage": "86400",
-                },
+            },
             body=json.dumps(
                 {
                     "version": version["version"]["S"],
