@@ -2,7 +2,7 @@ compilers:
   rust:
     type: rust
     dir: rust-{name}
-    check_exe: "bin/rustc --version"
+    check_exe: "bin/rustc --version --verbose"
     patchelf: tools/patchelf 0.15.0
     older:
       base_package: rustc-{name}-x86_64-unknown-linux-gnu
@@ -100,7 +100,7 @@ compilers:
             - gccrs-master
         rustc-cg-gcc:
           type: nightly
-          check_exe: "bin/rustc --version"
+          check_exe: "bin/rustc --version --verbose"
           targets:
             - master
         mrustc:
