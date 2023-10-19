@@ -663,6 +663,7 @@ libraries:
       lib_type: shared
       method: clone_branch
       repo: libbpf/libbpf
+      extra_make_arg: -C src
       sharedliblink:
       - bpf
       target_prefix: v
