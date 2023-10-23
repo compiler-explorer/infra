@@ -23,6 +23,7 @@ on:
         - d8
         - vala
         - dotnet
+        - rocm
         - rust-linux
         - nasm
       version:

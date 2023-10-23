@@ -205,6 +205,18 @@ libraries:
       - '2.0'
       - '1.0'
       type: github
+    cpptrace:
+      type: github
+      repo: jeremy-rifkin/cpptrace
+      build_type: cmake
+      lib_type: shared
+      make_targets:
+      - cpptrace
+      sharedliblink:
+      - cpptrace
+      target_prefix: v
+      targets:
+        - 0.2.1
     curl:
       after_stage_script:
       - cp {{resource_dir}}/curl_config.h curl-{{name}}/include/curl/curl_config.h
@@ -506,6 +518,7 @@ libraries:
       - 5.1.3
       - 5.2.3
       - 5.3.2
+      - 5.7.0
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     jsoncons:
@@ -627,6 +640,8 @@ libraries:
       - trunk
       type: github
     libassert:
+      type: github
+      repo: jeremy-rifkin/libassert
       build_type: cmake
       check_file: README.md
       extra_cmake_arg:
@@ -634,20 +649,21 @@ libraries:
       - -DBUILD_SHARED_LIBS=on
       lib_type: shared
       method: clone_branch
-      repo: jeremy-rifkin/libassert
       sharedliblink:
       - assert
       target_prefix: v
       targets:
       - '1.0'
       - '1.1'
-      type: github
+      - '1.2'
+      - '1.2.1'
     libbpf:
       build_type: make
       check_file: README.md
       lib_type: shared
       method: clone_branch
       repo: libbpf/libbpf
+      extra_make_arg: -C src
       sharedliblink:
       - bpf
       target_prefix: v
@@ -1811,6 +1827,10 @@ libraries:
       - 1.6.1
       - 1.7.0
       - 1.8.0
+      - 1.9.2
+      - 1.10.0
+      - 1.11.0
+      - 1.12.0
       type: github
     spy:
       check_file: README.md

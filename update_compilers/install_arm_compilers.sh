@@ -85,7 +85,7 @@ install_arm() {
             "$package-control/postinst" \
                 --force-compiler-location "${TEMP_DIR}/${PACKAGE_DIRS[$COMPILER]}" \
                 --force-libraries-location "${TEMP_DIR}/${PACKAGE_DIRS[$PACKAGE_NAME]}" \
-                --force-uarch $UARCH
+                --force-uarch "$UARCH"
         fi
     done
     rm -rf /tmp/arm-install
