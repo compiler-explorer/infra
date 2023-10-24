@@ -57,6 +57,7 @@ disable_clang_libcpp = [
 ]
 disable_clang_32bit = disable_clang_libcpp.copy()
 disable_clang_libcpp += ["clang_lifetime"]
+disable_compiler_ids = ["avrg454"]
 
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 _supports_x86: Dict[str, Any] = defaultdict(lambda: [])
@@ -1013,6 +1014,10 @@ class LibraryBuilder:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
 
         for compiler in self.compilerprops:
+            if compiler in disable_compiler_ids:
+                self.logger.debug(f"Skipping {compiler}")
+                continue
+
             if not self.should_build_with_compiler(compiler, checkcompiler, buildfor):
                 self.logger.debug(f"Skipping {compiler}")
                 continue
