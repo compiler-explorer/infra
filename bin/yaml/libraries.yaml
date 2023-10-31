@@ -1782,6 +1782,7 @@ libraries:
       repo: scylladb/seastar
       targets:
       - seastar-18.08.0
+      - seastar-22.11.0
       type: github
     seqan3:
       build_type: none
