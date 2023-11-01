@@ -21,6 +21,12 @@ tools:
     symlink: ninja
     targets:
       - 1.11.1
+  heaptrack:
+    type: s3tarballs
+    compression: xz
+    check_exe: bin/heaptrack --help
+    targets:
+      - v1.3.0
   pvs-studio:
     if:
       - non-free
