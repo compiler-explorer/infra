@@ -1,0 +1,9 @@
+compilers:
+  android-d8:
+    type: singleFile
+    dir: r8-{name}
+    targets:
+      - name: 8.1.56
+        filename: r8-8.1.56.jar
+        check_file: r8-8.1.56.jar
+        url: https://dl.google.com/android/maven2/com/android/tools/r8/8.1.56/r8-8.1.56.jar
