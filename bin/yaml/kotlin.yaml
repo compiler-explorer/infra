@@ -8,7 +8,7 @@ compilers:
     check_env:
       - JAVA_HOME=%DEP0%
     check_exe: bin/kotlinc-jvm -version
-    url: https://github.com/JetBrains/kotlin/release/download/v{name}/kotlin-compiler-{name}.zip
+    url: https://github.com/JetBrains/kotlin/releases/download/v{name}/kotlin-compiler-{name}.zip
     targets:
       - 1.4.0
       - 1.4.10
