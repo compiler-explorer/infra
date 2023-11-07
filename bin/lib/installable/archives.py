@@ -70,7 +70,7 @@ class S3TarballInstallable(Installable):
         if self.strip:
             self.install_context.strip_exes(staging, self.strip)
 
-        self.install_context.run_script(staging, self.s3_path, self.after_stage_script)
+        self.install_context.run_script(staging, staging.path, self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
