@@ -25,8 +25,12 @@ tools:
     type: s3tarballs
     compression: xz
     check_exe: bin/heaptrack --help
+    depends:
+     - tools/patchelf 0.15.0
     targets:
       - v1.3.0
+    after_stage_script:
+      - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --force-rpath --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib /opt/compiler-explorer/heaptrack-{name}/bin/heaptrack_print
   pvs-studio:
     if:
       - non-free
