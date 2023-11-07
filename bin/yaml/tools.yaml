@@ -117,8 +117,10 @@ tools:
   baksmali:
     type: singleFile
     dir: baksmali-{name}
+    depends:
+      - compilers/java 16.0.1
+    check_exe: ../jdk-16.0.1/bin/java -jar {dir}/{filename} --version
     targets:
       - name: 3.0.3
         filename: baksmali-3.0.3-fat.jar
-        check_file: baksmali-3.0.3-fat.jar
         url: https://storage.googleapis.com/r8-releases/smali/3.0.3/baksmali-3.0.3-fat.jar
