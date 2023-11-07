@@ -115,16 +115,10 @@ tools:
     targets:
       - trunk
   baksmali:
-    type: github
-    repo: google/smali
-    method: clone_branch
-    after_stage_script:
-      - ./gradlew assemble
-      - ./gradlew baksmali:fatJar
-      # Fix dangling symlink created when files are copied from staging.
-      - cd baksmali/build/libs
-      # There will only be one fat jar, so the wildcard will create a valid symlink.
-      - ln -s -f baksmali*fat.jar baksmali.jar
-    check_file: baksmali/build/libs/baksmali.jar
+    type: singleFile
+    dir: baksmali-{name}
     targets:
-      - version-3.0.3
+      - name: 3.0.3
+        filename: baksmali-3.0.3-fat.jar
+        check_file: baksmali-3.0.3-fat.jar
+        url: https://storage.googleapis.com/r8-releases/smali/3.0.3/baksmali-3.0.3-fat.jar
