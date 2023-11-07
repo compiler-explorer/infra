@@ -26,27 +26,18 @@ compilers:
       - 1.5.10
       - 1.5.20
       - 1.5.21
-      - name: 1.5.30
-        filename: kotlin-native-linux-x86_64-1.5.30
-      - name: 1.5.31
-        filename: kotlin-native-linux-x86_64-1.5.31
-      - name: 1.6.0
-        filename: kotlin-native-linux-x86_64-1.6.0
-      - name: 1.6.10
-        filename: kotlin-native-linux-x86_64-1.6.10
-      - name: 1.6.20
-        filename: kotlin-native-linux-x86_64-1.6.20
-      - name: 1.7.0
-        filename: kotlin-native-linux-x86_64-1.7.0
-      - name: 1.8.0
-        filename: kotlin-native-linux-x86_64-1.8.0
-      - name: 1.8.10
-        filename: kotlin-native-linux-x86_64-1.8.10
-      - name: 1.8.20
-        filename: kotlin-native-linux-x86_64-1.8.20
-      - name: 1.9.0
-        filename: kotlin-native-linux-x86_64-1.9.0
-      - name: 1.9.10
-        filename: kotlin-native-linux-x86_64-1.9.10
-      - name: 1.9.20
-        filename: kotlin-native-linux-x86_64-1.9.20
+    newer:
+      filename: kotlin-native-linux-x86_64-{name}
+      targets:
+        - 1.5.30
+        - 1.5.31
+        - 1.6.0
+        - 1.6.10
+        - 1.6.20
+        - 1.7.0
+        - 1.8.0
+        - 1.8.10
+        - 1.8.20
+        - 1.9.0
+        - 1.9.10
+        - 1.9.20
