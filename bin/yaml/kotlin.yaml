@@ -8,50 +8,28 @@ compilers:
     check_env:
       - JAVA_HOME=%DEP0%
     check_exe: bin/kotlinc-jvm -version
+    url: https://github.com/JetBrains/kotlin/release/download/v{name}/kotlin-compiler-{name}.zip
     targets:
-      - name: 1.4.0
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.0/kotlin-compiler-1.4.0.zip
-      - name: 1.4.10
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.10/kotlin-compiler-1.4.10.zip
-      - name: 1.4.20
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.20/kotlin-compiler-1.4.20.zip
-      - name: 1.4.21
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.21/kotlin-compiler-1.4.21.zip
-      - name: 1.4.30
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.30/kotlin-compiler-1.4.30.zip
-      - name: 1.4.31
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.31/kotlin-compiler-1.4.31.zip
-      - name: 1.4.32
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.4.32/kotlin-compiler-1.4.32.zip
-      - name: 1.5.0
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.0/kotlin-compiler-1.5.0.zip
-      - name: 1.5.10
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.10/kotlin-compiler-1.5.10.zip
-      - name: 1.5.20
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.20/kotlin-compiler-1.5.20.zip
-      - name: 1.5.21
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.21/kotlin-compiler-1.5.21.zip
-      - name: 1.5.30
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.30/kotlin-compiler-1.5.30.zip
-      - name: 1.5.31
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.5.31/kotlin-compiler-1.5.31.zip
-      - name: 1.6.0
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.6.0/kotlin-compiler-1.6.0.zip
-      - name: 1.6.10
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.6.10/kotlin-compiler-1.6.10.zip
-      - name: 1.6.20
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.6.20/kotlin-compiler-1.6.20.zip
-      - name: 1.7.0
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.7.0/kotlin-compiler-1.7.0.zip
-      - name: 1.8.0
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.8.0/kotlin-compiler-1.8.0.zip
-      - name: 1.8.10
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.8.10/kotlin-compiler-1.8.10.zip
-      - name: 1.8.20
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.8.20/kotlin-compiler-1.8.20.zip
-      - name: 1.9.0
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.9.0/kotlin-compiler-1.9.0.zip
-      - name: 1.9.10
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.9.10/kotlin-compiler-1.9.10.zip
-      - name: 1.9.20
-        url: https://github.com/JetBrains/kotlin/releases/download/v1.9.20/kotlin-compiler-1.9.20.zip
+      - 1.4.0
+      - 1.4.10
+      - 1.4.20
+      - 1.4.21
+      - 1.4.30
+      - 1.4.31
+      - 1.4.32
+      - 1.5.0
+      - 1.5.10
+      - 1.5.20
+      - 1.5.21
+      - 1.5.30
+      - 1.5.31
+      - 1.6.0
+      - 1.6.10
+      - 1.6.20
+      - 1.7.0
+      - 1.8.0
+      - 1.8.10
+      - 1.8.20
+      - 1.9.0
+      - 1.9.10
+      - 1.9.20
