@@ -319,7 +319,8 @@ class InstallationContext:
 
             script_file.chmod(0o755)
             self.stage_command(staging, [str(script_file)], cwd=from_path)
-            script_file.unlink()
+            if not self.dry_run:
+                script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])
