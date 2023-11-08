@@ -47,9 +47,7 @@ class CliContext:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
             for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
                 installables.append(installer)
-        installables_by_name = {installable.name: installable for installable in installables}
-        for installable in installables:
-            installable.link(installables_by_name)
+        Installable.resolve(installables)
         installables = sorted(
             filter(lambda installable: filter_aggregate(args_filter, installable, self.filter_match_all), installables),
             key=lambda x: x.sort_key,
