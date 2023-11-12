@@ -118,3 +118,13 @@ tools:
     check_exe: bin/pahole
     targets:
       - trunk
+  baksmali:
+    type: singleFile
+    dir: baksmali-{name}
+    depends:
+      - compilers/java 16.0.1
+    check_exe: "%DEP0%/bin/java -jar {dir}/{filename} --version"
+    filename: baksmali-{name}-fat.jar
+    url: https://storage.googleapis.com/r8-releases/smali/{name}/{filename}
+    targets:
+      - 3.0.3
