@@ -1,8 +1,13 @@
+from pathlib import Path
+
 import pytest
 import yaml
 
 from lib.config_safe_loader import ConfigSafeLoader
+from lib.installable.installable import Installable
 from lib.installation import targets_from
+from lib.installation_context import InstallationContext
+from unittest import mock
 
 
 def parse_targets(string_config, enabled=None):
@@ -167,3 +172,39 @@ boost:
       """
     )
     assert target["url"] == "https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.bz2"
+
+
+def test_after_stage_script_dep():
+    ic = mock.Mock(spec_set=InstallationContext)
+    ic.destination = Path("/some/install/dir")
+    installation_a = Installable(
+        ic,
+        {
+            "context": ["compilers"],
+            "name": "a",
+            "after_stage_script": ["echo hello", "echo %DEP0%", "moo"],
+            "depends": ["compilers b"],
+        },
+    )
+    installation_b = Installable(ic, {"context": ["compilers"], "name": "b"})
+    installation_b.install_path = "pathy"
+    Installable.resolve([installation_a, installation_b])
+    assert installation_a.after_stage_script == ["echo hello", "echo /some/install/dir/pathy", "moo"]
+
+
+def test_check_exe_dep():
+    ic = mock.Mock(spec_set=InstallationContext)
+    ic.destination = Path("/some/install/dir")
+    installation_a = Installable(
+        ic,
+        {
+            "context": ["compilers"],
+            "name": "a",
+            "check_exe": "%DEP0%/bin/java --jar path/to/jar",
+            "depends": ["compilers b"],
+        },
+    )
+    installation_b = Installable(ic, {"context": ["compilers"], "name": "b"})
+    installation_b.install_path = "pathy"
+    Installable.resolve([installation_a, installation_b])
+    assert installation_a.check_call == ["/some/install/dir/pathy/bin/java", "--jar", "path/to/jar"]

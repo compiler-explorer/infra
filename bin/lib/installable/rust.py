@@ -31,7 +31,6 @@ class RustInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
-        self._setup_check_exe(self.install_path)
         self.base_package = self.config_get("base_package")
         self.nightly_install_days = self.config_get("nightly_install_days", 0)
         self.patchelf = self.config_get("patchelf")
