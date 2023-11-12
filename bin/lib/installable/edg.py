@@ -80,7 +80,6 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         self._compiler_type = self.config_get("compiler_type")
         self._shim_shell_func = _SHIM_SHELL_FUNCS[self._compiler_type]
         self.install_path = self.config_get("path_name")
-        self._setup_check_exe(self.install_path)
 
     def stage(self, staging: StagingDir) -> None:
         super().stage(staging)

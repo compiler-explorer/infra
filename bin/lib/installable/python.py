@@ -13,7 +13,6 @@ class PipInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
-        self._setup_check_exe(self.install_path)
         self.package = self.config_get("package")
         self.python = self.config_get("python")
 
