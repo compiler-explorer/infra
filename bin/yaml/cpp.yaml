@@ -862,7 +862,7 @@ compilers:
       macro_gen: edg-compiler/make_predef_macro_table
       scrape_cmd: bin/edg-scrape-compiler
       path_name: edg-{name}
-      gcc:
+      old:
         macro_output_dir: bases/gnu/lib
         check_exe: eccp-scripts/eccp-{compiler_type} --version
         targets:
@@ -873,6 +873,22 @@ compilers:
               - compilers/c++/x86/gcc 13.2.0
           - name: 6.5-default-13
             edg_version: '6.5'
+            compiler_type: default
+            depends:
+              - compilers/c++/x86/gcc 13.2.0
+      new:
+        macro_output_dir: base/lib
+        check_exe: eccp-scripts/eccp-{compiler_type} --version
+        s3_path_prefix: edg-compiler/edg-{compiler_type}-compiler-{edg_version}
+        untar_dir: .
+        targets:
+          - name: 6.5-gcc-13-20231108
+            compiler_type: gcc
+            edg_version: '6.5-20231108'
+            depends:
+              - compilers/c++/x86/gcc 13.2.0
+          - name: 6.5-default-13-20231108
+            edg_version: '6.5-20231108'
             compiler_type: default
             depends:
               - compilers/c++/x86/gcc 13.2.0
@@ -1130,6 +1146,7 @@ compilers:
             symlink: gcc-snapshot
           - lock3-contracts-trunk
           - lock3-contract-labels-trunk
+          - contracts-nonattr-trunk
           - cxx-modules-trunk
           - cxx-coroutines-trunk
       clang:

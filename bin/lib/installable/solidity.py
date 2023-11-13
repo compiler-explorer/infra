@@ -23,7 +23,6 @@ class SolidityInstallable(SingleFileInstallable):
             raise RuntimeError(f"Unable to find solidity {self.target_name}")
         self.url = f"{self.url}/{release_path}"
         self.filename = self.config_get("filename")
-        self._setup_check_exe(self.install_path)
 
     def __repr__(self) -> str:
         return f"SolidityInstallable({self.name}, {self.install_path})"
