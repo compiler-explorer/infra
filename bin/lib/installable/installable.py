@@ -3,10 +3,12 @@ from __future__ import annotations
 import logging
 import os
 import re
+import socket
 import subprocess
 from functools import partial
 from pathlib import Path
 from typing import Optional, Callable, Dict, List, Any, Union
+from lib.nightly_versions import NightlyVersions
 
 from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
@@ -16,12 +18,17 @@ from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
+_DEP_RE = re.compile("%DEP([0-9]+)%")
+
+running_on_admin_node = socket.gethostname() == "admin-node"
+
+nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 class Installable:
     _check_link: Optional[Callable[[], bool]]
     check_env: Dict
-    check_file: Optional[str]
+    check_file: str
     check_call: List[str]
 
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
@@ -34,6 +41,7 @@ class Installable:
         self.language = False
         if len(self.context) > 0:
             self.is_library = self.context[0] == "libraries"
+        if len(self.context) > 1:
             self.language = self.context[1]
         self.depends_by_name = self.config.get("depends", [])
         self.depends: List[Installable] = []
@@ -41,40 +49,52 @@ class Installable:
         self._check_link = None
         self.build_config = LibraryBuildConfig(config)
         self.check_env = {}
-        self.check_file = None
+        self.check_file = self.config_get("check_file", "")
         self.check_call = []
+        check_exe = self.config_get("check_exe", "")
+        if check_exe:
+            self.check_call = command_config(check_exe)
         self.check_stderr_on_stdout = self.config.get("check_stderr_on_stdout", False)
         self.install_path = ""
         self.after_stage_script = self.config_get("after_stage_script", [])
         self._logger = logging.getLogger(self.name)
         self.install_path_symlink = self.config_get("symlink", False)
 
-    def _setup_check_exe(self, path_name: str) -> None:
-        self.check_env = dict([x.replace("%PATH%", path_name).split("=", 1) for x in self.config_get("check_env", [])])
-
-        check_file = self.config_get("check_file", "")
-        if check_file:
-            self.check_file = os.path.join(path_name, check_file)
-        else:
-            self.check_call = command_config(self.config_get("check_exe"))
-            self.check_call[0] = os.path.join(path_name, self.check_call[0])
-
-    def _setup_check_link(self, source: str, link: str) -> None:
-        self._check_link = partial(self.install_context.check_link, source, link)
-
-    def link(self, all_installables: Dict[str, Installable]):
+    def _resolve(self, all_installables: Dict[str, Installable]):
         try:
             self.depends = [all_installables[dep] for dep in self.depends_by_name]
         except KeyError as ke:
             self._logger.error("Unable to find dependency %s in %s", ke, all_installables)
             raise
-        dep_re = re.compile("%DEP([0-9]+)%")
 
         def dep_n(match):
             return str(self.install_context.destination / self.depends[int(match.group(1))].install_path)
 
-        for k in self.check_env.keys():
-            self.check_env[k] = dep_re.sub(dep_n, self.check_env[k])
+        def resolve_deps(s: str) -> str:
+            return _DEP_RE.sub(dep_n, s)
+
+        self.check_env = dict(
+            [x.replace("%PATH%", self.install_path).split("=", 1) for x in self.config_get("check_env", [])]
+        )
+        self.check_env = {key: resolve_deps(value) for key, value in self.check_env.items()}
+
+        self.after_stage_script = [resolve_deps(line) for line in self.after_stage_script]
+        self.check_file = resolve_deps(self.check_file)
+        if self.check_file:
+            self.check_file = os.path.join(self.install_path, self.check_file)
+
+        self.check_call = [resolve_deps(arg) for arg in self.check_call]
+        if self.check_call:
+            self.check_call[0] = os.path.join(self.install_path, self.check_call[0])
+
+        if self.install_path_symlink:
+            self._check_link = partial(self.install_context.check_link, self.install_path, self.install_path_symlink)
+
+    @staticmethod
+    def resolve(installables: list[Installable]) -> None:
+        installables_by_name = {installable.name: installable for installable in installables}
+        for installable in installables:
+            installable._resolve(installables_by_name)  # pylint: disable=protected-access
 
     def find_dependee(self, name: str) -> Installable:
         for i in self.depends:
@@ -104,8 +124,32 @@ class Installable:
                 dependee.install()
         self._logger.debug("Dependees installed")
 
+    def save_version(self, exe: str, res_call: str):
+        if not self.nightly_like:
+            return
+
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+            return
+
+        # exe is something like "gcc-trunk-20231008/bin/g++" here
+        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+
+        # note: NightlyInstallable also has "path_name_symlink", so this function is overridden there
+
+        relative_exe = "/".join(exe.split("/")[1:])
+        if self.install_path_symlink:
+            fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+        else:
+            fullpath = self.install_context.destination / exe
+
+        stat = fullpath.stat()
+        modified = stat.st_mtime
+
+        nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
+
     def is_installed(self) -> bool:
-        if self.check_file is None and not self.check_call:
+        if not self.check_file and not self.check_call:
             return True
 
         if self._check_link and not self._check_link():
@@ -123,6 +167,9 @@ class Installable:
             res_call = self.install_context.check_output(
                 self.check_call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
             )
+
+            self.save_version(self.check_call[0], res_call)
+
             self._logger.debug("Check call returned %s", res_call)
             return True
         except FileNotFoundError:
@@ -151,7 +198,7 @@ class Installable:
 
     @property
     def nightly_like(self) -> bool:
-        return False
+        return self.install_always or self.target_name in ["nightly", "trunk", "master", "main"]
 
     def build(self, buildfor, popular_compilers_only):
         if not self.is_library:
@@ -225,7 +272,6 @@ class SingleFileInstallable(Installable):
         self.install_path = self.config_get("dir")
         self.url = self.config_get("url")
         self.filename = self.config_get("filename")
-        self._setup_check_exe(self.install_path)
 
     def stage(self, staging: StagingDir) -> None:
         out_path = staging.path / self.install_path

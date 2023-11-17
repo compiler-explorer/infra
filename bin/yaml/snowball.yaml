@@ -8,6 +8,6 @@ compilers:
     build: snowball-{name}-release
     toolchain: cmake
     check_exe: bin/snowball --version
+    url: https://github.com/snowball-lang/snowball/releases/download/v{name}/snowball-linux-x86_64.tar.gz
     targets:
-      - name: '0.0.7'
-        url: https://github.com/snowball-lang/snowball/releases/download/v0.0.7-hotfix/snowball-ce-specific-x86_64.tar.gz
+      - '0.0.8'

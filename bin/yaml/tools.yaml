@@ -21,6 +21,16 @@ tools:
     symlink: ninja
     targets:
       - 1.11.1
+  heaptrack:
+    type: s3tarballs
+    compression: xz
+    check_exe: bin/heaptrack --help
+    depends:
+     - tools/patchelf 0.15.0
+    targets:
+      - v1.3.0
+    after_stage_script:
+      - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib heaptrack-{name}/bin/heaptrack_print
   pvs-studio:
     if:
       - non-free
@@ -118,3 +128,13 @@ tools:
     - chmod +x fpm
     targets:
     - 0.9.0
+  baksmali:
+    type: singleFile
+    dir: baksmali-{name}
+    depends:
+      - compilers/java 16.0.1
+    check_exe: "%DEP0%/bin/java -jar {dir}/{filename} --version"
+    filename: baksmali-{name}-fat.jar
+    url: https://storage.googleapis.com/r8-releases/smali/{name}/{filename}
+    targets:
+      - 3.0.3

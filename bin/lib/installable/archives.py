@@ -5,6 +5,7 @@ import logging
 import os
 import subprocess
 import tempfile
+import socket
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -16,12 +17,17 @@ from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
 from lib.installation_context import InstallationContext, is_windows
 from lib.staging import StagingDir
+from lib.nightly_versions import NightlyVersions
 
 import re
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
 
 _LOGGER = logging.getLogger(__name__)
+
+running_on_admin_node = socket.gethostname() == "admin-node"
+
+nightlies: NightlyVersions = NightlyVersions(_LOGGER)
 
 
 class S3TarballInstallable(Installable):
@@ -53,7 +59,6 @@ class S3TarballInstallable(Installable):
         else:
             raise RuntimeError(f"Unknown compression {compression}")
         self.strip = self.config_get("strip", False)
-        self._setup_check_exe(self.install_path)
 
     def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:
         # Extension point for subclasses
@@ -64,7 +69,7 @@ class S3TarballInstallable(Installable):
         if self.strip:
             self.install_context.strip_exes(staging, self.strip)
 
-        self.install_context.run_script(staging, self.s3_path, self.after_stage_script)
+        self.install_context.run_script(staging, staging.path, self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
@@ -107,8 +112,6 @@ class NightlyInstallable(Installable):
         self.compiler_pattern = os.path.join(self.subdir, f"{path_name_prefix}-*")
         self.path_name_symlink = self.config_get("symlink", os.path.join(self.subdir, f"{path_name_prefix}"))
         self.num_to_keep = self.config_get("num_to_keep", 5)
-        self._setup_check_exe(self.install_path)
-        self._setup_check_link(self.install_path, self.path_name_symlink)
 
     @property
     def nightly_like(self) -> bool:
@@ -129,6 +132,26 @@ class NightlyInstallable(Installable):
 
     def should_install(self) -> bool:
         return True
+
+    def save_version(self, exe: str, res_call: str):
+        if not running_on_admin_node:
+            self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
+            return
+
+        # exe is something like "gcc-trunk-20231008/bin/g++" here
+        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+        relative_exe = "/".join(exe.split("/")[1:])
+        if self.install_path_symlink:
+            fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+        elif self.path_name_symlink:
+            fullpath = self.install_context.destination / self.path_name_symlink / relative_exe
+        else:
+            fullpath = self.install_context.destination / exe
+
+        stat = fullpath.stat()
+        modified = stat.st_mtime
+
+        nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def install(self) -> None:
         super().install()
@@ -177,9 +200,6 @@ class TarballInstallable(Installable):
         if extract_only:
             self.tar_cmd += [extract_only]
         self.strip = self.config_get("strip", False)
-        self._setup_check_exe(self.install_path)
-        if self.install_path_symlink:
-            self._setup_check_link(self.install_path, self.install_path_symlink)
         self.remove_older_pattern = self.config_get("remove_older_pattern", "")
         self.num_to_keep = self.config_get("num_to_keep", 5)
 
@@ -233,10 +253,6 @@ class NightlyTarballInstallable(TarballInstallable):
         today = datetime.today().strftime("%Y%m%d")
         self.install_path = f"{self.install_path}-{today}"
 
-        # redo exe checks
-        self._setup_check_exe(self.install_path)
-        self._setup_check_link(self.install_path, self.install_path_symlink)
-
     def should_install(self) -> bool:
         return True
 
@@ -257,9 +273,6 @@ class ZipArchiveInstallable(Installable):
         self.folder_to_rename = self.config_get("folder", None if not self.extract_into_folder else "tmp")
         self.configure_command = command_config(self.config_get("configure_command", []))
         self.strip = self.config_get("strip", False)
-        self._setup_check_exe(self.install_path)
-        if self.install_path_symlink:
-            self._setup_check_link(self.install_path, self.install_path_symlink)
 
     def stage(self, staging: StagingDir) -> None:
         # Unzip does not support stdin piping so we need to create a file

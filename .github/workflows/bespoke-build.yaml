@@ -23,8 +23,10 @@ on:
         - d8
         - vala
         - dotnet
+        - rocm
         - rust-linux
         - nasm
+        - heaptrack
       version:
         description: The version to build (or architecture and version for cross)
         required: true

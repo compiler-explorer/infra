@@ -9,7 +9,7 @@ bash "${DIR}/setup-node.sh"
 # setup nvidia drivers https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-nouveau-ubuntu
 
 pushd /tmp
-curl -sL https://developer.download.nvidia.com/compute/cuda/12.1.0/local_installers/cuda_12.1.0_530.30.02_linux.run -o install.run
+curl -sL https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_535.104.05_linux.run -o install.run
 sh install.run --silent --driver
 rm install.run
 popd

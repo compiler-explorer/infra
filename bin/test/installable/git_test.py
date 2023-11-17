@@ -18,6 +18,12 @@ def _ensure_no_git_set():
         del os.environ["GIT_INDEX_FILE"]
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _ensure_no_global_config():
+    os.environ["GIT_CONFIG_GLOBAL"] = ""
+    os.environ["GIT_CONFIG_SYSTEM"] = ""
+
+
 @pytest.fixture(name="fake_context")
 def fake_context_fixture():
     return mock.Mock(spec_set=InstallationContext)
