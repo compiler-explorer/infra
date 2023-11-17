@@ -629,12 +629,15 @@ compilers:
         vax:
           subdir: vax
           type: s3tarballs
-          s3_path_prefix: "vax-netbsdelf-gcc-{name}"
           path_name: "{subdir}/gcc-{name}"
-          untar_dir: "gcc-{name}"
+          s3_path_prefix: "gcc-vax--netbsdelf-{name}"
+          untar_dir: "gcc-vax--netbsdelf-{name}"
           check_exe: "bin/vax--netbsdelf-g++ --version"
           targets:
             - name: 10.4.0
+              s3_path_prefix: "vax-netbsdelf-gcc-{name}"
+              untar_dir: "gcc-{name}"
+            - name: 10.5.0-2023-11-16
         xtensa:
           subdir: xtensa
           url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-{release_name}-{host_type}.tar.{compression}
