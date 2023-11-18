@@ -42,6 +42,7 @@ class InstallationContext:
         s3_url: str,
         dry_run: bool,
         is_nightly_enabled: bool,
+        only_nightly: bool,
         cache: Optional[Path],
         yaml_dir: Path,
         allow_unsafe_ssl: bool,
@@ -55,6 +56,7 @@ class InstallationContext:
         self.s3_url = s3_url
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
+        self.only_nightly = only_nightly
         retry_strategy = requests.adapters.Retry(
             total=10,
             backoff_factor=1,
