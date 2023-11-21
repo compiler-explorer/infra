@@ -4,6 +4,7 @@ compilers:
     dir: r8-{name}
     depends:
       - compilers/java 16.0.1
+      - compilers/kotlin 1.9.20 # d8 runs on .class files, so kotlinc is applicable as well.
     check_exe: "%DEP0%/bin/java -cp {dir}/{filename} com.android.tools.r8.D8 --version"
     filename: r8-{name}.jar
     url: https://dl.google.com/android/maven2/com/android/tools/r8/{name}/r8-{name}.jar
