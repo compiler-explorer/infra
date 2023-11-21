@@ -1,0 +1,19 @@
+name: Install compiler(s)
+
+on:
+  workflow_dispatch:
+    inputs:
+      compilers:
+        description: Things to install
+        required: true
+jobs:
+  squash:
+    runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
+    steps:
+      - name: Start from a clean directory
+        uses: AutoModality/action-clean@v1.1.0
+      - uses: actions/checkout@v3
+      - name: Set up environment
+        run: make ce
+      - name: Install ${{ github.event.inputs.compilers }}
+        run: sudo bin/ce_install install ${{ github.event.inputs.compilers }}
