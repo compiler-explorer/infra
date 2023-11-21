@@ -8,7 +8,7 @@ on:
         description: Things to install
         required: true
 jobs:
-  squash:
+  install:
     runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
     steps:
       - name: Start from a clean directory
