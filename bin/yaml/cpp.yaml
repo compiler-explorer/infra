@@ -885,13 +885,13 @@ compilers:
         s3_path_prefix: edg-compiler/edg-{compiler_type}-compiler-{edg_version}
         untar_dir: .
         targets:
-          - name: 6.5-gcc-13-20231108
+          - name: 6.5-gcc-13-20231120
             compiler_type: gcc
-            edg_version: '6.5-20231108'
+            edg_version: '6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-          - name: 6.5-default-13-20231108
-            edg_version: '6.5-20231108'
+          - name: 6.5-default-13-20231120
+            edg_version: '6.5-20231120'
             compiler_type: default
             depends:
               - compilers/c++/x86/gcc 13.2.0
