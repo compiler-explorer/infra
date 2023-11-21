@@ -1,4 +1,5 @@
 name: Install compiler(s)
+run-name: Install ${{ inputs.compilers }}
 
 on:
   workflow_dispatch:
