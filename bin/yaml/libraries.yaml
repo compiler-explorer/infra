@@ -543,6 +543,7 @@ libraries:
       - 1.9.5
       type: github
     kokkos:
+      check_file: README.md
       build_type: cmake
       make_targets:
       - all
