@@ -216,6 +216,7 @@ libraries:
       - cpptrace
       target_prefix: v
       targets:
+        - 0.3.0
         - 0.2.1
     curl:
       after_stage_script:
