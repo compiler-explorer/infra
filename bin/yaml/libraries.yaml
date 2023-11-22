@@ -2692,6 +2692,13 @@ libraries:
       targets:
       - 1.0.96
       type: cratesio
+    taskflow:
+      check_file: README.md
+      method: nightlyclone
+      repo: taskflow/taskflow
+      targets:
+      - trunk
+      type: github
     termcolor:
       build_type: cargo
       targets:
