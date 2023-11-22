@@ -555,6 +555,7 @@ libraries:
       targets:
       - 4.0.01
       - 4.1.00
+      - 4.2.00
       type: github
     kumi:
       check_file: README.md
