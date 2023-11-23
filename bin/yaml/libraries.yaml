@@ -209,10 +209,13 @@ libraries:
       type: github
       repo: jeremy-rifkin/cpptrace
       build_type: cmake
+      extra_cmake_arg:
+      - -DCPPTRACE_STATIC=On
       lib_type: shared
       make_targets:
       - cpptrace
-      sharedliblink:
+      lib_type: static
+      staticliblink:
       - cpptrace
       package_install: true
       target_prefix: v
