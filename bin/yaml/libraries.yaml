@@ -214,6 +214,7 @@ libraries:
       - cpptrace
       sharedliblink:
       - cpptrace
+      package_install: true
       target_prefix: v
       targets:
         - 0.3.0
