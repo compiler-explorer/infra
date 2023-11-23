@@ -211,8 +211,6 @@ libraries:
       build_type: cmake
       extra_cmake_arg:
       - -DCPPTRACE_STATIC=On
-      make_targets:
-      - cpptrace
       lib_type: static
       staticliblink:
       - cpptrace
