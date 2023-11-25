@@ -24,7 +24,7 @@ config.json: make_json.py | $(POETRY_DEPS)
 
 .PHONY: packer
 packer: config.json ## Builds the base image for compiler explorer nodes
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-node.json
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-node.pkr.json
 
 .PHONY: packer-local
 packer-local: config.json ## Builds a local docker version of the compiler explorer node image
