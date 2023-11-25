@@ -23,7 +23,7 @@ variable "MY_SECRET_KEY" {
     default = ""
 }
 
-data "amazon-ami" "ubuntu22.04" {
+data "amazon-ami" "ubuntu22_04" {
     access_key = "${var.MY_ACCESS_KEY}"
     filters    = {
         name                = "ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"
@@ -38,7 +38,7 @@ data "amazon-ami" "ubuntu22.04" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "node" {
+source "amazon-ebs" "ubuntu22_04" {
     access_key = "${var.MY_ACCESS_KEY}"
     ami_block_device_mappings {
         delete_on_termination = true
@@ -62,7 +62,7 @@ source "amazon-ebs" "node" {
     }
     secret_key        = "${var.MY_SECRET_KEY}"
     security_group_id = "sg-f53f9f80"
-    source_ami        = "${data.amazon-ami.ubuntu22.04.id}"
+    source_ami        = "${data.amazon-ami.ubuntu22_04.id}"
     ssh_username      = "ubuntu"
     subnet_id         = "subnet-1df1e135"
     tags              = {
@@ -72,7 +72,7 @@ source "amazon-ebs" "node" {
 }
 
 build {
-    sources = ["source.amazon-ebs.node"]
+    sources = ["source.amazon-ebs.ubuntu22_04"]
 
     provisioner "file" {
         destination = "/home/ubuntu/"
