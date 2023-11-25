@@ -1,7 +1,7 @@
 locals {
   image_id          = "ami-042947cc5f08c4a22"
   staging_image_id  = "ami-042947cc5f08c4a22"
-  beta_image_id     = "ami-042947cc5f08c4a22"
+  beta_image_id     = "ami-0f76c219b98d691d1"  # ubuntu 22.04
   gpu_image_id      = "ami-0915bd886ffa31771"
   winprod_image_id  = "ami-0a7c475695d005c4a"
   winstaging_image_id  = "ami-0a7c475695d005c4a"

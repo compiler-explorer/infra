@@ -11,6 +11,7 @@ apt-get -y install software-properties-common
 dpkg --add-architecture i386
 curl -s https://dl.winehq.org/wine-builds/winehq.key | apt-key add -
 apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main'
+add-apt-repository ppa:deadsnakes/ppa
 apt-get install -y \
     binutils-multiarch \
     bison \
@@ -43,6 +44,7 @@ apt-get install -y \
     python-is-python3 \
     python3-pip \
     python3-venv \
+    python3.8 \
     s3cmd \
     subversion \
     texinfo \
