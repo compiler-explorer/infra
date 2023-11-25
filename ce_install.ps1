@@ -3,7 +3,7 @@
 
 $cwd = Get-Location
 
-if (! ((Get-Item .env) -as [bool])) {
+if (! ((Test-Path -Path .env) -as [bool])) {
     python -m venv .env
     (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
 
