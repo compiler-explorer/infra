@@ -7,6 +7,11 @@ packer {
   }
 }
 
+variable "BRANCH" {
+  type    = string
+  default = "main"
+}
+
 variable "MY_ACCESS_KEY" {
   type    = string
   default = ""
@@ -17,10 +22,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "bionic" {
+data "amazon-ami" "focal" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-bionic-18.04-amd64-server-*"
+    name                = "ubuntu/images/*ubuntu-focal-20.04-amd64-server-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -32,7 +37,7 @@ data "amazon-ami" "bionic" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "bionic" {
+source "amazon-ebs" "focal" {
   access_key = "${var.MY_ACCESS_KEY}"
   ami_block_device_mappings {
     delete_on_termination = true
@@ -40,20 +45,23 @@ source "amazon-ebs" "bionic" {
     volume_size           = 6
     volume_type           = "gp2"
   }
-  ami_name                    = "ce-conan packer 18.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer builder packer 20.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
-  instance_type               = "t3.medium"
+  instance_type               = "c5.xlarge"
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
-    volume_size           = 10
+    volume_size           = 24
     volume_type           = "gp2"
   }
-  region            = "us-east-1"
+  region = "us-east-1"
+  run_volume_tags = {
+    Site = "CompilerExplorer"
+  }
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.bionic.id}"
+  source_ami        = "${data.amazon-ami.focal.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -63,11 +71,11 @@ source "amazon-ebs" "bionic" {
 }
 
 build {
-  sources = ["source.amazon-ebs.bionic"]
+  sources = ["source.amazon-ebs.focal"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
-    source      = "packer"
+    source      = "packer/assets"
   }
 
   provisioner "shell" {
@@ -77,8 +85,8 @@ build {
       "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
       "export DEBIAN_FRONTEND=noninteractive", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
-      "git clone https://github.com/compiler-explorer/infra.git /home/ubuntu/infra",
-      "chown -R ubuntu:ubuntu /home/ubuntu/infra", "/home/ubuntu/infra/setup-conan.sh"
+      "git clone -b ${var.BRANCH} https://github.com/compiler-explorer/infra.git /infra", "cd /infra",
+      "env PACKER_SETUP=yes bash setup-builder.sh 2>&1 | tee /tmp/setup.log"
     ]
   }
 
