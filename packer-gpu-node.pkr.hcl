@@ -1,5 +1,4 @@
 packer {
-  required_version = "1.9.4"
   required_plugins {
     amazon = {
       source  = "github.com/hashicorp/amazon"
@@ -10,7 +9,7 @@ packer {
 
 variable "BRANCH" {
   type    = string
-  default = "mg/ubuntu22.04"
+  default = "main"
 }
 
 variable "MY_ACCESS_KEY" {
@@ -23,10 +22,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "jammy" {
+data "amazon-ami" "focal" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"
+    name                = "ubuntu/images/*ubuntu-focal-20.04-amd64-server-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -38,7 +37,7 @@ data "amazon-ami" "jammy" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "jammy" {
+source "amazon-ebs" "focal" {
   access_key = "${var.MY_ACCESS_KEY}"
   ami_block_device_mappings {
     delete_on_termination = true
@@ -46,10 +45,10 @@ source "amazon-ebs" "jammy" {
     volume_size           = 6
     volume_type           = "gp2"
   }
-  ami_name                    = "compiler-explorer packer 22.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer gpu packer 20.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
-  instance_type               = "c5.xlarge"
+  instance_type               = "g4dn.xlarge"
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
@@ -62,7 +61,7 @@ source "amazon-ebs" "jammy" {
   }
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.jammy.id}"
+  source_ami        = "${data.amazon-ami.focal.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -72,7 +71,7 @@ source "amazon-ebs" "jammy" {
 }
 
 build {
-  sources = ["source.amazon-ebs.jammy"]
+  sources = ["source.amazon-ebs.focal"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
@@ -88,7 +87,7 @@ build {
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
       "git clone -b ${var.BRANCH} https://github.com/compiler-explorer/infra.git /infra", "cd /infra",
-      "env PACKER_SETUP=yes bash setup-node.sh 2>&1 | tee /tmp/setup.log"
+      "env PACKER_SETUP=yes bash setup-gpu-node.sh 2>&1 | tee /tmp/setup.log"
     ]
   }
 
