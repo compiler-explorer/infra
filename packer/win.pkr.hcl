@@ -32,12 +32,6 @@ locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "Server2022" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_block_device_mappings {
-    delete_on_termination = true
-    device_name           = "/dev/sda1"
-    volume_size           = 30
-    volume_type           = "gp2"
-  }
   ami_name             = "compiler-explorer windows packer @ ${local.timestamp}"
   communicator         = "winrm"
   iam_instance_profile = "XaniaBlog"

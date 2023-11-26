@@ -34,12 +34,6 @@ locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "bionic" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_block_device_mappings {
-    delete_on_termination = true
-    device_name           = "/dev/sda1"
-    volume_size           = 6
-    volume_type           = "standard"
-  }
   ami_name                    = "compiler-explorer admin packer 18.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
