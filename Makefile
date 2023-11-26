@@ -24,39 +24,39 @@ config.json: make_json.py | $(POETRY_DEPS)
 
 .PHONY: packer
 packer: config.json ## Builds the base image for compiler explorer nodes
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-node.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/node.pkr.hcl
 
 .PHONY: packer-local
 packer-local: config.json ## Builds a local docker version of the compiler explorer node image
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-local.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/local.pkr.hcl
 
 .PHONY: packer-admin
 packer-admin: config.json  ## Builds the base image for the admin server
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-admin.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/admin.pkr.hcl
 
 .PHONY: packer-conan
 packer-conan: config.json  ## Builds the base image for the CE conan-server
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-conan.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/conan.pkr.hcl
 
 .PHONY: packer-gpu-node
 packer-gpu-node: config.json  ## Builds the base image for the CE gpu nodes
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-gpu-node.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/gpu-node.pkr.hcl
 
 .PHONY: packer-smb
 packer-smb: config.json  ## Builds the base image for the CE smb-server
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-smb.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/smb.pkr.hcl
 
 .PHONY: packer-smb-local
 packer-smb-local: config.json  ## Builds the base image for the CE smb-server for local testing
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-smb-local.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/smb-local.pkr.hcl
 
 .PHONY: packer-win
 packer-win: config.json  ## Builds the base image for the CE windows
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-win.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/win.pkr.hcl
 
 .PHONY: packer-builder
 packer-builder: config.json  ## Builds the base image for the CE builder
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer-builder.pkr.hcl
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/builder.pkr.hcl
 
 .PHONY: clean
 clean:  ## Cleans up everything

@@ -70,7 +70,7 @@ build {
 
   provisioner "file" {
     destination = "/home/ubuntu/"
-    source      = "packer"
+    source      = "packer/assets"
   }
 
   provisioner "shell" {
