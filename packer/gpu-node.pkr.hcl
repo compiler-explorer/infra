@@ -9,7 +9,7 @@ packer {
 
 variable "BRANCH" {
   type    = string
-  default = "mg/ubuntu22.04"
+  default = "main"
 }
 
 variable "MY_ACCESS_KEY" {
