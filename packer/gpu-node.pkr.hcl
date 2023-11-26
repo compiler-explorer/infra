@@ -39,12 +39,6 @@ locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "jammy" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_block_device_mappings {
-    delete_on_termination = true
-    device_name           = "/dev/sda1"
-    volume_size           = 6
-    volume_type           = "gp2"
-  }
   ami_name                    = "compiler-explorer gpu packer 22.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
@@ -52,7 +46,7 @@ source "amazon-ebs" "jammy" {
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
-    volume_size           = 20
+    volume_size           = 24
     volume_type           = "gp2"
   }
   region = "us-east-1"
