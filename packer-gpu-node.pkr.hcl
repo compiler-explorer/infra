@@ -45,10 +45,10 @@ source "amazon-ebs" "focal" {
     volume_size           = 6
     volume_type           = "gp2"
   }
-  ami_name                    = "compiler-explorer packer 20.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer gpu packer 20.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
-  instance_type               = "c5.xlarge"
+  instance_type               = "g4dn.xlarge"
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
@@ -87,7 +87,7 @@ build {
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
       "git clone -b ${var.BRANCH} https://github.com/compiler-explorer/infra.git /infra", "cd /infra",
-      "env PACKER_SETUP=yes bash setup-node.sh 2>&1 | tee /tmp/setup.log"
+      "env PACKER_SETUP=yes bash setup-gpu-node.sh 2>&1 | tee /tmp/setup.log"
     ]
   }
 

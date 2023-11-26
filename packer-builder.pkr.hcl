@@ -45,14 +45,14 @@ source "amazon-ebs" "focal" {
     volume_size           = 6
     volume_type           = "gp2"
   }
-  ami_name                    = "compiler-explorer packer 20.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer builder packer 20.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
   instance_type               = "c5.xlarge"
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
-    volume_size           = 20
+    volume_size           = 24
     volume_type           = "gp2"
   }
   region = "us-east-1"
@@ -83,11 +83,10 @@ build {
     inline = [
       "set -euo pipefail",
       "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
-      "export DEBIAN_FRONTEND=noninteractive", "mkdir -p /root/.ssh",
-      "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
+      "export DEBIAN_FRONTEND=noninteractive", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
       "git clone -b ${var.BRANCH} https://github.com/compiler-explorer/infra.git /infra", "cd /infra",
-      "env PACKER_SETUP=yes bash setup-node.sh 2>&1 | tee /tmp/setup.log"
+      "env PACKER_SETUP=yes bash setup-builder.sh 2>&1 | tee /tmp/setup.log"
     ]
   }
 

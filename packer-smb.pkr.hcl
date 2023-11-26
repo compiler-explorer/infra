@@ -22,10 +22,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "focal" {
+data "amazon-ami" "jammy" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-focal-20.04-amd64-server-*"
+    name                = "ubuntu/images/*ubuntu-jammy-22.04-arm64-server-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -37,7 +37,7 @@ data "amazon-ami" "focal" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "focal" {
+source "amazon-ebs" "jammy" {
   access_key = "${var.MY_ACCESS_KEY}"
   ami_block_device_mappings {
     delete_on_termination = true
@@ -45,10 +45,10 @@ source "amazon-ebs" "focal" {
     volume_size           = 6
     volume_type           = "gp2"
   }
-  ami_name                    = "compiler-explorer packer 20.04 @ ${local.timestamp}"
+  ami_name                    = "ce-smb arm packer 22.04 @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
-  instance_type               = "c5.xlarge"
+  instance_type               = "t4g.large"
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
@@ -61,7 +61,7 @@ source "amazon-ebs" "focal" {
   }
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.focal.id}"
+  source_ami        = "${data.amazon-ami.jammy.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -71,7 +71,7 @@ source "amazon-ebs" "focal" {
 }
 
 build {
-  sources = ["source.amazon-ebs.focal"]
+  sources = ["source.amazon-ebs.jammy"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
@@ -87,7 +87,7 @@ build {
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
       "git clone -b ${var.BRANCH} https://github.com/compiler-explorer/infra.git /infra", "cd /infra",
-      "env PACKER_SETUP=yes bash setup-node.sh 2>&1 | tee /tmp/setup.log"
+      "env PACKER_SETUP=yes bash setup-smb.sh 2>&1 | tee /tmp/setup.log"
     ]
   }
 
