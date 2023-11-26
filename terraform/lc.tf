@@ -1,6 +1,6 @@
 locals {
   image_id          = "ami-042947cc5f08c4a22"
-  staging_image_id  = "ami-042947cc5f08c4a22"
+  staging_image_id  = "ami-05003cbd1aa6e3776"
   beta_image_id     = "ami-05003cbd1aa6e3776"
   gpu_image_id      = "ami-05e1d61b3348d349f"
   winprod_image_id  = "ami-0a7c475695d005c4a"
