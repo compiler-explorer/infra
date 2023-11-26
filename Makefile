@@ -73,7 +73,7 @@ $(POETRY): $(SYS_PYTHON) poetry.toml
 	@touch $@
 
 $(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
-	$(POETRY) install --sync
+	$(POETRY) install --sync --no-root
 	@touch $@
 
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
