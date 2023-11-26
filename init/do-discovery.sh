@@ -12,6 +12,9 @@ sudo rm -Rf /tmp/ce-wine-prefix
 
 cd "${DEPLOY_DIR}"
 
+# ensure we can read the results of the discovery...
+sudo chmod og+rx /home/ce
+
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/compiler-explorer/node/bin/node \
