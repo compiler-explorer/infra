@@ -346,7 +346,14 @@ libraries:
       repo: skypjack/entt
       target_prefix: v
       targets:
+      - 3.12.2
+      - 3.11.1
+      - 3.10.3
+      - 3.9.0
+      - 3.8.1
+      - 3.7.1
       - 3.6.0
+      - 3.5.2
       - 3.5.0
       type: github
     eve:
