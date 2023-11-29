@@ -1872,6 +1872,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '13'
       - '12'
       - '11'
       - '10'
