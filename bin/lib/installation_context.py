@@ -157,6 +157,9 @@ class InstallationContext:
     def fetch_s3_and_pipe_to(self, staging: StagingDir, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(staging, f"{self.s3_url}/{s3}", command)
 
+    def stage_subdir(self, staging: StagingDir, subdir: str) -> None:
+        (staging.path / subdir).mkdir(parents=True, exist_ok=True)
+
     def make_subdir(self, subdir: str) -> None:
         (self.destination / subdir).mkdir(parents=True, exist_ok=True)
 

@@ -280,10 +280,13 @@ class ZipArchiveInstallable(Installable):
             self.install_context.fetch_to(self.url, fd)
             if not is_windows():
                 unzip_cmd = ["unzip", "-q", fd.name]
+                if self.extract_into_folder:
+                    unzip_cmd.extend(["-d", self.folder_to_rename])
             else:
                 unzip_cmd = ["tar", "-xf", fd.name]
-            if self.extract_into_folder:
-                unzip_cmd.extend(["-d", self.folder_to_rename])
+                if self.extract_into_folder:
+                    self.install_context.stage_subdir(staging, self.folder_to_rename)
+                    unzip_cmd.extend(["-C", self.folder_to_rename])
             self.install_context.stage_command(staging, unzip_cmd)
             if self.folder_to_rename != self.install_path:
                 if not is_windows():
