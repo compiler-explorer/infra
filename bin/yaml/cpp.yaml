@@ -897,7 +897,7 @@ compilers:
               - compilers/c++/x86/gcc 13.2.0
         even_newer:
           s3_path_prefix: edg-compiler/edg-{compiler_type}-edg-{edg_version}
-          target:
+          targets:
             - name: 6.5-gcc-13-experimental-reflection
               compiler_type: gcc
               edg_version: experimental-reflection
