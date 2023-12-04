@@ -10,13 +10,6 @@ libraries:
       - 9.1.0
       type: github
   c++:
-    array:
-      check_file: include/array/array.h
-      repo: dsharlet/array
-      method: clone_branch
-      targets:
-      - master
-      type: github
     async_simple:
       build_type: none
       check_file: README.md
@@ -836,6 +829,13 @@ libraries:
         - absl_wyhash
         targets:
         - trunk
+        type: github
+      array:
+        check_file: include/array/array.h
+        repo: dsharlet/array
+        method: nightlyclone
+        targets:
+        - master
         type: github
       avr-libstdcpp:
         build_type: manual
