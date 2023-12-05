@@ -7,9 +7,12 @@ tools:
     dir: cmake-v{name}
     create_untar_dir: true
     check_exe: bin/cmake --help
-    symlink: cmake
     targets:
-      - 3.26.1
+      # with cmakescript we need to keep the older versions around
+      - name: 3.26.1
+        symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
+      - 3.27.9
+      - 3.28.0-rc5
   ninja:
     type: ziparchive
     extract_into_folder: true
