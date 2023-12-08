@@ -209,13 +209,15 @@ libraries:
       type: github
       repo: jeremy-rifkin/cpptrace
       build_type: cmake
-      lib_type: shared
-      make_targets:
+      extra_cmake_arg:
+      - -DCPPTRACE_STATIC=On
+      lib_type: static
+      staticliblink:
       - cpptrace
-      sharedliblink:
-      - cpptrace
+      package_install: true
       target_prefix: v
       targets:
+        - 0.3.0
         - 0.2.1
     curl:
       after_stage_script:
@@ -344,7 +346,14 @@ libraries:
       repo: skypjack/entt
       target_prefix: v
       targets:
+      - 3.12.2
+      - 3.11.1
+      - 3.10.3
+      - 3.9.0
+      - 3.8.1
+      - 3.7.1
       - 3.6.0
+      - 3.5.2
       - 3.5.0
       type: github
     eve:
@@ -554,6 +563,7 @@ libraries:
       targets:
       - 4.0.01
       - 4.1.00
+      - 4.2.00
       type: github
     kumi:
       check_file: README.md
@@ -718,9 +728,13 @@ libraries:
       - 13.0.0
       - 13.0.1
       - 14.0.0
+      - 14.0.6
       - 15.0.0
+      - 15.0.7
       - 16.0.0
+      - 16.0.6
       - 17.0.1
+      - 17.0.6
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -826,6 +840,13 @@ libraries:
         - absl_wyhash
         targets:
         - trunk
+        type: github
+      array:
+        check_file: include/array/array.h
+        repo: dsharlet/array
+        method: nightlyclone
+        targets:
+        - master
         type: github
       avr-libstdcpp:
         build_type: manual
@@ -1433,6 +1454,13 @@ libraries:
         targets:
         - trunk
         type: github
+      taskflow:
+        check_file: README.md
+        method: nightlyclone
+        repo: taskflow/taskflow
+        targets:
+          - trunk
+        type: github
       taojson:
         build_type: none
         check_file: include/tao/json.hpp
@@ -1862,6 +1890,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '13'
       - '12'
       - '11'
       - '10'

@@ -37,7 +37,7 @@ export EDG_C_TO_OBJ_COMPILER="{gcc}"
 # several variables removed
 
 # Set environment variables related to the compiler explorer configuration.
-export EDG_BASE="$EDG_INSTALL_DIR/bases/gnu"
+export EDG_BASE="$EDG_INSTALL_DIR/base"
 {_COMMON_EDG_SETUP}
 
 # Add options for static linking.
@@ -56,7 +56,7 @@ export EDG_INSTALL_DIR="{install_dir}"
 export EDG_C_TO_OBJ_COMPILER="{gcc}"
 
 # Set environment variables related to the compiler explorer configuration.
-export EDG_BASE="$EDG_INSTALL_DIR/bases/default"
+export EDG_BASE="$EDG_INSTALL_DIR/base"
 {_COMMON_EDG_SETUP}
 
 # Execute the real eccp driver script.

@@ -42,6 +42,7 @@ class InstallationContext:
         s3_url: str,
         dry_run: bool,
         is_nightly_enabled: bool,
+        only_nightly: bool,
         cache: Optional[Path],
         yaml_dir: Path,
         allow_unsafe_ssl: bool,
@@ -55,6 +56,7 @@ class InstallationContext:
         self.s3_url = s3_url
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
+        self.only_nightly = only_nightly
         retry_strategy = requests.adapters.Retry(
             total=10,
             backoff_factor=1,
@@ -155,6 +157,9 @@ class InstallationContext:
     def fetch_s3_and_pipe_to(self, staging: StagingDir, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(staging, f"{self.s3_url}/{s3}", command)
 
+    def stage_subdir(self, staging: StagingDir, subdir: str) -> None:
+        (staging.path / subdir).mkdir(parents=True, exist_ok=True)
+
     def make_subdir(self, subdir: str) -> None:
         (self.destination / subdir).mkdir(parents=True, exist_ok=True)
 
@@ -205,7 +210,7 @@ class InstallationContext:
         do_staging_move=lambda source, dest: source.replace(dest),
     ) -> None:
         dest = dest or source
-        existing_dir_rename = staging.path / "temp_orig"
+        existing_dir_rename = staging.path.with_suffix(".orig")
         source = staging.path / source
         dest = self.destination / dest
         if self.dry_run:
@@ -222,16 +227,22 @@ class InstallationContext:
             subprocess.check_call(["chmod", "-R", "u+w", source])
         state = ""
         if dest.is_dir():
-            _LOGGER.info("Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename)
-            dest.replace(existing_dir_rename)
-            state = "old_renamed"
+            if list(dest.iterdir()):
+                _LOGGER.info(
+                    "Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename
+                )
+                dest.replace(existing_dir_rename)
+                state = "old_renamed"
+            else:
+                _LOGGER.info("Destination %s exists but is empty; deleting it", dest)
+                shutil.rmtree(dest)
         try:
             do_staging_move(source, dest)
             if state == "old_renamed":
                 state = "old_needs_remove"
         finally:
             if state == "old_needs_remove":
-                _LOGGER.debug("Removing temporarily moved %s", existing_dir_rename)
+                _LOGGER.info("Removing temporarily moved %s", existing_dir_rename)
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == "old_renamed":
                 _LOGGER.warning("Moving old destination back")

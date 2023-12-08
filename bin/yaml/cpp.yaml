@@ -629,12 +629,15 @@ compilers:
         vax:
           subdir: vax
           type: s3tarballs
-          s3_path_prefix: "vax-netbsdelf-gcc-{name}"
           path_name: "{subdir}/gcc-{name}"
-          untar_dir: "gcc-{name}"
+          s3_path_prefix: "gcc-vax--netbsdelf-{name}"
+          untar_dir: "gcc-vax--netbsdelf-{name}"
           check_exe: "bin/vax--netbsdelf-g++ --version"
           targets:
             - name: 10.4.0
+              s3_path_prefix: "vax-netbsdelf-gcc-{name}"
+              untar_dir: "gcc-{name}"
+            - name: 10.5.0-2023-11-16
         xtensa:
           subdir: xtensa
           url: https://github.com/espressif/crosstool-NG/releases/download/esp-{name}/{arch_prefix}-{release_name}-{host_type}.tar.{compression}
@@ -882,17 +885,24 @@ compilers:
         s3_path_prefix: edg-compiler/edg-{compiler_type}-compiler-{edg_version}
         untar_dir: .
         targets:
-          - name: 6.5-gcc-13-20231108
+          - name: 6.5-gcc-13-20231120
             compiler_type: gcc
-            edg_version: '6.5-20231108'
+            edg_version: '6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-          - name: 6.5-default-13-20231108
-            edg_version: '6.5-20231108'
+          - name: 6.5-default-13-20231120
+            edg_version: '6.5-20231120'
             compiler_type: default
             depends:
               - compilers/c++/x86/gcc 13.2.0
-
+        even_newer:
+          s3_path_prefix: edg-compiler/edg-{compiler_type}-edg-{edg_version}
+          targets:
+            - name: 6.5-gcc-13-experimental-reflection
+              compiler_type: gcc
+              edg_version: experimental-reflection
+              depends:
+                - compilers/c++/x86/gcc 13.2.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
@@ -1134,6 +1144,14 @@ compilers:
           dot_removed_version: "239"
           year: "2023"
           ctk_ver: "12.2"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_23_11
+          arch: x86_64
+          version: "23.11"
+          dot_removed_version: "2311"
+          year: "2023"
+          ctk_ver: "12.3"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
     nightly:

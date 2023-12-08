@@ -30,10 +30,10 @@ windows:
         - 3.27.6
     ninja:
       type: ziparchive
-      url: https://github.com/ninja-build/ninja/releases/download/v{name}/ninja-win.zip
+      url: https://github.com/compiler-explorer/ninja/releases/download/v{name}/ninja-win.zip
       dir: ninja-v{name}
       folder: "bin"
       extract_into_folder: true
       check_file: "ninja.exe"
       targets:
-        - 1.11.1
+        - 1.12.1
