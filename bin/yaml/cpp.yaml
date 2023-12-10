@@ -1162,11 +1162,12 @@ compilers:
         targets:
           - name: trunk
             symlink: gcc-snapshot
-          - lock3-contracts-trunk
-          - lock3-contract-labels-trunk
           - contracts-nonattr-trunk
-          - cxx-modules-trunk
           - cxx-coroutines-trunk
+          - cxx-modules-trunk
+          - lock3-contracts-trunk
+          - lock3-contracts-labels-trunk
+          - p1144-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
