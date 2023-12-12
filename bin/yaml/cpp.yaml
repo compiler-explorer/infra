@@ -1158,7 +1158,7 @@ compilers:
           - cxx-coroutines-trunk
           - cxx-modules-trunk
           - lock3-contracts-trunk
-          - lock3-contracts-labels-trunk
+          - lock3-contract-labels-trunk
           - p1144-trunk
       clang:
         type: nightly
