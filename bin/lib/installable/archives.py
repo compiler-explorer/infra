@@ -364,7 +364,7 @@ class NonFreeS3TarballInstallable(S3TarballInstallable):
         super().__init__(install_context, config)
 
     def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:
-        untar_dir = staging.path
+        untar_dir = staging.path / self.untar_dir
         untar_dir.mkdir(exist_ok=True, parents=True)
         with tempfile.TemporaryFile() as fd:
             amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{s3_path}", fd)

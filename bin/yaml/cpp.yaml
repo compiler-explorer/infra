@@ -859,50 +859,32 @@ compilers:
       if: non-free
       type: edg
       compression: gz
-      s3_path_prefix: edg-compiler/v{edg_version}
       untar_dir: edg-compiler
       scraper: edg-compiler/edg-scrape-compiler.2023.7.18.zip
-      macro_gen: edg-compiler/make_predef_macro_table
       scrape_cmd: bin/edg-scrape-compiler
       path_name: edg-{name}
-      old:
-        macro_output_dir: bases/gnu/lib
-        check_exe: eccp-scripts/eccp-{compiler_type} --version
+      check_exe: eccp-scripts/eccp-{compiler_type} --version
+      s3_path_prefix: edg-compiler/edg-{compiler_type}-{edg_version}
+      default:
+        compiler_type: default
         targets:
-          - name: 6.5-gcc-13
-            edg_version: '6.5'
-            compiler_type: gcc
+          - name: 6.5-default-13-20231120
+            edg_version: 'compiler-6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-          - name: 6.5-default-13
-            edg_version: '6.5'
-            compiler_type: default
-            depends:
-              - compilers/c++/x86/gcc 13.2.0
-      new:
+      gcc:
+        compiler_type: gcc
+        macro_gen: edg-compiler/make_predef_macro_table
         macro_output_dir: base/lib
-        check_exe: eccp-scripts/eccp-{compiler_type} --version
-        s3_path_prefix: edg-compiler/edg-{compiler_type}-compiler-{edg_version}
-        untar_dir: .
         targets:
           - name: 6.5-gcc-13-20231120
-            compiler_type: gcc
-            edg_version: '6.5-20231120'
+            edg_version: 'compiler-6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-          - name: 6.5-default-13-20231120
-            edg_version: '6.5-20231120'
-            compiler_type: default
+          - name: gcc-13-experimental-reflection
+            edg_version: 'edg-experimental-reflection'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-        even_newer:
-          s3_path_prefix: edg-compiler/edg-{compiler_type}-edg-{edg_version}
-          targets:
-            - name: 6.5-gcc-13-experimental-reflection
-              compiler_type: gcc
-              edg_version: experimental-reflection
-              depends:
-                - compilers/c++/x86/gcc 13.2.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
