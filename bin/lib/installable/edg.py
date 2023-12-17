@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from dataclasses import dataclass
 import logging
 import tempfile
 from typing import Dict, Any, Callable
@@ -14,13 +14,13 @@ from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
+
+@dataclass(frozen=True)
 class EdgBackendCompilerScrape:
-    """This class represents a scrape of the "backend compiler" for the EDG front
-    end that will compile the generated C code."""
-    def __init__(self, c_includes: str, cpp_includes: str, version: str):
-        self.c_includes = c_includes
-        self.cpp_includes = cpp_includes
-        self.version = version
+    c_includes: str
+    cpp_includes: str
+    version: str
+
 
 _COMMON_EDG_SETUP = """
 export CPFE="$EDG_INSTALL_DIR/bin/cpfe"
@@ -31,6 +31,7 @@ export EDG_PRELINK_PATH="$EDG_INSTALL_DIR/bin/edg_prelink"
 export ECCP="$EDG_INSTALL_DIR/bin/eccp"
 export EDG_RUNTIME_LIB="edgrt"
 """
+
 
 def _shim_gcc_shell(install_dir: Path, gcc: Path, scrape_info: EdgBackendCompilerScrape) -> str:
     return f"""#!/bin/bash
@@ -54,7 +55,8 @@ export EDG_OBJ_TO_EXEC_DEFAULT_OPTIONS="-static -z muldefs"
 exec "$EDG_INSTALL_DIR/bin/eccp" $@
 """
 
-def _shim_default_shell(install_dir: Path, gcc: Path, **kw_args) -> str:
+
+def _shim_default_shell(install_dir: Path, gcc: Path, **_kwargs) -> str:
     return f"""#!/bin/bash
 set -euo pipefail
 
@@ -69,10 +71,12 @@ export EDG_BASE="$EDG_INSTALL_DIR/base"
 exec "$EDG_INSTALL_DIR/bin/eccp" $@
 """
 
+
 _SHIM_SHELL_FUNCS: dict[str, Callable[..., str]] = {
     "default": _shim_default_shell,
     "gcc": _shim_gcc_shell,
 }
+
 
 class EdgCompilerInstallable(NonFreeS3TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
@@ -105,9 +109,9 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         """
         # If the compiler is in default mode the backend compiler isn't scraped.
         if self._compiler_type == "default":
-            return EdgBackendCompilerScrape('',  '', '')
+            return EdgBackendCompilerScrape("", "", "")
 
-        scrapper_unzip_dir = staging.path / 'backend-scrapping'
+        scrapper_unzip_dir = staging.path / "backend-scrapping"
         scrapper_unzip_dir.mkdir(exist_ok=True, parents=True)
 
         def _query(lang: str, query_type: str) -> str:
@@ -157,7 +161,9 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             output_path.mkdir(parents=True, exist_ok=True)
             subprocess.check_call(command, cwd=output_path)
 
-    def _write_compiler_shim(self, staging: StagingDir, backend_compiler_path: Path, backend_compiler_scrape: EdgBackendCompilerScrape) -> None:
+    def _write_compiler_shim(
+        self, staging: StagingDir, backend_compiler_path: Path, backend_compiler_scrape: EdgBackendCompilerScrape
+    ) -> None:
         """The EDG front end is configured via a "shim" script in compiler
         explorer. Generate this shim script with the collected information.
         """
