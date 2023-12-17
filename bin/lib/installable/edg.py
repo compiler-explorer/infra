@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+from dataclasses import dataclass
 import logging
 import tempfile
 from typing import Dict, Any, Callable
@@ -14,6 +14,14 @@ from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
+
+@dataclass(frozen=True)
+class EdgBackendCompilerScrape:
+    c_includes: str
+    cpp_includes: str
+    version: str
+
+
 _COMMON_EDG_SETUP = """
 export CPFE="$EDG_INSTALL_DIR/bin/cpfe"
 export ECCP_LIBDIR="$EDG_INSTALL_DIR/lib"
@@ -25,14 +33,14 @@ export EDG_RUNTIME_LIB="edgrt"
 """
 
 
-def _shim_gcc_shell(install_dir: Path, gcc: Path, c_includes: str, cpp_includes: str, version: str) -> str:
+def _shim_gcc_shell(install_dir: Path, gcc: Path, scrape_info: EdgBackendCompilerScrape) -> str:
     return f"""#!/bin/bash
 set -euo pipefail
 
 export EDG_INSTALL_DIR="{install_dir}"
-export EDG_GCC_INCL_SCRAPE="{cpp_includes}"
-export EDG_GCC_CINCL_SCRAPE="{c_includes}"
-export EDG_CPFE_DEFAULT_OPTIONS="--gnu {version}"
+export EDG_GCC_INCL_SCRAPE="{scrape_info.cpp_includes}"
+export EDG_GCC_CINCL_SCRAPE="{scrape_info.c_includes}"
+export EDG_CPFE_DEFAULT_OPTIONS="--gnu {scrape_info.version}"
 export EDG_C_TO_OBJ_COMPILER="{gcc}"
 # several variables removed
 
@@ -74,76 +82,112 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         self._scraper = self.config_get("scraper")
-        self._macro_gen = self.config_get("macro_gen")
-        self._macro_dir = self.config_get("macro_output_dir")
-        self._scape_cmd = self.config_get("scrape_cmd")
+        self._macro_gen = self.config_get("macro_gen", "")
+        self._macro_dir = self.config_get("macro_output_dir", "")
+        self._scrape_cmd = self.config_get("scrape_cmd")
         self._compiler_type = self.config_get("compiler_type")
-        self._shim_shell_func = _SHIM_SHELL_FUNCS[self._compiler_type]
         self.install_path = self.config_get("path_name")
 
-    def stage(self, staging: StagingDir) -> None:
-        super().stage(staging)
+    def _resolve_backend_compiler(self) -> Path:
+        """The EDG front end generates C files and thus uses a backing C
+        compiler complete compilation. Return the path of the backend
+        compiler.
+        """
         if len(self.depends) != 1:
             raise RuntimeError("Assumes we have the backend compiler as a dep")
         backend_path = self.install_context.destination / self.depends[0].install_path
 
-        unzip_dir = staging.path
-        unzip_dir.mkdir(exist_ok=True, parents=True)
-
-        def _call(checked_command):
-            _LOGGER.info("Running %s", shlex.join(checked_command))
-            subprocess.check_call(checked_command, cwd=unzip_dir)
-
         if self._compiler_type == "default":
-            compiler_path = backend_path / "bin" / "gcc"
+            return backend_path / "bin" / "gcc"
         else:
-            compiler_path = backend_path / "bin" / self._compiler_type
+            return backend_path / "bin" / self._compiler_type
+
+    def _scrape_backend_compiler(self, staging: StagingDir, backend_compiler_path: Path) -> EdgBackendCompilerScrape:
+        """The EDG front end when emulating a compiler needs to know that
+        compiler's include paths and version. Collect and return the
+        aforementioned details if relevant.
+        """
+        # If the compiler is in default mode the backend compiler isn't scraped.
+        if self._compiler_type == "default":
+            return EdgBackendCompilerScrape("", "", "")
+
+        scrapper_unzip_dir = staging.path / "backend-scrapping"
+        scrapper_unzip_dir.mkdir(exist_ok=True, parents=True)
 
         def _query(lang: str, query_type: str) -> str:
+            """Query the EDG compiler scrape tool for the given language and query type."""
             command_to_run = [
-                self._scape_cmd,
-                f"--compiler-path={compiler_path}",
+                self._scrape_cmd,
+                f"--compiler-path={backend_compiler_path}",
                 f"--lang={lang}",
                 self._compiler_type,
                 query_type,
             ]
             _LOGGER.info("Running %s", shlex.join(command_to_run))
-            return subprocess.check_output(command_to_run, cwd=unzip_dir).decode("utf-8").strip()
+            return subprocess.check_output(command_to_run, cwd=scrapper_unzip_dir).decode("utf-8").strip()
 
-        if self._compiler_type != "default":
-            with tempfile.NamedTemporaryFile() as temp_file:
-                amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._scraper}", temp_file)
-                temp_file.flush()
-                _call(["unzip", temp_file.name])
-                cpp_includes = _query("c++", "includes")
-                c_includes = _query("c", "includes")
-                version = _query("c", "version")
+        # Gather the C and C++ include paths as well as the emulated compiler version number.
+        with tempfile.NamedTemporaryFile() as temp_file:
+            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._scraper}", temp_file)
+            temp_file.flush()
+            command = ["unzip", temp_file.name]
+            _LOGGER.info("Running %s", shlex.join(command))
+            subprocess.check_call(command, cwd=scrapper_unzip_dir)
+            c_includes = _query("c", "includes")
+            cpp_includes = _query("c++", "includes")
+            version = _query("c", "version")
+            return EdgBackendCompilerScrape(c_includes, cpp_includes, version)
 
-            with tempfile.NamedTemporaryFile() as temp_file:
-                amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._macro_gen}", temp_file)
-                temp_file.flush()
-                command = ["bash", temp_file.name, f"--{self._compiler_type}", str(compiler_path)]
-                _LOGGER.info("Running %s", shlex.join(command))
-                subprocess.check_call(command, cwd=staging.path / self.untar_dir / self._macro_dir)
-        else:
-            cpp_includes = ""
-            c_includes = ""
-            version = ""
+    def _write_predefined_macros(self, staging: StagingDir, backend_compiler_path: Path) -> None:
+        """The EDG front end when emulating a compiler needs to know what
+        predefined macros to set. Write the predefined macros file as
+        necessary.
+        """
+        # If the compiler is in default mode the default predefined macros are used.
+        if self._compiler_type == "default":
+            return
 
+        # Check some prerequisites before doing further work.
+        if len(self._macro_gen) == 0 or len(self._macro_dir) == 0:
+            raise RuntimeError("No macro generation script provided for non-default mode EDG compiler")
+
+        # Gather the predefined macros for the emulated compiler.
+        with tempfile.NamedTemporaryFile() as temp_file:
+            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._macro_gen}", temp_file)
+            temp_file.flush()
+            command = ["bash", temp_file.name, f"--{self._compiler_type}", str(backend_compiler_path)]
+            _LOGGER.info("Running %s", shlex.join(command))
+            output_path = staging.path / self.untar_dir / self._macro_dir
+            output_path.mkdir(parents=True, exist_ok=True)
+            subprocess.check_call(command, cwd=output_path)
+
+    def _write_compiler_shim(
+        self, staging: StagingDir, backend_compiler_path: Path, backend_compiler_scrape: EdgBackendCompilerScrape
+    ) -> None:
+        """The EDG front end is configured via a "shim" script in compiler
+        explorer. Generate this shim script with the collected information.
+        """
         output_path = staging.path / self.untar_dir / "eccp-scripts"
-        output_path.mkdir(exist_ok=True)
+        output_path.mkdir(parents=True, exist_ok=True)
         script_path = output_path / f"eccp-{self._compiler_type}"
         with script_path.open("w") as out:
             out.write(
-                self._shim_shell_func(
+                _SHIM_SHELL_FUNCS[self._compiler_type](
                     install_dir=self.install_context.destination / self.install_path,
-                    gcc=compiler_path,
-                    c_includes=c_includes,
-                    cpp_includes=cpp_includes,
-                    version=version,
+                    gcc=backend_compiler_path,
+                    scrape_info=backend_compiler_scrape,
                 )
             )
         script_path.chmod(0o755)
+
+    def stage(self, staging: StagingDir) -> None:
+        super().stage(staging)
+
+        backend_compiler_path = self._resolve_backend_compiler()
+        backend_compiler_scrape = self._scrape_backend_compiler(staging, backend_compiler_path)
+
+        self._write_predefined_macros(staging, backend_compiler_path)
+        self._write_compiler_shim(staging, backend_compiler_path, backend_compiler_scrape)
 
     def verify(self) -> bool:
         if not super().verify():
