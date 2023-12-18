@@ -872,6 +872,10 @@ compilers:
             edg_version: 'compiler-6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
+          - name: 6.6-default-13
+            edg_version: '6.6'
+            depends:
+              - compilers/c++/x86/gcc 13.2.0
       gcc:
         compiler_type: gcc
         macro_gen: edg-compiler/make_predef_macro_table
@@ -879,6 +883,10 @@ compilers:
         targets:
           - name: 6.5-gcc-13-20231120
             edg_version: 'compiler-6.5-20231120'
+            depends:
+              - compilers/c++/x86/gcc 13.2.0
+          - name: 6.6-gcc-13
+            edg_version: '6.6'
             depends:
               - compilers/c++/x86/gcc 13.2.0
           - name: gcc-13-experimental-reflection
