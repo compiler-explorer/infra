@@ -40,6 +40,7 @@ tools:
     check_exe: bin/include-what-you-use --version
     targets:
       - '0.12'
+      - '0.20'
       - '0.21'
   pvs-studio:
     if:
