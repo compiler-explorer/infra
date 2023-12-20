@@ -34,6 +34,21 @@ tools:
       - v1.3.0
     after_stage_script:
       - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib heaptrack-{name}/bin/heaptrack_print
+  iwyu:
+    type: s3tarballs
+    compression: xz
+    check_exe: bin/include-what-you-use --version
+    path_name: iwyu/{name}
+    targets:
+      - name: '0.12'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-8.0.0/lib iwyu-{name}/lib
+      - name: '0.20'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-16.0.0/lib iwyu-{name}/lib
+      - name: '0.21'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-17.0.1/lib iwyu-{name}/lib
   pvs-studio:
     if:
       - non-free
