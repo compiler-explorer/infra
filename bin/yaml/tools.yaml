@@ -34,6 +34,13 @@ tools:
       - v1.3.0
     after_stage_script:
       - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib heaptrack-{name}/bin/heaptrack_print
+  iwyu:
+    type: s3tarballs
+    compression: xz
+    check_exe: bin/include-what-you-use --version
+    targets:
+      - '0.12'
+      - '0.21'
   pvs-studio:
     if:
       - non-free
