@@ -38,10 +38,17 @@ tools:
     type: s3tarballs
     compression: xz
     check_exe: bin/include-what-you-use --version
+    path_name: iwyu/{name}
     targets:
-      - '0.12'
-      - '0.20'
-      - '0.21'
+      - name: '0.12'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-8.0.0/lib iwyu-{name}/lib
+      - name: '0.20'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-16.0.0/lib iwyu-{name}/lib
+      - name: '0.21'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-17.0.1/lib iwyu-{name}/lib
   pvs-studio:
     if:
       - non-free
