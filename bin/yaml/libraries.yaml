@@ -423,6 +423,13 @@ libraries:
       targets:
       - trunk
       type: github
+    glaze:
+      check_file: README.md
+      repo: stephenberry/glaze
+      target_prefix: v
+      targets:
+      - 1.9.8
+      type: github
     glm:
       check_file: readme.md
       repo: g-truc/glm
