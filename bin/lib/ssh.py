@@ -3,6 +3,7 @@ import itertools
 import logging
 import os
 import shlex
+import subprocess
 import sys
 
 import paramiko
@@ -58,23 +59,35 @@ def exec_remote(instance, command, ignore_errors: bool = False):
 
 
 def exec_remote_multiple(instance, commands, ignore_errors: bool = False) -> list[str]:
-    logger.debug("Connection to %s", instance)
+    logger.debug("Connecting to %s", instance)
     results: list[str] = []
-    with ssh_client_for(instance) as client:
-        for command in commands:
-            command = shlex.join(command)
-            logger.debug("Running '%s' on %s", command, instance)
-            (stdin, stdout, stderr) = client.exec_command(command)
-            stdin.close()
-            stdout_text = stdout.read().decode("utf-8")
-            stderr_text = stderr.read().decode("utf-8")
-            status = stdout.channel.recv_exit_status()
-            if status != 0 and not ignore_errors:
-                logger.error("Execution of '%s' failed with status %d", command, status)
-                logger.warning("Standard error: %s", stderr_text)
-                logger.warning("Standard out: %s", stdout_text)
-                raise RuntimeError(f"Remote command execution failed with status {status}")
-            results.append(stdout_text)
+    for command in commands:
+        command = shlex.join(command)
+        logger.debug("Running '%s' on %s", command, instance)
+        ssh_command = [
+            "ssh",
+            "-o",
+            "ConnectTimeout=1",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "LogLevel=ERROR",
+            f"ubuntu@{ssh_address_for(instance)}",
+            command,
+        ]
+        with subprocess.Popen(
+            args=ssh_command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
+        ) as ssh_process:
+            stdout_text, stderr_text = ssh_process.communicate()
+        status = ssh_process.returncode
+        if status != 0 and not ignore_errors:
+            logger.error("Execution of '%s' failed with status %d", command, status)
+            logger.warning("Standard error: %s", stderr_text)
+            logger.warning("Standard out: %s", stdout_text)
+            raise RuntimeError(f"Remote command execution failed with status {status}")
+        results.append(stdout_text)
     return results
 
 
