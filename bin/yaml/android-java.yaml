@@ -15,15 +15,13 @@ compilers:
     if: nightly
     type: script
     dir: "{name}"
-    fetch:
     script: |
       mkdir {name}
       cd {name}
-      sh {yaml_dir}/android-java/fetch_art_release_from_head.sh
+      {yaml_dir}/android-java/fetch_art_release_from_head.sh
       unzip art_release.zip
       rm art_release.zip
     dex2oat:
       targets:
         - name: dex2oat-latest
-          target: dex2oat-latest
           check_file: "x86_64/bin/dex2oat64"
