@@ -40,8 +40,12 @@ def needs_expansion(target):
 
 
 def expand_one(template_string, configuration):
-    jinjad = JINJA_ENV.from_string(template_string).render(**configuration)
-    return jinjad.format(**configuration)
+    try:
+        jinjad = JINJA_ENV.from_string(template_string).render(**configuration)
+        return jinjad.format(**configuration)
+    except jinja2.exceptions.TemplateError as e:
+        e.add_note(f"Template '{template_string}'")
+        raise e
 
 
 def expand_target(target: MutableMapping[str, Any], context):
