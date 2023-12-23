@@ -1143,6 +1143,14 @@ libraries:
         targets:
         - trunk
         type: github
+      glaze:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: stephenberry/glaze
+        targets:
+        - trunk
+        type: github
       glm:
         build_type: none
         check_file: readme.md
