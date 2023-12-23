@@ -14,7 +14,7 @@ class ScriptInstallable(Installable):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         self.install_path_symlink = self.config_get("symlink", False)
-        self.fetch = self.config_get("fetch")
+        self.fetch = self.config_get("fetch", [])
         self.script = self.config_get("script")
         self.strip = self.config_get("strip", False)
 
