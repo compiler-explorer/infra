@@ -1,10 +1,11 @@
+import logging
 from typing import Any, MutableMapping
 
 import jinja2
 
-MAX_ITERS = 5
-
-JINJA_ENV = jinja2.Environment()
+_MAX_ITERS = 5
+_LOGGER = logging.getLogger(__name__)
+_JINJA_ENV = jinja2.Environment()
 
 
 def is_list_of_strings(value: Any) -> bool:
@@ -41,18 +42,20 @@ def needs_expansion(target):
 
 def expand_one(template_string, configuration):
     try:
-        jinjad = JINJA_ENV.from_string(template_string).render(**configuration)
+        jinjad = _JINJA_ENV.from_string(template_string).render(**configuration)
         return jinjad.format(**configuration)
-    except jinja2.exceptions.TemplateError as e:
-        e.add_note(f"Template '{template_string}'")
-        raise e
+    except jinja2.exceptions.TemplateError:
+        # in python 3.11 we would...
+        # e.add_note(f"Template '{template_string}'")
+        _LOGGER.warning("Failed to expand '%s'", template_string)
+        raise
 
 
 def expand_target(target: MutableMapping[str, Any], context):
     iterations = 0
     while needs_expansion(target):
         iterations += 1
-        if iterations > MAX_ITERS:
+        if iterations > _MAX_ITERS:
             raise RuntimeError(f"Too many mutual references (in {'/'.join(context)})")
         for key, value in target.items():
             try:
