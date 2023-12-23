@@ -1,13 +1,13 @@
 import functools
 import logging
 import socket
-from multiprocessing.pool import ThreadPool
+from multiprocessing.pool import Pool
 from typing import Dict, Optional
 
 import paramiko.ssh_exception
 
 from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases, release_for
-from lib.ssh import exec_remote, can_ssh_to
+from lib.ssh import exec_remote, can_ssh_to, exec_remote_multiple
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
 logger = logging.getLogger("instance")
@@ -63,23 +63,23 @@ class Instance:
         self.elb_health = health["TargetHealth"]["State"]
         if can_ssh_to(self):
             try:
+                running_version, service_status = exec_remote_multiple(
+                    self,
+                    [
+                        ["bash", "-c", "if [[ -f /infra/.deploy/s3_key ]]; then cat /infra/.deploy/s3_key; fi"],
+                        ["sudo", "systemctl", "show", "compiler-explorer"],
+                    ],
+                )
+                self.running_version = running_version.strip()
                 self.service_status = {
-                    key: value
-                    for key, value in (
-                        s.split("=", 1)
-                        for s in exec_remote(self, ["sudo", "systemctl", "show", "compiler-explorer"]).split("\n")
-                        if "=" in s
-                    )
+                    key: value for key, value in (s.split("=", 1) for s in service_status.split("\n") if "=" in s)
                 }
-                self.running_version = exec_remote(
-                    self, ["bash", "-c", "if [[ -f /infra/.deploy/s3_key ]]; then cat /infra/.deploy/s3_key; fi"]
-                ).strip()
             except (socket.error, paramiko.ssh_exception.SSHException) as e:
                 logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod
     def elb_instances(group_arn):
-        with ThreadPool(processes=16) as pool:
+        with Pool(processes=16) as pool:
             return pool.map(
                 lambda h: Instance(h, group_arn),
                 elb_client.describe_target_health(TargetGroupArn=group_arn)["TargetHealthDescriptions"],
