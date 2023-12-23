@@ -1,13 +1,10 @@
 import functools
 import logging
-import socket
 from multiprocessing.pool import ThreadPool
 from typing import Dict, Optional
 
-import paramiko.ssh_exception
-
 from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases, release_for
-from lib.ssh import exec_remote, can_ssh_to, exec_remote_multiple
+from lib.ssh import exec_remote, can_ssh_to
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
 logger = logging.getLogger("instance")
@@ -63,18 +60,17 @@ class Instance:
         self.elb_health = health["TargetHealth"]["State"]
         if can_ssh_to(self):
             try:
-                running_version, service_status = exec_remote_multiple(
+                self.running_version = exec_remote(
+                    self, ["bash", "-c", "if [[ -f /infra/.deploy/s3_key ]]; then cat /infra/.deploy/s3_key; fi"]
+                ).strip()
+                service_status = exec_remote(
                     self,
-                    [
-                        ["bash", "-c", "if [[ -f /infra/.deploy/s3_key ]]; then cat /infra/.deploy/s3_key; fi"],
-                        ["sudo", "systemctl", "show", "compiler-explorer"],
-                    ],
+                    ["sudo", "systemctl", "show", "compiler-explorer"],
                 )
-                self.running_version = running_version.strip()
                 self.service_status = {
                     key: value for key, value in (s.split("=", 1) for s in service_status.split("\n") if "=" in s)
                 }
-            except (socket.error, paramiko.ssh_exception.SSHException) as e:
+            except RuntimeError as e:
                 logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod

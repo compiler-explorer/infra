@@ -60,28 +60,20 @@ def run_remote_shell(instance, use_mosh: bool = False):
 
 
 def exec_remote(instance, command, ignore_errors: bool = False):
-    return exec_remote_multiple(instance, [command], ignore_errors)
-
-
-def exec_remote_multiple(instance, commands, ignore_errors: bool = False) -> list[str]:
-    logger.debug("Connecting to %s", instance)
-    results: list[str] = []
-    for command in commands:
-        command = shlex.join(command)
-        logger.debug("Running '%s' on %s", command, instance)
-        ssh_command = _SSH_COMMAND + [f"ubuntu@{ssh_address_for(instance)}", command]
-        with subprocess.Popen(
-            args=ssh_command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
-        ) as ssh_process:
-            stdout_text, stderr_text = ssh_process.communicate()
-        status = ssh_process.returncode
-        if status != 0 and not ignore_errors:
-            logger.error("Execution of '%s' failed with status %d", command, status)
-            logger.warning("Standard error: %s", stderr_text)
-            logger.warning("Standard out: %s", stdout_text)
-            raise RuntimeError(f"Remote command execution failed with status {status}")
-        results.append(stdout_text)
-    return results
+    command = shlex.join(command)
+    logger.debug("Running '%s' on %s", command, instance)
+    ssh_command = _SSH_COMMAND + [f"ubuntu@{ssh_address_for(instance)}", command]
+    with subprocess.Popen(
+        args=ssh_command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
+    ) as ssh_process:
+        stdout_text, stderr_text = ssh_process.communicate()
+    status = ssh_process.returncode
+    if status != 0 and not ignore_errors:
+        logger.error("Execution of '%s' failed with status %d", command, status)
+        logger.warning("Standard error: %s", stderr_text)
+        logger.warning("Standard out: %s", stdout_text)
+        raise RuntimeError(f"Remote command execution failed with status {status}")
+    return stdout_text
 
 
 def exec_remote_to_stdout(instance, command):

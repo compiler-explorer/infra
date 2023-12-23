@@ -32,6 +32,10 @@ repos:
     rev: 3.0.0
     hooks:
       - id: shellcheck
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
   - repo: local
     hooks:
       - id: pylint
