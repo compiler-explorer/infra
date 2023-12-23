@@ -1,10 +1,8 @@
 import functools
-import itertools
 import logging
 import os
 import shlex
 import subprocess
-import sys
 
 import paramiko
 import requests
@@ -44,11 +42,18 @@ def ssh_address_for(instance):
     raise RuntimeError(f"No public address for {instance.instance}")
 
 
+_SSH_COMMAND = [
+    "ssh",
+    "-oConnectTimeout=1",
+    "-oUserKnownHostsFile=/dev/null",
+    "-oStrictHostKeyChecking=no",
+    "-oLogLevel=ERROR",
+]
+
+
 def run_remote_shell(instance, use_mosh: bool = False):
     logger.debug("Running remote shell on %s", instance)
-    ssh_command = (
-        "ssh -o ConnectTimeout=5 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR"
-    )
+    ssh_command = shlex.join(_SSH_COMMAND)
     if use_mosh:
         ssh_command = f"mosh --ssh='{ssh_command}'"
     os.system(f"{ssh_command} ubuntu@{ssh_address_for(instance)}")
@@ -64,19 +69,7 @@ def exec_remote_multiple(instance, commands, ignore_errors: bool = False) -> lis
     for command in commands:
         command = shlex.join(command)
         logger.debug("Running '%s' on %s", command, instance)
-        ssh_command = [
-            "ssh",
-            "-o",
-            "ConnectTimeout=1",
-            "-o",
-            "UserKnownHostsFile=/dev/null",
-            "-o",
-            "StrictHostKeyChecking=no",
-            "-o",
-            "LogLevel=ERROR",
-            f"ubuntu@{ssh_address_for(instance)}",
-            command,
-        ]
+        ssh_command = _SSH_COMMAND + [f"ubuntu@{ssh_address_for(instance)}", command]
         with subprocess.Popen(
             args=ssh_command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
         ) as ssh_process:
@@ -94,16 +87,12 @@ def exec_remote_multiple(instance, commands, ignore_errors: bool = False) -> lis
 def exec_remote_to_stdout(instance, command):
     command = shlex.join(command)
     logger.debug("Running '%s' on %s", command, instance)
-    with ssh_client_for(instance) as client:
-        (stdin, stdout, stderr) = client.exec_command(command, get_pty=sys.stdout.isatty())
-        stdout: paramiko.ChannelFile
-        stdin.close()
-        # This isn't exactly what we want: we iterate all of stdout, then all of stderr...
-        for line in itertools.chain(stdout, stderr):
-            print(line.rstrip())
-        status = stdout.channel.recv_exit_status()
-        if status != 0:
-            raise RuntimeError(f"Remote command execution failed with status {status}")
+    ssh_command = _SSH_COMMAND + [f"ubuntu@{ssh_address_for(instance)}", command]
+    with subprocess.Popen(args=ssh_command, stdin=subprocess.DEVNULL) as ssh_process:
+        ssh_process.wait()
+    status = ssh_process.returncode
+    if status != 0:
+        raise RuntimeError(f"Remote command execution failed with status {status}")
 
 
 def get_remote_file(instance, remotepath, localpath):
