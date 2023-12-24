@@ -79,6 +79,17 @@ function DenyAccessByCE {
     $ACL | Set-Acl -Path $Path
 }
 
+function AllowAppContainerRXAccess {
+    param (
+        $Path
+    )
+
+    $ACL = Get-ACL -Path $Path
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("ALL APPLICATION PACKAGES", "ReadAndExecute", "ContainerInherit, ObjectInherit", "None", "Allow")
+    $ACL.AddAccessRule($AccessRule)
+    $ACL | Set-Acl -Path $Path
+}
+
 function GeneratePassword {
     $pass = -join ((1..15) | %{get-random -minimum 33 -maximum 127 | %{[char]$_}}) + -join ((1..2) | %{get-random -minimum 33 -maximum 48 | %{[char]$_}}) -replace "c","" -replace "e", "" -replace "C","" -replace "E", "";
     $securePassword = ConvertTo-SecureString $pass -AsPlainText -Force;
@@ -268,6 +279,19 @@ function GetLatestCEWrapper {
     Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
 }
 
+function CopyBuildTools {
+    Remove-Item -Path "C:\BuildTools\CMake" -Recurse
+    Remove-Item -Path "C:\BuildTools\Ninja" -Recurse
+
+    Write-Host "Copying CMake"
+    Copy-Item -Path "Y:\compilers\cmake-v3.27.6" -Destination "C:\BuildTools\CMake" -Recurse
+    AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
+
+    Write-Host "Copying Ninja"
+    Copy-Item -Path "Y:\compilers\ninja-v1.12.1" -Destination "C:\BuildTools\Ninja" -Recurse
+    AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
+}
+
 function InitializeAgentConfig {
     Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
@@ -402,6 +426,7 @@ ConfigureSmbRights
 MountY
 
 GetLatestCEWrapper
+CopyBuildTools
 
 UnMountY
 
