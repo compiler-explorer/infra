@@ -1406,6 +1406,14 @@ libraries:
         targets:
         - trunk
         type: github
+      pybind11:
+        build_type: none
+        check_file: README.rst
+        method: nightlyclone
+        repo: pybind/pybind11
+        targets:
+        - trunk
+        type: github
       raberu:
         build_type: none
         check_file: README.md
@@ -1745,6 +1753,14 @@ libraries:
       targets:
       - 1.11.4
       type: github
+    pybind11:
+      type: github
+      method: clone_branch
+      repo: pybind/pybind11
+      check_file: README.rst
+      build_type: none
+      targets:
+      - v2.11.1
     qt:
       build_type: cmake
       check_file: CMakeLists.txt
