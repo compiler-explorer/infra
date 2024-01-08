@@ -53,7 +53,9 @@ compilers:
     dpu-upmem-dpurte-clang:
       type: tarballs
       compression: gz
-      dir: upmem-{name}-Linux-x86_64
+      subdir: upmem-dpu
+      dir: "{subdir}/upmem-{name}-Linux-x86_64"
+      untar_dir: "upmem-{name}-Linux-x86_64"
       check_exe: bin/clang --version
       url: http://sdk-releases.upmem.com/{name}/ubuntu_22.04/upmem-{name}-Linux-x86_64.tar.gz
       targets:
