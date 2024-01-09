@@ -413,6 +413,7 @@ libraries:
       - 9.1.0
       - 10.0.0
       - 10.1.1
+      - 10.2.1
       type: github
     gemmlowp:
       build_type: none
@@ -772,6 +773,7 @@ libraries:
       - v0.7.0
       - v0.8.0
       - v2.0.0
+      - v2.1.0
       type: github
     nightly:
       abseil:
