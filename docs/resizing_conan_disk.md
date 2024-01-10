@@ -6,6 +6,8 @@ This is a volume with the ID: `vol-0a99526fcf7bcfc11`
 
 AWS says it's connected as `/dev/xvdb` in linux, but that's not actually correct, so ignore that.
 
+You can resize everything while the server is online and the disk is mounted.
+
 ## Enlarging the volume in AWS
 
 If you click on the volume in the AWS console, you can click on Modify and enter a new Size in GiB.
