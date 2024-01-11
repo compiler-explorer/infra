@@ -1235,3 +1235,16 @@ compilers:
         - name: 4.9.4
           tag: v2.6
           name_no_dots: 494
+    vast:
+      type: tarballs
+      check_exe: bin/vast-front --version
+      url: https://github.com/trailofbits/vast/releases/download/latest/VAST-0.0.0-x86_64-Linux.tar.xz
+      compression: xz
+      untar_dir: VAST-0.0.0-x86_64-Linux
+      dir: vast-trunk
+      path_name: vast-trunk
+      strip: true
+      targets:
+        - name: trunk
+          after_stage_script:
+            - chmod 0755 VAST-0.0.0-x86_64-Linux/bin/vast-front
