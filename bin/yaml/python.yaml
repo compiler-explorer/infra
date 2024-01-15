@@ -10,6 +10,7 @@ compilers:
       - 3.9.6
       - 3.10.0
       - 3.11.0
+      - 3.12.1
   pypy:
     type: tarballs
     compression: bz2
