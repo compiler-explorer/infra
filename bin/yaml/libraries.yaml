@@ -1131,6 +1131,15 @@ libraries:
         targets:
         - trunk
         type: github
+      flux:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        path_name: libs/flux
+        repo: tcbrindle/flux
+        targets:
+        - trunk
+        type: github
       fmt:
         build_type: cmake
         method: nightlyclone
