@@ -1214,6 +1214,11 @@ compilers:
         check_exe: bin/6502-c++ --help
         targets:
           - trunk
+      vast:
+        type: nightly
+        check_exe: bin/vast-front --version
+        targets:
+          - trunk
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version
