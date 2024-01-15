@@ -11,3 +11,14 @@ compilers:
       - 3.10.0
       - 3.11.0
       - 3.12.1
+  pypy:
+    type: tarballs
+    compression: bz2
+    url: https://downloads.python.org/pypy/pypy{name}-linux64.tar.bz2
+    check_exe: bin/pypy --version
+    dir: pypy{name}
+    strip_components: 1
+    create_untar_dir: true
+    targets:
+      - 3.10-v7.3.14
+      - 3.9-v7.3.14

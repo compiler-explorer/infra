@@ -10,4 +10,4 @@ compilers:
     check_exe: bin/snowball --version
     url: https://github.com/snowball-lang/snowball/releases/download/v{name}/snowball-ce-specific-x86_64.tar.gz
     targets:
-      - '0.0.8'
+      - '0.1.0'
