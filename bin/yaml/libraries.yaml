@@ -416,6 +416,13 @@ libraries:
       - 10.1.1
       - 10.2.1
       type: github
+    gcem:
+      build_type: cmake
+      repo: kthohr/gcem
+      target_prefix: v
+      targets:
+      - 1.17.0
+      type: github
     gemmlowp:
       build_type: none
       check_file: fixedpoint/fixedpoint.h
@@ -1152,6 +1159,13 @@ libraries:
         check_file: README.md
         method: nightlyclone
         repo: facebook/folly
+        targets:
+        - trunk
+        type: github
+      gcem:
+        build_type: cmake
+        method: nightlyclone
+        repo: kthohr/gcem
         targets:
         - trunk
         type: github
