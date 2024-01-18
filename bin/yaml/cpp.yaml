@@ -338,7 +338,10 @@ compilers:
             mips:
               subdir: mips
               targets:
+                - 4.9.4
                 - 5.4.0
+                - 5.5.0
+                - 9.5.0
                 - 11.2.0
                 - 12.1.0
                 - 12.2.0
@@ -349,7 +352,13 @@ compilers:
               subdir: mipsel
               arch_prefix: "{subdir}-multilib-linux-gnu"
               targets:
+                - name: 4.9.4
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
                 - name: 5.4.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 5.5.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 9.5.0
                   arch_prefix: "{subdir}-unknown-linux-gnu"
                 - 12.1.0
                 - 12.2.0
@@ -359,7 +368,10 @@ compilers:
             mips64:
               subdir: mips64
               targets:
+                - 4.9.4
                 - 5.4.0
+                - 5.5.0
+                - 9.5.0
                 - 11.2.0
                 - 12.1.0
                 - 12.2.0
@@ -370,7 +382,13 @@ compilers:
               subdir: mips64el
               arch_prefix: "{subdir}-multilib-linux-uclibc"
               targets:
+                - name: 4.9.4
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 5.5.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
                 - name: 5.4.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 9.5.0
                   arch_prefix: "{subdir}-unknown-linux-gnu"
                 - 12.1.0
                 - 12.2.0
