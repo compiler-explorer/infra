@@ -1,0 +1,11 @@
+compilers:
+  go:
+    nightly:
+      if: nightly
+      type: nightly
+      wyrm:
+        type: nightly
+        check_env:
+          - MOVBUILDDIR=/opt/compiler-explorer/wyrm-trunk/build
+        targets:
+          - trunk
