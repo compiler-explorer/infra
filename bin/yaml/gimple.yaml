@@ -1,5 +1,5 @@
 compilers:
-  go:
+  gimple:
     nightly:
       if: nightly
       type: nightly
