@@ -50,6 +50,16 @@ compilers:
       check_stderr_on_stdout: true
       targets:
         - '1.27'
+    dpu-upmem-dpurte-clang:
+      type: tarballs
+      compression: gz
+      subdir: upmem-dpu
+      dir: "{subdir}/upmem-{name}-Linux-x86_64"
+      untar_dir: "upmem-{name}-Linux-x86_64"
+      check_exe: bin/clang --version
+      url: http://sdk-releases.upmem.com/{name}/ubuntu_22.04/upmem-{name}-Linux-x86_64.tar.gz
+      targets:
+        - 2023.2.0
     sdcc:
       type: tarballs
       compression: bz2
