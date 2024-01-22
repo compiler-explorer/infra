@@ -136,6 +136,16 @@ tools:
     check_exe: bin/pahole
     targets:
       - trunk
+  fpm:
+    type: singleFile
+    url: https://github.com/fortran-lang/fpm/releases/download/v{{name}}/fpm-{{name}}-linux-x86_64
+    dir: fpm-{{name}}
+    check_exe: fpm --version
+    filename: fpm
+    after_stage_script:
+    - chmod +x fpm
+    targets:
+    - 0.9.0
   baksmali:
     type: singleFile
     dir: baksmali-{name}

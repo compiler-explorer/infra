@@ -14,6 +14,7 @@ from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 from lib.rust_library_builder import RustLibraryBuilder
+from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
@@ -225,6 +226,19 @@ class Installable:
                 return builder.makebuild(buildfor)
             elif self.build_config.build_type == "make":
                 return builder.makebuild(buildfor)
+        elif self.build_config.build_type == "fpm":
+            sourcefolder = os.path.join(self.install_context.destination, self.install_path)
+            builder = FortranLibraryBuilder(
+                _LOGGER,
+                self.language,
+                self.context[-1],
+                self.target_name,
+                sourcefolder,
+                self.install_context,
+                self.build_config,
+                popular_compilers_only,
+            )
+            return builder.makebuild(buildfor)
         elif self.build_config.build_type == "cargo":
             builder = RustLibraryBuilder(
                 _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config

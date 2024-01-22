@@ -2321,6 +2321,45 @@ libraries:
         targets:
         - trunk
         type: github
+  fortran:
+    http_client:
+      build_type: fpm
+      check_file: fpm.toml
+      prebuild_script:
+      - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+      - tar -xzf curl.tgz
+      - cp lib/libcurl-d.so lib/libcurl.so
+      - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
+      repo: fortran-lang/http-client
+      requires_tree_copy: true
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
+    json_fortran:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: jacobwilliams/json-fortran
+      requires_tree_copy: true
+      targets:
+      - 8.3.0
+      type: github
+    nightly:
+      forcompile:
+        build_type: fpm
+        check_file: fpm.toml
+        method: nightlyclone
+        prebuild_script:
+        - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+        - tar -xzf curl.tgz
+        - cp lib/libcurl-d.so lib/libcurl.so
+        - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
+        repo: gha3mi/forcompile
+        requires_tree_copy: true
+        targets:
+        - trunk
+        type: github
+      if: nightly
   rust:
     aho-corasick:
       build_type: cargo

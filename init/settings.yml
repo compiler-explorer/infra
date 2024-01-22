@@ -38,6 +38,9 @@ compiler:
     edg:
         version: ANY
         libcxx: ANY
+    fortran:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 
