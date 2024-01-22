@@ -138,15 +138,26 @@ class NightlyInstallable(Installable):
             self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
             return
 
-        # exe is something like "gcc-trunk-20231008/bin/g++" here
-        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
-        relative_exe = "/".join(exe.split("/")[1:])
+        destination = self.install_context.destination
+        if self.subdir:
+            if exe.split("/")[0] == self.subdir:
+                destination = destination / self.subdir
+                relative_exe = "/".join(exe.split("/")[2:])
+            else:
+                relative_exe = "/".join(exe.split("/")[1:])
+        else:
+            # exe is something like "gcc-trunk-20231008/bin/g++" here
+            #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+            relative_exe = "/".join(exe.split("/")[1:])
+
         if self.install_path_symlink:
             fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
         elif self.path_name_symlink:
             fullpath = self.install_context.destination / self.path_name_symlink / relative_exe
         else:
             fullpath = self.install_context.destination / exe
+
+        self._logger.debug(f"Checking if {fullpath} exists")
 
         stat = fullpath.stat()
         modified = stat.st_mtime
