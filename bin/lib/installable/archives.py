@@ -157,7 +157,7 @@ class NightlyInstallable(Installable):
         else:
             fullpath = self.install_context.destination / exe
 
-        self._logger.debug(f"Checking if {fullpath} exists")
+        self._logger.debug("Checking if %s exists", fullpath)
 
         stat = fullpath.stat()
         modified = stat.st_mtime
