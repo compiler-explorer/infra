@@ -1,0 +1,9 @@
+compilers:
+  gimple:
+    nightly:
+      if: nightly
+      type: nightly
+      wyrm:
+        type: nightly
+        targets:
+          - trunk
