@@ -138,15 +138,26 @@ class NightlyInstallable(Installable):
             self._logger.warning("Not running on admin node - not saving compiler version info to AWS")
             return
 
-        # exe is something like "gcc-trunk-20231008/bin/g++" here
-        #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
-        relative_exe = "/".join(exe.split("/")[1:])
+        destination = self.install_context.destination
+        if self.subdir:
+            if exe.split("/")[0] == self.subdir:
+                destination = destination / self.subdir
+                relative_exe = "/".join(exe.split("/")[2:])
+            else:
+                relative_exe = "/".join(exe.split("/")[1:])
+        else:
+            # exe is something like "gcc-trunk-20231008/bin/g++" here
+            #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
+            relative_exe = "/".join(exe.split("/")[1:])
+
         if self.install_path_symlink:
             fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
         elif self.path_name_symlink:
             fullpath = self.install_context.destination / self.path_name_symlink / relative_exe
         else:
             fullpath = self.install_context.destination / exe
+
+        self._logger.debug(f"Checking if {fullpath} exists")
 
         stat = fullpath.stat()
         modified = stat.st_mtime
@@ -280,10 +291,13 @@ class ZipArchiveInstallable(Installable):
             self.install_context.fetch_to(self.url, fd)
             if not is_windows():
                 unzip_cmd = ["unzip", "-q", fd.name]
+                if self.extract_into_folder:
+                    unzip_cmd.extend(["-d", self.folder_to_rename])
             else:
                 unzip_cmd = ["tar", "-xf", fd.name]
-            if self.extract_into_folder:
-                unzip_cmd.extend(["-d", self.folder_to_rename])
+                if self.extract_into_folder:
+                    self.install_context.stage_subdir(staging, self.folder_to_rename)
+                    unzip_cmd.extend(["-C", self.folder_to_rename])
             self.install_context.stage_command(staging, unzip_cmd)
             if self.folder_to_rename != self.install_path:
                 if not is_windows():
@@ -361,7 +375,7 @@ class NonFreeS3TarballInstallable(S3TarballInstallable):
         super().__init__(install_context, config)
 
     def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:
-        untar_dir = staging.path
+        untar_dir = staging.path / self.untar_dir
         untar_dir.mkdir(exist_ok=True, parents=True)
         with tempfile.TemporaryFile() as fd:
             amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{s3_path}", fd)

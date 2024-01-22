@@ -10,3 +10,10 @@ compilers:
       racket/racket-{name}/bin/raco pkg install -i --auto disassemble
     targets:
       - "8.6"
+    nightly:
+      if: nightly
+      install_always: true
+      fetch:
+        - https://users.cs.utah.edu/plt/snapshots/current/installers/racket-current-x86_64-linux-jammy.sh racket-{name}.sh
+      targets:
+        - nightly

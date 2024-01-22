@@ -338,7 +338,10 @@ compilers:
             mips:
               subdir: mips
               targets:
+                - 4.9.4
                 - 5.4.0
+                - 5.5.0
+                - 9.5.0
                 - 11.2.0
                 - 12.1.0
                 - 12.2.0
@@ -349,7 +352,13 @@ compilers:
               subdir: mipsel
               arch_prefix: "{subdir}-multilib-linux-gnu"
               targets:
+                - name: 4.9.4
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
                 - name: 5.4.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 5.5.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 9.5.0
                   arch_prefix: "{subdir}-unknown-linux-gnu"
                 - 12.1.0
                 - 12.2.0
@@ -359,7 +368,10 @@ compilers:
             mips64:
               subdir: mips64
               targets:
+                - 4.9.4
                 - 5.4.0
+                - 5.5.0
+                - 9.5.0
                 - 11.2.0
                 - 12.1.0
                 - 12.2.0
@@ -370,7 +382,13 @@ compilers:
               subdir: mips64el
               arch_prefix: "{subdir}-multilib-linux-uclibc"
               targets:
+                - name: 4.9.4
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 5.5.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
                 - name: 5.4.0
+                  arch_prefix: "{subdir}-unknown-linux-gnu"
+                - name: 9.5.0
                   arch_prefix: "{subdir}-unknown-linux-gnu"
                 - 12.1.0
                 - 12.2.0
@@ -859,43 +877,40 @@ compilers:
       if: non-free
       type: edg
       compression: gz
-      s3_path_prefix: edg-compiler/v{edg_version}
       untar_dir: edg-compiler
       scraper: edg-compiler/edg-scrape-compiler.2023.7.18.zip
-      macro_gen: edg-compiler/make_predef_macro_table
       scrape_cmd: bin/edg-scrape-compiler
       path_name: edg-{name}
-      old:
-        macro_output_dir: bases/gnu/lib
-        check_exe: eccp-scripts/eccp-{compiler_type} --version
+      check_exe: eccp-scripts/eccp-{compiler_type} --version
+      s3_path_prefix: edg-compiler/edg-{compiler_type}-{edg_version}
+      default:
+        compiler_type: default
         targets:
-          - name: 6.5-gcc-13
-            edg_version: '6.5'
-            compiler_type: gcc
+          - name: 6.5-default-13-20231120
+            edg_version: 'compiler-6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-          - name: 6.5-default-13
-            edg_version: '6.5'
-            compiler_type: default
+          - name: 6.6-default-13
+            edg_version: '6.6'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-      new:
+      gcc:
+        compiler_type: gcc
+        macro_gen: edg-compiler/make_predef_macro_table
         macro_output_dir: base/lib
-        check_exe: eccp-scripts/eccp-{compiler_type} --version
-        s3_path_prefix: edg-compiler/edg-{compiler_type}-compiler-{edg_version}
-        untar_dir: .
         targets:
-          - name: 6.5-gcc-13-20231108
-            compiler_type: gcc
-            edg_version: '6.5-20231108'
+          - name: 6.5-gcc-13-20231120
+            edg_version: 'compiler-6.5-20231120'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-          - name: 6.5-default-13-20231108
-            edg_version: '6.5-20231108'
-            compiler_type: default
+          - name: 6.6-gcc-13
+            edg_version: '6.6'
             depends:
               - compilers/c++/x86/gcc 13.2.0
-
+          - name: gcc-13-experimental-reflection
+            edg_version: 'edg-experimental-reflection'
+            depends:
+              - compilers/c++/x86/gcc 13.2.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{name}
@@ -998,6 +1013,11 @@ compilers:
           fetch:
             - https://registrationcenter-download.intel.com/akdlm//IRC_NAS/ebf5d9aa-17a7-46a4-b5df-ace004227c0e/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
+        - name: 2024.0.0.49524
+          check_exe: compiler/latest/bin/icx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/5c8e686a-16a7-4866-b585-9cf09e97ef36/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
     intel-fortran:
       type: script
       dir: "intel-fortran-{name}"
@@ -1048,6 +1068,11 @@ compilers:
         - name: 2023.2.1.8
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0d65c8d4-f245-4756-80c4-6712b43cf835/l_fortran-compiler_p_{name}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2024.0.0.49493
+          check_exe: compiler/latest/bin/ifx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/89b0fcf9-5c00-448a-93a1-5ee4078e008e/l_fortran-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
     nvhpc-sdk:
       type: script
@@ -1139,6 +1164,14 @@ compilers:
           ctk_ver: "12.2"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_23_11
+          arch: x86_64
+          version: "23.11"
+          dot_removed_version: "2311"
+          year: "2023"
+          ctk_ver: "12.3"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
     nightly:
       if: nightly
       gcc:
@@ -1147,11 +1180,12 @@ compilers:
         targets:
           - name: trunk
             symlink: gcc-snapshot
+          - contracts-nonattr-trunk
+          - cxx-coroutines-trunk
+          - cxx-modules-trunk
           - lock3-contracts-trunk
           - lock3-contract-labels-trunk
-          - contracts-nonattr-trunk
-          - cxx-modules-trunk
-          - cxx-coroutines-trunk
+          - p1144-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
@@ -1178,9 +1212,9 @@ compilers:
           - ce-trunk
           - clangir-trunk
           - name: llvmflang-trunk
-            check_exe: bin/flang
+            check_exe: bin/flang-new --version
             after_stage_script:
-              - chmod 0755 bin/flang
+              - chmod 0755 bin/flang-to-external-fc
       mlir:
         type: nightly
         dir: "mlir-{name}"
@@ -1196,6 +1230,11 @@ compilers:
         type: nightly
         s3_name: 6502-c%2B%2B-{{name}}
         check_exe: bin/6502-c++ --help
+        targets:
+          - trunk
+      vast:
+        type: nightly
+        check_exe: bin/vast-front --version
         targets:
           - trunk
     djgpp:

@@ -27,6 +27,13 @@ aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/ho
 
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
+mkdir /home/ubuntu/.ssh/controlmasters
+cat > /home/ubuntu/.ssh/config <<EOF
+Host *
+  ControlMaster auto
+  ControlPath ~/.ssh/controlmasters/%r@%h:%p
+  ControlPersist 10
+EOF
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 

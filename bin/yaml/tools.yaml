@@ -7,9 +7,12 @@ tools:
     dir: cmake-v{name}
     create_untar_dir: true
     check_exe: bin/cmake --help
-    symlink: cmake
     targets:
       - 3.26.1
+      - 3.27.9
+      - 3.28.0-rc5
+      - name: 3.28.0
+        symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
   ninja:
     type: ziparchive
     extract_into_folder: true
@@ -31,6 +34,21 @@ tools:
       - v1.3.0
     after_stage_script:
       - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib heaptrack-{name}/bin/heaptrack_print
+  iwyu:
+    type: s3tarballs
+    compression: xz
+    check_exe: bin/include-what-you-use --version
+    path_name: iwyu/{name}
+    targets:
+      - name: '0.12'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-8.0.0/lib iwyu-{name}/lib
+      - name: '0.20'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-16.0.0/lib iwyu-{name}/lib
+      - name: '0.21'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-17.0.1/lib iwyu-{name}/lib
   pvs-studio:
     if:
       - non-free

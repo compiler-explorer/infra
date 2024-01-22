@@ -81,9 +81,10 @@ libraries:
       - 1.81.0
       - 1.82.0
       - 1.83.0
+      - 1.84.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
-      url: https://boostorg.jfrog.io/artifactory/main/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
+      url: https://archives.boost.io/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
     brigand:
       check_file: README.md
       method: clone_branch
@@ -209,13 +210,15 @@ libraries:
       type: github
       repo: jeremy-rifkin/cpptrace
       build_type: cmake
-      lib_type: shared
-      make_targets:
+      extra_cmake_arg:
+      - -DCPPTRACE_STATIC=On
+      lib_type: static
+      staticliblink:
       - cpptrace
-      sharedliblink:
-      - cpptrace
+      package_install: true
       target_prefix: v
       targets:
+        - 0.3.0
         - 0.2.1
     curl:
       after_stage_script:
@@ -344,7 +347,14 @@ libraries:
       repo: skypjack/entt
       target_prefix: v
       targets:
+      - 3.12.2
+      - 3.11.1
+      - 3.10.3
+      - 3.9.0
+      - 3.8.1
+      - 3.7.1
       - 3.6.0
+      - 3.5.2
       - 3.5.0
       type: github
     eve:
@@ -404,6 +414,14 @@ libraries:
       - 9.1.0
       - 10.0.0
       - 10.1.1
+      - 10.2.1
+      type: github
+    gcem:
+      build_type: cmake
+      repo: kthohr/gcem
+      target_prefix: v
+      targets:
+      - 1.17.0
       type: github
     gemmlowp:
       build_type: none
@@ -413,6 +431,14 @@ libraries:
       repo: google/gemmlowp
       targets:
       - trunk
+      type: github
+    glaze:
+      check_file: README.md
+      repo: stephenberry/glaze
+      target_prefix: v
+      targets:
+      - 1.9.8
+      - 2.0.3
       type: github
     glm:
       check_file: readme.md
@@ -554,6 +580,7 @@ libraries:
       targets:
       - 4.0.01
       - 4.1.00
+      - 4.2.00
       type: github
     kumi:
       check_file: README.md
@@ -718,9 +745,13 @@ libraries:
       - 13.0.0
       - 13.0.1
       - 14.0.0
+      - 14.0.6
       - 15.0.0
+      - 15.0.7
       - 16.0.0
+      - 16.0.6
       - 17.0.1
+      - 17.0.6
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -751,6 +782,7 @@ libraries:
       - v0.7.0
       - v0.8.0
       - v2.0.0
+      - v2.1.0
       type: github
     nightly:
       abseil:
@@ -826,6 +858,13 @@ libraries:
         - absl_wyhash
         targets:
         - trunk
+        type: github
+      array:
+        check_file: include/array/array.h
+        repo: dsharlet/array
+        method: nightlyclone
+        targets:
+        - master
         type: github
       avr-libstdcpp:
         build_type: manual
@@ -1100,6 +1139,14 @@ libraries:
         targets:
         - trunk
         type: github
+      flux:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: tcbrindle/flux
+        targets:
+        - trunk
+        type: github
       fmt:
         build_type: cmake
         method: nightlyclone
@@ -1112,6 +1159,21 @@ libraries:
         check_file: README.md
         method: nightlyclone
         repo: facebook/folly
+        targets:
+        - trunk
+        type: github
+      gcem:
+        build_type: cmake
+        method: nightlyclone
+        repo: kthohr/gcem
+        targets:
+        - trunk
+        type: github
+      glaze:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: stephenberry/glaze
         targets:
         - trunk
         type: github
@@ -1370,6 +1432,14 @@ libraries:
         targets:
         - trunk
         type: github
+      pybind11:
+        build_type: none
+        check_file: README.rst
+        method: nightlyclone
+        repo: pybind/pybind11
+        targets:
+        - trunk
+        type: github
       raberu:
         build_type: none
         check_file: README.md
@@ -1432,6 +1502,13 @@ libraries:
         repo: NVIDIA/stdexec
         targets:
         - trunk
+        type: github
+      taskflow:
+        check_file: README.md
+        method: nightlyclone
+        repo: taskflow/taskflow
+        targets:
+          - trunk
         type: github
       taojson:
         build_type: none
@@ -1702,6 +1779,14 @@ libraries:
       targets:
       - 1.11.4
       type: github
+    pybind11:
+      type: github
+      method: clone_branch
+      repo: pybind/pybind11
+      check_file: README.rst
+      build_type: none
+      targets:
+      - v2.11.1
     qt:
       build_type: cmake
       check_file: CMakeLists.txt
@@ -1862,6 +1947,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '13'
       - '12'
       - '11'
       - '10'
@@ -1942,6 +2028,7 @@ libraries:
       - '44'
       - '45'
       - '46'
+      - '47'
       type: github
     tts:
       check_file: README.md

@@ -4,8 +4,24 @@ compilers:
     dir: r8-{name}
     depends:
       - compilers/java 16.0.1
+      - compilers/kotlin 1.9.20 # d8 runs on .class files, so kotlinc is applicable as well.
     check_exe: "%DEP0%/bin/java -cp {dir}/{filename} com.android.tools.r8.D8 --version"
     filename: r8-{name}.jar
     url: https://dl.google.com/android/maven2/com/android/tools/r8/{name}/r8-{name}.jar
     targets:
       - 8.1.56
+
+  nightly:
+    if: nightly
+    type: script
+    dir: "{name}"
+    script: |
+      mkdir {name}
+      cd {name}
+      {yaml_dir}/android-java/fetch_art_release_from_head.sh
+      unzip art_release.zip
+      rm art_release.zip
+    dex2oat:
+      targets:
+        - name: dex2oat-latest
+          check_file: "x86_64/bin/dex2oat64"

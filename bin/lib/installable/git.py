@@ -70,20 +70,17 @@ class GitHubInstallable(Installable):
         default_untar_dir = f"{self.reponame}-{self.target_name}"
         self.untar_dir = self.config_get("untar_dir", default_untar_dir)
 
-        check_file = self.config_get("check_file", "")
-        if check_file == "":
+        if not self.check_file:
             if self.build_config.build_type == "cmake":
-                self.check_file = os.path.join(self.install_path, "CMakeLists.txt")
+                self.check_file = "CMakeLists.txt"
             elif self.build_config.build_type == "make":
-                self.check_file = os.path.join(self.install_path, "Makefile")
+                self.check_file = "Makefile"
             elif self.build_config.build_type == "cake":
-                self.check_file = os.path.join(self.install_path, "config.cake")
+                self.check_file = "config.cake"
             elif self.build_config.build_type == "cargo":
                 self.check_file = None
             else:
                 raise RuntimeError(f"Requires check_file ({last_context})")
-        else:
-            self.check_file = f"{self.install_path}/{check_file}"
 
         self.install_always = self.install_always or self.nightly_like
 

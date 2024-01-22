@@ -106,6 +106,9 @@ class Installable:
         return True
 
     def should_install(self) -> bool:
+        if self.install_context.only_nightly and not self.nightly_like:
+            return False
+
         return self.install_always or not self.is_installed()
 
     def should_build(self):

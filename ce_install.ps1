@@ -3,7 +3,7 @@
 
 $cwd = Get-Location
 
-if (! ((Get-Item .env) -as [bool])) {
+if (! ((Test-Path -Path .env) -as [bool])) {
     python -m venv .env
     (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
 
@@ -16,4 +16,4 @@ if (! ((Get-Item .env) -as [bool])) {
 $env:POETRY_VENV = "$cwd/.venv"
 $env:POETRY_DEPS = "$env:POETRY_VENV/.deps"
 
-poetry run python -c "import sys; sys.path.append('$cwd/bin'); from lib.ce_install import main; main()" $args
+poetry run python -c "import sys; sys.path.append(r'$cwd/bin'); from lib.ce_install import main; main()" $args
