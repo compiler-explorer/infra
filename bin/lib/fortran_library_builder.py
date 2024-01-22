@@ -20,7 +20,6 @@ import requests
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
-from lib.binary_info import BinaryInfo
 from lib.library_build_config import LibraryBuildConfig
 from lib.staging import StagingDir
 
@@ -270,8 +269,6 @@ class FortranLibraryBuilder:
     def writebuildscript(
         self,
         buildfolder,
-        installfolder,
-        sourcefolder,
         compiler,
         compileroptions,
         compilerexe,
@@ -281,7 +278,6 @@ class FortranLibraryBuilder:
         buildtype,
         arch,
         stdver,
-        stdlib,
         flagscombination,
         ldPath,
     ):
@@ -406,9 +402,9 @@ class FortranLibraryBuilder:
         for copy_line in self.buildconfig.copy_files:
             f.write(f"        {copy_line}\n")
 
-        f.write(f'        self.copy("build/*/*.mod", dst="mod", keep_path=False)\n')
-        f.write(f'        self.copy("build/*/*.smod", dst="mod", keep_path=False)\n')
-        f.write(f'        self.copy("build/*/*.a", dst="lib", keep_path=False)\n')
+        f.write('        self.copy("build/*/*.mod", dst="mod", keep_path=False)\n')
+        f.write('        self.copy("build/*/*.smod", dst="mod", keep_path=False)\n')
+        f.write('        self.copy("build/*/*.a", dst="lib", keep_path=False)\n')
 
     def writeconanfile(self, buildfolder):
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
@@ -604,8 +600,6 @@ class FortranLibraryBuilder:
 
         self.writebuildscript(
             build_folder,
-            install_folder,
-            self.sourcefolder,
             compiler,
             options,
             exe,
@@ -615,7 +609,6 @@ class FortranLibraryBuilder:
             buildtype,
             arch,
             stdver,
-            stdlib,
             flagscombination,
             ld_path,
         )
