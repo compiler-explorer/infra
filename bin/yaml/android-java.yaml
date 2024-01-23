@@ -12,6 +12,7 @@ compilers:
       - 8.1.56
 
   nightly:
+    install_always: true
     if: nightly
     type: script
     dir: "{name}"
