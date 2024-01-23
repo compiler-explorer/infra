@@ -908,7 +908,7 @@ compilers:
             depends:
               - compilers/c++/x86/gcc 13.2.0
           - name: gcc-13-experimental-reflection
-            edg_version: 'gcc-experimental-reflection'
+            edg_version: 'experimental-reflection'
             depends:
               - compilers/c++/x86/gcc 13.2.0
     ellccs:
