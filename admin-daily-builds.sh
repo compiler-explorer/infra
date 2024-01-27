@@ -97,5 +97,6 @@ build_fortran_libraries() {
 init_logspout
 build_cpp_libraries
 build_rust_libraries
+build_fortran_libraries
 
 exit ${BUILD_FAILED}
