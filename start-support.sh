@@ -96,3 +96,10 @@ setup_cgroups() {
         cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
     fi
 }
+
+mount_nosym() {
+    mkdir -p /nosym
+    mount -onosymfollow --bind / /nosym
+    # seems to need a remount to pick it up properly on our version of Ubuntu (but not 23.10)
+    mount -oremount,nosymfollow --bind / /nosym
+}

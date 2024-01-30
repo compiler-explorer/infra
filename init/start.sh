@@ -12,6 +12,7 @@ LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
 setup_cgroups
 mount_opt
+mount_nosym
 update_code
 
 COMPILERS_ARG=
@@ -33,6 +34,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/node/bin/node \
     -- app.js \
     --suppressConsoleLog \
+    --tmpDir /nosym/tmp \
     --logHost "${LOG_DEST_HOST}" \
     --logPort "${LOG_DEST_PORT}" \
     ${CE_PROP_ENV} \
