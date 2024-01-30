@@ -1,5 +1,5 @@
 locals {
-  image_id          = "ami-05003cbd1aa6e3776"
+  image_id          = "ami-0dac25c567aa57e61"
   staging_image_id  = "ami-0dac25c567aa57e61"
   beta_image_id     = "ami-0dac25c567aa57e61"
   gpu_image_id      = "ami-05e1d61b3348d349f"
