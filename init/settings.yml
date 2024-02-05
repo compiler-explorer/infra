@@ -41,6 +41,9 @@ compiler:
     fortran:
         version: ANY
         libcxx: ANY
+    flang:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 
