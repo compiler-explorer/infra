@@ -1861,6 +1861,7 @@ libraries:
       targets:
       - '0.4'
       - 1.1.2
+      - 2.0.0
       type: github
     seastar:
       check_file: README.md
