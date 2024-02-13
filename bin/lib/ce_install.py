@@ -276,6 +276,18 @@ def check_installed(context: CliContext, filter_: List[str]):
 
 
 @cli.command()
+@click.pass_obj
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def check_should_install(context: CliContext, filter_: List[str]):
+    """Check whether targets matching FILTER Should be installed."""
+    for installable in context.get_installables(filter_):
+        if installable.should_install():
+            print(f"{installable.name}: yes")
+        else:
+            print(f"{installable.name}: no")
+
+
+@cli.command()
 def amazon_check():
     _LOGGER.debug("Starting Amazon Check")
     languages = ["c", "c++", "d", "cuda"]
