@@ -163,6 +163,13 @@ class InstallationContext:
     def make_subdir(self, subdir: str) -> None:
         (self.destination / subdir).mkdir(parents=True, exist_ok=True)
 
+    def get_current_link_target(self, dest: str) -> Path:
+        full_dest = self.destination / dest
+        if full_dest.is_symlink():
+            return full_dest.readlink()
+        else:
+            return full_dest
+
     def set_link(self, source: Path, dest: str) -> None:
         if self.dry_run:
             _LOGGER.info("Would symlink %s to %s", source, dest)

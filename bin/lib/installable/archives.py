@@ -131,7 +131,9 @@ class NightlyInstallable(Installable):
             return self.install_context.compare_against_staging(staging, self.local_path, self.install_path)
 
     def should_install(self) -> bool:
-        return True
+        target: Path = self.install_context.get_current_link_target(self.path_name_symlink)
+
+        return not target.as_posix().endswith(self.local_path)
 
     def save_version(self, exe: str, res_call: str):
         if not running_on_admin_node:
