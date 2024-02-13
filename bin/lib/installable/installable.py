@@ -138,6 +138,8 @@ class Installable:
         # exe is something like "gcc-trunk-20231008/bin/g++" here
         #  but we need the actual symlinked path ("/opt/compiler-explorer/gcc-snapshot/bin/g++")
 
+        # in case of 'hook', exe is "hook/hook-0.1.0-20240213/bin/hook"
+
         # note: NightlyInstallable also has "path_name_symlink", so this function is overridden there
 
         relative_exe = "/".join(exe.split("/")[1:])
@@ -145,6 +147,14 @@ class Installable:
             fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
         else:
             fullpath = self.install_context.destination / exe
+
+        # just iterate until we found the right path, we know it's there (otherwise save_version wouldn't be called)
+        while not fullpath.exists():
+            relative_exe = "/".join(relative_exe.split("/")[1:])
+            if self.install_path_symlink:
+                fullpath = self.install_context.destination / self.install_path_symlink / relative_exe
+            else:
+                fullpath = self.install_context.destination / exe
 
         stat = fullpath.stat()
         modified = stat.st_mtime
