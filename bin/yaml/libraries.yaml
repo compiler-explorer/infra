@@ -1854,6 +1854,7 @@ libraries:
       - -DSCN_EXAMPLES=OFF
       - -DSCN_BENCHMARKS=OFF
       - -DSCN_DOCS=OFF
+      - -DBUILD_SHARED_LIBS=ON
       make_targets:
       - scn
       repo: eliaskosunen/scnlib
