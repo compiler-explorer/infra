@@ -632,6 +632,14 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+            nightly:
+              if: nightly
+              type: nightly
+              compiler_name: powerpc64-gcc-trunk
+              path_name_prefix: gcc-trunk
+              targets:
+                - trunk
+
           powerpc64le:
             subdir: powerpc64le
             targets:
@@ -644,6 +652,14 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+            nightly:
+              if: nightly
+              type: nightly
+              compiler_name: powerpc64le-gcc-trunk
+              path_name_prefix: gcc-trunk
+              targets:
+                - trunk
+
         vax:
           subdir: vax
           type: s3tarballs

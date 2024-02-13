@@ -9,7 +9,18 @@ compilers:
     filename: r8-{name}.jar
     url: https://dl.google.com/android/maven2/com/android/tools/r8/{name}/r8-{name}.jar
     targets:
+      - 8.2.42
+      - 8.2.33
+      - 8.1.72
       - 8.1.56
+  dex2oat:
+    type: ziparchive
+    dir: dex2oat-{name}
+    extract_into_folder: true
+    check_file: "x86_64/bin/dex2oat64"
+    url: https://dl.google.com/android/maven2/com/android/art/art/{name}/art-{name}.zip
+    targets:
+      - "34.11"
 
   nightly:
     install_always: true
