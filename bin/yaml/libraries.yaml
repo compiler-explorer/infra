@@ -2345,6 +2345,14 @@ libraries:
       targets:
       - 8.3.0
       type: github
+    stdlib:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: fortran-lang/stdlib
+      requires_tree_copy: true
+      targets:
+      - 'stdlib-fpm'
+      type: github
     nightly:
       forcompile:
         build_type: fpm
