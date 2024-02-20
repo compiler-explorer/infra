@@ -111,23 +111,21 @@ compilers:
         {pre}
         chmod +x {script_filename}
         # Download and unpack into current directory
-        {script_filename} install {target} -a -p $(pwd)
+        ACTIVATE_PATH=$({script_filename} install {target} -a -p $(pwd))
         # Rename the downloaded package directory to a constant name
-        mv {from}-* {to}
+        mv $(dirname $ACTIVATE_PATH) {to}
         # Make directory readable for other users too
         chmod +rx {to}
       ldc:
         targets:
           - name: ldc-latest-ci
             target: ldc-latest-ci
-            from: ldc
             to: ldc
             check_exe: "ldc/bin/ldc2 --version"
           - name: ldcbeta
             target: ldc-beta
             pre: ""
             script_filename: "./install.sh"
-            from: ldc
             to: ldcbeta
             check_exe: "bin/ldc2 --version"
       dmd:
@@ -135,6 +133,5 @@ compilers:
         targets:
           - name: dmd2-nightly
             target: dmd-nightly
-            from: dmd-master
             to: dmd2
             check_exe: "dmd2/linux/bin64/dmd --version"
