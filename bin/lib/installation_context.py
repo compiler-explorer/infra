@@ -48,6 +48,7 @@ class InstallationContext:
         allow_unsafe_ssl: bool,
         resource_dir: Path,
         keep_staging: bool,
+        check_user: str
     ):
         self._destination = destination
         self._prior_installation = self.destination
@@ -76,6 +77,7 @@ class InstallationContext:
             self.fetcher = http
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
+        self.run_checks_as_user = check_user
 
     @property
     def destination(self) -> Path:
