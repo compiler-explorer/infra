@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up environment
         run: make ce
       - name: Squash ${{ github.event.inputs.squash }}
