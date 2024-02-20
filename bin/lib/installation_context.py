@@ -48,7 +48,7 @@ class InstallationContext:
         allow_unsafe_ssl: bool,
         resource_dir: Path,
         keep_staging: bool,
-        check_user: str
+        check_user: str,
     ):
         self._destination = destination
         self._prior_installation = self.destination
