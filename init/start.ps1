@@ -279,19 +279,6 @@ function GetLatestCEWrapper {
     Move-Item -Path "/tmp/cewrapper.exe" -Destination "/cewrapper/cewrapper.exe" -Force
 }
 
-function CopyBuildTools {
-    Remove-Item -Path "C:\BuildTools\CMake" -Recurse
-    Remove-Item -Path "C:\BuildTools\Ninja" -Recurse
-
-    Write-Host "Copying CMake"
-    Copy-Item -Path "Y:\compilers\cmake-v3.27.6" -Destination "C:\BuildTools\CMake" -Recurse
-    AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
-
-    Write-Host "Copying Ninja"
-    Copy-Item -Path "Y:\compilers\ninja-v1.12.1" -Destination "C:\BuildTools\Ninja" -Recurse
-    AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
-}
-
 function InitializeAgentConfig {
     Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
@@ -423,10 +410,12 @@ function ConfigureFirewall {
 
 ConfigureSmbRights
 
+AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
+AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
+
 MountY
 
 GetLatestCEWrapper
-CopyBuildTools
 
 UnMountY
 
