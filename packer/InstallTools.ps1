@@ -122,12 +122,12 @@ function InstallCEStartup {
 }
 
 function InstallBuildTools {
-    New-Item -Path "/tmp/BuildTools" -ItemType Directory
+    New-Item -Path "/BuildTools" -ItemType Directory
 
     Write-Host "Installing CMake"
     Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
     Expand-Archive -Path "/tmp/cmake-win.zip" -DestinationPath "/BuildTools"
-    Rename-Item -Path "/tmp/BuildTools/cmake-3.28.3-windows-x86_64" -NewName "CMake"
+    Rename-Item -Path "/BuildTools/cmake-3.28.3-windows-x86_64" -NewName "CMake"
     Remove-Item -Path "/tmp/cmake-win.zip"
 
     Write-Host "Installing Ninja"
