@@ -121,8 +121,39 @@ function InstallCEStartup {
     InstallAsService -Name "cestartup" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments ("C:\tmp\Startup.ps1") -NetUser $false
 }
 
+function AllowAppContainerRXAccess {
+    param (
+        $Path
+    )
+
+    $ACL = Get-ACL -Path $Path
+    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("ALL APPLICATION PACKAGES", "ReadAndExecute", "ContainerInherit, ObjectInherit", "None", "Allow")
+    $ACL.AddAccessRule($AccessRule)
+    $ACL | Set-Acl -Path $Path
+}
+
+function InstallBuildTools {
+    New-Item -Path "/BuildTools" -ItemType Directory
+
+    Write-Host "Installing CMake"
+    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
+    Expand-Archive -Path "/tmp/cmake-win.zip" -DestinationPath "/BuildTools"
+    Rename-Item -Path "/BuildTools/cmake-3.28.3-windows-x86_64" -NewName "CMake"
+    Remove-Item -Path "/tmp/cmake-win.zip"
+
+    AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
+
+    Write-Host "Installing Ninja"
+    Invoke-WebRequest -Uri "https://github.com/compiler-explorer/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "/tmp/ninja-win.zip"
+    Expand-Archive -Path "/tmp/ninja-win.zip" -DestinationPath "/BuildTools/Ninja"
+    Remove-Item -Path "/tmp/ninja-win.zip"
+
+    AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
+}
+
 InstallAwsTools
 InstallGIT
+InstallBuildTools
 InstallNodeJS
 InstallGrafana
 InstallExporter
