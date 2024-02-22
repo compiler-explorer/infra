@@ -79,17 +79,6 @@ function DenyAccessByCE {
     $ACL | Set-Acl -Path $Path
 }
 
-function AllowAppContainerRXAccess {
-    param (
-        $Path
-    )
-
-    $ACL = Get-ACL -Path $Path
-    $AccessRule = New-Object System.Security.AccessControl.FileSystemAccessRule("ALL APPLICATION PACKAGES", "ReadAndExecute", "ContainerInherit, ObjectInherit", "None", "Allow")
-    $ACL.AddAccessRule($AccessRule)
-    $ACL | Set-Acl -Path $Path
-}
-
 function GeneratePassword {
     $pass = -join ((1..15) | %{get-random -minimum 33 -maximum 127 | %{[char]$_}}) + -join ((1..2) | %{get-random -minimum 33 -maximum 48 | %{[char]$_}}) -replace "c","" -replace "e", "" -replace "C","" -replace "E", "";
     $securePassword = ConvertTo-SecureString $pass -AsPlainText -Force;
@@ -409,9 +398,6 @@ function ConfigureFirewall {
 }
 
 ConfigureSmbRights
-
-AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
-AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
 
 MountY
 
