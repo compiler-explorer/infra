@@ -310,6 +310,25 @@ class LibraryBuilder:
 
         return request
 
+    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> Optional[requests.Response]:
+        request: Optional[requests.Response] = None
+        retries = 3
+        while retries > 0:
+            try:
+                if headers != None:
+                    request = requests.get(url, stream=stream, headers=headers, timeout=timeout)
+                else:
+                    request = requests.get(
+                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
+                    )
+
+                retries = 0
+            except ProtocolError:
+                retries = retries - 1
+                time.sleep(1)
+
+        return request
+
     def writebuildscript(
         self,
         buildfolder,
@@ -733,8 +752,8 @@ class LibraryBuilder:
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
+            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            if not request or not request.ok:
                 raise RuntimeError(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
@@ -937,8 +956,8 @@ class LibraryBuilder:
     def download_compiler_usage_csv(self):
         url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
+            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            if not request or not request.ok:
                 raise RuntimeError(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
