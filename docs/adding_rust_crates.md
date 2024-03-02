@@ -1,5 +1,11 @@
 # How to add Rust crates to CE
 
+### Prerequisites
+
+* Linux
+* This repository cloned locally
+* Run `make ce` in the root of this repo
+
 ## To keep the Top100 up-to-date
 
 1. Run `bin/ce_install add-top-rust-crates`
