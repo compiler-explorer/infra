@@ -756,6 +756,7 @@ libraries:
       - 16.0.6
       - 17.0.1
       - 17.0.6
+      - 18.1.0
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
