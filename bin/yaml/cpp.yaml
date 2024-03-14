@@ -1237,6 +1237,7 @@ compilers:
           - rocm-trunk
           - ce-trunk
           - clangir-trunk
+          - bb-p2996-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang-new --version
             after_stage_script:
