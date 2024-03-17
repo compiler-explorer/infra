@@ -30,38 +30,19 @@ resource "aws_route53_record" "google-hosted-stuff-godbolt-org" {
   records = ["ghs.googlehosted.com"]
 }
 
-data "aws_cloudfront_distribution" "jsbeeb" {
-  id = "E3Q2PHED6QSZGS"
-}
-
-resource "aws_route53_record" "jsbeeb-godbolt-org" {
+// Concessions for Matt's old non-Compiler Explorer websites.
+module "route53-domain-redirect" {
   for_each = {
-    bbc    = "bbc"
+    bbc = "bbc"
     master = "master"
+    beebide = "beebide"
   }
-  name    = each.value
-  zone_id = module.godbolt-org.zone_id
-  type    = "A"
-  alias {
-    name                   = data.aws_cloudfront_distribution.jsbeeb.domain_name
-    zone_id                = data.aws_cloudfront_distribution.jsbeeb.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-data "aws_cloudfront_distribution" "beebide" {
-  id = "E15BCA1IWKH152"
-}
-
-resource "aws_route53_record" "beebide-godbolt-org" {
-  name    = "beebide"
-  zone_id = module.godbolt-org.zone_id
-  type    = "A"
-  alias {
-    name                   = data.aws_cloudfront_distribution.beebide.domain_name
-    zone_id                = data.aws_cloudfront_distribution.beebide.hosted_zone_id
-    evaluate_target_health = false
-  }
+  source  = "trebidav/route53-domain-redirect/module"
+  version = "0.4.0"
+  zone = "godbolt.org"
+  subdomain = format("%s.", each.value)
+  target_url = format("%s.xania.org", each.value)
+  cloudfront_forward_query_string = true
 }
 
 resource "aws_route53_record" "gh-godbolt-org" {
