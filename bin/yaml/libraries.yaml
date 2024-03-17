@@ -681,6 +681,8 @@ libraries:
       method: clone_branch
       sharedliblink:
       - assert
+      depends:
+      - libraries/c++/cpptrace 0.5.0
       target_prefix: v
       targets:
       - '1.0'
@@ -688,6 +690,7 @@ libraries:
       - '1.2'
       - '1.2.1'
       - '2.0.0-alpha'
+      - '2.0.0'
     libbpf:
       build_type: make
       check_file: README.md
