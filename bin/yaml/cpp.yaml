@@ -1198,6 +1198,14 @@ compilers:
           ctk_ver: "12.3"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_24_3
+          arch: x86_64
+          version: "24.3"
+          dot_removed_version: "243"
+          year: "2024"
+          ctk_ver: "12.3"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
     nightly:
       if: nightly
       gcc:
