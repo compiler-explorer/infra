@@ -1957,6 +1957,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '14'
       - '13'
       - '12'
       - '11'
