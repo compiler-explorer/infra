@@ -11,3 +11,11 @@ compilers:
       - 0.6.12
       - 0.7.6
       - 0.8.21
+  solidity_eravm:
+    type: singleFile
+    dir: zksolc-{name}
+    url: https://github.com/matter-labs/era-compiler-solidity/releases/download/{name}/zksolc-linux-amd64-musl-v{name}
+    filename: zksolc
+    check_exe: zksolc --version
+    targets:
+      - 1.4.0
