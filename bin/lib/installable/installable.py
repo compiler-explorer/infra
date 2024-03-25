@@ -167,7 +167,6 @@ class Installable:
             res_call = self.install_context.check_output(
                 call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
             )
-            return None
         else:
             res_call = self.install_context.check_output(
                 self.check_call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
