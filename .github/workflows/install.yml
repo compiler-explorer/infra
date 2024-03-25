@@ -17,4 +17,4 @@ jobs:
       - name: Set up environment
         run: make ce
       - name: Install ${{ github.event.inputs.compilers }}
-        run: sudo bin/ce_install --check_user nobody install ${{ github.event.inputs.compilers }}
+        run: sudo bin/ce_install --check-user nobody install ${{ github.event.inputs.compilers }}
