@@ -1986,11 +1986,16 @@ libraries:
       - build_type: cmake
         extra_cmake_arg:
         - -DTBB_TEST=OF
+        extra_make_arg: []
         name: 2021.4.0
         sharedliblink:
         - tbb_debug
         - tbbmalloc_debug
         - tbbmalloc_proxy_debug
+        make_targets:
+        - tbb
+        - tbbmalloc
+        - tbbmalloc_proxy
       type: github
     tlexpected:
       check_file: include/tl/expected.hpp
