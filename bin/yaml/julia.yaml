@@ -19,3 +19,5 @@ compilers:
       targets:
         - name: nightly
           url: https://julialangnightlies-s3.julialang.org/bin/linux/x86_64/julia-latest-linux-x86_64.tar.gz
+          strip_components: 1
+          create_untar_dir: true
