@@ -323,6 +323,7 @@ class RustLibraryBuilder:
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy["logging"] = logging_data
+        buildparameters_copy["commithash"] = self.get_commit_hash()
 
         if builtok != BuildStatus.Ok:
             buildparameters_copy["flagcollection"] = build_method["build_method"]

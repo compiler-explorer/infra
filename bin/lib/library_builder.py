@@ -740,6 +740,7 @@ class LibraryBuilder:
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy["logging"] = logging_data + "\n\n" + extralogtext
+        buildparameters_copy["commithash"] = self.get_commit_hash()
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
@@ -777,13 +778,17 @@ class LibraryBuilder:
             return self.target_name
 
     def has_failed_before(self):
-        url = f"{conanserver_url}/hasfailedbefore"
+        url = f"{conanserver_url}/whathasfailedbefore"
         request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
-            return response["response"]
+            current_commit = self.get_commit_hash()
+            if response["response"]["commithash"] == current_commit:
+                return response["response"]["failedbefore"]
+            else:
+                return False
 
     def is_already_uploaded(self, buildfolder):
         annotations = self.get_build_annotations(buildfolder)
