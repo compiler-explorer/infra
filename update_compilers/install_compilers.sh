@@ -15,7 +15,7 @@ else
     echo "Skipping install of nightly compilers"
 fi
 
-ce_install --check_user nobody compilers
+ce_install --check-user nobody compilers
 
 # at some point, we'll want to do this:
 #ce_squash compilers
