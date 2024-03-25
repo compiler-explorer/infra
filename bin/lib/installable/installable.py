@@ -162,7 +162,7 @@ class Installable:
         nightlies.update_version(fullpath.as_posix(), str(modified), res_call.split("\n", 1)[0], res_call)
 
     def check_output_under_different_user(self):
-        if self.install_context.run_checks_as_user != "":
+        if self.install_context.run_checks_as_user:
             call = ["/usr/bin/sudo", "-u", self.install_context.run_checks_as_user] + self.check_call
             res_call = self.install_context.check_output(
                 call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
