@@ -12,10 +12,8 @@ compilers:
       - 0.7.6
       - 0.8.21
   solidity_eravm:
-    type: tarballs
-    compression: gz
+    type: singleFile
     dir: zksolc-{name}
-    create_untar_dir: true
     url: https://github.com/matter-labs/era-compiler-solidity/releases/download/{name}/zksolc-linux-amd64-musl-v{name}
     filename: zksolc
     check_exe: zksolc --version
