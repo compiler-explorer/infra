@@ -2936,6 +2936,11 @@ libraries:
       targets:
       - 0.3.9
       type: cratesio
+    zerocopy:
+      build_type: cargo
+      targets:
+      - 0.7.32
+      type: cratesio
   zig:
     nightly:
       if: nightly
