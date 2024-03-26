@@ -163,7 +163,10 @@ class Installable:
 
     def check_output_under_different_user(self):
         if self.install_context.run_checks_as_user:
-            call = ["/usr/bin/sudo", "-u", self.install_context.run_checks_as_user] + self.check_call
+            envvars = []
+            for key, value in self.check_env.items():
+                envvars += [key + '=' + value]
+            call = ["/usr/bin/sudo", "-u", self.install_context.run_checks_as_user] + envvars + self.check_call
             res_call = self.install_context.check_output(
                 call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
             )
