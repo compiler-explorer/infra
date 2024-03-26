@@ -1272,6 +1272,15 @@ compilers:
         check_exe: bin/vast-front --version
         targets:
           - trunk
+      llvmmos:
+        type: nightlytarballs
+        compression: xz
+        dir: llvm-mos-{name}
+        check_exe: bin/clang --version
+        url: https://github.com/llvm-mos/llvm-mos-sdk/releases/latest/download/llvm-mos-linux.tar.xz
+        untar_dir: llvm-mos
+        targets:
+          - trunk
     djgpp:
       type: tarballs
       check_exe: bin/i586-pc-msdosdjgpp-g++ --version
