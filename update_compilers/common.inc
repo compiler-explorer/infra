@@ -50,7 +50,7 @@ if install_nightly; then
 fi
 
 ce_install() {
-    "${SCRIPT_DIR}/../bin/ce_install" ${CE_INSTALL_ARG} install "$@"
+    "${SCRIPT_DIR}/../bin/ce_install" ${CE_INSTALL_ARG} --check-user nobody install "$@"
 }
 
 ce_squash() {
