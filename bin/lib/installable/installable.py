@@ -165,7 +165,7 @@ class Installable:
         if self.install_context.run_checks_as_user:
             envvars = []
             for key, value in self.check_env.items():
-                envvars += [key + '=' + value]
+                envvars += [key + "=" + value]
             call = ["/usr/bin/sudo", "-u", self.install_context.run_checks_as_user] + envvars + self.check_call
             res_call = self.install_context.check_output(
                 call, env=self.check_env, stderr_on_stdout=self.check_stderr_on_stdout
