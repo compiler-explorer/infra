@@ -785,8 +785,8 @@ class LibraryBuilder:
         else:
             response = json.loads(request.content)
             current_commit = self.get_commit_hash()
-            if response["response"]["commithash"] == current_commit:
-                return response["response"]["failedbefore"]
+            if response["commithash"] == current_commit:
+                return response["response"]
             else:
                 return False
 
