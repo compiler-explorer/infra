@@ -8,6 +8,7 @@ variable "ce-target-groups" {
     "wintest" = 5
     "winstaging" = 6
     "winprod" = 7
+    "aarch64prod" = 8
   }
 }
 
