@@ -90,6 +90,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-wintest" {
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
 }
 
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-aarch64prod" {
+  priority = 6
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["aarch64prod"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/aarch64prod*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
+}
+
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   default_action {
     type             = "forward"
@@ -192,6 +208,22 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
     path_pattern {
       values = [
         "/winprod*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
+
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod" {
+  priority = 9
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["aarch64prod"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/aarch64prod*"
       ]
     }
   }
