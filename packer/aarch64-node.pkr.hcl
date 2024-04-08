@@ -1,5 +1,5 @@
 packer {
-  required_version = "1.9.4"
+  required_version = "1.10.2"
   required_plugins {
     amazon = {
       source  = "github.com/hashicorp/amazon"
