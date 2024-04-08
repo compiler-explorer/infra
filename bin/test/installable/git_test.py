@@ -28,6 +28,7 @@ def _ensure_no_global_config():
 def fake_context_fixture():
     ctx = mock.Mock(spec=InstallationContext)
     ctx.only_nightly = False
+    ctx.only_native_aarch64 = False
     return ctx
 
 
@@ -35,6 +36,7 @@ def fake_context_fixture():
 def fake_context_nightly_fixture():
     ctx = mock.Mock(spec=InstallationContext)
     ctx.only_nightly = True
+    ctx.only_native_aarch64 = False
     return ctx
 
 
@@ -100,7 +102,7 @@ def previously_installed_ghi_ficture(fake_context, tmp_path, fake_remote_repo, s
             domainrepo="",
             repo=fake_remote_repo,
             check_file="fake-none",
-            method="nightlyclone",
+            method="nightlyclone"
         ),
     )
     # Fake out an installation at prior_version
