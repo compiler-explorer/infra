@@ -102,7 +102,7 @@ def previously_installed_ghi_ficture(fake_context, tmp_path, fake_remote_repo, s
             domainrepo="",
             repo=fake_remote_repo,
             check_file="fake-none",
-            method="nightlyclone"
+            method="nightlyclone",
         ),
     )
     # Fake out an installation at prior_version
