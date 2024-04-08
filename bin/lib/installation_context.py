@@ -43,6 +43,7 @@ class InstallationContext:
         dry_run: bool,
         is_nightly_enabled: bool,
         only_nightly: bool,
+        only_native_aarch64: bool,
         cache: Optional[Path],
         yaml_dir: Path,
         allow_unsafe_ssl: bool,
@@ -58,6 +59,7 @@ class InstallationContext:
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
         self.only_nightly = only_nightly
+        self.only_native_aarch64 = only_native_aarch64
         retry_strategy = requests.adapters.Retry(
             total=10,
             backoff_factor=1,
