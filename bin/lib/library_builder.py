@@ -354,6 +354,8 @@ class LibraryBuilder:
                 compilerexecc = f"{compilerexecc}"
             elif compilerexe.endswith("g++"):
                 compilerexecc = f"{compilerexecc}cc"
+            elif compilerType == "edg":
+                compilerexecc = compilerexe
 
             f.write(f"export CC={compilerexecc}\n")
             f.write(f"export CXX={compilerexe}\n")
@@ -379,8 +381,11 @@ class LibraryBuilder:
 
             rpathflags = ""
             ldflags = ""
-            for path in libparampaths:
-                rpathflags += f"-Wl,-rpath={path} "
+            if compilerType == "edg":
+                rpathflags = rpathflags
+            else:
+                for path in libparampaths:
+                    rpathflags += f"-Wl,-rpath={path} "
 
             for path in libparampaths:
                 ldflags += f"-L{path} "
