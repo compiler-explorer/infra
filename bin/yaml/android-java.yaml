@@ -19,6 +19,8 @@ compilers:
     extract_into_folder: true
     check_file: "x86_64/bin/dex2oat64"
     url: https://dl.google.com/android/maven2/com/android/art/art/{name}/art-{name}.zip
+    after_stage_script:
+      - sh {yaml_dir}/android-java/create_boot_images.sh
     targets:
       - "34.11"
 
@@ -33,6 +35,7 @@ compilers:
       {yaml_dir}/android-java/fetch_art_release_from_head.sh
       unzip art_release.zip
       rm art_release.zip
+      {yaml_dir}/android-java/create_boot_images.sh
     dex2oat:
       targets:
         - name: dex2oat-latest
