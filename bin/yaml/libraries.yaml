@@ -207,19 +207,23 @@ libraries:
       - '1.0'
       type: github
     cpptrace:
-      type: github
-      repo: jeremy-rifkin/cpptrace
       build_type: cmake
       extra_cmake_arg:
       - -DCPPTRACE_STATIC=On
       lib_type: static
+      package_install: true
+      repo: jeremy-rifkin/cpptrace
       staticliblink:
       - cpptrace
-      package_install: true
       target_prefix: v
       targets:
-        - 0.3.0
-        - 0.2.1
+      - 0.5.0
+      - 0.4.1
+      - 0.4.0
+      - 0.3.1
+      - 0.3.0
+      - 0.2.1
+      type: github
     curl:
       after_stage_script:
       - cp {{resource_dir}}/curl_config.h curl-{{name}}/include/curl/curl_config.h
@@ -667,15 +671,16 @@ libraries:
       - trunk
       type: github
     libassert:
-      type: github
-      repo: jeremy-rifkin/libassert
       build_type: cmake
       check_file: README.md
+      depends:
+      - libraries/c++/cpptrace 0.5.0
       extra_cmake_arg:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_SHARED_LIBS=on
       lib_type: shared
       method: clone_branch
+      repo: jeremy-rifkin/libassert
       sharedliblink:
       - assert
       target_prefix: v
@@ -683,14 +688,17 @@ libraries:
       - '1.0'
       - '1.1'
       - '1.2'
-      - '1.2.1'
+      - 1.2.1
+      - 2.0.0-alpha
+      - 2.0.0
+      type: github
     libbpf:
       build_type: make
       check_file: README.md
+      extra_make_arg: -C src
       lib_type: shared
       method: clone_branch
       repo: libbpf/libbpf
-      extra_make_arg: -C src
       sharedliblink:
       - bpf
       target_prefix: v
@@ -752,6 +760,7 @@ libraries:
       - 16.0.6
       - 17.0.1
       - 17.0.6
+      - 18.1.0
       type: s3tarballs
     magic_enum:
       check_file: include/magic_enum.hpp
@@ -795,65 +804,66 @@ libraries:
         path_name: libs/abseil
         repo: abseil/abseil-cpp
         staticliblink:
-        - absl_synchronization
-        - absl_str_format_internal
-        - absl_leak_check_disable
-        - absl_examine_stack
-        - absl_random_internal_distribution_test_util
-        - absl_random_internal_pool_urbg
-        - absl_stacktrace
-        - absl_bad_variant_access
-        - absl_random_internal_seed_material
-        - absl_graphcycles_internal
-        - absl_strerror
-        - absl_leak_check
-        - absl_random_internal_platform
-        - absl_flags_reflection
-        - absl_random_internal_randen_hwaes_impl
-        - absl_flags_usage
-        - absl_failure_signal_handler
-        - absl_flags_private_handle_accessor
-        - absl_log_severity
-        - absl_hash
-        - absl_hashtablez_sampler
-        - absl_exponential_biased
-        - absl_statusor
-        - absl_time
-        - absl_int128
-        - absl_demangle_internal
-        - absl_random_internal_randen_slow
-        - absl_raw_hash_set
-        - absl_base
-        - absl_throw_delegate
-        - absl_cord
-        - absl_random_seed_sequences
-        - absl_flags_parse
-        - absl_malloc_internal
         - absl_bad_any_cast_impl
-        - absl_flags_program_name
-        - absl_flags_commandlineflag
-        - absl_flags
-        - absl_strings
-        - absl_random_internal_randen_hwaes
-        - absl_random_seed_gen_exception
+        - absl_bad_optional_access
+        - absl_bad_variant_access
+        - absl_base
         - absl_city
-        - absl_strings_internal
-        - absl_flags_marshalling
-        - absl_raw_logging_internal
-        - absl_status
         - absl_civil_time
-        - absl_spinlock_wait
-        - absl_scoped_set_env
-        - absl_periodic_sampler
+        - absl_cord
         - absl_debugging_internal
-        - absl_flags_usage_internal
-        - absl_symbolize
+        - absl_demangle_internal
+        - absl_examine_stack
+        - absl_exponential_biased
+        - absl_failure_signal_handler
+        - absl_flags
+        - absl_flags_commandlineflag
         - absl_flags_commandlineflag_internal
         - absl_flags_config
         - absl_flags_internal
+        - absl_flags_marshalling
+        - absl_flags_parse
+        - absl_flags_private_handle_accessor
+        - absl_flags_program_name
+        - absl_flags_reflection
+        - absl_flags_usage
+        - absl_flags_usage_internal
+        - absl_graphcycles_internal
+        - absl_hash
+        - absl_hashtablez_sampler
+        - absl_int128
+        - absl_leak_check
+        - absl_leak_check_disable
+        - absl_log_severity
+        - absl_low_level_hash
+        - absl_malloc_internal
+        - absl_periodic_sampler
         - absl_random_distributions
-        - absl_bad_optional_access
+        - absl_random_internal_distribution_test_util
+        - absl_random_internal_platform
+        - absl_random_internal_pool_urbg
         - absl_random_internal_randen
+        - absl_random_internal_randen_hwaes
+        - absl_random_internal_randen_hwaes_impl
+        - absl_random_internal_randen_slow
+        - absl_random_internal_seed_material
+        - absl_random_seed_gen_exception
+        - absl_random_seed_sequences
+        - absl_raw_hash_set
+        - absl_raw_logging_internal
+        - absl_scoped_set_env
+        - absl_spinlock_wait
+        - absl_stacktrace
+        - absl_status
+        - absl_statusor
+        - absl_strerror
+        - absl_str_format_internal
+        - absl_strings
+        - absl_strings_internal
+        - absl_symbolize
+        - absl_synchronization
+        - absl_throw_delegate
+        - absl_time
         - absl_time_zone
         - absl_wyhash
         targets:
@@ -861,8 +871,8 @@ libraries:
         type: github
       array:
         check_file: include/array/array.h
-        repo: dsharlet/array
         method: nightlyclone
+        repo: dsharlet/array
         targets:
         - master
         type: github
@@ -1503,18 +1513,18 @@ libraries:
         targets:
         - trunk
         type: github
-      taskflow:
-        check_file: README.md
-        method: nightlyclone
-        repo: taskflow/taskflow
-        targets:
-          - trunk
-        type: github
       taojson:
         build_type: none
         check_file: include/tao/json.hpp
         method: nightlyclone
         repo: taocpp/json
+        targets:
+        - trunk
+        type: github
+      taskflow:
+        check_file: README.md
+        method: nightlyclone
+        repo: taskflow/taskflow
         targets:
         - trunk
         type: github
@@ -1780,13 +1790,13 @@ libraries:
       - 1.11.4
       type: github
     pybind11:
-      type: github
+      build_type: none
+      check_file: README.rst
       method: clone_branch
       repo: pybind/pybind11
-      check_file: README.rst
-      build_type: none
       targets:
       - v2.11.1
+      type: github
     qt:
       build_type: cmake
       check_file: CMakeLists.txt
@@ -1948,6 +1958,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '14'
       - '13'
       - '12'
       - '11'
@@ -1976,6 +1987,11 @@ libraries:
       - build_type: cmake
         extra_cmake_arg:
         - -DTBB_TEST=OF
+        extra_make_arg: []
+        make_targets:
+        - tbb
+        - tbbmalloc
+        - tbbmalloc_proxy
         name: 2021.4.0
         sharedliblink:
         - tbb_debug
@@ -2346,15 +2362,6 @@ libraries:
       - 8.3.0
       type: github
     nightly:
-      stdlib_fortran:
-        build_type: fpm
-        check_file: fpm.toml
-        repo: fortran-lang/stdlib
-        requires_tree_copy: true
-        method: nightlybranch
-        targets:
-        - 'stdlib-fpm'
-        type: github
       forcompile:
         build_type: fpm
         check_file: fpm.toml
@@ -2370,6 +2377,15 @@ libraries:
         - trunk
         type: github
       if: nightly
+      stdlib_fortran:
+        build_type: fpm
+        check_file: fpm.toml
+        method: nightlybranch
+        repo: fortran-lang/stdlib
+        requires_tree_copy: true
+        targets:
+        - stdlib-fpm
+        type: github
   rust:
     aho-corasick:
       build_type: cargo
@@ -2920,6 +2936,11 @@ libraries:
       build_type: cargo
       targets:
       - 0.3.9
+      type: cratesio
+    zerocopy:
+      build_type: cargo
+      targets:
+      - 0.7.32
       type: cratesio
   zig:
     nightly:

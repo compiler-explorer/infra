@@ -310,6 +310,25 @@ class LibraryBuilder:
 
         return request
 
+    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> Optional[requests.Response]:
+        request: Optional[requests.Response] = None
+        retries = 3
+        while retries > 0:
+            try:
+                if headers != None:
+                    request = requests.get(url, stream=stream, headers=headers, timeout=timeout)
+                else:
+                    request = requests.get(
+                        url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
+                    )
+
+                retries = 0
+            except ProtocolError:
+                retries = retries - 1
+                time.sleep(1)
+
+        return request
+
     def writebuildscript(
         self,
         buildfolder,
@@ -335,6 +354,8 @@ class LibraryBuilder:
                 compilerexecc = f"{compilerexecc}"
             elif compilerexe.endswith("g++"):
                 compilerexecc = f"{compilerexecc}cc"
+            elif compilerType == "edg":
+                compilerexecc = compilerexe
 
             f.write(f"export CC={compilerexecc}\n")
             f.write(f"export CXX={compilerexe}\n")
@@ -360,8 +381,9 @@ class LibraryBuilder:
 
             rpathflags = ""
             ldflags = ""
-            for path in libparampaths:
-                rpathflags += f"-Wl,-rpath={path} "
+            if compilerType != "edg":
+                for path in libparampaths:
+                    rpathflags += f"-Wl,-rpath={path} "
 
             for path in libparampaths:
                 ldflags += f"-L{path} "
@@ -721,6 +743,7 @@ class LibraryBuilder:
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy["logging"] = logging_data + "\n\n" + extralogtext
+        buildparameters_copy["commithash"] = self.get_commit_hash()
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
@@ -733,8 +756,8 @@ class LibraryBuilder:
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
+            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            if not request or not request.ok:
                 raise RuntimeError(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
@@ -758,13 +781,17 @@ class LibraryBuilder:
             return self.target_name
 
     def has_failed_before(self):
-        url = f"{conanserver_url}/hasfailedbefore"
+        url = f"{conanserver_url}/whathasfailedbefore"
         request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
         if not request.ok:
             raise RuntimeError(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
-            return response["response"]
+            current_commit = self.get_commit_hash()
+            if response["commithash"] == current_commit:
+                return response["response"]
+            else:
+                return False
 
     def is_already_uploaded(self, buildfolder):
         annotations = self.get_build_annotations(buildfolder)
@@ -937,8 +964,8 @@ class LibraryBuilder:
     def download_compiler_usage_csv(self):
         url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
+            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            if not request or not request.ok:
                 raise RuntimeError(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)

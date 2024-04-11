@@ -273,3 +273,102 @@ resource "aws_s3_bucket_policy" "ce-cdn-net" {
   bucket = aws_s3_bucket.ce-cdn-net.id
   policy = data.aws_iam_policy_document.ce-cdn-net-s3-policy.json
 }
+
+resource "aws_glue_catalog_table" "compile_stats_table" {
+  name          = "compile_stats"
+  database_name = "default"
+
+  table_type    = "EXTERNAL_TABLE"
+
+  parameters = {
+    EXTERNAL    = "TRUE"
+  }
+
+  partition_keys {
+    name = "year"
+    type = "int"
+  }
+
+  partition_keys {
+    name = "month"
+    type = "int"
+  }
+
+  partition_keys {
+    name = "date"
+    type = "int"
+  }
+
+  storage_descriptor {
+    location      = "s3://compiler-explorer-logs/compile-stats"
+    input_format  = "org.apache.hadoop.mapred.TextInputFormat"
+    output_format = "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
+
+    ser_de_info {
+      serialization_library = "org.openx.data.jsonserde.JsonSerDe"
+
+      parameters = {
+        "serialization.format" = 1
+        "case.insensitive"     = "TRUE"
+        "dots.in.keys"         = "FALSE"
+        "ignore.malformed.json"= "FALSE"
+        "mapping"              = "TRUE"
+      }
+    }
+
+    columns {
+      name = "time"
+      type = "string"
+    }
+
+    columns {
+      name = "compilerid"
+      type = "string"
+    }
+
+    columns {
+      name    = "sourcehash"
+      type    = "string"
+    }
+
+    columns {
+      name    = "executionparamshash"
+      type    = "string"
+    }
+
+    columns {
+      name    = "bypasscache"
+      type    = "boolean"
+    }
+
+    columns {
+      name    = "options"
+      type    = "array<string>"
+    }
+
+    columns {
+      name    = "filters"
+      type    = "struct<binary:boolean,binaryobject:boolean,execute:boolean,demangle:boolean,intel:boolean,labels:boolean>"
+    }
+
+    columns {
+      name    = "libraries"
+      type    = "array<string>"
+    }
+
+    columns {
+      name    = "tools"
+      type    = "array<string>"
+    }
+
+    columns {
+      name    = "overrides"
+      type    = "array<string>"
+    }
+
+    columns {
+      name    = "runtimeTools"
+      type    = "array<string>"
+    }
+  }
+}

@@ -869,6 +869,8 @@ compilers:
           - assertions-16.0.0
           - 17.0.1
           - assertions-17.0.1
+          - 18.1.0
+          - assertions-18.1.0
     clang-hexagon:
       - type: tarballs
         check_exe: x86_64-linux-gnu/bin/clang++ --version
@@ -1196,6 +1198,14 @@ compilers:
           ctk_ver: "12.3"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
+        - name: x86_64_24_3
+          arch: x86_64
+          version: "24.3"
+          dot_removed_version: "243"
+          year: "2024"
+          ctk_ver: "12.3"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{version}/nvhpc_{year}_{dot_removed_version}_Linux_{arch}_cuda_{ctk_ver}.tar.gz nvhpc_sdk_{version}_{arch}.tar.gz
     nightly:
       if: nightly
       gcc:
@@ -1235,6 +1245,7 @@ compilers:
           - rocm-trunk
           - ce-trunk
           - clangir-trunk
+          - bb-p2996-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang-new --version
             after_stage_script:
@@ -1259,6 +1270,15 @@ compilers:
       vast:
         type: nightly
         check_exe: bin/vast-front --version
+        targets:
+          - trunk
+      llvmmos:
+        type: nightlytarballs
+        compression: xz
+        dir: llvm-mos-{name}
+        check_exe: bin/clang --version
+        url: https://github.com/llvm-mos/llvm-mos-sdk/releases/latest/download/llvm-mos-linux.tar.xz
+        untar_dir: llvm-mos
         targets:
           - trunk
     djgpp:

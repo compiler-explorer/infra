@@ -121,6 +121,13 @@ def squash_mount_check(rootfolder, subdir, context):
     "DEST for atomic rename/replace. Directory will be removed during install",
     show_default=True,
 )
+@click.option(
+    "--check-user",
+    default="",
+    metavar="CHECKUSER",
+    type=str,
+    help="Executes --version checks under a different user",
+)
 @click.option("--debug/--no-debug", help="Turn on debugging")
 @click.option("--dry-run/--for-real", help="Dry run only")
 @click.option("--log-to-console", is_flag=True, help="Log output to console, even if logging to a file is requested")
@@ -196,6 +203,7 @@ def cli(
     keep_staging: bool,
     filter_match_all: bool,
     parallel: int,
+    check_user: str,
 ):
     """Install binaries, libraries and compilers for Compiler Explorer."""
     formatter = logging.Formatter(fmt="%(asctime)s %(name)-15s %(levelname)-8s %(message)s")
@@ -221,6 +229,7 @@ def cli(
         allow_unsafe_ssl=allow_unsafe_ssl,
         resource_dir=resource_dir,
         keep_staging=keep_staging,
+        check_user=check_user,
     )
     ctx.obj = CliContext(
         installation_context=context,
