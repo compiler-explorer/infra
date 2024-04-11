@@ -7,7 +7,7 @@ declare -a instruction_sets=("arm" "arm64" "x86" "x86_64" "riscv64")
 
 for instruction_set in "${instruction_sets[@]}"
 do
-    mkdir -p $DIR_FOR_BOOT_IMAGE/$instruction_set
+    mkdir -p $DIR_FOR_BOOT_IMAGE/"$instruction_set"
 x86_64/bin/dex2oat64 \
     --runtime-arg -Xms64m \
     --runtime-arg -Xmx512m \
@@ -26,9 +26,9 @@ x86_64/bin/dex2oat64 \
     --dex-location=/apex/com.android.art/javalib/okhttp.jar \
     --dex-location=/apex/com.android.art/javalib/bouncycastle.jar \
     --dex-location=/apex/com.android.art/javalib/apache-xml.jar \
-    --image=$DIR_FOR_BOOT_IMAGE/$instruction_set/boot.art \
-    --oat-file=$DIR_FOR_BOOT_IMAGE/$instruction_set/boot.oat \
-    --output-vdex=$DIR_FOR_BOOT_IMAGE/$instruction_set/boot.vdex \
+    --image=$DIR_FOR_BOOT_IMAGE/"$instruction_set"/boot.art \
+    --oat-file=$DIR_FOR_BOOT_IMAGE/"$instruction_set"/boot.oat \
+    --output-vdex=$DIR_FOR_BOOT_IMAGE/"$instruction_set"/boot.vdex \
     --android-root=out/empty \
     --abort-on-hard-verifier-error \
     --no-abort-on-soft-verifier-error \
