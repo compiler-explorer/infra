@@ -381,9 +381,7 @@ class LibraryBuilder:
 
             rpathflags = ""
             ldflags = ""
-            if compilerType == "edg":
-                rpathflags = rpathflags
-            else:
+            if compilerType != "edg":
                 for path in libparampaths:
                     rpathflags += f"-Wl,-rpath={path} "
 
