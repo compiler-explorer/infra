@@ -20,7 +20,7 @@ compilers:
     check_file: "x86_64/bin/dex2oat64"
     url: https://dl.google.com/android/maven2/com/android/art/art/{name}/art-{name}.zip
     after_stage_script:
-      - sh {yaml_dir}/android-java/create_boot_images.sh
+      - "{yaml_dir}/android-java/create_boot_images.sh"
     targets:
       - "34.11"
 
