@@ -14,7 +14,7 @@ x86_64/bin/dex2oat64 \
     --runtime-arg -Xgc:CMC \
     --runtime-arg -Xbootclasspath:bootjars/core-oj.jar:bootjars/core-libart.jar:bootjars/okhttp.jar:bootjars/bouncycastle.jar:bootjars/apache-xml.jar \
     --runtime-arg -Xbootclasspath-locations:/apex/com.android.art/javalib/core-oj.jar:/apex/com.android.art/javalib/core-libart.jar:/apex/com.android.art/javalib/okhttp.jar:/apex/com.android.art/javalib/bouncycastle.jar:/apex/com.android.art/javalib/apache-xml.jar \
-    --instruction-set=arm64 \
+    --instruction-set="$instruction_set" \
     --compiler-filter=speed \
     --dex-file=bootjars/core-oj.jar \
     --dex-file=bootjars/core-libart.jar \
