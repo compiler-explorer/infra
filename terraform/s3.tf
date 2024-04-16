@@ -107,6 +107,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
     for_each = {
       cloudfront = "cloudfront"
       elb        = "elb"
+      compilestats = "compile-stats"
     }
     content {
       id     = "delete_${rule.value}_per_log_policy"
@@ -367,7 +368,7 @@ resource "aws_glue_catalog_table" "compile_stats_table" {
     }
 
     columns {
-      name    = "runtimeTools"
+      name    = "runtimetools"
       type    = "array<string>"
     }
   }
