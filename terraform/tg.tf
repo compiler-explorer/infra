@@ -52,6 +52,10 @@ resource "aws_alb_target_group" "conan" {
     interval            = 5
     protocol            = "HTTP"
   }
+  stickiness {
+    type = "lb_cookie"
+    enabled = false
+  }
 }
 
 resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
