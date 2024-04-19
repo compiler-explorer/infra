@@ -2714,6 +2714,11 @@ libraries:
       targets:
       - 2.1.0
       type: cratesio
+    phf:
+      build_type: cargo
+      targets:
+      - 0.11.2
+      type: cratesio
     pin-project-lite:
       build_type: cargo
       targets:
