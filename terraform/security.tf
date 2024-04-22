@@ -253,6 +253,22 @@ resource "aws_iam_policy" "CeModifyStoredState" {
   policy      = data.aws_iam_policy_document.CeModifyStoredState.json
 }
 
+data "aws_iam_policy_document" "CePutCompileStatsLog" {
+  statement {
+    sid       = "CePutCompileStatsLog"
+    actions   = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer-logs.arn}/compile-stats/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CePutCompileStatsLog" {
+  name        = "CePutCompileStatsLog"
+  description = "Can write to compile-stats log bucket"
+  policy      = data.aws_iam_policy_document.CePutCompileStatsLog.json
+}
+
 data "aws_iam_policy_document" "AccessCeParams" {
   statement {
     actions = [
@@ -318,6 +334,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Min
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
 }
 
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_WriteCompileStatsLogs" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.CePutCompileStatsLog.arn
+}
+
 // CompilerExplorerRole but for Windows machines
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
@@ -327,6 +348,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_Cl
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CeModifyStoredState" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
   policy_arn = aws_iam_policy.CeModifyStoredState.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_WriteCompileStatsLogs" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.CePutCompileStatsLog.arn
 }
 
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_AccessCeParams" {
