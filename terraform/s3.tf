@@ -1,5 +1,6 @@
 locals {
   log_file_retention_days = 32  # One month, rounding up (See the privacy policy in the compiler explorer project)
+  log_file_longterm_retention_days = 365
 }
 
 resource "aws_s3_bucket" "compiler-explorer" {
@@ -107,13 +108,31 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
     for_each = {
       cloudfront = "cloudfront"
       elb        = "elb"
-      compilestats = "compile-stats"
     }
     content {
       id     = "delete_${rule.value}_per_log_policy"
       status = "Enabled"
       expiration {
         days = local.log_file_retention_days
+      }
+      noncurrent_version_expiration {
+        noncurrent_days = 1
+      }
+      filter {
+        prefix = "${rule.value}/"
+      }
+    }
+  }
+
+  dynamic "rule" {
+    for_each = {
+      compilestats = "compile-stats"
+    }
+    content {
+      id     = "delete_${rule.value}_per_log_policy"
+      status = "Enabled"
+      expiration {
+        days = local.log_file_longterm_retention_days
       }
       noncurrent_version_expiration {
         noncurrent_days = 1
