@@ -371,5 +371,10 @@ resource "aws_glue_catalog_table" "compile_stats_table" {
       name    = "runtimetools"
       type    = "array<string>"
     }
+
+    columns {
+      name    = "buildmethod"
+      type    = "string"
+    }
   }
 }
