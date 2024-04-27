@@ -372,6 +372,11 @@ resource "aws_glue_catalog_table" "compile_stats_table" {
     }
 
     columns {
+      name    = "backendoptions"
+      type    = "array<string>"
+    }
+
+    columns {
       name    = "libraries"
       type    = "array<string>"
     }
