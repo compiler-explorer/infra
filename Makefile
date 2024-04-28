@@ -6,7 +6,7 @@ export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
 POETRY:=$(POETRY_HOME)/bin/poetry
 POETRY_VENV=$(CURDIR)/.venv
 POETRY_DEPS:=$(POETRY_VENV)/.deps
-SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
+SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
