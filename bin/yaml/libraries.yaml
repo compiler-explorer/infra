@@ -2429,6 +2429,11 @@ libraries:
       targets:
       - 0.13.0
       type: cratesio
+    bincode:
+      build_type: cargo
+      targets:
+      - 1.3.3
+      type: cratesio
     bitflags:
       build_type: cargo
       targets:
