@@ -6,6 +6,6 @@ compilers:
     folder: v
     check_exe: v --version
     check_env:
-      - VMODULES=%PATH%/.vmodules
+      - VMODULES=/tmp/.vmodules
     targets:
       - '2023.30'
