@@ -1010,7 +1010,7 @@ libraries:
       cthash:
         build_type: none
         check_file: include/cthash/cthash.hpp
-        method: clone_branch
+        method: nightlybranch
         repo: hanickadot/cthash
         targets:
         - main
