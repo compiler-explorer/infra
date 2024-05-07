@@ -28,6 +28,9 @@ windows:
       folder: "cmake-{name}-windows-x86_64"
       targets:
         - 3.27.6
+        - 3.27.9
+        - 3.28.4
+        - 3.29.2
     ninja:
       type: ziparchive
       url: https://github.com/compiler-explorer/ninja/releases/download/v{name}/ninja-win.zip
