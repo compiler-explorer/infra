@@ -16,6 +16,16 @@ tools:
         symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
       - 3.28.4
       - 3.29.2
+    experimental:
+      type: tarballs
+      compression: gz
+      url: https://cmake.org/files/dev/cmake-{name}-linux-x86_64.tar.gz
+      strip_components: 1
+      dir: cmake-v{name}
+      create_untar_dir: true
+      check_exe: bin/cmake --help
+      targets:
+        - 3.29.20240506-g1ea8fa8
   ninja:
     type: ziparchive
     extract_into_folder: true
