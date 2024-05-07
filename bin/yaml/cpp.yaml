@@ -116,6 +116,7 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+              - 14.1.0
             arm-unknown:
               - check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
                 path_name: "{subdir}/gcc-arm-unknown-{name}"
@@ -125,7 +126,7 @@ compilers:
                 untar_dir: gcc-{name}
                 targets:
                   - 13.2.0
-
+                  - 14.1.0
             nightly:
               if: nightly
               type: nightly
@@ -283,6 +284,9 @@ compilers:
             - name: 13.2.0
               untar_dir: "gcc-{name}"
               check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
+            - name: 14.1.0
+              untar_dir: "gcc-{name}"
+              check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
 
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
@@ -315,6 +319,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
           nightly:
             if: nightly
             type: nightly
@@ -329,6 +334,7 @@ compilers:
           targets:
             - 13.1.0
             - 13.2.0
+            - 14.1.0
           nightly:
             if: nightly
             type: nightly
@@ -352,6 +358,7 @@ compilers:
                 - 12.3.0
                 - 13.1.0
                 - 13.2.0
+                - 14.1.0
             mipsel:
               subdir: mipsel
               arch_prefix: "{subdir}-multilib-linux-gnu"
@@ -369,6 +376,7 @@ compilers:
                 - 12.3.0
                 - 13.1.0
                 - 13.2.0
+                - 14.1.0
             mips64:
               subdir: mips64
               targets:
@@ -382,6 +390,7 @@ compilers:
                 - 12.3.0
                 - 13.1.0
                 - 13.2.0
+                - 14.1.0
             mips64el:
               subdir: mips64el
               arch_prefix: "{subdir}-multilib-linux-uclibc"
@@ -399,6 +408,7 @@ compilers:
                 - 12.3.0
                 - 13.1.0
                 - 13.2.0
+                - 14.1.0
 
           - type: tarballs
             subdir: mips
@@ -426,6 +436,7 @@ compilers:
           targets:
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         mrisc32:
           nightly:
             if: nightly
@@ -478,6 +489,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
           nightly:
             if: nightly
             type: nightly
@@ -507,6 +519,9 @@ compilers:
               arch_prefix: "riscv32-unknown-linux-gnu"
             - name: 13.2.0
               arch_prefix: "riscv32-unknown-linux-gnu"
+            - name: 14.1.0
+              arch_prefix: "riscv32-unknown-linux-gnu"
+
           nightly:
             if: nightly
             type: nightly
@@ -555,6 +570,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         sh:
           arch_prefix: "sh-unknown-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -566,6 +582,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         c6x:
           arch_prefix: "tic6x-elf"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -575,6 +592,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         sparc:
           arch_prefix: "sparc-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -584,6 +602,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         sparc64:
           arch_prefix: "sparc64-multilib-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -593,6 +612,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         sparc-leon:
           arch_prefix: "sparc-leon-linux-uclibc"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -611,6 +631,7 @@ compilers:
             - 12.3.0
             - 13.1.0
             - 13.2.0
+            - 14.1.0
         powerpc:
           arch_prefix: "{subdir}-unknown-linux-gnu"
           check_exe: "{arch_prefix}/bin/{arch_prefix}-g++ --version"
@@ -625,6 +646,7 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+              - 14.1.0
           powerpc64:
             subdir: powerpc64
             targets:
@@ -636,6 +658,7 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+              - 14.1.0
             nightly:
               if: nightly
               type: nightly
@@ -656,6 +679,7 @@ compilers:
               - 12.3.0
               - 13.1.0
               - 13.2.0
+              - 14.1.0
             nightly:
               if: nightly
               type: nightly
