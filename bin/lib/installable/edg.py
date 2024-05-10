@@ -88,19 +88,46 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         self._compiler_type = self.config_get("compiler_type")
         self.install_path = self.config_get("path_name")
 
+    def _resolve_backend_install_path(self) -> Path:
+        if len(self.depends) != 1:
+            raise RuntimeError("Assumes we have the backend compiler as a dep")
+        return self.install_context.destination / self.depends[0].install_path
+
     def _resolve_backend_compiler(self) -> Path:
         """The EDG front end generates C files and thus uses a backing C
         compiler complete compilation. Return the path of the backend
         compiler.
         """
-        if len(self.depends) != 1:
-            raise RuntimeError("Assumes we have the backend compiler as a dep")
-        backend_path = self.install_context.destination / self.depends[0].install_path
-
+        backend_path = self._resolve_backend_install_path()
         if self._compiler_type == "default":
             return backend_path / "bin" / "gcc"
         else:
             return backend_path / "bin" / self._compiler_type
+
+    def _resolve_emulated_c_compiler(self) -> Path:
+        """The EDG front end emulates a C and C++ compiler. Return the path of
+        the emulated C compiler.
+        """
+        backend_path = self._resolve_backend_install_path()
+        if self._compiler_type == 'gcc':
+            # For gcc, the emulated C compiler is gcc.
+            return backend_path / "bin" / "gcc"
+        else:
+            # Currently only GCC emulation is supported on Compiler Explorer.
+            assert False, f"Emulation of the {self._compiler_type} C compiler family is not supported"
+
+    def _resolve_emulated_cpp_compiler(self) -> Path:
+        """The EDG front end generates C files and thus uses a backing C
+        compiler complete compilation. Return the path of the backend
+        compiler.
+        """
+        backend_path = self._resolve_backend_install_path()
+        if self._compiler_type == 'gcc':
+            # For gcc, the emulated C++ compiler is g++.
+            return backend_path / "bin" / "g++"
+        else:
+            # Currently only GCC emulation is supported on Compiler Explorer.
+            assert False, f"Emulation of the {self._compiler_type} C++ compiler family is not supported"
 
     def _scrape_backend_compiler(self, staging: StagingDir, backend_compiler_path: Path) -> EdgBackendCompilerScrape:
         """The EDG front end when emulating a compiler needs to know that
@@ -138,14 +165,12 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             version = _query("c", "version")
             return EdgBackendCompilerScrape(c_includes, cpp_includes, version)
 
-    def _write_predefined_macros(self, staging: StagingDir, backend_compiler_path: Path) -> None:
+    def _write_emulated_predefined_macros(self, staging: StagingDir, emulated_c_compiler_path: Path, emulated_cpp_compiler_path: Path) -> None:
         """The EDG front end when emulating a compiler needs to know what
-        predefined macros to set. Write the predefined macros file as
-        necessary.
+        predefined macros to set. Write the predefined macros file.
         """
         # If the compiler is in default mode the default predefined macros are used.
-        if self._compiler_type == "default":
-            return
+        assert self._compiler_type != "default"
 
         # Check some prerequisites before doing further work.
         if len(self._macro_gen) == 0 or len(self._macro_dir) == 0:
@@ -155,7 +180,20 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         with tempfile.NamedTemporaryFile() as temp_file:
             amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._macro_gen}", temp_file)
             temp_file.flush()
-            command = ["bash", temp_file.name, f"--{self._compiler_type}", str(backend_compiler_path)]
+            if self._compiler_type == "gcc":
+                command_args = [
+                    "--g++", str(emulated_cpp_compiler_path),
+                    "--gcc", str(emulated_c_compiler_path)
+                ]
+            elif self._compiler_type == "clang":
+                assert emulated_c_compiler_path == emulated_cpp_compiler_path, "The emulate clang C and C++ compiler should be the same binary"
+                command_args = [
+                    "--clang", str(emulated_cpp_compiler_path)
+                ]
+            else:
+                assert False, f"Cannot generate macros for {self._compiler_type}"
+
+            command = ["bash", temp_file.name, *command_args]
             _LOGGER.info("Running %s", shlex.join(command))
             output_path = staging.path / self.untar_dir / self._macro_dir
             output_path.mkdir(parents=True, exist_ok=True)
@@ -183,10 +221,13 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
     def stage(self, staging: StagingDir) -> None:
         super().stage(staging)
 
+        if self._compiler_type != "default":
+            emulated_c_compiler_path = self._resolve_emulated_c_compiler()
+            emulated_cpp_compiler_path = self._resolve_emulated_cpp_compiler()
+            self._write_emulated_predefined_macros(staging, emulated_c_compiler_path, emulated_cpp_compiler_path)
+
         backend_compiler_path = self._resolve_backend_compiler()
         backend_compiler_scrape = self._scrape_backend_compiler(staging, backend_compiler_path)
-
-        self._write_predefined_macros(staging, backend_compiler_path)
         self._write_compiler_shim(staging, backend_compiler_path, backend_compiler_scrape)
 
     def verify(self) -> bool:
