@@ -109,7 +109,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         the emulated C compiler.
         """
         backend_path = self._resolve_backend_install_path()
-        if self._compiler_type == 'gcc':
+        if self._compiler_type == "gcc":
             # For gcc, the emulated C compiler is gcc.
             return backend_path / "bin" / "gcc"
         else:
@@ -122,7 +122,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         compiler.
         """
         backend_path = self._resolve_backend_install_path()
-        if self._compiler_type == 'gcc':
+        if self._compiler_type == "gcc":
             # For gcc, the emulated C++ compiler is g++.
             return backend_path / "bin" / "g++"
         else:
@@ -165,7 +165,9 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             version = _query("c", "version")
             return EdgBackendCompilerScrape(c_includes, cpp_includes, version)
 
-    def _write_emulated_predefined_macros(self, staging: StagingDir, emulated_c_compiler_path: Path, emulated_cpp_compiler_path: Path) -> None:
+    def _write_emulated_predefined_macros(
+        self, staging: StagingDir, emulated_c_compiler_path: Path, emulated_cpp_compiler_path: Path
+    ) -> None:
         """The EDG front end when emulating a compiler needs to know what
         predefined macros to set. Write the predefined macros file.
         """
@@ -181,15 +183,12 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{self._macro_gen}", temp_file)
             temp_file.flush()
             if self._compiler_type == "gcc":
-                command_args = [
-                    "--g++", str(emulated_cpp_compiler_path),
-                    "--gcc", str(emulated_c_compiler_path)
-                ]
+                command_args = ["--g++", str(emulated_cpp_compiler_path), "--gcc", str(emulated_c_compiler_path)]
             elif self._compiler_type == "clang":
-                assert emulated_c_compiler_path == emulated_cpp_compiler_path, "The emulate clang C and C++ compiler should be the same binary"
-                command_args = [
-                    "--clang", str(emulated_cpp_compiler_path)
-                ]
+                assert (
+                    emulated_c_compiler_path == emulated_cpp_compiler_path
+                ), "The emulate clang C and C++ compiler should be the same binary"
+                command_args = ["--clang", str(emulated_cpp_compiler_path)]
             else:
                 assert False, f"Cannot generate macros for {self._compiler_type}"
 
