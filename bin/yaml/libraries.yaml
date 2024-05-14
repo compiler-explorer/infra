@@ -2669,6 +2669,11 @@ libraries:
       targets:
       - 0.15.4
       type: cratesio
+    nix:
+      build_type: cargo
+      targets:
+      - 0.28.0
+      type: cratesio
     num:
       build_type: cargo
       targets:
