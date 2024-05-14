@@ -1,0 +1,11 @@
+compilers:
+  wasm:
+    wasmtime:
+      type: tarballs
+      compression: xz
+      url: https://github.com/bytecodealliance/wasmtime/releases/download/v{name}/wasmtime-v{name}-x86_64-linux.tar.xz
+      check_exe: wasmtime --version
+      dir: wasmtime-{name}
+      untar_dir: wasmtime-v{name}-x86_64-linux
+      targets:
+        - 20.0.1
