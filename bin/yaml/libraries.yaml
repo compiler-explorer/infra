@@ -1693,6 +1693,14 @@ libraries:
         targets:
         - trunk
         type: github
+      widberg-defs:
+        build_type: none
+        check_file: include/defs.h
+        method: nightlyclone
+        repo: widberg/widberg-defs
+        targets:
+        - trunk
+        type: github
     nlohmann_json:
       check_file: README.md
       repo: nlohmann/json
