@@ -1279,6 +1279,7 @@ compilers:
           - ce-trunk
           - clangir-trunk
           - bb-p2996-trunk
+          - p3068-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang-new --version
       mlir:
