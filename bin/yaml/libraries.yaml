@@ -571,6 +571,15 @@ libraries:
       - 1.9.4
       - 1.9.5
       type: github
+    jwt-cpp:
+      check_file: README.md
+      repo: Thalhammer/jwt-cpp
+      target_prefix: v
+      targets:
+      - 0.7.0
+      - 0.6.0
+      - 0.5.2
+      type: github
     kokkos:
       build_type: cmake
       make_targets:
