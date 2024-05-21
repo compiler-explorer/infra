@@ -1,4 +1,15 @@
 libraries:
+  android-java:
+    android-stubs:
+      type: script
+      dir: android-stubs-{name}
+      check_file: android.jar
+      script: |
+        mkdir {dir}
+        cd {dir}
+        {yaml_dir}/android-java/fetch_android_jar.sh {name}
+      targets:
+      - '11662386'
   c:
     cs50:
       build_type: manual
