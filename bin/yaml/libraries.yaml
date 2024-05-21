@@ -1,8 +1,8 @@
 libraries:
   android-java:
-    android-stubs:
+    android-api-stubs:
       type: script
-      dir: android-stubs-{name}
+      dir: android-api-stubs-{name}
       check_file: android.jar
       script: |
         mkdir {dir}
