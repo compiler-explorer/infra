@@ -2257,6 +2257,15 @@ libraries:
       - 1.17.0
       type: github
   d:
+    tinydrt:
+      build_type: none
+      repo: KitsunebiGames/tinyd-rt
+      check_file: README.md
+      target_prefix: v
+      targets:
+      - 0.1.1
+      type: github
+
     mir-algorithm:
       check_file: README.md
       path_name: libs/d/mir-algorithm-v{name}
