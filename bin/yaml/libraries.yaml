@@ -10,6 +10,18 @@ libraries:
         {yaml_dir}/android-java/fetch_android_jar.sh {name}
       targets:
       - '11662386'
+    r8-keep-annotations:
+      type: singleFile
+      dir: r8-{name}-keepanno
+      filename: keepanno-annotations.jar
+      check_file: keepanno-annotations.jar
+      url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
+      targets:
+        - 8.3.37
+        - 8.3.36
+        - 8.2.47
+        - 8.2.42
+        - 8.2.33
   c:
     cs50:
       build_type: manual
