@@ -2994,3 +2994,8 @@ libraries:
       targets:
       - '0.1'
       type: github
+  go:
+    protobuf:
+      targets:
+      - 1.5.4
+      type: golib
