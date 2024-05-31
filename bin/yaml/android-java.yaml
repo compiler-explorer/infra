@@ -30,6 +30,10 @@ compilers:
       - "34.14"
       - "34.13"
       - "34.11"
+      # 33.10 doesn't support CMC or riscv64, so another script is used for boot images.
+      - name: "33.10"
+        after_stage_script:
+          - "{yaml_dir}/android-java/create_boot_images_old.sh"
 
   nightly:
     install_always: true
