@@ -70,4 +70,7 @@ compilers:
       - name: 12.3.1
         build: 545.23.08
       - name: 12.4.1
-        build: 550.54.14
+        build: 550.54.15
+      - name: 12.5.0
+        build: 555.42.02
+
