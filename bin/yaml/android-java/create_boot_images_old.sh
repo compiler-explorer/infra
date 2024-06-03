@@ -30,7 +30,6 @@ x86_64/bin/dex2oat64 \
     --dex-location=/apex/com.android.art/javalib/apache-xml.jar \
     --image=$DIR_FOR_BOOT_IMAGE/"$instruction_set"/boot.art \
     --oat-file=$DIR_FOR_BOOT_IMAGE/"$instruction_set"/boot.oat \
-    --output-vdex=$DIR_FOR_BOOT_IMAGE/"$instruction_set"/boot.vdex \
     --android-root=out/empty \
     --abort-on-hard-verifier-error \
     --no-abort-on-soft-verifier-error \
@@ -40,7 +39,6 @@ x86_64/bin/dex2oat64 \
     --resolve-startup-const-strings=true \
     --avoid-storing-invocation \
     --generate-mini-debug-info \
-    --force-allow-oj-inlines \
     --no-watch-dog \
     --base=0x70000000
 done
