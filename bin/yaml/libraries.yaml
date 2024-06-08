@@ -755,9 +755,12 @@ libraries:
       - '2.1'
       type: github
     liblzma:
-      build_type: manual
-      check_file: include/lzma.h
+      build_type: cmake
       repo: tukaani-project/xz
+      lib_type: static
+      package_install: true
+      staticliblink:
+      - lzma
       target_prefix: v
       targets:
       - 5.6.2
