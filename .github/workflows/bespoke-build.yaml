@@ -25,6 +25,7 @@ on:
         - dotnet
         - rocm
         - rust-linux
+        - rust-cg-gcc
         - nasm
         - heaptrack
         - iwyu
