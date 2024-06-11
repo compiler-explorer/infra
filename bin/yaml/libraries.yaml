@@ -759,7 +759,9 @@ libraries:
       repo: tukaani-project/xz
       lib_type: static
       package_install: true
-      staticliblink:
+      extra_cmake_arg:
+      - -DBUILD_SHARED_LIBS=on
+      sharedlinklib:
       - lzma
       target_prefix: v
       targets:
