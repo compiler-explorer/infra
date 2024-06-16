@@ -105,6 +105,7 @@ libraries:
       - 1.82.0
       - 1.83.0
       - 1.84.0
+      - 1.85.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://archives.boost.io/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
