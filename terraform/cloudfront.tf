@@ -26,7 +26,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -37,7 +37,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "godbolt.org",
     "*.godbolt.org"
   ]
@@ -59,7 +59,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -130,7 +130,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
         forward = "none"
       }
       query_string = true
-      headers      = [
+      headers = [
         "Accept",
         "Host",
         "CloudFront-Is-Mobile-Viewer"
@@ -166,7 +166,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -177,7 +177,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "compiler-explorer.com",
     "*.compiler-explorer.com"
   ]
@@ -199,7 +199,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -270,7 +270,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
         forward = "none"
       }
       query_string = true
-      headers      = [
+      headers = [
         "Accept",
         "Host",
         "CloudFront-Is-Mobile-Viewer"
@@ -304,7 +304,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -315,7 +315,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "godbo.lt",
     "*.godbo.lt"
   ]
@@ -337,7 +337,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -408,7 +408,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
         forward = "none"
       }
       query_string = true
-      headers      = [
+      headers = [
         "Accept",
         "Host",
         "CloudFront-Is-Mobile-Viewer"
@@ -438,7 +438,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "static.ce-cdn.net"
   ]
 
@@ -459,7 +459,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -490,7 +490,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
         "Access-Control-Request-Headers",
         "Access-Control-Request-Method"
       ]
-      query_string            = true
+      query_string = true
       query_string_cache_keys = [
         "v"
       ]

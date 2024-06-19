@@ -1,11 +1,11 @@
 locals {
-  log_file_retention_days = 32  # One month, rounding up (See the privacy policy in the compiler explorer project)
+  log_file_retention_days          = 32 # One month, rounding up (See the privacy policy in the compiler explorer project)
   log_file_longterm_retention_days = 365
 }
 
 resource "aws_s3_bucket" "compiler-explorer" {
   bucket = "compiler-explorer"
-  tags   = {
+  tags = {
     S3-Bucket-Name = "compiler-explorer"
   }
   lifecycle {
@@ -65,7 +65,7 @@ data "aws_canonical_user_id" "current" {}
 
 resource "aws_s3_bucket" "compiler-explorer-logs" {
   bucket = "compiler-explorer-logs"
-  tags   = {
+  tags = {
     S3-Bucket-Name = "compiler-explorer-logs"
   }
 
@@ -217,7 +217,7 @@ resource "aws_s3_bucket_policy" "compiler-explorer-logs" {
 
 resource "aws_s3_bucket" "storage-godbolt-org" {
   bucket = "storage.godbolt.org"
-  tags   = {
+  tags = {
     S3-Bucket-Name = "storage.godbolt.org"
   }
   lifecycle {
@@ -249,7 +249,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "storage-godbolt-org" {
 
 resource "aws_s3_bucket" "ce-cdn-net" {
   bucket = "ce-cdn.net"
-  tags   = {
+  tags = {
     S3-Bucket-Name = "ce-cdn.net"
   }
   lifecycle {
@@ -298,10 +298,10 @@ resource "aws_glue_catalog_table" "compile_stats_table" {
   name          = "compile_stats"
   database_name = "default"
 
-  table_type    = "EXTERNAL_TABLE"
+  table_type = "EXTERNAL_TABLE"
 
   parameters = {
-    EXTERNAL    = "TRUE"
+    EXTERNAL = "TRUE"
   }
 
   partition_keys {
@@ -328,11 +328,11 @@ resource "aws_glue_catalog_table" "compile_stats_table" {
       serialization_library = "org.openx.data.jsonserde.JsonSerDe"
 
       parameters = {
-        "serialization.format" = 1
-        "case.insensitive"     = "TRUE"
-        "dots.in.keys"         = "FALSE"
-        "ignore.malformed.json"= "FALSE"
-        "mapping"              = "TRUE"
+        "serialization.format"  = 1
+        "case.insensitive"      = "TRUE"
+        "dots.in.keys"          = "FALSE"
+        "ignore.malformed.json" = "FALSE"
+        "mapping"               = "TRUE"
       }
     }
 
@@ -347,58 +347,58 @@ resource "aws_glue_catalog_table" "compile_stats_table" {
     }
 
     columns {
-      name    = "sourcehash"
-      type    = "string"
+      name = "sourcehash"
+      type = "string"
     }
 
     columns {
-      name    = "executionparamshash"
-      type    = "string"
+      name = "executionparamshash"
+      type = "string"
     }
 
     columns {
-      name    = "bypasscache"
-      type    = "boolean"
+      name = "bypasscache"
+      type = "boolean"
     }
 
     columns {
-      name    = "options"
-      type    = "array<string>"
+      name = "options"
+      type = "array<string>"
     }
 
     columns {
-      name    = "filters"
-      type    = "struct<binary:boolean,binaryobject:boolean,execute:boolean,demangle:boolean,intel:boolean,labels:boolean>"
+      name = "filters"
+      type = "struct<binary:boolean,binaryobject:boolean,execute:boolean,demangle:boolean,intel:boolean,labels:boolean>"
     }
 
     columns {
-      name    = "backendoptions"
-      type    = "array<string>"
+      name = "backendoptions"
+      type = "array<string>"
     }
 
     columns {
-      name    = "libraries"
-      type    = "array<string>"
+      name = "libraries"
+      type = "array<string>"
     }
 
     columns {
-      name    = "tools"
-      type    = "array<string>"
+      name = "tools"
+      type = "array<string>"
     }
 
     columns {
-      name    = "overrides"
-      type    = "array<string>"
+      name = "overrides"
+      type = "array<string>"
     }
 
     columns {
-      name    = "runtimetools"
-      type    = "array<string>"
+      name = "runtimetools"
+      type = "array<string>"
     }
 
     columns {
-      name    = "buildmethod"
-      type    = "string"
+      name = "buildmethod"
+      type = "string"
     }
   }
 }

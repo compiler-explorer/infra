@@ -1,17 +1,17 @@
 locals {
-  image_id          = "ami-0353125610d8ff086"
-  staging_image_id  = "ami-0353125610d8ff086"
-  beta_image_id     = "ami-0353125610d8ff086"
-  gpu_image_id      = "ami-05e1d61b3348d349f"
-  winprod_image_id  = "ami-0debb28ef52854280"
+  image_id             = "ami-0353125610d8ff086"
+  staging_image_id     = "ami-0353125610d8ff086"
+  beta_image_id        = "ami-0353125610d8ff086"
+  gpu_image_id         = "ami-05e1d61b3348d349f"
+  winprod_image_id     = "ami-0debb28ef52854280"
   winstaging_image_id  = "ami-0debb28ef52854280"
-  wintest_image_id  = "ami-0debb28ef52854280"
-  staging_user_data = base64encode("staging")
-  beta_user_data    = base64encode("beta")
-  gpu_user_data     = base64encode("gpu")
-  winprod_user_data = base64encode("winprod")
+  wintest_image_id     = "ami-0debb28ef52854280"
+  staging_user_data    = base64encode("staging")
+  beta_user_data       = base64encode("beta")
+  gpu_user_data        = base64encode("gpu")
+  winprod_user_data    = base64encode("winprod")
   winstaging_user_data = base64encode("winstaging")
-  wintest_user_data = base64encode("wintest")
+  wintest_user_data    = base64encode("wintest")
 }
 
 resource "aws_launch_template" "CompilerExplorer-beta" {
@@ -218,7 +218,7 @@ resource "aws_launch_template" "CompilerExplorer-winprod" {
   image_id               = local.winprod_image_id
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "m6i.large"  // This is overridden in the ASG
+  instance_type          = "m6i.large" // This is overridden in the ASG
   user_data              = local.winprod_user_data
 
   tag_specifications {
