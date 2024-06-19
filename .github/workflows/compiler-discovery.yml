@@ -25,7 +25,6 @@ on:
         description: 'Comma separated list of remote checks to skip'
         default: ''
         type: string
-        required: true
 
 jobs:
   compilerdiscovery:
