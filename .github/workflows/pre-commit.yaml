@@ -1,19 +1,13 @@
 name: Ensure pre-commit hooks have been run
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install pre-commit
-        run: sudo apt install -y pre-commit
       - name: Ensure virtualenv set up for pylint
         run: make ce
       - name: Run all pre-commit hooks (except python tests)
-        run: env SKIP=test pre-commit run --all
+        run: env SKIP=test .poetry/bin/poetry run pre-commit run --all
