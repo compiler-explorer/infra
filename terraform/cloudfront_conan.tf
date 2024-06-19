@@ -74,9 +74,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
       }
       query_string = true
       headers      = [
-        "Accept",
-        "Host",
-        "Authorization"
+        "*"
       ]
     }
     target_origin_id       = "GccExplorerApp"
