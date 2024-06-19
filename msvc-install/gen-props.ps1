@@ -178,7 +178,7 @@ foreach ($version in $minimumInstallReq) {
         $compilerVernums = $compilerSemver.Split(".")
         $mainVer = [int]$compilerVernums[0]
         $mainVer = $mainVer + 5
-        
+
         $nameSuffix = "msvc v" + $mainVer + "." + $compilerVernums[1] + " VS" + $vsvernums[0] + "." + $vsvernums[1]
         $compilerID = "vcpp_v" + $mainVer + "_" + $compilerVernums[1] + "_VS" + $vsvernums[0] + "_" + $vsvernums[1]
         WriteCompilerProps -ZIPFile $version.ZIPFile -CompilerID $compilerID -CompilerSemver $compilerSemver -NameSuffix $nameSuffix

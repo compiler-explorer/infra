@@ -150,7 +150,7 @@ function Uninstall {
     )
 
     $installer = "$download_path/$version/installer.exe"
-    
+
     Start-Process -Wait -FilePath "$installer" -ArgumentList @("uninstall", "--wait", "--passive", "--installPath", "$full_install_root/$version")
 
     Remove-Item -Recurse -Force "$full_install_root/$version"
@@ -172,7 +172,7 @@ New-Item -ItemType Directory -Force "$full_install_root"
 foreach ($version in $versions)
 {
     $installVersion = $version.Version
-    
+
     Write-Host "Installer version: $installVersion"
     Download -version $installVersion -url $version.Url
     Install -version $installVersion

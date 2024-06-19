@@ -245,7 +245,7 @@ function Uninstall {
     )
 
     # $installer = "$download_path/$version/installer.exe"
-    
+
     # this doesn't work unfortunately
     # Start-Process -Wait -FilePath "$installer" -ArgumentList @("uninstall", "--wait", "--quiet", "--installPath", "$full_install_root/$version",  "--remove", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "--remove", "Microsoft.VisualStudio.Component.VC.Tools.ARM64", "--remove", "Microsoft.VisualStudio.Component.VC.Tools.ARM")
 
@@ -269,7 +269,7 @@ New-Item -ItemType Directory -Force "$full_install_root"
 foreach ($version in $versions)
 {
     $installVersion = $version.Version
-    
+
     Write-Host "Installer version: $installVersion"
     Download -version $installVersion -url $version.Url
     Install -version $installVersion
