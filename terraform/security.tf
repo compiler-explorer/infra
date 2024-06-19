@@ -2,7 +2,7 @@ resource "aws_security_group" "CompilerExplorer" {
   vpc_id      = module.ce_network.vpc.id
   name        = "gcc-explorer-sg"
   description = "For the GCC explorer"
-  tags        = {
+  tags = {
     Name = "CompilerExplorer"
   }
 }
@@ -86,7 +86,7 @@ resource "aws_security_group" "CompilerExplorerAlb" {
   vpc_id      = module.ce_network.vpc.id
   name        = "ce-alb-sg"
   description = "Load balancer security group"
-  tags        = {
+  tags = {
     Name = "CELoadBalancer"
   }
 }
@@ -138,7 +138,7 @@ resource "aws_security_group" "AdminNode" {
   vpc_id      = module.ce_network.vpc.id
   name        = "AdminNodeSecGroup"
   description = "Security for the admin node"
-  tags        = {
+  tags = {
     Name = "AdminNode"
   }
 }
@@ -226,7 +226,7 @@ data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
 
 data "aws_iam_policy_document" "CeModifyStoredState" {
   statement {
-    sid     = "DatabaseAccessSid"
+    sid = "DatabaseAccessSid"
     actions = [
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
@@ -238,8 +238,8 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
     resources = [aws_dynamodb_table.links.arn]
   }
   statement {
-    sid       = "S3AccessSid"
-    actions   = ["s3:*"]
+    sid     = "S3AccessSid"
+    actions = ["s3:*"]
     resources = [
       "${aws_s3_bucket.storage-godbolt-org.arn}/*",
       aws_s3_bucket.storage-godbolt-org.arn
@@ -255,8 +255,8 @@ resource "aws_iam_policy" "CeModifyStoredState" {
 
 data "aws_iam_policy_document" "CePutCompileStatsLog" {
   statement {
-    sid       = "CePutCompileStatsLog"
-    actions   = ["s3:PutObject"]
+    sid     = "CePutCompileStatsLog"
+    actions = ["s3:PutObject"]
     resources = [
       "${aws_s3_bucket.compiler-explorer-logs.arn}/compile-stats/*"
     ]
@@ -290,7 +290,7 @@ resource "aws_iam_policy" "AccessCeParams" {
 
 data "aws_iam_policy_document" "ReadS3Minimal" {
   statement {
-    actions   = ["s3:Get*"]
+    actions = ["s3:Get*"]
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/authorized_keys/*",
       "${aws_s3_bucket.compiler-explorer.arn}/version/*"
@@ -385,7 +385,7 @@ resource "aws_security_group" "Builder" {
   vpc_id      = module.ce_network.vpc.id
   name        = "BuilderNodeSecGroup"
   description = "Compiler Explorer compiler and library security group"
-  tags        = {
+  tags = {
     Name = "Builder"
   }
 }
@@ -432,8 +432,8 @@ resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerP
 
 data "aws_iam_policy_document" "CeBuilderStorageAccess" {
   statement {
-    sid       = "S3Access"
-    actions   = ["s3:*"]
+    sid     = "S3Access"
+    actions = ["s3:*"]
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
       "${aws_s3_bucket.compiler-explorer.arn}/dist/*",
@@ -441,7 +441,7 @@ data "aws_iam_policy_document" "CeBuilderStorageAccess" {
     ]
   }
   statement {
-    sid     = "BuildTableAccess"
+    sid = "BuildTableAccess"
     actions = [
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
@@ -480,7 +480,7 @@ resource "aws_security_group" "efs" {
   vpc_id      = module.ce_network.vpc.id
   name        = "EFS"
   description = "EFS access for Compiler Explorer"
-  tags        = {
+  tags = {
     Name = "EFS"
   }
 }

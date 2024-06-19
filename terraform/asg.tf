@@ -1,8 +1,8 @@
 locals {
-  subnets      = local.all_subnet_ids
+  subnets = local.all_subnet_ids
   // As of Aug 8th 2023, starts could take >2m30
-  grace_period = 60*3
-  cooldown     = 180
+  grace_period     = 60 * 3
+  cooldown         = 180
   win_grace_period = 500
 }
 

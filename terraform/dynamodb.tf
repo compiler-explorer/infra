@@ -65,8 +65,8 @@ resource "aws_dynamodb_table" "nightly-version" {
     ]
     prevent_destroy = true
   }
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "exe"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "exe"
 
   attribute {
     name = "exe"
@@ -87,8 +87,8 @@ resource "aws_dynamodb_table" "nightly-exe" {
     ]
     prevent_destroy = true
   }
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "id"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "id"
 
   attribute {
     name = "id"

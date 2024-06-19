@@ -3,7 +3,7 @@ resource "aws_autoscaling_group" "wintest" {
     create_before_destroy = true
   }
 
-  default_cooldown          = local.cooldown
+  default_cooldown = local.cooldown
   // override grace period until everything works
   health_check_grace_period = 300
   health_check_type         = "ELB"
@@ -24,7 +24,7 @@ resource "aws_autoscaling_group" "winstaging" {
     create_before_destroy = true
   }
 
-  default_cooldown          = local.cooldown
+  default_cooldown = local.cooldown
   // override grace period until everything works
   health_check_grace_period = 500
   health_check_type         = "ELB"
