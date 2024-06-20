@@ -951,6 +951,8 @@ compilers:
           - 5.2.3
           - 5.3.2
           - 5.7.0
+          - 6.0.2
+          - 6.1.2
     edg:
       if: non-free
       type: edg
