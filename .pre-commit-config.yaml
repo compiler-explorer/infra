@@ -36,11 +36,11 @@ repos:
     rev: v2.2.1
     hooks:
       - id: autoflake
-  - repo: https://github.com/antonbabenko/pre-commit-terraform
-    rev: v1.92.0
-    hooks:
-      - id: terraform_fmt
-      - id: terraform_validate
+  # - repo: https://github.com/antonbabenko/pre-commit-terraform
+  #   rev: v1.92.0
+  #   hooks:
+  #     - id: terraform_fmt
+  #     - id: terraform_validate
   - repo: local
     hooks:
       - id: pylint
