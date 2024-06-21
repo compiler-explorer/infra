@@ -62,6 +62,9 @@ tools:
       - name: '0.21'
         after_stage_script:
           - ln -s /opt/compiler-explorer/clang-17.0.1/lib iwyu-{name}/lib
+      - name: '0.22'
+        after_stage_script:
+          - ln -s /opt/compiler-explorer/clang-18.1.0/lib iwyu-{name}/lib
   pvs-studio:
     if:
       - non-free
