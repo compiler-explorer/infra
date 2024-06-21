@@ -817,6 +817,17 @@ libraries:
       targets:
       - 0.7.3
       type: github
+    mfem:
+      build_type: cmake
+      lib_type: static
+      repo: mfem/mfem
+      package_install: true
+      staticliblink:
+      - mfem
+      target_prefix: v
+      targets:
+      - 4.7
+      type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
       path_name: libs/mlir/{name}
@@ -1389,18 +1400,6 @@ libraries:
         check_file: include/magic_enum.hpp
         method: nightlyclone
         repo: Neargye/magic_enum
-        targets:
-        - trunk
-        type: github
-      mfem:
-        after_stage_script:
-        - cp {{resource_dir}}/mfem_config.hpp config/_config.hpp
-        build_type: cmake
-        lib_type: static
-        method: nightlyclone
-        repo: mfem/mfem
-        staticliblink:
-        - mfem
         targets:
         - trunk
         type: github
