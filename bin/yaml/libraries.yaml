@@ -1,27 +1,30 @@
 libraries:
   android-java:
     android-api-stubs:
-      type: script
-      dir: android-api-stubs-{name}
       check_file: android.jar
-      script: |
-        mkdir {dir}
+      dir: android-api-stubs-{name}
+      script: 'mkdir {dir}
+
         cd {dir}
+
         {yaml_dir}/android-java/fetch_android_jar.sh {name}
+
+        '
       targets:
       - '11662386'
+      type: script
     r8-keep-annotations:
-      type: singleFile
+      check_file: keepanno-annotations.jar
       dir: r8-{name}-keepanno
       filename: keepanno-annotations.jar
-      check_file: keepanno-annotations.jar
-      url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
       targets:
-        - 8.3.37
-        - 8.3.36
-        - 8.2.47
-        - 8.2.42
-        - 8.2.33
+      - 8.3.37
+      - 8.3.36
+      - 8.2.47
+      - 8.2.42
+      - 8.2.33
+      type: singleFile
+      url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
   c:
     cs50:
       build_type: manual
@@ -748,25 +751,25 @@ libraries:
       targets:
       - libguarded-1.1.0
       type: github
+    liblzma:
+      build_type: cmake
+      extra_cmake_arg:
+      - -DBUILD_SHARED_LIBS=on
+      lib_type: static
+      package_install: true
+      repo: tukaani-project/xz
+      sharedlinklib:
+      - lzma
+      target_prefix: v
+      targets:
+      - 5.6.2
+      type: github
     libsimdpp:
       check_file: README.md
       repo: p12tic/libsimdpp
       target_prefix: v
       targets:
       - '2.1'
-      type: github
-    liblzma:
-      build_type: cmake
-      repo: tukaani-project/xz
-      lib_type: static
-      package_install: true
-      extra_cmake_arg:
-      - -DBUILD_SHARED_LIBS=on
-      sharedlinklib:
-      - lzma
-      target_prefix: v
-      targets:
-      - 5.6.2
       type: github
     libuv:
       build_type: manual
@@ -820,13 +823,13 @@ libraries:
     mfem:
       build_type: cmake
       lib_type: static
-      repo: mfem/mfem
       package_install: true
+      repo: mfem/mfem
       staticliblink:
       - mfem
       target_prefix: v
       targets:
-      - 4.7
+      - '4.7'
       type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
@@ -1634,6 +1637,14 @@ libraries:
         targets:
         - trunk
         type: github
+      widberg-defs:
+        build_type: none
+        check_file: include/defs.h
+        method: nightlyclone
+        repo: widberg/widberg-defs
+        targets:
+        - trunk
+        type: github
       xsimd:
         build_type: none
         check_file: README.md
@@ -1735,14 +1746,6 @@ libraries:
         check_file: zug/reduce.hpp
         method: nightlyclone
         repo: arximboldi/zug
-        targets:
-        - trunk
-        type: github
-      widberg-defs:
-        build_type: none
-        check_file: include/defs.h
-        method: nightlyclone
-        repo: widberg/widberg-defs
         targets:
         - trunk
         type: github
@@ -2270,15 +2273,6 @@ libraries:
       - 1.17.0
       type: github
   d:
-    tinydrt:
-      build_type: none
-      repo: KitsunebiGames/tinyd-rt
-      check_file: README.md
-      target_prefix: v
-      targets:
-      - 0.1.1
-      type: github
-
     mir-algorithm:
       check_file: README.md
       path_name: libs/d/mir-algorithm-v{name}
@@ -2402,6 +2396,14 @@ libraries:
         targets:
         - trunk
         type: github
+    tinydrt:
+      build_type: none
+      check_file: README.md
+      repo: KitsunebiGames/tinyd-rt
+      target_prefix: v
+      targets:
+      - 0.1.1
+      type: github
   fortran:
     http_client:
       build_type: fpm
