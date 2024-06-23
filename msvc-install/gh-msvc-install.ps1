@@ -3,26 +3,22 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-#### WILL COM
-$url = "https://aka.ms/vs/17/pre/vs_BuildTools.exe"
-
-$download_path = "%TMP%\download"
-$full_install_root = "%TMP%\full"
-$archives = "%TMP%\archives"
+# This script is very destructive and is designed to only be run on a GH action runner.
+$download_path = "download"
+$full_install_root = "full"
+$archives = "archives"
 
 function Download
 {
     Param (
-        [string] $version,
         [string] $url
     )
 
-    $versionPath = "$download_path/$version"
-    $filepath = "$versionPath/installer.exe"
+    $filepath = "$download_path/installer.exe"
 
     if (!(Test-Path -Path $filepath))
     {
-        New-Item -ItemType Directory $versionPath
+        New-Item -ItemType Directory $download_path
         Invoke-WebRequest -Uri $url -OutFile $filepath
     }
 }
@@ -43,7 +39,8 @@ function ZipVC
     )
 
     New-Item -ItemType Directory -Force "$archives"
-    & "7z.exe" a "$archives/$compilerVersion-$productVersion.zip" "$full_install_root/VC/Tools/MSVC/$compilerVersion"
+    Rename-Item -Path "$full_install_root/VC/Tools/MSVC/$compilerVersion" -NewName "$compilerVersion-$productVersion"
+    & "7z.exe" a "$archives/$compilerVersion-$productVersion.zip" "$full_install_root/VC/Tools/MSVC/$compilerVersion-$productVersion"
 }
 
 New-Item -ItemType Directory -Force "$full_install_root"
