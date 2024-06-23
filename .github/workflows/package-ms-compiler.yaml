@@ -1,0 +1,15 @@
+name: Package MS compiler
+# TODO this
+#run-name: Package MS compiler from $URL
+
+# TODO not on push, on demand, this is just for testing.
+on:
+  push:
+
+jobs:
+  package-ms-compiler:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: pwsh
+        run: .\msvc-install\gh-msvc-install.ps1 -url https://aka.ms/vs/17/pre/vs_BuildTools.exe
