@@ -32,7 +32,7 @@ function Install
     Start-Process -Wait -FilePath "$installer" -ArgumentList @("--quiet", "--installPath", "$full_install_root", "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM64", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM")
 }
 
-function ZipVC
+function ZipAndUpload
 {
     Param (
         [string] $compilerVersion,
@@ -42,21 +42,21 @@ function ZipVC
     New-Item -ItemType Directory -Force "$archives"
     Rename-Item -Path "$full_install_root/VC/Tools/MSVC/$compilerVersion" -NewName "$compilerVersion-$productVersion"
     & "7z.exe" a "$archives/$compilerVersion-$productVersion.zip" "$full_install_root/VC/Tools/MSVC/$compilerVersion-$productVersion"
+    & aws s3 cp "$archives/$compilerVersion-$productVersion.zip" s3://compiler-explorer/opt-nonfree/msvc/$compilerVersion-$productVersion.zip
 }
 
-& aws s3 ls s3://compiler-explorer/opt-nonfree/msvc/
-#New-Item -ItemType Directory -Force "$full_install_root"
-#
-#Download -url $url
-#Install
-#
-#$dir = "$full_install_root/VC/Tools/MSVC"
-#Get-ChildItem $dir | Foreach-Object {
-#    $compilerVersion = $_.Name
-#    Write-Host "Compiler directory version: $compilerVersion"
-#
-#    $compilerExeProductVersion = (Get-Item "$dir/$compilerVersion/bin/Hostx64/x64/cl.exe").VersionInfo.ProductVersionRaw
-#    Write-Host "Compiler exe version: $compilerExeProductVersion"
-#
-#    ZipVC -compilerVersion $compilerVersion -productVersion $compilerExeProductVersion
-#}
+New-Item -ItemType Directory -Force "$full_install_root"
+
+Download -url $url
+Install
+
+$dir = "$full_install_root/VC/Tools/MSVC"
+Get-ChildItem $dir | Foreach-Object {
+    $compilerVersion = $_.Name
+    Write-Host "Compiler directory version: $compilerVersion"
+
+    $compilerExeProductVersion = (Get-Item "$dir/$compilerVersion/bin/Hostx64/x64/cl.exe").VersionInfo.ProductVersionRaw
+    Write-Host "Compiler exe version: $compilerExeProductVersion"
+
+    ZipAndUpload -compilerVersion $compilerVersion -productVersion $compilerExeProductVersion
+}
