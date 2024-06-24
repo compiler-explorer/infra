@@ -42,9 +42,9 @@ function ZipAndUpload
     New-Item -ItemType Directory -Force "$archives"
     Rename-Item -Path "$full_install_root/VC/Tools/MSVC/$compilerVersion" -NewName "$compilerVersion-$productVersion"
     & "7z.exe" a "$archives/$compilerVersion-$productVersion.zip" "$full_install_root/VC/Tools/MSVC/$compilerVersion-$productVersion"
-    Write-Host "Uploading..."
+    Write-Host "Uploading $compilerVersion-$productVersion ..."
     Write-S3Object -BucketName compiler-explorer -Key "opt-nonfree/msvc/$compilerVersion-$productVersion.zip" -File "$archives/$compilerVersion-$productVersion.zip"
-    Write-Host "Uploaded!"
+    Write-Host "Uploaded $compilerVersion-$productVersion !"
 }
 
 New-Item -ItemType Directory -Force "$full_install_root"
