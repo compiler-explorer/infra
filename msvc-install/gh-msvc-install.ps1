@@ -27,8 +27,9 @@ function Install
 {
     $installer = "$download_path/installer.exe"
 
-    New-Item -ItemType Directory -Force "$full_install_root/$version"
+    New-Item -ItemType Directory -Force "$full_install_root"
     Start-Process -Wait -FilePath "$installer" -ArgumentList @("--quiet", "--installPath", "$full_install_root", "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM64", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM")
+    Get-ChildItem -Path "$full_install_root" -Recurse
 }
 
 function ZipVC
