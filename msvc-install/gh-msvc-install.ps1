@@ -4,9 +4,9 @@ param (
 $ErrorActionPreference = "Stop"
 
 # This script is very destructive and is designed to only be run on a GH action runner.
-$download_path = "download"
-$full_install_root = "full"
-$archives = "archives"
+$download_path = "$Env:TEMP\download"
+$full_install_root = "$Env:TEMP\full"
+$archives = "$Env:TEMP\archives"
 
 function Download
 {
