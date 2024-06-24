@@ -3,6 +3,7 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
+
 # This script is very destructive and is designed to only be run on a GH action runner.
 $download_path = "$Env:TEMP\download"
 $full_install_root = "$Env:TEMP\full"
@@ -42,7 +43,7 @@ function ZipAndUpload
     New-Item -ItemType Directory -Force "$archives"
     Rename-Item -Path "$full_install_root/VC/Tools/MSVC/$compilerVersion" -NewName "$compilerVersion-$productVersion"
     & "7z.exe" a "$archives/$compilerVersion-$productVersion.zip" "$full_install_root/VC/Tools/MSVC/$compilerVersion-$productVersion"
-    & aws s3 cp "$archives/$compilerVersion-$productVersion.zip" s3://compiler-explorer/opt-nonfree/msvc/$compilerVersion-$productVersion.zip
+    Write-S3Object -BucketName compiler-explorer -Key "opt-nonfree/msvc/$compilerVersion-$productVersion.zip" -File "$archives/$compilerVersion-$productVersion.zip"
 }
 
 New-Item -ItemType Directory -Force "$full_install_root"
