@@ -13,3 +13,6 @@ jobs:
       - uses: actions/checkout@v4
       - shell: pwsh
         run: .\msvc-install\gh-msvc-install.ps1 -url https://aka.ms/vs/17/pre/vs_BuildTools.exe
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

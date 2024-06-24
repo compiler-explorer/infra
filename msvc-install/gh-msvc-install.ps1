@@ -30,9 +30,6 @@ function Install
     New-Item -ItemType Directory -Force "$full_install_root"
     Write-Host "Installating in : $full_install_root"
     Start-Process -Wait -FilePath "$installer" -ArgumentList @("--quiet", "--installPath", "$full_install_root", "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM64", "--add", "Microsoft.VisualStudio.Component.VC.Tools.ARM")
-    Write-Host "Looking in : $full_install_root"
-    Get-ChildItem -Path "$full_install_root" -Recurse
-    Write-Host "Looked in : $full_install_root"
 }
 
 function ZipVC
@@ -47,18 +44,19 @@ function ZipVC
     & "7z.exe" a "$archives/$compilerVersion-$productVersion.zip" "$full_install_root/VC/Tools/MSVC/$compilerVersion-$productVersion"
 }
 
-New-Item -ItemType Directory -Force "$full_install_root"
-
-Download -url $url
-Install
-
-$dir = "$full_install_root/VC/Tools/MSVC"
-Get-ChildItem $dir | Foreach-Object {
-    $compilerVersion = $_.Name
-    Write-Host "Compiler directory version: $compilerVersion"
-
-    $compilerExeProductVersion = (Get-Item "$dir/$compilerVersion/bin/Hostx64/x64/cl.exe").VersionInfo.ProductVersionRaw
-    Write-Host "Compiler exe version: $compilerExeProductVersion"
-
-    ZipVC -compilerVersion $compilerVersion -productVersion $compilerExeProductVersion
-}
+& aws s3 ls s3://compiler-explorer/opt-nonfree/msvc/
+#New-Item -ItemType Directory -Force "$full_install_root"
+#
+#Download -url $url
+#Install
+#
+#$dir = "$full_install_root/VC/Tools/MSVC"
+#Get-ChildItem $dir | Foreach-Object {
+#    $compilerVersion = $_.Name
+#    Write-Host "Compiler directory version: $compilerVersion"
+#
+#    $compilerExeProductVersion = (Get-Item "$dir/$compilerVersion/bin/Hostx64/x64/cl.exe").VersionInfo.ProductVersionRaw
+#    Write-Host "Compiler exe version: $compilerExeProductVersion"
+#
+#    ZipVC -compilerVersion $compilerVersion -productVersion $compilerExeProductVersion
+#}
