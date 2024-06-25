@@ -8,4 +8,6 @@ compilers:
       dir: wasmtime-{name}
       untar_dir: wasmtime-v{name}-x86_64-linux
       targets:
+        - 22.0.0
+        - 21.0.1
         - 20.0.1
