@@ -117,7 +117,7 @@ systemctl enable log-instance-id
 
 setup_grafana() {
     local GRAFANA_CONFIG=/infra/grafana/agent.yaml
-    local GRAFANA_VERSION=0.36.2
+    local GRAFANA_VERSION=0.41.1
 
     pushd /tmp
     curl -sLo agent-linux.zip "https://github.com/grafana/agent/releases/download/v${GRAFANA_VERSION}/grafana-agent-linux-${ARCH}.zip"
