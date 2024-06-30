@@ -58,7 +58,7 @@ popd
 
 pushd /opt
 # node.js
-TARGET_NODE_VERSION=v20.10.0
+TARGET_NODE_VERSION=v20.15.0
 echo "Installing node ${TARGET_NODE_VERSION}"
 curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-arm64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-arm64 node
 popd
