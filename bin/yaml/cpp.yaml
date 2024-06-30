@@ -1124,7 +1124,7 @@ compilers:
         - name: 2024.1.0.468
           check_exe: compiler/latest/bin/icx -V
           fetch:
-            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2e562b6e-5d0f-4001-8121-350a828332fb/l_dpcpp-cpp-compiler_p_${name}_offline.sh install.sh
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2e562b6e-5d0f-4001-8121-350a828332fb/l_dpcpp-cpp-compiler_p_{name}_offline.sh install.sh
           script: *intel-one-install-script
         - name: 2024.2.0.495
           check_exe: compiler/latest/bin/icx -V
