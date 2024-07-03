@@ -10,27 +10,30 @@ on:
         default: gcc
         required: true
         options:
+        # main ones
         - gcc
         - gcc-cross
-        - go
         - clang
-        - clang-18.04
         - misc
-        - ocaml
-        - python
-        - ispc
+        # rest in alphabetical order
+        - clang-18.04
         - cobol
         - d8
-        - vala
         - dotnet
-        - rocm
-        - rust-linux
-        - rust-cg-gcc
-        - nasm
+        - go
         - heaptrack
+        - ispc
         - iwyu
-        - pythran
         - mads
+        - nasm
+        - ocaml
+        - python
+        - pythran
+        - rocm
+        - ruby
+        - rust-cg-gcc
+        - rust-linux
+        - vala
       version:
         description: The version to build (or architecture and version for cross)
         required: true
