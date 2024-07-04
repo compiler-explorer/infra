@@ -43,7 +43,7 @@ class CliContext:
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
         for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
-            with yaml_path.open() as yaml_file:
+            with yaml_path.open(encoding="utf-8") as yaml_file:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
             for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
                 installables.append(installer)
