@@ -1,4 +1,4 @@
-module ce-cdn-net {
+module "ce-cdn-net" {
   source                  = "./modules/ce_dns"
   domain_name             = "ce-cdn.net"
   top_level_name          = "static"
@@ -10,7 +10,7 @@ module ce-cdn-net {
 
 ////////////////////////////////////////////////////
 
-module godbolt-org {
+module "godbolt-org" {
   source                  = "./modules/ce_dns"
   domain_name             = "godbolt.org"
   cloudfront_distribution = aws_cloudfront_distribution.ce-godbolt-org
@@ -33,15 +33,15 @@ resource "aws_route53_record" "google-hosted-stuff-godbolt-org" {
 // Concessions for Matt's old non-Compiler Explorer websites.
 module "route53-domain-redirect" {
   for_each = {
-    bbc = "bbc"
-    master = "master"
+    bbc     = "bbc"
+    master  = "master"
     beebide = "beebide"
   }
-  source  = "trebidav/route53-domain-redirect/module"
-  version = "0.4.0"
-  zone = "godbolt.org"
-  subdomain = format("%s.", each.value)
-  target_url = format("%s.xania.org", each.value)
+  source                          = "trebidav/route53-domain-redirect/module"
+  version                         = "0.4.0"
+  zone                            = "godbolt.org"
+  subdomain                       = format("%s.", each.value)
+  target_url                      = format("%s.xania.org", each.value)
   cloudfront_forward_query_string = true
 }
 
@@ -67,7 +67,7 @@ resource "aws_route53_record" "dkim-godbolt-org" {
 
 ////////////////////////////////////////////////////
 
-module compiler-explorer-com {
+module "compiler-explorer-com" {
   source                  = "./modules/ce_dns"
   domain_name             = "compiler-explorer.com"
   cloudfront_distribution = aws_cloudfront_distribution.compiler-explorer-com
@@ -108,7 +108,7 @@ resource "aws_route53_record" "api-compiler-explorer-com" {
 
 ////////////////////////////////////////////////////
 
-module godbo-lt {
+module "godbo-lt" {
   source                  = "./modules/ce_dns"
   domain_name             = "godbo.lt"
   cloudfront_distribution = aws_cloudfront_distribution.godbo-lt

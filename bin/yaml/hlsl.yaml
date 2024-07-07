@@ -11,6 +11,8 @@ compilers:
       type: s3tarballs
       check_exe: bin/dxc --version
       targets:
+        - "1.8.2405"
+        - "1.8.2403.2"
         - "1.8.2403.1"
         - "1.8.2403"
         - "1.8.2306-preview"
@@ -30,3 +32,6 @@ compilers:
           extra_number: 38
         - name: 2.6.1
           extra_number: 23
+        - name: 2.9
+          extra_number: 25
+          dir: rga-2.9.0.25

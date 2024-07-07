@@ -1,13 +1,13 @@
 
 resource "aws_apigatewayv2_api" "ce_pub_api" {
-    name = "ce-pub-api"
-    description = "Public API to host some lambdas"
-    protocol_type = "HTTP"
-    cors_configuration {
-      allow_origins = [
-        "https://*"
-      ]
-    }
+  name          = "ce-pub-api"
+  description   = "Public API to host some lambdas"
+  protocol_type = "HTTP"
+  cors_configuration {
+    allow_origins = [
+      "https://*"
+    ]
+  }
 }
 
 resource "aws_cloudwatch_log_group" "ce_pub_api_log" {

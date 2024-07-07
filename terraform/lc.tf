@@ -1,19 +1,19 @@
 locals {
-  image_id          = "ami-0dac25c567aa57e61"
-  staging_image_id  = "ami-0dac25c567aa57e61"
-  beta_image_id     = "ami-0dac25c567aa57e61"
-  gpu_image_id      = "ami-05e1d61b3348d349f"
+  image_id             = "ami-01f6b885ccb15ff4c"
+  staging_image_id     = "ami-01f6b885ccb15ff4c"
+  beta_image_id        = "ami-01f6b885ccb15ff4c"
+  gpu_image_id         = "ami-0e49c31db87fb4332"
   aarch64prod_image_id = "ami-0575a3cc115c9f3ac"
-  winprod_image_id  = "ami-0debb28ef52854280"
-  winstaging_image_id  = "ami-0debb28ef52854280"
-  wintest_image_id  = "ami-0debb28ef52854280"
-  staging_user_data = base64encode("staging")
-  beta_user_data    = base64encode("beta")
-  gpu_user_data     = base64encode("gpu")
+  winprod_image_id     = "ami-0ff7903714ecd0ca0"
+  winstaging_image_id  = "ami-0ff7903714ecd0ca0"
+  wintest_image_id     = "ami-0ff7903714ecd0ca0"
+  staging_user_data    = base64encode("staging")
+  beta_user_data       = base64encode("beta")
+  gpu_user_data        = base64encode("gpu")
   aarch64prod_user_data = base64encode("aarch64prod")
-  winprod_user_data = base64encode("winprod")
+  winprod_user_data    = base64encode("winprod")
   winstaging_user_data = base64encode("winstaging")
-  wintest_user_data = base64encode("wintest")
+  wintest_user_data    = base64encode("wintest")
 }
 
 resource "aws_launch_template" "CompilerExplorer-beta" {
@@ -253,7 +253,7 @@ resource "aws_launch_template" "CompilerExplorer-winprod" {
   image_id               = local.winprod_image_id
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "m6i.large"  // This is overridden in the ASG
+  instance_type          = "m6i.large" // This is overridden in the ASG
   user_data              = local.winprod_user_data
 
   tag_specifications {

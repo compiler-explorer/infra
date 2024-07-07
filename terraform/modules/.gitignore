@@ -1,0 +1,3 @@
+# submodules' lock files are only generated doing precommit hooks;
+# else the lockfile from the root module is used.
+.terraform.lock.hcl

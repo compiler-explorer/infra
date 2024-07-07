@@ -13,7 +13,7 @@ resource "aws_autoscaling_group" "gpu" {
 
   mixed_instances_policy {
     instances_distribution {
-      on_demand_allocation_strategy            = "prioritized"
+      on_demand_allocation_strategy = "prioritized"
       // We need to have at least one here or we seem to never get any capacity. This is expensive
       // but without it we get issues with autodiscovery if GPUs are down, and lots of alerts.
       on_demand_base_capacity                  = 1

@@ -115,6 +115,7 @@ class LibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
+        self.current_commit_hash = ""
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -354,6 +355,8 @@ class LibraryBuilder:
                 compilerexecc = f"{compilerexecc}"
             elif compilerexe.endswith("g++"):
                 compilerexecc = f"{compilerexecc}cc"
+            elif compilerType == "edg":
+                compilerexecc = compilerexe
 
             f.write(f"export CC={compilerexecc}\n")
             f.write(f"export CXX={compilerexe}\n")
@@ -379,8 +382,9 @@ class LibraryBuilder:
 
             rpathflags = ""
             ldflags = ""
-            for path in libparampaths:
-                rpathflags += f"-Wl,-rpath={path} "
+            if compilerType != "edg":
+                for path in libparampaths:
+                    rpathflags += f"-Wl,-rpath={path} "
 
             for path in libparampaths:
                 ldflags += f"-L{path} "
@@ -764,18 +768,24 @@ class LibraryBuilder:
             return json.loads(buffer)
 
     def get_commit_hash(self) -> str:
+        if self.current_commit_hash:
+            return self.current_commit_hash
+
         if os.path.exists(f"{self.sourcefolder}/.git"):
             lastcommitinfo = subprocess.check_output(
                 ["git", "-C", self.sourcefolder, "log", "-1", "--oneline", "--no-color"]
             ).decode("utf-8", "ignore")
-            self.logger.debug(lastcommitinfo)
+            self.logger.debug(f"last git commit: {lastcommitinfo}")
             match = GITCOMMITHASH_RE.match(lastcommitinfo)
             if match:
-                return match[1]
+                self.current_commit_hash = match[1]
             else:
-                return self.target_name
+                self.current_commit_hash = self.target_name
+                return self.current_commit_hash
         else:
-            return self.target_name
+            self.current_commit_hash = self.target_name
+
+        return self.current_commit_hash
 
     def has_failed_before(self):
         url = f"{conanserver_url}/whathasfailedbefore"

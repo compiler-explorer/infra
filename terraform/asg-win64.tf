@@ -3,7 +3,7 @@ resource "aws_autoscaling_group" "wintest" {
     create_before_destroy = true
   }
 
-  default_cooldown          = local.cooldown
+  default_cooldown = local.cooldown
   // override grace period until everything works
   health_check_grace_period = 300
   health_check_type         = "ELB"
@@ -24,7 +24,7 @@ resource "aws_autoscaling_group" "winstaging" {
     create_before_destroy = true
   }
 
-  default_cooldown          = local.cooldown
+  default_cooldown = local.cooldown
   // override grace period until everything works
   health_check_grace_period = 500
   health_check_type         = "ELB"
@@ -48,8 +48,8 @@ resource "aws_autoscaling_group" "winprod-mixed" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.win_grace_period
   health_check_type         = "ELB"
-  max_size                  = 4
-  min_size                  = 1
+  max_size                  = 8
+  min_size                  = 2
   name                      = "winprod"
   vpc_zone_identifier       = local.subnets
 
@@ -121,6 +121,6 @@ resource "aws_autoscaling_policy" "winprod-mixed" {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
     }
-    target_value = 70.0
+    target_value = 50.0
   }
 }
