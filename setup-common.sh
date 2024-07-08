@@ -88,6 +88,8 @@ popd
 cat >/etc/log_files.yml <<EOF
 files:
     - /var/log/nginx/*.err
+exclude_patterns:
+    - smbd_calculate_access_mask_fsp
 destination:
     host: ${LOG_DEST_HOST}
     port: ${LOG_DEST_PORT}
