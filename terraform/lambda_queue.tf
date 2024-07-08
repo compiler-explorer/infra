@@ -86,7 +86,8 @@ resource "aws_lambda_function" "queue_onconnect" {
   role              = aws_iam_role.iam_for_lambda_queue.arn
   handler           = "queue-onconnect.handler"
 
-  runtime = "nodejs20.x"
+  runtime       = "nodejs20.x"
+  architectures = ["arm64"]
 
   depends_on = [aws_cloudwatch_log_group.queue]
 }
@@ -101,7 +102,8 @@ resource "aws_lambda_function" "queue_ondisconnect" {
   role              = aws_iam_role.iam_for_lambda_queue.arn
   handler           = "queue-ondisconnect.handler"
 
-  runtime = "nodejs20.x"
+  runtime       = "nodejs20.x"
+  architectures = ["arm64"]
 
   depends_on = [aws_cloudwatch_log_group.queue]
 }
@@ -116,7 +118,8 @@ resource "aws_lambda_function" "queue_sendmessage" {
   role              = aws_iam_role.iam_for_lambda_queue.arn
   handler           = "queue-sendmessage.handler"
 
-  runtime = "nodejs20.x"
+  runtime       = "nodejs20.x"
+  architectures = ["arm64"]
 
   depends_on = [aws_cloudwatch_log_group.queue]
 }
