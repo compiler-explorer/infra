@@ -129,10 +129,29 @@ resource "aws_cloudwatch_log_group" "queue" {
   retention_in_days = 7
 }
 
-# resource "aws_lambda_permission" "with_api_gateway" {
-#   statement_id  = "AllowExecutionFromAPIGateway"
-#   action        = "lambda:InvokeFunction"
-#   function_name = aws_lambda_function.get_deployed_exe_version.arn
-#   principal     = "apigateway.amazonaws.com"
-#   source_arn    = "${aws_apigatewayv2_api.ce_pub_api.execution_arn}/*/*"
-# }
+
+## API
+
+resource "aws_lambda_permission" "queue_onconnect" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.queue_onconnect.arn
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.queue_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "queue_ondisconnect" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.queue_ondisconnect.arn
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.queue_api.execution_arn}/*/*"
+}
+
+resource "aws_lambda_permission" "queue_sendmessage" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.queue_sendmessage.arn
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_apigatewayv2_api.queue_api.execution_arn}/*/*"
+}
