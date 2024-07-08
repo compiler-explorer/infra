@@ -27,7 +27,7 @@ async function relay_request(apiGwClient, guid, data) {
     let idx = 0;
     let sub = subscribers.Items[idx];
 
-    while (!send_message(apiGwClient, sub.connectionId.S, data)) {
+    while (!(await send_message(apiGwClient, sub.connectionId.S, data))) {
         idx++;
 
         if (idx >= subscribers.Items.length) {
@@ -40,13 +40,20 @@ async function relay_request(apiGwClient, guid, data) {
 
 async function handle_text_message(apiGwClient, connectionId, message) {
     if (message.startsWith('subscribe: ')) {
-        await QueueConnections.update(connectionId, message.substring(11));
+        const subscription = message.substring(11);
+        await QueueConnections.update(connectionId, subscription);
+        await send_message(apiGwClient, connectionId, `subscribed to ${subscription}`);
+    } else {
+        await send_message(apiGwClient, connectionId, 'unknown text message');
     }
 }
 
 async function handle_object_message(apiGwClient, connectionId, message) {
     if (message.guid) {
         await relay_request(apiGwClient, message.guid, message);
+        await send_message(apiGwClient, connectionId, `relayed message about ${message.guid}`);
+    } else {
+        await send_message(apiGwClient, connectionId, 'unknown object message');
     }
 }
 
@@ -58,9 +65,9 @@ export const handler = async event => {
 
     try {
         if (typeof event.body === 'string' && event.body.startsWith('subscribe: ')) {
-            handle_text_message(apiGwClient, event.requestContext.connectionId, event.body);
+            await handle_text_message(apiGwClient, event.requestContext.connectionId, event.body);
         } else {
-            handle_object_message(apiGwClient, event.requestContext.connectionId, JSON.parse(event.body));
+            await handle_object_message(apiGwClient, event.requestContext.connectionId, JSON.parse(event.body));
         }
     } catch (e) {
         return {statusCode: 501, body: e.message};
