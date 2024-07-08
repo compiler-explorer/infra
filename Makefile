@@ -16,7 +16,7 @@ help: # with thanks to Ben Rady
 PACKER ?= packer
 
 $(SYS_PYTHON):
-	@echo "Python 3.9 or 3.10 not found on path. Please install (sudo apt install python3.9 or similar)"
+	@echo "Python 3.9, 3.10, 3.11 or 3.12 not found on path. Please install (sudo apt install python3 or similar)"
 	@exit 1
 
 config.json: make_json.py | $(POETRY_DEPS)

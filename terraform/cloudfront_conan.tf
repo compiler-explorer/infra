@@ -12,7 +12,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -23,7 +23,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "conan.compiler-explorer.com"
   ]
 
@@ -44,7 +44,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -73,10 +73,8 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
         forward = "all"
       }
       query_string = true
-      headers      = [
-        "Accept",
-        "Host",
-        "Authorization"
+      headers = [
+        "*"
       ]
     }
     target_origin_id       = "GccExplorerApp"

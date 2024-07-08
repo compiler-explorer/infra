@@ -1,4 +1,30 @@
 libraries:
+  android-java:
+    android-api-stubs:
+      check_file: android.jar
+      dir: android-api-stubs-{name}
+      script: 'mkdir {dir}
+
+        cd {dir}
+
+        {yaml_dir}/android-java/fetch_android_jar.sh {name}
+
+        '
+      targets:
+      - '11662386'
+      type: script
+    r8-keep-annotations:
+      check_file: keepanno-annotations.jar
+      dir: r8-{name}-keepanno
+      filename: keepanno-annotations.jar
+      targets:
+      - 8.3.37
+      - 8.3.36
+      - 8.2.47
+      - 8.2.42
+      - 8.2.33
+      type: singleFile
+      url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
   c:
     cs50:
       build_type: manual
@@ -82,6 +108,7 @@ libraries:
       - 1.82.0
       - 1.83.0
       - 1.84.0
+      - 1.85.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://archives.boost.io/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
@@ -175,6 +202,7 @@ libraries:
       targets:
       - 1.9.1
       - 2.0.0
+      - 2.4.2
       type: github
     cnl:
       build_type: none
@@ -549,6 +577,8 @@ libraries:
       - 5.2.3
       - 5.3.2
       - 5.7.0
+      - 6.0.2
+      - 6.1.2
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     jsoncons:
@@ -724,6 +754,19 @@ libraries:
       targets:
       - libguarded-1.1.0
       type: github
+    liblzma:
+      build_type: cmake
+      extra_cmake_arg:
+      - -DBUILD_SHARED_LIBS=on
+      lib_type: static
+      package_install: true
+      repo: tukaani-project/xz
+      sharedlinklib:
+      - lzma
+      target_prefix: v
+      targets:
+      - 5.6.2
+      type: github
     libsimdpp:
       check_file: README.md
       repo: p12tic/libsimdpp
@@ -779,6 +822,17 @@ libraries:
       target_prefix: v
       targets:
       - 0.7.3
+      type: github
+    mfem:
+      build_type: cmake
+      lib_type: static
+      package_install: true
+      repo: mfem/mfem
+      staticliblink:
+      - mfem
+      target_prefix: v
+      targets:
+      - '4.7'
       type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
@@ -903,6 +957,14 @@ libraries:
         targets:
         - trunk
         type: github
+      beman_optional26:
+        build_type: none
+        check_file: README.md
+        type: github
+        repo: beman-project/Optional26
+        method: nightlyclone
+        targets:
+        - main
       benchmark:
         build_type: cmake
         check_file: README.md
@@ -1355,18 +1417,6 @@ libraries:
         targets:
         - trunk
         type: github
-      mfem:
-        after_stage_script:
-        - cp {{resource_dir}}/mfem_config.hpp config/_config.hpp
-        build_type: cmake
-        lib_type: static
-        method: nightlyclone
-        repo: mfem/mfem
-        staticliblink:
-        - mfem
-        targets:
-        - trunk
-        type: github
       mlir:
         check_file: include/mlir/InitAllPasses.h
         path_name: libs/mlir/{name}
@@ -1598,6 +1648,14 @@ libraries:
         targets:
         - trunk
         type: github
+      widberg-defs:
+        build_type: none
+        check_file: include/defs.h
+        method: nightlyclone
+        repo: widberg/widberg-defs
+        targets:
+        - trunk
+        type: github
       xsimd:
         build_type: none
         check_file: README.md
@@ -1699,14 +1757,6 @@ libraries:
         check_file: zug/reduce.hpp
         method: nightlyclone
         repo: arximboldi/zug
-        targets:
-        - trunk
-        type: github
-      widberg-defs:
-        build_type: none
-        check_file: include/defs.h
-        method: nightlyclone
-        repo: widberg/widberg-defs
         targets:
         - trunk
         type: github
@@ -2357,6 +2407,14 @@ libraries:
         targets:
         - trunk
         type: github
+    tinydrt:
+      build_type: none
+      check_file: README.md
+      repo: KitsunebiGames/tinyd-rt
+      target_prefix: v
+      targets:
+      - 0.1.1
+      type: github
   fortran:
     http_client:
       build_type: fpm

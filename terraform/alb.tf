@@ -1,7 +1,7 @@
 resource "aws_alb" "GccExplorerApp" {
-  idle_timeout    = 60
-  internal        = false
-  name            = "GccExplorerApp"
+  idle_timeout = 60
+  internal     = false
+  name         = "GccExplorerApp"
   security_groups = [
     aws_security_group.CompilerExplorerAlb.id
   ]

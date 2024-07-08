@@ -27,7 +27,7 @@ resource "aws_iam_role" "iam_for_lambda_nightlyversion" {
 
 data "aws_iam_policy_document" "aws_lambda_nightlyversion_logging" {
   statement {
-    sid="AllowLogging"
+    sid       = "AllowLogging"
     resources = ["arn:aws:logs:*:*:*"]
     actions = [
       "logs:CreateLogGroup",
@@ -47,16 +47,16 @@ resource "aws_iam_policy" "lambda_nightlyversion_logging" {
 
 data "aws_iam_policy_document" "aws_dynamodb_nightlyversion" {
   statement {
-    sid = "Allow"
+    sid       = "Allow"
     resources = [aws_dynamodb_table.nightly-version.arn, aws_dynamodb_table.nightly-exe.arn]
-    actions = ["dynamodb:GetItem"]
+    actions   = ["dynamodb:GetItem"]
   }
 }
 
 resource "aws_iam_policy" "nightlyversion_readonly" {
-  name = "aws_nightlyversion_readonly"
+  name        = "aws_nightlyversion_readonly"
   description = "Allow reading from nightly-version and nightly-exe tables"
-  policy = data.aws_iam_policy_document.aws_dynamodb_nightlyversion.json
+  policy      = data.aws_iam_policy_document.aws_dynamodb_nightlyversion.json
 }
 
 /* role attachments */
@@ -103,5 +103,5 @@ resource "aws_lambda_permission" "with_api_gateway" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.get_deployed_exe_version.arn
   principal     = "apigateway.amazonaws.com"
-  source_arn = "${aws_apigatewayv2_api.ce_pub_api.execution_arn}/*/*"
+  source_arn    = "${aws_apigatewayv2_api.ce_pub_api.execution_arn}/*/*"
 }

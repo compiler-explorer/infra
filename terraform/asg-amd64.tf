@@ -9,8 +9,8 @@ resource "aws_autoscaling_group" "prod-mixed" {
   max_size                  = 24
   min_size                  = 2
   // Made two after @apmorton suggestion to cover edge cases of "last node unhealthy"
-  name                      = "prod"
-  vpc_zone_identifier       = local.subnets
+  name                = "prod"
+  vpc_zone_identifier = local.subnets
 
   mixed_instances_policy {
     instances_distribution {
