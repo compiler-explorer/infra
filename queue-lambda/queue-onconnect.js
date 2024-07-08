@@ -4,7 +4,7 @@ export const handler = async event => {
     // console.log('event', JSON.stringify(event, null, 2));
 
     try {
-        QueueConnections.add(event.requestContext.connectionId);
+        await QueueConnections.add(event.requestContext.connectionId);
     } catch (err) {
         return {statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err)};
     }
