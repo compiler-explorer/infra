@@ -39,12 +39,14 @@ async function relay_request(apiGwClient, guid, data) {
 }
 
 async function handle_text_message(apiGwClient, connectionId, message) {
-    if (typeof message === 'string' && message.startsWith('subscribe: ')) {
+    if (message.startsWith('subscribe: ')) {
         await QueueConnections.update(connectionId, message.substring(11));
-    } else if (typeof message === 'object' && message.guid) {
+    }
+}
+
+async function handle_object_message(apiGwClient, connectionId, message) {
+    if (message.guid) {
         await relay_request(apiGwClient, message.guid, message);
-    } else {
-        // console.error('Someone said something unknown: ' + message);
     }
 }
 
@@ -54,10 +56,12 @@ export const handler = async event => {
         endpoint: `https://${event.requestContext.domainName}/${event.requestContext.stage}`,
     });
 
-    const postData = JSON.parse(event.body).data;
-
     try {
-        handle_text_message(apiGwClient, event.requestContext.connectionId, postData);
+        if (typeof event.body === 'string' && event.body.startsWith('subscribe: ')) {
+            handle_text_message(apiGwClient, event.requestContext.connectionId, event.body);
+        } else {
+            handle_object_message(apiGwClient, event.requestContext.connectionId, JSON.parse(event.body));
+        }
     } catch (e) {
         return {statusCode: 501, body: e.message};
     }
