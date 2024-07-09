@@ -22,7 +22,15 @@ export class QueueConnections {
         const scanCommand = new ScanCommand({
             TableName: config.connections_table,
             ProjectionExpression: 'connectionId',
-            FilterExpression: 'subscription=' + subscription,
+            FilterExpression: '#subscription=:subscription',
+            ExpressionAttributeNames: {
+                '#subscription': 'subscription',
+            },
+            ExpressionAttributeValues: {
+                ':subscription': {
+                    S: subscription,
+                },
+            },
         });
         return await ddbClient.send(scanCommand);
     }
@@ -31,12 +39,14 @@ export class QueueConnections {
         const updateCommand = new UpdateItemCommand({
             TableName: config.connections_table,
             Key: {connectionId: {S: id}},
-            AttributeUpdates: {
-                subscription: {
-                    Value: subscription,
-                    Action: 'PUT',
+            UpdateExpression: 'set #subscription = :subscription',
+            ExpressionAttributeNames: {'#subscription': 'subscription'},
+            ExpressionAttributeValues: {
+                ':subscription': {
+                    S: subscription,
                 },
             },
+            ReturnValues: 'ALL_NEW',
         });
         return await ddbClient.send(updateCommand);
     }

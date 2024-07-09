@@ -11,8 +11,11 @@ async function send_message(apiGwClient, connectionId, postData) {
 
         return true;
     } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
+
         if (e.statusCode === 410) {
-            QueueConnections.remove(connectionId);
+            await QueueConnections.remove(connectionId);
             return false;
         } else {
             throw e;
@@ -41,14 +44,20 @@ async function relay_request(apiGwClient, guid, data) {
 async function handle_text_message(apiGwClient, connectionId, message) {
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
+        // eslint-disable-next-line no-console
+        console.info(`subscribing to "${subscription}"`);
         await QueueConnections.update(connectionId, subscription);
         await send_message(apiGwClient, connectionId, `subscribed to ${subscription}`);
     } else {
+        // eslint-disable-next-line no-console
+        console.error(`unknown text message "${message}"`);
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }
 }
 
 async function handle_object_message(apiGwClient, connectionId, message) {
+    // eslint-disable-next-line no-console
+    console.info(message);
     if (message.guid) {
         await relay_request(apiGwClient, message.guid, message);
         await send_message(apiGwClient, connectionId, `relayed message about ${message.guid}`);
@@ -63,13 +72,18 @@ export const handler = async event => {
         endpoint: `https://${event.requestContext.domainName}/${event.requestContext.stage}`,
     });
 
+    // eslint-disable-next-line no-console
+    console.log(event.body);
+
     try {
-        if (typeof event.body === 'string' && event.body.startsWith('subscribe: ')) {
+        if (typeof event.body === 'string' && !event.body.startsWith('{')) {
             await handle_text_message(apiGwClient, event.requestContext.connectionId, event.body);
         } else {
             await handle_object_message(apiGwClient, event.requestContext.connectionId, JSON.parse(event.body));
         }
     } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(e);
         return {statusCode: 501, body: e.message};
     }
 

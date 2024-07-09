@@ -21,6 +21,22 @@ resource "aws_iam_role" "iam_for_lambda_queue" {
   assume_role_policy = data.aws_iam_policy_document.aws_lambda_queue_trust_policy.json
 }
 
+data "aws_iam_policy_document" "aws_lambda_queue_connections" {
+  statement {
+    sid = "ManageConnections"
+    resources = ["arn:aws:execute-api:*:*:*"]
+    actions = [
+      "execute-api:ManageConnections"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "aws_lambda_queue_connections" {
+  name        = "aws_lambda_queue_connections"
+  description = "Allow ManageConnections"
+  policy      = data.aws_iam_policy_document.aws_lambda_queue_connections.json
+}
+
 /* logging policy */
 
 data "aws_iam_policy_document" "aws_lambda_queue_logging" {
@@ -72,6 +88,11 @@ resource "aws_iam_role_policy_attachment" "lambda_queue_logs" {
 resource "aws_iam_role_policy_attachment" "queue_rw_att" {
   role       = aws_iam_role.iam_for_lambda_queue.name
   policy_arn = aws_iam_policy.queue_rw.arn
+}
+
+resource "aws_iam_role_policy_attachment" "aws_lambda_queue_connections" {
+  role       = aws_iam_role.iam_for_lambda_queue.name
+  policy_arn = aws_iam_policy.aws_lambda_queue_connections.arn
 }
 
 /* lambda's */
