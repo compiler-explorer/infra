@@ -27,17 +27,10 @@ async function relay_request(apiGwClient, guid, data) {
     const subscribers = await QueueConnections.subscribers(guid);
     if (subscribers.Count === 0) throw new Error('No listeners for ' + guid);
 
-    let idx = 0;
-    let sub = subscribers.Items[idx];
+    for (let idx = 0; idx < subscribers.Count; idx++) {
+        const sub = subscribers.Items[idx];
 
-    while (!(await send_message(apiGwClient, sub.connectionId.S, data))) {
-        idx++;
-
-        if (idx >= subscribers.Count) {
-            return;
-        }
-
-        sub = subscribers.Items[idx];
+        await send_message(apiGwClient, sub.connectionId.S, JSON.stringify(data));
     }
 }
 
