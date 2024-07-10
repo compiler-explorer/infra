@@ -1353,6 +1353,7 @@ compilers:
           - p3309-trunk
           - dascandy-contracts-trunk
           - p1974-trunk
+          - ericwf-contracts-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang-new --version
       mlir:
