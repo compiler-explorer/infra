@@ -98,6 +98,7 @@ resource "aws_iam_policy" "events_api_logging" {
 }
 
 /* custom domain name for the api */
+/* 'Currently, WebSocket APIs cannot be mixed with REST APIs or HTTP APIs on the same domain name.' */
 
 resource "aws_apigatewayv2_domain_name" "events-api-compiler-explorer-custom-domain" {
   domain_name = "events.compiler-explorer.com"
@@ -113,4 +114,5 @@ resource "aws_apigatewayv2_api_mapping" "events-api-compiler-explorer-mapping" {
   api_id      = aws_apigatewayv2_api.events_api.id
   domain_name = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.id
   stage       = aws_apigatewayv2_stage.events_api_stage_prod.id
+  api_mapping_key = "wss"
 }
