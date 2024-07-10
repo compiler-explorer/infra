@@ -57,9 +57,6 @@ export const handler = async event => {
         endpoint: `https://${event.requestContext.domainName}/${event.requestContext.stage}`,
     });
 
-    // eslint-disable-next-line no-console
-    console.log(event.body);
-
     try {
         if (typeof event.body === 'string' && !event.body.startsWith('{')) {
             await handle_text_message(apiGwClient, event.requestContext.connectionId, event.body);
