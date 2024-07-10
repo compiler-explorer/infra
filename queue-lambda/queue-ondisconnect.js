@@ -1,8 +1,6 @@
 import {QueueConnections} from './queue-connections.js';
 
 export const handler = async event => {
-    // console.log('event', JSON.stringify(event, null, 2));
-
     try {
         await QueueConnections.remove(event.requestContext.connectionId);
     } catch (err) {

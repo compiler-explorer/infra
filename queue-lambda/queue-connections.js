@@ -10,14 +10,6 @@ import {config} from './config.js';
 const ddbClient = new DynamoDBClient({region: config.region});
 
 export class QueueConnections {
-    // static async all() {
-    //     const scanCommand = new ScanCommand({
-    //         TableName: config.connections_table,
-    //         ProjectionExpression: 'connectionId',
-    //     });
-    //     return await ddbClient.send(scanCommand);
-    // }
-
     static async subscribers(subscription) {
         const scanCommand = new ScanCommand({
             TableName: config.connections_table,

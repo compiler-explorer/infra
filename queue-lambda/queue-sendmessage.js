@@ -37,23 +37,15 @@ async function relay_request(apiGwClient, guid, data) {
 async function handle_text_message(apiGwClient, connectionId, message) {
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
-        // eslint-disable-next-line no-console
-        console.info(`subscribing to "${subscription}"`);
         await QueueConnections.update(connectionId, subscription);
-        await send_message(apiGwClient, connectionId, `subscribed to ${subscription}`);
     } else {
-        // eslint-disable-next-line no-console
-        console.error(`unknown text message "${message}"`);
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }
 }
 
 async function handle_object_message(apiGwClient, connectionId, message) {
-    // eslint-disable-next-line no-console
-    console.info(message);
     if (message.guid) {
         await relay_request(apiGwClient, message.guid, message);
-        await send_message(apiGwClient, connectionId, `relayed message about ${message.guid}`);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown object message');
     }
