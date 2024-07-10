@@ -1,8 +1,8 @@
-import {QueueConnections} from './queue-connections.js';
+import {EventsConnections} from './events-connections.js';
 
 export const handler = async event => {
     try {
-        await QueueConnections.add(event.requestContext.connectionId);
+        await EventsConnections.add(event.requestContext.connectionId);
     } catch (err) {
         return {statusCode: 500, body: 'Failed to connect: ' + JSON.stringify(err)};
     }

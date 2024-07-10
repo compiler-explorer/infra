@@ -1,5 +1,5 @@
 {
-  "name": "queue_lambda",
+  "name": "events_lambda",
   "type": "module",
   "version": "1.0.0",
   "author": "Compiler Explorer Authors",

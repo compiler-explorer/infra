@@ -1,8 +1,8 @@
-import {QueueConnections} from './queue-connections.js';
+import {EventsConnections} from './events-connections.js';
 
 export const handler = async event => {
     try {
-        await QueueConnections.remove(event.requestContext.connectionId);
+        await EventsConnections.remove(event.requestContext.connectionId);
     } catch (err) {
         return {statusCode: 500, body: 'Failed to disconnect: ' + JSON.stringify(err)};
     }

@@ -1,5 +1,5 @@
 import {ApiGatewayManagementApiClient, PostToConnectionCommand} from '@aws-sdk/client-apigatewaymanagementapi';
-import {QueueConnections} from './queue-connections.js';
+import {EventsConnections} from './events-connections.js';
 
 async function send_message(apiGwClient, connectionId, postData) {
     try {
@@ -15,7 +15,7 @@ async function send_message(apiGwClient, connectionId, postData) {
         console.error(e);
 
         if (e.statusCode === 410) {
-            await QueueConnections.remove(connectionId);
+            await EventsConnections.remove(connectionId);
             return false;
         } else {
             throw e;
@@ -24,7 +24,7 @@ async function send_message(apiGwClient, connectionId, postData) {
 }
 
 async function relay_request(apiGwClient, guid, data) {
-    const subscribers = await QueueConnections.subscribers(guid);
+    const subscribers = await EventsConnections.subscribers(guid);
     if (subscribers.Count === 0) throw new Error('No listeners for ' + guid);
 
     for (let idx = 0; idx < subscribers.Count; idx++) {
@@ -37,7 +37,7 @@ async function relay_request(apiGwClient, guid, data) {
 async function handle_text_message(apiGwClient, connectionId, message) {
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
-        await QueueConnections.update(connectionId, subscription);
+        await EventsConnections.update(connectionId, subscription);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }

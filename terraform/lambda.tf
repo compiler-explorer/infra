@@ -122,18 +122,6 @@ data "aws_s3_object" "lambda_zip_sha" {
   key    = "lambdas/lambda-package.zip.sha256"
 }
 
-data "aws_s3_object" "queue_lambda_zip" {
-  # Lambda zip is uploaded and rebuild by the Makefile: make upload-queue-lambda
-  bucket = aws_s3_bucket.compiler-explorer.bucket
-  key    = "lambdas/queue-lambda-package.zip"
-}
-
-data "aws_s3_object" "queue_lambda_zip_sha" {
-  # Lambda zip's SHA256 is uploaded and rebuild by the Makefile: make upload-queue-lambda
-  bucket = aws_s3_bucket.compiler-explorer.bucket
-  key    = "lambdas/queue-lambda-package.zip.sha256"
-}
-
 resource "aws_lambda_function" "cloudwatch_to_discord" {
   description       = "Dispatch cloudwatch messages to discord"
   s3_bucket         = data.aws_s3_object.lambda_zip.bucket

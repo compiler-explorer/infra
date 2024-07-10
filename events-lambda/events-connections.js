@@ -9,7 +9,7 @@ import {config} from './config.js';
 
 const ddbClient = new DynamoDBClient({region: config.region});
 
-export class QueueConnections {
+export class EventsConnections {
     static async subscribers(subscription) {
         const scanCommand = new ScanCommand({
             TableName: config.connections_table,

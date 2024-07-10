@@ -129,8 +129,8 @@ resource "aws_dynamodb_table" "compiler-builds" {
   }
 }
 
-resource "aws_dynamodb_table" "queue-connections" {
-  name = "queue-connections"
+resource "aws_dynamodb_table" "events-connections" {
+  name = "events-connections"
   lifecycle {
     ignore_changes = [
       read_capacity,
