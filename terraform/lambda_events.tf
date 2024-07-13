@@ -110,7 +110,7 @@ resource "aws_lambda_function" "events_onconnect" {
   runtime       = "nodejs20.x"
   architectures = ["arm64"]
 
-  depends_on = [aws_cloudwatch_log_group.events]
+  depends_on = [aws_cloudwatch_log_group.events_onconnect]
 }
 
 resource "aws_lambda_function" "events_ondisconnect" {
@@ -126,7 +126,7 @@ resource "aws_lambda_function" "events_ondisconnect" {
   runtime       = "nodejs20.x"
   architectures = ["arm64"]
 
-  depends_on = [aws_cloudwatch_log_group.events]
+  depends_on = [aws_cloudwatch_log_group.events_ondisconnect]
 }
 
 resource "aws_lambda_function" "events_sendmessage" {
@@ -142,11 +142,21 @@ resource "aws_lambda_function" "events_sendmessage" {
   runtime       = "nodejs20.x"
   architectures = ["arm64"]
 
-  depends_on = [aws_cloudwatch_log_group.events]
+  depends_on = [aws_cloudwatch_log_group.events_sendmessage]
 }
 
-resource "aws_cloudwatch_log_group" "events" {
-  name              = "/aws/lambda/events"
+resource "aws_cloudwatch_log_group" "events_onconnect" {
+  name              = "/aws/lambda/events_onconnect"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "events_ondisconnect" {
+  name              = "/aws/lambda/events_ondisconnect"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "events_sendmessage" {
+  name              = "/aws/lambda/events_sendmessage"
   retention_in_days = 7
 }
 
