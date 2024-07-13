@@ -35,21 +35,7 @@ resource "aws_autoscaling_group" "gpu" {
     }
   }
 
-  enabled_metrics = [
-    "GroupDesiredCapacity",
-    "GroupInServiceCapacity",
-    "GroupInServiceInstances",
-    "GroupMaxSize",
-    "GroupMinSize",
-    "GroupPendingCapacity",
-    "GroupPendingInstances",
-    "GroupStandbyCapacity",
-    "GroupStandbyInstances",
-    "GroupTerminatingCapacity",
-    "GroupTerminatingInstances",
-    "GroupTotalCapacity",
-    "GroupTotalInstances",
-  ]
+  enabled_metrics = local.common_enabled_metrics
 
   target_group_arns = [aws_alb_target_group.ce["gpu"].arn]
 }
