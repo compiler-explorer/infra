@@ -554,3 +554,27 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_mana
   role       = aws_iam_role.CompilerExplorerAdminNode.name
   policy_arn = "arn:aws:iam::aws:policy/${each.key}"
 }
+
+/* API Gateway Logging */
+
+data "aws_iam_policy_document" "api_gw_trust_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com", "lambda.amazonaws.com"]
+    }
+  }
+}
+
+/* note: this role is manually attached to API Gateway under Settings -> Logging -> CloudWatch log role ARN, it cannot be set via TF */
+resource "aws_iam_role" "iam_for_apigw" {
+  name               = "iam_for_apigw"
+  assume_role_policy = data.aws_iam_policy_document.api_gw_trust_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "api_gw_logging_policy" {
+  role       = aws_iam_role.iam_for_apigw.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+}

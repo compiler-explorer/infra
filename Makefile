@@ -101,19 +101,42 @@ $(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
 	rm -f $(LAMBDA_PACKAGE)
 	cd $(LAMBDA_PACKAGE_DIR) && zip -r $(LAMBDA_PACKAGE) .
 
+EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
+EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
+EVENTS_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/events-lambda-package.zip.sha256
+EVENTS_LAMBDA_DIR:=$(CURDIR)/events-lambda
+$(EVENTS_LAMBDA_PACKAGE):
+	rm -rf $(EVENTS_LAMBDA_PACKAGE_DIR)
+	mkdir -p $(EVENTS_LAMBDA_PACKAGE_DIR)
+	cd $(EVENTS_LAMBDA_DIR) && npm i && npm run lint && npm install --no-audit --ignore-scripts --production && npm install --no-audit --ignore-scripts --production --cpu arm64 && cd ..
+	cp -R $(EVENTS_LAMBDA_DIR)/* $(EVENTS_LAMBDA_PACKAGE_DIR)
+	rm -f $(EVENTS_LAMBDA_PACKAGE)
+	cd $(EVENTS_LAMBDA_PACKAGE_DIR) && zip -r $(EVENTS_LAMBDA_PACKAGE) .
+
 $(LAMBDA_PACKAGE_SHA): $(LAMBDA_PACKAGE)
 	openssl dgst -sha256 -binary $(LAMBDA_PACKAGE) | openssl enc -base64 > $@
 
-.PHONY: lambda-package
+$(EVENTS_LAMBDA_PACKAGE_SHA): $(EVENTS_LAMBDA_PACKAGE)
+	openssl dgst -sha256 -binary $(EVENTS_LAMBDA_PACKAGE) | openssl enc -base64 > $@
+
+.PHONY: lambda-package  ## builds lambda
 lambda-package: $(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA)
 
 .PHONY: upload-lambda
-upload-lambda: lambda-package
+upload-lambda: lambda-package  ## Uploads lambda to S3
 	aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip
 	aws s3 cp --content-type text/sha256 $(LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/lambda-package.zip.sha256
 
+.PHONY: events-lambda-package  ## Builds events-lambda
+events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
+
+.PHONY: upload-events-lambda
+upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
+	aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip
+	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
+
 .PHONY: terraform-apply
-terraform-apply:
+terraform-apply:  ## Applies terraform
 	cd terraform && terraform apply
 
 .PHONY: pre-commit
