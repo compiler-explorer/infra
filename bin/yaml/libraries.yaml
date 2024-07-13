@@ -447,6 +447,7 @@ libraries:
       - 10.0.0
       - 10.1.1
       - 10.2.1
+      - 11.0.0
       type: github
     gcem:
       build_type: cmake
@@ -857,6 +858,7 @@ libraries:
       - v0.8.0
       - v2.0.0
       - v2.1.0
+      - v2.2.0
       type: github
     nightly:
       abseil:
