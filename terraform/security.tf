@@ -568,6 +568,7 @@ data "aws_iam_policy_document" "api_gw_trust_policy" {
   }
 }
 
+/* note: this role is manually attached to API Gateway under Settings -> Logging -> CloudWatch log role ARN, it cannot be set via TF */
 resource "aws_iam_role" "iam_for_apigw" {
   name               = "iam_for_apigw"
   assume_role_policy = data.aws_iam_policy_document.api_gw_trust_policy.json
