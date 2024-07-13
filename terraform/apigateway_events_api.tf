@@ -111,8 +111,8 @@ resource "aws_apigatewayv2_domain_name" "events-api-compiler-explorer-custom-dom
 }
 
 resource "aws_apigatewayv2_api_mapping" "events-api-compiler-explorer-mapping" {
-  api_id      = aws_apigatewayv2_api.events_api.id
-  domain_name = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.id
-  stage       = aws_apigatewayv2_stage.events_api_stage_prod.id
+  api_id          = aws_apigatewayv2_api.events_api.id
+  domain_name     = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.id
+  stage           = aws_apigatewayv2_stage.events_api_stage_prod.id
   api_mapping_key = "prod"
 }

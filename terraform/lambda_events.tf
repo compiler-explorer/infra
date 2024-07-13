@@ -23,7 +23,7 @@ resource "aws_iam_role" "iam_for_lambda_events" {
 
 data "aws_iam_policy_document" "aws_lambda_events_connections" {
   statement {
-    sid = "ManageConnections"
+    sid       = "ManageConnections"
     resources = ["arn:aws:execute-api:*:*:*"]
     actions = [
       "execute-api:ManageConnections"
