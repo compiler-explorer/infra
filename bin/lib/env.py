@@ -25,7 +25,7 @@ class Environment(Enum):
             Environment.WINSTAGING,
             Environment.WINTEST,
             Environment.AARCH64PROD,
-            Environment.AARCH64STAGING
+            Environment.AARCH64STAGING,
         )
 
     @property
