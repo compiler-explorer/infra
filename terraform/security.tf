@@ -269,6 +269,26 @@ resource "aws_iam_policy" "CePutCompileStatsLog" {
   policy      = data.aws_iam_policy_document.CePutCompileStatsLog.json
 }
 
+data "aws_iam_policy_document" "CeSqsPushPop" {
+  statement {
+    sid     = "CeSqsPushPop"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage"
+    ]
+    resources = [
+      aws_sqs_queue.execqueue-aarch64-linux-cpu.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeSqsPushPop" {
+  name        = "CeSqsPushPop"
+  description = "Can push/pop Sqs"
+  policy      = data.aws_iam_policy_document.CeSqsPushPop.json
+}
+
 data "aws_iam_policy_document" "AccessCeParams" {
   statement {
     actions = [
@@ -337,6 +357,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Min
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_WriteCompileStatsLogs" {
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = aws_iam_policy.CePutCompileStatsLog.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CeSqsPushPop" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.CeSqsPushPop.arn
 }
 
 // CompilerExplorerRole but for Windows machines
