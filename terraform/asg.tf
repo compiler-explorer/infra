@@ -4,6 +4,22 @@ locals {
   grace_period     = 60 * 3
   cooldown         = 180
   win_grace_period = 500
+
+  common_enabled_metrics = [
+    "GroupDesiredCapacity",
+    "GroupInServiceCapacity",
+    "GroupInServiceInstances",
+    "GroupMaxSize",
+    "GroupMinSize",
+    "GroupPendingCapacity",
+    "GroupPendingInstances",
+    "GroupStandbyCapacity",
+    "GroupStandbyInstances",
+    "GroupTerminatingCapacity",
+    "GroupTerminatingInstances",
+    "GroupTotalCapacity",
+    "GroupTotalInstances",
+  ]
 }
 
 resource "aws_sns_topic" "elb-instance-terminate" {
