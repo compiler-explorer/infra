@@ -151,6 +151,21 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
 
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64staging" {
+  priority = 10
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["aarch64staging"].arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/aarch64staging*"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
 
 resource "aws_alb_listener" "ceconan-alb-listen-http" {
   default_action {
