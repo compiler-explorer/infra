@@ -2,6 +2,7 @@
 
 # designed to be sourced
 
+SKIP_SQUASH=0
 CE_USER=ce
 ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
 ENV=${ENV:-prod}
@@ -29,11 +30,13 @@ mount_opt() {
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
-    # don't be tempted to background this, it just causes everything to wedge
-    # during startup (startup time I/O etc goes through the roof).
-    ./mount-all-img.sh
+    if [[ "${SKIP_SQUASH}" == "1" ]]; then
+        # don't be tempted to background this, it just causes everything to wedge
+        # during startup (startup time I/O etc goes through the roof).
+        ./mount-all-img.sh
 
-    echo "Done mounting squash images"
+        echo "Done mounting squash images"
+    fi
 }
 
 get_discovered_compilers() {
