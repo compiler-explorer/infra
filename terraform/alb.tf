@@ -27,69 +27,6 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   protocol          = "HTTP"
 }
 
-// TODO clean this repetition up
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-beta" {
-  priority = 1
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["beta"].arn
-  }
-  condition {
-    path_pattern {
-      values = ["/beta*"]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-staging" {
-  priority = 2
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["staging"].arn
-  }
-  condition {
-    path_pattern {
-      values = [
-        "/staging*"
-      ]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-gpu" {
-  priority = 3
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["gpu"].arn
-  }
-  condition {
-    path_pattern {
-      values = [
-        "/gpu*"
-      ]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
-}
-
-resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-http-wintest" {
-  priority = 5
-  action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["wintest"].arn
-  }
-  condition {
-    path_pattern {
-      values = [
-        "/wintest*"
-      ]
-    }
-  }
-  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-http.arn
-}
-
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   default_action {
     type             = "forward"
