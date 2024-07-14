@@ -203,7 +203,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod" {
-  priority = 9
+  priority = 6
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.ce["aarch64prod"].arn
