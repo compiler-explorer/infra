@@ -11,6 +11,8 @@ class Environment(Enum):
     WINPROD = "winprod"
     WINSTAGING = "winstaging"
     WINTEST = "wintest"
+    AARCHPROD = "aarchprod"
+    AARCHSTAGING = "aarchstaging"
 
     @property
     def keep_builds(self):
@@ -22,6 +24,8 @@ class Environment(Enum):
             Environment.WINPROD,
             Environment.WINSTAGING,
             Environment.WINTEST,
+            Environment.AARCHPROD,
+            Environment.AARCHSTAGING
         )
 
     @property
@@ -30,7 +34,7 @@ class Environment(Enum):
 
     @property
     def is_prod(self):
-        return self in (Environment.PROD, Environment.GPU, Environment.WINPROD)
+        return self in (Environment.PROD, Environment.GPU, Environment.WINPROD, Environment.AARCHPROD)
 
     @property
     def branch_name(self) -> str:
