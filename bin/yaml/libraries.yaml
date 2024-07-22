@@ -2117,6 +2117,7 @@ libraries:
       - '45'
       - '46'
       - '47'
+      - '48'
       type: github
     tts:
       check_file: README.md
