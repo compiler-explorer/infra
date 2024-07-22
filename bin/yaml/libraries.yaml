@@ -2029,6 +2029,7 @@ libraries:
       repo: rollbear/strong_type
       target_prefix: v
       targets:
+      - '15'
       - '14'
       - '13'
       - '12'
@@ -2117,6 +2118,7 @@ libraries:
       - '45'
       - '46'
       - '47'
+      - '48'
       type: github
     tts:
       check_file: README.md
