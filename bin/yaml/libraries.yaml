@@ -2246,6 +2246,13 @@ libraries:
         targets:
         - trunk
         type: github
+      matx:
+        check_file: README.md
+        method: nightlyclone
+        repo: NVIDIA/MatX
+        targets:
+        - trunk
+        type: github
       nvtx:
         check_file: cpp/include/nvtx3/nvtx3.hpp
         method: clone_branch
@@ -2260,6 +2267,14 @@ libraries:
         targets:
         - trunk
         type: github
+    matx:
+      method: clone_branch
+      repo: NVIDIA/MatX
+      target_prefix: v
+      targets:
+      - 0.8.0
+      - 0.7.0
+      type: github
     nvtx:
       check_file: c/include/nvtx3/nvToolsExt.h
       method: clone_branch
