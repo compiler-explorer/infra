@@ -2268,6 +2268,7 @@ libraries:
         - trunk
         type: github
     matx:
+      check_file: README.md
       method: clone_branch
       repo: NVIDIA/MatX
       target_prefix: v
