@@ -68,7 +68,7 @@ VERSIONS_LOGGING_TABLE = "versionslog"
 
 
 def target_group_for(cfg: Config) -> dict:
-    result = elb_client.describe_target_groups(Names=[cfg.env.value.title()])
+    result = elb_client.describe_target_groups(Names=[cfg.env.value.capitalize()])
     if len(result["TargetGroups"]) != 1:
         raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result["TargetGroups"][0]
