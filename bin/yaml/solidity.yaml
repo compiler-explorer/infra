@@ -11,6 +11,7 @@ compilers:
       - 0.6.12
       - 0.7.6
       - 0.8.25
+      - 0.8.26
   solidity_zksync:
     type: singleFile
     dir: zksync-solc-{name}
