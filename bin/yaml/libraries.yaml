@@ -120,6 +120,10 @@ libraries:
       build_type: cmake
       package_install: true
       lib_type: shared
+      make_targets:
+        - all
+      sharedliblink:
+        - boost_iostreams
       extra_cmake_arg:
         - -DBUILD_SHARED_LIBS=ON
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
