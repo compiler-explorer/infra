@@ -122,8 +122,6 @@ libraries:
       lib_type: shared
       extra_cmake_arg:
         - -DBUILD_SHARED_LIBS=ON
-      make_targets:
-        - all
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
       compression: xz
       targets:
