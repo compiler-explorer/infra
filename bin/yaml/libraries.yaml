@@ -108,10 +108,26 @@ libraries:
       - 1.82.0
       - 1.83.0
       - 1.84.0
-      - 1.85.0
       type: tarballs
       untar_dir: boost_{{underscore_name}}
       url: https://archives.boost.io/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
+    boost_bin:
+      type: tarballs
+      check_file: CMakeLists.txt
+      subdir: boost-{{name}}
+      dir: libs/boost-{{name}}
+      untar_dir: boost-{{name}}
+      build_type: cmake
+      package_install: true
+      lib_type: shared
+      extra_cmake_arg:
+        - -DBUILD_SHARED_LIBS=ON
+      make_targets:
+        - all
+      url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
+      compression: xz
+      targets:
+        - 1.85.0
     brigand:
       check_file: README.md
       method: clone_branch
