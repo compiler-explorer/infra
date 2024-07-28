@@ -44,6 +44,9 @@ compiler:
     flang:
         version: ANY
         libcxx: ANY
+    flang-fc1:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 
