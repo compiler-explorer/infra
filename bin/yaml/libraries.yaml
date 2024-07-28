@@ -120,6 +120,14 @@ libraries:
       build_type: cmake
       package_install: true
       lib_type: shared
+      after_stage_script:
+        - shopt -s globstar
+        - for i in **/CMakeLists.txt; do
+        -   sed -i 's/-Werror/-Wno-error/g' "$i"
+        - done
+        - for i in **/*.cmake; do
+        -   sed -i 's/-Werror/-Wno-error/g' "$i"
+        - done
       make_targets:
         - all
       sharedliblink:
