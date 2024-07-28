@@ -672,7 +672,7 @@ libraries:
       - sed -i 's/if(NOT "..CMAKE_BUILD_TYPE." STREQUAL "")/set(CMAKE_BUILD_TYPE "")\nif(FALSE)/'
         Meta/Lagom/CMakeLists.txt
       - sed 's/cmakedefine01 \(\w\+\)/define \1 0/' AK/Debug.h.in > AK/Debug.h
-      build_type: cmake
+      build_type: manual
       check_file: CMakeLists.txt
       extra_cmake_arg:
       - -DBUILD_LAGOM=ON
