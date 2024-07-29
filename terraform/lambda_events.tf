@@ -146,17 +146,17 @@ resource "aws_lambda_function" "events_sendmessage" {
 }
 
 resource "aws_cloudwatch_log_group" "events_onconnect" {
-  name              = "/aws/lambda/events_onconnect"
+  name              = "/aws/lambda/events-onconnect"
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "events_ondisconnect" {
-  name              = "/aws/lambda/events_ondisconnect"
+  name              = "/aws/lambda/events-ondisconnect"
   retention_in_days = 7
 }
 
 resource "aws_cloudwatch_log_group" "events_sendmessage" {
-  name              = "/aws/lambda/events_sendmessage"
+  name              = "/aws/lambda/events-sendmessage"
   retention_in_days = 7
 }
 
