@@ -1351,6 +1351,7 @@ compilers:
           - bb-p2996-trunk
           - p3068-trunk
           - p3309-trunk
+          - p3367-trunk
           - dascandy-contracts-trunk
           - p1974-trunk
           - ericwf-contracts-trunk
