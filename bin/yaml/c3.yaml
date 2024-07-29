@@ -12,3 +12,9 @@ compilers:
         url: https://github.com/c3lang/c3c/releases/download/0.4godbolt-v2/c3-ubuntu-20.tar.gz
       - name: 0.5
         url: https://github.com/c3lang/c3c/releases/download/release_0.5/c3-ubuntu-20.tar.gz
+      - name: 0.5.5
+        url: https://github.com/c3lang/c3c/releases/download/v0.5.5/c3-ubuntu-20-0.5.5.tar.gz
+      - name: 0.6.0
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.0/c3-ubuntu-20.tar.gz
+      - name: 0.6.1
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.1/c3-ubuntu-20.tar.gz
