@@ -132,7 +132,7 @@ resource "aws_lambda_function" "cloudwatch_to_discord" {
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "cloudwatch_to_discord.lambda_handler"
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   environment {
     variables = {
@@ -171,7 +171,7 @@ resource "aws_lambda_function" "alert_on_elb_instance" {
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "alert_on_elb_instance.lambda_handler"
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   environment {
     variables = {
@@ -206,7 +206,7 @@ resource "aws_lambda_function" "stats" {
   handler           = "stats.lambda_handler"
   timeout           = 10
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   environment {
     variables = {

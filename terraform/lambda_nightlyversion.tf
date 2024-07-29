@@ -88,7 +88,7 @@ resource "aws_lambda_function" "get_deployed_exe_version" {
   role              = aws_iam_role.iam_for_lambda_nightlyversion.arn
   handler           = "get_deployed_exe_version.lambda_handler"
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   depends_on = [aws_cloudwatch_log_group.get_deployed_exe_version]
 }
