@@ -8,7 +8,7 @@ compilers:
     create_untar_dir: true
     check_exe: c3c --version
     targets:
-      - name: 0.4.pre
+      - name: 0.4.0
         url: https://github.com/c3lang/c3c/releases/download/0.4godbolt-v2/c3-ubuntu-20.tar.gz
       - name: 0.5.0
         url: https://github.com/c3lang/c3c/releases/download/release_0.5/c3-ubuntu-20.tar.gz
