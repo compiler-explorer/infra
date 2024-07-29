@@ -17,7 +17,7 @@ def lambda_handler(event, _context):
 
     result = get_remote_execution_archs()
 
-    for row in result['Items']:
+    for row in result["Items"]:
         items.append(row["triple"]["S"])
 
     return respond_with_array(items, jsonp)
@@ -28,10 +28,7 @@ def respond_with_array(items: set, jsonp: str):
         return dict(
             statusCode=200,
             headers={"content-type": "application/javascript"},
-            body=jsonp
-            + "("
-            + json.dumps(items)
-            + ");",
+            body=jsonp + "(" + json.dumps(items) + ");",
         )
     else:
         return dict(
@@ -42,7 +39,7 @@ def respond_with_array(items: set, jsonp: str):
                 "max-age": "3600",
                 "s-maxage": "3600",
             },
-            body=json.dumps(items)
+            body=json.dumps(items),
         )
 
 
