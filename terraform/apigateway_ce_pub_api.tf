@@ -56,6 +56,21 @@ resource "aws_apigatewayv2_route" "get_deployed_exe_version" {
   target    = "integrations/${aws_apigatewayv2_integration.get_deployed_exe_version.id}"
 }
 
+resource "aws_apigatewayv2_integration" "get_remote_execution_archs" {
+  api_id = aws_apigatewayv2_api.ce_pub_api.id
+
+  integration_uri    = aws_lambda_function.get_remote_execution_archs.arn
+  integration_type   = "AWS_PROXY"
+  integration_method = "POST"
+}
+
+resource "aws_apigatewayv2_route" "get_remote_execution_archs" {
+  api_id = aws_apigatewayv2_api.ce_pub_api.id
+
+  route_key = "GET /get_remote_execution_archs"
+  target    = "integrations/${aws_apigatewayv2_integration.get_remote_execution_archs.id}"
+}
+
 /* custom domain name for the api */
 
 resource "aws_apigatewayv2_domain_name" "api-compiler-explorer-custom-domain" {

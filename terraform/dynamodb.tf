@@ -150,3 +150,25 @@ resource "aws_dynamodb_table" "events-connections" {
     enabled = false
   }
 }
+
+resource "aws_dynamodb_table" "remote-exec-archs" {
+  name = "remote-exec-archs"
+  lifecycle {
+    ignore_changes = [
+      read_capacity,
+      write_capacity
+    ]
+    prevent_destroy = true
+  }
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "triple"
+
+  attribute {
+    name = "triple"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = false
+  }
+}
