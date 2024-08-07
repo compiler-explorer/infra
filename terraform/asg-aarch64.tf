@@ -42,15 +42,52 @@ resource "aws_autoscaling_policy" "aarch64prod-mixed" {
     create_before_destroy = true
   }
 
-  autoscaling_group_name    = aws_autoscaling_group.aarch64prod-mixed.name
-  name                      = "cpu-tracker"
-  policy_type               = "TargetTrackingScaling"
+  autoscaling_group_name = aws_autoscaling_group.aarch64prod-mixed.name
+  name                   = "aarch64-mq-tracker"
+  policy_type            = "TargetTrackingScaling"
   estimated_instance_warmup = local.grace_period + 30
   target_tracking_configuration {
-    predefined_metric_specification {
-      predefined_metric_type = "ASGAverageCPUUtilization"
+    target_value = 100
+    customized_metric_specification {
+      metrics {
+        label = "Get the queue size (the number of messages waiting to be processed)"
+        id    = "m1"
+        metric_stat {
+          metric {
+            namespace   = "AWS/SQS"
+            metric_name = "ApproximateNumberOfMessagesVisible"
+            dimensions {
+              name  = "QueueName"
+              value = aws_sqs_queue.execqueue-aarch64-linux-cpu.name
+            }
+          }
+          stat = "Sum"
+        }
+        return_data = false
+      }
+      metrics {
+        label = "Get the group size (the number of InService instances)"
+        id    = "m2"
+        metric_stat {
+          metric {
+            namespace   = "AWS/AutoScaling"
+            metric_name = "GroupInServiceInstances"
+            dimensions {
+              name  = "AutoScalingGroupName"
+              value = aws_autoscaling_group.aarch64prod-mixed.name
+            }
+          }
+          stat = "Average"
+        }
+        return_data = false
+      }
+      metrics {
+        label       = "Calculate the backlog per instance"
+        id          = "e1"
+        expression  = "m1 / m2"
+        return_data = true
+      }
     }
-    target_value = 50.0
   }
 }
 
