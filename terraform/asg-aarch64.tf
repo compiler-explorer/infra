@@ -47,7 +47,7 @@ resource "aws_autoscaling_policy" "aarch64prod-mixed" {
   policy_type            = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
   target_tracking_configuration {
-    target_value = 2
+    target_value = 3
     customized_metric_specification {
       metrics {
         label = "Get the queue size (the number of messages waiting to be processed)"
