@@ -6,8 +6,8 @@ resource "aws_autoscaling_group" "aarch64prod-mixed" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  max_size                  = 4
-  min_size                  = 0
+  max_size                  = 6
+  min_size                  = 1
   name                      = "aarch64prod"
   vpc_zone_identifier       = local.subnets
 
@@ -45,9 +45,9 @@ resource "aws_autoscaling_policy" "aarch64prod-mixed" {
   autoscaling_group_name = aws_autoscaling_group.aarch64prod-mixed.name
   name                   = "aarch64-mq-tracker"
   policy_type            = "TargetTrackingScaling"
-  estimated_instance_warmup = local.grace_period + 30
+  estimated_instance_warmup = local.cooldown
   target_tracking_configuration {
-    target_value = 100
+    target_value = 2
     customized_metric_specification {
       metrics {
         label = "Get the queue size (the number of messages waiting to be processed)"
