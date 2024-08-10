@@ -189,6 +189,12 @@ class LibraryBuilder:
                 return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
         return False
 
+    def getSysrootPathFromOptions(self, options):
+        match = re.search(r"--sysroot=(\S*)", options)
+        if match:
+            return match[1]
+        return False
+
     def getStdVerFromOptions(self, options):
         match = re.search(r"-std=(\S*)", options)
         if match:
@@ -391,9 +397,52 @@ class LibraryBuilder:
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
 
+            sysrootpath = self.getSysrootPathFromOptions(compileroptions)
+            sysrootparam = ""
+            if sysrootpath:
+                sysrootparam = f"-DCMAKE_SYSROOT={sysrootpath}"
+
+            target = self.getTargetFromOptions(compileroptions)
+            triplearr = target.split("-")
+            shorttarget = ""
+            boosttarget = ""
+            boostabi = ""
+            if len(triplearr) != 0:
+                shorttarget = triplearr[0]
+                if shorttarget == "aarch64":
+                    boosttarget = "arm64"
+                else:
+                    boosttarget = shorttarget
+
+                if "arm" in boosttarget:
+                    boostabi = "aapcs"
+                else:
+                    boostabi = "sysv"
+
+            ldexepath = "/usr/bin/ld"
+            if toolchain:
+                binpath = Path(toolchain) / "bin"
+                plainld = os.path.join(binpath, "ld")
+                if os.path.exists(plainld):
+                    ldexepath = plainld
+                else:
+                    for ldexe in binpath.glob("*-ld"):
+                        ldexepath = os.path.join(binpath, ldexe)
+
+                plaingas = os.path.join(binpath, "as")
+                if os.path.exists(plaingas):
+                    pass
+                else:
+                    for gasexe in binpath.glob("*-as"):
+                        os.path.join(binpath, gasexe)
+
             f.write(f'export LD_LIBRARY_PATH="{ldlibpathsstr}"\n')
             f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
             f.write('export NUMCPUS="$(nproc)"\n')
+            f.write(f"export AS={compilerexe}\n")
+            f.write(f"export ASM={compilerexe}\n")
+            f.write(f"export ASM_ARMASM={compilerexe}\n")
+            f.write(f"export LD={ldexepath}\n")
 
             stdverflag = ""
             if stdver != "":
@@ -415,7 +464,10 @@ class LibraryBuilder:
             else:
                 compilerTypeOrGcc = compilerType
 
-            cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}"
+            cxx_flags = f"{compileroptions} -v {archflag} {stdverflag} {stdlibflag} {extraflags}"
+
+            # if target:
+            #     cxx_flags += f" -target {target}"
 
             expanded_configure_flags = [
                 self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
@@ -434,13 +486,17 @@ class LibraryBuilder:
                 if compilerTypeOrGcc == "clang" and "--gcc-toolchain=" not in compileroptions:
                     toolchainparam = ""
                 else:
-                    toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
+                    toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
+
+                targetparam = ""
+                if target:
+                    targetparam = f'"-DBOOST_CONTEXT_ARCHITECTURE={boosttarget}" "-DBOOST_CONTEXT_ABI={boostabi}" "-DCMAKE_SYSTEM_PROCESSOR={shorttarget}" "-DCMAKE_CXX_COMPILER_TARGET={target}" "-DCMAKE_C_COMPILER_TARGET={target}" "-DCMAKE_ASM_COMPILER_TARGET={target}"'
 
                 generator = ""
                 if make_utility == "ninja":
                     generator = "-GNinja"
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparam} -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
@@ -620,7 +676,7 @@ class LibraryBuilder:
         if self.buildconfig.lib_type == "cshared":
             for lib in self.buildconfig.sharedliblink:
                 filepath = os.path.join(buildfolder, f"lib{lib}.so")
-                bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+                bininfo = BinaryInfo(self.logger, buildfolder, filepath, stdlib)
                 if "libstdc++.so" not in bininfo.ldd_details and "libc++.so" not in bininfo.ldd_details:
                     if arch == "":
                         filesfound += 1
@@ -633,7 +689,7 @@ class LibraryBuilder:
         for lib in self.buildconfig.staticliblink:
             filepath = os.path.join(buildfolder, f"lib{lib}.a")
             if os.path.exists(filepath):
-                bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+                bininfo = BinaryInfo(self.logger, buildfolder, filepath, stdlib)
                 cxxinfo = bininfo.cxx_info_from_binary()
                 if (stdlib == "") or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
                     if arch == "":
@@ -647,7 +703,7 @@ class LibraryBuilder:
 
         for lib in self.buildconfig.sharedliblink:
             filepath = os.path.join(buildfolder, f"lib{lib}.so")
-            bininfo = BinaryInfo(self.logger, buildfolder, filepath)
+            bininfo = BinaryInfo(self.logger, buildfolder, filepath, stdlib)
             if (stdlib == "" and "libstdc++.so" in bininfo.ldd_details) or (
                 stdlib != "" and f"{stdlib}.so" in bininfo.ldd_details
             ):
@@ -825,7 +881,7 @@ class LibraryBuilder:
         for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
             # TODO - this is the same as the original code but I wonder if this needs to be *.so for shared?
             if os.path.exists(os.path.join(buildfolder, f"lib{lib}.a")):
-                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"))
+                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"), "")
                 libinfo = bininfo.cxx_info_from_binary()
                 archinfo = bininfo.arch_info_from_binary()
                 annotations["cxx11"] = libinfo["has_maybecxx11abi"]

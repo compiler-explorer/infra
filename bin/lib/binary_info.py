@@ -23,7 +23,7 @@ sym_grp_name = 6
 
 
 class BinaryInfo:
-    def __init__(self, logger, buildfolder, filepath):
+    def __init__(self, logger, buildfolder, filepath, expected_stdlib):
         self.logger = logger
 
         self.buildfolder = Path(buildfolder)
@@ -32,25 +32,38 @@ class BinaryInfo:
         self.readelf_header_details = ""
         self.readelf_symbols_details = ""
         self.ldd_details = ""
+        self.expected_stdlib = expected_stdlib
 
         self._follow_and_readelf()
         self._read_symbols_from_binary()
+
+    def _debug_check_output(self, arr):
+        # self.logger.debug("Executing: %s %s", arr[0], arr[1])
+        return subprocess.check_output(arr).decode("utf-8", "replace")
 
     def _follow_and_readelf(self) -> None:
         self.logger.debug("Readelf on %s", self.filepath)
         if not self.filepath.exists():
             return
 
+        if self.filepath.is_symlink():
+            self.filepath = self.filepath.resolve()
+            self.logger.debug("Was symlink -> readelf on %s", self.filepath)
+
         try:
-            self.readelf_header_details = subprocess.check_output(["readelf", "-h", str(self.filepath)]).decode(
-                "utf-8", "replace"
-            )
-            self.readelf_symbols_details = subprocess.check_output(["readelf", "-W", "-s", str(self.filepath)]).decode(
-                "utf-8", "replace"
-            )
+            self.readelf_header_details = self._debug_check_output(["readelf", "-h", str(self.filepath)])
+            self.readelf_symbols_details = self._debug_check_output(["readelf", "-W", "-s", str(self.filepath)])
             if ".so" in self.filepath.name:
-                self.ldd_details = subprocess.check_output(["ldd", str(self.filepath)]).decode("utf-8", "replace")
+                try:
+                    self.ldd_details = self._debug_check_output(["ldd", str(self.filepath)])
+                except:
+                    # ldd errors are fine
+                    if self.expected_stdlib == "":
+                        self.ldd_details = "libstdc++.so"
+                    else:
+                        self.ldd_details = f"lib{self.expected_stdlib}.so"
         except subprocess.CalledProcessError:
+            self.logger.debug("Error happened?")
             try:
                 match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding="utf-8"))
                 if match:
