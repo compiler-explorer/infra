@@ -213,6 +213,13 @@ class LibraryBuilder:
             return match[1]
         return False
 
+    def getDefaultTargetFromCompiler(self, exe):
+        # pylint: disable=W0702
+        try:
+            return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore")
+        except:
+            return False
+
     def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
         fixedTarget = self.getTargetFromOptions(options)
         if fixedTarget:
@@ -403,7 +410,13 @@ class LibraryBuilder:
                 sysrootparam = f'"-DCMAKE_SYSROOT={sysrootpath}"'
 
             target = self.getTargetFromOptions(compileroptions)
-            triplearr = target.split("-")
+            triplearr = []
+            if target:
+                triplearr = target.split("-")
+            else:
+                target = self.getDefaultTargetFromCompiler(compilerexecc)
+                if target:
+                    triplearr = target.strip().split("-")
             shorttarget = ""
             boosttarget = ""
             boostabi = ""
