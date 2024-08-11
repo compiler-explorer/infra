@@ -54,6 +54,7 @@ class BinaryInfo:
             self.readelf_header_details = self._debug_check_output(["readelf", "-h", str(self.filepath)])
             self.readelf_symbols_details = self._debug_check_output(["readelf", "-W", "-s", str(self.filepath)])
             if ".so" in self.filepath.name:
+                # pylint: disable=W0702
                 try:
                     self.ldd_details = self._debug_check_output(["ldd", str(self.filepath)])
                 except:

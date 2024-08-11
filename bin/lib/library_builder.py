@@ -400,7 +400,7 @@ class LibraryBuilder:
             sysrootpath = self.getSysrootPathFromOptions(compileroptions)
             sysrootparam = ""
             if sysrootpath:
-                sysrootparam = f"-DCMAKE_SYSROOT={sysrootpath}"
+                sysrootparam = f'"-DCMAKE_SYSROOT={sysrootpath}"'
 
             target = self.getTargetFromOptions(compileroptions)
             triplearr = target.split("-")
@@ -419,30 +419,9 @@ class LibraryBuilder:
                 else:
                     boostabi = "sysv"
 
-            ldexepath = "/usr/bin/ld"
-            if toolchain:
-                binpath = Path(toolchain) / "bin"
-                plainld = os.path.join(binpath, "ld")
-                if os.path.exists(plainld):
-                    ldexepath = plainld
-                else:
-                    for ldexe in binpath.glob("*-ld"):
-                        ldexepath = os.path.join(binpath, ldexe)
-
-                plaingas = os.path.join(binpath, "as")
-                if os.path.exists(plaingas):
-                    pass
-                else:
-                    for gasexe in binpath.glob("*-as"):
-                        os.path.join(binpath, gasexe)
-
             f.write(f'export LD_LIBRARY_PATH="{ldlibpathsstr}"\n')
             f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
             f.write('export NUMCPUS="$(nproc)"\n')
-            f.write(f"export AS={compilerexe}\n")
-            f.write(f"export ASM={compilerexe}\n")
-            f.write(f"export ASM_ARMASM={compilerexe}\n")
-            f.write(f"export LD={ldexepath}\n")
 
             stdverflag = ""
             if stdver != "":
@@ -464,10 +443,7 @@ class LibraryBuilder:
             else:
                 compilerTypeOrGcc = compilerType
 
-            cxx_flags = f"{compileroptions} -v {archflag} {stdverflag} {stdlibflag} {extraflags}"
-
-            # if target:
-            #     cxx_flags += f" -target {target}"
+            cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
 
             expanded_configure_flags = [
                 self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
@@ -488,15 +464,19 @@ class LibraryBuilder:
                 else:
                     toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
 
-                targetparam = ""
+                targetparams = ""
                 if target:
-                    targetparam = f'"-DBOOST_CONTEXT_ARCHITECTURE={boosttarget}" "-DBOOST_CONTEXT_ABI={boostabi}" "-DCMAKE_SYSTEM_PROCESSOR={shorttarget}" "-DCMAKE_CXX_COMPILER_TARGET={target}" "-DCMAKE_C_COMPILER_TARGET={target}" "-DCMAKE_ASM_COMPILER_TARGET={target}"'
+                    targetparams = f'"-DCMAKE_SYSTEM_PROCESSOR={shorttarget}" "-DCMAKE_CXX_COMPILER_TARGET={target}" "-DCMAKE_C_COMPILER_TARGET={target}" "-DCMAKE_ASM_COMPILER_TARGET={target}"'
+                    if "boost" in self.libid:
+                        targetparams += (
+                            f' "-DBOOST_CONTEXT_ARCHITECTURE={boosttarget}" "-DBOOST_CONTEXT_ABI={boostabi}" '
+                        )
 
                 generator = ""
                 if make_utility == "ninja":
                     generator = "-GNinja"
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparam} -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
