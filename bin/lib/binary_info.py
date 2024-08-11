@@ -36,20 +36,29 @@ class BinaryInfo:
         self._follow_and_readelf()
         self._read_symbols_from_binary()
 
+    def _debug_check_output(self, arr):
+        # self.logger.debug("Executing: %s %s", arr[0], arr[1])
+        return subprocess.check_output(arr).decode("utf-8", "replace")
+
     def _follow_and_readelf(self) -> None:
         self.logger.debug("Readelf on %s", self.filepath)
         if not self.filepath.exists():
             return
 
+        if self.filepath.is_symlink():
+            self.filepath = self.filepath.resolve()
+            self.logger.debug("Was symlink -> readelf on %s", self.filepath)
+
         try:
-            self.readelf_header_details = subprocess.check_output(["readelf", "-h", str(self.filepath)]).decode(
-                "utf-8", "replace"
-            )
-            self.readelf_symbols_details = subprocess.check_output(["readelf", "-W", "-s", str(self.filepath)]).decode(
-                "utf-8", "replace"
-            )
+            self.readelf_header_details = self._debug_check_output(["readelf", "-h", str(self.filepath)])
+            self.readelf_symbols_details = self._debug_check_output(["readelf", "-W", "-s", str(self.filepath)])
             if ".so" in self.filepath.name:
-                self.ldd_details = subprocess.check_output(["ldd", str(self.filepath)]).decode("utf-8", "replace")
+                # pylint: disable=W0702
+                try:
+                    self.ldd_details = self._debug_check_output(["ldd", str(self.filepath)])
+                except:
+                    # some C++ SO's are stubborn and ldd can't read them for some reason, readelf -d sort of gives us the same info
+                    self.ldd_details = self._debug_check_output(["readelf", "-d", str(self.filepath)])
         except subprocess.CalledProcessError:
             try:
                 match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding="utf-8"))

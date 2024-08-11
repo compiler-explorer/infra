@@ -189,6 +189,12 @@ class LibraryBuilder:
                 return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
         return False
 
+    def getSysrootPathFromOptions(self, options):
+        match = re.search(r"--sysroot=(\S*)", options)
+        if match:
+            return match[1]
+        return False
+
     def getStdVerFromOptions(self, options):
         match = re.search(r"-std=(\S*)", options)
         if match:
@@ -391,6 +397,28 @@ class LibraryBuilder:
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
 
+            sysrootpath = self.getSysrootPathFromOptions(compileroptions)
+            sysrootparam = ""
+            if sysrootpath:
+                sysrootparam = f'"-DCMAKE_SYSROOT={sysrootpath}"'
+
+            target = self.getTargetFromOptions(compileroptions)
+            triplearr = target.split("-")
+            shorttarget = ""
+            boosttarget = ""
+            boostabi = ""
+            if len(triplearr) != 0:
+                shorttarget = triplearr[0]
+                if shorttarget == "aarch64":
+                    boosttarget = "arm64"
+                else:
+                    boosttarget = shorttarget
+
+                if "arm" in boosttarget:
+                    boostabi = "aapcs"
+                else:
+                    boostabi = "sysv"
+
             f.write(f'export LD_LIBRARY_PATH="{ldlibpathsstr}"\n')
             f.write(f'export LDFLAGS="{ldflags} {rpathflags}"\n')
             f.write('export NUMCPUS="$(nproc)"\n')
@@ -415,7 +443,7 @@ class LibraryBuilder:
             else:
                 compilerTypeOrGcc = compilerType
 
-            cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {rpathflags} {extraflags}"
+            cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
 
             expanded_configure_flags = [
                 self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
@@ -434,13 +462,21 @@ class LibraryBuilder:
                 if compilerTypeOrGcc == "clang" and "--gcc-toolchain=" not in compileroptions:
                     toolchainparam = ""
                 else:
-                    toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
+                    toolchainparam = f'"-DCMAKE_CXX_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}" "-DCMAKE_C_COMPILER_EXTERNAL_TOOLCHAIN={toolchain}"'
+
+                targetparams = ""
+                if target:
+                    targetparams = f'"-DCMAKE_SYSTEM_PROCESSOR={shorttarget}" "-DCMAKE_CXX_COMPILER_TARGET={target}" "-DCMAKE_C_COMPILER_TARGET={target}" "-DCMAKE_ASM_COMPILER_TARGET={target}"'
+                    if "boost" in self.libid:
+                        targetparams += (
+                            f' "-DBOOST_CONTEXT_ARCHITECTURE={boosttarget}" "-DBOOST_CONTEXT_ABI={boostabi}" '
+                        )
 
                 generator = ""
                 if make_utility == "ninja":
                     generator = "-GNinja"
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} -DCMAKE_BUILD_TYPE={buildtype} {toolchainparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
@@ -823,9 +859,15 @@ class LibraryBuilder:
         annotations["commithash"] = self.get_commit_hash()
 
         for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-            # TODO - this is the same as the original code but I wonder if this needs to be *.so for shared?
             if os.path.exists(os.path.join(buildfolder, f"lib{lib}.a")):
                 bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"))
+                libinfo = bininfo.cxx_info_from_binary()
+                archinfo = bininfo.arch_info_from_binary()
+                annotations["cxx11"] = libinfo["has_maybecxx11abi"]
+                annotations["machine"] = archinfo["elf_machine"]
+                annotations["osabi"] = archinfo["elf_osabi"]
+            elif os.path.exists(os.path.join(buildfolder, f"lib{lib}.so")):
+                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.so"))
                 libinfo = bininfo.cxx_info_from_binary()
                 archinfo = bininfo.arch_info_from_binary()
                 annotations["cxx11"] = libinfo["has_maybecxx11abi"]
