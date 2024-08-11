@@ -23,7 +23,7 @@ sym_grp_name = 6
 
 
 class BinaryInfo:
-    def __init__(self, logger, buildfolder, filepath, expected_stdlib):
+    def __init__(self, logger, buildfolder, filepath):
         self.logger = logger
 
         self.buildfolder = Path(buildfolder)
@@ -32,7 +32,6 @@ class BinaryInfo:
         self.readelf_header_details = ""
         self.readelf_symbols_details = ""
         self.ldd_details = ""
-        self.expected_stdlib = expected_stdlib
 
         self._follow_and_readelf()
         self._read_symbols_from_binary()
@@ -58,13 +57,9 @@ class BinaryInfo:
                 try:
                     self.ldd_details = self._debug_check_output(["ldd", str(self.filepath)])
                 except:
-                    # ldd errors are fine
-                    if self.expected_stdlib == "":
-                        self.ldd_details = "libstdc++.so"
-                    else:
-                        self.ldd_details = f"lib{self.expected_stdlib}.so"
+                    # some C++ SO's are stubborn and ldd can't read them for some reason, readelf -d sort of gives us the same info
+                    self.ldd_details = self._debug_check_output(["readelf", "-d", str(self.filepath)])
         except subprocess.CalledProcessError:
-            self.logger.debug("Error happened?")
             try:
                 match = SO_STRANGE_SYMLINK.match(Path(self.filepath).read_text(encoding="utf-8"))
                 if match:

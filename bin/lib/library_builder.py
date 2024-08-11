@@ -656,7 +656,7 @@ class LibraryBuilder:
         if self.buildconfig.lib_type == "cshared":
             for lib in self.buildconfig.sharedliblink:
                 filepath = os.path.join(buildfolder, f"lib{lib}.so")
-                bininfo = BinaryInfo(self.logger, buildfolder, filepath, stdlib)
+                bininfo = BinaryInfo(self.logger, buildfolder, filepath)
                 if "libstdc++.so" not in bininfo.ldd_details and "libc++.so" not in bininfo.ldd_details:
                     if arch == "":
                         filesfound += 1
@@ -669,7 +669,7 @@ class LibraryBuilder:
         for lib in self.buildconfig.staticliblink:
             filepath = os.path.join(buildfolder, f"lib{lib}.a")
             if os.path.exists(filepath):
-                bininfo = BinaryInfo(self.logger, buildfolder, filepath, stdlib)
+                bininfo = BinaryInfo(self.logger, buildfolder, filepath)
                 cxxinfo = bininfo.cxx_info_from_binary()
                 if (stdlib == "") or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
                     if arch == "":
@@ -683,7 +683,7 @@ class LibraryBuilder:
 
         for lib in self.buildconfig.sharedliblink:
             filepath = os.path.join(buildfolder, f"lib{lib}.so")
-            bininfo = BinaryInfo(self.logger, buildfolder, filepath, stdlib)
+            bininfo = BinaryInfo(self.logger, buildfolder, filepath)
             if (stdlib == "" and "libstdc++.so" in bininfo.ldd_details) or (
                 stdlib != "" and f"{stdlib}.so" in bininfo.ldd_details
             ):
@@ -859,9 +859,15 @@ class LibraryBuilder:
         annotations["commithash"] = self.get_commit_hash()
 
         for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-            # TODO - this is the same as the original code but I wonder if this needs to be *.so for shared?
             if os.path.exists(os.path.join(buildfolder, f"lib{lib}.a")):
-                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"), "")
+                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"))
+                libinfo = bininfo.cxx_info_from_binary()
+                archinfo = bininfo.arch_info_from_binary()
+                annotations["cxx11"] = libinfo["has_maybecxx11abi"]
+                annotations["machine"] = archinfo["elf_machine"]
+                annotations["osabi"] = archinfo["elf_osabi"]
+            elif os.path.exists(os.path.join(buildfolder, f"lib{lib}.so")):
+                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.so"))
                 libinfo = bininfo.cxx_info_from_binary()
                 archinfo = bininfo.arch_info_from_binary()
                 annotations["cxx11"] = libinfo["has_maybecxx11abi"]
