@@ -23,7 +23,7 @@
     "eslint-plugin-unicorn": "^51.0.1"
   },
   "dependencies": {
-    "@aws-sdk/client-apigatewaymanagementapi": "^3.535.0",
-    "@aws-sdk/client-dynamodb": "^3.535.0"
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.629.0",
+    "@aws-sdk/client-dynamodb": "^3.629.0"
   }
 }
