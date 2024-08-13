@@ -2035,6 +2035,7 @@ libraries:
       targets:
       - 0.0.4
       - 1.0.0
+      - 1.1.0
       type: github
     sqlite:
       build_type: make
