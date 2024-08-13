@@ -1922,6 +1922,14 @@ libraries:
         url: https://download.qt.io/official_releases/qt/6.6/6.6.0/submodules/qtbase-everywhere-src-6.6.0.tar.xz
       type: tarballs
       untar_dir: qtbase-everywhere-src-{{name}}
+    quill:
+      build_type: none
+      check_file: quill/include/quill/Backend.h
+      method: clone_branch
+      repo: odygrd/quill
+      targets:
+        - v6.1.1
+      type: github
     raberu:
       check_file: README.md
       repo: jfalcou/raberu
