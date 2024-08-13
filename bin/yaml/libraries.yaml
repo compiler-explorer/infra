@@ -1928,7 +1928,7 @@ libraries:
       method: clone_branch
       repo: odygrd/quill
       targets:
-        - v6.1.0
+        - v6.1.1
       type: github
     raberu:
       check_file: README.md
