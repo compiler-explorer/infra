@@ -1673,8 +1673,6 @@ libraries:
         - trunk
         type: github
       unifex:
-        after_stage_script:
-        - cp {{resource_dir}}/libunifex_config.hpp include/unifex/config.hpp
         build_type: cmake
         make_targets:
         - unifex
