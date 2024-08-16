@@ -448,6 +448,13 @@ libraries:
       targets:
       - 0.6.3
       type: github
+    flux:
+      check_file: README.md
+      repo: tcbrindle/flux
+      target_prefix: v
+      targets:
+      - 0.4.0
+      type: github
     fmt:
       build_type: cmake
       repo: fmtlib/fmt
