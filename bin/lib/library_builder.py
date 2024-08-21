@@ -531,14 +531,17 @@ class LibraryBuilder:
                     f.write("cmake --install . > ceinstall_0.txt 2>&1\n")
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
-                    f.write("make clean\n")
+                    f.write("make clean || /bin/true\n")
                 f.write("rm -f *.so*\n")
                 f.write("rm -f *.a\n")
                 f.write(f'export CXXFLAGS="{cxx_flags}"\n')
                 if self.buildconfig.build_type == "make":
                     configurepath = os.path.join(sourcefolder, "configure")
                     if os.path.exists(configurepath):
-                        f.write(f"./configure {configure_flags} > ceconfiglog.txt 2>&1\n")
+                        if self.buildconfig.package_install:
+                            f.write(f"./configure {configure_flags} --prefix={installfolder} > ceconfiglog.txt 2>&1\n")
+                        else:
+                            f.write(f"./configure {configure_flags} > ceconfiglog.txt 2>&1\n")
 
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
@@ -560,14 +563,18 @@ class LibraryBuilder:
                         f.write(f"{make_utility} {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n")
                         lognum += 1
 
-                    if len(self.buildconfig.staticliblink) != 0:
-                        f.write("libsfound=$(find . -iname 'lib*.a')\n")
-                    elif len(self.buildconfig.sharedliblink) != 0:
-                        f.write("libsfound=$(find . -iname 'lib*.so*')\n")
+                    if not self.buildconfig.package_install:
+                        if len(self.buildconfig.staticliblink) != 0:
+                            f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                        elif len(self.buildconfig.sharedliblink) != 0:
+                            f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
-                    f.write('if [ "$libsfound" = "" ]; then\n')
-                    f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
-                    f.write("fi\n")
+                        f.write('if [ "$libsfound" = "" ]; then\n')
+                        f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                        f.write("fi\n")
+                
+                if self.buildconfig.package_install:
+                    f.write(f"{make_utility} install > ceinstall_0.txt 2>&1\n")
 
             if not self.buildconfig.package_install:
                 for lib in self.buildconfig.staticliblink:
