@@ -569,10 +569,10 @@ class LibraryBuilder:
                         elif len(self.buildconfig.sharedliblink) != 0:
                             f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
-                        f.write('if [ "$libsfound" = "" ]; then\n')
-                        f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
-                        f.write("fi\n")
-                
+                    f.write('if [ "$libsfound" = "" ]; then\n')
+                    f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                    f.write("fi\n")
+
                 if self.buildconfig.package_install:
                     f.write(f"{make_utility} install > ceinstall_0.txt 2>&1\n")
 
