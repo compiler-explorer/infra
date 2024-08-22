@@ -18,6 +18,9 @@ libraries:
       dir: r8-{name}-keepanno
       filename: keepanno-annotations.jar
       targets:
+      - 8.5.35
+      - 8.5.27
+      - 8.5.10
       - 8.3.37
       - 8.3.36
       - 8.2.47

@@ -9,6 +9,9 @@ compilers:
     filename: r8-{name}.jar
     url: https://dl.google.com/android/maven2/com/android/tools/r8/{name}/r8-{name}.jar
     targets:
+      - 8.5.35
+      - 8.5.27
+      - 8.5.10
       - 8.3.37
       - 8.3.36
       - 8.2.47
