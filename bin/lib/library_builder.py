@@ -343,8 +343,10 @@ class LibraryBuilder:
                 time.sleep(1)
 
         return request
-    
-    def expand_build_script_line(self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags):
+
+    def expand_build_script_line(
+        self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags
+    ):
         expanded = line
 
         expanded = self.replace_optional_arg(expanded, "buildos", buildos)
@@ -355,6 +357,7 @@ class LibraryBuilder:
         expanded = self.replace_optional_arg(expanded, "libcxx", libcxx)
         expanded = self.replace_optional_arg(expanded, "arch", arch)
         expanded = self.replace_optional_arg(expanded, "stdver", stdver)
+        expanded = self.replace_optional_arg(expanded, "extraflags", extraflags)
 
         return expanded
 
@@ -509,7 +512,18 @@ class LibraryBuilder:
                 f.write(cmakeline)
 
                 for line in self.buildconfig.prebuild_script:
-                    expanded_line = self.expand_build_script_line(line, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags)
+                    expanded_line = self.expand_build_script_line(
+                        line,
+                        buildos,
+                        buildtype,
+                        compilerTypeOrGcc,
+                        compiler,
+                        compilerexe,
+                        libcxx,
+                        arch,
+                        stdver,
+                        extraflags,
+                    )
                     f.write(f"{expanded_line}\n")
 
                 extramakeargs = " ".join(
@@ -600,7 +614,9 @@ class LibraryBuilder:
                     f.write(f"find . -iname 'lib{lib}*.so*' -type f,l -exec mv {{}} . \\;\n")
 
             for line in self.buildconfig.postbuild_script:
-                expanded_line = self.expand_build_script_line(line, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags)
+                expanded_line = self.expand_build_script_line(
+                    line, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags
+                )
                 f.write(f"{expanded_line}\n")
 
         if self.buildconfig.lib_type == "cshared":
