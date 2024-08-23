@@ -30,6 +30,7 @@ export EDG_DECODE_PATH="$EDG_INSTALL_DIR/bin/edg_decode"
 export EDG_PRELINK_PATH="$EDG_INSTALL_DIR/bin/edg_prelink"
 export ECCP="$EDG_INSTALL_DIR/bin/eccp"
 export EDG_RUNTIME_LIB="edgrt"
+export EDG_C_TO_OBJ_DEFAULT_OPTIONS="-w"
 """
 
 
@@ -42,7 +43,6 @@ export EDG_GCC_INCL_SCRAPE="{scrape_info.cpp_includes}"
 export EDG_GCC_CINCL_SCRAPE="{scrape_info.c_includes}"
 export EDG_CPFE_DEFAULT_OPTIONS="--gnu {scrape_info.version}"
 export EDG_C_TO_OBJ_COMPILER="{gcc}"
-# several variables removed
 
 # Set environment variables related to the compiler explorer configuration.
 export EDG_BASE="$EDG_INSTALL_DIR/base"
