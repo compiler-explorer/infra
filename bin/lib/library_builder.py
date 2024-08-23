@@ -272,6 +272,7 @@ class LibraryBuilder:
         return _supports_x86[cachekey]
 
     def replace_optional_arg(self, arg, name, value):
+        self.logger.debug(f"replace_optional_arg('{arg}', '{name}', '{value}')")
         optional = "%" + name + "?%"
         if optional in arg:
             if value != "":
@@ -342,6 +343,20 @@ class LibraryBuilder:
                 time.sleep(1)
 
         return request
+    
+    def expand_build_script_line(self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags):
+        expanded = line
+
+        expanded = self.replace_optional_arg(expanded, "buildos", buildos)
+        expanded = self.replace_optional_arg(expanded, "buildtype", buildtype)
+        expanded = self.replace_optional_arg(expanded, "compilerTypeOrGcc", compilerTypeOrGcc)
+        expanded = self.replace_optional_arg(expanded, "compiler", compiler)
+        expanded = self.replace_optional_arg(expanded, "compilerexe", compilerexe)
+        expanded = self.replace_optional_arg(expanded, "libcxx", libcxx)
+        expanded = self.replace_optional_arg(expanded, "arch", arch)
+        expanded = self.replace_optional_arg(expanded, "stdver", stdver)
+
+        return expanded
 
     def writebuildscript(
         self,
@@ -494,7 +509,8 @@ class LibraryBuilder:
                 f.write(cmakeline)
 
                 for line in self.buildconfig.prebuild_script:
-                    f.write(f"{line}\n")
+                    expanded_line = self.expand_build_script_line(line, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags)
+                    f.write(f"{expanded_line}\n")
 
                 extramakeargs = " ".join(
                     ["-j$NUMCPUS"]
@@ -584,7 +600,8 @@ class LibraryBuilder:
                     f.write(f"find . -iname 'lib{lib}*.so*' -type f,l -exec mv {{}} . \\;\n")
 
             for line in self.buildconfig.postbuild_script:
-                f.write(f"{line}\n")
+                expanded_line = self.expand_build_script_line(line, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags)
+                f.write(f"{expanded_line}\n")
 
         if self.buildconfig.lib_type == "cshared":
             self.setCurrentConanBuildParameters(

@@ -135,8 +135,15 @@ libraries:
         - all
       sharedliblink:
         - boost_iostreams
+      prebuild_script:
+        - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%
+        - mkdir -p /tmp/zlib
+        - tar xzf zlib.tgz -C /tmp/zlib
+      postbuild_script:
+        - rm -Rf /tmp/zlib
       extra_cmake_arg:
         - -DBUILD_SHARED_LIBS=ON
+        - -DZLIB_ROOT=/tmp/zlib
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
       compression: xz
       targets:
