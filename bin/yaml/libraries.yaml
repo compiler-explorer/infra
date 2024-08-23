@@ -145,6 +145,7 @@ libraries:
       extra_cmake_arg:
         - -DBUILD_SHARED_LIBS=ON
         - -DZLIB_ROOT=/tmp/zlib
+        - --debug
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
       compression: xz
       targets:
