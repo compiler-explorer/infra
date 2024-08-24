@@ -172,3 +172,20 @@ tools:
     url: https://storage.googleapis.com/r8-releases/smali/{name}/{filename}
     targets:
       - 3.0.3
+  bloaty:
+    type: tarballs
+    compression: bz2
+    url: https://github.com/google/bloaty/releases/download/v{name}/bloaty-{name}.tar.bz2
+    dir: bloaty-{name}
+    check_exe: bin/bloaty --help
+    after_stage_script:
+      - mv bloaty-{{name}} bloaty-build
+      - mkdir -p bloaty-{{name}}/bin
+      - cd bloaty-build
+      - mkdir build
+      - cd build
+      - cmake ..
+      - make -j6
+      - mv bloaty ../../bloaty-{{name}}/bin/bloaty
+    targets:
+      - "1.1"
