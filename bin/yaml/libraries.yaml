@@ -143,6 +143,7 @@ libraries:
         - rm -Rf /tmp/zlib
         - readelf -sW ../install/lib/libboost_iostreams.so | c++filt | grep zlib_base
       extra_cmake_arg:
+        - -DCMAKE_FIND_DEBUG_MODE=ON
         - -DBUILD_SHARED_LIBS=ON
         - -DZLIB_ROOT=/tmp/zlib
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
