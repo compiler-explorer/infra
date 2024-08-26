@@ -507,10 +507,6 @@ class LibraryBuilder:
                 if make_utility == "ninja":
                     generator = "-GNinja"
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
-                self.logger.debug(cmakeline)
-                f.write(cmakeline)
-
                 for line in self.buildconfig.prebuild_script:
                     expanded_line = self.expand_build_script_line(
                         line,
@@ -525,6 +521,10 @@ class LibraryBuilder:
                         extraflags,
                     )
                     f.write(f"{expanded_line}\n")
+
+                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                self.logger.debug(cmakeline)
+                f.write(cmakeline)
 
                 extramakeargs = " ".join(
                     ["-j$NUMCPUS"]
