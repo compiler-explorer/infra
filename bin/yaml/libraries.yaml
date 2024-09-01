@@ -380,6 +380,7 @@ libraries:
       build_type: none
       check_file: README.md
       method: clone_branch
+      recursive: false
       repo: electronicarts/EASTL
       targets:
       - 3.12.01
