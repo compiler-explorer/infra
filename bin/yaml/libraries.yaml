@@ -377,6 +377,13 @@ libraries:
       - 2.3.8
       type: github
     eastl:
+      after_stage_script:
+      - mkdir build
+      - cd build
+      - /opt/compiler-explorer/cmake/bin/cmake ..
+      - "[ -e ./_deps ] && cp -r ./_deps/eabase-src/include/Common/EABase ../include/EABase"
+      - cd ..
+      - rm -rf build
       build_type: none
       check_file: README.md
       method: clone_branch
@@ -408,6 +415,7 @@ libraries:
       - 3.17.06
       - 3.18.00
       - 3.21.12
+      - 3.21.23
       type: github
     eigen:
       check_file: README.md
@@ -1206,6 +1214,13 @@ libraries:
         - trunk
         type: github
       eastl:
+        after_stage_script:
+        - mkdir build
+        - cd build
+        - /opt/compiler-explorer/cmake/bin/cmake ..
+        - "[ -e ./_deps ] && cp -r ./_deps/eabase-src/include/Common/EABase ../include/EABase"
+        - cd ..
+        - rm -rf build
         build_type: none
         check_file: README.md
         method: nightlyclone
