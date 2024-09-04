@@ -216,7 +216,7 @@ class LibraryBuilder:
     def getDefaultTargetFromCompiler(self, exe):
         # pylint: disable=W0702
         try:
-            return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore")
+            return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore").strip()
         except:
             return False
 
