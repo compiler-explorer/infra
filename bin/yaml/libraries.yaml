@@ -1945,11 +1945,12 @@ libraries:
       untar_dir: qtbase-everywhere-src-{{name}}
     quill:
       build_type: none
-      check_file: quill/include/quill/Backend.h
+      check_file: README.md
       method: clone_branch
       repo: odygrd/quill
       targets:
         - v6.1.1
+        - v7.0.0
       type: github
     raberu:
       check_file: README.md
