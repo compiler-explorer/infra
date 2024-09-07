@@ -56,7 +56,7 @@ tools:
     untar_dir: glibc-tools-x86_64
     create_untar_dir: true
     targets:
-      - v1.3
+      - v1.4
     url: https://github.com/compiler-explorer/glibc-tools/releases/download/{name}/glibc-tools-x86_64.tar.xz
   iwyu:
     type: s3tarballs
