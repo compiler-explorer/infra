@@ -10,7 +10,7 @@ bash "${DIR}/setup-node.sh"
 apt-get install -y libxml2 kmod "linux-headers-$(uname -r)"
 
 pushd /tmp
-curl -sL https://developer.download.nvidia.com/compute/cuda/12.2.2/local_installers/cuda_12.2.2_535.104.05_linux.run -o install.run
+curl -sL https://developer.download.nvidia.com/compute/cuda/12.6.1/local_installers/cuda_12.6.1_560.35.03_linux.run -o install.run
 sh install.run --silent --driver
 rm install.run
 popd
