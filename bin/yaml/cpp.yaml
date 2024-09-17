@@ -980,6 +980,8 @@ compilers:
           - assertions-17.0.1
           - 18.1.0
           - assertions-18.1.0
+          - 19.1.0
+          - assertions-19.1.0
     clang-hexagon:
       - type: tarballs
         check_exe: x86_64-linux-gnu/bin/clang++ --version
