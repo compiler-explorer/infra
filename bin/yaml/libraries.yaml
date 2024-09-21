@@ -2621,6 +2621,11 @@ libraries:
       targets:
       - 0.10.2
       type: cratesio
+    bumpalo:
+      build_type: cargo
+      targets:
+      - 3.16.0
+      type: cratesio
     byteorder:
       build_type: cargo
       targets:
