@@ -1959,6 +1959,7 @@ libraries:
       targets:
         - v6.1.1
         - v7.0.0
+        - v7.2.1
       type: github
     raberu:
       check_file: README.md
