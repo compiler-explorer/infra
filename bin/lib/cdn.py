@@ -234,6 +234,31 @@ class DeploymentJob:
         self.__s3_put_object_tagging(file["name"], tags)
         return file
 
+    def check_hashes(self):
+        force_lazy_init(s3_client)
+
+        if ".zip" in self.tar_file_path:
+            files = self.__unpack_zip()
+        else:
+            files = self.__unpack_tar()
+
+        with futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            files = list(executor.map(hash_file_for_s3, files))
+
+            files_with_mismatch = []
+            for f in executor.map(self._check_s3_hash, files):
+                if f["exists"]:
+                    if f["mismatch"]:
+                        files_with_mismatch.append(f)
+
+            if files_with_mismatch:
+                logger.error("%d files have mismatching hashes", len(files_with_mismatch))
+                for f in files_with_mismatch:
+                    logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+
+                return False
+            return True
+
     def run(self):
         logger.debug("running with %d workers", self.max_workers)
 

@@ -87,6 +87,54 @@ def deploy_staticfiles(release) -> bool:
             return job.run()
 
 
+def check_staticfiles_for_deployment(release) -> bool:
+    print("Checking static files for cdn deployment")
+    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
+
+    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
+        download_release_fileobj(release.static_key, f)
+        f.flush()
+        with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
+            if job.check_hashes():
+                print("No problems found")
+                return True
+            else:
+                print("New webpackJsHack version number required to deploy static files to cdn")
+                return False
+
+
+@builds.command(name="check_hashes")
+@click.pass_obj
+@click.option("--branch", help="if version == latest, branch to get latest version from")
+@click.option("--raw/--no-raw", help="Set a raw path for a version")
+@click.argument("version")
+def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
+    """Checks the static files for this version."""
+    to_set: Optional[str] = None
+    release: Optional[Release] = None
+    if raw:
+        to_set = version
+    else:
+        setting_latest = version == "latest"
+        release = (
+            find_latest_release(cfg, branch or "")
+            if setting_latest
+            else find_release(cfg, Version.from_string(version))
+        )
+        if not release:
+            print("Unable to find version " + version)
+            if setting_latest and branch != "":
+                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+            sys.exit(1)
+        else:
+            to_set = release.key
+
+    if to_set is not None and release is not None:
+        if release and release.static_key:
+            if not check_staticfiles_for_deployment(release):
+                sys.exit(1)
+
+
 @builds.command(name="set_current")
 @click.pass_obj
 @click.option("--branch", help="if version == latest, branch to get latest version from")
