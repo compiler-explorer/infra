@@ -2519,6 +2519,14 @@ libraries:
       - 0.1.1
       type: github
   fortran:
+    fpm:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: fortran-lang/fpm
+      requires_tree_copy: true
+      targets:
+      - 0.10.1
+      type: github
     http_client:
       build_type: fpm
       check_file: fpm.toml
