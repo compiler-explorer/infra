@@ -15,7 +15,6 @@ apt-get -y install \
     gcc \
     g++ \
     file \
-    gcc-multilib \
     build-essential \
     binutils-multiarch \
     bison \
