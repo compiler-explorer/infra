@@ -9,7 +9,42 @@ cd "${DIR}"
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh" ci
 
-wget -qO- https://get.docker.com/ | sh
+apt-get -y install \
+    software-properties-common \
+    git \
+    gcc \
+    g++ \
+    file \
+    gcc-multilib \
+    build-essential \
+    binutils-multiarch \
+    bison \
+    texinfo \
+    flex \
+    gawk \
+    pkg-config \
+    bzip2 \
+    unzip \
+    curl \
+    wget \
+    openssh-client \
+    autoconf \
+    make \
+    cmake \
+    ninja-build \
+    elfutils \
+    python3-pip \
+    python3.9-venv \
+    python3.9 \
+    xz-utils \
+    linux-libc-dev \
+    libelf-dev \
+    libgmp3-dev \
+    libunwind-dev \
+    libzstd-dev \
+    libdw-dev \
+    libboost-all-dev \
+    zlib1g-dev
 
 ln -s /efs/squash-images /opt/squash-images
 ln -s /efs/compiler-explorer /opt/compiler-explorer
