@@ -9,6 +9,8 @@ cd "${DIR}"
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh" ci
 
+add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
 apt-get -y install \
     software-properties-common \
     git \
