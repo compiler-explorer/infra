@@ -12,8 +12,8 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh" ci
 apt-get -y install \
     software-properties-common \
     git \
-    gcc \
-    g++ \
+    gcc-10 \
+    g++-10 \
     file \
     build-essential \
     binutils-multiarch \
