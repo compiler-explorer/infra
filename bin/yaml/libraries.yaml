@@ -2525,6 +2525,7 @@ libraries:
       check_file: fpm.toml
       repo: fortran-lang/fpm
       requires_tree_copy: true
+      target_prefix: v
       targets:
       - 0.10.1
       type: github
