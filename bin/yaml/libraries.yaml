@@ -2520,7 +2520,7 @@ libraries:
       - 0.1.1
       type: github
   fortran:
-    fpm:
+    libfpm:
       build_type: fpm
       check_file: fpm.toml
       repo: fortran-lang/fpm
