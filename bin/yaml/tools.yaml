@@ -48,7 +48,7 @@ tools:
       - aarch64-v1.3.0
     after_stage_script:
       - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib heaptrack-{name}/bin/heaptrack_print
-  glibc-tools:
+  glibc-tools-x86_64:
     type: tarballs
     compression: xz
     check_exe: tracer --help
@@ -59,6 +59,17 @@ tools:
     targets:
       - v1.4
     url: https://github.com/compiler-explorer/glibc-tools/releases/download/{name}/glibc-tools-x86_64.tar.xz
+  glibc-tools-arm64:
+    type: tarballs
+    compression: xz
+    check_exe: tracer --help
+    symlink: glibc-tools-arm64
+    dir: glibc-tools-arm64-{name}
+    untar_dir: glibc-tools-arm64
+    create_untar_dir: true
+    targets:
+      - v1.5
+    url: https://github.com/compiler-explorer/glibc-tools/releases/download/{name}/glibc-tools-arm64.tar.xz
   iwyu:
     type: s3tarballs
     compression: xz
