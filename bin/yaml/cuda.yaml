@@ -75,3 +75,5 @@ compilers:
         build: 555.42.02
       - name: 12.5.1
         build: 555.42.06
+      - name: 12.6.1
+        build: 560.35.03
