@@ -1,0 +1,10 @@
+compilers:
+  glsl:
+    glslang:
+      type: ziparchive
+      dir: glslang-{name}
+      url: https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-linux-Release.zip
+      folder: bin
+      check_exe: glslang --version
+      targets:
+        - trunk
