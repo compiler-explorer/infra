@@ -412,7 +412,7 @@ libraries:
         - mkdir build
         - cd build
         - /opt/compiler-explorer/cmake/bin/cmake ..
-        - "[ -e ./_deps ] && cp -r ./_deps/eabase-src/include/Common/EABase ../include/EABase"
+        - cp -r ./_deps/eabase-src/include/Common/EABase ../include/EABase
         - cd ..
         - rm -rf build
         name: 3.21.23
@@ -1218,7 +1218,7 @@ libraries:
         - mkdir build
         - cd build
         - /opt/compiler-explorer/cmake/bin/cmake ..
-        - "[ -e ./_deps ] && cp -r ./_deps/eabase-src/include/Common/EABase ../include/EABase"
+        - cp -r ./_deps/eabase-src/include/Common/EABase ../include/EABase
         - cd ..
         - rm -rf build
         build_type: none
