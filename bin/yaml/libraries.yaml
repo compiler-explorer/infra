@@ -1483,6 +1483,13 @@ libraries:
         targets:
         - trunk
         type: github
+      mimicpp:
+        check_file: README.md
+        method: nightlyclone
+        repo: DNKpp/mimicpp
+        targets:
+        - trunk
+        type: github
       mlir:
         check_file: include/mlir/InitAllPasses.h
         path_name: libs/mlir/{name}
