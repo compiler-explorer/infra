@@ -898,6 +898,7 @@ libraries:
       - '3'
       - '2'
       - '1'
+      type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
       path_name: libs/mlir/{name}
