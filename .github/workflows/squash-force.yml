@@ -9,7 +9,7 @@ on:
         required: true
 jobs:
   squash:
-    runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
+    runs-on: [ 'self-hosted', 'ce', 'linux', 'x64' ]
     steps:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
