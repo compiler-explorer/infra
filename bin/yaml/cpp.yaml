@@ -1407,7 +1407,7 @@ compilers:
           - p1974-trunk
           - ericwf-contracts-trunk
           - name: llvmflang-trunk
-            check_exe: bin/flang-new --version
+            check_exe: bin/flang --version
       mlir:
         type: nightly
         dir: "mlir-{name}"
