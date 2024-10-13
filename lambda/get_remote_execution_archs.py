@@ -11,10 +11,14 @@ def lambda_handler(event, _context):
     if "queryStringParameters" in event:
         try:
             jsonp = event["queryStringParameters"]["jsonp"]
+        except KeyError:
+            jsonp = ""
         except TypeError:
             jsonp = ""
         try:
             env = event["queryStringParameters"]["env"]
+        except KeyError:
+            jsonp = ""
         except TypeError:
             env = "prod"
 
