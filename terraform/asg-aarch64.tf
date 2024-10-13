@@ -43,7 +43,7 @@ resource "aws_autoscaling_policy" "aarch64prod-mixed" {
   }
 
   autoscaling_group_name = aws_autoscaling_group.aarch64prod-mixed.name
-  name                   = "aarch64-mq-tracker"
+  name                   = "aarch64prod-mq-tracker"
   policy_type            = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
   target_tracking_configuration {
@@ -58,7 +58,7 @@ resource "aws_autoscaling_policy" "aarch64prod-mixed" {
             metric_name = "ApproximateNumberOfMessagesVisible"
             dimensions {
               name  = "QueueName"
-              value = aws_sqs_queue.execqueue-aarch64-linux-cpu.name
+              value = aws_sqs_queue.prod-execqueue-aarch64-linux-cpu.name
             }
           }
           stat = "Sum"
@@ -129,3 +129,58 @@ resource "aws_autoscaling_group" "aarch64staging-mixed" {
 
   target_group_arns = [aws_alb_target_group.ce["aarch64staging"].arn]
 }
+
+resource "aws_autoscaling_policy" "aarch64staging-mixed" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  autoscaling_group_name = aws_autoscaling_group.aarch64staging-mixed.name
+  name                   = "aarch64staging-mq-tracker"
+  policy_type            = "TargetTrackingScaling"
+  estimated_instance_warmup = local.cooldown
+  target_tracking_configuration {
+    target_value = 3
+    customized_metric_specification {
+      metrics {
+        label = "Get the queue size (the number of messages waiting to be processed)"
+        id    = "m1"
+        metric_stat {
+          metric {
+            namespace   = "AWS/SQS"
+            metric_name = "ApproximateNumberOfMessagesVisible"
+            dimensions {
+              name  = "QueueName"
+              value = aws_sqs_queue.staging-execqueue-aarch64-linux-cpu.name
+            }
+          }
+          stat = "Sum"
+        }
+        return_data = false
+      }
+      metrics {
+        label = "Get the group size (the number of InService instances)"
+        id    = "m2"
+        metric_stat {
+          metric {
+            namespace   = "AWS/AutoScaling"
+            metric_name = "GroupInServiceInstances"
+            dimensions {
+              name  = "AutoScalingGroupName"
+              value = aws_autoscaling_group.aarch64staging-mixed.name
+            }
+          }
+          stat = "Average"
+        }
+        return_data = false
+      }
+      metrics {
+        label       = "Calculate the backlog per instance"
+        id          = "e1"
+        expression  = "m1 / m2"
+        return_data = true
+      }
+    }
+  }
+}
+

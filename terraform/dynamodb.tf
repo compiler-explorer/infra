@@ -151,8 +151,30 @@ resource "aws_dynamodb_table" "events-connections" {
   }
 }
 
-resource "aws_dynamodb_table" "remote-exec-archs" {
-  name = "remote-exec-archs"
+resource "aws_dynamodb_table" "prod-remote-exec-archs" {
+  name = "prod-remote-exec-archs"
+  lifecycle {
+    ignore_changes = [
+      read_capacity,
+      write_capacity
+    ]
+    prevent_destroy = true
+  }
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "triple"
+
+  attribute {
+    name = "triple"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = false
+  }
+}
+
+resource "aws_dynamodb_table" "staging-remote-exec-archs" {
+  name = "staging-remote-exec-archs"
   lifecycle {
     ignore_changes = [
       read_capacity,

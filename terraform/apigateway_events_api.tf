@@ -77,6 +77,37 @@ resource "aws_apigatewayv2_stage" "events_api_stage_prod" {
   }
 }
 
+resource "aws_apigatewayv2_stage" "events_api_stage_staging" {
+  api_id = aws_apigatewayv2_api.events_api.id
+
+  name        = "staging"
+  auto_deploy = true
+
+  default_route_settings {
+    logging_level = "INFO"
+    detailed_metrics_enabled = true
+    data_trace_enabled = true
+  }
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.events_api_log.arn
+
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      sourceIp                = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      protocol                = "$context.protocol"
+      httpMethod              = "$context.httpMethod"
+      resourcePath            = "$context.resourcePath"
+      routeKey                = "$context.routeKey"
+      status                  = "$context.status"
+      responseLength          = "$context.responseLength"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+      }
+    )
+  }
+}
+
 /* logging policy */
 
 data "aws_iam_policy_document" "events_api_logging" {

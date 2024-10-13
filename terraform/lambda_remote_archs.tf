@@ -42,7 +42,7 @@ resource "aws_iam_policy" "lambda_remotearchs_logging" {
 data "aws_iam_policy_document" "aws_dynamodb_remotearchs" {
   statement {
     sid       = "Allow"
-    resources = [aws_dynamodb_table.remote-exec-archs.arn]
+    resources = [aws_dynamodb_table.prod-remote-exec-archs.arn, aws_dynamodb_table.staging-remote-exec-archs.arn]
     actions   = ["dynamodb:Scan"]
   }
 }

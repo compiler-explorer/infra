@@ -278,7 +278,8 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
       "sqs:DeleteMessage"
     ]
     resources = [
-      aws_sqs_queue.execqueue-aarch64-linux-cpu.arn
+      aws_sqs_queue.prod-execqueue-aarch64-linux-cpu.arn,
+      aws_sqs_queue.staging-execqueue-aarch64-linux-cpu.arn,
     ]
   }
 }
