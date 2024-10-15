@@ -183,4 +183,3 @@ resource "aws_autoscaling_policy" "aarch64staging-mixed" {
     }
   }
 }
-
