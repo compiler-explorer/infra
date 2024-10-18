@@ -890,6 +890,15 @@ libraries:
       targets:
       - '4.7'
       type: github
+    mimicpp:
+      check_file: README.md
+      repo: DNKpp/mimicpp
+      target_prefix: v
+      targets:
+      - '3'
+      - '2'
+      - '1'
+      type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
       path_name: libs/mlir/{name}
@@ -1472,6 +1481,13 @@ libraries:
         check_file: include/magic_enum.hpp
         method: nightlyclone
         repo: Neargye/magic_enum
+        targets:
+        - trunk
+        type: github
+      mimicpp:
+        check_file: README.md
+        method: nightlyclone
+        repo: DNKpp/mimicpp
         targets:
         - trunk
         type: github
