@@ -1403,6 +1403,7 @@ compilers:
           - p3309-trunk
           - p3367-trunk
           - p3372-trunk
+          - p3412-trunk
           - dascandy-contracts-trunk
           - p1974-trunk
           - ericwf-contracts-trunk
