@@ -18,7 +18,8 @@ compilers:
       -   ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
       - fi
     targets:
-      - 1.13.1
+      - 1.14.0
+      - 1.13.3
       - 1.12.2
       - 1.11.1
       - 1.10.1
