@@ -5,6 +5,7 @@ compilers:
       fetch: https://github.com/Cr0a3/ygen/archive/refs/heads/main.zip
       script: |
         cd ygen-main
+        sudo apt install rust -y
         cargo build --all --release
         cd ..
         mkdir -p ygen/bin
