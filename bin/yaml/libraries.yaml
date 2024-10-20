@@ -1019,7 +1019,7 @@ libraries:
         build_type: none
         check_file: README.md
         type: github
-        repo: beman-project/Optional26
+        repo: beman-project/optional26
         method: nightlyclone
         targets:
         - main
