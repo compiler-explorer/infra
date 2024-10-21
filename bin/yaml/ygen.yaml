@@ -2,15 +2,10 @@ compilers:
   ygen:
     ylc:
       type: ziparchive
-      fetch: https://github.com/Cr0a3/ygen/archive/refs/heads/main.zip
+      fetch: https://github.com/Cr0a3/ygen/tree/build
       script: |
-        cd ygen-main
-        sudo apt install rust -y
-        cargo build --all --release
-        cd ..
-        mkdir -p ygen/bin
-        cp ygen-main/target/release/ylc ygen/bin
-      check_exe: ylc --version
+        cp ygen-build/ygen-build/* ygen/*
+      check_exe: ylc --version --in="abc"
       dir: ygen/bin
       targets:
         - newest
