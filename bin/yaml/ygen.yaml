@@ -7,6 +7,7 @@ compilers:
       always_install: true
       dir: ygen
       folder: ygen-build
+      check_exe: bin/ylc --version
 
       targets:
         - newest
