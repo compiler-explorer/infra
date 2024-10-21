@@ -2,10 +2,11 @@ compilers:
   ygen:
     ylc:
       type: ziparchive
-      fetch: https://github.com/Cr0a3/ygen/tree/build
-      script: |
-        cp ygen-build/ygen-build/* ygen/*
-      check_exe: ylc --version --in="abc"
-      dir: ygen/bin
+      url: https://github.com/Cr0a3/ygen/archive/refs/heads/build.zip
+
+      always_install: true
+      dir: ygen
+      folder: ygen-build
+
       targets:
         - newest
