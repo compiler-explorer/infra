@@ -2,7 +2,7 @@ compilers:
   ygen:
     ylc:
       if: nightly
-      always_install: true
+      install_always: true
 
       type: ziparchive
       url: https://github.com/Cr0a3/ygen/archive/refs/heads/build.zip
