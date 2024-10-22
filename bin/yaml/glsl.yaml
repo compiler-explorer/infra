@@ -3,6 +3,8 @@ compilers:
     glslang:
       type: ziparchive
       dir: glslang-{name}
+      if: nightly
+      install_always: true
       url: https://github.com/KhronosGroup/glslang/releases/download/main-tot/glslang-main-linux-Release.zip
       folder: bin
       check_exe: glslang --version
