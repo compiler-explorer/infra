@@ -1,10 +1,12 @@
 compilers:
   ygen:
     ylc:
+      if: nightly
+      always_install: true
+
       type: ziparchive
       url: https://github.com/Cr0a3/ygen/archive/refs/heads/build.zip
 
-      always_install: true
       dir: ygen
       folder: ygen-build
       check_exe: bin/ylc --version
