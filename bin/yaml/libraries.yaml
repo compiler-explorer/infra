@@ -2692,6 +2692,7 @@ libraries:
       build_type: cargo
       targets:
       - 3.1.18
+      - 4.5.20
       type: cratesio
     color-eyre:
       build_type: cargo
