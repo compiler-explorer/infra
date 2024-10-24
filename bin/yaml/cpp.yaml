@@ -608,6 +608,8 @@ compilers:
               url: https://github.com/kalray/build-scripts/releases/download/v{name}/gcc-kalray-kvx-ubuntu-20.04-v{name}.tar.gz
             - name: 5.0.0
               url: https://github.com/kalray/build-scripts/releases/download/v{name}/gcc-kalray-kvx-ubuntu-22.04-v{name}.tar.gz
+            - name: 5.2.0
+              url: https://github.com/kalray/build-scripts/releases/download/v{name}/gcc-kalray-kvx-ubuntu-22.04-v{name}.tar.gz
 
         s390x:
           arch_prefix: "{subdir}-ibm-linux-gnu"
