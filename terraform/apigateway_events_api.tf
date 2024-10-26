@@ -38,7 +38,6 @@ resource "aws_apigatewayv2_route" "events_api_connect" {
   api_id    = aws_apigatewayv2_api.events_api.id
   route_key = "$connect"
   target    = "integrations/${aws_apigatewayv2_integration.events_api_connect.id}"
-  authorization_type = "AWS_IAM"
 }
 
 resource "aws_apigatewayv2_route" "events_api_disconnect" {
