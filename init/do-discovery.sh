@@ -17,7 +17,7 @@ sudo chmod og+rx /home/ce
 
 # shellcheck disable=SC2086
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
-    /opt/compiler-explorer/node/bin/node \
+    /opt/node/bin/node \
     -- app.js \
     --discoveryonly=/home/ce/discovered-compilers.json \
     --env amazon \
