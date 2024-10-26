@@ -7,7 +7,7 @@ resource "aws_autoscaling_group" "aarch64prod-mixed" {
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
   max_size                  = 6
-  min_size                  = 0
+  min_size                  = 1
   name                      = "aarch64prod"
   vpc_zone_identifier       = local.subnets
 
