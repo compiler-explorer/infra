@@ -1024,6 +1024,14 @@ libraries:
         targets:
         - trunk
         type: github
+      beman_iterator:
+        build_type: none
+        check_file: README.md
+        type: github
+        repo: beman-project/iterator_interface
+        method: nightlyclone
+        targets:
+        - main
       beman_optional26:
         build_type: none
         check_file: README.md
