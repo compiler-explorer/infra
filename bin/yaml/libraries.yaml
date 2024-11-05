@@ -924,6 +924,7 @@ libraries:
       - v2.1.0
       - v2.2.0
       - v2.3.0
+      - v2.4.0
       type: github
     nightly:
       abseil:
