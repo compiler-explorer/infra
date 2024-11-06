@@ -912,7 +912,7 @@ libraries:
     mp-units:
       check_file: README.md
       method: clone_branch
-      repo: mpusz/units
+      repo: mpusz/mp-units
       targets:
       - v0.3.1
       - v0.4.0
@@ -924,6 +924,7 @@ libraries:
       - v2.1.0
       - v2.2.0
       - v2.3.0
+      - v2.4.0
       type: github
     nightly:
       abseil:
@@ -1519,7 +1520,7 @@ libraries:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        repo: mpusz/units
+        repo: mpusz/mp-units
         targets:
         - trunk
         type: github
