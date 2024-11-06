@@ -2327,7 +2327,6 @@ libraries:
       check_file: README.md
       method: clone_branch
       repo: Eczbek/xieite
-      branch: header
       targets:
       - header
       type: github
