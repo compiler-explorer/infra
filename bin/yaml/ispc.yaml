@@ -41,4 +41,3 @@ compilers:
       type: nightly
       targets:
         - trunk
-        - templates_new-trunk
