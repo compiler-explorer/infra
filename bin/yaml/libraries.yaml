@@ -1024,7 +1024,7 @@ libraries:
         targets:
         - trunk
         type: github
-      beman_iterator:
+      beman_iterator_interface:
         build_type: none
         check_file: README.md
         type: github
