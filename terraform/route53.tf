@@ -64,6 +64,15 @@ resource "aws_route53_record" "dkim-godbolt-org" {
   ]
 }
 
+// Bluesky for the Matt
+resource "aws_route53_record" "atproto-matt-godbolt-org" {
+  name    = "_atproto.matt"
+  zone_id = module.godbolt-org.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["did=did:plc:vbbhrlxqrokfgnvuppfyeir5"]
+}
+
 
 ////////////////////////////////////////////////////
 
@@ -80,6 +89,15 @@ resource "aws_route53_record" "gh-compiler-explorer-com" {
   ttl     = 3600
   type    = "TXT"
   records = ["a5417612c3"]
+}
+
+// Bluesky for the CE account
+resource "aws_route53_record" "atproto-compiler-explorer-com" {
+  name    = "_atproto"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["did=did:plc:pz3zlp6rmegaiifji2scmyi2"]
 }
 
 resource "aws_ses_domain_identity" "compiler-explorer-com" {
