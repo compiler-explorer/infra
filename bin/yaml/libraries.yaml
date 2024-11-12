@@ -1025,8 +1025,16 @@ libraries:
         targets:
         - trunk
         type: github
-      beman_iterator:
-        build_type: none
+      beman_iterator_interface:
+        build_type: cmake
+        extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+        package_install: true
+        lib_type: static
+        staticliblink:
+        - beman.iterator_interface
+        after_stage_script:
+        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
         check_file: README.md
         type: github
         repo: beman-project/iterator_interface
