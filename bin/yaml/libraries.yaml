@@ -2333,7 +2333,7 @@ libraries:
     xieite:
       build_type: none
       check_file: README.md
-      method: clone_branch
+      method: nightlybranch
       repo: Eczbek/xieite
       targets:
       - header
