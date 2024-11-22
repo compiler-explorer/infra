@@ -1997,6 +1997,7 @@ libraries:
         - v7.0.0
         - v7.2.1
         - v7.3.0
+        - v7.5.0
       type: github
     raberu:
       check_file: README.md
