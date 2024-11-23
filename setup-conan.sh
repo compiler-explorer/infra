@@ -62,6 +62,9 @@ tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
 mv node-${NODE_VERSION}-linux-x64 node
 chown -Rf root:root node
 
+# quick smoke test of this node version
+node/bin/node --version
+
 # setup daemon
 cp /home/ubuntu/infra/init/ce-conan.service /lib/systemd/system/ce-conan.service
 systemctl daemon-reload
