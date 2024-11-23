@@ -3,7 +3,7 @@
 set -ex
 
 CE_USER=ce
-NODE_VERSION="v16.19.1"
+NODE_VERSION="v22.11.0"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${DIR}"
 
