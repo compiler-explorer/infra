@@ -12,3 +12,4 @@ node_modules
 /.dist
 /.poetry
 /.venv
+.pytest_cache
