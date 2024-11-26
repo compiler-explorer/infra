@@ -90,6 +90,11 @@ class Installable:
         if self.install_path_symlink:
             self._check_link = partial(self.install_context.check_link, self.install_path, self.install_path_symlink)
 
+        self.resolve_dependencies(resolve_deps)
+
+    def resolve_dependencies(self, resolver: Callable[[str], str]) -> None:
+        pass
+
     @staticmethod
     def resolve(installables: list[Installable]) -> None:
         installables_by_name = {installable.name: installable for installable in installables}

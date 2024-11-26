@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any
+from typing import Dict, Any, Callable
 
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
@@ -19,7 +19,10 @@ class PipInstallable(Installable):
     def stage(self, staging: StagingDir) -> None:
         venv = staging.path / self.install_path
         self.install_context.check_output([self.python, "-mvenv", str(venv)])
-        self.install_context.check_output([str(venv / "bin" / "pip"), "install", self.package])
+        packages = self.package
+        if isinstance(packages, str):
+            packages = [packages]
+        self.install_context.check_output([str(venv / "bin" / "pip"), "install", *packages])
 
     def verify(self) -> bool:
         if not super().verify():
@@ -41,6 +44,9 @@ class PipInstallable(Installable):
                 self.install_context.check_output([str(mv_script), str(source), str(dest)])
 
             self.install_context.move_from_staging(staging, self.install_path, do_staging_move=mv_venv)
+
+    def resolve_dependencies(self, resolver: Callable[[str], str]) -> None:
+        self.python = resolver(self.python)
 
     def __repr__(self) -> str:
         return f"PipInstallable({self.name}, {self.install_path})"
