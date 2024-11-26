@@ -28,6 +28,21 @@ libraries:
       - 8.2.33
       type: singleFile
       url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
+    androidx-annotation:
+      check_file: annotation-jvm.jar
+      dir: androidx-annotation-{name}
+      filename: annotation-jvm.jar
+      targets:
+      - 1.9.1
+      - 1.9.0
+      - 1.8.2
+      - 1.8.1
+      - 1.8.0
+      - 1.7.1
+      - 1.7.0
+      - 1.6.0
+      type: singleFile
+      url: https://dl.google.com/android/maven2/androidx/annotation/annotation-jvm/{name}/annotation-jvm-{name}.jar
   c:
     cs50:
       build_type: manual
