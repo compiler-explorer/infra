@@ -247,6 +247,23 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
   }
 }
 
+resource "aws_iam_policy" "ScanLibraryBuildHistory" {
+  name        = "ScanLibraryBuildHistory"
+  description = "Can create and list short links for compiler explorer"
+  policy      = data.aws_iam_policy_document.ScanLibraryBuildHistory.json
+}
+
+data "aws_iam_policy_document" "ScanLibraryBuildHistory" {
+  statement {
+    sid = "ScanLibraryBuildHistory"
+    actions = [
+      "dynamodb:Scan",
+      "dynamodb:Query"
+    ]
+    resources = [aws_dynamodb_table.library-build-history.arn]
+  }
+}
+
 resource "aws_iam_policy" "CeModifyStoredState" {
   name        = "CeModifyStoredState"
   description = "Can create and list short links for compiler explorer"
@@ -363,6 +380,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_WriteComp
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CeSqsPushPop" {
   role       = aws_iam_role.CompilerExplorerRole.name
   policy_arn = aws_iam_policy.CeSqsPushPop.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ScanLibraryBuildHistory" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.ScanLibraryBuildHistory.arn
 }
 
 // CompilerExplorerRole but for Windows machines
