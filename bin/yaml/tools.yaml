@@ -104,8 +104,10 @@ tools:
       - latest
   osaca:
     type: pip
+    depends:
+      - compilers/python 3.13.0
     dir: osaca-{name}
-    python: /usr/bin/python3.8
+    python: '%DEP0%/bin/python3'
     package: osaca=={name}
     check_exe: bin/osaca --version
     targets:
