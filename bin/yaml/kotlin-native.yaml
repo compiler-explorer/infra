@@ -45,3 +45,6 @@ compilers:
       filename: kotlin-native-prebuilt-linux-x86_64-{name}
       targets:
         - 2.0.0
+        - 2.0.10
+        - 2.0.20
+        - 2.0.21
