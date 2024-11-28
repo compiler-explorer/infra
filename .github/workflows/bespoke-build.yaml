@@ -25,6 +25,7 @@ on:
         - heaptrack
         - ispc
         - iwyu
+        - lfortran
         - mads
         - nasm
         - ocaml
