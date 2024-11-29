@@ -248,20 +248,6 @@ libraries:
       targets:
       - 5.5.2
       type: github
-    clad:
-      build_type: cmake
-      depends:
-      - libraries/c++/llvm 18.1.0
-      extra_cmake_arg:
-      - -DCMAKE_BUILD_TYPE=Release
-      - -DLLVM_DIR=/opt/compiler-explorer/libs/llvm/18.1.0/build
-      package_install: true
-      repo: vgvassilev/clad
-      target_prefix: v
-      targets:
-      - '1.7'
-      type: github
-      use_compiler: clang1810
     cli11:
       build_type: none
       check_file: include/CLI/CLI.hpp
