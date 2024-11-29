@@ -13,21 +13,6 @@ libraries:
       targets:
       - '11662386'
       type: script
-    r8-keep-annotations:
-      check_file: keepanno-annotations.jar
-      dir: r8-{name}-keepanno
-      filename: keepanno-annotations.jar
-      targets:
-      - 8.5.35
-      - 8.5.27
-      - 8.5.10
-      - 8.3.37
-      - 8.3.36
-      - 8.2.47
-      - 8.2.42
-      - 8.2.33
-      type: singleFile
-      url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
     androidx-annotation:
       check_file: annotation-jvm.jar
       dir: androidx-annotation-{name}
@@ -43,6 +28,21 @@ libraries:
       - 1.6.0
       type: singleFile
       url: https://dl.google.com/android/maven2/androidx/annotation/annotation-jvm/{name}/annotation-jvm-{name}.jar
+    r8-keep-annotations:
+      check_file: keepanno-annotations.jar
+      dir: r8-{name}-keepanno
+      filename: keepanno-annotations.jar
+      targets:
+      - 8.5.35
+      - 8.5.27
+      - 8.5.10
+      - 8.3.37
+      - 8.3.36
+      - 8.2.47
+      - 8.2.42
+      - 8.2.33
+      type: singleFile
+      url: https://storage.googleapis.com/r8-releases/raw/{name}/keepanno-annotations.jar
   c:
     cs50:
       build_type: manual
@@ -130,42 +130,42 @@ libraries:
       untar_dir: boost_{{underscore_name}}
       url: https://archives.boost.io/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
     boost_bin:
-      type: tarballs
-      check_file: CMakeLists.txt
-      subdir: boost-{{name}}
-      dir: libs/boost-{{name}}
-      untar_dir: boost-{{name}}
-      build_type: cmake
-      package_install: true
-      lib_type: shared
       after_stage_script:
-        - shopt -s globstar
-        - for i in **/CMakeLists.txt; do
-        -   sed -i 's/-Werror/-Wno-error/g' "$i"
-        - done
-        - for i in **/*.cmake; do
-        -   sed -i 's/-Werror/-Wno-error/g' "$i"
-        - done
-      make_targets:
-        - all
-      sharedliblink:
-        - boost_iostreams
-      prebuild_script:
-        - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%
-        - mkdir -p /tmp/zlib
-        - tar xzf zlib.tgz -C /tmp/zlib
-      postbuild_script:
-        - rm -Rf /tmp/zlib
-        - readelf -sW ../install/lib/libboost_iostreams.so | c++filt | grep zlib_base
-      extra_cmake_arg:
-        - -DCMAKE_FIND_DEBUG_MODE=ON
-        - -DBUILD_SHARED_LIBS=ON
-        - -DZLIB_ROOT=/tmp/zlib
-      url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
+      - shopt -s globstar
+      - for i in **/CMakeLists.txt; do
+      - sed -i 's/-Werror/-Wno-error/g' "$i"
+      - done
+      - for i in **/*.cmake; do
+      - sed -i 's/-Werror/-Wno-error/g' "$i"
+      - done
+      build_type: cmake
+      check_file: CMakeLists.txt
       compression: xz
+      dir: libs/boost-{{name}}
+      extra_cmake_arg:
+      - -DCMAKE_FIND_DEBUG_MODE=ON
+      - -DBUILD_SHARED_LIBS=ON
+      - -DZLIB_ROOT=/tmp/zlib
+      lib_type: shared
+      make_targets:
+      - all
+      package_install: true
+      postbuild_script:
+      - rm -Rf /tmp/zlib
+      - readelf -sW ../install/lib/libboost_iostreams.so | c++filt | grep zlib_base
+      prebuild_script:
+      - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%
+      - mkdir -p /tmp/zlib
+      - tar xzf zlib.tgz -C /tmp/zlib
+      sharedliblink:
+      - boost_iostreams
+      subdir: boost-{{name}}
       targets:
-        - 1.85.0
-        - 1.86.0
+      - 1.85.0
+      - 1.86.0
+      type: tarballs
+      untar_dir: boost-{{name}}
+      url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
     brigand:
       check_file: README.md
       method: clone_branch
@@ -249,19 +249,19 @@ libraries:
       - 5.5.2
       type: github
     clad:
-      type: github
-      repo: vgvassilev/clad
       build_type: cmake
+      depends:
+      - libraries/c++/llvm 18.1.0
       extra_cmake_arg:
       - -DCMAKE_BUILD_TYPE=Release
       - -DLLVM_DIR=/opt/compiler-explorer/libs/llvm/18.1.0/build
-      use_compiler: clang1810
-      depends:
-      - libraries/c++/llvm 18.1.0
       package_install: true
+      repo: vgvassilev/clad
       target_prefix: v
       targets:
-        - 1.7
+      - '1.7'
+      type: github
+      use_compiler: clang1810
     cli11:
       build_type: none
       check_file: include/CLI/CLI.hpp
@@ -1055,29 +1055,29 @@ libraries:
         - trunk
         type: github
       beman_iterator_interface:
-        build_type: cmake
-        extra_cmake_arg:
-        - -DBUILD_TESTING=OFF
-        package_install: true
-        lib_type: static
-        staticliblink:
-        - beman.iterator_interface
         after_stage_script:
         - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+        build_type: cmake
         check_file: README.md
-        type: github
-        repo: beman-project/iterator_interface
+        extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+        lib_type: static
         method: nightlyclone
+        package_install: true
+        repo: beman-project/iterator_interface
+        staticliblink:
+        - beman.iterator_interface
         targets:
         - main
+        type: github
       beman_optional26:
         build_type: none
         check_file: README.md
-        type: github
-        repo: beman-project/optional26
         method: nightlyclone
+        repo: beman-project/optional26
         targets:
         - main
+        type: github
       benchmark:
         build_type: cmake
         check_file: README.md
@@ -1919,6 +1919,13 @@ libraries:
       type: tarballs
       untar_dir: openssl-OpenSSL_{name}
       url: https://github.com/openssl/openssl/archive/OpenSSL_{name}.tar.gz
+    option:
+      check_file: README.md
+      repo: NUCLEAR-BOMB/option
+      target_prefix: v
+      targets:
+      - 1.3.1
+      type: github
     pcre2:
       build_type: cmake
       check_file: README.md
@@ -2022,11 +2029,11 @@ libraries:
       method: clone_branch
       repo: odygrd/quill
       targets:
-        - v6.1.1
-        - v7.0.0
-        - v7.2.1
-        - v7.3.0
-        - v7.5.0
+      - v6.1.1
+      - v7.0.0
+      - v7.2.1
+      - v7.3.0
+      - v7.5.0
       type: github
     raberu:
       check_file: README.md
@@ -2308,6 +2315,14 @@ libraries:
       targets:
       - 3.2.3
       type: github
+    xieite:
+      build_type: none
+      check_file: README.md
+      method: nightlybranch
+      repo: Eczbek/xieite
+      targets:
+      - header
+      type: github
     xsimd:
       check_file: README.md
       repo: xtensor-stack/xsimd
@@ -2347,34 +2362,19 @@ libraries:
     zlib:
       build_type: make
       check_file: configure
-      type: tarballs
       compression: gz
-      url: https://www.zlib.net/zlib-{name}.tar.gz
       dir: libs/zlib/{name}
-      untar_dir: zlib-{name}
       lib_type: static
-      package_install: true
       make_targets:
       - all
-      targets:
-      - 1.3.1
+      package_install: true
       staticliblink:
       - z
-    xieite:
-      build_type: none
-      check_file: README.md
-      method: nightlybranch
-      repo: Eczbek/xieite
-      targets:
-      - header
-      type: github
-    option:
-      check_file: README.md
-      repo: NUCLEAR-BOMB/option
-      target_prefix: v
       targets:
       - 1.3.1
-      type: github
+      type: tarballs
+      untar_dir: zlib-{name}
+      url: https://www.zlib.net/zlib-{name}.tar.gz
   cuda:
     cccl:
       check_file: README.md
@@ -2395,6 +2395,16 @@ libraries:
       repo: NVIDIA/cub
       targets:
       - 1.8.0
+      type: github
+    matx:
+      check_file: README.md
+      method: clone_branch
+      repo: NVIDIA/MatX
+      target_prefix: v
+      targets:
+      - 0.9.0
+      - 0.8.0
+      - 0.7.0
       type: github
     nightly:
       cccl:
@@ -2441,16 +2451,6 @@ libraries:
         targets:
         - trunk
         type: github
-    matx:
-      check_file: README.md
-      method: clone_branch
-      repo: NVIDIA/MatX
-      target_prefix: v
-      targets:
-      - 0.9.0
-      - 0.8.0
-      - 0.7.0
-      type: github
     nvtx:
       check_file: c/include/nvtx3/nvToolsExt.h
       method: clone_branch
@@ -2611,15 +2611,6 @@ libraries:
       - 0.1.1
       type: github
   fortran:
-    libfpm:
-      build_type: fpm
-      check_file: fpm.toml
-      repo: fortran-lang/fpm
-      requires_tree_copy: true
-      target_prefix: v
-      targets:
-      - 0.10.1
-      type: github
     http_client:
       build_type: fpm
       check_file: fpm.toml
@@ -2641,6 +2632,15 @@ libraries:
       requires_tree_copy: true
       targets:
       - 8.3.0
+      type: github
+    libfpm:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: fortran-lang/fpm
+      requires_tree_copy: true
+      target_prefix: v
+      targets:
+      - 0.10.1
       type: github
     nightly:
       forcompile:
