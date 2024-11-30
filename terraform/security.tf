@@ -249,7 +249,7 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
 
 resource "aws_iam_policy" "ScanLibraryBuildHistory" {
   name        = "ScanLibraryBuildHistory"
-  description = "Can create and list short links for compiler explorer"
+  description = "Can scan/query library build history"
   policy      = data.aws_iam_policy_document.ScanLibraryBuildHistory.json
 }
 
@@ -259,6 +259,23 @@ data "aws_iam_policy_document" "ScanLibraryBuildHistory" {
     actions = [
       "dynamodb:Scan",
       "dynamodb:Query"
+    ]
+    resources = [aws_dynamodb_table.library-build-history.arn]
+  }
+}
+
+resource "aws_iam_policy" "UpdateLibraryBuildHistory" {
+  name        = "UpdateLibraryBuildHistory"
+  description = "Can update library build history"
+  policy      = data.aws_iam_policy_document.UpdateLibraryBuildHistory.json
+}
+
+data "aws_iam_policy_document" "UpdateLibraryBuildHistory" {
+  statement {
+    sid = "UpdateLibraryBuildHistory"
+    actions = [
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem"
     ]
     resources = [aws_dynamodb_table.library-build-history.arn]
   }
@@ -476,6 +493,11 @@ resource "aws_iam_instance_profile" "Builder" {
 resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.Builder.name
   policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "Builder_attach_UpdateLibraryBuildHistory" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
 }
 
 data "aws_iam_policy_document" "CeBuilderStorageAccess" {
