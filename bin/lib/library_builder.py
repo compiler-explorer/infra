@@ -18,6 +18,7 @@ from urllib3.exceptions import ProtocolError
 
 import requests
 
+from bin.lib.library_build_history import LibraryBuildHistory
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
 from lib.binary_info import BinaryInfo
@@ -116,6 +117,8 @@ class LibraryBuilder:
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
         self.current_commit_hash = ""
+
+        self.history = LibraryBuildHistory(self.logger)
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -833,7 +836,13 @@ class LibraryBuilder:
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy["logging"] = logging_data + "\n\n" + extralogtext
-        buildparameters_copy["commithash"] = self.get_commit_hash()
+        commit_hash = self.get_commit_hash()
+        buildparameters_copy["commithash"] = commit_hash
+
+        if builtok == BuildStatus.Ok:
+            self.history.success(self.current_buildparameters_obj, commit_hash)
+        elif builtok != BuildStatus.Skipped:
+            self.history.failed(self.current_buildparameters_obj, commit_hash)
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
