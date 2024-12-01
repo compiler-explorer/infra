@@ -3,8 +3,8 @@ data "aws_sns_topic" "alert" {
 }
 
 locals {
-  approx_monthly_budget = 2200
-  alert_every           = 200
+  approx_monthly_budget = 3000
+  alert_every           = 250
 }
 
 resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
@@ -93,7 +93,6 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
     label       = "Error rate (assuming we have enough traffic)"
     return_data = true
   }
-
 
   metric_query {
     id = "error_rate"
