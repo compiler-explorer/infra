@@ -1,11 +1,9 @@
-
 from typing import Any, Dict
 from lib.amazon import dynamodb_client
 
+
 class LibraryBuildHistory:
-    def __init__(
-        self,
-        logger):
+    def __init__(self, logger):
         self.logger = logger
 
     def get_lib_key(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
@@ -34,9 +32,5 @@ class LibraryBuildHistory:
     def insert(self, lib_key: str, compiler_key: str, success: bool):
         dynamodb_client.put_item(
             TableName="library-build-history",
-            Item={
-                "library": {"S": lib_key},
-                "compiler": {"S": compiler_key},
-                "success": {"BOOL": success}
-            },
+            Item={"library": {"S": lib_key}, "compiler": {"S": compiler_key}, "success": {"BOOL": success}},
         )
