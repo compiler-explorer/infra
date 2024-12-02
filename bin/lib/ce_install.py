@@ -3,6 +3,7 @@
 import logging
 import logging.config
 import multiprocessing
+from multiprocessing.pool import ThreadPool
 import os
 import signal
 import sys
@@ -34,9 +35,9 @@ class CliContext:
 
     def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
         # https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
-        _LOGGER.info("Creating multiprocessing pool with %s workers", self.parallel)
+        _LOGGER.info("Creating thread pool with %s workers", self.parallel)
         original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        pool = multiprocessing.Pool(processes=self.parallel)
+        pool = ThreadPool(processes=self.parallel)
         signal.signal(signal.SIGINT, original_sigint_handler)
         return pool
 

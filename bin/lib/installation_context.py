@@ -16,8 +16,7 @@ from typing import Optional, Iterator, Dict, IO, Sequence, Union, Collection, Li
 import requests
 import requests.adapters
 import yaml
-from cachecontrol import CacheControl
-from cachecontrol.caches import FileCache
+import requests_cache
 
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.staging import StagingDir
@@ -66,15 +65,14 @@ class InstallationContext:
         )
         self.allow_unsafe_ssl = allow_unsafe_ssl
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
-        http = requests.Session()
-        http.mount("https://", adapter)
-        http.mount("http://", adapter)
         if cache:
             _LOGGER.info("Using cache %s", cache)
-            self.fetcher = CacheControl(http, cache=FileCache(cache))
+            self.fetcher = requests_cache.CachedSession(cache)
         else:
             _LOGGER.info("Making uncached requests")
-            self.fetcher = http
+            self.fetcher = requests.Session()
+        self.fetcher.mount("https://", adapter)
+        self.fetcher.mount("http://", adapter)
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
         self.run_checks_as_user = check_user
