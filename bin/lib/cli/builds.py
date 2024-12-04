@@ -9,7 +9,6 @@ from typing import Optional, Dict, Sequence
 
 import click
 import requests
-from lib.cli.runner import runner_discoveryexists
 
 from lib.amazon import (
     download_release_file,
@@ -34,7 +33,8 @@ from lib.amazon import (
 from lib.cdn import DeploymentJob
 from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
 from lib.cli import cli
-from lib.env import Config
+from lib.cli.runner import runner_discoveryexists
+from lib.env import Config, Environment
 from lib.releases import Version, Release, VersionSource
 
 
@@ -293,3 +293,16 @@ def builds_lock(cfg: Config):
 def builds_unlock(cfg: Config):
     """Unlock version bounce for the specified env."""
     delete_bouncelock_file(cfg)
+
+
+@builds.command(name="diff")
+@click.option("--dest-env", help="env to compare with", default=Environment.PROD.value)
+@click.pass_obj
+def builds_diff(cfg: Config, dest_env: str):
+    """Opens a URL that diffs changes from this environment and another."""
+    releases = get_releases(cfg)
+    (current,) = [x for x in releases if x.key == get_current_key(cfg)]
+    (dest,) = [x for x in releases if x.key == get_current_key(Config(env=Environment(dest_env)))]
+    url = f"https://github.com/compiler-explorer/compiler-explorer/compare/{dest.version}...{current.version}"
+    print(f"Opening {url}")
+    os.system(f"open {url}")
