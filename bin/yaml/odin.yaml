@@ -7,6 +7,10 @@ compilers:
     extract_into_folder: true
     folder: odin
     after_stage_script:
-      - chmod 0755 odin
+      - tar xzvf dist.tar.gz
+      - rm dist.tar.gz
+      - mv odin-* odin-tmp
+      - mv odin-tmp/* .
+      - rm -Rf odin-tmp
     targets:
       - dev-2024-11
