@@ -39,3 +39,17 @@ You can install a small amount of Windows compilers using ce_install.ps1, a regu
 !no sudo!
 
 `ce smb sync`
+
+
+# Advanced testing on Windows
+
+Note: do not do any of this unless you know what you're doing. It does not reflect any production situations, it just tries to mimick it.
+
+* Create a directory where the compilers and tools will end up (e.g. `D:/efs/winshared`)
+* Make a drive out of the directory with subst
+  - `subst Z: D:\efs\winshared`
+* `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/compilers" --enable windows install 'windows/tools/cmake'`
+* `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/compilers" --enable windows install 'mingw-w64 13.1.0-16.0.2-11.0.0-ucrt-r1'`
+* `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/staging" --enable windows install 'fmt 11.0.0'`
+* `$env:PATH = "Z:\compilers\cmake-v3.29.2\bin;Z:\compilers\mingw-w64-13.1.0-16.0.5-11.0.0-ucrt-r5\bin;$env:PATH"`
+* `pwsh .\ce_install.ps1 --keep-staging --dry-run --staging-dir "Z:/staging" --dest "Z:/staging" --enable windows build --buildfor mingw64_ucrt_gcc_1130 'fmt 11.0.0'`
