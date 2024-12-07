@@ -39,7 +39,7 @@ class Installable:
         self.context = self.config_get("context", [])
         self.name = f'{"/".join(self.context)} {self.target_name}'
         self.is_library = False
-        self.language = False
+        self.language = ""
         if len(self.context) > 0:
             self.is_library = self.context[0] == "libraries"
         if len(self.context) > 1:
@@ -241,7 +241,7 @@ class Installable:
 
         if self.build_config.build_type in ["cmake", "make"]:
             sourcefolder = os.path.join(self.install_context.destination, self.install_path)
-            builder = LibraryBuilder(
+            cppbuilder = LibraryBuilder(
                 _LOGGER,
                 self.language,
                 self.context[-1],
@@ -253,12 +253,12 @@ class Installable:
                 platform,
             )
             if self.build_config.build_type == "cmake":
-                return builder.makebuild(buildfor)
+                return cppbuilder.makebuild(buildfor)
             elif self.build_config.build_type == "make":
-                return builder.makebuild(buildfor)
+                return cppbuilder.makebuild(buildfor)
         elif self.build_config.build_type == "fpm":
             sourcefolder = os.path.join(self.install_context.destination, self.install_path)
-            builder = FortranLibraryBuilder(
+            fbuilder = FortranLibraryBuilder(
                 _LOGGER,
                 self.language,
                 self.context[-1],
@@ -268,12 +268,12 @@ class Installable:
                 self.build_config,
                 popular_compilers_only,
             )
-            return builder.makebuild(buildfor)
+            return fbuilder.makebuild(buildfor)
         elif self.build_config.build_type == "cargo":
-            builder = RustLibraryBuilder(
+            rbuilder = RustLibraryBuilder(
                 _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config
             )
-            return builder.makebuild(buildfor)
+            return rbuilder.makebuild(buildfor)
         else:
             raise RuntimeError("Unsupported build_type")
 
