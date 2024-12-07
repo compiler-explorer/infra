@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional, Callable, Dict, List, Any, Union
 from lib.nightly_versions import NightlyVersions
 
+from lib.library_platform import LibraryPlatform
 from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
@@ -231,7 +232,7 @@ class Installable:
     def nightly_like(self) -> bool:
         return self.install_always or self.target_name in ["nightly", "trunk", "master", "main"]
 
-    def build(self, buildfor, popular_compilers_only):
+    def build(self, buildfor: str, popular_compilers_only: bool, platform: LibraryPlatform):
         if not self.is_library:
             raise RuntimeError("Nothing to build")
 
@@ -249,6 +250,7 @@ class Installable:
                 self.install_context,
                 self.build_config,
                 popular_compilers_only,
+                platform,
             )
             if self.build_config.build_type == "cmake":
                 return builder.makebuild(buildfor)

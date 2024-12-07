@@ -3,6 +3,7 @@ import re
 import urllib.parse
 from collections import defaultdict
 from typing import Dict, Any
+from lib.library_platform import LibraryPlatform
 
 import requests
 
@@ -20,12 +21,19 @@ def get_specific_library_version_details(libraries, libid, library_version):
 COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
-def get_properties_compilers_and_libraries(language, logger, filter_binary_support: bool = True):
+def get_properties_compilers_and_libraries(
+    language, logger, platform: LibraryPlatform, filter_binary_support: bool = True
+):
     _compilers: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     _libraries: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
     encoded_language = urllib.parse.quote(language)
-    url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties"
+
+    if platform == LibraryPlatform.Linux:
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties"
+    elif platform == LibraryPlatform.Windows:
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazonwin.properties"
+
     request = requests.get(url, timeout=30)
     if not request.ok:
         raise RuntimeError(f"Fetch failure for {url}: {request}")
