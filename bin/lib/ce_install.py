@@ -18,9 +18,9 @@ import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
+from lib.installable.installable import Installable
 from lib.installation import installers_for
 from lib.installation_context import InstallationContext
-from lib.installable.installable import Installable
 from lib.library_yaml import LibraryYaml
 
 _LOGGER = logging.getLogger(__name__)
@@ -91,10 +91,10 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
 
-def squash_mount_check(rootfolder, subdir, context):
-    for filename in os.listdir(os.path.join(rootfolder, subdir)):
+def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> None:
+    for filename in os.listdir(rootfolder / subdir):
         if filename.endswith(".img"):
-            checkdir = Path(os.path.join("/opt/compiler-explorer/", subdir, filename[:-4]))
+            checkdir = Path("/opt/compiler-explorer/") / subdir / filename[:-4]
             if not checkdir.exists():
                 _LOGGER.error("Missing mount point %s", checkdir)
         else:
@@ -215,7 +215,7 @@ def cli(
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
     if not log or log_to_console:
-        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
     context = InstallationContext(
@@ -242,12 +242,15 @@ def cli(
 
 @cli.command(name="list")
 @click.pass_obj
+@click.option("--json", is_flag=True, help="Output in JSON format")
+@click.option("--installed-only", is_flag=True, help="Only output installed targets")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: List[str]):
+def list_cmd(context: CliContext, filter_: List[str], json: bool, installed_only: bool):
     """List installation targets matching FILTER."""
-    print("Installation candidates:")
     for installable in context.get_installables(filter_):
-        print(installable.name)
+        if installed_only and not installable.is_installed():
+            continue
+        print(installable.to_json() if json else installable.name)
         _LOGGER.debug(installable)
 
 
@@ -385,7 +388,7 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
         exit(1)
 
     for installable in context.get_installables(filter_):
-        destination = Path(image_dir / f"{installable.install_path}.img")
+        destination = image_dir / f"{installable.install_path}.img"
         if installable.nightly_like:
             if destination.exists():
                 _LOGGER.error("Found squash: %s for nightly", installable.name)
