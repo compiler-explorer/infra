@@ -103,14 +103,14 @@ class CefsRootImage:
             mode = f"0{oct(stat.st_mode & 0o7777)[2:]}"
             uid = stat.st_uid
             gid = stat.st_gid
-            if item.is_dir():
+            if item.is_symlink():
+                yield f'slink "{rel_path}" {mode} {uid} {gid} {item.readlink()}'
+            elif item.is_dir():
                 yield f'dir "{rel_path}" {mode} {uid} {gid}'
                 yield from self._items_for(directory=item, source_root=source_root, dest_root=dest_root)
             elif item.is_file():
                 # TODO better hope there's no special characters as gensquashfs won't let the <location> have any...
                 yield f'file "{rel_path}" {mode} {uid} {gid} {item}'
-            elif item.is_symlink():
-                yield f'slink "{rel_path}" {mode} {uid} {gid} {item.readlink()}'
             else:
                 raise RuntimeError(f"oh no {item}")  # TODO
 
@@ -138,6 +138,8 @@ class CefsRootImage:
                     str(tmp_packfile),
                     "--compressor",
                     "zstd",
+                    "-X",
+                    "level=19",
                 ]
             )
             sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
@@ -185,6 +187,8 @@ class CefsRootImage:
                     str(tmp_packfile),
                     "--compressor",
                     "zstd",
+                    "-X",
+                    "level=19",
                 ]
             )
             sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
