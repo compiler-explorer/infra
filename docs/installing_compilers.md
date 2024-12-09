@@ -1,5 +1,11 @@
 # Installing compilers
 
+## Prerequisites
+
+* Python 3.9 or higher
+* Run `make ce` first
+* The `ce` and `ce_install` scripts are in the `bin` directory, you can either set the PATH, make links or call `bin/ce` / `bin/ce_install` in the given examples below
+
 ## On Linux
 
 The directory `/opt/compiler-explorer` is required, otherwise you'll have to supply your own destination directory and temporary staging directory to `ce_install` using `--staging-dir "/some/tmp/dir" --dest "/my/ce/dir"`
@@ -11,6 +17,10 @@ The directory `/opt/compiler-explorer` is required, otherwise you'll have to sup
 ### For versioned compilers/tools
 
 `ce_install install <name>`
+
+For a specific version
+
+`ce_install install '<compilername> <version>'`
 
 ### For nightlies:
 

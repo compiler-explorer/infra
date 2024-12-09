@@ -3,8 +3,8 @@ data "aws_sns_topic" "alert" {
 }
 
 locals {
-  approx_monthly_budget = 1200
-  alert_every           = 200
+  approx_monthly_budget = 3000
+  alert_every           = 250
 }
 
 resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
@@ -27,16 +27,16 @@ resource "aws_cloudwatch_metric_alarm" "resp_90ile_15m_too_slow" {
 
 resource "aws_cloudwatch_metric_alarm" "spending_alert" {
   count               = local.approx_monthly_budget * 2 / local.alert_every
-  alarm_name          = "Budget_${(count.index+1) * local.alert_every}"
-  alarm_description   = "We've now spent ${"$"}${(count.index+1) * local.alert_every}"
-  threshold           = (count.index+1) * local.alert_every
+  alarm_name          = "Budget_${(count.index + 1) * local.alert_every}"
+  alarm_description   = "We've now spent ${"$"}${(count.index + 1) * local.alert_every}"
+  threshold           = (count.index + 1) * local.alert_every
   period              = 6 * 60 * 60
   evaluation_periods  = 1
   namespace           = "AWS/Billing"
   metric_name         = "EstimatedCharges"
   statistic           = "Maximum"
   comparison_operator = "GreaterThanThreshold"
-  dimensions          = {
+  dimensions = {
     Currency = "USD"
   }
   alarm_actions = [data.aws_sns_topic.alert.arn]
@@ -52,7 +52,7 @@ resource "aws_cloudwatch_metric_alarm" "budget_hit" {
   metric_name         = "EstimatedCharges"
   comparison_operator = "GreaterThanThreshold"
   statistic           = "Maximum"
-  dimensions          = {
+  dimensions = {
     Currency = "USD"
   }
   alarm_actions = [data.aws_sns_topic.alert.arn]
@@ -68,7 +68,7 @@ resource "aws_cloudwatch_metric_alarm" "bankrupcy" {
   metric_name         = "EstimatedCharges"
   comparison_operator = "GreaterThanThreshold"
   statistic           = "Maximum"
-  dimensions          = {
+  dimensions = {
     Currency = "USD"
   }
   alarm_actions = [data.aws_sns_topic.alert.arn]
@@ -76,10 +76,10 @@ resource "aws_cloudwatch_metric_alarm" "bankrupcy" {
 
 resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
   for_each = {
-    "godbolt.org"           = aws_cloudfront_distribution.ce-godbolt-org,
-#    "compiler-explorer.com" = aws_cloudfront_distribution.compiler-explorer-com,
-    "godbo.lt"              = aws_cloudfront_distribution.godbo-lt,
-    "ce.cdn.net"            = aws_cloudfront_distribution.static-ce-cdn-net
+    "godbolt.org" = aws_cloudfront_distribution.ce-godbolt-org,
+    #    "compiler-explorer.com" = aws_cloudfront_distribution.compiler-explorer-com,
+    "godbo.lt"   = aws_cloudfront_distribution.godbo-lt,
+    "ce.cdn.net" = aws_cloudfront_distribution.static-ce-cdn-net
   }
   alarm_name          = "High5xx_${each.key}"
   alarm_description   = "Unnacceptable level of 5xx errors on ${each.key} (once we have enough actual queries)"
@@ -94,7 +94,6 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
     return_data = true
   }
 
-
   metric_query {
     id = "error_rate"
     metric {
@@ -102,7 +101,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
       namespace   = "AWS/CloudFront"
       stat        = "Average"
       period      = 5 * 60
-      dimensions  = {
+      dimensions = {
         DistributionId = each.value.id
         Region         = "Global"
       }
@@ -116,7 +115,7 @@ resource "aws_cloudwatch_metric_alarm" "cloudfront_high_5xx" {
       namespace   = "AWS/CloudFront"
       stat        = "Sum"
       period      = 5 * 60
-      dimensions  = {
+      dimensions = {
         DistributionId = each.value.id
         Region         = "Global"
       }
@@ -148,9 +147,9 @@ resource "aws_cloudwatch_metric_alarm" "traffic" {
     metric {
       metric_name = "RequestCount"
       namespace   = "AWS/ApplicationELB"
-      period      = 5*60
+      period      = 5 * 60
       stat        = "Sum"
-      dimensions  = {
+      dimensions = {
         LoadBalancer = aws_alb.GccExplorerApp.arn_suffix
       }
     }
@@ -186,7 +185,7 @@ resource "aws_cloudwatch_metric_alarm" "efs_burst_credit" {
   namespace          = "AWS/EFS"
   metric_name        = "BurstCreditBalance"
   statistic          = "Minimum"
-  dimensions         = {
+  dimensions = {
     FileSystemId = aws_efs_file_system.fs-db4c8192.id
   }
   threshold           = 20000000000
@@ -202,7 +201,7 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
   namespace          = "AWS/AutoScaling"
   metric_name        = "GroupInServiceInstances"
   statistic          = "Minimum"
-  dimensions         = {
+  dimensions = {
     AutoScalingGroupName = aws_autoscaling_group.prod-mixed.name
   }
 
@@ -219,7 +218,7 @@ resource "aws_cloudwatch_metric_alarm" "waf_throttled" {
   namespace          = "AWS/WAFV2"
   metric_name        = "BlockedRequests"
   statistic          = "Maximum"
-  dimensions         = {
+  dimensions = {
     WebACL = aws_wafv2_web_acl.compiler-explorer.name
     Rule   = local.deny_rate_limit_name_metric_name
   }

@@ -3,20 +3,21 @@ param(
     $LogHost,
     $LogPort,
     $CeEnv,
-    $HostnameForLogging
+    $HostnameForLogging,
+    $SMBServer
 )
 
 function MountZ {
     $exists = (Get-SmbMapping -LocalPath 'Z:') -as [bool]
     if ($exists) {
-         Write-Host "Already mapped"
-         return
+         Remove-SmbMapping -LocalPath 'Z:' -Force
+         $exists = $False
     }
 
     while (-not $exists) {
         try {
             Write-Host "Mapping Z:"
-            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath '\\172.30.0.254\winshared') -as [bool]
+            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath "\\$SMBServer\winshared") -as [bool]
         } catch {
         }
     }

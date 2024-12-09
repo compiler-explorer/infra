@@ -5,7 +5,21 @@ compilers:
     dir: julia-{name}
     check_exe: bin/julia --version
     targets:
+      - name: 1.11.2
+        url: https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.2-linux-x86_64.tar.gz
+      - name: 1.10.0
+        url: https://julialang-s3.julialang.org/bin/linux/x64/1.10/julia-1.10.0-linux-x86_64.tar.gz
+      - name: 1.9.3
+        url: https://julialang-s3.julialang.org/bin/linux/x64/1.9/julia-1.9.3-linux-x86_64.tar.gz
       - name: 1.8.5
         url: https://julialang-s3.julialang.org/bin/linux/x64/1.8/julia-1.8.5-linux-x86_64.tar.gz
       - name: 1.7.3
         url: https://julialang-s3.julialang.org/bin/linux/x64/1.7/julia-1.7.3-linux-x86_64.tar.gz
+    nightly:
+      if: nightly
+      install_always: true
+      targets:
+        - name: nightly
+          url: https://julialangnightlies-s3.julialang.org/bin/linux/x86_64/julia-latest-linux-x86_64.tar.gz
+          strip_components: 1
+          create_untar_dir: true

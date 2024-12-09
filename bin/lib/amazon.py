@@ -2,9 +2,12 @@ from datetime import datetime
 from operator import attrgetter
 from typing import List, Optional
 import logging
+import json
 
 from lib.env import Config, Environment
 from lib.releases import Version, Release, Hash, VersionSource
+
+S3_STORAGE_BUCKET = "storage.godbolt.org"
 
 
 class LazyObjectWrapper:
@@ -65,7 +68,7 @@ VERSIONS_LOGGING_TABLE = "versionslog"
 
 
 def target_group_for(cfg: Config) -> dict:
-    result = elb_client.describe_target_groups(Names=[cfg.env.value.title()])
+    result = elb_client.describe_target_groups(Names=[cfg.env.value.capitalize()])
     if len(result["TargetGroups"]) != 1:
         raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result["TargetGroups"][0]
@@ -258,13 +261,20 @@ def events_file_for(cfg: Config):
     return events_file
 
 
-def get_short_link(short_id):
+def get_short_link(short_id: str) -> dict:
     result = dynamodb_client.get_item(
         TableName=LINKS_TABLE,
         Key={"prefix": {"S": short_id[:6]}, "unique_subhash": {"S": short_id}},
         ConsistentRead=True,
     )
     return result.get("Item")
+
+
+def expand_short_link(short_id: str) -> dict:
+    item = get_short_link(short_id)
+    key = "state/" + item["full_hash"]["S"]
+    result = s3_client.get_object(Bucket=S3_STORAGE_BUCKET, Key=key)
+    return json.loads(result["Body"].read().decode("utf-8"))
 
 
 def put_short_link(item):
@@ -333,14 +343,14 @@ def list_period_build_logs(cfg: Config, from_time: Optional[str], until_time: Op
 
 
 def delete_s3_links(items):
-    s3_client.delete_objects(Bucket="storage.godbolt.org", Delete={"Objects": [{"Key": item} for item in items]})
+    s3_client.delete_objects(Bucket=S3_STORAGE_BUCKET, Delete={"Objects": [{"Key": item} for item in items]})
 
 
 def list_short_links():
     s3_paginator = s3_client.get_paginator("list_objects_v2")
     db_paginator = dynamodb_client.get_paginator("scan")
     return (
-        s3_paginator.paginate(Bucket="storage.godbolt.org", Prefix="state/"),
+        s3_paginator.paginate(Bucket=S3_STORAGE_BUCKET, Prefix="state/"),
         db_paginator.paginate(TableName=LINKS_TABLE, ProjectionExpression="unique_subhash, full_hash, creation_ip"),
     )
 

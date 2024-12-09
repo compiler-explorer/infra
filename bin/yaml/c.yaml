@@ -6,6 +6,12 @@ compilers:
       check_file: bin/cproc
       targets:
         - master
+    C-LC3-Compiler:
+      if: nightly
+      type: nightly
+      check_exe: lc3-compile --version
+      targets:
+        - trunk
     ppci:
       type: tarballs
       compression: gz
@@ -28,22 +34,22 @@ compilers:
         - "2.17"
         - "2.18"
         - "2.19"
-    llvmmos:
-      if: nightly
-      type: nightlytarballs
-      compression: xz
-      dir: llvm-mos-{name}
-      check_exe: bin/clang --version
-      url: https://github.com/llvm-mos/llvm-mos-sdk/releases/latest/download/llvm-mos-linux.tar.xz
-      untar_dir: llvm-mos
-      targets:
-        - trunk
     gcc:
       type: s3tarballs
       check_exe: bin/gcc -v
       check_stderr_on_stdout: true
       targets:
         - '1.27'
+    dpu-upmem-dpurte-clang:
+      type: tarballs
+      compression: gz
+      subdir: upmem-dpu
+      dir: "{subdir}/upmem-{name}-Linux-x86_64"
+      untar_dir: "upmem-{name}-Linux-x86_64"
+      check_exe: bin/clang --version
+      url: http://sdk-releases.upmem.com/{name}/ubuntu_22.04/upmem-{name}-Linux-x86_64.tar.gz
+      targets:
+        - 2023.2.0
     sdcc:
       type: tarballs
       compression: bz2
@@ -54,6 +60,9 @@ compilers:
         untar_dir: sdcc-{name}
         targets:
           - 4.0.0
+          - 4.2.0
+          - 4.3.0
+          - 4.4.0
       newer:
         untar_dir: sdcc
         targets:
@@ -82,6 +91,13 @@ compilers:
         check_file: chibicc
         targets:
           - main
+      movfuscator:
+        type: nightly
+        check_env:
+          - MOVBUILDDIR=/opt/compiler-explorer/movfuscator-trunk/build
+        check_exe: build/lcc --version
+        targets:
+          - trunk
     cross:
       type: s3tarballs
       arch_prefix:
@@ -135,4 +151,9 @@ compilers:
             - 12.1.0
             - 12.2.0
             - 12.3.0
+            - 12.4.0
             - 13.1.0
+            - 13.2.0
+            - 13.3.0
+            - 14.1.0
+            - 14.2.0

@@ -1,13 +1,15 @@
 variable "ce-target-groups" {
   description = "Target groups to create on port 80 for CE"
-  default     = {
-    "prod"    = 1
-    "staging" = 2
-    "beta"    = 3
-    "gpu"     = 4
-    "wintest" = 5
-    "winstaging" = 6
-    "winprod" = 7
+  default = {
+    "prod"           = 1
+    "staging"        = 2
+    "beta"           = 3
+    "gpu"            = 4
+    "wintest"        = 5
+    "winstaging"     = 6
+    "winprod"        = 7
+    "aarch64prod"    = 8
+    "aarch64staging" = 9
   }
 }
 
@@ -18,10 +20,10 @@ resource "aws_alb_target_group" "ce" {
     create_before_destroy = true
   }
 
-  name                          = title(each.key)
-  port                          = 80
-  protocol                      = "HTTP"
-  vpc_id                        = module.ce_network.vpc.id
+  name     = title(each.key)
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.ce_network.vpc.id
   // some time to kick off old connections
   deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
@@ -51,6 +53,10 @@ resource "aws_alb_target_group" "conan" {
     healthy_threshold   = 2
     interval            = 5
     protocol            = "HTTP"
+  }
+  stickiness {
+    type    = "lb_cookie"
+    enabled = false
   }
 }
 

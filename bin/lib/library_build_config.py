@@ -18,11 +18,14 @@ class LibraryBuildConfig:
         self.description = ""
         self.configure_flags = self.config_get("configure_flags", [])
         self.prebuild_script = self.config_get("prebuild_script", [])
+        self.postbuild_script = self.config_get("postbuild_script", [])
         self.extra_cmake_arg = self.config_get("extra_cmake_arg", [])
         self.extra_make_arg = self.config_get("extra_make_arg", [])
         self.make_targets = self.config_get("make_targets", [])
         self.make_utility = self.config_get("make_utility", "make")
         self.skip_compilers = self.config_get("skip_compilers", [])
+        self.copy_files = self.config_get("copy_files", [])
+        self.package_install = self.config_get("package_install", False)
         self.use_compiler = self.config_get("use_compiler", "")
         if self.lib_type == "cshared" and self.use_compiler == "":
             raise RuntimeError(

@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Optional, Iterator, Dict, IO, Sequence, Union, Collection, List
 
 import requests
+import requests.adapters
 import yaml
-from cachecontrol import CacheControl
-from cachecontrol.caches import FileCache
+import requests_cache
 
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.staging import StagingDir
@@ -41,11 +41,13 @@ class InstallationContext:
         s3_url: str,
         dry_run: bool,
         is_nightly_enabled: bool,
+        only_nightly: bool,
         cache: Optional[Path],
         yaml_dir: Path,
         allow_unsafe_ssl: bool,
         resource_dir: Path,
         keep_staging: bool,
+        check_user: str,
     ):
         self._destination = destination
         self._prior_installation = self.destination
@@ -54,25 +56,26 @@ class InstallationContext:
         self.s3_url = s3_url
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
+        self.only_nightly = only_nightly
         retry_strategy = requests.adapters.Retry(
             total=10,
             backoff_factor=1,
             status_forcelist=[429, 500, 502, 503, 504],
-            method_whitelist=["HEAD", "GET", "OPTIONS"],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
         )
         self.allow_unsafe_ssl = allow_unsafe_ssl
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
-        http = requests.Session()
-        http.mount("https://", adapter)
-        http.mount("http://", adapter)
         if cache:
             _LOGGER.info("Using cache %s", cache)
-            self.fetcher = CacheControl(http, cache=FileCache(cache))
+            self.fetcher = requests_cache.CachedSession(cache)
         else:
             _LOGGER.info("Making uncached requests")
-            self.fetcher = http
+            self.fetcher = requests.Session()
+        self.fetcher.mount("https://", adapter)
+        self.fetcher.mount("http://", adapter)
         self.yaml_dir = yaml_dir
         self.resource_dir = resource_dir
+        self.run_checks_as_user = check_user
 
     @property
     def destination(self) -> Path:
@@ -101,12 +104,21 @@ class InstallationContext:
         _LOGGER.debug("Fetching %s", url)
         return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
 
-    def fetch_to(self, url: str, fd: IO[bytes]) -> None:
+    def fetch_to(self, url: str, fd: IO[bytes], agent: str = "") -> None:
         _LOGGER.debug("Fetching %s", url)
-        if self.allow_unsafe_ssl:
-            request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
+
+        if agent:
+            headers = {"User-Agent": agent}
+
+            if self.allow_unsafe_ssl:
+                request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True, headers=headers)
+            else:
+                request = self.fetcher.get(url, stream=True, allow_redirects=True, headers=headers)
         else:
-            request = self.fetcher.get(url, stream=True, allow_redirects=True)
+            if self.allow_unsafe_ssl:
+                request = self.fetcher.get(url, stream=True, verify=False, allow_redirects=True)
+            else:
+                request = self.fetcher.get(url, stream=True, allow_redirects=True)
 
         if not request.ok:
             _LOGGER.error("Failed to fetch %s: %s", url, request)
@@ -128,14 +140,14 @@ class InstallationContext:
         fd.flush()
 
     def fetch_url_and_pipe_to(
-        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Union[Path, str] = "."
+        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Union[Path, str] = ".", agent: str = ""
     ) -> None:
         untar_dir = staging.path / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
         # We stream to a temporary file first before then piping this to the command
         # as sometimes the command can take so long the URL endpoint closes the door on us
         with tempfile.TemporaryFile() as fd:
-            self.fetch_to(url, fd)
+            self.fetch_to(url, fd, agent)
             fd.seek(0)
             _LOGGER.info("Piping to %s", shlex.join(command))
             subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
@@ -149,8 +161,18 @@ class InstallationContext:
     def fetch_s3_and_pipe_to(self, staging: StagingDir, s3: str, command: Sequence[str]) -> None:
         return self.fetch_url_and_pipe_to(staging, f"{self.s3_url}/{s3}", command)
 
+    def stage_subdir(self, staging: StagingDir, subdir: str) -> None:
+        (staging.path / subdir).mkdir(parents=True, exist_ok=True)
+
     def make_subdir(self, subdir: str) -> None:
         (self.destination / subdir).mkdir(parents=True, exist_ok=True)
+
+    def get_current_link_target(self, dest: str) -> Path:
+        full_dest = self.destination / dest
+        if full_dest.is_symlink():
+            return full_dest.readlink()
+        else:
+            return full_dest
 
     def set_link(self, source: Path, dest: str) -> None:
         if self.dry_run:
@@ -199,7 +221,7 @@ class InstallationContext:
         do_staging_move=lambda source, dest: source.replace(dest),
     ) -> None:
         dest = dest or source
-        existing_dir_rename = staging.path / "temp_orig"
+        existing_dir_rename = staging.path.with_suffix(".orig")
         source = staging.path / source
         dest = self.destination / dest
         if self.dry_run:
@@ -216,16 +238,22 @@ class InstallationContext:
             subprocess.check_call(["chmod", "-R", "u+w", source])
         state = ""
         if dest.is_dir():
-            _LOGGER.info("Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename)
-            dest.replace(existing_dir_rename)
-            state = "old_renamed"
+            if list(dest.iterdir()):
+                _LOGGER.info(
+                    "Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename
+                )
+                dest.replace(existing_dir_rename)
+                state = "old_renamed"
+            else:
+                _LOGGER.info("Destination %s exists but is empty; deleting it", dest)
+                shutil.rmtree(dest)
         try:
             do_staging_move(source, dest)
             if state == "old_renamed":
                 state = "old_needs_remove"
         finally:
             if state == "old_needs_remove":
-                _LOGGER.debug("Removing temporarily moved %s", existing_dir_rename)
+                _LOGGER.info("Removing temporarily moved %s", existing_dir_rename)
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == "old_renamed":
                 _LOGGER.warning("Moving old destination back")
@@ -248,20 +276,32 @@ class InstallationContext:
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
         if not is_windows():
-            return subprocess.check_output(
+            output = subprocess.run(
                 args,
                 cwd=str(self.destination),
                 env=env,
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT if stderr_on_stdout else None,
-            ).decode("utf-8")
+                stdout=subprocess.PIPE,
+                check=True,
+            )
         else:
-            return subprocess.check_output(
+            output = subprocess.run(
                 args,
                 cwd=str(self.destination),
                 stdin=subprocess.DEVNULL,
                 stderr=subprocess.STDOUT if stderr_on_stdout else None,
-            ).decode("utf-8")
+                stdout=subprocess.PIPE,
+                check=True,
+            )
+
+        fulloutput = ""
+        if output.stdout != None:
+            fulloutput += output.stdout.decode("utf-8")
+        if output.stderr != None:
+            fulloutput += output.stderr.decode("utf-8")
+
+        return fulloutput
 
     def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
         args = args[:]
@@ -301,7 +341,8 @@ class InstallationContext:
 
             script_file.chmod(0o755)
             self.stage_command(staging, [str(script_file)], cwd=from_path)
-            script_file.unlink()
+            if not self.dry_run:
+                script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])

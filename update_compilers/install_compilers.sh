@@ -16,5 +16,6 @@ else
 fi
 
 ce_install compilers
+
 # at some point, we'll want to do this:
 #ce_squash compilers

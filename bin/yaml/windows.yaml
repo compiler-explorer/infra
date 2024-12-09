@@ -19,3 +19,33 @@ windows:
             url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{name}/winlibs-x86_64-posix-seh-gcc-12.1.0-llvm-14.0.6-mingw-w64ucrt-10.0.0-r3.zip
           - name: "11.3.0-14.0.3-10.0.0-ucrt-r3"
             url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{name}/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64ucrt-10.0.0-r3.zip
+      clang-cl:
+        type: tarballs
+        compression: xz
+        dir: clang-cl-{name}
+        untar_dir: clang+llvm-{name}-x86_64-pc-windows-msvc
+        check_file: bin/clang-cl.exe
+        url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{name}/clang+llvm-{name}-x86_64-pc-windows-msvc.tar.xz
+        targets:
+          - 18.1.0
+  tools:
+    cmake:
+      type: ziparchive
+      url: https://github.com/Kitware/CMake/releases/download/v{name}/cmake-{name}-windows-x86_64.zip
+      dir: cmake-v{name}
+      check_file: "bin/cmake.exe"
+      folder: "cmake-{name}-windows-x86_64"
+      targets:
+        - 3.27.6
+        - 3.27.9
+        - 3.28.4
+        - 3.29.2
+    ninja:
+      type: ziparchive
+      url: https://github.com/compiler-explorer/ninja/releases/download/v{name}/ninja-win.zip
+      dir: ninja-v{name}
+      folder: "bin"
+      extract_into_folder: true
+      check_file: "ninja.exe"
+      targets:
+        - 1.12.1

@@ -9,6 +9,6 @@ compilers:
       if: nightly
       d8:
         type: nightly
-        check_exe: d8 --help
+        check_exe: d8 --version
         targets:
           - name: trunk

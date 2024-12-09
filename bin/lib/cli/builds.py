@@ -9,7 +9,6 @@ from typing import Optional, Dict, Sequence
 
 import click
 import requests
-from lib.cli.runner import runner_discoveryexists
 
 from lib.amazon import (
     download_release_file,
@@ -34,7 +33,8 @@ from lib.amazon import (
 from lib.cdn import DeploymentJob
 from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
 from lib.cli import cli
-from lib.env import Config
+from lib.cli.runner import runner_discoveryexists
+from lib.env import Config, Environment
 from lib.releases import Version, Release, VersionSource
 
 
@@ -85,6 +85,54 @@ def deploy_staticfiles(release) -> bool:
         f.flush()
         with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
             return job.run()
+
+
+def check_staticfiles_for_deployment(release) -> bool:
+    print("Checking static files for cdn deployment")
+    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
+
+    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
+        download_release_fileobj(release.static_key, f)
+        f.flush()
+        with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
+            if job.check_hashes():
+                print("No problems found")
+                return True
+            else:
+                print("New webpackJsHack version number required to deploy static files to cdn")
+                return False
+
+
+@builds.command(name="check_hashes")
+@click.pass_obj
+@click.option("--branch", help="if version == latest, branch to get latest version from")
+@click.option("--raw/--no-raw", help="Set a raw path for a version")
+@click.argument("version")
+def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
+    """Checks the static files for this version."""
+    to_set: Optional[str] = None
+    release: Optional[Release] = None
+    if raw:
+        to_set = version
+    else:
+        setting_latest = version == "latest"
+        release = (
+            find_latest_release(cfg, branch or "")
+            if setting_latest
+            else find_release(cfg, Version.from_string(version))
+        )
+        if not release:
+            print("Unable to find version " + version)
+            if setting_latest and branch != "":
+                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+            sys.exit(1)
+        else:
+            to_set = release.key
+
+    if to_set is not None and release is not None:
+        if release and release.static_key:
+            if not check_staticfiles_for_deployment(release):
+                sys.exit(1)
 
 
 @builds.command(name="set_current")
@@ -245,3 +293,16 @@ def builds_lock(cfg: Config):
 def builds_unlock(cfg: Config):
     """Unlock version bounce for the specified env."""
     delete_bouncelock_file(cfg)
+
+
+@builds.command(name="diff")
+@click.option("--dest-env", help="env to compare with", default=Environment.PROD.value)
+@click.pass_obj
+def builds_diff(cfg: Config, dest_env: str):
+    """Opens a URL that diffs changes from this environment and another."""
+    releases = get_releases(cfg)
+    (current,) = [x for x in releases if x.key == get_current_key(cfg)]
+    (dest,) = [x for x in releases if x.key == get_current_key(Config(env=Environment(dest_env)))]
+    url = f"https://github.com/compiler-explorer/compiler-explorer/compare/{dest.version}...{current.version}"
+    print(f"Opening {url}")
+    os.system(f"open {url}")

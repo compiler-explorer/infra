@@ -26,11 +26,13 @@ apt-get install -y \
     python3-markdown \
     python3-dnspython
 
+export PERL_MM_USE_DEFAULT=1
+
 cpan App::cpanminus
 cpanm Parse::Yapp
 cpanm JSON
 
-git clone --depth 1 --branch samba-4.17.7 https://github.com/samba-team/samba
+git clone --depth 1 https://github.com/compiler-explorer/samba
 cd samba
 
 # todo:
@@ -46,16 +48,11 @@ make install
 
 cd ..
 
-cp /usr/local/samba/lib/systemd/system/* /etc/systemd/system/
-
 cp -f /infra/smb-server/smb.conf /usr/local/samba/etc/samba/smb.conf
 
 mkdir -p /winshared
 chown ubuntu:ubuntu /winshared
 
-systemctl enable smb
-
-service smbd start
 
 # run rsync on startup
 #/infra/smb-server/rsync-share.sh

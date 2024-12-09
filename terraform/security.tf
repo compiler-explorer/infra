@@ -2,7 +2,7 @@ resource "aws_security_group" "CompilerExplorer" {
   vpc_id      = module.ce_network.vpc.id
   name        = "gcc-explorer-sg"
   description = "For the GCC explorer"
-  tags        = {
+  tags = {
     Name = "CompilerExplorer"
   }
 }
@@ -86,7 +86,7 @@ resource "aws_security_group" "CompilerExplorerAlb" {
   vpc_id      = module.ce_network.vpc.id
   name        = "ce-alb-sg"
   description = "Load balancer security group"
-  tags        = {
+  tags = {
     Name = "CELoadBalancer"
   }
 }
@@ -138,7 +138,7 @@ resource "aws_security_group" "AdminNode" {
   vpc_id      = module.ce_network.vpc.id
   name        = "AdminNodeSecGroup"
   description = "Security for the admin node"
-  tags        = {
+  tags = {
     Name = "AdminNode"
   }
 }
@@ -226,7 +226,7 @@ data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
 
 data "aws_iam_policy_document" "CeModifyStoredState" {
   statement {
-    sid     = "DatabaseAccessSid"
+    sid = "DatabaseAccessSid"
     actions = [
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
@@ -238,8 +238,8 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
     resources = [aws_dynamodb_table.links.arn]
   }
   statement {
-    sid       = "S3AccessSid"
-    actions   = ["s3:*"]
+    sid     = "S3AccessSid"
+    actions = ["s3:*"]
     resources = [
       "${aws_s3_bucket.storage-godbolt-org.arn}/*",
       aws_s3_bucket.storage-godbolt-org.arn
@@ -247,10 +247,81 @@ data "aws_iam_policy_document" "CeModifyStoredState" {
   }
 }
 
+resource "aws_iam_policy" "ScanLibraryBuildHistory" {
+  name        = "ScanLibraryBuildHistory"
+  description = "Can scan/query library build history"
+  policy      = data.aws_iam_policy_document.ScanLibraryBuildHistory.json
+}
+
+data "aws_iam_policy_document" "ScanLibraryBuildHistory" {
+  statement {
+    sid = "ScanLibraryBuildHistory"
+    actions = [
+      "dynamodb:Scan",
+      "dynamodb:Query"
+    ]
+    resources = [aws_dynamodb_table.library-build-history.arn]
+  }
+}
+
+resource "aws_iam_policy" "UpdateLibraryBuildHistory" {
+  name        = "UpdateLibraryBuildHistory"
+  description = "Can update library build history"
+  policy      = data.aws_iam_policy_document.UpdateLibraryBuildHistory.json
+}
+
+data "aws_iam_policy_document" "UpdateLibraryBuildHistory" {
+  statement {
+    sid = "UpdateLibraryBuildHistory"
+    actions = [
+      "dynamodb:PutItem",
+      "dynamodb:UpdateItem"
+    ]
+    resources = [aws_dynamodb_table.library-build-history.arn]
+  }
+}
+
 resource "aws_iam_policy" "CeModifyStoredState" {
   name        = "CeModifyStoredState"
   description = "Can create and list short links for compiler explorer"
   policy      = data.aws_iam_policy_document.CeModifyStoredState.json
+}
+
+data "aws_iam_policy_document" "CePutCompileStatsLog" {
+  statement {
+    sid     = "CePutCompileStatsLog"
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer-logs.arn}/compile-stats/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CePutCompileStatsLog" {
+  name        = "CePutCompileStatsLog"
+  description = "Can write to compile-stats log bucket"
+  policy      = data.aws_iam_policy_document.CePutCompileStatsLog.json
+}
+
+data "aws_iam_policy_document" "CeSqsPushPop" {
+  statement {
+    sid     = "CeSqsPushPop"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage"
+    ]
+    resources = [
+      aws_sqs_queue.prod-execqueue-aarch64-linux-cpu.arn,
+      aws_sqs_queue.staging-execqueue-aarch64-linux-cpu.arn,
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeSqsPushPop" {
+  name        = "CeSqsPushPop"
+  description = "Can push/pop Sqs"
+  policy      = data.aws_iam_policy_document.CeSqsPushPop.json
 }
 
 data "aws_iam_policy_document" "AccessCeParams" {
@@ -274,7 +345,7 @@ resource "aws_iam_policy" "AccessCeParams" {
 
 data "aws_iam_policy_document" "ReadS3Minimal" {
   statement {
-    actions   = ["s3:Get*"]
+    actions = ["s3:Get*"]
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/authorized_keys/*",
       "${aws_s3_bucket.compiler-explorer.arn}/version/*"
@@ -318,6 +389,21 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadS3Min
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
 }
 
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_WriteCompileStatsLogs" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.CePutCompileStatsLog.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_CeSqsPushPop" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.CeSqsPushPop.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ScanLibraryBuildHistory" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.ScanLibraryBuildHistory.arn
+}
+
 // CompilerExplorerRole but for Windows machines
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
@@ -327,6 +413,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_Cl
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CeModifyStoredState" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
   policy_arn = aws_iam_policy.CeModifyStoredState.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_WriteCompileStatsLogs" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.CePutCompileStatsLog.arn
 }
 
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_AccessCeParams" {
@@ -359,7 +450,7 @@ resource "aws_security_group" "Builder" {
   vpc_id      = module.ce_network.vpc.id
   name        = "BuilderNodeSecGroup"
   description = "Compiler Explorer compiler and library security group"
-  tags        = {
+  tags = {
     Name = "Builder"
   }
 }
@@ -404,18 +495,24 @@ resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerP
   policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
 }
 
+resource "aws_iam_role_policy_attachment" "Builder_attach_UpdateLibraryBuildHistory" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
+}
+
 data "aws_iam_policy_document" "CeBuilderStorageAccess" {
   statement {
-    sid       = "S3Access"
-    actions   = ["s3:*"]
+    sid     = "S3Access"
+    actions = ["s3:*"]
     resources = [
       "${aws_s3_bucket.compiler-explorer.arn}/opt/*",
+      "${aws_s3_bucket.compiler-explorer.arn}/opt-nonfree/*",
       "${aws_s3_bucket.compiler-explorer.arn}/dist/*",
       "${aws_s3_bucket.ce-cdn-net.arn}/*",
     ]
   }
   statement {
-    sid     = "BuildTableAccess"
+    sid = "BuildTableAccess"
     actions = [
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
@@ -454,7 +551,7 @@ resource "aws_security_group" "efs" {
   vpc_id      = module.ce_network.vpc.id
   name        = "EFS"
   description = "EFS access for Compiler Explorer"
-  tags        = {
+  tags = {
     Name = "EFS"
   }
 }
@@ -477,6 +574,8 @@ resource "aws_security_group_rule" "efs_inbound" {
     "Admin"       = aws_security_group.AdminNode.id,
     "Compilation" = aws_security_group.CompilerExplorer.id
     "Builder"     = aws_security_group.Builder.id
+    "CI-x64"      = "sg-07a8509aae61cbe4f"
+    "CI-arm64"    = "sg-0d3a3411b05a2bfb4"
   }
   security_group_id        = aws_security_group.efs.id
   type                     = "ingress"
@@ -526,4 +625,28 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_mana
   }
   role       = aws_iam_role.CompilerExplorerAdminNode.name
   policy_arn = "arn:aws:iam::aws:policy/${each.key}"
+}
+
+/* API Gateway Logging */
+
+data "aws_iam_policy_document" "api_gw_trust_policy" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    effect  = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["apigateway.amazonaws.com", "lambda.amazonaws.com"]
+    }
+  }
+}
+
+/* note: this role is manually attached to API Gateway under Settings -> Logging -> CloudWatch log role ARN, it cannot be set via TF */
+resource "aws_iam_role" "iam_for_apigw" {
+  name               = "iam_for_apigw"
+  assume_role_policy = data.aws_iam_policy_document.api_gw_trust_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "api_gw_logging_policy" {
+  role       = aws_iam_role.iam_for_apigw.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 }

@@ -1,0 +1,15 @@
+compilers:
+  ygen:
+    ylc:
+      if: nightly
+      install_always: true
+
+      type: ziparchive
+      url: https://github.com/Cr0a3/ygen/archive/refs/heads/build.zip
+
+      dir: ygen
+      folder: ygen-build
+      check_exe: bin/ylc --version
+
+      targets:
+        - newest

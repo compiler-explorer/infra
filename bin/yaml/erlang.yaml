@@ -4,3 +4,4 @@ compilers:
     check_exe: bin/erlc -v
     targets:
       - 24.1.6
+      - 26.2.2

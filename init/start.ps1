@@ -19,10 +19,6 @@ function GetBetterHostname {
 $betterComputerName = GetBetterHostname
 Write-Host "AWS Hostname $betterComputerName"
 
-function download_dskspd {
-    Invoke-WebRequest -Uri "https://github.com/microsoft/diskspd/releases/download/v2.1/DiskSpd.ZIP" -OutFile "/tmp/diskspd.zip"
-}
-
 function update_code {
     Write-Host "Current environment $CE_ENV"
     Invoke-WebRequest -Uri "https://s3.amazonaws.com/compiler-explorer/version/$CE_ENV" -OutFile "/tmp/s3key.txt"
@@ -51,14 +47,16 @@ function get_released_code {
 
 function GetConf {
     Param(
-        $Name
+        $Name,
+        $Default = ""
     )
 
     try {
         return (aws ssm get-parameter --name "$Name" | ConvertFrom-Json).Parameter.Value
     }
     catch {
-        return ""
+        Write-Host "GetConf($Name) raised Exception: $_"
+        return $Default
     }
 }
 
@@ -89,7 +87,7 @@ function GeneratePassword {
 
 function RecreateUser {
     param(
-        $securePassword
+        [securestring] $securePassword
     )
 
     $exists = (Get-LocalUser $CE_USER -ErrorAction Ignore) -as [bool];
@@ -103,20 +101,10 @@ function RecreateUser {
     ConfigureUserRights -SID (Get-LocalUser $CE_USER).SID
 }
 
-function ConfigureUserRights {
-    param(
-        [String] $SID
-    )
-
+function ConfigureSmbRights {
     $tmpfile = "c:\tmp\secpol.cfg"
     secedit /export /cfg $tmpfile
     $secpol = (Get-Content $tmpfile)
-
-    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
-    $Index = [array]::IndexOf($secpol,$Value)
-
-    $NewValue = $Value + ",*" + $SID
-    $secpol.item($Index) = $NewValue
 
     $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth" }
     $Index = [array]::IndexOf($secpol,$Value)
@@ -138,6 +126,63 @@ function ConfigureUserRights {
     Remove-Item -Path $tmpfile
 
     gpupdate /Force
+}
+
+function ConfigureUserRights {
+    param(
+        [String] $SID
+    )
+
+    $tmpfile = "c:\tmp\secpol.cfg"
+    secedit /export /cfg $tmpfile
+    $secpol = (Get-Content $tmpfile)
+
+    $Value = $secpol | Where-Object{ $_ -like "SeBatchLogonRight*" }
+    $Index = [array]::IndexOf($secpol,$Value)
+
+    $NewValue = $Value + ",*" + $SID
+    $secpol.item($Index) = $NewValue
+
+    $secpol | out-file $tmpfile -Force
+    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile
+    Remove-Item -Path $tmpfile
+
+    gpupdate /Force
+}
+
+function InstallAsSystemService {
+    param(
+        [string] $Name,
+        [string] $Exe,
+        [array] $Arguments,
+        [string] $WorkingDirectory
+    )
+
+    $tmplog = "C:/tmp/log"
+    Write-Host "nssm.exe install $Name $Exe"
+    /nssm/win64/nssm.exe install $Name $Exe
+    if ($Arguments.Length -gt 0) {
+        Write-Host "nssm.exe set $Name AppParameters" ($Arguments -join " ")
+        /nssm/win64/nssm.exe set $Name AppParameters ($Arguments -join " ")
+    }
+    Write-Host "nssm.exe set $Name AppDirectory $WorkingDirectory"
+    /nssm/win64/nssm.exe set $Name AppDirectory $WorkingDirectory
+    Write-Host "nssm.exe set $Name AppStdout $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStdout "$tmplog/$Name-svc.log"
+    Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
+    /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
+
+    Write-Host "nssm.exe set $Name AppExit Default Exit"
+    /nssm/win64/nssm.exe set $Name AppExit Default Exit
+
+    Write-Host "nssm.exe set $Name Start SERVICE_DEMAND_START"
+    /nssm/win64/nssm.exe set $Name Start SERVICE_DEMAND_START
+
+    Write-Host "nssm.exe reset $Name ObjectName"
+    /nssm/win64/nssm.exe reset $Name ObjectName
+
+    Write-Host "nssm.exe start $Name"
+    /nssm/win64/nssm.exe start $Name
 }
 
 function InstallAsService {
@@ -177,15 +222,24 @@ function InstallAsService {
     /nssm/win64/nssm.exe start $Name
 }
 
+function InstallAndRunCEAsSystem {
+    $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
+
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CE_ENV,"-HostnameForLogging",$betterComputerName,"-SMBServer",$SMBServer) -join " "
+
+    InstallAsSystemService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs
+}
+
 function InstallCERunTask {
     param(
         [PSCredential] $Credential,
         [securestring] $Password,
         [string] $CeEnv,
-        [string] $HostnameForLogging
+        [string] $HostnameForLogging,
+        [string] $SMBServer
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging) -join " "
+    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging,"-SMBServer",$SMBServer) -join " "
 
     InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
 }
@@ -202,7 +256,9 @@ function CreateCredAndRun {
 
     ConfigureFileRights
 
-    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName
+    $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
+
+    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName -SMBServer $SMBServer
 }
 
 function GetLatestCEWrapper {
@@ -233,7 +289,20 @@ function InitializeAgentConfig {
 }
 
 function GetSMBServerIP {
-    return "172.30.0.254"
+    Param(
+        [string] $CeEnv
+    )
+
+    $configPath = "/compiler-explorer/smbserverProd"
+    if ($CeEnv -like "*staging") {
+        $configPath = "/compiler-explorer/smbserverStaging"
+    } elseif ($CeEnv -like "*test") {
+        $configPath = "/compiler-explorer/smbserverTest"
+    }
+
+    $smbserver = GetConf -Name $configPath -Default "smb-address-unknown";
+
+    return $smbserver
 }
 
 function MountY {
@@ -243,12 +312,13 @@ function MountY {
         return
     }
 
-    $smb_ip = GetSMBServerIP
+    $smb_ip = GetSMBServerIP -CeEnv "prod"
     while (-not $exists) {
         try {
             Write-Host "Mapping Y:"
             $exists = (New-SmbMapping -LocalPath "Y:" -RemotePath "\\$smb_ip\winshared") -as [bool]
         } catch {
+            Write-Host "New-SmbMapping for Y:\ -> \\$smb_ip\winshared failed: $_"
         }
     }
 }
@@ -305,7 +375,7 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="allow ssm-session all out" dir=out program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
     netsh advfirewall firewall add rule name="allow ssm-session all in" dir=in program="C:\Program Files\Amazon\SSM\ssm-session-worker.exe" action=allow enable=yes
 
-    $ip = GetSMBServerIP
+    $ip = GetSMBServerIP -CeEnv $CE_ENV
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
 
@@ -315,7 +385,7 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
 
-    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com", "prometheus-us-central1.grafana.net")
+    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com", "compiler-explorer-logs.s3.us-east-1.amazonaws.com", "prometheus-us-central1.grafana.net")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
@@ -327,7 +397,7 @@ function ConfigureFirewall {
     netsh advfirewall set publicprofile firewallpolicy blockinbound,blockoutbound
 }
 
-download_dskspd
+ConfigureSmbRights
 
 MountY
 
@@ -348,4 +418,6 @@ $loghost = GetLogHost
 $logport = GetLogPort
 
 ConfigureFirewall
-CreateCredAndRun
+
+#CreateCredAndRun
+InstallAndRunCEAsSystem

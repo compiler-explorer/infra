@@ -1,6 +1,6 @@
 import time
 from tempfile import NamedTemporaryFile
-from typing import Sequence
+from typing import Sequence, TextIO
 
 import click
 import boto3
@@ -10,6 +10,8 @@ from lib.env import Environment
 from lib.instance import RunnerInstance
 from lib.ssh import get_remote_file, run_remote_shell, exec_remote, exec_remote_to_stdout
 from .cli import cli
+
+EXPECTED_REMOTE_COMPILERS = {"gpu", "winprod"}
 
 
 @cli.group()
@@ -62,14 +64,19 @@ _S3_CONFIG = dict(ACL="public-read", StorageClass="REDUCED_REDUNDANCY")
     "environment", required=True, type=click.Choice([env.value for env in Environment if env != Environment.RUNNER])
 )
 @click.argument("version", required=True)
-@click.option("--skip-msvc-check", default=False, help="Skip checks for remote MSVC compilers")
-def runner_uploaddiscovery(environment: str, version: str, skip_msvc_check: bool):
+@click.option(
+    "--skip-remote-checks",
+    default="",
+    help="Skip checks for remote compilers type REMOTE (comma separated)",
+    metavar="REMOTE",
+)
+def runner_uploaddiscovery(environment: str, version: str, skip_remote_checks: str):
     """Execute compiler discovery on the builder instance."""
     with NamedTemporaryFile(suffix=".json") as temp_json_file:
         get_remote_file(RunnerInstance.instance(), "/home/ce/discovered-compilers.json", temp_json_file.name)
         temp_json_file.seek(0)
 
-        runner_check_discovery_json_contents(temp_json_file.read().decode("utf-8"), skip_msvc_check)
+        runner_check_discovery_json_contents(temp_json_file.read().decode("utf-8"), skip_remote_checks)
         temp_json_file.seek(0)
 
         boto3.client("s3").put_object(
@@ -88,20 +95,30 @@ def runner_discoveryexists(environment: str, version: str):
     return True
 
 
-def runner_check_discovery_json_contents(contents: str, skip_msvc_check: bool):
-    if "/gpu/api" not in contents:
-        raise RuntimeError("Discovery does not contain GPU instance compilers")
-    if not skip_msvc_check and "godbolt.ms" not in contents:
-        raise RuntimeError("Discovery does not contain MSVC instance compilers")
+def runner_check_discovery_json_contents(contents: str, skip_remote_checks: str):
+    # The idiomatic thing to do here is to pass a list[str]; but the GH action that runs this makes that tricky.
+    # So rather than a bunch of complex bash gymnastics in `compiler-discovery.yml`, we split here
+    skipped = {x.strip() for x in skip_remote_checks.split(",") if x.strip()}
+    for required_endpoint in EXPECTED_REMOTE_COMPILERS:
+        if f"/{required_endpoint}/api" not in contents:
+            if required_endpoint in skipped:
+                print(f"Discovery check for {required_endpoint} instance compilers would have failed")
+                continue
+            raise RuntimeError(f"Discovery does not contain {required_endpoint} instance compilers")
     print("Discovery json looks fine")
 
 
 @runner.command(name="check_discovery_json")
-@click.argument("file", required=True)
-def runner_check_discovery_json(file: str, skip_msvc_check: bool):
+@click.option(
+    "--skip-remote-checks",
+    default="",
+    help="Skip checks for remote compilers type REMOTE (comma separated)",
+    metavar="REMOTE",
+)
+@click.argument("file", required=True, type=click.File(encoding="utf-8"))
+def runner_check_discovery_json(file: TextIO, skip_remote_checks: str):
     """Check if a discovery json file contains all the right ingredients."""
-    with open(file, mode="r", encoding="utf-8") as f:
-        runner_check_discovery_json_contents(f.read(), skip_msvc_check)
+    runner_check_discovery_json_contents(file.read(), skip_remote_checks)
 
 
 @runner.command(name="safeforprod")
@@ -143,8 +160,11 @@ def runner_start():
 
     for _ in range(60):
         try:
-            r = exec_remote(instance, ["journalctl", "-u", "compiler-explorer", "-r", "-n", "1", "-q"])
-            if "compiler-explorer.service: Succeeded." in r:
+            r = exec_remote(instance, ["journalctl", "-u", "compiler-explorer", "-r", "-n", "5", "-q"])
+            if (
+                "compiler-explorer.service: Deactivated successfully." in r  # 22.04
+                or "compiler-explorer.service: Succeeded." in r  # 20.04
+            ):
                 break
         except:  # pylint: disable=bare-except
             print("Waiting for startup to complete")

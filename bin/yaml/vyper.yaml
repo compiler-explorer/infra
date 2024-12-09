@@ -1,0 +1,22 @@
+compilers:
+  vyper:
+    depends:
+      - compilers/python 3.13.0
+    type: pip
+    dir: vyper/v{name}
+    python: '%DEP0%/bin/python3'
+    package:
+    - vyper=={name}
+    - cffi
+    check_exe: bin/vyper --version
+    targets:
+    - 0.3.8
+    - 0.3.9
+    - 0.3.10
+    - 0.4.0
+    older:
+      depends:
+        - compilers/python 3.9.6
+      targets:
+      - 0.3.6
+      - 0.3.7

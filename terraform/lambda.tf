@@ -21,7 +21,7 @@ resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
 
 data "aws_iam_policy_document" "aws_lambda_logging" {
   statement {
-    sid="AllowLogging"
+    sid       = "AllowLogging"
     resources = ["arn:aws:logs:*:*:*"]
     actions = [
       "logs:CreateLogGroup",
@@ -49,7 +49,7 @@ data "aws_iam_policy_document" "aws_lambda_stats" {
     resources = ["${aws_s3_bucket.compiler-explorer-logs.arn}/stats/*"]
   }
   statement {
-    sid     = "AccessSQS"
+    sid = "AccessSQS"
     actions = [
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
@@ -59,7 +59,7 @@ data "aws_iam_policy_document" "aws_lambda_stats" {
     resources = [aws_sqs_queue.stats_queue.arn]
   }
   statement {
-    sid     = "ReadCompilerDb"
+    sid = "ReadCompilerDb"
     actions = [
       "dynamodb:Query"
     ]
@@ -80,7 +80,7 @@ resource "aws_iam_role_policy_attachment" "aws_lambda_stats" {
 
 data "aws_iam_policy_document" "alert_on_elb_instance" {
   statement {
-    sid     = "AccessSNS"
+    sid = "AccessSNS"
     actions = [
       "sns:Publish",
     ]
@@ -132,7 +132,7 @@ resource "aws_lambda_function" "cloudwatch_to_discord" {
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "cloudwatch_to_discord.lambda_handler"
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   environment {
     variables = {
@@ -171,7 +171,7 @@ resource "aws_lambda_function" "alert_on_elb_instance" {
   role              = aws_iam_role.iam_for_lambda.arn
   handler           = "alert_on_elb_instance.lambda_handler"
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   environment {
     variables = {
@@ -191,8 +191,8 @@ resource "aws_lambda_permission" "alert_elb_with_sns" {
 
 resource "aws_sns_topic_subscription" "alert_elb_with_sns" {
   topic_arn = aws_sns_topic.elb-instance-terminate.arn
-  protocol = "lambda"
-  endpoint = aws_lambda_function.alert_on_elb_instance.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.alert_on_elb_instance.arn
 }
 
 resource "aws_lambda_function" "stats" {
@@ -206,7 +206,7 @@ resource "aws_lambda_function" "stats" {
   handler           = "stats.lambda_handler"
   timeout           = 10
 
-  runtime = "python3.8"
+  runtime = "python3.12"
 
   environment {
     variables = {

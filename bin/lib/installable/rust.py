@@ -31,7 +31,6 @@ class RustInstallable(Installable):
     def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
-        self._setup_check_exe(self.install_path)
         self.base_package = self.config_get("base_package")
         self.nightly_install_days = self.config_get("nightly_install_days", 0)
         self.patchelf = self.config_get("patchelf")
@@ -50,12 +49,15 @@ class RustInstallable(Installable):
         )
         self.install_context.remove_dir(untar_to)
 
-    def set_rpath(self, elf_file: Path, rpath: str) -> None:
+    def maybe_set_rpath(self, maybe_elf_file: Path, rpath: str) -> None:
+        if not self.install_context.is_elf(maybe_elf_file):
+            _LOGGER.info("Skipping rpath set of %s as it's not an ELF file", maybe_elf_file)
+            return
         patchelf = (
             self.install_context.destination / self.find_dependee(self.patchelf).install_path / "bin" / "patchelf"
         )
-        _LOGGER.info("Setting rpath of %s to %s", elf_file, rpath)
-        subprocess.check_call([patchelf, "--set-rpath", rpath, elf_file])
+        _LOGGER.info("Setting rpath of %s to %s", maybe_elf_file, rpath)
+        subprocess.check_call([patchelf, "--set-rpath", rpath, maybe_elf_file])
 
     def stage(self, staging: StagingDir) -> None:
         arch_std_prefix = f"rust-std-{self.target_name}-"
@@ -68,10 +70,10 @@ class RustInstallable(Installable):
         self.do_rust_install(staging, self.base_package, base_path)
         for architecture in architectures:
             self.do_rust_install(staging, f"rust-std-{self.target_name}-{architecture}", base_path)
-        for binary in (b for b in (base_path / "bin").glob("*") if self.install_context.is_elf(b)):
-            self.set_rpath(binary, "$ORIGIN/../lib")
+        for binary in (base_path / "bin").glob("*"):
+            self.maybe_set_rpath(binary, "$ORIGIN/../lib")
         for shared_object in (base_path / "lib").glob("*.so"):
-            self.set_rpath(shared_object, "$ORIGIN")
+            self.maybe_set_rpath(shared_object, "$ORIGIN")
         self.install_context.remove_dir(base_path / "share")
 
     def should_install(self) -> bool:

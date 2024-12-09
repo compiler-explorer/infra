@@ -12,11 +12,19 @@ compilers:
       - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.2.0 and onward
       - ln -s /opt/compiler-explorer/libs/libpcre2/10.42/x86_64/lib/libpcre2-8.a # for 1.7.0 and onward
       - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
-      - cd lib
-      - ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.1.1 and before
-      - ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
+      - if test -e lib; then
+      -   cd lib
+      -   ln -s /opt/compiler-explorer/libs/libpcre/8.45/x86_64/lib/libpcre.a # for 1.1.1 and before
+      -   ln -s /opt/compiler-explorer/libs/libevent/2.1.12/x86_64/lib/libevent.a
+      - fi
     targets:
-      - 1.8.1
+      - 1.14.0
+      - 1.13.3
+      - 1.12.2
+      - 1.11.1
+      - 1.10.1
+      - 1.9.2
+      - 1.8.2
       - 1.7.3
       - 1.6.2
       - 1.5.1

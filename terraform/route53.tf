@@ -1,4 +1,4 @@
-module ce-cdn-net {
+module "ce-cdn-net" {
   source                  = "./modules/ce_dns"
   domain_name             = "ce-cdn.net"
   top_level_name          = "static"
@@ -10,7 +10,7 @@ module ce-cdn-net {
 
 ////////////////////////////////////////////////////
 
-module godbolt-org {
+module "godbolt-org" {
   source                  = "./modules/ce_dns"
   domain_name             = "godbolt.org"
   cloudfront_distribution = aws_cloudfront_distribution.ce-godbolt-org
@@ -30,38 +30,19 @@ resource "aws_route53_record" "google-hosted-stuff-godbolt-org" {
   records = ["ghs.googlehosted.com"]
 }
 
-data "aws_cloudfront_distribution" "jsbeeb" {
-  id = "E3Q2PHED6QSZGS"
-}
-
-resource "aws_route53_record" "jsbeeb-godbolt-org" {
+// Concessions for Matt's old non-Compiler Explorer websites.
+module "route53-domain-redirect" {
   for_each = {
-    bbc    = "bbc"
-    master = "master"
+    bbc     = "bbc"
+    master  = "master"
+    beebide = "beebide"
   }
-  name    = each.value
-  zone_id = module.godbolt-org.zone_id
-  type    = "A"
-  alias {
-    name                   = data.aws_cloudfront_distribution.jsbeeb.domain_name
-    zone_id                = data.aws_cloudfront_distribution.jsbeeb.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-data "aws_cloudfront_distribution" "beebide" {
-  id = "E15BCA1IWKH152"
-}
-
-resource "aws_route53_record" "beebide-godbolt-org" {
-  name    = "beebide"
-  zone_id = module.godbolt-org.zone_id
-  type    = "A"
-  alias {
-    name                   = data.aws_cloudfront_distribution.beebide.domain_name
-    zone_id                = data.aws_cloudfront_distribution.beebide.hosted_zone_id
-    evaluate_target_health = false
-  }
+  source                          = "trebidav/route53-domain-redirect/module"
+  version                         = "0.4.0"
+  zone                            = "godbolt.org"
+  subdomain                       = format("%s.", each.value)
+  target_url                      = format("%s.xania.org", each.value)
+  cloudfront_forward_query_string = true
 }
 
 resource "aws_route53_record" "gh-godbolt-org" {
@@ -83,10 +64,19 @@ resource "aws_route53_record" "dkim-godbolt-org" {
   ]
 }
 
+// Bluesky for the Matt
+resource "aws_route53_record" "atproto-matt-godbolt-org" {
+  name    = "_atproto.matt"
+  zone_id = module.godbolt-org.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["did=did:plc:vbbhrlxqrokfgnvuppfyeir5"]
+}
+
 
 ////////////////////////////////////////////////////
 
-module compiler-explorer-com {
+module "compiler-explorer-com" {
   source                  = "./modules/ce_dns"
   domain_name             = "compiler-explorer.com"
   cloudfront_distribution = aws_cloudfront_distribution.compiler-explorer-com
@@ -101,6 +91,15 @@ resource "aws_route53_record" "gh-compiler-explorer-com" {
   records = ["a5417612c3"]
 }
 
+// Bluesky for the CE account
+resource "aws_route53_record" "atproto-compiler-explorer-com" {
+  name    = "_atproto"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["did=did:plc:pz3zlp6rmegaiifji2scmyi2"]
+}
+
 resource "aws_ses_domain_identity" "compiler-explorer-com" {
   domain = "compiler-explorer.com"
 }
@@ -113,10 +112,34 @@ resource "aws_route53_record" "ses-compiler-explorer-com" {
   records = [aws_ses_domain_identity.compiler-explorer-com.verification_token]
 }
 
+resource "aws_route53_record" "api-compiler-explorer-com" {
+  name    = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name
+  type    = "A"
+  zone_id = module.compiler-explorer-com.zone_id
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "events-compiler-explorer-com" {
+  name    = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name
+  type    = "A"
+  zone_id = module.compiler-explorer-com.zone_id
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
 
 ////////////////////////////////////////////////////
 
-module godbo-lt {
+module "godbo-lt" {
   source                  = "./modules/ce_dns"
   domain_name             = "godbo.lt"
   cloudfront_distribution = aws_cloudfront_distribution.godbo-lt

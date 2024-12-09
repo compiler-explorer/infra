@@ -40,7 +40,7 @@ def admin_gotty():
     """Runs gotty on the admin instance to allow external viewers to watch the tmux session."""
     instance = AdminInstance.instance()
     port = 5986  # happens to be open in the firewall...
-    click.echo(f"Will be PUBLICALLY accessible at: http://{instance.address}:{port}...")
+    click.echo(f"Will be PUBLICLY accessible at: http://{instance.address}:{port}...")
     exec_remote_to_stdout(instance, ["./gotty", "--port", str(port), "tmux", "attach"])
 
 

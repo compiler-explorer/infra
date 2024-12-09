@@ -26,8 +26,13 @@ def test_can_write_conan_file(requests_mock):
     build_config.lib_type = "static"
     build_config.staticliblink = ["static1", "static2"]
     build_config.sharedliblink = ["shared1", "shared2"]
+    build_config.copy_files = [
+        'self.copy("*", src="include", dst="include", keep_path=True)',
+        'self.copy("*.png", src="resources", dst="resources", keep_path=True)',
+    ]
     build_config.description = "description"
     build_config.url = "https://some.url"
+    build_config.package_install = False
     lb = LibraryBuilder(logger, "lang", "somelib", "target", "src-folder", install_context, build_config, False)
     tio = io.StringIO()
     lb.write_conan_file_to(tio)
@@ -38,6 +43,8 @@ def test_can_write_conan_file(requests_mock):
     assert 'version = "target"' in lines
     assert 'description = "description"' in lines
     assert 'url = "https://some.url"' in lines
+    assert 'self.copy("*", src="include", dst="include", keep_path=True)' in lines
+    assert 'self.copy("*.png", src="resources", dst="resources", keep_path=True)' in lines
     assert 'self.copy("libstatic1*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libstatic2*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libshared1*.so*", dst="lib", keep_path=False)' in lines

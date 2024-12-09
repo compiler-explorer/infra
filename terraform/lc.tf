@@ -1,17 +1,21 @@
 locals {
-  image_id          = "ami-0a378f28208d35be9"
-  staging_image_id  = "ami-0a378f28208d35be9"
-  beta_image_id     = "ami-0a378f28208d35be9"
-  gpu_image_id      = "ami-0087af87e84769118"
-  winprod_image_id  = "ami-0a7c475695d005c4a"
-  winstaging_image_id  = "ami-0a7c475695d005c4a"
-  wintest_image_id  = "ami-0a7c475695d005c4a"
-  staging_user_data = base64encode("staging")
-  beta_user_data    = base64encode("beta")
-  gpu_user_data     = base64encode("gpu")
-  winprod_user_data = base64encode("winprod")
-  winstaging_user_data = base64encode("winstaging")
-  wintest_user_data = base64encode("wintest")
+  image_id                 = "ami-01f6b885ccb15ff4c"
+  staging_image_id         = "ami-01f6b885ccb15ff4c"
+  beta_image_id            = "ami-01f6b885ccb15ff4c"
+  gpu_image_id             = "ami-0e49c31db87fb4332"
+  aarch64prod_image_id     = "ami-0940f416984ac4e8b"
+  aarch64staging_image_id  = "ami-0940f416984ac4e8b"
+  winprod_image_id         = "ami-0ff7903714ecd0ca0"
+  winstaging_image_id      = "ami-0ff7903714ecd0ca0"
+  wintest_image_id         = "ami-0ff7903714ecd0ca0"
+  staging_user_data        = base64encode("staging")
+  beta_user_data           = base64encode("beta")
+  gpu_user_data            = base64encode("gpu")
+  aarch64prod_user_data    = base64encode("aarch64prod")
+  aarch64staging_user_data = base64encode("aarch64staging")
+  winprod_user_data        = base64encode("winprod")
+  winstaging_user_data     = base64encode("winstaging")
+  wintest_user_data        = base64encode("wintest")
 }
 
 resource "aws_launch_template" "CompilerExplorer-beta" {
@@ -25,7 +29,7 @@ resource "aws_launch_template" "CompilerExplorer-beta" {
   user_data              = local.beta_user_data
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "c6i.large"
+  instance_type          = "m5.large"
 
   tag_specifications {
     resource_type = "volume"
@@ -58,7 +62,7 @@ resource "aws_launch_template" "CompilerExplorer-staging" {
   user_data              = local.staging_user_data
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "c6i.large"
+  instance_type          = "m5.large"
 
   tag_specifications {
     resource_type = "volume"
@@ -109,6 +113,72 @@ resource "aws_launch_template" "CompilerExplorer-prod-gpu" {
       Site        = "CompilerExplorer"
       Environment = "GPU"
       Name        = "GPU"
+    }
+  }
+}
+
+resource "aws_launch_template" "CompilerExplorer-aarch64prod" {
+  name          = "ce-aarch64prod"
+  description   = "Prod Aarch64 launch template"
+  ebs_optimized = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerRole.arn
+  }
+  image_id               = local.aarch64prod_image_id
+  user_data              = local.aarch64prod_user_data
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  instance_type          = "c7g.xlarge"
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "AARCH64prod"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "AARCH64prod"
+      Name        = "AARCH64prod"
+    }
+  }
+}
+
+resource "aws_launch_template" "CompilerExplorer-aarch64staging" {
+  name          = "ce-aarch64staging"
+  description   = "Staging Aarch64 launch template"
+  ebs_optimized = true
+  iam_instance_profile {
+    arn = aws_iam_instance_profile.CompilerExplorerRole.arn
+  }
+  image_id               = local.aarch64staging_image_id
+  user_data              = local.aarch64staging_user_data
+  key_name               = "mattgodbolt"
+  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
+  instance_type          = "c7g.xlarge"
+
+  tag_specifications {
+    resource_type = "volume"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "AARCH64staging"
+    }
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+
+    tags = {
+      Site        = "CompilerExplorer"
+      Environment = "AARCH64staging"
+      Name        = "AARCH64staging"
     }
   }
 }
@@ -218,7 +288,7 @@ resource "aws_launch_template" "CompilerExplorer-winprod" {
   image_id               = local.winprod_image_id
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "m6i.large"  // This is overridden in the ASG
+  instance_type          = "m6i.large" // This is overridden in the ASG
   user_data              = local.winprod_user_data
 
   tag_specifications {

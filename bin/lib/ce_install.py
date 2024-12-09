@@ -3,6 +3,7 @@
 import logging
 import logging.config
 import multiprocessing
+from multiprocessing.pool import ThreadPool
 import os
 import signal
 import sys
@@ -37,22 +38,20 @@ class CliContext:
 
     def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
         # https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
-        _LOGGER.info("Creating multiprocessing pool with %s workers", self.parallel)
+        _LOGGER.info("Creating thread pool with %s workers", self.parallel)
         original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        pool = multiprocessing.Pool(processes=self.parallel)
+        pool = ThreadPool(processes=self.parallel)
         signal.signal(signal.SIGINT, original_sigint_handler)
         return pool
 
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
         for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
-            with yaml_path.open() as yaml_file:
+            with yaml_path.open(encoding="utf-8") as yaml_file:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
             for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
                 installables.append(installer)
-        installables_by_name = {installable.name: installable for installable in installables}
-        for installable in installables:
-            installable.link(installables_by_name)
+        Installable.resolve(installables)
         installables = sorted(
             filter(lambda installable: filter_aggregate(args_filter, installable, self.filter_match_all), installables),
             key=lambda x: x.sort_key,
@@ -126,6 +125,13 @@ def squash_mount_check(rootfolder, subdir, context):
     "DEST for atomic rename/replace. Directory will be removed during install",
     show_default=True,
 )
+@click.option(
+    "--check-user",
+    default="",
+    metavar="CHECKUSER",
+    type=str,
+    help="Executes --version checks under a different user",
+)
 @click.option("--debug/--no-debug", help="Turn on debugging")
 @click.option("--dry-run/--for-real", help="Dry run only")
 @click.option("--log-to-console", is_flag=True, help="Log output to console, even if logging to a file is requested")
@@ -145,6 +151,7 @@ def squash_mount_check(rootfolder, subdir, context):
     show_default=True,
 )
 @click.option("--enable", metavar="TYPE", multiple=True, help='Enable targets of type TYPE (e.g. "nightly")')
+@click.option("--only-nightly", is_flag=True, help="Only install the nightly targets")
 @click.option(
     "--cache",
     metavar="DIR",
@@ -192,6 +199,7 @@ def cli(
     s3_dir: str,
     dry_run: bool,
     enable: List[str],
+    only_nightly: bool,
     cache: Optional[Path],
     yaml_dir: Path,
     allow_unsafe_ssl: bool,
@@ -199,6 +207,7 @@ def cli(
     keep_staging: bool,
     filter_match_all: bool,
     parallel: int,
+    check_user: str,
 ):
     """Install binaries, libraries and compilers for Compiler Explorer."""
     formatter = logging.Formatter(fmt="%(asctime)s %(name)-15s %(levelname)-8s %(message)s")
@@ -218,14 +227,19 @@ def cli(
         s3_url=f"https://s3.amazonaws.com/{s3_bucket}/{s3_dir}",
         dry_run=dry_run,
         is_nightly_enabled="nightly" in enable,
+        only_nightly=only_nightly,
         cache=cache,
         yaml_dir=yaml_dir,
         allow_unsafe_ssl=allow_unsafe_ssl,
         resource_dir=resource_dir,
         keep_staging=keep_staging,
+        check_user=check_user,
     )
     ctx.obj = CliContext(
-        installation_context=context, enabled=enable, filter_match_all=filter_match_all, parallel=parallel
+        installation_context=context,
+        enabled=enable,
+        filter_match_all=filter_match_all,
+        parallel=parallel,
     )
 
 
@@ -275,6 +289,18 @@ def check_installed(context: CliContext, filter_: List[str]):
             print(f"{installable.name}: installed")
         else:
             print(f"{installable.name}: not installed")
+
+
+@cli.command()
+@click.pass_obj
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def check_should_install(context: CliContext, filter_: List[str]):
+    """Check whether targets matching FILTER Should be installed."""
+    for installable in context.get_installables(filter_):
+        if installable.should_install():
+            print(f"{installable.name}: yes")
+        else:
+            print(f"{installable.name}: no")
 
 
 @cli.command()
@@ -448,7 +474,10 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
 
 
 def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
-    return installable, force or installable.should_install()
+    try:
+        return installable, force or installable.should_install()
+    except Exception as ex:
+        raise RuntimeError(f"Unable to install {installable}") from ex
 
 
 @cli.command()
