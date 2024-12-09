@@ -152,7 +152,7 @@ class CefsRootImage:
         self._catalog = {entry: dest_image / entry for entry, dest in self._catalog.items()}
 
     def import_existing(self, root_dir: Path, subdirs: Iterable[Path], replace: bool = False) -> None:
-        with TemporaryDirectory(prefix="cefs-import") as tmp_dir:
+        with TemporaryDirectory(prefix="cefs-import", dir=self._config.image_root) as tmp_dir:
             tmp_path = Path(tmp_dir)
             tmp_sqfs = tmp_path / "temp.sqfs"
             tmp_packfile = tmp_path / "packfile"

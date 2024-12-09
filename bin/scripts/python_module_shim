@@ -16,5 +16,7 @@ if ! make -sq -C "${ROOT_DIR}" ce; then
     exit 1
 fi
 
+PYTHON_ENV=$(cd "${ROOT_DIR}" && "${ROOT_DIR}/.poetry/bin/poetry" env info --path)
+
 export PYTHONPATH=${ROOT_DIR}/bin
-exec "${ROOT_DIR}/.env/bin/python3" -m "lib.${MY_NAME}" "$@"
+exec "${PYTHON_ENV}/bin/python3" -m "lib.${MY_NAME}" "$@"

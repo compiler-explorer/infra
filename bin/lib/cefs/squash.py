@@ -19,7 +19,7 @@ class SquashFsCreator:
 
     def import_existing_path(self, path: Path):
         assert self._sha is None
-        with TemporaryDirectory(prefix="ce-squash-builder") as tmp_dir:
+        with TemporaryDirectory(prefix="ce-squash-builder", dir=self._config.image_root) as tmp_dir:
             tmp_sqfs = Path(tmp_dir) / "temp.sqfs"
             subprocess.check_call(
                 [
