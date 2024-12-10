@@ -25,15 +25,17 @@ apt-get -y update
 apt-get -y dist-upgrade --force-yes
 
 apt-get -y install \
+  autofs \
   jq \
   libc6-arm64-cross \
   libdatetime-perl \
   libtinfo5 \
   libwww-perl \
   nfs-common \
+  python3.9 \
   python-is-python3 \
   python3-pip \
-  python3-venv \
+  python3.9-venv \
   qemu-user-static \
   ssmtp \
   unzip \
