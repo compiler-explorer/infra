@@ -94,10 +94,10 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
 
-def squash_mount_check(rootfolder, subdir, context):
-    for filename in os.listdir(os.path.join(rootfolder, subdir)):
+def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> None:
+    for filename in os.listdir(rootfolder / subdir):
         if filename.endswith(".img"):
-            checkdir = Path(os.path.join("/opt/compiler-explorer/", subdir, filename[:-4]))
+            checkdir = Path("/opt/compiler-explorer/") / subdir / filename[:-4]
             if not checkdir.exists():
                 _LOGGER.error("Missing mount point %s", checkdir)
         else:
@@ -463,7 +463,7 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
         exit(1)
 
     for installable in context.get_installables(filter_):
-        destination = Path(image_dir / f"{installable.install_path}.img")
+        destination = image_dir / f"{installable.install_path}.img"
         if installable.nightly_like:
             if destination.exists():
                 _LOGGER.error("Found squash: %s for nightly", installable.name)
