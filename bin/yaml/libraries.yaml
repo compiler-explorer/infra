@@ -2750,7 +2750,7 @@ libraries:
     color-eyre:
       build_type: cargo
       targets:
-        - 0.6.2
+      - 0.6.2
       type: cratesio
     contracts:
       build_type: cargo
