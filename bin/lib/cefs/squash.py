@@ -12,6 +12,7 @@ from lib.cefs.config import CefsConfig
 _LOGGER = logging.getLogger(__name__)
 
 
+# TODO work out wth this is and why we need it separately from the rest
 class SquashFsCreator:
     def __init__(self, config: CefsConfig):
         self._config = config
@@ -26,16 +27,22 @@ class SquashFsCreator:
                     "mksquashfs",
                     str(path),
                     str(tmp_sqfs),
+                    # todo - force root?
                     "-root-mode",
                     "755",
                     "-progress",
                     "-comp",
                     "zstd",
+                    # todo compression ratio
                 ]
             )
+            # todo de-duplicate with the other similar
             self._sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
+            # todo rename sha as path part? split along the name sh/a/thing.sqfs
+            # todo consider a "root" so it's actually image_root/images/sha/parts/here.sqfs
             if not self.image.exists():
                 _LOGGER.info("New squashfs image: %s", self.image)
+                self.image.parent.mkdir(parents=True, exist_ok=True)
                 tmp_sqfs.replace(self.image)
             else:
                 _LOGGER.info("Existing: %s", self.image)

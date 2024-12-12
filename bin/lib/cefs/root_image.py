@@ -142,10 +142,14 @@ class CefsRootImage:
                     "level=19",
                 ]
             )
+            # todo reconcile with other code elsehwere and proper naming. probably move things into self._config to
+            # get named parts?
             sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
+            # todo image_root/data/parts/sha/here.sqfs ?
             image = self._config.image_root / f"{sha}.sqfs"
             if not image.exists():
                 _LOGGER.info("New squashfs image: %s", image)
+                image.parent.mkdir(parents=True, exist_ok=True)
                 tmp_sqfs.replace(image)
             else:
                 _LOGGER.info("Existing: %s", image)
@@ -191,10 +195,13 @@ class CefsRootImage:
                     "level=19",
                 ]
             )
+            # todo de-duplicate with the other similar
             sha, _filename = subprocess.check_output(["shasum", str(tmp_sqfs)]).decode("utf-8").split()
+            # todo namessss like image_root/data/sha/parts/here.sqfs
             image = self._config.image_root / f"{sha}.sqfs"
             if not image.exists():
                 _LOGGER.info("New squashfs image: %s", image)
+                image.parent.mkdir(parents=True, exist_ok=True)
                 tmp_sqfs.replace(image)
             else:
                 _LOGGER.info("Existing: %s", image)

@@ -262,6 +262,7 @@ def import_(context: CliContext, root: Path, relative_to: Path, directory: List[
 # TODO consolidation in general! aim is to have very few layers, after all.
 # TODO delete old things
 # TODO keep track of a symlink and its history /opt/compiler-explorer --> /opt/compiler-explorer.history?
+# .... or ln -sf .prev to the previous state
 # TODO better naming of dirs/manifest for each so we know who and why created each layer?
 # TODO should we separate out root squashfs images from data?
 # TODO detect cefs roots in `install` and redirect to buildroot?
