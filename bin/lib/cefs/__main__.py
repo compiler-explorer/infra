@@ -84,8 +84,27 @@ def install(context: CliContext):
     click.echo("Writing config files...")
     auto_cefs_config_file = Path("/etc/auto.cefs")
     auto_cefs_config_file.write_text(
-        f"* -fstype=squashfs,loop,nosuid,nodev,ro :{config.image_root}/&.sqfs\n", encoding="utf-8"
+        f"""#!/bin/bash
+key="$1"
+# Abuse the fact PWD is the parent dir to derive the full path to this subdirectory.
+SUBDIR=${{PWD#{config.mountpoint}}}
+if [[ ! "$SUBDIR" = "#{config.mountpoint}" ]]; then
+   key=$SUBDIR/$key
+fi
+# Remove any trailing slash
+key=${{key%/}}
+# If it's a sqfs image, then mount it.
+if [[ -f "{config.image_root}/$key.sqfs" ]]; then
+    echo "-fstype=squashfs,loop,nosuid,nodev,ro :{config.image_root}/$key.sqfs"
+fi
+# Else if it's the name of a directory, make it appear as another autofs level.
+if [[ -d "{config.image_root}/$key" ]]; then
+    echo "-fstype=autofs :{auto_cefs_config_file}"
+fi
+""",
+        encoding="utf-8",
     )
+    auto_cefs_config_file.chmod(0o700)
     Path("/etc/auto.master.d/cefs.autofs").write_text(
         f"{config.mountpoint} {auto_cefs_config_file}  --negative-timeout 1", encoding="utf-8"
     )
