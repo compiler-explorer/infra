@@ -48,7 +48,6 @@ hash -r pip
 # This returns amd64 or arm64
 ARCH=$(dpkg --print-architecture)
 
-
 if [ "$INSTALL_TYPE" != 'ci' ]; then
   mkdir /tmp/aws-install
   pushd /tmp/aws-install
@@ -189,3 +188,11 @@ aws s3 sync s3://compiler-explorer/authorized_keys /tmp/auth_keys
 cat /tmp/auth_keys/* >>/home/ubuntu/.ssh/authorized_keys
 rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
+
+setup_cefs() {
+    mkdir /cefs
+    echo "* -fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/&.sqfs" > /etc/auto.cefs
+    echo "/cefs /etc/auto.cefs --negative-timeout 1" > /etc/auto.master.d/cefs.autofs
+    service autofs restart
+}
+setup_cefs

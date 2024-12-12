@@ -53,21 +53,37 @@ compilers:
           - 10.1.0
           - 10.2.0
           - 10.3.0
+          - assertions-10.3.0
           - 10.4.0
+          - assertions-10.4.0
           - 10.5.0
+          - assertions-10.5.0
           - 11.1.0
+          - assertions-11.1.0
           - 11.2.0
+          - assertions-11.2.0
           - 11.3.0
+          - assertions-11.3.0
           - 11.4.0
+          - assertions-11.4.0
           - 12.1.0
+          - assertions-12.1.0
           - 12.2.0
+          - assertions-12.2.0
           - 12.3.0
+          - assertions-12.3.0
           - 12.4.0
+          - assertions-12.4.0
           - 13.1.0
+          - assertions-13.1.0
           - 13.2.0
+          - assertions-13.2.0
           - 13.3.0
+          - assertions-13.3.0
           - 14.1.0
+          - assertions-14.1.0
           - 14.2.0
+          - assertions-14.2.0
     cross:
       type: s3tarballs
       arch_prefix:
@@ -1376,6 +1392,7 @@ compilers:
           - dascandy-contracts-trunk
           - p1974-trunk
           - ericwf-contracts-trunk
+          - chrisbazley-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang --version
       mlir:
