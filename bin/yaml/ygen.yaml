@@ -12,4 +12,5 @@ compilers:
       check_exe: bin/ylc --version
 
       targets:
-        - newest
+          # https://github.com/compiler-explorer/infra/issues/1481
+          #- newest
