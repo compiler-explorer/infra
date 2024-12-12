@@ -1392,6 +1392,7 @@ compilers:
           - dascandy-contracts-trunk
           - p1974-trunk
           - ericwf-contracts-trunk
+          - chrisbazley-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang --version
       mlir:
