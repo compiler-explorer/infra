@@ -372,7 +372,8 @@ class LibraryBuilder:
         if self.platform == LibraryPlatform.Linux:
             return f'export {var_name}="{var_value}"\n'
         elif self.platform == LibraryPlatform.Windows:
-            return f'$env:{var_name}="{var_value.replace("\"", "`\"")}"\n'
+            escaped_var_value = var_value.replace('"', '`"')
+            return f'$env:{var_name}="{escaped_var_value}"\n'
 
     def writebuildscript(
         self,
@@ -426,8 +427,8 @@ class LibraryBuilder:
             includepaths = []
             archflag = ""
             if is_msvc:
-                libparampaths = compiler_props['libPath'].split(";")
-                includepaths = compiler_props['includePath'].split(";")
+                libparampaths = compiler_props["libPath"].split(";")
+                includepaths = compiler_props["includePath"].split(";")
             else:
                 if arch == "" or arch == "x86_64":
                     # note: native arch for the compiler, so most of the time 64, but not always
@@ -452,16 +453,14 @@ class LibraryBuilder:
                 for path in libparampaths:
                     rpathflags += f"-Wl,-rpath={path} "
 
-            for path in libparampaths:
-                if path != "":
-                    if is_msvc:
-                        ldflags += f"\"/LIBPATH:{path}\" "
-                    else:
+            if not is_msvc:
+                for path in libparampaths:
+                    if path != "":
                         ldflags += f"-L{path} "
 
             if is_msvc:
-                f.write(self.script_env("INCLUDE", compiler_props['includePath']))
-                f.write(self.script_env("LIB", compiler_props['libPath']))
+                f.write(self.script_env("INCLUDE", compiler_props["includePath"]))
+                f.write(self.script_env("LIB", compiler_props["libPath"]))
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
 
@@ -1102,7 +1101,9 @@ class LibraryBuilder:
         build_status = self.executebuildscript(build_folder)
         if build_status == BuildStatus.Ok:
             if self.buildconfig.package_install:
-                filesfound = self.countValidLibraryBinaries(Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc")
+                filesfound = self.countValidLibraryBinaries(
+                    Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc"
+                )
             else:
                 filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib, compiler_type == "win32-vc")
 
