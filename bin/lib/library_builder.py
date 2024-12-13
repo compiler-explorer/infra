@@ -424,11 +424,9 @@ class LibraryBuilder:
             is_msvc = compilerType == "win32-vc"
 
             libparampaths = []
-            includepaths = []
             archflag = ""
             if is_msvc:
                 libparampaths = compiler_props["libPath"].split(";")
-                includepaths = compiler_props["includePath"].split(";")
             else:
                 if arch == "" or arch == "x86_64":
                     # note: native arch for the compiler, so most of the time 64, but not always
