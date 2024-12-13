@@ -11,6 +11,6 @@ compilers:
       folder: ygen-build
       check_exe: bin/ylc --version
 
-      targets:
+      # targets:
           # https://github.com/compiler-explorer/infra/issues/1481
           #- newest
