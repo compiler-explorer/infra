@@ -372,7 +372,7 @@ class LibraryBuilder:
         if self.platform == LibraryPlatform.Linux:
             return f'export {var_name}="{var_value}"\n'
         elif self.platform == LibraryPlatform.Windows:
-            return f'$env:{var_name}="{var_value}"\n'
+            return f'$env:{var_name}="{var_value.replace("\"", "`\"")}"\n'
 
     def writebuildscript(
         self,
@@ -391,6 +391,7 @@ class LibraryBuilder:
         stdlib,
         flagscombination,
         ldPath,
+        compiler_props,
     ):
         with open_script(Path(buildfolder) / self.script_filename) as f:
             compilerexecc = ""
@@ -422,32 +423,45 @@ class LibraryBuilder:
             is_msvc = compilerType == "win32-vc"
 
             libparampaths = []
+            includepaths = []
             archflag = ""
-            if arch == "" or arch == "x86_64":
-                # note: native arch for the compiler, so most of the time 64, but not always
-                if os.path.exists(f"{toolchain}/lib64"):
-                    libparampaths.append(f"{toolchain}/lib64")
+            if is_msvc:
+                libparampaths = compiler_props['libPath'].split(";")
+                includepaths = compiler_props['includePath'].split(";")
+            else:
+                if arch == "" or arch == "x86_64":
+                    # note: native arch for the compiler, so most of the time 64, but not always
+                    if os.path.exists(f"{toolchain}/lib64"):
+                        libparampaths.append(f"{toolchain}/lib64")
+                        libparampaths.append(f"{toolchain}/lib")
+                    else:
+                        libparampaths.append(f"{toolchain}/lib")
+                elif arch == "x86":
                     libparampaths.append(f"{toolchain}/lib")
-                else:
-                    libparampaths.append(f"{toolchain}/lib")
-            elif arch == "x86":
-                libparampaths.append(f"{toolchain}/lib")
-                if os.path.exists(f"{toolchain}/lib32"):
-                    libparampaths.append(f"{toolchain}/lib32")
+                    if os.path.exists(f"{toolchain}/lib32"):
+                        libparampaths.append(f"{toolchain}/lib32")
 
-                if compilerType == "clang":
-                    archflag = "-m32"
-                elif compilerType == "":
-                    archflag = "-march=i386 -m32"
+                    if compilerType == "clang":
+                        archflag = "-m32"
+                    elif compilerType == "":
+                        archflag = "-march=i386 -m32"
 
             rpathflags = ""
             ldflags = ""
-            if compilerType != "edg":
+            if compilerType != "edg" and not is_msvc:
                 for path in libparampaths:
                     rpathflags += f"-Wl,-rpath={path} "
 
             for path in libparampaths:
-                ldflags += f"-L{path} "
+                if path != "":
+                    if is_msvc:
+                        ldflags += f"\"/LIBPATH:{path}\" "
+                    else:
+                        ldflags += f"-L{path} "
+
+            if is_msvc:
+                f.write(self.script_env("INCLUDE", compiler_props['includePath']))
+                f.write(self.script_env("LIB", compiler_props['libPath']))
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
 
@@ -504,6 +518,9 @@ class LibraryBuilder:
             else:
                 compilerTypeOrGcc = compilerType
 
+            if is_msvc:
+                compileroptions = compileroptions.replace("/source-charset:utf-8", "")
+
             cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
 
             expanded_configure_flags = [
@@ -543,10 +560,7 @@ class LibraryBuilder:
                     if make_utility == "ninja":
                         generator = "-GNinja"
                 elif self.platform == LibraryPlatform.Windows:
-                    if is_msvc:
-                        generator = ""
-                    else:
-                        generator = '"-GMinGW Makefiles"'
+                    generator = "-GNinja"
 
                 for line in self.buildconfig.prebuild_script:
                     expanded_line = self.expand_build_script_line(
@@ -746,6 +760,12 @@ class LibraryBuilder:
             for lib in self.buildconfig.sharedliblink:
                 f.write(f'        self.copy("lib{lib}*.so*", dst="lib", keep_path=False)\n')
 
+            for lib in self.buildconfig.staticliblink:
+                f.write(f'        self.copy("{lib}*.lib", dst="lib", keep_path=False)\n')
+
+            for lib in self.buildconfig.sharedliblink:
+                f.write(f'        self.copy("{lib}*.dll*", dst="lib", keep_path=False)\n')
+
         f.write("    def package_info(self):\n")
         f.write(f"        self.cpp_info.libs = [{libsum}]\n")
 
@@ -753,12 +773,15 @@ class LibraryBuilder:
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
             self.write_conan_file_to(f)
 
-    def countValidLibraryBinaries(self, buildfolder, arch, stdlib):
+    def countValidLibraryBinaries(self, buildfolder, arch, stdlib, is_msvc: bool):
         filesfound = 0
 
         if self.buildconfig.lib_type == "cshared":
             for lib in self.buildconfig.sharedliblink:
-                filepath = os.path.join(buildfolder, f"lib{lib}.so")
+                if is_msvc:
+                    filepath = os.path.join(buildfolder, f"{lib}.dll")
+                else:
+                    filepath = os.path.join(buildfolder, f"lib{lib}.so")
                 bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
                 if "libstdc++.so" not in bininfo.ldd_details and "libc++.so" not in bininfo.ldd_details:
                     if arch == "":
@@ -770,7 +793,11 @@ class LibraryBuilder:
             return filesfound
 
         for lib in self.buildconfig.staticliblink:
-            filepath = os.path.join(buildfolder, f"lib{lib}.a")
+            if is_msvc:
+                filepath = os.path.join(buildfolder, f"{lib}.lib")
+            else:
+                filepath = os.path.join(buildfolder, f"lib{lib}.a")
+
             if os.path.exists(filepath):
                 bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
                 cxxinfo = bininfo.cxx_info_from_binary()
@@ -782,10 +809,14 @@ class LibraryBuilder:
                     elif arch == "x86_64" and "ELF64" in bininfo.readelf_header_details:
                         filesfound += 1
             else:
-                self.logger.debug(f"lib{lib}.a not found")
+                self.logger.debug(f"{filepath} not found")
 
         for lib in self.buildconfig.sharedliblink:
-            filepath = os.path.join(buildfolder, f"lib{lib}.so")
+            if is_msvc:
+                filepath = os.path.join(buildfolder, f"{lib}.dll")
+            else:
+                filepath = os.path.join(buildfolder, f"lib{lib}.so")
+
             bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
             if (stdlib == "" and "libstdc++.so" in bininfo.ldd_details) or (
                 stdlib != "" and f"{stdlib}.so" in bininfo.ldd_details
@@ -1015,6 +1046,7 @@ class LibraryBuilder:
         flagscombination,
         ld_path,
         staging: StagingDir,
+        compiler_props,
     ):
         combined_hash = self.makebuildhash(
             compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
@@ -1047,6 +1079,7 @@ class LibraryBuilder:
             stdlib,
             flagscombination,
             ld_path,
+            compiler_props,
         )
         self.writeconanfile(build_folder)
         extralogtext = ""
@@ -1069,9 +1102,9 @@ class LibraryBuilder:
         build_status = self.executebuildscript(build_folder)
         if build_status == BuildStatus.Ok:
             if self.buildconfig.package_install:
-                filesfound = self.countValidLibraryBinaries(Path(install_folder) / "lib", arch, stdlib)
+                filesfound = self.countValidLibraryBinaries(Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc")
             else:
-                filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib)
+                filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib, compiler_type == "win32-vc")
 
             if filesfound != 0:
                 self.writeconanscript(build_folder)
@@ -1294,13 +1327,6 @@ class LibraryBuilder:
             if fixedStdver:
                 stdvers = [fixedStdver]
 
-            self.logger.info(build_supported_os)
-            self.logger.info(build_supported_buildtype)
-            self.logger.info(archs)
-            self.logger.info(stdvers)
-            self.logger.info(stdlibs)
-            self.logger.info(build_supported_flagscollection)
-
             for args in itertools.product(
                 build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
@@ -1314,6 +1340,7 @@ class LibraryBuilder:
                         *args,
                         self.compilerprops[compiler]["ldPath"],
                         staging,
+                        self.compilerprops[compiler],
                     )
                     if buildstatus == BuildStatus.Ok:
                         builds_succeeded = builds_succeeded + 1

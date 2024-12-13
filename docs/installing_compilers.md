@@ -49,7 +49,9 @@ Note: do not do any of this unless you know what you're doing. It does not refle
 * Make a drive out of the directory with subst
   - `subst Z: D:\efs\winshared`
 * `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/compilers" --enable windows install 'windows/tools/cmake'`
+* `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/compilers" --enable windows install 'windows/tools/ninja'`
 * `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/compilers" --enable windows install 'mingw-w64 13.1.0-16.0.2-11.0.0-ucrt-r1'`
 * `pwsh .\ce_install.ps1 --staging-dir "Z:/staging" --dest "Z:/staging" --enable windows install 'fmt 11.0.0'`
-* `$env:PATH = "Z:\compilers\cmake-v3.29.2\bin;Z:\compilers\mingw-w64-13.1.0-16.0.5-11.0.0-ucrt-r5\bin;$env:PATH"`
+* `$env:PATH = "Z:\compilers\windows-kits-10\bin;Z:\compilers\cmake-v3.29.2\bin;Z:\compilers\mingw-w64-13.1.0-16.0.5-11.0.0-ucrt-r5\bin;Z:\compilers\ninja-v1.12.1;$env:PATH"`
 * `pwsh .\ce_install.ps1 --keep-staging --dry-run --staging-dir "Z:/staging" --dest "Z:/staging" --enable windows build --buildfor mingw64_ucrt_gcc_1130 'fmt 11.0.0'`
+* `pwsh .\ce_install.ps1 --keep-staging --dry-run --staging-dir "Z:/staging" --dest "Z:/staging" --enable windows build --buildfor vcpp_v19_40_VS17_10_x64 'fmt 11.0.0'`

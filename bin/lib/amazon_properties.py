@@ -60,6 +60,10 @@ def get_properties_compilers_and_libraries(
                 groups[group]["supportsBinary"] = val == "true"
             elif key[2] == "ldPath":
                 groups[group]["ldPath"] = val
+            elif key[2] == "libPath":
+                groups[group]["libPath"] = val
+            elif key[2] == "includePath":
+                groups[group]["includePath"] = val
         elif line.startswith("libs."):
             keyval = line.split("=", 1)
             key = keyval[0].split(".")
@@ -112,11 +116,17 @@ def get_properties_compilers_and_libraries(
                     groups[subgroupname]["supportsBinary"] = groups[group]["supportsBinary"]
                 if "ldPath" not in groups[subgroupname] and "ldPath" in groups[group]:
                     groups[subgroupname]["ldPath"] = groups[group]["ldPath"]
+                if "libPath" not in groups[subgroupname] and "libPath" in groups[group]:
+                    groups[subgroupname]["libPath"] = groups[group]["libPath"]
+                if "includePath" not in groups[subgroupname] and "includePath" in groups[group]:
+                    groups[subgroupname]["includePath"] = groups[group]["includePath"]
             else:
                 _compilers[compiler]["options"] = groups[group].get("options", "")
                 _compilers[compiler]["compilerType"] = groups[group].get("compilerType", "")
                 _compilers[compiler]["supportsBinary"] = groups[group].get("supportsBinary", True)
                 _compilers[compiler]["ldPath"] = groups[group].get("ldPath", "")
+                _compilers[compiler]["libPath"] = groups[group].get("libPath", "")
+                _compilers[compiler]["includePath"] = groups[group].get("includePath", "")
                 _compilers[compiler]["group"] = group
 
     logger.debug("Reading properties for compilers")
