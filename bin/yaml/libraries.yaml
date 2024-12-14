@@ -898,11 +898,14 @@ libraries:
       - 0.7.3
       type: github
     mdspan:
-      check_file: include/mdspan/mdspan.hpp
+      check_file: include/experimental/mdspan
       repo: kokkos/mdspan
+      target_prefix: mdspan-
       targets:
-      - '0.6'
+      - '0.6.0'
       build_type: none
+      path_name: libs/mdspan-{name}
+      untar_dir: mdspan-mdspan-{name}
       type: github
     mfem:
       build_type: cmake
