@@ -901,7 +901,7 @@ libraries:
       check_file: include/mdspan/mdspan.hpp
       repo: kokkos/mdspan
       targets:
-      - 0.6
+      - '0.6'
       build_type: none
       type: github
     mfem:
