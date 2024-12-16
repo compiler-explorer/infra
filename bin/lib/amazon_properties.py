@@ -3,6 +3,7 @@ import re
 import urllib.parse
 from collections import defaultdict
 from typing import Dict, Any
+from lib.library_platform import LibraryPlatform
 
 import requests
 
@@ -20,12 +21,21 @@ def get_specific_library_version_details(libraries, libid, library_version):
 COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
-def get_properties_compilers_and_libraries(language, logger, filter_binary_support: bool = True):
+def get_properties_compilers_and_libraries(
+    language, logger, platform: LibraryPlatform, filter_binary_support: bool = True
+):
     _compilers: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     _libraries: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 
     encoded_language = urllib.parse.quote(language)
-    url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties"
+
+    if platform == LibraryPlatform.Linux:
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties"
+    elif platform == LibraryPlatform.Windows:
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazonwin.properties"
+    else:
+        raise RuntimeError("Unsupported platform")
+
     request = requests.get(url, timeout=30)
     if not request.ok:
         raise RuntimeError(f"Fetch failure for {url}: {request}")
@@ -50,6 +60,10 @@ def get_properties_compilers_and_libraries(language, logger, filter_binary_suppo
                 groups[group]["supportsBinary"] = val == "true"
             elif key[2] == "ldPath":
                 groups[group]["ldPath"] = val
+            elif key[2] == "libPath":
+                groups[group]["libPath"] = val
+            elif key[2] == "includePath":
+                groups[group]["includePath"] = val
         elif line.startswith("libs."):
             keyval = line.split("=", 1)
             key = keyval[0].split(".")
@@ -102,11 +116,17 @@ def get_properties_compilers_and_libraries(language, logger, filter_binary_suppo
                     groups[subgroupname]["supportsBinary"] = groups[group]["supportsBinary"]
                 if "ldPath" not in groups[subgroupname] and "ldPath" in groups[group]:
                     groups[subgroupname]["ldPath"] = groups[group]["ldPath"]
+                if "libPath" not in groups[subgroupname] and "libPath" in groups[group]:
+                    groups[subgroupname]["libPath"] = groups[group]["libPath"]
+                if "includePath" not in groups[subgroupname] and "includePath" in groups[group]:
+                    groups[subgroupname]["includePath"] = groups[group]["includePath"]
             else:
                 _compilers[compiler]["options"] = groups[group].get("options", "")
                 _compilers[compiler]["compilerType"] = groups[group].get("compilerType", "")
                 _compilers[compiler]["supportsBinary"] = groups[group].get("supportsBinary", True)
                 _compilers[compiler]["ldPath"] = groups[group].get("ldPath", "")
+                _compilers[compiler]["libPath"] = groups[group].get("libPath", "")
+                _compilers[compiler]["includePath"] = groups[group].get("includePath", "")
                 _compilers[compiler]["group"] = group
 
     logger.debug("Reading properties for compilers")
