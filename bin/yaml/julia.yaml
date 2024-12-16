@@ -3,7 +3,8 @@ compilers:
     type: tarballs
     compression: gz
     dir: julia-{name}
-    check_exe: bin/julia --version
+    julia_exe: bin/julia
+    check_exe: {julia_exe} --version
     targets:
       - name: 1.11.2
         url: https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.2-linux-x86_64.tar.gz
@@ -23,3 +24,7 @@ compilers:
           url: https://julialangnightlies-s3.julialang.org/bin/linux/x86_64/julia-latest-linux-x86_64.tar.gz
           strip_components: 1
           create_untar_dir: true
+    depot: {destination}/depot
+    cejl_revision: 532185e32ed03d340e16922c1da330c973047570
+    after_stage_script:
+      - JULIA_DEPOT_PATH={depot} {julia_exe} -e 'using Pkg; Pkg.add(; url="https://github.com/giordano/CompilerExplorer.jl", rev="{ce_revision}"); Pkg.precompile()'
