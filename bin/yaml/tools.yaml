@@ -62,7 +62,8 @@ tools:
   glibc-tools-arm64:
     type: tarballs
     compression: xz
-    check_exe: tracer --help
+    # not x86, so we can't execute
+    check_file: tracer
     symlink: glibc-tools-arm64
     dir: glibc-tools-arm64-{name}
     untar_dir: glibc-tools-arm64
