@@ -377,6 +377,7 @@ class NonFreeS3TarballInstallable(S3TarballInstallable):
         super().__init__(install_context, config)
 
     def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:
+        _LOGGER.info("getting %s", s3_path)
         untar_dir = staging.path / self.untar_dir
         untar_dir.mkdir(exist_ok=True, parents=True)
         with tempfile.TemporaryFile() as fd:

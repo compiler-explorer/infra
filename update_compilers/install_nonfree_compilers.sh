@@ -36,6 +36,9 @@ for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic;
     s3get ${S3URL}/$license /opt/intel/licenses/$license # NB not ${OPT} as we need this actually at this absolute path
 done
 
+mkdir -p /opt/qnx
+s3get ${S3URL}/qnx-licenses /opt/qnx/licenses
+
 for version in 2016.3.210 2018.0.033; do
     if [[ ! -d intel-${version} ]]; then
         compiler=intel-${version}.tar.xz
