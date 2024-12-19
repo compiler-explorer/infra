@@ -21,6 +21,11 @@ ce_install edg
 ce_squash edg
 
 ##################################
+# QNX compilers
+ce_install qnx
+ce_squash qnx
+
+##################################
 # Intel compilers
 for compiler in \
     intel.tar.gz; do

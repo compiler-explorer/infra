@@ -18,11 +18,11 @@ Install on a local linux machine with a process similar to:
   - select "Advanced Installation Variants" and select all architectures as well as experimental packages (not sure what those are but why not)
   - click through and install (probably to `qnx800`)
 
-(With thanks to `@doodspav` on the C++ language Slack)
+(With thanks to `@doodspav`).
 
 The license file was found to have been installed in `~/.qnx/licenses/license` and was manually copied to a safe location on the network.
 
-For each version supported, we then manually tar Jcvf up the `qnx800` or similar directory and `aws s3 cp` the image to the `s3://compiler-explorer/opt-nonfree/qnx-800.tar.xz`.
+For each version supported, we then manually tar Jcvf up the _contents_ of the `qnx800` or similar directory (`$ tar Jcvf (pwd)/qnx-800.tar.xz -C ~/qnx800 .`) and `aws s3 cp` the image to the `s3://compiler-explorer/opt-nonfree/`. Note the `-` in the name to make it "nicer" in CE-land.
 
 ### Running
 

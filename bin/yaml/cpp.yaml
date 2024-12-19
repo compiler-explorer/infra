@@ -1034,7 +1034,6 @@ compilers:
       type: non-free-s3tarballs
       # NB use a check_file here to avoid license issues
       check_file: host/linux/x86_64/usr/bin/q++
-      untar_dir: qnx{name}
       targets:
         - "800"
     edg:
