@@ -1028,6 +1028,14 @@ compilers:
           - 5.7.0
           - 6.0.2
           - 6.1.2
+    qnx:
+      if: non-free
+      compression: xz
+      type: non-free-s3tarballs
+      # NB use a check_file here to avoid license issues
+      check_file: host/linux/x86_64/usr/bin/q++
+      targets:
+        - "800"
     edg:
       if: non-free
       type: edg
