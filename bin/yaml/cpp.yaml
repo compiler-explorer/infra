@@ -1028,6 +1028,13 @@ compilers:
           - 5.7.0
           - 6.0.2
           - 6.1.2
+    plugins:
+      clad:
+        path_name: clang-plugins/clad-{name}
+        type: s3tarballs
+        check_file: lib/clad.so
+        targets:
+          - 1.8-clang-18.1.0
     qnx:
       if: non-free
       compression: xz
