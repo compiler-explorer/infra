@@ -1028,6 +1028,13 @@ compilers:
           - 5.7.0
           - 6.0.2
           - 6.1.2
+    plugins:
+      clad:
+        type: s3tarballs
+        dir:
+        check_file: lib/clad.so
+        targets:
+          - '1.8'
     qnx:
       if: non-free
       compression: xz
