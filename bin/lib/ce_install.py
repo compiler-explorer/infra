@@ -17,6 +17,7 @@ import click
 import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.library_platform import LibraryPlatform
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
 from lib.installation import installers_for
@@ -307,7 +308,7 @@ def amazon_check():
 
     for language in languages:
         _LOGGER.info("Checking %s libraries", language)
-        [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER)
+        [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER, LibraryPlatform.Linux)
 
         for libraryid in libraries:
             _LOGGER.debug("Checking %s", libraryid)
@@ -468,11 +469,17 @@ def build(context: CliContext, filter_: List[str], force: bool, buildfor: str, p
     num_installed = 0
     num_skipped = 0
     num_failed = 0
+
+    platform = LibraryPlatform.Linux
+
+    if "windows" in context.enabled:
+        platform = LibraryPlatform.Windows
+
     for installable in context.get_installables(filter_):
         if buildfor:
-            print(f"Building {installable.name} just for {buildfor}")
+            print(f"Building {installable.name} ({platform.value}) just for {buildfor}")
         else:
-            print(f"Building {installable.name} for all")
+            print(f"Building {installable.name} ({platform.value}) for all")
 
         if force or installable.should_build():
             if not installable.is_installed():
@@ -480,11 +487,15 @@ def build(context: CliContext, filter_: List[str], force: bool, buildfor: str, p
                 num_skipped += 1
             else:
                 try:
-                    [num_installed, num_skipped, num_failed] = installable.build(buildfor, popular_compilers_only)
+                    [num_installed, num_skipped, num_failed] = installable.build(
+                        buildfor, popular_compilers_only, platform
+                    )
                     if num_installed > 0:
                         _LOGGER.info("%s built OK", installable.name)
                     elif num_failed:
                         _LOGGER.info("%s failed to build", installable.name)
+                    else:
+                        _LOGGER.info("%s hit a BUG", installable.name)
                 except RuntimeError as e:
                     if buildfor:
                         raise e
