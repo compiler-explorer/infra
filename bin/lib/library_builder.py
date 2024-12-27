@@ -1039,20 +1039,24 @@ class LibraryBuilder:
         annotations["commithash"] = self.get_commit_hash()
 
         for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
+            lib_filepath = ""
             if os.path.exists(os.path.join(buildfolder, f"lib{lib}.a")):
+                lib_filepath = os.path.join(buildfolder, f"lib{lib}.a")
+            elif os.path.exists(os.path.join(buildfolder, f"lib{lib}.so")):
+                lib_filepath = os.path.join(buildfolder, f"lib{lib}.so")
+            elif os.path.exists(os.path.join(buildfolder, f"{lib}.lib")):
+                lib_filepath = os.path.join(buildfolder, f"{lib}.lib")
+
+            if lib_filepath:
                 bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"), self.platform)
                 libinfo = bininfo.cxx_info_from_binary()
                 archinfo = bininfo.arch_info_from_binary()
                 annotations["cxx11"] = libinfo["has_maybecxx11abi"]
                 annotations["machine"] = archinfo["elf_machine"]
-                annotations["osabi"] = archinfo["elf_osabi"]
-            elif os.path.exists(os.path.join(buildfolder, f"lib{lib}.so")):
-                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.so"), self.platform)
-                libinfo = bininfo.cxx_info_from_binary()
-                archinfo = bininfo.arch_info_from_binary()
-                annotations["cxx11"] = libinfo["has_maybecxx11abi"]
-                annotations["machine"] = archinfo["elf_machine"]
-                annotations["osabi"] = archinfo["elf_osabi"]
+                if self.platform == LibraryPlatform.Windows:
+                    annotations["osabi"] = "Windows " + archinfo["obj_arch"]
+                else:
+                    annotations["osabi"] = archinfo["elf_osabi"]
 
         self.logger.info(annotations)
 

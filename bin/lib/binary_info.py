@@ -15,6 +15,10 @@ ELF_CLASS_RE = re.compile(r"^\s*Class:\s*(.*)$", re.MULTILINE)
 ELF_OSABI_RE = re.compile(r"^\s*OS\/ABI:\s*(.*)$", re.MULTILINE)
 ELF_MACHINE_RE = re.compile(r"^\s*Machine:\s*(.*)$", re.MULTILINE)
 
+OBJ_FORMAT_RE = re.compile(r"^\s*Format:\s*(.*)$", re.MULTILINE)
+OBJ_ARCH_RE = re.compile(r"^\s*Arch:\s*(.*)$", re.MULTILINE)
+OBJ_ADDRSIZE_RE = re.compile(r"^\s*AddressSize:\s*(.*)$", re.MULTILINE)
+
 sym_grp_num = 0
 sym_grp_val = 1
 sym_grp_type = 2
@@ -68,6 +72,7 @@ class BinaryInfo:
                         # some C++ SO's are stubborn and ldd can't read them for some reason, readelf -d sort of gives us the same info
                         self.ldd_details = self._debug_check_output(["readelf", "-d", str(self.filepath)])
             elif self.platform == LibraryPlatform.Windows:
+                self.readelf_header_details = self._debug_check_output(["llvm-readelf", "-h", str(self.filepath)])
                 if str(self.filepath).endswith(".a"):
                     self.readelf_symbols_details = self._debug_check_output(["nm", str(self.filepath)])
                     self.nm_used = True
@@ -141,6 +146,21 @@ class BinaryInfo:
         matches = ELF_MACHINE_RE.findall(self.readelf_header_details)
         for match in matches:
             info["elf_machine"] = match
+            break
+
+        matches = OBJ_FORMAT_RE.findall(self.readelf_header_details)
+        for match in matches:
+            info["obj_format"] = match
+            break
+
+        matches = OBJ_ARCH_RE.findall(self.readelf_header_details)
+        for match in matches:
+            info["obj_arch"] = match
+            break
+
+        matches = OBJ_ADDRSIZE_RE.findall(self.readelf_header_details)
+        for match in matches:
+            info["obj_address_size"] = match
             break
 
         return info
