@@ -133,7 +133,8 @@ function InstallConan {
     conan remote add ceserver https://conan.compiler-explorer.com/ True
 
     $conan_home = conan config home
-    # todo: copy settings.yml from infra to $conan_home
+
+    Copy-Item -Path "/tmp/infra/init/settings.yml" -Destination "${conan_home}/settings.yml"
 }
 
 
