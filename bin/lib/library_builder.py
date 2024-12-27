@@ -55,6 +55,7 @@ disable_compiler_ids = ["avrg454"]
 
 _propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
 _supports_x86: Dict[str, Any] = defaultdict(lambda: [])
+_compiler_support_output: Dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
 CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
@@ -227,27 +228,19 @@ class LibraryBuilder:
         except:
             return False
 
-    def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
-        fixedTarget = self.getTargetFromOptions(options)
-        if fixedTarget:
-            return fixedTarget == arch
+    def get_compiler_support_output(self, exe, compilerType, arch, options, ldPath):
+        if exe in _compiler_support_output:
+            return _compiler_support_output[exe]
 
         fullenv = os.environ
         fullenv["LD_LIBRARY_PATH"] = ldPath
+        output = ""
 
         if compilerType == "":
-            if "icpx" in exe:
-                return arch == "x86" or arch == "x86_64"
-            elif "icc" in exe:
+            if "icc" in exe:
                 output = subprocess.check_output([exe, "--help"], env=fullenv).decode("utf-8", "ignore")
-                if arch == "x86":
-                    arch = "-m32"
-                elif arch == "x86_64":
-                    arch = "-m64"
             else:
-                if "zapcc" in exe:
-                    return arch == "x86" or arch == "x86_64"
-                else:
+                if not ("zapcc" in exe) and not ("icpx" in exe):
                     try:
                         output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
                     except subprocess.CalledProcessError as e:
@@ -260,12 +253,43 @@ class LibraryBuilder:
                     output = subprocess.check_output([llcexe, "--version"], env=fullenv).decode("utf-8", "ignore")
                 except subprocess.CalledProcessError as e:
                     output = e.output.decode("utf-8", "ignore")
-            else:
-                output = ""
-        else:
-            output = ""
+        elif compilerType == "win32-vc":
+            output = subprocess.check_output([exe], env=fullenv).decode("utf-8", "ignore")
 
-        if arch in output:
+        _compiler_support_output[exe] = output
+
+        return output
+
+    def get_support_check_text(self, exe, compilerType, arch, options, ldPath):
+        if "icc" in exe:
+            if arch == "x86":
+                return "-m32"
+            elif arch == "x86_64":
+                return "-m64"
+        elif compilerType == "win32-vc":
+            if arch == "x86":
+                return "for x86"
+            elif arch == "x86_64":
+                return "for x64"
+            elif arch == "arm64":
+                return "for ARM64"
+
+        return arch
+
+    def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
+        fixedTarget = self.getTargetFromOptions(options)
+        if fixedTarget:
+            return fixedTarget == arch
+
+        output = self.get_compiler_support_output(exe, compilerType, arch, options, ldPath)
+        if compilerType == "":
+            if "icpx" in exe:
+                return arch == "x86" or arch == "x86_64"
+            elif "zapcc" in exe:
+                return arch == "x86" or arch == "x86_64"
+
+        check_text = self.get_support_check_text(exe, compilerType, arch, options, ldPath)
+        if check_text in output:
             self.logger.debug(f"Compiler {exe} supports {arch}")
             return True
         else:
@@ -723,9 +747,14 @@ class LibraryBuilder:
 
     def writeconanscript(self, buildfolder):
         conanparamsstr = " ".join(self.current_buildparameters)
-        with open_script(Path(buildfolder) / "conanexport.sh") as f:
-            f.write("#!/bin/sh\n\n")
-            f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
+
+        if self.platform == LibraryPlatform.Linux:
+            with open_script(Path(buildfolder) / "conanexport.sh") as f:
+                f.write("#!/bin/sh\n\n")
+                f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
+        elif self.platform == LibraryPlatform.Windows:
+            with open_script(Path(buildfolder) / "conanexport.ps1") as f:
+                f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
 
     def write_conan_file_to(self, f: TextIO) -> None:
         libsum = ",".join(
@@ -827,11 +856,18 @@ class LibraryBuilder:
         return filesfound
 
     def executeconanscript(self, buildfolder):
-        if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
-            self.logger.info("Export succesful")
-            return BuildStatus.Ok
-        else:
-            return BuildStatus.Failed
+        if self.platform == LibraryPlatform.Linux:
+            if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
+                self.logger.info("Export succesful")
+                return BuildStatus.Ok
+            else:
+                return BuildStatus.Failed
+        elif self.platform == LibraryPlatform.Windows:
+            if subprocess.call(["pwsh", "./conanexport.ps1"], cwd=buildfolder) == 0:
+                self.logger.info("Export succesful")
+                return BuildStatus.Ok
+            else:
+                return BuildStatus.Failed
 
     def executebuildscript(self, buildfolder):
         try:
