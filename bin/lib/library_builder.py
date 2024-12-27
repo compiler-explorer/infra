@@ -451,14 +451,13 @@ class LibraryBuilder:
                 for path in libparampaths:
                     rpathflags += f"-Wl,-rpath={path} "
 
-            if not is_msvc:
-                for path in libparampaths:
-                    if path != "":
-                        ldflags += f"-L{path} "
-
             if is_msvc:
                 f.write(self.script_env("INCLUDE", compiler_props["includePath"]))
                 f.write(self.script_env("LIB", compiler_props["libPath"]))
+            else:
+                for path in libparampaths:
+                    if path != "":
+                        ldflags += f"-L{path} "
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
 
