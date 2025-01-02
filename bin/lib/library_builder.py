@@ -254,7 +254,8 @@ class LibraryBuilder:
                 except subprocess.CalledProcessError as e:
                     output = e.output.decode("utf-8", "ignore")
         elif compilerType == "win32-vc":
-            output = subprocess.check_output([exe], env=fullenv).decode("utf-8", "ignore")
+            # note: cl.exe does not have a --version flag or target flags, but it displays the version and target in stderr
+            output = subprocess.check_output([exe], stderr=subprocess.STDOUT, env=fullenv).decode("utf-8", "ignore")
 
         _compiler_support_output[exe] = output
 
@@ -301,6 +302,9 @@ class LibraryBuilder:
         if cachekey not in _supports_x86:
             _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, "x86", options, ldPath)
         return _supports_x86[cachekey]
+
+    def does_compiler_support_amd64(self, exe, compilerType, options, ldPath):
+        return self.does_compiler_support(exe, compilerType, "x86_64", options, ldPath)
 
     def replace_optional_arg(self, arg, name, value):
         self.logger.debug(f"replace_optional_arg('{arg}', '{name}', '{value}')")
@@ -1048,17 +1052,15 @@ class LibraryBuilder:
                 lib_filepath = os.path.join(buildfolder, f"{lib}.lib")
 
             if lib_filepath:
-                bininfo = BinaryInfo(self.logger, buildfolder, os.path.join(buildfolder, f"lib{lib}.a"), self.platform)
+                bininfo = BinaryInfo(self.logger, buildfolder, lib_filepath, self.platform)
                 libinfo = bininfo.cxx_info_from_binary()
                 archinfo = bininfo.arch_info_from_binary()
                 annotations["cxx11"] = libinfo["has_maybecxx11abi"]
                 annotations["machine"] = archinfo["elf_machine"]
                 if self.platform == LibraryPlatform.Windows:
-                    annotations["osabi"] = "Windows " + archinfo["obj_arch"]
+                    annotations["osabi"] = archinfo["obj_arch"]
                 else:
                     annotations["osabi"] = archinfo["elf_osabi"]
-
-        self.logger.info(annotations)
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
@@ -1356,7 +1358,15 @@ class LibraryBuilder:
                 if not self.does_compiler_support_x86(
                     exe, compilerType, self.compilerprops[compiler]["options"], self.compilerprops[compiler]["ldPath"]
                 ):
-                    archs = [""]
+                    if self.does_compiler_support_amd64(
+                        exe,
+                        compilerType,
+                        self.compilerprops[compiler]["options"],
+                        self.compilerprops[compiler]["ldPath"],
+                    ):
+                        archs = ["x86_64"]
+                    else:
+                        archs = [""]
 
             if buildfor == "nonx86" and archs[0] != "":
                 continue
