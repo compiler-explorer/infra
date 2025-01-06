@@ -612,5 +612,7 @@ resource "aws_wafv2_ip_set" "banned-ipv6" {
   description        = "Banned ipv6"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV6"
-  addresses          = []
+  addresses          = [
+    "2001:b011:d006:13f8:0000:0000:0000:0000/64" // Anomolous behaviour; large number of requests on 2025/01/05
+  ]
 }
