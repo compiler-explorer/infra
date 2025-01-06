@@ -228,7 +228,7 @@ class LibraryBuilder:
         except:
             return False
 
-    def get_compiler_support_output(self, exe, compilerType, arch, options, ldPath):
+    def get_compiler_support_output(self, exe, compilerType, ldPath):
         if exe in _compiler_support_output:
             return _compiler_support_output[exe]
 
@@ -261,7 +261,7 @@ class LibraryBuilder:
 
         return output
 
-    def get_support_check_text(self, exe, compilerType, arch, options, ldPath):
+    def get_support_check_text(self, exe, compilerType, arch):
         if "icc" in exe:
             if arch == "x86":
                 return "-m32"
@@ -282,14 +282,14 @@ class LibraryBuilder:
         if fixedTarget:
             return fixedTarget == arch
 
-        output = self.get_compiler_support_output(exe, compilerType, arch, options, ldPath)
+        output = self.get_compiler_support_output(exe, compilerType, ldPath)
         if compilerType == "":
             if "icpx" in exe:
                 return arch == "x86" or arch == "x86_64"
             elif "zapcc" in exe:
                 return arch == "x86" or arch == "x86_64"
 
-        check_text = self.get_support_check_text(exe, compilerType, arch, options, ldPath)
+        check_text = self.get_support_check_text(exe, compilerType, arch)
         if check_text in output:
             self.logger.debug(f"Compiler {exe} supports {arch}")
             return True
