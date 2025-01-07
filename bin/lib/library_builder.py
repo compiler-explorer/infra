@@ -830,13 +830,23 @@ class LibraryBuilder:
             if os.path.exists(filepath):
                 bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
                 cxxinfo = bininfo.cxx_info_from_binary()
-                if (stdlib == "") or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
-                    if arch == "":
+                if is_msvc:
+                    archinfo = bininfo.arch_info_from_binary()
+                    if arch == "x86" and archinfo["obj_arch"] == "x86":
                         filesfound += 1
-                    if arch == "x86" and "ELF32" in bininfo.readelf_header_details:
+                    elif arch == "x86_64" and archinfo["obj_arch"] == "x86_64":
                         filesfound += 1
-                    elif arch == "x86_64" and "ELF64" in bininfo.readelf_header_details:
+                    elif arch == "":
                         filesfound += 1
+                else:
+                    if (stdlib == "") or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
+                        if arch == "":
+                            filesfound += 1
+                        else:
+                            if arch == "x86" and "ELF32" in bininfo.readelf_header_details:
+                                filesfound += 1
+                            elif arch == "x86_64" and "ELF64" in bininfo.readelf_header_details:
+                                filesfound += 1
             else:
                 self.logger.debug(f"{filepath} not found")
 
