@@ -933,7 +933,15 @@ class LibraryBuilder:
         url = f"{conanserver_url}/login"
 
         login_body = defaultdict(lambda: [])
-        login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
+        if os.environ.get("CONAN_PASSWORD"):
+            login_body["password"] = os.environ.get("CONAN_PASSWORD")
+        else:
+            try:
+                login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
+            except:
+                raise RuntimeError(
+                    "No password found for conan server, setup AWS credentials to access the CE SSM, or set CONAN_PASSWORD environment variable"
+                )
 
         request = self.resil_post(url, json_data=json.dumps(login_body))
         if not request.ok:
