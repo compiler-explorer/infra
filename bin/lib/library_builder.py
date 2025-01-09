@@ -14,6 +14,7 @@ from enum import Enum, unique
 from pathlib import Path
 import time
 from typing import Dict, Any, List, Optional, Generator, TextIO
+import botocore
 from urllib3.exceptions import ProtocolError
 
 import requests
@@ -938,10 +939,10 @@ class LibraryBuilder:
         else:
             try:
                 login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
-            except:
+            except botocore.exceptions.NoCredentialsError as exc:
                 raise RuntimeError(
                     "No password found for conan server, setup AWS credentials to access the CE SSM, or set CONAN_PASSWORD environment variable"
-                )
+                ) from exc
 
         request = self.resil_post(url, json_data=json.dumps(login_body))
         if not request.ok:
@@ -1284,8 +1285,8 @@ class LibraryBuilder:
         build_supported_stdlib = ["", "libc++"]
         build_supported_flagscollection = [[""]]
 
-        if buildfor != "":
-            self.forcebuild = True
+        # if buildfor != "":
+        #     self.forcebuild = True
 
         if self.buildconfig.lib_type == "cshared":
             checkcompiler = self.buildconfig.use_compiler
