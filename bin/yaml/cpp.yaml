@@ -1427,11 +1427,12 @@ compilers:
         check_exe: bin/6502-c++ --help
         targets:
           - trunk
-      vast:
-        type: nightly
-        check_exe: bin/vast-front --version
-        targets:
-          - trunk
+      # https://github.com/compiler-explorer/misc-builder/issues/102
+      #vast:
+      #  type: nightly
+      #  check_exe: bin/vast-front --version
+      #  targets:
+      #    - trunk
       llvmmos:
         type: nightlytarballs
         compression: xz
