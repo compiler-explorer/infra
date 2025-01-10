@@ -36,51 +36,6 @@ function InstallExporter {
     Remove-Item -Force -Path "windows_exporter-0.20.0-amd64.msi"
 }
 
-function InstallNssm {
-    Write-Host "Downloading nssm"
-    Invoke-WebRequest -Uri "https://nssm.cc/ci/nssm-2.24-103-gdee49fc.zip" -OutFile "/tmp/nssm.zip"
-    Write-Host "Installing nssm"
-    Expand-Archive -Path "/tmp/nssm.zip" -DestinationPath "/tmp"
-    Move-Item -Path "/tmp/nssm-2.24-103-gdee49fc" -Destination "/nssm"
-    Remove-Item -Force -Path "/tmp/nssm.zip"
-}
-
-function InstallAsService {
-    param(
-        [string] $Name,
-        [string] $Exe,
-        [array] $Arguments,
-        [string] $WorkingDirectory,
-        [bool] $NetUser
-    )
-
-    $tmplog = "C:/tmp/log"
-    Write-Host "nssm.exe install $Name $Exe"
-    /nssm/win64/nssm.exe install $Name $Exe
-    if ($Arguments.Length -gt 0) {
-        Write-Host "nssm.exe set $Name AppParameters" ($Arguments -join " ")
-        /nssm/win64/nssm.exe set $Name AppParameters ($Arguments -join " ")
-    }
-    Write-Host "nssm.exe set $Name AppDirectory $WorkingDirectory"
-    /nssm/win64/nssm.exe set $Name AppDirectory $WorkingDirectory
-    Write-Host "nssm.exe set $Name AppStdout $tmplog/$Name-svc.log"
-    /nssm/win64/nssm.exe set $Name AppStdout "$tmplog/$Name-svc.log"
-    Write-Host "nssm.exe set $Name AppStderr $tmplog/$Name-svc.log"
-    /nssm/win64/nssm.exe set $Name AppStderr "$tmplog/$Name-svc.log"
-    if ($NetUser) {
-        Write-Host "nssm.exe set $Name ObjectName NT AUTHORITY\NetworkService"
-        /nssm/win64/nssm.exe set $Name ObjectName "NT AUTHORITY\NetworkService" ""
-    }
-    Write-Host "nssm.exe set $Name AppExit Default Exit"
-    /nssm/win64/nssm.exe set $Name AppExit Default Exit
-}
-
-function InstallCEStartup {
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/main/packer/Startup.ps1" -OutFile "C:\tmp\Startup.ps1"
-
-    InstallAsService -Name "cestartup" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments ("C:\tmp\Startup.ps1") -NetUser $false
-}
-
 function AllowAppContainerRXAccess {
     param (
         $Path
@@ -145,6 +100,3 @@ InstallGrafana
 InstallExporter
 InstallPython
 InstallConan
-InstallNssm
-# InstallCEStartup
-# todo: do we install a service to do something at startup? or what?
