@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import shutil
 import socket
 import subprocess
 from functools import partial
@@ -132,6 +133,10 @@ class Installable:
                 self._logger.info("Installing required dependee %s", dependee)
                 dependee.install()
         self._logger.debug("Dependees installed")
+
+    def uninstall(self) -> None:
+        self._logger.debug("Removing %s", self.install_context.destination / self.install_path)
+        shutil.rmtree(self.install_context.destination / self.install_path, ignore_errors=True)
 
     def save_version(self, exe: str, res_call: str):
         if not self.nightly_like:

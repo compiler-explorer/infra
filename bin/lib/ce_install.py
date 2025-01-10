@@ -460,8 +460,16 @@ def install(context: CliContext, filter_: List[str], force: bool):
     "leave empty to build for all",
 )
 @click.option("--popular-compilers-only", is_flag=True, help="Only build with popular (enough) compilers")
+@click.option("--temp-install", is_flag=True, help="Temporary install target if it's not installed yet")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def build(context: CliContext, filter_: List[str], force: bool, buildfor: str, popular_compilers_only: bool):
+def build(
+    context: CliContext,
+    filter_: List[str],
+    force: bool,
+    buildfor: str,
+    popular_compilers_only: bool,
+    temp_install: bool,
+):
     """Build library targets matching FILTER."""
     num_installed = 0
     num_skipped = 0
@@ -479,6 +487,13 @@ def build(context: CliContext, filter_: List[str], force: bool, buildfor: str, p
             print(f"Building {installable.name} ({platform.value}) for all")
 
         if force or installable.should_build():
+            was_temp_installed = False
+
+            if not installable.is_installed() and temp_install:
+                _LOGGER.info("Temporarily installing %s", installable.name)
+                installable.install()
+                was_temp_installed = True
+
             if not installable.is_installed():
                 _LOGGER.info("%s is not installed, unable to build", installable.name)
                 num_skipped += 1
@@ -499,6 +514,10 @@ def build(context: CliContext, filter_: List[str], force: bool, buildfor: str, p
                     else:
                         _LOGGER.info("%s failed to build: %s", installable.name, e)
                         num_failed += 1
+
+            if was_temp_installed:
+                _LOGGER.info("Uninstalling temporary %s", installable.name)
+                installable.uninstall()
         else:
             _LOGGER.info("%s is already built, skipping", installable.name)
             num_skipped += 1
