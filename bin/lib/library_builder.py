@@ -1285,8 +1285,8 @@ class LibraryBuilder:
         build_supported_stdlib = ["", "libc++"]
         build_supported_flagscollection = [[""]]
 
-        # if buildfor != "":
-        #     self.forcebuild = True
+        if buildfor != "":
+            self.forcebuild = True
 
         if self.buildconfig.lib_type == "cshared":
             checkcompiler = self.buildconfig.use_compiler
