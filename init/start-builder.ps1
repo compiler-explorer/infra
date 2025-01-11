@@ -37,6 +37,8 @@ function FetchInfra {
 
     conan remote clean
     conan remote add ceserver https://conan.compiler-explorer.com/ True
+
+    # todo: set conan username and password
 }
 
 function GetConf {
