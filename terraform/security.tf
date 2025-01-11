@@ -685,11 +685,11 @@ resource "aws_security_group_rule" "WinBuilder_WinRMFromAdminNode" {
 }
 
 resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
-  security_group_id        = aws_security_group.WinBuilder.id
+  security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
   from_port                = 445
   to_port                  = 445
-  source_security_group_id = aws_security_group.CompilerExplorer.id
+  source_security_group_id = aws_security_group.WinBuilder.id
   protocol                 = "tcp"
   description              = "Allow SMB access locally"
 }
