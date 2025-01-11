@@ -34,6 +34,9 @@ function FetchInfra {
 
     $conan_home = conan config home
     Copy-Item -Path "/tmp/infra/init/settings.yml" -Destination "${conan_home}/settings.yml"
+
+    conan remote clean
+    conan remote add ceserver https://conan.compiler-explorer.com/ True
 }
 
 function GetConf {
