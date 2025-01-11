@@ -5,13 +5,29 @@ do {
 $userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
 $env:CE_ENV = $userdata -as [string]
 $CE_ENV = $env:CE_ENV
-$env:PATH = "$env:PATH;C:\Program Files\Amazon\AWSCLIV2"
+$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;C:\BuildTools\CMake\bin;C:\Program Files\Amazon\AWSCLIV2"
 
 $betterComputerName = "win-builder"
 
+[Environment]::SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", 'keyring.backends.null.Keyring', [System.EnvironmentVariableTarget]::Process);
+
 function FetchInfra {
     Set-Location -Path "C:\tmp"
-    git clone https://github.com/compiler-explorer/infra
+
+    $infra = "C:\tmp\infra"
+    if (Test-Path -Path $infra) {
+        Set-Location -Path "C:\tmp\infra"
+
+        Remove-Item -Path ".env" -Recurse
+        Remove-Item -Path ".venv" -Recurse
+        Remove-Item -Path ".poetry" -Recurse
+        Remove-Item -Path ".mypy_cache" -Recurse
+
+        git reset --hard
+        git pull
+    } else {
+        git clone https://github.com/compiler-explorer/infra
+    }
 
     Set-Location -Path "C:\tmp\infra"
     & ./ce_install.ps1 --help
@@ -68,6 +84,7 @@ function GetSMBServerIP {
 
 function MountZ {
     $smb_ip = GetSMBServerIP -CeEnv "prod"
+    $exists = Test-Path -Path "Z:\"
     while (-not $exists) {
         try {
             Write-Host "Mapping Z:"
