@@ -104,13 +104,13 @@ resource "aws_instance" "BuilderNode" {
 
 resource "aws_instance" "WinBuilderNode" {
   ami                         = local.win_builder_image_id
-  iam_instance_profile        = aws_iam_instance_profile.Builder.name
+  iam_instance_profile        = aws_iam_instance_profile.WinBuilder.name
   ebs_optimized               = true
   instance_type               = "c5d.2xlarge"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
-  vpc_security_group_ids      = [aws_security_group.Builder.id]
+  vpc_security_group_ids      = [aws_security_group.WinBuilder.id]
   associate_public_ip_address = true
   source_dest_check           = false
   user_data                   = "win-builder"
