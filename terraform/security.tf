@@ -714,3 +714,8 @@ resource "aws_iam_role_policy_attachment" "WinBuilder_attach_ReadS3Minimal" {
   role       = aws_iam_role.WinBuilder.name
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
 }
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.WinBuilder.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
