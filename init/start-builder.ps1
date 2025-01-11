@@ -5,7 +5,7 @@ do {
 $userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
 $env:CE_ENV = $userdata -as [string]
 $CE_ENV = $env:CE_ENV
-$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;C:\Program Files\Amazon\AWSCLIV2"
+$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;Z:\compilers\mingw-w64-13.1.0-16.0.5-11.0.0-ucrt-r5\bin;C:\Program Files\Amazon\AWSCLIV2"
 
 $betterComputerName = "win-builder"
 
