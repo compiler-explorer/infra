@@ -66,7 +66,6 @@ function InstallBuildTools {
     AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
 }
 
-
 function InstallPython {
     # note: conan 1.59 won't install with Python 3.12 (because of a dependency), so we use the last 3.10 where there's a .exe
     Write-Host "Downloading python"
@@ -78,7 +77,6 @@ function InstallPython {
     $env:PATH = "C:\BuildTools\Python;C:\BuildTools\Python\Scripts;$env:PATH"
 }
 
-
 function InstallConan {
     Write-Host "Installing conan"
     python -m pip install conan==1.59
@@ -88,7 +86,34 @@ function InstallConan {
     conan remote add ceserver https://conan.compiler-explorer.com/ True
 }
 
+function ConfigureSmbRights {
+    $tmpfile = "c:\tmp\secpol.cfg"
+    secedit /export /cfg $tmpfile
+    $secpol = (Get-Content $tmpfile)
 
+    $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth" }
+    $Index = [array]::IndexOf($secpol,$Value)
+    if ($Index -eq -1) {
+        $Index = [array]::IndexOf($secpol, "[Registry Values]")
+        $idx2 = $Index + 1
+        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth=4,1"
+        $newpol = $secpol[0..$Index]
+        $newpol += ($NewValue)
+        $newpol += $secpol[$idx2..$secpol.Length]
+        $secpol = $newpol
+    } else {
+        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth=4,1"
+        $secpol.item($Index) = $NewValue
+    }
+
+    $secpol | out-file $tmpfile -Force
+    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile
+    Remove-Item -Path $tmpfile
+
+    gpupdate /Force
+}
+
+ConfigureSmbRights
 InstallAwsTools
 InstallGIT
 InstallBuildTools

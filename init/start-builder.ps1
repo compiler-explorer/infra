@@ -35,33 +35,6 @@ function GetConf {
     }
 }
 
-function ConfigureSmbRights {
-    $tmpfile = "c:\tmp\secpol.cfg"
-    secedit /export /cfg $tmpfile
-    $secpol = (Get-Content $tmpfile)
-
-    $Value = $secpol | Where-Object{ $_ -like "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth" }
-    $Index = [array]::IndexOf($secpol,$Value)
-    if ($Index -eq -1) {
-        $Index = [array]::IndexOf($secpol, "[Registry Values]")
-        $idx2 = $Index + 1
-        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth=4,1"
-        $newpol = $secpol[0..$Index]
-        $newpol += ($NewValue)
-        $newpol += $secpol[$idx2..$secpol.Length]
-        $secpol = $newpol
-    } else {
-        $NewValue = "MACHINE\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters\AllowInsecureGuestAuth=4,1"
-        $secpol.item($Index) = $NewValue
-    }
-
-    $secpol | out-file $tmpfile -Force
-    secedit /configure /db c:\windows\security\local.sdb /cfg $tmpfile
-    Remove-Item -Path $tmpfile
-
-    gpupdate /Force
-}
-
 function InitializeAgentConfig {
     Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
@@ -105,44 +78,8 @@ function MountZ {
     }
 }
 
-function GetResolvedIPAddress {
-    param(
-        [string] $Hostname
-    )
-
-    $resolved = Resolve-DnsName -Name $hostname
-    $first = $resolved[0]
-    if (!$first.IPAddress) {
-        return (GetResolvedIPAddress $first.NameHost)
-    } else {
-        return $first.IPAddress
-    }
-}
-
-function AddToHosts {
-    param(
-        [string] $Hostname
-    )
-
-    $ip = GetResolvedIPAddress $hostname
-
-    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
-    $content = $content,($ip + " " + $Hostname)
-    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
-
-    return $ip
-}
-
-function AddLocalHost {
-    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
-    $content = $content,("127.0.0.1 localhost")
-    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
-}
-
-ConfigureSmbRights
-
 MountZ
 
-InitializeAgentConfig
-
 FetchInfra
+
+InitializeAgentConfig
