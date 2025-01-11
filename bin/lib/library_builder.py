@@ -833,7 +833,7 @@ class LibraryBuilder:
                 cxxinfo = bininfo.cxx_info_from_binary()
                 if is_msvc:
                     archinfo = bininfo.arch_info_from_binary()
-                    if arch == "x86" and archinfo["obj_arch"] == "x86":
+                    if arch == "x86" and archinfo["obj_arch"] == "i386":
                         filesfound += 1
                     elif arch == "x86_64" and archinfo["obj_arch"] == "x86_64":
                         filesfound += 1
