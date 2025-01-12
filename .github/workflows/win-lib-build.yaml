@@ -13,4 +13,4 @@ jobs:
       - name: Enter conan credentials
         run: $env:CONAN_USER = "ce"; $env:CONAN_PASSWORD = "${{ secrets.CONAN_PASSWORD }}"
       - name: Build libraries
-        run: cd /tmp/infra && pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" --enable windows build --temp-install --buildfor vcpp_v19_40_VS17_10_x64 'fmt 11.0.0'
+        run: cd /tmp/infra && git checkout library-build-windows && pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" --enable windows build --temp-install --buildfor vcpp_v19_40_VS17_10_x64 'fmt 11.0.0'
