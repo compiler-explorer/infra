@@ -6,7 +6,7 @@ on:
 jobs:
     librarybuild:
       runs-on: ['win-builder']
-  
+
       steps:
       - name: Download and run startup script
         run: cd /tmp && Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/63feee2732b4b065b89645072dd23f18a326aa13/init/start-builder.ps1" -OutFile "C:\tmp\start-builder.ps1" && pwsh .\start-builder.ps1
