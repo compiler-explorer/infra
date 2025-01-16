@@ -445,7 +445,8 @@ class LibraryBuilder:
                 elif compilerType == "edg":
                     compilerexecc = compilerexe
                 else:
-                    compilerexecc = compilerexecc + ".exe"
+                    if not compilerexecc.endswith(".exe"):
+                        compilerexecc = compilerexecc + ".exe"
 
             f.write(self.script_env("CC", compilerexecc))
             f.write(self.script_env("CXX", compilerexe))
