@@ -1,20 +1,41 @@
+
+param(
+    [String] $ConanPassword,
+    [String] $Language,
+    [String] $Library,
+    [String] $Compiler
+)
+
+if ($ConanPassword -eq "") {
+    Write-Error "ConanPassword parameter required"
+    exit
+}
+if ($Language -eq "") {
+    Write-Error "Language parameter required"
+    exit
+}
+if ($Library -eq "") {
+    Write-Error "Library parameter required"
+    exit
+}
+if ($Compiler -eq "") {
+    Write-Error "Compiler parameter required"
+    exit
+}
+
+
 do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
 
-$userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
-$env:CE_ENV = $userdata -as [string]
-$CE_ENV = $env:CE_ENV
-$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;Z:\compilers\mingw-w64-13.1.0-16.0.2-11.0.0-ucrt-r1\bin;C:\Program Files\Amazon\AWSCLIV2"
-
 [Environment]::SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", 'keyring.backends.null.Keyring', [System.EnvironmentVariableTarget]::Process);
 
 function FetchInfra {
-    Set-Location -Path "C:\tmp"
+    Set-Location -Path "/tmp"
 
-    $infra = "C:\tmp\infra"
+    $infra = "/tmp/infra"
     if (Test-Path -Path $infra) {
-        Set-Location -Path "C:\tmp\infra"
+        Set-Location -Path "/tmp/infra"
 
         Remove-Item -Path ".env" -Recurse
         Remove-Item -Path ".venv" -Recurse
@@ -27,16 +48,21 @@ function FetchInfra {
         git clone https://github.com/compiler-explorer/infra
     }
 
-    Set-Location -Path "C:\tmp\infra"
+    Set-Location -Path "/tmp/infra"
     & ./ce_install.ps1 --help
+}
 
+function ConfigureConan {
     $conan_home = conan config home
     Copy-Item -Path "/tmp/infra/init/settings.yml" -Destination "${conan_home}/settings.yml"
 
     conan remote clean
     conan remote add ceserver https://conan.compiler-explorer.com/ True
 
-    # todo: set conan username and password
+    $env:CONAN_USER = "ce";
+    $env:CONAN_PASSWORD = $ConanPassword;
+
+    conan user ce -p -r=ceserver
 }
 
 function GetConf {
@@ -81,3 +107,24 @@ function MountZ {
 MountZ
 
 FetchInfra
+
+ConfigureConan
+
+
+$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;Z:\compilers\mingw-w64-13.1.0-16.0.2-11.0.0-ucrt-r1\bin;C:\Program Files\Amazon\AWSCLIV2"
+
+
+$FORCECOMPILERPARAM = ""
+if ( $Compiler -eq "popular-compilers-only" ) {
+  $FORCECOMPILERPARAM = "--popular-compilers-only"
+} elseif ( $Compiler -ne "all" ) {
+  $FORCECOMPILERPARAM = "--buildfor=$Compiler"
+}
+
+$LIBRARYPARAM = "libraries/$Language"
+
+if ($Library -ne "all") {
+  $LIBRARYPARAM = "libraries/$Language/$Library"
+}
+
+pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" --enable windows build --temp-install "$FORCECOMPILERPARAM" "$LIBRARYPARAM"
