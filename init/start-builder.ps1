@@ -7,8 +7,6 @@ $env:CE_ENV = $userdata -as [string]
 $CE_ENV = $env:CE_ENV
 $env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;Z:\compilers\mingw-w64-13.1.0-16.0.2-11.0.0-ucrt-r1\bin;C:\Program Files\Amazon\AWSCLIV2"
 
-$betterComputerName = "win-builder"
-
 [Environment]::SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", 'keyring.backends.null.Keyring', [System.EnvironmentVariableTarget]::Process);
 
 function FetchInfra {
@@ -56,26 +54,6 @@ function GetConf {
     }
 }
 
-function InitializeAgentConfig {
-    Write-Host "Setting up Grafana Agent"
-    $config = Get-Content -Path "/tmp/infra/grafana/agent-win.yaml"
-    $config = $config.Replace("@HOSTNAME@", $betterComputerName)
-    $config = $config.Replace("@ENV@", $CE_ENV)
-    $prom_pass = ""
-    try {
-        $prom_pass = GetConf -Name "/compiler-explorer/promPassword"
-    } catch {
-    }
-    $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
-    Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
-
-    Stop-Service "Grafana Agent"
-    $started = (Start-Service "Grafana Agent") -as [bool]
-    if (-not $started) {
-        Start-Service "Grafana Agent"
-    }
-}
-
 function GetSMBServerIP {
     Param(
         [string] $CeEnv
@@ -103,5 +81,3 @@ function MountZ {
 MountZ
 
 FetchInfra
-
-# InitializeAgentConfig

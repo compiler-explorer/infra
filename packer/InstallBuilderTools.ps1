@@ -113,11 +113,35 @@ function ConfigureSmbRights {
     gpupdate /Force
 }
 
+function InitializeAgentConfig {
+    Write-Host "Downloading Grafana config template"
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/grafana/agent-win.yaml" -OutFile "/tmp/agent-win.yaml"
+
+    Write-Host "Setting up Grafana Agent"
+    $config = Get-Content -Path "/tmp/grafana/agent-win.yaml"
+    $config = $config.Replace("@HOSTNAME@", "win-builder")
+    $config = $config.Replace("@ENV@", "ce-ci")
+    $prom_pass = ""
+    try {
+        $prom_pass = GetConf -Name "/compiler-explorer/promPassword"
+    } catch {
+    }
+    $config = $config.Replace("@PROM_PASSWORD@", $prom_pass)
+    Set-Content -Path "C:\Program Files\Grafana Agent\agent-config.yaml" -Value $config
+
+    Stop-Service "Grafana Agent"
+    $started = (Start-Service "Grafana Agent") -as [bool]
+    if (-not $started) {
+        Start-Service "Grafana Agent"
+    }
+}
+
 ConfigureSmbRights
 InstallAwsTools
 InstallGIT
 InstallBuildTools
 InstallGrafana
+InitializeAgentConfig
 InstallExporter
 InstallPython
 InstallConan
