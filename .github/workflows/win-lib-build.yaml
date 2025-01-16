@@ -2,6 +2,15 @@ name: Library Builds for Windows compilers
 
 on:
     workflow_dispatch:
+        inputs:
+            library:
+                description: 'Library'
+                default: 'all'
+                required: true
+            compiler:
+                description: 'Compiler'
+                default: 'popular-compilers-only'
+                required: true
 
 jobs:
     librarybuild:
@@ -11,4 +20,4 @@ jobs:
       - name: Download build script
         run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/library-build-windows/init/start-builder.ps1" -OutFile "C:\tmp\start-builder.ps1"
       - name: Build libraries
-        run: Set-Location "C:\tmp"; pwsh .\start-builder.ps1 -ConanPassword "${{ secrets.CONAN_PASSWORD }}" -Language c++ -Library fmt -Compiler all
+        run: Set-Location "C:\tmp"; pwsh .\start-builder.ps1 -ConanPassword "${{ secrets.CONAN_PASSWORD }}" -Language c++ -Library "${{ github.event.inputs.library }}" -Compiler "${{ github.event.inputs.compiler }}"
