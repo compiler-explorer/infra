@@ -36,6 +36,17 @@ compilers:
           - '5.9'
           - '5.10'
           - '6.0.3'
+    dev-snapshot:
+      dir: swift-dev-snapshot
+      type: restQueryTarballs
+      install_always: true
+      url: https://download.swift.org/swift-{name}-branch/ubuntu2204/latest-build.yml
+      query: |
+        'https://download.swift.org/swift-{name}-branch/ubuntu2204' \
+        + '/' + document['dir'] \
+        + '/' + document['download']
+      targets:
+        - '6.1'
     nightly:
       if: nightly
       type: restQueryTarballs
