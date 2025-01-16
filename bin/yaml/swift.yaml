@@ -12,7 +12,7 @@ compilers:
       # work around insane installation issue
       - chmod og+r ./usr/lib/swift/CoreFoundation/*
     older:
-      url: https://swift.org/builds/{build}/ubuntu1604/{toolchain}/{toolchain}-ubuntu16.04.tar.gz
+      url: https://download.swift.org/{build}/ubuntu1604/{toolchain}/{toolchain}-ubuntu16.04.tar.gz
       targets:
         - 3.1.1
         - 4.0.2
@@ -26,7 +26,7 @@ compilers:
         - '5.2'
         - '5.3'
     newer:
-      url: https://swift.org/builds/{build}/ubuntu2004/{toolchain}/{toolchain}-ubuntu20.04.tar.gz
+      url: https://download.swift.org/{build}/ubuntu2004/{toolchain}/{toolchain}-ubuntu20.04.tar.gz
       targets:
           - '5.4'
           - '5.5'
@@ -35,6 +35,7 @@ compilers:
           - '5.8'
           - '5.9'
           - '5.10'
+          - '6.0.3'
     nightly:
       if: nightly
       type: restQueryTarballs
