@@ -501,9 +501,10 @@ class LibraryBuilder:
             if target:
                 triplearr = target.split("-")
             else:
-                target = self.getDefaultTargetFromCompiler(compilerexecc)
-                if target:
-                    triplearr = target.strip().split("-")
+                if not is_msvc:
+                    target = self.getDefaultTargetFromCompiler(compilerexecc)
+                    if target:
+                        triplearr = target.strip().split("-")
             shorttarget = ""
             boosttarget = ""
             boostabi = ""
