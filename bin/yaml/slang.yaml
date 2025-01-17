@@ -9,3 +9,4 @@ compilers:
       check_exe: bin/slangc -version
       targets:
         - "2024.14.6"
+        - "2025.2.2"
