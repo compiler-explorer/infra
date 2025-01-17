@@ -1330,6 +1330,7 @@ class LibraryBuilder:
                 continue
 
             compilerType = self.get_compiler_type(compiler)
+            is_msvc = compilerType == "win32-vc"
 
             exe = self.compilerprops[compiler]["exe"]
 
@@ -1389,10 +1390,16 @@ class LibraryBuilder:
                     else:
                         archs = [self.buildconfig.build_fixed_arch]
 
-                if not self.does_compiler_support_x86(
-                    exe, compilerType, self.compilerprops[compiler]["options"], self.compilerprops[compiler]["ldPath"]
-                ):
-                    if self.does_compiler_support_amd64(
+                if is_msvc:
+                    # msvc can only do 1 architecture, so no need to try things it doesn't support
+                    if self.does_compiler_support_x86(
+                        exe,
+                        compilerType,
+                        self.compilerprops[compiler]["options"],
+                        self.compilerprops[compiler]["ldPath"],
+                    ):
+                        archs = ["x86"]
+                    elif self.does_compiler_support_amd64(
                         exe,
                         compilerType,
                         self.compilerprops[compiler]["options"],
@@ -1401,6 +1408,22 @@ class LibraryBuilder:
                         archs = ["x86_64"]
                     else:
                         archs = [""]
+                else:
+                    if not self.does_compiler_support_x86(
+                        exe,
+                        compilerType,
+                        self.compilerprops[compiler]["options"],
+                        self.compilerprops[compiler]["ldPath"],
+                    ):
+                        if self.does_compiler_support_amd64(
+                            exe,
+                            compilerType,
+                            self.compilerprops[compiler]["options"],
+                            self.compilerprops[compiler]["ldPath"],
+                        ):
+                            archs = ["x86_64"]
+                        else:
+                            archs = [""]
 
             if buildfor == "nonx86" and archs[0] != "":
                 continue
