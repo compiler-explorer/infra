@@ -195,7 +195,8 @@ class LibraryBuilder:
         else:
             match = re.search(r"--gxx-name=(\S*)", options)
             if match:
-                return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
+                toolchainpath = Path(match[1]).parent / ".."
+                return str(toolchainpath.resolve())
         return False
 
     def getSysrootPathFromOptions(self, options):
@@ -1340,7 +1341,7 @@ class LibraryBuilder:
             fixedStdlib = self.getStdLibFromOptions(options)
 
             if not toolchain:
-                toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), ".."))
+                toolchain = str((Path(exe).parent / "..").resolve())
 
             if (
                 self.buildconfig.build_fixed_stdlib != ""
