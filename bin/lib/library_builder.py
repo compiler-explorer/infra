@@ -196,7 +196,7 @@ class LibraryBuilder:
             match = re.search(r"--gxx-name=(\S*)", options)
             if match:
                 toolchainpath = Path(match[1]).parent / ".."
-                return str(toolchainpath.resolve())
+                return os.path.abspath(toolchainpath)
         return False
 
     def getSysrootPathFromOptions(self, options):
@@ -496,7 +496,7 @@ class LibraryBuilder:
                     # extra path is needed for msvc non-amd64, because .dll's are placed in the x64 path and not the other architectures
                     #  somehow this is not a thing on CE, but it is an issue for when used with CMake
                     x64path = Path(compilerexe).parent / "../x64"
-                    f.write(self.script_addtoend_env("PATH", str(x64path.resolve())))
+                    f.write(self.script_addtoend_env("PATH", os.path.abspath(x64path)))
             else:
                 for path in libparampaths:
                     if path != "":
@@ -1341,7 +1341,7 @@ class LibraryBuilder:
             fixedStdlib = self.getStdLibFromOptions(options)
 
             if not toolchain:
-                toolchain = str((Path(exe).parent / "..").resolve())
+                toolchain = str(os.path.abspath(Path(exe).parent / ".."))
 
             if (
                 self.buildconfig.build_fixed_stdlib != ""
