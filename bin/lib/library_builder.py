@@ -977,6 +977,7 @@ class LibraryBuilder:
             return
 
         loggingfiles = []
+        loggingfiles += glob.glob(buildfolder + "/" + self.script_filename)
         loggingfiles += glob.glob(buildfolder + "/cecmake*.txt")
         loggingfiles += glob.glob(buildfolder + "/ceconfiglog.txt")
         loggingfiles += glob.glob(buildfolder + "/cemake*.txt")
