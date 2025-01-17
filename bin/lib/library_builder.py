@@ -492,11 +492,10 @@ class LibraryBuilder:
             if is_msvc:
                 f.write(self.script_env("INCLUDE", compiler_props["includePath"]))
                 f.write(self.script_env("LIB", compiler_props["libPath"]))
-                if arch != "x86_64":
-                    # extra path is needed for msvc non-amd64, because .dll's are placed in the x64 path and not the other architectures
-                    #  somehow this is not a thing on CE, but it is an issue for when used with CMake
-                    x64path = Path(compilerexe).parent / "../x64"
-                    f.write(self.script_addtoend_env("PATH", os.path.abspath(x64path)))
+                # extra path is needed for msvc, because .dll's are placed in the x64 path and not the other architectures
+                #  somehow this is not a thing on CE, but it is an issue for when used with CMake
+                x64path = Path(compilerexe).parent / "../x64"
+                f.write(self.script_addtoend_env("PATH", os.path.abspath(x64path)))
             else:
                 for path in libparampaths:
                     if path != "":
