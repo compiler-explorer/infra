@@ -815,6 +815,14 @@ compilers:
           compression: gz
           host_type: linux-amd64
           release_name: "gcc{base}-esp-{name}"
+          esp:
+            arch_prefix: xtensa-esp-elf
+            targets:
+              - name: 14.2.0_20241119
+                base: "14.2.0_20241119"
+                host_type: x86_64-linux-gnu
+                release_name: "{base}"
+                compression: xz
           esp32:
             arch_prefix: xtensa-esp32-elf
             targets:
