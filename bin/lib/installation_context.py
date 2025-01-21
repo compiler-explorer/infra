@@ -18,6 +18,7 @@ import requests.adapters
 import yaml
 import requests_cache
 
+from lib.library_platform import LibraryPlatform
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.staging import StagingDir
 
@@ -48,6 +49,7 @@ class InstallationContext:
         resource_dir: Path,
         keep_staging: bool,
         check_user: str,
+        platform: LibraryPlatform,
     ):
         self._destination = destination
         self._prior_installation = self.destination
@@ -57,6 +59,7 @@ class InstallationContext:
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
         self.only_nightly = only_nightly
+        self.platform = platform
         retry_strategy = requests.adapters.Retry(
             total=10,
             backoff_factor=1,
@@ -329,16 +332,25 @@ class InstallationContext:
         from_path = Path(from_path)
         if len(lines) > 0:
             _LOGGER.info("Running script")
-            script_file = from_path / "ce_script.sh"
-            with script_file.open("w", encoding="utf-8") as f:
-                f.write("#!/bin/bash\n\nset -euo pipefail\n\n")
-                for line in lines:
-                    f.write(f"{line}\n")
+            if self.platform == LibraryPlatform.Linux:
+                script_file = from_path / "ce_script.sh"
+                with script_file.open("w", encoding="utf-8") as f:
+                    f.write("#!/bin/bash\n\nset -euo pipefail\n\n")
+                    for line in lines:
+                        f.write(f"{line}\n")
 
-            script_file.chmod(0o755)
-            self.stage_command(staging, [str(script_file)], cwd=from_path)
-            if not self.dry_run:
-                script_file.unlink()
+                script_file.chmod(0o755)
+                self.stage_command(staging, [str(script_file)], cwd=from_path)
+                if not self.dry_run:
+                    script_file.unlink()
+            elif self.platform == LibraryPlatform.Windows:
+                script_file = from_path / "ce_script.ps1"
+                with script_file.open("w", encoding="utf-8") as f:
+                    for line in lines:
+                        f.write(f"{line}\n")
+                self.stage_command(staging, ["pwsh", str(script_file)], cwd=from_path)
+                if not self.dry_run:
+                    script_file.unlink()
 
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])

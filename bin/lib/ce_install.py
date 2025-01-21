@@ -219,6 +219,11 @@ def cli(
         console_handler = logging.StreamHandler(sys.stdout)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
+
+    platform = LibraryPlatform.Linux
+    if "windows" in enable:
+        platform = LibraryPlatform.Windows
+
     context = InstallationContext(
         destination=dest,
         staging_root=staging_dir,
@@ -232,6 +237,7 @@ def cli(
         resource_dir=resource_dir,
         keep_staging=keep_staging,
         check_user=check_user,
+        platform=platform,
     )
     ctx.obj = CliContext(
         installation_context=context,
