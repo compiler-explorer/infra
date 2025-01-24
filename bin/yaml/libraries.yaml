@@ -2384,6 +2384,7 @@ libraries:
       repo: NVIDIA/cccl
       target_prefix: v
       targets:
+      - 2.7.0
       - 2.6.1
       - 2.6.0
       - 2.5.0
