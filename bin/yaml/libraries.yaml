@@ -923,6 +923,9 @@ libraries:
       repo: DNKpp/mimicpp
       target_prefix: v
       targets:
+      - '6'
+      - '5'
+      - '4'
       - '3'
       - '2'
       - '1'
