@@ -12,7 +12,7 @@ compilers:
        - 3.2-rc2
        - '3.1'
        - '2.2'
-       # Currently fails to build: - '1.1'
+       - '1.1'
    gcc:
      if: nightly
      type: nightly
