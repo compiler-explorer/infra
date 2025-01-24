@@ -9,6 +9,10 @@ compilers:
     filename: r8-{name}.jar
     url: https://dl.google.com/android/maven2/com/android/tools/r8/{name}/r8-{name}.jar
     targets:
+      - 8.7.18
+      - 8.7.14
+      - 8.6.27
+      - 8.6.17
       - 8.5.35
       - 8.5.27
       - 8.5.10
@@ -28,6 +32,10 @@ compilers:
     after_stage_script:
       - "{yaml_dir}/android-java/create_boot_images.sh"
     targets:
+      - "35.11"
+      - "35.10"
+      - "35.9"
+      - "35.8"
       - "34.18"
       - "34.17"
       - "34.16"
