@@ -143,13 +143,37 @@ class InstallationContext:
     ) -> None:
         untar_dir = staging.path / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
-        # We stream to a temporary file first before then piping this to the command
-        # as sometimes the command can take so long the URL endpoint closes the door on us
-        with tempfile.TemporaryFile() as fd:
-            self.fetch_to(url, fd, agent)
-            fd.seek(0)
-            _LOGGER.info("Piping to %s", shlex.join(command))
-            subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
+
+        if is_windows() and command[0] == "7z":
+            temp_file_path = ""
+
+            # download the file first
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                temp_file_path = temp_file.name
+                self.fetch_to(url, temp_file, agent)
+
+            # create a powershell script to extract the file
+            with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as script_file:
+                # first to extract the tar file
+                script_file.write(
+                    f'{" ".join(command)} -o"{os.path.dirname(temp_file_path)}" {temp_file_path}\n'.encode("utf-8")
+                )
+                # the tar file was automatically suffixed with ~ by 7z, extract that tar to the untar_dir
+                script_file.write(f'7z x -ttar -o"{untar_dir}" {temp_file_path}~\n'.encode("utf-8"))
+
+            subprocess.check_call(["pwsh", script_file.name], cwd=str(untar_dir))
+
+            os.remove(temp_file_path + "~")
+            os.remove(temp_file_path)
+            os.remove(script_file.name)
+        else:
+            # We stream to a temporary file first before then piping this to the command
+            # as sometimes the command can take so long the URL endpoint closes the door on us
+            with tempfile.TemporaryFile() as fd:
+                self.fetch_to(url, fd, agent)
+                fd.seek(0)
+                _LOGGER.info("Piping to %s", shlex.join(command))
+                subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
     def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Optional[Path] = None) -> None:
         _LOGGER.info("Staging with %s", shlex.join(command))
