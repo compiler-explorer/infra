@@ -656,9 +656,10 @@ class LibraryBuilder:
                         f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
                         f.write("fi\n")
                     elif self.platform == LibraryPlatform.Windows:
-
-                        # no idea how to do this
-                        f.write("\n")
+                        f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
+                        f.write("if ($libs.count -eq 0) {\n")
+                        f.write(f"  cmake --build . {extramakeargs} > cemakelog_{lognum}.txt 2>&1\n")
+                        f.write("}\n")
 
                 if self.buildconfig.package_install:
                     f.write("cmake --install . > ceinstall_0.txt 2>&1\n")

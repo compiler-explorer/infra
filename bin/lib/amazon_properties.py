@@ -41,6 +41,17 @@ def get_properties_compilers_and_libraries(
         raise RuntimeError(f"Fetch failure for {url}: {request}")
     lines = request.text.splitlines(keepends=False)
 
+    if platform == LibraryPlatform.Windows and "libs=\n" in request.text:
+        # Windows properties file is missing the libs section, so we need to fetch the Linux one to kickstart Windows libraries
+        #  but technically it's better to always supply enough information in the yaml file, so this is a workaround
+        request = requests.get(
+            f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties",
+            timeout=30,
+        )
+        if not request.ok:
+            raise RuntimeError(f"Fetch failure for {url}: {request}")
+        lines += request.text[request.text.index("libs=") :].splitlines(keepends=False)
+
     logger.debug("Reading properties for groups")
     groups: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     for line in lines:
