@@ -1,0 +1,11 @@
+compilers:
+  sail:
+    type: tarballs
+    compression: gz
+    url: https://github.com/rems-project/sail/releases/download/{name}-linux-binary/sail.tar.gz
+    check_exe: bin/sail --version
+    dir: sail-{name}
+    strip_components: 1
+    create_untar_dir: true
+    targets:
+      - "0.18"
