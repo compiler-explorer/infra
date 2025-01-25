@@ -40,6 +40,8 @@ windows:
         - 3.27.9
         - 3.28.4
         - 3.29.2
+        - 3.30.7
+        - 3.31.5
     ninja:
       type: ziparchive
       url: https://github.com/compiler-explorer/ninja/releases/download/v{name}/ninja-win.zip
