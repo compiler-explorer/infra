@@ -40,10 +40,16 @@ compilers:
       if: nightly
       type: restQueryTarballs
       install_always: true
-      url: https://download.swift.org/development/ubuntu2004/latest-build.yml
+      toolchain: development
+      url: https://download.swift.org/{toolchain}/ubuntu2004/latest-build.yml
       query: |
-        'https://download.swift.org/development/ubuntu2004/' \
-        + document['download'].replace('-ubuntu20.04.tar.gz', '') \
+        'https://download.swift.org/{toolchain}/ubuntu2004' \
+        + '/' + document['dir'] \
         + '/' + document['download']
       targets:
         - nightly
+      dev-snapshot:
+        dir: swift-dev-snapshot
+        toolchain: swift-{name}-branch
+        targets:
+          - '6.1'
