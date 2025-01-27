@@ -2327,7 +2327,7 @@ libraries:
       method: nightlybranch
       repo: Eczbek/xieite
       targets:
-      - header
+      - main
       type: github
     xsimd:
       check_file: README.md
