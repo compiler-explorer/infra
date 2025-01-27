@@ -1043,6 +1043,13 @@ compilers:
         check_file: lib/clad.so
         targets:
           - 1.8-clang-18.1.0
+        nightly:
+          if: nightly
+          subdir: clang-plugins
+          compiler_name: clad-{name}
+          type: nightly
+          targets:
+          - trunk-clang-18.1.0
     qnx:
       if: non-free
       compression: xz
