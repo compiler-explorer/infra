@@ -3,11 +3,11 @@ compilers:
     golang:
       type: tarballs
       compression: gz
-      url: https://storage.googleapis.com/golang/go{name}.linux-amd64.tar.gz
+      url: https://storage.googleapis.com/golang/go{{name}}.linux-amd64.tar.gz
       check_env:
         - GOROOT=%PATH%/go
       check_exe: go/bin/go version
-      dir: golang-{name}
+      dir: golang-{{name}}
       create_untar_dir: true
       strip: true
       targets:
@@ -35,9 +35,9 @@ compilers:
     tinygo:
       type: tarballs
       compression: gz
-      url: https://github.com/tinygo-org/tinygo/releases/download/v{name}/tinygo{name}.linux-amd64.tar.gz
+      url: https://github.com/tinygo-org/tinygo/releases/download/v{{name}}/tinygo{{name}}.linux-amd64.tar.gz
       check_exe: bin/tinygo version
-      dir: tinygo-{name}
+      dir: tinygo-{{name}}
       untar_dir: tinygo
       targets:
         - 0.25.0

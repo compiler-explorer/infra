@@ -4,14 +4,14 @@ compilers:
       type: tarballs
       build: 2.066.1
       compression: xz
-      check_exe: "{arch}/bin/gdc --version"
-      url: https://gdcproject.org/downloads/binaries/{name}/x86_64-linux-gnu/gdc-{name}+{build}.tar.xz
+      check_exe: "{{arch}}/bin/gdc --version"
+      url: https://gdcproject.org/downloads/binaries/{{name}}/x86_64-linux-gnu/gdc-{{name}}+{{build}}.tar.xz
       create_untar_dir: true
-      dir: gdc{name}
+      dir: gdc{{name}}
       arch: x86_64-pc-linux-gnu
       strip: # stripping the D libraries seems to upset them, so just strip the exes
-        - gdc{name}/{arch}/bin
-        - gdc{name}/{arch}/libexec
+        - gdc{{name}}/{{arch}}/bin
+        - gdc{{name}}/{{arch}}/libexec
       targets:
         - name: 4.8.2
           build: 2.064.2
@@ -20,13 +20,13 @@ compilers:
         - 5.2.0
     ldc:
       type: tarballs
-      url: https://github.com/ldc-developers/ldc/releases/download/v{name}/ldc2-{name}-linux-x86_64.tar.xz
+      url: https://github.com/ldc-developers/ldc/releases/download/v{{name}}/ldc2-{{name}}-linux-x86_64.tar.xz
       compression: xz
-      dir: ldc{name}
+      dir: ldc{{name}}
       create_untar_dir: true
       # any kind of stripping upsets ldc
       strip: false
-      check_exe: ldc2-{name}-linux-x86_64/bin/ldc2 --version
+      check_exe: ldc2-{{name}}-linux-x86_64/bin/ldc2 --version
       targets:
         - 0.17.2
         - 1.0.0
@@ -72,9 +72,9 @@ compilers:
         # the ldc2-* files on s3 from "getldc_s3" in the install bash scripts are now unused (TODO remove once we move over and are sure (25/4/2020)
     dmd:
       type: tarballs
-      url: http://downloads.dlang.org/releases/2.x/{name}/dmd.{name}.linux.tar.xz
+      url: http://downloads.dlang.org/releases/2.x/{{name}}/dmd.{{name}}.linux.tar.xz
       compression: xz
-      dir: dmd-{name}
+      dir: dmd-{{name}}
       create_untar_dir: true
       check_exe: dmd2/linux/bin64/dmd --version
       targets:
@@ -105,20 +105,20 @@ compilers:
       type: script
       fetch:
         - https://dlang.org/install.sh install.sh
-      dir: "{name}"
+      dir: "{{name}}"
       pre: |
-        mkdir {name}
-        cd {name}
+        mkdir {{name}}
+        cd {{name}}
       script_filename: ../install.sh
       script: |
-        {pre}
-        chmod +x {script_filename}
+        {{pre}}
+        chmod +x {{script_filename}}
         # Download and unpack into current directory
-        ACTIVATE_PATH=$({script_filename} install {target} -a -p $(pwd))
+        ACTIVATE_PATH=$({{script_filename}} install {{target}} -a -p $(pwd))
         # Rename the downloaded package directory to a constant name
-        mv $(dirname $ACTIVATE_PATH) {to}
+        mv $(dirname $ACTIVATE_PATH) {{to}}
         # Make directory readable for other users too
-        chmod +rx {to}
+        chmod +rx {{to}}
       ldc:
         targets:
           - name: ldc-latest-ci
@@ -132,7 +132,7 @@ compilers:
             to: ldcbeta
             check_exe: "bin/ldc2 --version"
       dmd:
-        dir: "{name}"
+        dir: "{{name}}"
         targets:
           - name: dmd2-nightly
             target: dmd-nightly
