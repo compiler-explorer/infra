@@ -206,7 +206,7 @@ class TarballInstallable(Installable):
             raise RuntimeError(f'Unknown compression {self.config_get("compression")}')
         self.configure_command = command_config(self.config_get("configure_command", []))
         if is_windows() and decompress_flag == "J":
-            self.tar_cmd = ["7z", f"x"]
+            self.tar_cmd = ["7z", "x"]
         else:
             self.tar_cmd = ["tar", f"{decompress_flag}xf", "-"]
             strip_components = self.config_get("strip_components", 0)
