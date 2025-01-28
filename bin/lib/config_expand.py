@@ -1,5 +1,5 @@
 import logging
-from typing import Any, MutableMapping
+from typing import Any, Mapping, MutableMapping
 
 import jinja2
 
@@ -28,19 +28,22 @@ def is_value_type(value: Any) -> bool:
     )
 
 
-def needs_expansion(target):
+def string_needs_expansion(value: str) -> bool:
+    return "{" in value
+
+
+def needs_expansion(target: MutableMapping[str, Any]) -> bool:
     for value in target.values():
         if is_list_of_strings(value):
-            for v in value:
-                if "{" in v:
-                    return True
+            if any(string_needs_expansion(v) for v in value):
+                return True
         elif isinstance(value, str):
-            if "{" in value:
+            if string_needs_expansion(value):
                 return True
     return False
 
 
-def expand_one(template_string, configuration):
+def expand_one(template_string: str, configuration: Mapping[str, Any]) -> str:
     try:
         jinjad = _JINJA_ENV.from_string(template_string).render(**configuration)
         return jinjad.format(**configuration)

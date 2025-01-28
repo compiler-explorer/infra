@@ -29,7 +29,7 @@ def targets_from(node, enabled, base_config=None):
 
 
 def _check_if(enabled, node) -> bool:
-    if "if" not in node:
+    if "if" not in node or enabled is True:
         return True
     if isinstance(node["if"], list):
         condition = set(node["if"])

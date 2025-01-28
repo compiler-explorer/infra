@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
+import json
 import logging
 import logging.config
 import multiprocessing
@@ -11,7 +12,7 @@ import traceback
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, TextIO
 
 import click
 import yaml
@@ -242,15 +243,15 @@ def cli(
 
 @cli.command(name="list")
 @click.pass_obj
-@click.option("--json", is_flag=True, help="Output in JSON format")
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
 @click.option("--installed-only", is_flag=True, help="Only output installed targets")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: List[str], json: bool, installed_only: bool):
+def list_cmd(context: CliContext, filter_: List[str], as_json: bool, installed_only: bool):
     """List installation targets matching FILTER."""
     for installable in context.get_installables(filter_):
         if installed_only and not installable.is_installed():
             continue
-        print(installable.to_json() if json else installable.name)
+        print(installable.to_json() if as_json else installable.name)
         _LOGGER.debug(installable)
 
 
@@ -536,6 +537,28 @@ def add_crate(context: CliContext, libid: str, libversion: str):
     libyaml = LibraryYaml(context.installation_context.yaml_dir)
     libyaml.add_rust_crate(libid, libversion)
     libyaml.save()
+
+
+@cli.command()
+@click.argument("output", type=click.File("w", encoding="utf-8"), default="-")
+@click.pass_obj
+def config_dump(context: CliContext, output: TextIO):
+    """Dumps all config, expanded."""
+    for yaml_path in sorted(Path(context.installation_context.yaml_dir).glob("*.yaml")):
+        with yaml_path.open(encoding="utf-8") as yaml_file:
+            yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+        for installer in sorted(installers_for(context.installation_context, yaml_doc, True), key=str):
+            # Read all public strings fields from installer
+            as_dict = {
+                "name": installer.name,
+                "type": str(installer),
+                "config": {
+                    field: getattr(installer, field)
+                    for field in dir(installer)
+                    if not field.startswith("_") and isinstance(getattr(installer, field), str)
+                },
+            }
+            output.write(json.dumps(as_dict) + "\n")
 
 
 def main():
