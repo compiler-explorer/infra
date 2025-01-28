@@ -29,7 +29,7 @@ def is_value_type(value: Any) -> bool:
 
 
 def string_needs_expansion(value: str) -> bool:
-    return "{" in value
+    return "{%" in value or "{{" in value or "{#" in value
 
 
 def needs_expansion(target: MutableMapping[str, Any]) -> bool:
@@ -45,8 +45,7 @@ def needs_expansion(target: MutableMapping[str, Any]) -> bool:
 
 def expand_one(template_string: str, configuration: Mapping[str, Any]) -> str:
     try:
-        jinjad = _JINJA_ENV.from_string(template_string).render(**configuration)
-        return jinjad.format(**configuration)
+        return _JINJA_ENV.from_string(template_string).render(**configuration)
     except jinja2.exceptions.TemplateError:
         # in python 3.11 we would...
         # e.add_note(f"Template '{template_string}'")
@@ -54,7 +53,7 @@ def expand_one(template_string: str, configuration: Mapping[str, Any]) -> str:
         raise
 
 
-def expand_target(target: MutableMapping[str, Any], context):
+def expand_target(target: MutableMapping[str, Any], context: list[str]) -> MutableMapping[str, str]:
     iterations = 0
     while needs_expansion(target):
         iterations += 1
