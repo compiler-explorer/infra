@@ -1,3 +1,8 @@
 {
-    "python.defaultInterpreterPath": ".env/bin/python"
+    "python.defaultInterpreterPath": ".env/bin/python",
+    "python.testing.pytestArgs": [
+        "bin"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }
