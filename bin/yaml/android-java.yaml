@@ -7,60 +7,64 @@ compilers:
       - compilers/kotlin 1.9.20 # d8 runs on .class files, so kotlinc is applicable as well.
     check_exe: "%DEP0%/bin/java -cp {{dir}}/{{filename}} com.android.tools.r8.D8 --version"
     filename: r8-{{name}}.jar
-    url: https://dl.google.com/android/maven2/com/android/tools/r8/{{name}}/r8-{{name}}.jar
-    targets:
-      - 8.7.18
-      - 8.7.14
-      - 8.6.27
-      - 8.6.17
-      - 8.5.35
-      - 8.5.27
-      - 8.5.10
-      - 8.3.37
-      - 8.3.36
-      - 8.2.47
-      - 8.2.42
-      - 8.2.33
-      - 8.1.72
-      - 8.1.56
-  dex2oat:
-    type: ziparchive
-    dir: dex2oat-{{name}}
-    extract_into_folder: true
-    check_file: "x86_64/bin/dex2oat64"
-    url: https://dl.google.com/android/maven2/com/android/art/art/{{name}}/art-{{name}}.zip
-    after_stage_script:
-      - "{{yaml_dir}}/android-java/create_boot_images.sh"
-    targets:
-      - "35.11"
-      - "35.10"
-      - "35.9"
-      - "35.8"
-      - "34.18"
-      - "34.17"
-      - "34.16"
-      - "34.15"
-      - "34.14"
-      - "34.13"
-      - "34.11"
-      # 33.10 doesn't support CMC or riscv64, so another script is used for boot images.
-      - name: "33.10"
-        after_stage_script:
-          - "{{yaml_dir}}/android-java/create_boot_images_old.sh"
-
-  nightly:
-    install_always: true
-    if: nightly
-    type: script
-    dir: "{{name}}"
-    script: |
-      mkdir {{name}}
-      cd {{name}}
-      {{yaml_dir}}/android-java/fetch_art_release_from_head.sh
-      unzip art_release.zip
-      rm art_release.zip
-      {{yaml_dir}}/android-java/create_boot_images.sh
-    dex2oat:
+    release:
+      url: https://dl.google.com/android/maven2/com/android/tools/r8/{{name}}/r8-{{name}}.jar
       targets:
-        - name: dex2oat-latest
-          check_file: "x86_64/bin/dex2oat64"
+        - 8.7.18
+        - 8.7.14
+        - 8.6.27
+        - 8.6.17
+        - 8.5.35
+        - 8.5.27
+        - 8.5.10
+        - 8.3.37
+        - 8.3.36
+        - 8.2.47
+        - 8.2.42
+        - 8.2.33
+        - 8.1.72
+        - 8.1.56
+    nightly:
+      install_always: true
+      if: nightly
+      url: https://storage.googleapis.com/r8-releases/raw/latest-dev/r8lib.jar
+      targets:
+        - latest
+  dex2oat:
+    dir: dex2oat-{{name}}
+    check_file: "x86_64/bin/dex2oat64"
+    mainline:
+      type: ziparchive
+      extract_into_folder: true
+      url: https://dl.google.com/android/maven2/com/android/art/art/{{name}}/art-{{name}}.zip
+      after_stage_script:
+        - "{{yaml_dir}}/android-java/create_boot_images.sh"
+      targets:
+        - "35.11"
+        - "35.10"
+        - "35.9"
+        - "35.8"
+        - "34.18"
+        - "34.17"
+        - "34.16"
+        - "34.15"
+        - "34.14"
+        - "34.13"
+        - "34.11"
+        # 33.10 doesn't support CMC or riscv64, so another script is used for boot images.
+        - name: "33.10"
+          after_stage_script:
+            - "{{yaml_dir}}/android-java/create_boot_images_old.sh"
+    nightly:
+      install_always: true
+      if: nightly
+      type: script
+      script: |
+        mkdir dex2oat-{{name}}
+        cd dex2oat-{{name}}
+        {{yaml_dir}}/android-java/fetch_art_release_from_head.sh
+        unzip art_release.zip
+        rm art_release.zip
+        {{yaml_dir}}/android-java/create_boot_images.sh
+      targets:
+        - latest
