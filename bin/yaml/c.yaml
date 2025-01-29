@@ -56,17 +56,15 @@ compilers:
       dir: sdcc-{{name}}
       check_exe: bin/sdcc --version
       url: https://downloads.sourceforge.net/project/sdcc/sdcc-linux-amd64/{{name}}/sdcc-{{name}}-amd64-unknown-linux2.5.tar.bz2
-      older:
-        untar_dir: sdcc-{{name}}
-        targets:
-          - 4.0.0
-          - 4.2.0
-          - 4.3.0
-          - 4.4.0
-      newer:
-        untar_dir: sdcc
-        targets:
-          - 4.1.0
+      untar_dir: sdcc-{{name}}
+      targets:
+        - 4.0.0
+        - name: 4.1.0  # 4.1.0 was packaged without the sdcc-4.1.0 dir
+          untar_dir: sdcc
+        - 4.2.0
+        - 4.3.0
+        - 4.4.0
+        - 4.5.0
     z88dk:
       type: s3tarballs
       check_exe: bin/zcc -h
