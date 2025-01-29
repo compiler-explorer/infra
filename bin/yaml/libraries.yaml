@@ -1071,17 +1071,17 @@ libraries:
         lib_type: static
         method: nightlyclone
         package_install: true
-        repo: beman-project/iterator_interface
+        repo: bemanproject/iterator_interface
         staticliblink:
         - beman.iterator_interface
         targets:
         - main
         type: github
-      beman_optional26:
+      beman_optional:
         build_type: none
         check_file: README.md
         method: nightlyclone
-        repo: beman-project/optional26
+        repo: bemanproject/optional
         targets:
         - main
         type: github
