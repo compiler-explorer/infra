@@ -29,24 +29,34 @@ libraries:
       type: singleFile
       url: https://dl.google.com/android/maven2/androidx/annotation/annotation-jvm/{{name}}/annotation-jvm-{{name}}.jar
     r8-keep-annotations:
-      check_file: keepanno-annotations.jar
-      dir: r8-{{name}}-keepanno
-      filename: keepanno-annotations.jar
-      targets:
-      - 8.7.18
-      - 8.7.14
-      - 8.6.27
-      - 8.6.17
-      - 8.5.35
-      - 8.5.27
-      - 8.5.10
-      - 8.3.37
-      - 8.3.36
-      - 8.2.47
-      - 8.2.42
-      - 8.2.33
-      type: singleFile
-      url: https://storage.googleapis.com/r8-releases/raw/{{name}}/keepanno-annotations.jar
+      release:
+        check_file: keepanno-annotations.jar
+        dir: r8-{{name}}-keepanno
+        filename: keepanno-annotations.jar
+        targets:
+        - 8.7.18
+        - 8.7.14
+        - 8.6.27
+        - 8.6.17
+        - 8.5.35
+        - 8.5.27
+        - 8.5.10
+        - 8.3.37
+        - 8.3.36
+        - 8.2.47
+        - 8.2.42
+        - 8.2.33
+        type: singleFile
+        url: https://storage.googleapis.com/r8-releases/raw/{{name}}/keepanno-annotations.jar
+      nightly:
+        if: nightly
+        check_file: keepanno-annotations.jar
+        dir: r8-latest-keepanno
+        filename: keepanno-annotations.jar
+        targets:
+        - latest
+        type: singleFile
+        url: https://storage.googleapis.com/r8-releases/raw/latest-dev/keepanno-annotations.jar
   c:
     cs50:
       build_type: manual
