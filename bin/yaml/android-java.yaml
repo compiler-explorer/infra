@@ -1,13 +1,13 @@
 compilers:
   android-d8:
     type: singleFile
-    dir: r8-{name}
+    dir: r8-{{name}}
     depends:
       - compilers/java 16.0.1
       - compilers/kotlin 1.9.20 # d8 runs on .class files, so kotlinc is applicable as well.
-    check_exe: "%DEP0%/bin/java -cp {dir}/{filename} com.android.tools.r8.D8 --version"
-    filename: r8-{name}.jar
-    url: https://dl.google.com/android/maven2/com/android/tools/r8/{name}/r8-{name}.jar
+    check_exe: "%DEP0%/bin/java -cp {{dir}}/{{filename}} com.android.tools.r8.D8 --version"
+    filename: r8-{{name}}.jar
+    url: https://dl.google.com/android/maven2/com/android/tools/r8/{{name}}/r8-{{name}}.jar
     targets:
       - 8.7.18
       - 8.7.14
@@ -25,12 +25,12 @@ compilers:
       - 8.1.56
   dex2oat:
     type: ziparchive
-    dir: dex2oat-{name}
+    dir: dex2oat-{{name}}
     extract_into_folder: true
     check_file: "x86_64/bin/dex2oat64"
-    url: https://dl.google.com/android/maven2/com/android/art/art/{name}/art-{name}.zip
+    url: https://dl.google.com/android/maven2/com/android/art/art/{{name}}/art-{{name}}.zip
     after_stage_script:
-      - "{yaml_dir}/android-java/create_boot_images.sh"
+      - "{{yaml_dir}}/android-java/create_boot_images.sh"
     targets:
       - "35.11"
       - "35.10"
@@ -46,20 +46,20 @@ compilers:
       # 33.10 doesn't support CMC or riscv64, so another script is used for boot images.
       - name: "33.10"
         after_stage_script:
-          - "{yaml_dir}/android-java/create_boot_images_old.sh"
+          - "{{yaml_dir}}/android-java/create_boot_images_old.sh"
 
   nightly:
     install_always: true
     if: nightly
     type: script
-    dir: "{name}"
+    dir: "{{name}}"
     script: |
-      mkdir {name}
-      cd {name}
-      {yaml_dir}/android-java/fetch_art_release_from_head.sh
+      mkdir {{name}}
+      cd {{name}}
+      {{yaml_dir}}/android-java/fetch_art_release_from_head.sh
       unzip art_release.zip
       rm art_release.zip
-      {yaml_dir}/android-java/create_boot_images.sh
+      {{yaml_dir}}/android-java/create_boot_images.sh
     dex2oat:
       targets:
         - name: dex2oat-latest

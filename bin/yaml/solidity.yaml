@@ -1,7 +1,7 @@
 compilers:
   solidity:
     type: solidity
-    dir: solc-{name}
+    dir: solc-{{name}}
     url: https://binaries.soliditylang.org/linux-amd64
     filename: solc
     check_exe: solc --version
@@ -14,8 +14,8 @@ compilers:
       - 0.8.26
   solidity_zksync:
     type: singleFile
-    dir: zksync-solc-{name}
-    url: https://github.com/matter-labs/era-solidity/releases/download/{name}/solc-linux-amd64-{name}
+    dir: zksync-solc-{{name}}
+    url: https://github.com/matter-labs/era-solidity/releases/download/{{name}}/solc-linux-amd64-{{name}}
     filename: solc
     check_exe: solc --version
     targets:
@@ -27,7 +27,7 @@ compilers:
       - 0.8.26-1.0.1
   zksolc:
     type: singleFile
-    dir: zksolc-{name}
+    dir: zksolc-{{name}}
     depends:
       - compilers/solidity_zksync 0.4.26-1.0.1
       - compilers/solidity_zksync 0.5.17-1.0.1
@@ -35,7 +35,7 @@ compilers:
       - compilers/solidity_zksync 0.7.6-1.0.1
       - compilers/solidity_zksync 0.8.25-1.0.1
       - compilers/solidity_zksync 0.8.26-1.0.1
-    url: https://github.com/matter-labs/era-compiler-solidity/releases/download/{name}/zksolc-linux-amd64-musl-v{name}
+    url: https://github.com/matter-labs/era-compiler-solidity/releases/download/{{name}}/zksolc-linux-amd64-musl-v{{name}}
     filename: zksolc
     check_exe: zksolc --version
     targets:

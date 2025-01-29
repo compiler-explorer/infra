@@ -3,9 +3,9 @@ compilers:
     type: tarballs
     compression: gz
     suffix: ''
-    url: https://github.com/ispc/ispc/releases/download/v{name}/ispc-v{name}{suffix}-linux.tar.gz
-    dir: ispc-{name}
-    untar_dir: ispc-v{name}-linux
+    url: https://github.com/ispc/ispc/releases/download/v{{name}}/ispc-v{{name}}{{suffix}}-linux.tar.gz
+    dir: ispc-{{name}}
+    untar_dir: ispc-v{{name}}-linux
     check_exe: bin/ispc --version
     targets:
       - 1.25.3
@@ -38,7 +38,7 @@ compilers:
           - 1.9.1
     nightly:
       if: nightly
-      compiler_name: ispc-{name}
+      compiler_name: ispc-{{name}}
       type: nightly
       targets:
         - trunk

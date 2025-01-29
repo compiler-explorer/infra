@@ -2,7 +2,7 @@ compilers:
   julia:
     type: tarballs
     compression: gz
-    dir: julia-{name}
+    dir: julia-{{name}}
     check_exe: bin/julia --version
     targets:
       - name: 1.11.2

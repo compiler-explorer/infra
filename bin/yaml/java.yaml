@@ -2,7 +2,7 @@ compilers:
   java:
     type: tarballs
     compression: gz
-    dir: jdk-{name}
+    dir: jdk-{{name}}
     check_exe: bin/javac -version
     targets:
       - name: 8u402b06

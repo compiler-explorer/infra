@@ -2,12 +2,12 @@ compilers:
   snowball:
     type: tarballs
     compression: gz
-    dir: snowball-{name}
+    dir: snowball-{{name}}
     create_untar_dir: true
     strip_components: 1
-    build: snowball-{name}-release
+    build: snowball-{{name}}-release
     toolchain: cmake
     check_exe: bin/snowball --version
-    url: https://github.com/snowball-lang/snowball/releases/download/v{name}/snowball-ce-specific-x86_64.tar.gz
+    url: https://github.com/snowball-lang/snowball/releases/download/v{{name}}/snowball-ce-specific-x86_64.tar.gz
     targets:
       - '0.1.0'
