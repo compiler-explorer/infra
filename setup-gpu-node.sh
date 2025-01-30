@@ -15,6 +15,6 @@ dpkg -i cuda_keyring.deb
 rm cuda_keyring.deb
 apt-get -y update
 # The driver version is nvidia-open-*
-# The CUDA version is cuda-toolkit-*
-apt install -y nvidia-open-565 cuda-toolkit-12-6
+# The CUDA version is cuda-*
+apt install -y nvidia-open-570 cuda-12-8
 popd
