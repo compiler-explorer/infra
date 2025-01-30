@@ -11,7 +11,11 @@ apt-get install -y libxml2 kmod "linux-headers-$(uname -r)"
 
 pushd /tmp
 curl -sL https://developer.download.nvidia.com/compute/cuda/12.6.1/local_installers/cuda_12.6.1_560.35.03_linux.run -o install.run
-sh install.run --silent --driver
+# The version of the compiler ought to match the one the kernel was built with.
+# Not sure why this isn't true on Ubuntu, but setting this compiler version manually
+# seems to do the trick. We seem to need to override both CC and PATH to make it work.
+COMPILER_DIR=/efs/compiler-explorer/gcc-12.4.0/bin
+env CC=${COMPILER_DIR}/gcc PATH=${COMPILER_DIR} sh install.run --silent --driver
 rm install.run
 popd
 
