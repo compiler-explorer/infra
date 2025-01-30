@@ -1103,7 +1103,7 @@ compilers:
           - name: gcc-experimental-reflection
             edg_version: 'experimental-reflection'
             depends:
-              - compilers/c++/x86/gcc 14.2.0
+              - compilers/c++/x86/gcc 13.2.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{{name}}
