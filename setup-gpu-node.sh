@@ -14,7 +14,6 @@ curl -sL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86
 dpkg -i cuda_keyring.deb
 rm cuda_keyring.deb
 apt-get -y update
-# The driver version is nvidia-open-*
-# The CUDA version is cuda-*
-apt install -y nvidia-open-570 cuda-12-8
+# The CUDA version is cuda-* and includes the most appropriate driver for its version.
+apt install -y cuda-12-8
 popd
