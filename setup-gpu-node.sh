@@ -14,6 +14,8 @@ curl -sL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86
 dpkg -i cuda_keyring.deb
 rm cuda_keyring.deb
 apt-get -y update
-# The CUDA version is cuda-* and includes the most appropriate driver for its version.
-apt install -y cuda-12-8
+# The CUDA packages include the most appropriate driver for its version.
+# Note the hyphen in the version number, not a period.
+CUDA_VERSION=12-8
+apt install -y cuda-compiler-${CUDA_VERSION} cuda-runtime-${CUDA_VERSION}
 popd
