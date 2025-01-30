@@ -10,18 +10,11 @@ bash "${DIR}/setup-node.sh"
 apt-get install -y libxml2 kmod "linux-headers-$(uname -r)"
 
 pushd /tmp
-curl -sL https://developer.download.nvidia.com/compute/cuda/12.6.1/local_installers/cuda_12.6.1_560.35.03_linux.run -o install.run
-# The version of the compiler ought to match the one the kernel was built with.
-# Not sure why this isn't true on Ubuntu, but setting this compiler version manually
-# seems to do the trick. We seem to need to override both CC and PATH to make it work.
-COMPILER_DIR=/efs/compiler-explorer/gcc-12.4.0/bin
-env CC=${COMPILER_DIR}/gcc PATH=${COMPILER_DIR} sh install.run --silent --driver
-rm install.run
+curl -sL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o cuda_keyring.deb
+dpkg -i cuda_keyring.deb
+rm cuda_keyring.deb
+apt-get update
+# The driver version is nvidia-open-*
+# The CUDA version is cuda-toolkit-*
+apt install nvidia-open-565 cuda-toolkit-12-6
 popd
-
-# setup nvidia drivers https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-nouveau-ubuntu
-echo -e "blacklist nouveau\noptions nouveau modeset=0\n" > /etc/modprobe.d/blacklist-nouveau.conf
-update-initramfs -u
-
-# script from https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html#runfile-verifications
-"${DIR}/setup-gpu-node-devices.sh"
