@@ -1091,23 +1091,26 @@ compilers:
               - compilers/c++/x86/gcc 14.2.0
       gcc:
         compiler_type: gcc
-        macro_gen: edg-compiler/make_predef_macro_table
         macro_output_dir: base/lib
         targets:
           - name: 6.5-gcc-13-20231120
             edg_version: 'compiler-6.5-20231120'
+            macro_gen: edg-compiler/make_predef_macro_table
             depends:
               - compilers/c++/x86/gcc 13.2.0
           - name: 6.6-gcc-13
             edg_version: '6.6'
+            macro_gen: edg-compiler/make_predef_macro_table
             depends:
               - compilers/c++/x86/gcc 13.2.0
           - name: 6.7-gcc-14
             edg_version: '6.7'
+            macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
               - compilers/c++/x86/gcc 14.2.0
           - name: gcc-experimental-reflection
             edg_version: 'experimental-reflection'
+            macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
               - compilers/c++/x86/gcc 13.2.0
     ellccs:
