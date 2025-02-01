@@ -34,9 +34,9 @@ apt-get -y install \
     cmake \
     ninja-build \
     elfutils \
+    python-is-python3 \
     python3-pip \
-    python3.9-venv \
-    python3.9 \
+    python3-venv \
     xz-utils \
     linux-libc-dev \
     libelf-dev \

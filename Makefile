@@ -6,7 +6,7 @@ export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
 POETRY:=$(POETRY_HOME)/bin/poetry
 POETRY_VENV=$(CURDIR)/.venv
 POETRY_DEPS:=$(POETRY_VENV)/.deps
-SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
+SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.13 || command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
@@ -16,7 +16,7 @@ help: # with thanks to Ben Rady
 PACKER ?= packer
 
 $(SYS_PYTHON):
-	@echo "Python 3.9, 3.10, 3.11 or 3.12 not found on path. Please install (sudo apt install python3 or similar)"
+	@echo "Python 3.9, 3.10, 3.11, 3.12 or 3.13 not found on path. Please install (sudo apt install python3 or similar)"
 	@exit 1
 
 config.json: make_json.py | $(POETRY_DEPS)
@@ -84,7 +84,7 @@ poetry.lock:
 	$(POETRY) lock
 
 $(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
-	$(POETRY) install --sync --no-root
+	$(POETRY) sync --no-root
 	@touch $@
 
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda

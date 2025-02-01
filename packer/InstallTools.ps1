@@ -23,7 +23,7 @@ function InstallGIT {
 
 function InstallNodeJS {
     Write-Host "Downloading NodeJS"
-    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v18.14.2/node-v18.14.2-x64.msi" -OutFile "C:\tmp\node-installer.msi"
+    Invoke-WebRequest -Uri "https://nodejs.org/download/release/v22.13.1/node-v22.13.1-x64.msi" -OutFile "C:\tmp\node-installer.msi"
     Write-Host "Installing Node"
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i node-installer.msi" -wait
     Write-Host "Deleting tmp files"
@@ -136,9 +136,9 @@ function InstallBuildTools {
     New-Item -Path "/BuildTools" -ItemType Directory
 
     Write-Host "Installing CMake"
-    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v3.28.3/cmake-3.28.3-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
+    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v3.31.5/cmake-3.31.5-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
     Expand-Archive -Path "/tmp/cmake-win.zip" -DestinationPath "/BuildTools"
-    Rename-Item -Path "/BuildTools/cmake-3.28.3-windows-x86_64" -NewName "CMake"
+    Rename-Item -Path "/BuildTools/cmake-3.31.5-windows-x86_64" -NewName "CMake"
     Remove-Item -Path "/tmp/cmake-win.zip"
 
     AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"

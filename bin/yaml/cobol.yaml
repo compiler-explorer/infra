@@ -2,8 +2,8 @@ compilers:
  cobol:
    subdir: cobol
    gnucobol:
-     path_name: "{subdir}/gnucobol-{name}"
-     s3_path_prefix: "gnucobol-{name}"
+     path_name: "{{subdir}}/gnucobol-{{name}}"
+     s3_path_prefix: "gnucobol-{{name}}"
      type: s3tarballs
      check_exe: bin/cobc --version
      targets:
@@ -12,7 +12,7 @@ compilers:
        - 3.2-rc2
        - '3.1'
        - '2.2'
-       # Currently fails to build: - '1.1'
+       - '1.1'
    gcc:
      if: nightly
      type: nightly

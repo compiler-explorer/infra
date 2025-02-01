@@ -17,6 +17,7 @@ on:
         - misc
         # rest in alphabetical order
         - bloaty
+        - clad
         - clang-18.04
         - cobol
         - d8

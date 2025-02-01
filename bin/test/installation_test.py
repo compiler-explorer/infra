@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pytest
@@ -64,11 +65,11 @@ def test_codependent_configs():
         """
 compilers:
   gcc:
-    check_exe: "bin/{arch_prefix}/blah"
+    check_exe: "bin/{{arch_prefix}}/blah"
     subdir: arm
     mips:
-      arch_prefix: "{subdir}-arch"
-      check_exe: "{arch_prefix}/blah"
+      arch_prefix: "{{subdir}}-arch"
+      check_exe: "{{arch_prefix}}/blah"
       targets:
         - name: 5.4.0
           subdir: mips
@@ -78,13 +79,13 @@ compilers:
 
 
 def test_codependent_throws():
-    with pytest.raises(RuntimeError, match=r"Too many mutual references \(in compilers/mips\)"):
+    with pytest.raises(RuntimeError, match=re.escape("Too many mutual references (in compilers/mips)")):
         parse_targets(
             """
 compilers:
   mips:
-    x: "{y}"
-    y: "{x}"
+    x: "{{y}}"
+    y: "{{x}}"
     targets:
       - name: 5.4.0
         subdir: mips
@@ -166,7 +167,7 @@ def test_jinja_expansion_with_filters_refering_forward():
         """
 boost:
   underscore_name: "{{ name | replace('.', '_') }}"
-  url: https://dl.bintray.com/boostorg/release/{name}/source/boost_{underscore_name}.tar.bz2
+  url: https://dl.bintray.com/boostorg/release/{{name}}/source/boost_{{underscore_name}}.tar.bz2
   targets:
     - 1.64.0
       """

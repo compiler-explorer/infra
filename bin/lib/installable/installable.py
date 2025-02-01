@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -25,6 +26,8 @@ _DEP_RE = re.compile("%DEP([0-9]+)%")
 running_on_admin_node = socket.gethostname() == "admin-node"
 
 nightlies: NightlyVersions = NightlyVersions(_LOGGER)
+
+SimpleJsonType = (int, float, str, bool)
 
 
 class Installable:
@@ -61,6 +64,12 @@ class Installable:
         self.after_stage_script = self.config_get("after_stage_script", [])
         self._logger = logging.getLogger(self.name)
         self.install_path_symlink = self.config_get("symlink", False)
+
+    def to_json_dict(self) -> Dict[str, Any]:
+        return {key: value for key, value in self.__dict__.items() if isinstance(value, SimpleJsonType)}
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_json_dict())
 
     def _resolve(self, all_installables: Dict[str, Installable]):
         try:

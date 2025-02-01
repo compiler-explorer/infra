@@ -2,7 +2,7 @@ compilers:
   scala:
     type: tarballs
     compression: gz
-    dir: scala-{name}
+    dir: scala-{{name}}
     folder: scalac
     check_exe: bin/scalac -version
     depends:
@@ -14,6 +14,29 @@ compilers:
         url: https://downloads.lightbend.com/scala/2.12.14/scala-2.12.14.tgz
       - name: 2.13.6
         url: https://downloads.lightbend.com/scala/2.13.6/scala-2.13.6.tgz
+      - name: 2.13.15
+        url: https://downloads.lightbend.com/scala/2.13.15/scala-2.13.15.tgz
       - name: 3.0.0
-        url: https://github.com/lampepfl/dotty/releases/download/3.0.0/scala3-3.0.0.tar.gz
-        dir: scala3-{name}
+        url: https://github.com/scala/scala3/releases/download/3.0.0/scala3-3.0.0.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.1.0
+        url: https://github.com/lampepfl/dotty/releases/download/3.1.0/scala3-3.1.0.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.2.0
+        url: https://github.com/lampepfl/dotty/releases/download/3.2.0/scala3-3.2.0.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.3.0
+        url: https://github.com/lampepfl/dotty/releases/download/3.3.0/scala3-3.3.0.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.3.4
+        url: https://github.com/lampepfl/dotty/releases/download/3.3.4/scala3-3.3.4.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.4.0
+        url: https://github.com/lampepfl/dotty/releases/download/3.4.0/scala3-3.4.0.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.5.0
+        url: https://github.com/lampepfl/dotty/releases/download/3.5.0/scala3-3.5.0.tar.gz
+        dir: scala3-{{name}}
+      - name: 3.6.2
+        url: https://github.com/lampepfl/dotty/releases/download/3.6.2/scala3-3.6.2.tar.gz
+        dir: scala3-{{name}}

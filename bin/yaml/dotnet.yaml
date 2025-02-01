@@ -1,8 +1,8 @@
 compilers:
   dotnet:
     type: s3tarballs
-    dir: dotnet-{name}
-    path_name: dotnet-{name}
+    dir: dotnet-{{name}}
+    path_name: dotnet-{{name}}
     untar_dir: Core_Root
     check_exe: .dotnet/dotnet --version
     check_env:
@@ -12,8 +12,8 @@ compilers:
         if: nightly
         type: nightly
     newer:
-      s3_path_prefix: dotnet-{name}
-      untar_dir: dotnet-{name}
+      s3_path_prefix: dotnet-{{name}}
+      untar_dir: dotnet-{{name}}
       targets:
         - v6.0.11
         - v6.0.14

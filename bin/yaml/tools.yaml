@@ -2,9 +2,9 @@ tools:
   cmake:
     type: tarballs
     compression: gz
-    url: https://github.com/Kitware/CMake/releases/download/v{name}/cmake-{name}-Linux-x86_64.tar.gz
+    url: https://github.com/Kitware/CMake/releases/download/v{{name}}/cmake-{{name}}-Linux-x86_64.tar.gz
     strip_components: 1
-    dir: cmake-v{name}
+    dir: cmake-v{{name}}
     create_untar_dir: true
     check_exe: bin/cmake --help
     targets:
@@ -12,16 +12,18 @@ tools:
       - 3.26.4
       - 3.27.9
       - 3.28.0-rc5
-      - name: 3.28.0
-        symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
+      - 3.28.0
       - 3.28.4
       - 3.29.2
+      - 3.30.7
+      - name: 3.31.5
+        symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
     experimental:
       type: tarballs
       compression: gz
-      url: https://cmake.org/files/dev/cmake-{name}-linux-x86_64.tar.gz
+      url: https://cmake.org/files/dev/cmake-{{name}}-linux-x86_64.tar.gz
       strip_components: 1
-      dir: cmake-v{name}
+      dir: cmake-v{{name}}
       create_untar_dir: true
       check_exe: bin/cmake --help
       targets:
@@ -29,9 +31,9 @@ tools:
   ninja:
     type: ziparchive
     extract_into_folder: true
-    folder: ninja-v{name}
-    url: https://github.com/ninja-build/ninja/releases/download/v{name}/ninja-linux.zip
-    dir: ninja-v{name}
+    folder: ninja-v{{name}}
+    url: https://github.com/ninja-build/ninja/releases/download/v{{name}}/ninja-linux.zip
+    dir: ninja-v{{name}}
     create_untar_dir: true
     check_exe: ninja --version
     symlink: ninja
@@ -47,47 +49,48 @@ tools:
       - x86_64-v1.3.0
       - aarch64-v1.3.0
     after_stage_script:
-      - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{name}/lib heaptrack-{name}/bin/heaptrack_print
+      - /opt/compiler-explorer/patchelf-0.15.0/bin/patchelf --set-rpath /opt/compiler-explorer/heaptrack-{{name}}/lib heaptrack-{{name}}/bin/heaptrack_print
   glibc-tools-x86_64:
     type: tarballs
     compression: xz
     check_exe: tracer --help
     symlink: glibc-tools-x86_64
-    dir: glibc-tools-x86_64-{name}
+    dir: glibc-tools-x86_64-{{name}}
     untar_dir: glibc-tools-x86_64
     create_untar_dir: true
     targets:
       - v1.4
-    url: https://github.com/compiler-explorer/glibc-tools/releases/download/{name}/glibc-tools-x86_64.tar.xz
+    url: https://github.com/compiler-explorer/glibc-tools/releases/download/{{name}}/glibc-tools-x86_64.tar.xz
   glibc-tools-arm64:
     type: tarballs
     compression: xz
-    check_exe: tracer --help
+    # not x86, so we can't execute
+    check_file: tracer
     symlink: glibc-tools-arm64
-    dir: glibc-tools-arm64-{name}
+    dir: glibc-tools-arm64-{{name}}
     untar_dir: glibc-tools-arm64
     create_untar_dir: true
     targets:
       - v1.5
-    url: https://github.com/compiler-explorer/glibc-tools/releases/download/{name}/glibc-tools-arm64.tar.xz
+    url: https://github.com/compiler-explorer/glibc-tools/releases/download/{{name}}/glibc-tools-arm64.tar.xz
   iwyu:
     type: s3tarballs
     compression: xz
     check_exe: bin/include-what-you-use --version
-    path_name: iwyu/{name}
+    path_name: iwyu/{{name}}
     targets:
       - name: '0.12'
         after_stage_script:
-          - ln -s /opt/compiler-explorer/clang-8.0.0/lib iwyu-{name}/lib
+          - ln -s /opt/compiler-explorer/clang-8.0.0/lib iwyu-{{name}}/lib
       - name: '0.20'
         after_stage_script:
-          - ln -s /opt/compiler-explorer/clang-16.0.0/lib iwyu-{name}/lib
+          - ln -s /opt/compiler-explorer/clang-16.0.0/lib iwyu-{{name}}/lib
       - name: '0.21'
         after_stage_script:
-          - ln -s /opt/compiler-explorer/clang-17.0.1/lib iwyu-{name}/lib
+          - ln -s /opt/compiler-explorer/clang-17.0.1/lib iwyu-{{name}}/lib
       - name: '0.22'
         after_stage_script:
-          - ln -s /opt/compiler-explorer/clang-18.1.0/lib iwyu-{name}/lib
+          - ln -s /opt/compiler-explorer/clang-18.1.0/lib iwyu-{{name}}/lib
   pvs-studio:
     if:
       - non-free
@@ -106,15 +109,15 @@ tools:
     type: pip
     depends:
       - compilers/python 3.13.0
-    dir: osaca-{name}
+    dir: osaca-{{name}}
     python: '%DEP0%/bin/python3'
-    package: osaca=={name}
+    package: osaca=={{name}}
     check_exe: bin/osaca --version
     targets:
       - 0.6.1
   rustfmt:
     type: tarballs
-    dir: rustfmt-{name}
+    dir: rustfmt-{{name}}
     compression: gz
     check_exe: rustfmt --version
     targets:
@@ -189,18 +192,18 @@ tools:
     - 0.9.0
   baksmali:
     type: singleFile
-    dir: baksmali-{name}
+    dir: baksmali-{{name}}
     depends:
       - compilers/java 16.0.1
-    check_exe: "%DEP0%/bin/java -jar {dir}/{filename} --version"
-    filename: baksmali-{name}-fat.jar
-    url: https://storage.googleapis.com/r8-releases/smali/{name}/{filename}
+    check_exe: "%DEP0%/bin/java -jar {{dir}}/{{filename}} --version"
+    filename: baksmali-{{name}}-fat.jar
+    url: https://storage.googleapis.com/r8-releases/smali/{{name}}/{{filename}}
     targets:
       - 3.0.3
   bloaty:
     type: s3tarballs
     compression: xz
-    dir: bloaty-{name}
+    dir: bloaty-{{name}}
     check_exe: bin/bloaty --help
     targets:
       - "1.1"

@@ -2,17 +2,17 @@ compilers:
   swift:
     type: tarballs
     compression: gz
-    dir: swift-{name}
+    dir: swift-{{name}}
     create_untar_dir: true
     strip_components: 1
-    build: swift-{name}-release
-    toolchain: swift-{name}-RELEASE
+    build: swift-{{name}}-release
+    toolchain: swift-{{name}}-RELEASE
     check_exe: usr/bin/swiftc --version
     after_stage_script:
       # work around insane installation issue
       - chmod og+r ./usr/lib/swift/CoreFoundation/*
     older:
-      url: https://swift.org/builds/{build}/ubuntu1604/{toolchain}/{toolchain}-ubuntu16.04.tar.gz
+      url: https://download.swift.org/{{build}}/ubuntu1604/{{toolchain}}/{{toolchain}}-ubuntu16.04.tar.gz
       targets:
         - 3.1.1
         - 4.0.2
@@ -26,7 +26,7 @@ compilers:
         - '5.2'
         - '5.3'
     newer:
-      url: https://swift.org/builds/{build}/ubuntu2004/{toolchain}/{toolchain}-ubuntu20.04.tar.gz
+      url: https://download.swift.org/{{build}}/ubuntu2004/{{toolchain}}/{{toolchain}}-ubuntu20.04.tar.gz
       targets:
           - '5.4'
           - '5.5'
@@ -35,14 +35,21 @@ compilers:
           - '5.8'
           - '5.9'
           - '5.10'
+          - '6.0.3'
     nightly:
       if: nightly
       type: restQueryTarballs
       install_always: true
-      url: https://download.swift.org/development/ubuntu2004/latest-build.yml
+      toolchain: development
+      url: https://download.swift.org/{{toolchain}}/ubuntu2004/latest-build.yml
       query: |
-        'https://download.swift.org/development/ubuntu2004/' \
-        + document['download'].replace('-ubuntu20.04.tar.gz', '') \
+        'https://download.swift.org/{{toolchain}}/ubuntu2004' \
+        + '/' + document['dir'] \
         + '/' + document['download']
       targets:
         - nightly
+      dev-snapshot:
+        dir: swift-dev-snapshot
+        toolchain: swift-{{name}}-branch
+        targets:
+          - '6.1'
