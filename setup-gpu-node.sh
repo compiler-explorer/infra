@@ -16,4 +16,4 @@ apt-get -y update
 # The CUDA packages include the most appropriate driver for its version.
 # Note the hyphen in the version number, not a period.
 CUDA_VERSION=12-8
-apt install -y nvidia-headless-570-open nvidia-driver-assistant cuda-compiler-${CUDA_VERSION} cuda-runtime-${CUDA_VERSION}
+apt install -y nvidia-headless-570-open nvidia-utils-570 nvidia-driver-assistant cuda-compiler-${CUDA_VERSION} cuda-runtime-${CUDA_VERSION}
