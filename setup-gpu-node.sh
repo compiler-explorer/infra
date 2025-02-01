@@ -15,8 +15,5 @@ popd
 apt-get -y update
 # The CUDA packages include the most appropriate driver for its version.
 # Note the hyphen in the version number, not a period.
-# TODO @rwarmstr suggests using just nvidia-headless-<version>-open for just
-# the driver, IF we don't need CUDA installed systemwide. @mgodbolt wasn't
-# sure what we actually need on the host.
 CUDA_VERSION=12-8
-apt install -y cuda-compiler-${CUDA_VERSION} cuda-runtime-${CUDA_VERSION}
+apt install -y nvidia-headless-570-open nvidia-driver-assistant cuda-compiler-${CUDA_VERSION} cuda-runtime-${CUDA_VERSION}
