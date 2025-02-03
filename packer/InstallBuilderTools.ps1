@@ -86,6 +86,14 @@ function InstallConan {
     conan remote add ceserver https://conan.compiler-explorer.com/ True
 }
 
+function Install7Zip {
+    Write-Host "Downloading 7zip"
+    Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-x64.exe" -OutFile "/tmp/7z.exe"
+    Write-Host "Installing 7zip"
+    Start-Process -FilePath "C:/tmp/7z.exe" -ArgumentList ("/S") -NoNewWindow -Wait
+    Remove-Item -Path "/tmp/7z.exe"
+}
+
 function ConfigureSmbRights {
     $tmpfile = "c:\tmp\secpol.cfg"
     secedit /export /cfg $tmpfile
@@ -140,6 +148,7 @@ ConfigureSmbRights
 InstallAwsTools
 InstallGIT
 InstallBuildTools
+Install7Zip
 InstallGrafana
 InitializeAgentConfig
 InstallExporter
