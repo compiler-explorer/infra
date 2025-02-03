@@ -13,7 +13,7 @@ from typing import Optional, Callable, Dict, List, Any, Union
 from lib.nightly_versions import NightlyVersions
 
 from lib.library_platform import LibraryPlatform
-from lib.installation_context import InstallationContext
+from lib.installation_context import InstallationContext, is_windows
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 from lib.rust_library_builder import RustLibraryBuilder
@@ -62,6 +62,8 @@ class Installable:
         self.check_stderr_on_stdout = self.config.get("check_stderr_on_stdout", False)
         self.install_path = ""
         self.after_stage_script = self.config_get("after_stage_script", [])
+        if is_windows():
+            self.after_stage_script = self.config_get("after_stage_script_pwsh", self.after_stage_script)
         self._logger = logging.getLogger(self.name)
         self.install_path_symlink = self.config_get("symlink", False)
 

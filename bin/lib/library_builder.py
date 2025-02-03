@@ -873,15 +873,24 @@ class LibraryBuilder:
                 filepath = os.path.join(buildfolder, f"lib{lib}.so")
 
             bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
-            if (stdlib == "" and "libstdc++.so" in bininfo.ldd_details) or (
-                stdlib != "" and f"{stdlib}.so" in bininfo.ldd_details
-            ):
-                if arch == "":
+            if is_msvc:
+                archinfo = bininfo.arch_info_from_binary()
+                if arch == "x86" and archinfo["obj_arch"] == "i386":
                     filesfound += 1
-                elif arch == "x86" and "ELF32" in bininfo.readelf_header_details:
+                elif arch == "x86_64" and archinfo["obj_arch"] == "x86_64":
                     filesfound += 1
-                elif arch == "x86_64" and "ELF64" in bininfo.readelf_header_details:
+                elif arch == "":
                     filesfound += 1
+            else:
+                if (stdlib == "" and "libstdc++.so" in bininfo.ldd_details) or (
+                    stdlib != "" and f"{stdlib}.so" in bininfo.ldd_details
+                ):
+                    if arch == "":
+                        filesfound += 1
+                    elif arch == "x86" and "ELF32" in bininfo.readelf_header_details:
+                        filesfound += 1
+                    elif arch == "x86_64" and "ELF64" in bininfo.readelf_header_details:
+                        filesfound += 1
 
         return filesfound
 
@@ -1177,6 +1186,9 @@ class LibraryBuilder:
             if self.buildconfig.package_install:
                 filesfound = self.countValidLibraryBinaries(
                     Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc"
+                )
+                filesfound = filesfound + self.countValidLibraryBinaries(
+                    Path(install_folder) / "bin", arch, stdlib, compiler_type == "win32-vc"
                 )
             else:
                 filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib, compiler_type == "win32-vc")
