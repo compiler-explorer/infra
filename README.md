@@ -21,3 +21,15 @@ More info can be found [here](https://github.com/compiler-explorer/infra/blob/ma
 # Built compilers
 
 Status page to our daily built compilers https://compiler-explorer.github.io/compiler-workflows/build-status
+
+
+# Cleaning up old AMIs
+
+Something like:
+
+```bash
+$ npx aws-amicleaner --region 'us-east-1' \
+    --exclude-in-use --verbose \
+    --exclude-newest=2 --exclude-days 7 \
+    --include-name 'compiler-explorer*'
+```
