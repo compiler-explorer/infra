@@ -1,4 +1,4 @@
-qlocals {
+locals {
   image_id                 = "ami-087bff241f96d60c4"
   staging_image_id         = "ami-087bff241f96d60c4"
   beta_image_id            = "ami-087bff241f96d60c4"
@@ -11,7 +11,6 @@ qlocals {
   staging_user_data        = base64encode("staging")
   beta_user_data           = base64encode("beta")
   gpu_user_data            = base64encode("gpu")
-  gpu_staging_user_data    = base64encode("gpustaging")
   aarch64prod_user_data    = base64encode("aarch64prod")
   aarch64staging_user_data = base64encode("aarch64staging")
   winprod_user_data        = base64encode("winprod")
@@ -94,39 +93,6 @@ resource "aws_launch_template" "CompilerExplorer-prod-gpu" {
   }
   image_id               = local.gpu_image_id
   user_data              = local.gpu_user_data
-  key_name               = "mattgodbolt"
-  vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
-  instance_type          = "g4dn.xlarge"
-
-  tag_specifications {
-    resource_type = "volume"
-
-    tags = {
-      Site        = "CompilerExplorer"
-      Environment = "GPU"
-    }
-  }
-
-  tag_specifications {
-    resource_type = "instance"
-
-    tags = {
-      Site        = "CompilerExplorer"
-      Environment = "GPU"
-      Name        = "GPU"
-    }
-  }
-}
-
-resource "aws_launch_template" "CompilerExplorer-staging-gpu" {
-  name          = "ce-staging-gpu"
-  description   = "Staging GPU launch template"
-  ebs_optimized = true
-  iam_instance_profile {
-    arn = aws_iam_instance_profile.CompilerExplorerRole.arn
-  }
-  image_id               = local.gpu_image_id
-  user_data              = local.gpu_staging_user_data
   key_name               = "mattgodbolt"
   vpc_security_group_ids = [aws_security_group.CompilerExplorer.id]
   instance_type          = "g4dn.xlarge"
