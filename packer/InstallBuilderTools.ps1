@@ -147,8 +147,8 @@ function InitializeAgentConfig {
 ConfigureSmbRights
 InstallAwsTools
 InstallGIT
-InstallBuildTools
 Install7Zip
+InstallBuildTools
 InstallGrafana
 InitializeAgentConfig
 InstallExporter
