@@ -604,7 +604,12 @@ resource "aws_wafv2_ip_set" "banned-ipv4" {
   description        = "Banned ipv4"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
-  addresses          = []
+  addresses          = [
+    // Simple analytics was spamming us from this IP. I should probably block on UA:
+    // Mozilla/5.0%20(compatible;%20SimpleAnalyticsBot/1.0;%20+https://docs.simpleanalytics.com/bots)
+    // but I haven't gotten that set up here.
+    "185.180.221.244/32"
+  ]
 }
 
 resource "aws_wafv2_ip_set" "banned-ipv6" {
