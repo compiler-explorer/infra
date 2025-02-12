@@ -59,9 +59,11 @@ class S3TarballInstallable(Installable):
         else:
             raise RuntimeError(f"Unknown compression {compression}")
         self.tar_cmd = ["tar", f"{decompress_flag}xf", "-"]
-        extract_xattrs = self.config_get("extract_xattrs", False)
-        if extract_xattrs:
+        if self.config_get("extract_xattrs", False):
             self.tar_cmd += ["--xattrs"]
+        strip_components = self.config_get("strip_components", 0)
+        if strip_components:
+            self.tar_cmd += ["--strip-components", str(strip_components)]
         self.strip = self.config_get("strip", False)
 
     def fetch_and_pipe_to(self, staging: StagingDir, s3_path: str, command: list[str]) -> None:

@@ -211,6 +211,7 @@ tools:
     if: non-free
     type: non-free-s3tarballs
     compression: gz
+    strip_components: 1
     dir: goldengate-{{name}}
     check_exe: bin/iix --version
     targets:

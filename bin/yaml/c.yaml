@@ -76,6 +76,7 @@ compilers:
       compression: gz
       dir: orca-c-{{name}}
       check_file: Languages/cc
+      strip_components: 1
       extract_xattrs: True
       depends:
         - tools/goldengate 2.0.9
