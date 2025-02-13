@@ -21,5 +21,6 @@ compilers:
     strip_components: 1
     create_untar_dir: true
     targets:
+      - 3.11-v7.3.18
       - 3.10-v7.3.14
       - 3.9-v7.3.14
