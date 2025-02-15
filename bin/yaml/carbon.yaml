@@ -1,7 +1,24 @@
 compilers:
   carbon:
+    carbon-explorer: # deprecated old carbon-explorer
+      if: nightly
+      type: nightly
+      check_exe: bin/carbon-explorer --version
+      targets:
+        - trunk
     if: nightly
-    type: nightly
-    check_exe: bin/carbon-explorer --version
+    type: restQueryTarballs
+    # deliberately different from "trunk" as that refers to the carbon explorer
+    # at some point in the future we should remove the explorer and rename this
+    # (and symlink or whatever)
+    dir: carbon-{{name}}
+    compression: gz
+    install_always: true
+    check_exe: bin/carbon --version
+    strip_components: 1
+    create_untar_dir: true
+    url: https://api.github.com/repos/carbon-language/carbon-lang/releases
+    query: |
+      [item for item in document if item["prerelease"]][0]['assets'][0]['browser_download_url']
     targets:
       - trunk

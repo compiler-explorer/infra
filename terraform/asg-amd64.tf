@@ -60,6 +60,24 @@ resource "aws_autoscaling_group" "prod-mixed" {
       override {
         instance_type = "m6in.large"
       }
+      override {
+        instance_type = "m7i-flex.large"
+      }
+      override {
+        instance_type = "m7i.large"
+      }
+      override {
+        instance_type = "m5dn.large"
+      }
+      override {
+        instance_type = "r6a.large"
+      }
+      override {
+        instance_type = "i3.large"
+      }
+      override {
+        instance_type = "i4i.large"
+      }
     }
   }
 
