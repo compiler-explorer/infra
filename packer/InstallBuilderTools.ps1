@@ -126,7 +126,7 @@ function InitializeAgentConfig {
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/grafana/agent-win.yaml" -OutFile "/tmp/agent-win.yaml"
 
     Write-Host "Setting up Grafana Agent"
-    $config = Get-Content -Path "/tmp/grafana/agent-win.yaml"
+    $config = Get-Content -Path "/tmp/agent-win.yaml"
     $config = $config.Replace("@HOSTNAME@", "win-builder")
     $config = $config.Replace("@ENV@", "ce-ci")
     $prom_pass = ""
