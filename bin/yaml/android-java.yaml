@@ -30,6 +30,9 @@ compilers:
       url: https://storage.googleapis.com/r8-releases/raw/latest-dev/r8lib.jar
       targets:
         - latest
+      after_stage_script:
+        - cd r8-{{name}}
+        - unzip r8-{{name}}.jar r8-version.properties
   dex2oat:
     dir: dex2oat-{{name}}
     check_file: "x86_64/bin/dex2oat64"
