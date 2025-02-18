@@ -1,0 +1,13 @@
+compilers:
+  numba:
+    depends:
+      - compilers/python 3.13.0
+    type: pip
+    dir: numba/v{{name}}
+    python: "%DEP0%/bin/python3"
+    package:
+      - numba=={{name}}
+      - scipy>=0.16 # numba requires scipy 0.16+ for `numpy.linalg` functions
+    check_exe: bin/python -c "import numba; print(numba.__version__)"
+    targets:
+      - 0.61.0
