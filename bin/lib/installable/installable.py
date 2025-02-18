@@ -320,6 +320,7 @@ class SingleFileInstallable(Installable):
         with out_file_path.open("wb") as f:
             self.install_context.fetch_to(self.url, f)
         out_file_path.chmod(0o755)
+        self.install_context.run_script(staging, staging.path, self.after_stage_script)
 
     def verify(self) -> bool:
         if not super().verify():
