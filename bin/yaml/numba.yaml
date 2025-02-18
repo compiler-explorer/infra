@@ -8,6 +8,6 @@ compilers:
     package:
       - numba=={{name}}
       - scipy>=0.16 # numba requires scipy 0.16+ for `numpy.linalg` functions
-    check_exe: bin/python -c "import numba; print(numba.__version__)"
+    check_exe: bin/python3 -m numba -h
     targets:
       - 0.61.0
