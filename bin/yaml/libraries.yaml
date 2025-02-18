@@ -659,6 +659,40 @@ libraries:
       - 6.1.2
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
+    hpx:
+      after_stage_script:
+      - mkdir build
+      - cd build
+      - CC=/opt/compiler-explorer/gcc-13.3.0/bin/gcc CXX=/opt/compiler-explorer/gcc-13.3.0/bin/g++
+        /opt/compiler-explorer/cmake/bin/cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        -DCMAKE_INSTALL_PREFIX="../hpx_install"
+        -DHPX_WITH_TESTS=OFF
+        -DHPX_WITH_EXAMPLES=OFF
+        -DHPX_WITH_NETWORKING=OFF
+        -DHPX_WITH_CXX_STANDARD=20
+        -DHPX_WITH_FETCH_ASIO=ON
+        -DHPX_WITH_FETCH_HWLOC=ON
+        -DHPX_WITH_MALLOC=system
+        -DBOOST_ROOT=/opt/compiler-explorer/libs/boost_1_84_0/
+      - /opt/compiler-explorer/cmake/bin/cmake --build .
+      - /opt/compiler-explorer/cmake/bin/cmake --install .
+      - cd ..
+      - mkdir include lib
+      - cp -Rf hpx_install/include/* ./include/
+      - cp -Rf hpx_install/lib/* ./lib/
+      - cp -Rf hpx_install/hwloc_installed/include/* ./include/
+      - cp -Rf hpx_install/hwloc_installed/lib/* ./lib/
+      - rm -rf build
+      build_type: manual
+      check_file: CMakeLists.txt
+      depends:
+        - libraries/c++/boost 1.84.0
+      lib_type: shared
+      method: clone_branch
+      repo: srinivasyadav18/hpx
+      targets:
+      - hpx_ce
+      type: github
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
