@@ -1,0 +1,11 @@
+compilers:
+  sway:
+    type: tarballs
+    compression: gz
+    url: https://github.com/FuelLabs/sway/releases/download/v{{name}}/forc-binaries-linux_amd64.tar.gz
+    check_exe: bin/forc --version
+    dir: sway-{{name}}
+    strip_components: 1
+    create_untar_dir: true
+    targets:
+      - 0.66.7
