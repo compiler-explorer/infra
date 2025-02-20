@@ -62,10 +62,6 @@ packer-win: config.json  ## Builds the base image for the CE windows
 packer-builder: config.json  ## Builds the base image for the CE builder
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/builder.pkr.hcl
 
-.PHONY: packer-win-builder
-packer-win-builder: config.json  ## Builds the base image for the CE Windows builder
-	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/win-builder.pkr.hcl
-
 .PHONY: clean
 clean:  ## Cleans up everything
 	rm -rf $(POETRY_HOME) $(POETRY_VENV)
