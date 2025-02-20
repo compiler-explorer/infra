@@ -76,6 +76,9 @@ $(POETRY): $(SYS_PYTHON) poetry.toml
 	curl -sSL https://install.python-poetry.org | $(SYS_PYTHON) -
 	@touch $@
 
+poetry.lock:
+	$(POETRY) lock
+
 $(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
 	$(POETRY) sync --no-root
 	@touch $@
