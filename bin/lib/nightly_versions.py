@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, Set
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.library_platforms import LibraryPlatform
+from lib.library_platform import LibraryPlatform
 
 
 class NightlyVersions:
