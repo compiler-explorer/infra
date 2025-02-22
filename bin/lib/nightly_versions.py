@@ -2,6 +2,7 @@ from collections import defaultdict
 from typing import Any, Dict, Set
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.library_platforms import LibraryPlatform
 
 
 class NightlyVersions:
@@ -41,34 +42,35 @@ class NightlyVersions:
         self.logger = logger
 
     def load_ce_properties(self):
+        platform = LibraryPlatform.Linux
         if not self.props_loaded:
-            [self.ada, _] = get_properties_compilers_and_libraries("ada", self.logger, False)
-            [self.assembly, _] = get_properties_compilers_and_libraries("assembly", self.logger, False)
-            [self.c, _] = get_properties_compilers_and_libraries("c", self.logger, False)
-            [self.circle, _] = get_properties_compilers_and_libraries("circle", self.logger, False)
-            [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger, False)
-            [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger, False)
-            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger, False)
-            [self.cpp, _] = get_properties_compilers_and_libraries("c++", self.logger, False)
-            [self.cppx, _] = get_properties_compilers_and_libraries("cppx", self.logger, False)
-            [self.cppx_blue, _] = get_properties_compilers_and_libraries("cppx_blue", self.logger, False)
-            [self.cppx_gold, _] = get_properties_compilers_and_libraries("cppx_gold", self.logger, False)
-            [self.d, _] = get_properties_compilers_and_libraries("d", self.logger, False)
-            [self.dart, _] = get_properties_compilers_and_libraries("dart", self.logger, False)
-            [self.fortran, _] = get_properties_compilers_and_libraries("fortran", self.logger, False)
-            [self.go, _] = get_properties_compilers_and_libraries("go", self.logger, False)
-            [self.hlsl, _] = get_properties_compilers_and_libraries("hlsl", self.logger, False)
-            [self.ispc, _] = get_properties_compilers_and_libraries("ispc", self.logger, False)
-            [self.javascript, _] = get_properties_compilers_and_libraries("javascript", self.logger, False)
-            [self.mlir, _] = get_properties_compilers_and_libraries("mlir", self.logger, False)
-            [self.nim, _] = get_properties_compilers_and_libraries("nim", self.logger, False)
-            [self.objc, _] = get_properties_compilers_and_libraries("objc", self.logger, False)
-            [self.objcpp, _] = get_properties_compilers_and_libraries("objc++", self.logger, False)
-            [self.pony, _] = get_properties_compilers_and_libraries("pony", self.logger, False)
-            [self.racket, _] = get_properties_compilers_and_libraries("racket", self.logger, False)
-            [self.rust, _] = get_properties_compilers_and_libraries("rust", self.logger, False)
-            [self.swift, _] = get_properties_compilers_and_libraries("swift", self.logger, False)
-            [self.zig, _] = get_properties_compilers_and_libraries("zig", self.logger, False)
+            [self.ada, _] = get_properties_compilers_and_libraries("ada", self.logger, platform, False)
+            [self.assembly, _] = get_properties_compilers_and_libraries("assembly", self.logger, platform, False)
+            [self.c, _] = get_properties_compilers_and_libraries("c", self.logger, platform, False)
+            [self.circle, _] = get_properties_compilers_and_libraries("circle", self.logger, platform, False)
+            [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger, platform, False)
+            [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger, platform, False)
+            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger, platform, False)
+            [self.cpp, _] = get_properties_compilers_and_libraries("c++", self.logger, platform, False)
+            [self.cppx, _] = get_properties_compilers_and_libraries("cppx", self.logger, platform, False)
+            [self.cppx_blue, _] = get_properties_compilers_and_libraries("cppx_blue", self.logger, platform, False)
+            [self.cppx_gold, _] = get_properties_compilers_and_libraries("cppx_gold", self.logger, platform, False)
+            [self.d, _] = get_properties_compilers_and_libraries("d", self.logger, platform, False)
+            [self.dart, _] = get_properties_compilers_and_libraries("dart", self.logger, platform, False)
+            [self.fortran, _] = get_properties_compilers_and_libraries("fortran", self.logger, platform, False)
+            [self.go, _] = get_properties_compilers_and_libraries("go", self.logger, platform, False)
+            [self.hlsl, _] = get_properties_compilers_and_libraries("hlsl", self.logger, platform, False)
+            [self.ispc, _] = get_properties_compilers_and_libraries("ispc", self.logger, platform, False)
+            [self.javascript, _] = get_properties_compilers_and_libraries("javascript", self.logger, platform, False)
+            [self.mlir, _] = get_properties_compilers_and_libraries("mlir", self.logger, platform, False)
+            [self.nim, _] = get_properties_compilers_and_libraries("nim", self.logger, platform, False)
+            [self.objc, _] = get_properties_compilers_and_libraries("objc", self.logger, platform, False)
+            [self.objcpp, _] = get_properties_compilers_and_libraries("objc++", self.logger, platform, False)
+            [self.pony, _] = get_properties_compilers_and_libraries("pony", self.logger, platform, False)
+            [self.racket, _] = get_properties_compilers_and_libraries("racket", self.logger, platform, False)
+            [self.rust, _] = get_properties_compilers_and_libraries("rust", self.logger, platform, False)
+            [self.swift, _] = get_properties_compilers_and_libraries("swift", self.logger, platform, False)
+            [self.zig, _] = get_properties_compilers_and_libraries("zig", self.logger, platform, False)
 
             self.props_loaded = True
 
