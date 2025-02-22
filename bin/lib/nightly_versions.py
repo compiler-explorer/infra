@@ -50,7 +50,9 @@ class NightlyVersions:
             [self.circle, _] = get_properties_compilers_and_libraries("circle", self.logger, platform, False)
             [self.circt, _] = get_properties_compilers_and_libraries("circt", self.logger, platform, False)
             [self.clean, _] = get_properties_compilers_and_libraries("clean", self.logger, platform, False)
-            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries("cpp_for_opencl", self.logger, platform, False)
+            [self.cpp_for_opencl, _] = get_properties_compilers_and_libraries(
+                "cpp_for_opencl", self.logger, platform, False
+            )
             [self.cpp, _] = get_properties_compilers_and_libraries("c++", self.logger, platform, False)
             [self.cppx, _] = get_properties_compilers_and_libraries("cppx", self.logger, platform, False)
             [self.cppx_blue, _] = get_properties_compilers_and_libraries("cppx_blue", self.logger, platform, False)
