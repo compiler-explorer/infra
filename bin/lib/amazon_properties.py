@@ -21,9 +21,7 @@ def get_specific_library_version_details(libraries, libid, library_version):
 COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
-def get_properties_compilers_and_libraries(
-    language, logger, platform: LibraryPlatform, filter_binary_support: bool = True
-):
+def get_properties_compilers_and_libraries(language, logger, platform: LibraryPlatform, filter_binary_support: bool):
     _compilers: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
     _libraries: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
 

@@ -315,7 +315,7 @@ def amazon_check():
 
     for language in languages:
         _LOGGER.info("Checking %s libraries", language)
-        [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER, LibraryPlatform.Linux)
+        [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER, LibraryPlatform.Linux, True)
 
         for libraryid in libraries:
             _LOGGER.debug("Checking %s", libraryid)

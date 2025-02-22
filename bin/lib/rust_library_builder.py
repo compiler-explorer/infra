@@ -89,7 +89,7 @@ class RustLibraryBuilder:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
         else:
             [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(
-                self.language, self.logger, LibraryPlatform.Linux
+                self.language, self.logger, LibraryPlatform.Linux, True
             )
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 

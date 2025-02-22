@@ -121,7 +121,7 @@ class LibraryBuilder:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
         else:
             [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(
-                self.language, self.logger, self.platform
+                self.language, self.logger, self.platform, True
             )
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 
