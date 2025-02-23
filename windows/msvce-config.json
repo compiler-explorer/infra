@@ -239,6 +239,11 @@
         "description": "Parsing Expression Grammar Template Library",
         "pretty_name": "PEGTL"
       },
+      "proxy": {
+        "url": "https://github.com/microsoft/proxy",
+        "description": "C++20 Polymorphism Library",
+        "pretty_name": "Proxy"
+      },
       "pugixml": {
         "url": "https://github.com/zeux/pugixml",
         "description": "pugixml is a C++ XML processing library",
