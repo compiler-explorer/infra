@@ -1644,6 +1644,14 @@ libraries:
         targets:
         - trunk
         type: github
+      proxy:
+        build_type: none
+        check_file: proxy.h
+        method: nightlyclone
+        repo: microsoft/proxy
+        targets:
+        - trunk
+        type: github
       pybind11:
         build_type: none
         check_file: README.rst
