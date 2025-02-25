@@ -70,8 +70,7 @@ libraries:
       lib_type: static
       make_targets:
       - all
-      method: nightlyclone
-      path_name: libs/abseil
+      method: clone_branch
       repo: abseil/abseil-cpp
       staticliblink:
       - absl_bad_any_cast_impl
