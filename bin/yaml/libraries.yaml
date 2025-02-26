@@ -3314,6 +3314,7 @@ libraries:
       type: cratesio
   sway:
     std:
+      subdir: sway/std
       repo: fuellabs/sway
       check_file: README.md
       method: clone_branch
