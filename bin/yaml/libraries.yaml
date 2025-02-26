@@ -3312,6 +3312,15 @@ libraries:
       targets:
       - 0.7.32
       type: cratesio
+  sway:
+    std:
+      repo: fuellabs/sway
+      check_file: README.md
+      build_type: none
+      target_prefix: v
+      targets:
+        - 0.66.7
+      type: github
   zig:
     nightly:
       if: nightly
