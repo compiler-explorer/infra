@@ -32,6 +32,7 @@ resource "aws_autoscaling_notification" "notify" {
     aws_autoscaling_group.gpu.name,
     aws_autoscaling_group.staging.name,
     aws_autoscaling_group.beta.name,
+    aws_autoscaling_group.winprod-mixed.name,
   ]
   notifications = [
     "autoscaling:EC2_INSTANCE_TERMINATE"
