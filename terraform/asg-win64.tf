@@ -102,7 +102,7 @@ resource "aws_autoscaling_policy" "winprod-mixed" {
   autoscaling_group_name    = aws_autoscaling_group.winprod-mixed.name
   name                      = "cpu-tracker"
   policy_type               = "TargetTrackingScaling"
-  estimated_instance_warmup = local.grace_period + 30
+  estimated_instance_warmup = local.grace_period + 60
   target_tracking_configuration {
     predefined_metric_specification {
       predefined_metric_type = "ASGAverageCPUUtilization"
