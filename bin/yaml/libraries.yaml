@@ -72,6 +72,7 @@ libraries:
       - all
       method: clone_branch
       repo: abseil/abseil-cpp
+      package_install: true
       targets:
       - name: '20250127.0'
         staticliblink:
