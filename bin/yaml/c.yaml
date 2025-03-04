@@ -12,6 +12,12 @@ compilers:
       check_exe: lc3-compile --version
       targets:
         - trunk
+    c2rust:
+      if: nightly
+      type: nightly
+      check_exe: bin/c2rust --version
+      targets:
+        - master
     ppci:
       type: tarballs
       compression: gz
