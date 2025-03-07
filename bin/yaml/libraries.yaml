@@ -767,6 +767,8 @@ libraries:
       - 5.7.0
       - 6.0.2
       - 6.1.2
+      - 6.2.4
+      - 6.3.3
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     jsoncons:
