@@ -57,6 +57,9 @@ compiler:
     win32-mingw-clang:
         version: ANY
         libcxx: ANY
+    lfortran:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 
