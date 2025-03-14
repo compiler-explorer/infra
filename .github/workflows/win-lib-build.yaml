@@ -18,6 +18,6 @@ jobs:
 
       steps:
       - name: Download build script
-        run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/library-build-windows/init/start-builder.ps1" -OutFile "C:\tmp\start-builder.ps1"
+        run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/init/start-builder.ps1" -OutFile "C:\tmp\start-builder.ps1"
       - name: Build libraries
         run: Set-Location "C:\tmp"; pwsh .\start-builder.ps1 -ConanPassword "${{ secrets.CONAN_PASSWORD }}" -Language c++ -Library "${{ github.event.inputs.library }}" -Compiler "${{ github.event.inputs.compiler }}"
