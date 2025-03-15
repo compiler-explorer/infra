@@ -42,9 +42,9 @@ resource "aws_autoscaling_policy" "aarch64prod-mixed" {
     create_before_destroy = true
   }
 
-  autoscaling_group_name = aws_autoscaling_group.aarch64prod-mixed.name
-  name                   = "aarch64prod-mq-tracker"
-  policy_type            = "TargetTrackingScaling"
+  autoscaling_group_name    = aws_autoscaling_group.aarch64prod-mixed.name
+  name                      = "aarch64prod-mq-tracker"
+  policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
   target_tracking_configuration {
     target_value = 3
@@ -135,9 +135,9 @@ resource "aws_autoscaling_policy" "aarch64staging-mixed" {
     create_before_destroy = true
   }
 
-  autoscaling_group_name = aws_autoscaling_group.aarch64staging-mixed.name
-  name                   = "aarch64staging-mq-tracker"
-  policy_type            = "TargetTrackingScaling"
+  autoscaling_group_name    = aws_autoscaling_group.aarch64staging-mixed.name
+  name                      = "aarch64staging-mq-tracker"
+  policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
   target_tracking_configuration {
     target_value = 3

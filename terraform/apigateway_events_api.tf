@@ -84,11 +84,11 @@ resource "aws_apigatewayv2_stage" "events_api_stage_staging" {
   auto_deploy = true
 
   default_route_settings {
-    logging_level = "INFO"
+    logging_level            = "INFO"
     detailed_metrics_enabled = true
-    data_trace_enabled = true
-    throttling_rate_limit = 1000
-    throttling_burst_limit = 1000
+    data_trace_enabled       = true
+    throttling_rate_limit    = 1000
+    throttling_burst_limit   = 1000
   }
 
   access_log_settings {

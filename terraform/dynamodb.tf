@@ -196,11 +196,11 @@ resource "aws_dynamodb_table" "staging-remote-exec-archs" {
 }
 
 resource "aws_dynamodb_table" "library-build-history" {
-  name           = "library-build-history"
-  billing_mode   = "PAY_PER_REQUEST"
+  name         = "library-build-history"
+  billing_mode = "PAY_PER_REQUEST"
 
-  hash_key       = "library"
-  range_key      = "compiler"
+  hash_key  = "library"
+  range_key = "compiler"
 
   attribute {
     name = "library"

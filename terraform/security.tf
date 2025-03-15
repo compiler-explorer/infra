@@ -305,7 +305,7 @@ resource "aws_iam_policy" "CePutCompileStatsLog" {
 
 data "aws_iam_policy_document" "CeSqsPushPop" {
   statement {
-    sid     = "CeSqsPushPop"
+    sid = "CeSqsPushPop"
     actions = [
       "sqs:SendMessage",
       "sqs:ReceiveMessage",
