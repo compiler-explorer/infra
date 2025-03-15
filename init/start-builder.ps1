@@ -30,7 +30,7 @@ do {
 
 [Environment]::SetEnvironmentVariable("PYTHON_KEYRING_BACKEND", 'keyring.backends.null.Keyring', [System.EnvironmentVariableTarget]::Process);
 
-$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;Z:\compilers\mingw-w64-13.1.0-16.0.2-11.0.0-ucrt-r1\bin;C:\Program Files\Amazon\AWSCLIV2"
+$env:PATH = "$env:PATH;C:\BuildTools\Python;C:\BuildTools\Python\Scripts;C:\BuildTools\Ninja;Z:\compilers\windows-kits-10\bin;C:\BuildTools\CMake\bin;Z:\compilers\mingw-w64-13.1.0-16.0.2-11.0.0-ucrt-r1\bin;C:\Program Files\7-Zip;C:\Program Files\Amazon\AWSCLIV2"
 
 function FetchInfra {
     Set-Location -Path "/tmp"
