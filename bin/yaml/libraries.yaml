@@ -177,6 +177,7 @@ libraries:
       build_type: cmake
       extra_cmake_arg:
       - -DBENCHMARK_ENABLE_TESTING=off
+      make_utility: ninja
       repo: google/benchmark
       subdir: google-benchmark
       target_prefix: v
