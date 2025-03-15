@@ -695,38 +695,28 @@ resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
   description              = "Allow SMB access locally"
 }
 
-resource "aws_iam_role" "WinBuilder" {
-  name               = "WinBuilder"
-  description        = "Compiler Explorer Windows builder role"
-  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
-}
-
+# note: roles mentioned here are applied by the ce-ci terraform, so comment this out if that is not applied yet
 resource "aws_iam_instance_profile" "WinBuilder" {
   name = "WinBuilder"
-  role = aws_iam_role.WinBuilder.name
-}
-
-resource "aws_iam_role_policy_attachment" "WinBuilder_attach_CloudWatchAgentServerPolicy" {
-  role       = aws_iam_role.WinBuilder.name
-  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
+  role = "ce-ci-windows-x64-win-builder-runner-role"
 }
 
 resource "aws_iam_role_policy_attachment" "WinBuilder_attach_UpdateLibraryBuildHistory" {
-  role       = aws_iam_role.WinBuilder.name
+  role       = "ce-ci-windows-x64-win-builder-runner-role"
   policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
 }
 
 resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AccessCeParams" {
-  role       = aws_iam_role.WinBuilder.name
+  role       = "ce-ci-windows-x64-win-builder-runner-role"
   policy_arn = aws_iam_policy.AccessCeParams.arn
 }
 
 resource "aws_iam_role_policy_attachment" "WinBuilder_attach_ReadS3Minimal" {
-  role       = aws_iam_role.WinBuilder.name
+  role       = "ce-ci-windows-x64-win-builder-runner-role"
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
 }
 
 resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedInstanceCore" {
-  role       = aws_iam_role.WinBuilder.name
+  role       = "ce-ci-windows-x64-win-builder-runner-role"
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
