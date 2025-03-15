@@ -3,7 +3,7 @@ Set-Location -Path /tmp
 
 function InstallAwsTools {
     Write-Host "Downloading AWS cli"
-    Invoke-WebRequest -Uri "https://awscli.amazonaws.com/AWSCLIV2.msi" -OutFile "C:\tmp\awscli.msi"
+    Invoke-WebRequest -Uri "https://awscli.amazonaws.com/AWSCLIV2.msi" -OutFile "C:\tmp\awscli.msi" -MaximumRetryCount 3
     Write-Host "Installing AWS cli"
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i awscli.msi" -wait
     Write-Host "Deleting tmp files"
@@ -12,7 +12,7 @@ function InstallAwsTools {
 
 function InstallGIT {
     Write-Host "Downloading GIT"
-    Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.28.0.windows.1/Git-2.28.0-64-bit.exe" -OutFile "C:\tmp\Git-2.28.0-64-bit.exe"
+    Invoke-WebRequest -Uri "https://github.com/git-for-windows/git/releases/download/v2.28.0.windows.1/Git-2.28.0-64-bit.exe" -OutFile "C:\tmp\Git-2.28.0-64-bit.exe" -MaximumRetryCount 3
     Write-Host "Installing GIT"
     Start-Process "Git-2.28.0-64-bit.exe" -argumentlist "/silent /verysilent" -wait
     Write-Host "Deleting tmp files"
@@ -21,7 +21,7 @@ function InstallGIT {
 
 function InstallGrafana {
     Write-Host "Downloading Grafana agent"
-    Invoke-WebRequest -Uri "https://github.com/grafana/agent/releases/download/v0.30.2/grafana-agent-installer.exe" -OutFile "C:\tmp\grafana-agent-installer.exe"
+    Invoke-WebRequest -Uri "https://github.com/grafana/agent/releases/download/v0.30.2/grafana-agent-installer.exe" -OutFile "C:\tmp\grafana-agent-installer.exe" -MaximumRetryCount 3
     Write-Host "Installing Grafana agent"
     Start-Process "grafana-agent-installer.exe" -argumentlist "/S" -wait
     Remove-Item -Path "C:\tmp\grafana-agent-installer.exe"
@@ -29,7 +29,7 @@ function InstallGrafana {
 
 function InstallExporter {
     Write-Host "Downloading windows-exporter"
-    Invoke-WebRequest -Uri "https://github.com/prometheus-community/windows_exporter/releases/download/v0.20.0/windows_exporter-0.20.0-amd64.msi" -OutFile "C:\tmp\windows_exporter-0.20.0-amd64.msi"
+    Invoke-WebRequest -Uri "https://github.com/prometheus-community/windows_exporter/releases/download/v0.20.0/windows_exporter-0.20.0-amd64.msi" -OutFile "C:\tmp\windows_exporter-0.20.0-amd64.msi" -MaximumRetryCount 3
     Write-Host "Installing windows-exporter"
     Start-Process "msiexec" -argumentlist "/quiet /i windows_exporter-0.20.0-amd64.msi ENABLED_COLLECTORS=cpu,cs,logical_disk,net,os,system" -wait
     Write-Host "Deleting tmp files"
@@ -59,7 +59,7 @@ function InstallBuildTools {
     AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
 
     Write-Host "Installing Ninja"
-    Invoke-WebRequest -Uri "https://github.com/compiler-explorer/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "/tmp/ninja-win.zip"
+    Invoke-WebRequest -Uri "https://github.com/compiler-explorer/ninja/releases/download/v1.12.1/ninja-win.zip" -OutFile "/tmp/ninja-win.zip" -MaximumRetryCount 3
     Expand-Archive -Path "/tmp/ninja-win.zip" -DestinationPath "/BuildTools/Ninja"
     Remove-Item -Path "/tmp/ninja-win.zip"
 
@@ -70,7 +70,7 @@ function InstallPython {
     # note: conan 1.59 won't install with Python 3.12 (because of a dependency), so we use the last 3.10 where there's a .exe
     Write-Host "Downloading python"
     $url = "https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe"
-    Invoke-WebRequest -Uri $url -OutFile "/tmp/python-win.exe"
+    Invoke-WebRequest -Uri $url -OutFile "/tmp/python-win.exe" -MaximumRetryCount 3
     Write-Host "Installing python"
     Start-Process -FilePath "/tmp/python-win.exe" -ArgumentList ("-quiet", "InstallAllUsers=1", "TargetDir=C:\BuildTools\Python") -NoNewWindow -Wait
 
@@ -88,7 +88,7 @@ function InstallConan {
 
 function Install7Zip {
     Write-Host "Downloading 7zip"
-    Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-x64.exe" -OutFile "/tmp/7z.exe"
+    Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2409-x64.exe" -OutFile "/tmp/7z.exe" -MaximumRetryCount 3
     Write-Host "Installing 7zip"
     Start-Process -FilePath "C:/tmp/7z.exe" -ArgumentList ("/S") -NoNewWindow -Wait
     Remove-Item -Path "/tmp/7z.exe"
@@ -123,7 +123,7 @@ function ConfigureSmbRights {
 
 function InitializeAgentConfig {
     Write-Host "Downloading Grafana config template"
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/grafana/agent-win.yaml" -OutFile "/tmp/agent-win.yaml"
+    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/grafana/agent-win.yaml" -OutFile "/tmp/agent-win.yaml" -MaximumRetryCount 3
 
     Write-Host "Setting up Grafana Agent"
     $config = Get-Content -Path "/tmp/agent-win.yaml"
