@@ -675,21 +675,22 @@ resource "aws_security_group_rule" "WinBuilder_EgressToAll" {
 }
 
 resource "aws_security_group_rule" "WinBuilder_WinRMFromAdminNode" {
-  security_group_id        = aws_security_group.WinBuilder.id
-  type                     = "ingress"
-  from_port                = 5986
-  to_port                  = 5986
-  source_security_group_id = aws_security_group.AdminNode.id
-  protocol                 = "tcp"
-  description              = "Allow WinRM access from the admin node only"
+  security_group_id = aws_security_group.WinBuilder.id
+  type              = "ingress"
+  from_port         = 5986
+  to_port           = 5986
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "tcp"
+  description       = "Allow WinRM access from the admin node only"
 }
 
 resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
-  security_group_id        = aws_security_group.WinBuilder.id
+  security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
   from_port                = 445
   to_port                  = 445
-  source_security_group_id = aws_security_group.AdminNode.id
+  source_security_group_id = aws_security_group.WinBuilder.id
   protocol                 = "tcp"
   description              = "Allow SMB access locally"
 }
