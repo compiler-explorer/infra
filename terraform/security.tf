@@ -650,3 +650,82 @@ resource "aws_iam_role_policy_attachment" "api_gw_logging_policy" {
   role       = aws_iam_role.iam_for_apigw.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
 }
+
+
+// WinBuilder SG (unused in this terraform, but used in ce-ci for the win-builder runner)
+
+resource "aws_security_group" "WinBuilder" {
+  vpc_id      = module.ce_network.vpc.id
+  name        = "WinBuilderNodeSecGroup"
+  description = "Compiler Explorer Windows builder security group"
+  tags = {
+    Name = "WinBuilder"
+  }
+}
+
+resource "aws_security_group_rule" "WinBuilder_EgressToAll" {
+  security_group_id = aws_security_group.WinBuilder.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "-1"
+  description       = "Unfettered outbound access"
+}
+
+resource "aws_security_group_rule" "WinBuilder_WinRMFromAdminNode" {
+  security_group_id        = aws_security_group.WinBuilder.id
+  type                     = "ingress"
+  from_port                = 5986
+  to_port                  = 5986
+  source_security_group_id = aws_security_group.AdminNode.id
+  protocol                 = "tcp"
+  description              = "Allow WinRM access from the admin node only"
+}
+
+resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
+  security_group_id        = aws_security_group.CompilerExplorer.id
+  type                     = "ingress"
+  from_port                = 445
+  to_port                  = 445
+  source_security_group_id = aws_security_group.WinBuilder.id
+  protocol                 = "tcp"
+  description              = "Allow SMB access locally"
+}
+
+resource "aws_iam_role" "WinBuilder" {
+  name               = "WinBuilder"
+  description        = "Compiler Explorer Windows builder role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
+resource "aws_iam_instance_profile" "WinBuilder" {
+  name = "WinBuilder"
+  role = aws_iam_role.WinBuilder.name
+}
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_CloudWatchAgentServerPolicy" {
+  role       = aws_iam_role.WinBuilder.name
+  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_UpdateLibraryBuildHistory" {
+  role       = aws_iam_role.WinBuilder.name
+  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
+}
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AccessCeParams" {
+  role       = aws_iam_role.WinBuilder.name
+  policy_arn = aws_iam_policy.AccessCeParams.arn
+}
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_ReadS3Minimal" {
+  role       = aws_iam_role.WinBuilder.name
+  policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.WinBuilder.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
