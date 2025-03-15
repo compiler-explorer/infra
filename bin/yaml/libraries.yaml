@@ -1133,6 +1133,7 @@ libraries:
         check_file: README.md
         extra_cmake_arg:
         - -DBENCHMARK_ENABLE_TESTING=off
+        make_utility: ninja
         method: nightlyclone
         repo: google/benchmark
         subdir: google-benchmark
