@@ -1340,6 +1340,7 @@ class LibraryBuilder:
         elif buildfor == "onlyx86":
             self.forcebuild = True
             checkcompiler = ""
+            build_supported_arch = ["x86"]
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
             self.forcebuild = True
             checkcompiler = ""
