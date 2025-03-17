@@ -603,9 +603,7 @@ class LibraryBuilder:
                         )
                         if boosttarget == "i386":
                             cxx_flags += " -DBOOST_STACKTRACE_LIBCXX_RUNTIME_MAY_CAUSE_MEMORY_LEAK "
-                            targetparams += (
-                                f' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" "-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" '
-                            )
+                            targetparams += f' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" "-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" '
 
                 generator = ""
                 if self.platform == LibraryPlatform.Linux:
