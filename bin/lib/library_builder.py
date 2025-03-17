@@ -1339,6 +1339,9 @@ class LibraryBuilder:
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
+        elif buildfor == "onlyx86":
+            self.forcebuild = True
+            checkcompiler = ""
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
             self.forcebuild = True
             checkcompiler = ""
@@ -1433,6 +1436,9 @@ class LibraryBuilder:
                         self.compilerprops[compiler]["ldPath"],
                     ):
                         archs = ["x86_64"]
+
+                        if buildfor == "onlyx86":
+                            archs = ["x86"]
                     else:
                         archs = [""]
                 else:
@@ -1449,10 +1455,15 @@ class LibraryBuilder:
                             self.compilerprops[compiler]["ldPath"],
                         ):
                             archs = ["x86_64"]
+
+                            if buildfor == "onlyx86":
+                                archs = ["x86"]
                         else:
                             archs = [""]
 
             if buildfor == "nonx86" and archs[0] != "":
+                continue
+            if buildfor == "onlyx86" and archs[0] == "":
                 continue
 
             stdvers = build_supported_stdver
