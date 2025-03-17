@@ -532,6 +532,9 @@ class LibraryBuilder:
                 else:
                     boostabi = "sysv"
 
+                if shorttarget == "x86_64" and arch == "x86":
+                    boosttarget = "i386"
+
             f.write(self.script_env("LD_LIBRARY_PATH", ldlibpathsstr))
             f.write(self.script_env("LDFLAGS", f"{ldflags} {rpathflags}"))
             if self.platform == LibraryPlatform.Linux:
@@ -560,7 +563,12 @@ class LibraryBuilder:
             if is_msvc:
                 compileroptions = compileroptions.replace("/source-charset:utf-8", "")
 
+            if boosttarget == "i386":
+                compileroptions += " -latomic"
+
             cxx_flags = f"{compileroptions} {archflag} {stdverflag} {stdlibflag} {extraflags}"
+            c_flags = f"{compileroptions} {archflag} {extraflags}"
+            asm_flags = f"{archflag}"
 
             expanded_configure_flags = [
                 self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
@@ -593,6 +601,11 @@ class LibraryBuilder:
                         targetparams += (
                             f' "-DBOOST_CONTEXT_ARCHITECTURE={boosttarget}" "-DBOOST_CONTEXT_ABI={boostabi}" '
                         )
+                        if boosttarget == "i386":
+                            cxx_flags += " -DBOOST_STACKTRACE_LIBCXX_RUNTIME_MAY_CAUSE_MEMORY_LEAK "
+                            targetparams += (
+                                f' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" "-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" '
+                            )
 
                 generator = ""
                 if self.platform == LibraryPlatform.Linux:
@@ -616,7 +629,7 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" "-DCMAKE_C_FLAGS_DEBUG={c_flags}" "-DCMAKE_ASM_FLAGS_DEBUG={asm_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
@@ -669,6 +682,7 @@ class LibraryBuilder:
                 f.write("rm -f *.so*\n")
                 f.write("rm -f *.a\n")
                 f.write(self.script_env("CXXFLAGS", cxx_flags))
+                f.write(self.script_env("CFLAGS", c_flags))
                 if self.buildconfig.build_type == "make":
                     configurepath = os.path.join(sourcefolder, "configure")
                     if os.path.exists(configurepath):

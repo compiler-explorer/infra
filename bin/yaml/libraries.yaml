@@ -274,7 +274,7 @@ libraries:
       postbuild_script_pwsh:
       - echo "skipping zlib check"
       prebuild_script:
-      - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%
+      - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
       - mkdir -p /tmp/zlib
       - tar xzf zlib.tgz -C /tmp/zlib
       prebuild_script_pwsh:
