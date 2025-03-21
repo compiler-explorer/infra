@@ -782,7 +782,6 @@ libraries:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DHPX_WITH_TESTS=OFF
       - -DHPX_WITH_EXAMPLES=OFF
-      - -DHPX_WITH_NETWORKING=OFF
       - -DHPX_WITH_CXX_STANDARD=20
       - -DHPX_WITH_FETCH_ASIO=ON
       - -DHPX_WITH_FETCH_HWLOC=ON
@@ -794,8 +793,11 @@ libraries:
       repo: STEllAR-GROUP/hpx
       sharedliblink:
       - hpx_core
+      staticliblink:
       - hpx_init
       - hpx_wrap
+      make_targets:
+      - all
       target_prefix: v
       targets:
       - name: 1.10.0
