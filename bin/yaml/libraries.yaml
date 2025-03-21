@@ -773,6 +773,32 @@ libraries:
       - 6.1.2
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
+    hpx:
+      build_type: cmake
+      depends:
+      - libraries/c++/boost 1.84.0
+      package_install: true
+      extra_cmake_arg:
+      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - -DHPX_WITH_TESTS=OFF
+      - -DHPX_WITH_EXAMPLES=OFF
+      - -DHPX_WITH_NETWORKING=OFF
+      - -DHPX_WITH_CXX_STANDARD=20
+      - -DHPX_WITH_FETCH_ASIO=ON
+      - -DHPX_WITH_FETCH_HWLOC=ON
+      - -DHPX_WITH_MALLOC=system
+      - -DBOOST_ROOT=/opt/compiler-explorer/libs/boost_1_84_0/
+      - -DHPX_INTERNAL_CACHE_LINE_SIZE_DETECT=64
+      check_file: CMakeLists.txt
+      lib_type: shared
+      repo: srinivasyadav18/hpx
+      sharedliblink:
+      - hpx_core
+      - hpx_init
+      - hpx_wrap
+      targets:
+      - hpx_ce
+      type: github
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
