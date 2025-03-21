@@ -22,3 +22,13 @@ compilers:
         url: https://github.com/c3lang/c3c/releases/download/v0.6.2/c3-ubuntu-20.tar.gz
       - name: 0.6.3
         url: https://github.com/c3lang/c3c/releases/download/v0.6.3/c3-ubuntu-20.tar.gz
+      - name: 0.6.4
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.4/c3-ubuntu-20.tar.gz
+      - name: 0.6.5
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.5/c3-ubuntu-20.tar.gz
+      - name: 0.6.6
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.6/c3-ubuntu-20.tar.gz
+      - name: 0.6.7
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.7/c3-ubuntu-20.tar.gz
+      - name: 0.6.8
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.8/c3-ubuntu-20.tar.gz
