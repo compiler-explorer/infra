@@ -791,13 +791,14 @@ libraries:
       - -DHPX_INTERNAL_CACHE_LINE_SIZE_DETECT=64
       check_file: CMakeLists.txt
       lib_type: shared
-      repo: srinivasyadav18/hpx
+      repo: STEllAR-GROUP/hpx
       sharedliblink:
       - hpx_core
       - hpx_init
       - hpx_wrap
+      target_prefix: v
       targets:
-      - hpx_ce
+      - name: 1.10.0
       type: github
     jsoncons:
       check_file: README.md
