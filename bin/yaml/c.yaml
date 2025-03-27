@@ -15,7 +15,7 @@ compilers:
     c2rust:
       if: nightly
       type: nightly
-      check_exe: bin/c2rust --version
+      check_exe: c2rust --version
       targets:
         - master
     ppci:
