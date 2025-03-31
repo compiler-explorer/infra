@@ -2248,6 +2248,9 @@ libraries:
       - 1.10.0
       - 1.11.0
       - 1.12.0
+      - 1.13.0
+      - 1.14.1
+      - 1.15.2
       type: github
     spy:
       check_file: README.md
