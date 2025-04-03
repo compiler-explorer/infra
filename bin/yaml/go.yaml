@@ -40,7 +40,7 @@ compilers:
       dir: tinygo-{{name}}
       untar_dir: tinygo
       targets:
-        - 0.25.0
+        - "0.37.0"
     nightly:
       if: nightly
       type: nightly
