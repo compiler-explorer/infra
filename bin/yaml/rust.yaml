@@ -1,4 +1,4 @@
-Wcompilers:
+compilers:
   rust:
     type: rust
     dir: rust-{{name}}
