@@ -29,9 +29,10 @@ compilers:
         - "1.18"
         - "1.19"
         - "1.20"
-        - "1.21.0"
-        - "1.22.1"
-        - "1.23.2"
+        - "1.21.13"
+        - "1.22.12"
+        - "1.23.8"
+        - "1.24.2"
     tinygo:
       type: tarballs
       compression: gz
@@ -40,7 +41,7 @@ compilers:
       dir: tinygo-{{name}}
       untar_dir: tinygo
       targets:
-        - 0.25.0
+        - "0.37.0"
     nightly:
       if: nightly
       type: nightly
