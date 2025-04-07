@@ -96,7 +96,7 @@ class LibraryYaml:
                 if libid == lib["lookupname"]:
                     logger.info(lib)
                     return lib["id"]
-            
+
             if "versionprops" in lib:
                 for libverid in lib["versionprops"]:
                     libver = lib["versionprops"][libverid]
@@ -143,15 +143,15 @@ class LibraryYaml:
 
             if linux_lib and "staticliblink" in linux_lib:
                 if linux_lib["staticliblink"]:
-                    linklist = ":".join(linux_lib['staticliblink'])
+                    linklist = ":".join(linux_lib["staticliblink"])
                     libverprops += f"libs.{libid}.staticliblink={linklist}\n"
             if linux_lib and "sharedliblink" in linux_lib:
                 if linux_lib["sharedliblink"]:
-                    linklist = ":".join(linux_lib['sharedliblink'])
+                    linklist = ":".join(linux_lib["sharedliblink"])
                     libverprops += f"libs.{libid}.sharedliblink={linklist}\n"
             if linux_lib and "dependencies" in linux_lib:
                 if linux_lib["dependencies"]:
-                    linklist = ":".join(linux_lib['dependencies'])
+                    linklist = ":".join(linux_lib["dependencies"])
                     libverprops += f"libs.{libid}.dependencies={linklist}\n"
 
             for libver in libraries_for_language[libid]["targets"]:
@@ -164,13 +164,13 @@ class LibraryYaml:
 
                 if linux_lib_version:
                     if linux_lib_version["staticliblink"]:
-                        linklist = ":".join(linux_lib_version['staticliblink'])
+                        linklist = ":".join(linux_lib_version["staticliblink"])
                         libverprops += f"libs.{libid}.versions.{libverid}.staticliblink={linklist}\n"
                     if linux_lib_version["sharedliblink"]:
-                        linklist = ":".join(linux_lib_version['sharedliblink'])
+                        linklist = ":".join(linux_lib_version["sharedliblink"])
                         libverprops += f"libs.{libid}.versions.{libverid}.sharedliblink={linklist}\n"
                     if linux_lib_version["dependencies"]:
-                        linklist = ":".join(linux_lib_version['dependencies'])
+                        linklist = ":".join(linux_lib_version["dependencies"])
                         libverprops += f"libs.{libid}.versions.{libverid}.dependencies={linklist}\n"
                 else:
                     logger.warning(f"Library {libid} version {libverid} not found in Linux properties.")
