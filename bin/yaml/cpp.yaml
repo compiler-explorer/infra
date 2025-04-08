@@ -1531,3 +1531,17 @@ compilers:
         - name: 4.9.4
           tag: v2.6
           name_no_dots: 494
+    z80-clang:
+      if: nightly
+      type: tarballs
+      compression: gz
+      dir: "z80-clang-{{name}}/bin"
+      untar_dir: "z80-clang-{{name}}/bin"
+      create_untar_dir: true
+      check_exe: bin/clang++ --version
+      url: https://github.com/CE-Programming/llvm-project/releases/download/nightly-rebase-v15/z80-clang-{{vername}}-ubuntu-22.04Release.tar.gz
+      targets:
+        - name: 15.0.0
+          vername: v1500
+        - name: 15.0.7
+          vername: v1507
