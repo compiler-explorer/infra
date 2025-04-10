@@ -124,7 +124,7 @@ class LibraryYaml:
                     # hardcoded, we renamed this manually in the yaml file to distinguish catch2 versions that were header-only from the ones that are built
                     lookupname = "catch2"
                 else:
-                    lookupname = self.get_possible_lookupname(logger, linux_libraries, linux_libid)
+                    lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
 
             if lookupname not in reorganised_libs:
                 reorganised_libs[lookupname] = set()
