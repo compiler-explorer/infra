@@ -89,7 +89,7 @@ class LibraryYaml:
             libverid = libver
         return libverid
 
-    def get_possible_lookupname(self, logger, linux_libraries, libid) -> str:
+    def get_possible_lookupname(self, linux_libraries, libid) -> str:
         for libkey in linux_libraries:
             lib = linux_libraries[libkey]
             if "lookupname" in lib:
