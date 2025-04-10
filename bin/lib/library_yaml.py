@@ -105,18 +105,18 @@ class LibraryYaml:
 
         return libid
 
-    def get_link_props(self, linux_lib_version, linux_libid, libverid) -> str:
+    def get_link_props(self, linux_lib_version, prefix) -> str:
         libverprops = ""
         if linux_lib_version:
             if linux_lib_version["staticliblink"]:
                 linklist = ":".join(linux_lib_version["staticliblink"])
-                libverprops += f"libs.{linux_libid}.versions.{libverid}.staticliblink={linklist}\n"
+                libverprops += f"{prefix}.staticliblink={linklist}\n"
             if linux_lib_version["sharedliblink"]:
                 linklist = ":".join(linux_lib_version["sharedliblink"])
-                libverprops += f"libs.{linux_libid}.versions.{libverid}.sharedliblink={linklist}\n"
+                libverprops += f"{prefix}.sharedliblink={linklist}\n"
             if linux_lib_version["dependencies"]:
                 linklist = ":".join(linux_lib_version["dependencies"])
-                libverprops += f"libs.{linux_libid}.versions.{libverid}.dependencies={linklist}\n"
+                libverprops += f"{prefix}.dependencies={linklist}\n"
 
         return libverprops
 
@@ -195,18 +195,8 @@ class LibraryYaml:
             libverprops += f"libs.{linux_libid}.versions="
             libverprops += ":".join(all_libver_ids) + "\n"
 
-            if linux_lib and "staticliblink" in linux_lib:
-                if linux_lib["staticliblink"]:
-                    linklist = ":".join(linux_lib["staticliblink"])
-                    libverprops += f"libs.{linux_libid}.staticliblink={linklist}\n"
-            if linux_lib and "sharedliblink" in linux_lib:
-                if linux_lib["sharedliblink"]:
-                    linklist = ":".join(linux_lib["sharedliblink"])
-                    libverprops += f"libs.{linux_libid}.sharedliblink={linklist}\n"
-            if linux_lib and "dependencies" in linux_lib:
-                if linux_lib["dependencies"]:
-                    linklist = ":".join(linux_lib["dependencies"])
-                    libverprops += f"libs.{linux_libid}.dependencies={linklist}\n"
+            prefix = f"libs.{linux_libid}"
+            libverprops += self.get_link_props(linux_lib, prefix)
 
             for yamllibid in reorganised_libs[linux_libid]:
                 if yamllibid in libraries_for_language:
@@ -226,7 +216,8 @@ class LibraryYaml:
                                     linux_libraries, linux_libid, libvername
                                 )
 
-                            libverprops += self.get_link_props(linux_lib_version, linux_libid, libverid)
+                            prefix = f"libs.{linux_libid}.versions.{libverid}"
+                            libverprops += self.get_link_props(linux_lib_version, prefix)
 
                 if yamllibid in nightly_libraries_for_language:
                     if not isinstance(nightly_libraries_for_language[yamllibid], dict):
@@ -247,7 +238,8 @@ class LibraryYaml:
                                     linux_libraries, linux_libid, libvername
                                 )
 
-                            libverprops += self.get_link_props(linux_lib_version, linux_libid, libverid)
+                            prefix = f"libs.{linux_libid}.versions.{libverid}"
+                            libverprops += self.get_link_props(linux_lib_version, prefix)
 
             properties_txt += libverprops + "\n"
 
