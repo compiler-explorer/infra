@@ -108,13 +108,13 @@ class LibraryYaml:
     def get_link_props(self, linux_lib_version, prefix) -> str:
         libverprops = ""
         if linux_lib_version:
-            if linux_lib_version["staticliblink"]:
+            if "staticliblink" in linux_lib_version and linux_lib_version["staticliblink"]:
                 linklist = ":".join(linux_lib_version["staticliblink"])
                 libverprops += f"{prefix}.staticliblink={linklist}\n"
-            if linux_lib_version["sharedliblink"]:
-                linklist = ":".join(linux_lib_version["sharedliblink"])
-                libverprops += f"{prefix}.sharedliblink={linklist}\n"
-            if linux_lib_version["dependencies"]:
+            if "liblink" in linux_lib_version and linux_lib_version["liblink"]:
+                linklist = ":".join(linux_lib_version["liblink"])
+                libverprops += f"{prefix}.liblink={linklist}\n"
+            if "dependencies" in linux_lib_version and linux_lib_version["dependencies"]:
                 linklist = ":".join(linux_lib_version["dependencies"])
                 libverprops += f"{prefix}.dependencies={linklist}\n"
 
