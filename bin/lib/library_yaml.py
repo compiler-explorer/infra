@@ -120,9 +120,9 @@ class LibraryYaml:
             linux_libid = libid
             lookupname = libid
             if linux_libid not in linux_libraries:
-                if linux_libid == 'catch2v2':
+                if linux_libid == "catch2v2":
                     # hardcoded, we renamed this manually in the yaml file to distinguish catch2 versions that were header-only from the ones that are built
-                    lookupname = 'catch2'
+                    lookupname = "catch2"
                 else:
                     lookupname = self.get_possible_lookupname(logger, linux_libraries, linux_libid)
 
