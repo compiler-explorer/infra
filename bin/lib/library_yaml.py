@@ -174,7 +174,9 @@ class LibraryYaml:
 
             libverprops = f"libs.{linux_libid}.name={libname}\n"
             if "url" in linux_lib:
-                libverprops += f"libs.{linux_libid}.description={linux_lib['url']}\n"
+                libverprops += f"libs.{linux_libid}.url={linux_lib['url']}\n"
+            if "description" in linux_lib:
+                libverprops += f"libs.{linux_libid}.description={linux_lib['description']}\n"
             libverprops += f"libs.{linux_libid}.packagedheaders=true\n"
 
             all_libver_ids: List[str] = []
