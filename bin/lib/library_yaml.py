@@ -140,6 +140,8 @@ class LibraryYaml:
                     lookupname = "catch2"
                 else:
                     lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
+            if lookupname == "nightly":
+                continue
 
             if lookupname not in reorganised_libs:
                 reorganised_libs[lookupname] = set()
@@ -153,6 +155,8 @@ class LibraryYaml:
             lookupname = libid
             if linux_libid not in linux_libraries:
                 lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
+            if lookupname == "nightly":
+                continue
 
             if lookupname not in reorganised_libs:
                 reorganised_libs[lookupname] = set()
