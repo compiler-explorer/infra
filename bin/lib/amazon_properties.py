@@ -79,6 +79,8 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
             val = keyval[1]
             libid = key[1]
 
+            _libraries[libid]["id"] = libid
+
             if key[2] == "description":
                 _libraries[libid]["description"] = val
             elif key[2] == "name":
@@ -89,6 +91,8 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                 _libraries[libid]["liblink"] = val.split(":")
             elif key[2] == "staticliblink":
                 _libraries[libid]["staticliblink"] = val.split(":")
+            elif key[2] == "lookupname":
+                _libraries[libid]["lookupname"] = val
             elif key[2] == "versions":
                 if len(key) > 3:
                     versionid = key[3]
@@ -109,6 +113,8 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                             _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
                         if key[4] == "liblink":
                             _libraries[libid]["versionprops"][versionid][key[4]] = val.split(":")
+                        if key[4] == "lookupname":
+                            _libraries[libid]["versionprops"][versionid][key[4]] = val
                 else:
                     _libraries[libid]["versions"] = val
 

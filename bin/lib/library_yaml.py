@@ -94,7 +94,6 @@ class LibraryYaml:
             lib = linux_libraries[libkey]
             if "lookupname" in lib:
                 if libid == lib["lookupname"]:
-                    logger.info(lib)
                     return lib["id"]
 
             if "versionprops" in lib:
@@ -102,7 +101,7 @@ class LibraryYaml:
                     libver = lib["versionprops"][libverid]
                     if "lookupname" in libver:
                         if libid == libver["lookupname"]:
-                            return libver["id"]
+                            return lib["id"]
 
         return libid
 
@@ -112,71 +111,92 @@ class LibraryYaml:
 
         [_, linux_libraries] = get_properties_compilers_and_libraries("c++", logger, LibraryPlatform.Linux, False)
 
+        reorganised_libs = dict()
+
+        # id's in the yaml file are more unique than the ones in the linux (amazon) properties file (example boost & boost_bin)
+        #  so we need to map them to the linux properties file using the .lookupname used in the linux properties file
         libraries_for_language = self.yaml_doc["libraries"]["c++"]
         for libid in libraries_for_language:
-            all_ids.append(libid)
+            linux_libid = libid
+            lookupname = libid
+            if linux_libid not in linux_libraries:
+                if linux_libid == 'catch2v2':
+                    # hardcoded, we renamed this manually in the yaml file to distinguish catch2 versions that were header-only from the ones that are built
+                    lookupname = 'catch2'
+                else:
+                    lookupname = self.get_possible_lookupname(logger, linux_libraries, linux_libid)
 
-            all_libver_ids: List[str] = []
+            if lookupname not in reorganised_libs:
+                reorganised_libs[lookupname] = set()
 
-            linuxlibid = libid
-            if libid not in linux_libraries:
-                linuxlibid = self.get_possible_lookupname(logger, linux_libraries, libid)
+            logger.debug(f"Mapping {linux_libid} to {lookupname}")
+            reorganised_libs[lookupname].add(linux_libid)
 
-            linux_lib = linux_libraries[linuxlibid]
+        for linux_libid in reorganised_libs:
+            all_ids.append(linux_libid)
+            linux_lib = linux_libraries[linux_libid]
 
-            if "targets" not in libraries_for_language[libid]:
-                logger.error(f"Library {libid} does not have a 'targets' field.")
-                continue
-
-            for libver in libraries_for_language[libid]["targets"]:
-                all_libver_ids.append(self.get_libverid(libver))
-
-            libname = libid
+            libname = linux_libid
             if "name" in linux_lib:
                 libname = linux_lib["name"]
 
-            libverprops = f"libs.{libid}.name={libname}\n"
-            # libverprops += f"libs.{libid}.url=https://crates.io/crates/{libid}\n"
-            libverprops += f"libs.{libid}.packagedheaders=true\n"
-            libverprops += f"libs.{libid}.versions="
+            libverprops = f"libs.{linux_libid}.name={libname}\n"
+            if "url" in linux_lib:
+                libverprops += f"libs.{linux_libid}.description={linux_lib['url']}\n"
+            libverprops += f"libs.{linux_libid}.packagedheaders=true\n"
+
+            all_libver_ids: List[str] = []
+            for yamllibid in reorganised_libs[linux_libid]:
+                if "targets" in libraries_for_language[yamllibid]:
+                    for libver in libraries_for_language[yamllibid]["targets"]:
+                        all_libver_ids.append(self.get_libverid(libver))
+
+            libverprops += f"libs.{linux_libid}.versions="
             libverprops += ":".join(all_libver_ids) + "\n"
 
             if linux_lib and "staticliblink" in linux_lib:
                 if linux_lib["staticliblink"]:
                     linklist = ":".join(linux_lib["staticliblink"])
-                    libverprops += f"libs.{libid}.staticliblink={linklist}\n"
+                    libverprops += f"libs.{linux_libid}.staticliblink={linklist}\n"
             if linux_lib and "sharedliblink" in linux_lib:
                 if linux_lib["sharedliblink"]:
                     linklist = ":".join(linux_lib["sharedliblink"])
-                    libverprops += f"libs.{libid}.sharedliblink={linklist}\n"
+                    libverprops += f"libs.{linux_libid}.sharedliblink={linklist}\n"
             if linux_lib and "dependencies" in linux_lib:
                 if linux_lib["dependencies"]:
                     linklist = ":".join(linux_lib["dependencies"])
-                    libverprops += f"libs.{libid}.dependencies={linklist}\n"
+                    libverprops += f"libs.{linux_libid}.dependencies={linklist}\n"
 
-            for libver in libraries_for_language[libid]["targets"]:
-                libverid = self.get_libverid(libver)
-                libvername = self.get_libvername(libver)
-                libverprops += f"libs.{libid}.versions.{libverid}.version={libvername}\n"
-                linux_lib_version = get_specific_library_version_details(linux_libraries, libid, libverid)
-                if not linux_lib_version:
-                    linux_lib_version = get_specific_library_version_details(linux_libraries, libid, libvername)
+            for yamllibid in reorganised_libs[linux_libid]:
+                if "targets" not in libraries_for_language[yamllibid]:
+                    logger.debug(f"Library {linux_libid} does not have a 'targets' field.")
+                    continue
 
-                if linux_lib_version:
-                    if linux_lib_version["staticliblink"]:
-                        linklist = ":".join(linux_lib_version["staticliblink"])
-                        libverprops += f"libs.{libid}.versions.{libverid}.staticliblink={linklist}\n"
-                    if linux_lib_version["sharedliblink"]:
-                        linklist = ":".join(linux_lib_version["sharedliblink"])
-                        libverprops += f"libs.{libid}.versions.{libverid}.sharedliblink={linklist}\n"
-                    if linux_lib_version["dependencies"]:
-                        linklist = ":".join(linux_lib_version["dependencies"])
-                        libverprops += f"libs.{libid}.versions.{libverid}.dependencies={linklist}\n"
-                else:
-                    logger.warning(f"Library {libid} version {libverid} not found in Linux properties.")
+                for libver in libraries_for_language[yamllibid]["targets"]:
+                    all_libver_ids.append(self.get_libverid(libver))
 
-                # underscore_lib = libid.replace("-", "_")
-                # libverprops += f"libs.{libid}.versions.{libverid}.path=lib{underscore_lib}.rlib\n"
+                for libver in libraries_for_language[yamllibid]["targets"]:
+                    libverid = self.get_libverid(libver)
+                    libvername = self.get_libvername(libver)
+                    libverprops += f"libs.{linux_libid}.versions.{libverid}.version={libvername}\n"
+                    linux_lib_version = get_specific_library_version_details(linux_libraries, linux_libid, libverid)
+                    if not linux_lib_version:
+                        linux_lib_version = get_specific_library_version_details(
+                            linux_libraries, linux_libid, libvername
+                        )
+
+                    if linux_lib_version:
+                        if linux_lib_version["staticliblink"]:
+                            linklist = ":".join(linux_lib_version["staticliblink"])
+                            libverprops += f"libs.{linux_libid}.versions.{libverid}.staticliblink={linklist}\n"
+                        if linux_lib_version["sharedliblink"]:
+                            linklist = ":".join(linux_lib_version["sharedliblink"])
+                            libverprops += f"libs.{linux_libid}.versions.{libverid}.sharedliblink={linklist}\n"
+                        if linux_lib_version["dependencies"]:
+                            linklist = ":".join(linux_lib_version["dependencies"])
+                            libverprops += f"libs.{linux_libid}.versions.{libverid}.dependencies={linklist}\n"
+                    else:
+                        logger.warning(f"Library {linux_libid} version {libverid} not found in Linux properties.")
 
             properties_txt += libverprops + "\n"
 
