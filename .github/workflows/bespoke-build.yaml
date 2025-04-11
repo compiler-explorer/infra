@@ -19,6 +19,7 @@ on:
         - bloaty
         - clad
         - clang-18.04
+        - clang-16.04
         - cobol
         - d8
         - dotnet
