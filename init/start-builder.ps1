@@ -123,10 +123,10 @@ if ( $Compiler -eq "popular-compilers-only" ) {
   $FORCECOMPILERPARAM = "--buildfor=$Compiler"
 }
 
-$LIBRARYPARAM = "libraries/$Language"
+$LIBRARYPARAM = "$Language"
 
 if ($Library -ne "all") {
-  $LIBRARYPARAM = "libraries/$Language/$Library"
+  $LIBRARYPARAM = "$Language/$Library"
 }
 
 pwsh .\ce_install.ps1 --debug --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" --enable windows build --temp-install "$FORCECOMPILERPARAM" "$LIBRARYPARAM"
