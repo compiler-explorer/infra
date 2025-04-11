@@ -586,6 +586,15 @@ def generate_cpp_windows_props(context: CliContext):
         file.write(props)
 
 
+@cli.command(name="list-gh-build-commands")
+@click.pass_obj
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def list_cmd(context: CliContext, filter_: List[str]):
+    """List installation targets matching FILTER."""
+    for installable in context.get_installables(filter_):
+        print(f'gh workflow run win-lib-build.yaml --field "library={installable.name}" -R github.com/compiler-explorer/infra')
+
+
 @cli.command()
 @click.argument("output", type=click.File("w", encoding="utf-8"), default="-")
 @click.pass_obj
