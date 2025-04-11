@@ -576,6 +576,17 @@ def add_crate(context: CliContext, libid: str, libversion: str):
 
 
 @cli.command()
+@click.pass_obj
+def generate_cpp_windows_props(context: CliContext):
+    """Generate Cpp for Windows property files for libraries."""
+    propfile = Path(os.path.join(os.curdir, "props"))
+    with propfile.open(mode="w", encoding="utf-8") as file:
+        libyaml = LibraryYaml(context.installation_context.yaml_dir)
+        props = libyaml.get_ce_properties_for_cpp_windows_libraries(logging.getLogger())
+        file.write(props)
+
+
+@cli.command()
 @click.argument("output", type=click.File("w", encoding="utf-8"), default="-")
 @click.pass_obj
 def config_dump(context: CliContext, output: TextIO):
