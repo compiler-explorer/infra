@@ -250,6 +250,8 @@ class LibraryBuilder:
         elif compilerType == "clang" or compilerType == "win32-mingw-clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, "llc")
+            if self.platform == LibraryPlatform.Windows:
+                llcexe += ".exe"
             if os.path.exists(llcexe):
                 try:
                     output = subprocess.check_output([llcexe, "--version"], env=fullenv).decode("utf-8", "ignore")
