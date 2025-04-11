@@ -238,7 +238,7 @@ class LibraryBuilder:
         fullenv["LD_LIBRARY_PATH"] = ldPath
         output = ""
 
-        if compilerType == "":
+        if compilerType == "" or compilerType == "win32-mingw-gcc":
             if "icc" in exe:
                 output = subprocess.check_output([exe, "--help"], env=fullenv).decode("utf-8", "ignore")
             else:
@@ -247,7 +247,7 @@ class LibraryBuilder:
                         output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
                     except subprocess.CalledProcessError as e:
                         output = e.output.decode("utf-8", "ignore")
-        elif compilerType == "clang":
+        elif compilerType == "clang" or compilerType == "win32-mingw-clang":
             folder = os.path.dirname(exe)
             llcexe = os.path.join(folder, "llc")
             if os.path.exists(llcexe):

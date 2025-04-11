@@ -36,6 +36,7 @@ compilers:
           - '5.9'
           - '5.10'
           - '6.0.3'
+          - '6.1'
     static-sdk:
       url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-0.0.1.artifactbundle.tar.gz
       dir: swift-{{name}}-static-sdk
@@ -45,6 +46,7 @@ compilers:
       after_stage_script: '' # Don't need the CoreFoundation workaround
       targets:
           - '6.0.3'
+          - '6.1'
     nightly:
       if: nightly
       type: restQueryTarballs

@@ -772,6 +772,8 @@ libraries:
       - 5.7.0
       - 6.0.2
       - 6.1.2
+      - 6.2.4
+      - 6.3.3
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
@@ -2139,6 +2141,7 @@ libraries:
       - v7.5.0
       - v8.1.0
       - v8.2.0
+      - v9.0.0
       type: github
     raberu:
       check_file: README.md
@@ -2490,6 +2493,8 @@ libraries:
       repo: NVIDIA/cccl
       target_prefix: v
       targets:
+      - 2.8.2
+      - 2.8.1
       - 2.8.0
       - 2.7.0
       - 2.6.1
