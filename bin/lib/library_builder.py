@@ -875,10 +875,8 @@ class LibraryBuilder:
                 filepath = os.path.join(buildfolder, f"lib{lib}.a")
 
             if os.path.exists(filepath):
-                self.logger.debug(f"Testing {filepath}")
                 bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
                 cxxinfo = bininfo.cxx_info_from_binary()
-                self.logger.debug(f"Info {cxxinfo}")
                 if is_msvc:
                     archinfo = bininfo.arch_info_from_binary()
                     if arch == "x86" and archinfo["obj_arch"] == "i386":
@@ -888,9 +886,6 @@ class LibraryBuilder:
                     elif arch == "":
                         filesfound += 1
                 else:
-                    # 'has_personality': False, 'has_exceptions': True, 'has_maybecxx11abi': True
-                    self.logger.debug(f"arch, stdlib, is_msvc: {arch}, {stdlib}, {is_msvc}")
-                    self.logger.debug(f"bininfo.readelf_header_details: {bininfo.readelf_header_details}")
                     if (stdlib == "") or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
                         if arch == "":
                             filesfound += 1
