@@ -600,9 +600,7 @@ def list_gh_build_commands(context: CliContext, per_lib: bool, filter_: List[str
             grouped.add(shorter_name)
 
         for group in grouped:
-            print(
-                f'gh workflow run win-lib-build.yaml --field "library={group}" -R github.com/compiler-explorer/infra'
-            )
+            print(f'gh workflow run win-lib-build.yaml --field "library={group}" -R github.com/compiler-explorer/infra')
     else:
         for installable in context.get_installables(filter_):
             shorter_name = installable.name.replace("libraries/c++/", "")
