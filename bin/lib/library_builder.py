@@ -833,7 +833,10 @@ class LibraryBuilder:
         f.write(f"        self.cpp_info.libs = [{libsum}]\n")
 
     def writeconanfile(self, buildfolder):
-        with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
+        conanfile = Path(buildfolder) / "conanfile.py"
+        if conanfile.exists():
+            conanfile.unlink()
+        with (conanfile).open(mode="w", encoding="utf-8") as f:
             self.write_conan_file_to(f)
 
     def countHeaders(self, buildfolder) -> int:
@@ -1201,6 +1204,7 @@ class LibraryBuilder:
 
         if requires_tree_copy:
             shutil.copytree(self.sourcefolder, build_folder, dirs_exist_ok=True)
+            self.writeconanfile(build_folder)
 
         if not self.install_context.dry_run and not self.conanserverproxy_token:
             self.conanproxy_login()
