@@ -162,8 +162,12 @@ class LibraryBuilder:
                 self.buildconfig.sharedliblink = list(
                     set(self.buildconfig.sharedliblink + specificVersionDetails["liblink"])
                 )
-        elif not self.buildconfig.lib_type == "headeronly":
-            self.logger.debug("No specific library version information found")
+
+        if self.buildconfig.lib_type == "headeronly":
+            if self.buildconfig.staticliblink != []:
+                self.buildconfig.lib_type = "static"
+            if self.buildconfig.sharedliblink != []:
+                self.buildconfig.lib_type = "shared"
 
         if self.buildconfig.lib_type == "static":
             if self.buildconfig.staticliblink == []:
