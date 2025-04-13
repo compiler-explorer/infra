@@ -272,6 +272,24 @@ class Installable:
                 return cppbuilder.makebuild(buildfor)
             elif self.build_config.build_type == "make":
                 return cppbuilder.makebuild(buildfor)
+        elif (
+            self.build_config.build_type == "none"
+            and self.build_config.lib_type == "headeronly"
+            and platform == LibraryPlatform.Windows
+        ):
+            sourcefolder = os.path.join(self.install_context.destination, self.install_path)
+            cppbuilder = LibraryBuilder(
+                _LOGGER,
+                self.language,
+                self.context[-1],
+                self.target_name,
+                sourcefolder,
+                self.install_context,
+                self.build_config,
+                popular_compilers_only,
+                platform,
+            )
+            return cppbuilder.makebuild(buildfor)
         elif self.build_config.build_type == "fpm":
             sourcefolder = os.path.join(self.install_context.destination, self.install_path)
             fbuilder = FortranLibraryBuilder(

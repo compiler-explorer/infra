@@ -496,7 +496,7 @@ def build(
         else:
             print(f"Building {installable.name} ({platform.value}) for all")
 
-        if force or installable.should_build():
+        if force or installable.should_build() or (platform == LibraryPlatform.Windows):
             was_temp_installed = False
 
             if not installable.is_installed() and temp_install:
@@ -592,7 +592,9 @@ def generate_cpp_windows_props(context: CliContext):
 def list_cmd(context: CliContext, filter_: List[str]):
     """List installation targets matching FILTER."""
     for installable in context.get_installables(filter_):
-        print(f'gh workflow run win-lib-build.yaml --field "library={installable.name}" -R github.com/compiler-explorer/infra')
+        print(
+            f'gh workflow run win-lib-build.yaml --field "library={installable.name}" -R github.com/compiler-explorer/infra'
+        )
 
 
 @cli.command()
