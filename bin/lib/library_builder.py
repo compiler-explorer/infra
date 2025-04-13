@@ -838,8 +838,8 @@ class LibraryBuilder:
 
     def countHeaders(self, buildfolder) -> int:
         headerfiles = []
-        headerfiles += glob.glob(buildfolder + "/*.h", recursive=True)
-        headerfiles += glob.glob(buildfolder + "/*.hpp", recursive=True)
+        headerfiles += glob.glob(str(buildfolder / "*.h"), recursive=True)
+        headerfiles += glob.glob(str(buildfolder / "*.hpp"), recursive=True)
         return len(headerfiles)
 
     def countValidLibraryBinaries(self, buildfolder, arch, stdlib, is_msvc: bool):
