@@ -162,7 +162,7 @@ class LibraryBuilder:
                 self.buildconfig.sharedliblink = list(
                     set(self.buildconfig.sharedliblink + specificVersionDetails["liblink"])
                 )
-        else:
+        elif not self.buildconfig.lib_type == "headeronly":
             self.logger.debug("No specific library version information found")
 
         if self.buildconfig.lib_type == "static":
@@ -580,7 +580,7 @@ class LibraryBuilder:
 
             make_utility = self.buildconfig.make_utility
 
-            if self.buildconfig.build_type == "cmake":
+            if self.buildconfig.build_type == "cmake" or self.buildconfig.build_type == "none":
                 expanded_cmake_args = [
                     self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
                     for arg in self.buildconfig.extra_cmake_arg
@@ -740,6 +740,10 @@ class LibraryBuilder:
         if self.buildconfig.lib_type == "cshared":
             self.setCurrentConanBuildParameters(
                 buildos, buildtype, "cshared", "cshared", libcxx, arch, stdver, extraflags
+            )
+        elif self.buildconfig.lib_type == "headeronly":
+            self.setCurrentConanBuildParameters(
+                buildos, buildtype, "headeronly", "headeronly", libcxx, arch, stdver, extraflags
             )
         else:
             self.setCurrentConanBuildParameters(
@@ -1336,6 +1340,16 @@ class LibraryBuilder:
                 self.logger.error(
                     f"Unknown compiler {checkcompiler} to build cshared lib {self.buildconfig.sharedliblink}"
                 )
+        elif self.buildconfig.lib_type == "headeronly":
+            if self.platform == LibraryPlatform.Windows:
+                checkcompiler = "mingw64_ucrt_gcc_1220"
+                self.logger.info(
+                    f"Header-only library, but running on Windows, so attempting build with {checkcompiler}"
+                )
+                if checkcompiler not in self.compilerprops:
+                    self.logger.error(f"Unknown compiler {checkcompiler}")
+            else:
+                self.logger.info("Header-only library, no need to build")
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""

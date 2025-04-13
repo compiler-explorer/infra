@@ -840,6 +840,7 @@ libraries:
       - all
       package_install: true
       repo: kokkos/kokkos
+      lib_type: static
       staticliblink:
       - kokkoscore
       - kokkoscontainers

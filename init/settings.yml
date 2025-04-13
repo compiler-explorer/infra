@@ -28,7 +28,10 @@ compiler:
         version: ANY
         libcxx: ANY
     cshared:
-        version: ANY
+        version: [cshared]
+        libcxx: ANY
+    headeronly:
+        version: [headeronly]
         libcxx: ANY
     llvmmos:
         version: ANY
