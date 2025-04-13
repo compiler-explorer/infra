@@ -1349,7 +1349,7 @@ class LibraryBuilder:
                 if checkcompiler not in self.compilerprops:
                     self.logger.error(f"Unknown compiler {checkcompiler}")
             else:
-                self.logger.info(f"Header-only library, no need to build")
+                self.logger.info("Header-only library, no need to build")
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
