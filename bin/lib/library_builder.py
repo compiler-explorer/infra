@@ -1202,12 +1202,16 @@ class LibraryBuilder:
         build_status = self.executebuildscript(build_folder)
         if build_status == BuildStatus.Ok:
             if self.buildconfig.package_install:
-                filesfound = self.countValidLibraryBinaries(
-                    Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc"
-                )
-                filesfound = filesfound + self.countValidLibraryBinaries(
-                    Path(install_folder) / "bin", arch, stdlib, compiler_type == "win32-vc"
-                )
+                if self.buildconfig.lib_type == "headeronly":
+                    self.logger.debug("Header only library, no binaries to upload")
+                    filesfound = 1
+                else:
+                    filesfound = self.countValidLibraryBinaries(
+                        Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc"
+                    )
+                    filesfound = filesfound + self.countValidLibraryBinaries(
+                        Path(install_folder) / "bin", arch, stdlib, compiler_type == "win32-vc"
+                    )
             else:
                 filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib, compiler_type == "win32-vc")
 
@@ -1220,7 +1224,7 @@ class LibraryBuilder:
                         self.set_as_uploaded(build_folder)
             else:
                 extralogtext = "No binaries found to export"
-                self.logger.info("No binaries found to export")
+                self.logger.info(extralogtext)
                 build_status = BuildStatus.Failed
 
         if not self.install_context.dry_run:
