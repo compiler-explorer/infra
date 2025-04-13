@@ -836,10 +836,10 @@ class LibraryBuilder:
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
             self.write_conan_file_to(f)
 
-    def countHeaders(self, buildfolder):
+    def countHeaders(self, buildfolder) -> int:
         headerfiles = []
-        headerfiles += glob.glob("*.h", root_dir=buildfolder, recursive=True)
-        headerfiles += glob.glob("*.hpp", root_dir=buildfolder, recursive=True)
+        headerfiles += glob.glob(buildfolder + "/*.h", recursive=True)
+        headerfiles += glob.glob(buildfolder + "/*.hpp", recursive=True)
         return len(headerfiles)
 
     def countValidLibraryBinaries(self, buildfolder, arch, stdlib, is_msvc: bool):
