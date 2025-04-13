@@ -836,6 +836,12 @@ class LibraryBuilder:
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
             self.write_conan_file_to(f)
 
+    def countHeaders(self, buildfolder):
+        headerfiles = []
+        headerfiles += glob.glob("*.h", root_dir=buildfolder, recursive=True)
+        headerfiles += glob.glob("*.hpp", root_dir=buildfolder, recursive=True)
+        return len(headerfiles)
+
     def countValidLibraryBinaries(self, buildfolder, arch, stdlib, is_msvc: bool):
         filesfound = 0
 
@@ -1204,7 +1210,7 @@ class LibraryBuilder:
             if self.buildconfig.package_install:
                 if self.buildconfig.lib_type == "headeronly":
                     self.logger.debug("Header only library, no binaries to upload")
-                    filesfound = 1
+                    filesfound = self.countHeaders(Path(install_folder) / "include")
                 else:
                     filesfound = self.countValidLibraryBinaries(
                         Path(install_folder) / "lib", arch, stdlib, compiler_type == "win32-vc"
