@@ -496,7 +496,7 @@ def build(
         else:
             print(f"Building {installable.name} ({platform.value}) for all")
 
-        if force or installable.should_build():
+        if force or installable.should_build() or (platform == LibraryPlatform.Windows):
             was_temp_installed = False
 
             if not installable.is_installed() and temp_install:
@@ -588,11 +588,25 @@ def generate_cpp_windows_props(context: CliContext):
 
 @cli.command(name="list-gh-build-commands")
 @click.pass_obj
+@click.option("--per-lib", is_flag=True, help="Group by library instead of version")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: List[str]):
-    """List installation targets matching FILTER."""
-    for installable in context.get_installables(filter_):
-        print(f'gh workflow run win-lib-build.yaml --field "library={installable.name}" -R github.com/compiler-explorer/infra')
+def list_gh_build_commands(context: CliContext, per_lib: bool, filter_: List[str]):
+    """List gh workflow commands matching FILTER."""
+    grouped = set()
+
+    if per_lib:
+        for installable in context.get_installables(filter_):
+            shorter_name = installable.name.replace("libraries/c++/", "").split(" ")[0]
+            grouped.add(shorter_name)
+
+        for group in grouped:
+            print(f'gh workflow run win-lib-build.yaml --field "library={group}" -R github.com/compiler-explorer/infra')
+    else:
+        for installable in context.get_installables(filter_):
+            shorter_name = installable.name.replace("libraries/c++/", "")
+            print(
+                f'gh workflow run win-lib-build.yaml --field "library={shorter_name}" -R github.com/compiler-explorer/infra'
+            )
 
 
 @cli.command()
