@@ -938,7 +938,8 @@ compilers:
         targets:
           - name: assertions-2.6.0
             check_exe: bin/clang --version
-          - assertions-2.7.0
+          - name: assertions-2.7.0
+            check_exe: bin/clang --version
           - assertions-2.8.0
           - assertions-2.9.0
           - assertions-3.0.0
