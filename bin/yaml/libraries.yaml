@@ -1475,6 +1475,7 @@ libraries:
         - all
         method: nightlyclone
         repo: google/googletest
+        lib_type: static
         staticliblink:
         - gtest
         - gtest_main
