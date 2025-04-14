@@ -905,13 +905,15 @@ class LibraryBuilder:
                 self.logger.debug(f"{filepath} not found")
 
         for lib in self.buildconfig.sharedliblink:
-            if is_msvc:
+            if self.platform == LibraryPlatform.Windows:
                 filepath = os.path.join(buildfolder, f"{lib}.dll")
+                if not os.path.exists(filepath):
+                    filepath = os.path.join(buildfolder, f"lib{lib}.dll")
             else:
                 filepath = os.path.join(buildfolder, f"lib{lib}.so")
 
             bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
-            if is_msvc:
+            if self.platform == LibraryPlatform.Windows:
                 archinfo = bininfo.arch_info_from_binary()
                 if arch == "x86" and archinfo["obj_arch"] == "i386":
                     filesfound += 1
