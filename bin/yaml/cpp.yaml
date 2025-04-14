@@ -1540,7 +1540,7 @@ compilers:
       dir: "z80-clang-{{name}}/bin"
       untar_dir: "z80-clang-{{name}}/bin"
       create_untar_dir: true
-      check_exe: bin/clang++ --version
+      check_exe: clang++ --version
       url: https://github.com/CE-Programming/llvm-project/releases/download/nightly-rebase-v15/z80-clang-{{vername}}-ubuntu-22.04Release.tar.gz
       targets:
         - name: 15.0.0
