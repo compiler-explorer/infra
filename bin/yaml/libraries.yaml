@@ -1905,6 +1905,7 @@ libraries:
         type: github
       ztdcuneicode:
         build_type: cmake
+        lib_type: static
         check_file: README.md
         make_targets:
         - ztd.cuneicode
@@ -1917,6 +1918,7 @@ libraries:
         type: github
       ztdencodingtables:
         build_type: cmake
+        lib_type: static
         check_file: README.md
         make_targets:
         - ztd.encoding_tables
@@ -1929,6 +1931,7 @@ libraries:
         type: github
       ztdidk:
         build_type: cmake
+        lib_type: static
         check_file: README.md
         make_targets:
         - ztd.idk
@@ -1941,6 +1944,7 @@ libraries:
         type: github
       ztdplatform:
         build_type: cmake
+        lib_type: static
         check_file: README.md
         make_targets:
         - ztd.platform
