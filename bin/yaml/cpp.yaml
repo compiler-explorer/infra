@@ -940,7 +940,8 @@ compilers:
             check_exe: bin/clang --version
           - name: assertions-2.7.0
             check_exe: bin/clang --version
-          - assertions-2.8.0
+          # temporarily disabled pending a fix of its build (clang++ symlink is broken)
+          # - assertions-2.8.0
           - assertions-2.9.0
           - assertions-3.0.0
           - assertions-3.1.0
