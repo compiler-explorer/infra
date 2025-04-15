@@ -1153,6 +1153,14 @@ libraries:
         targets:
         - main
         type: github
+      beman_inplace_vector:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bemanproject/inplace_vector
+        targets:
+        - main
+        type: github
       beman_optional:
         build_type: none
         check_file: README.md
