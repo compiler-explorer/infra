@@ -1762,6 +1762,14 @@ libraries:
         targets:
         - trunk
         type: github
+      rapidjson:
+        build_type: none
+        check_file: include/rapidjson/document.h
+        method: nightlyclone
+        repo: Tencent/rapidjson
+        targets:
+        - trunk
+        type: github
       seastar:
         build_type: none
         check_file: README.md
@@ -2188,6 +2196,15 @@ libraries:
       - 0.10.0
       - 0.11.0
       - 0.12.0
+      type: github
+    rapidjson:
+      check_file: include/rapidjson/document.h
+      repo: Tencent/rapidjson
+      targets:
+      - v1.1.0
+      - v1.0.2
+      - v1.0.1
+      - v1.0.0
       type: github
     reactive_plus_plus:
       check_file: src/rpp/rpp/rpp.hpp
