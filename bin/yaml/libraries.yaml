@@ -1166,6 +1166,14 @@ libraries:
         targets:
         - main
         type: github
+      beman_any_view:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bemanproject/any_view
+        targets:
+        - main
+        type: github
       beman_inplace_vector:
         build_type: none
         check_file: README.md
