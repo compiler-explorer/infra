@@ -1,9 +1,9 @@
 module "oidc_provider" {
-  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.6.0//modules/provider"
+  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1//modules/provider"
 }
 
 module "oidc_repo_sonar_source" {
-  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.6.0"
+  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1"
 
   openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
   repo                        = "SonarSource/sonar-cpp"
@@ -19,15 +19,38 @@ module "oidc_repo_sonar_source" {
   }]
 }
 
-data "aws_iam_policy_document" "s3" {
+data "aws_iam_policy_document" "s3_sonar" {
   statement {
     actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
     resources = ["${aws_s3_bucket.compiler-explorer.arn}/opt-nonfree/sonar/*"]
   }
 }
 
-resource "aws_iam_role_policy" "s3" {
+resource "aws_iam_role_policy" "s3_sonar" {
   name   = "s3-policy"
   role   = module.oidc_repo_sonar_source.role.name
-  policy = data.aws_iam_policy_document.s3.json
+  policy = data.aws_iam_policy_document.s3_sonar.json
+}
+
+module "oidc_repo_brontosource" {
+  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1"
+
+  openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
+  repo                        = "brontosource/bin"
+  role_name                   = "brontosource"
+
+  default_conditions = ["allow_main"]
+}
+
+data "aws_iam_policy_document" "s3_bronto" {
+  statement {
+    actions   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}/opt-nonfree/brontosource/*"]
+  }
+}
+
+resource "aws_iam_role_policy" "s3_bronto" {
+  name   = "s3-policy"
+  role   = module.oidc_repo_sonar_source.role.name
+  policy = data.aws_iam_policy_document.s3_bronto.json
 }

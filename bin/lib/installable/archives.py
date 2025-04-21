@@ -392,7 +392,9 @@ class NonFreeS3TarballInstallable(S3TarballInstallable):
         untar_dir = staging.path / self.untar_dir
         untar_dir.mkdir(exist_ok=True, parents=True)
         with tempfile.TemporaryFile() as fd:
-            amazon.s3_client.download_fileobj("compiler-explorer", f"opt-nonfree/{s3_path}", fd)
+            full_path = f"opt-nonfree/{s3_path}"
+            _LOGGER.info("Downloading %s", full_path)
+            amazon.s3_client.download_fileobj("compiler-explorer", full_path, fd)
             fd.seek(0)
             _LOGGER.info("Piping to %s", shlex.join(command))
             subprocess.check_call(command, stdin=fd, cwd=untar_dir)

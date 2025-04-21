@@ -216,3 +216,14 @@ tools:
     check_exe: bin/iix --version
     targets:
       - 2.0.9
+  brontosource:
+    if: non-free
+    type: non-free-s3tarballs
+    compression: xz
+    check_exe: bronto-refactor --help
+    s3_path_prefix: brontosource/{{name}}
+    subdir: brontosource
+    path_name: "{{name}}"
+    targets:
+      - name: bronto-refactor-ubuntu-22.04-x86-64
+        install_always: true
