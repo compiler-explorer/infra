@@ -222,8 +222,7 @@ tools:
     compression: xz
     check_exe: bronto-refactor --help
     s3_path_prefix: brontosource/{{name}}
-    subdir: brontosource
-    path_name: "{{name}}"
+    path_name: brontosource/{{name}}
     targets:
       - name: bronto-refactor-ubuntu-22.04-x86-64
         install_always: true
