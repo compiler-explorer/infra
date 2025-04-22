@@ -51,6 +51,6 @@ data "aws_iam_policy_document" "s3_bronto" {
 
 resource "aws_iam_role_policy" "s3_bronto" {
   name   = "s3-policy"
-  role   = module.oidc_repo_sonar_source.role.name
+  role   = module.oidc_repo_brontosource.role.name
   policy = data.aws_iam_policy_document.s3_bronto.json
 }
