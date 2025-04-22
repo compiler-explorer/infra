@@ -2227,6 +2227,20 @@ libraries:
         method: nightlybranch
         name: v2
       type: github
+    re2:
+      build_type: cmake
+      check_file: README.md
+      lib_type: static
+      make_targets:
+      - all
+      method: clone_branch
+      repo: google/re2
+      package_install: true
+      targets:
+      - name: '2024-07-02'
+        staticliblink:
+        - re2
+      type: github
     scnlib:
       build_type: cmake
       extra_cmake_arg:
