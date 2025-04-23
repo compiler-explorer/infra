@@ -811,7 +811,7 @@ compilers:
               s3_path_prefix: "vax-netbsdelf-gcc-{{name}}"
               untar_dir: "gcc-{{name}}"
             - name: 10.5.0-2023-11-16
-            - name: 12.4.0-2023-04-16
+            - name: 12.4.0-2025-04-16
         xtensa:
           subdir: xtensa
           url: https://github.com/espressif/crosstool-NG/releases/download/esp-{{name}}/{{arch_prefix}}-{{release_name}}-{{host_type}}.tar.{{compression}}
