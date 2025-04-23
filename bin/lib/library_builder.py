@@ -1384,6 +1384,7 @@ class LibraryBuilder:
                 build_supported_arch = [""]
             else:
                 self.logger.info("Header-only library, no need to build")
+                return [builds_succeeded, 1, builds_failed]
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
