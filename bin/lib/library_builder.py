@@ -961,12 +961,14 @@ class LibraryBuilder:
                     self.logger.info(f"Build succeeded in {buildfolder}")
                     return BuildStatus.Ok
                 else:
+                    self.logger.debug(f"Build failed in {buildfolder}")
                     return BuildStatus.Failed
             elif self.platform == LibraryPlatform.Windows:
                 if subprocess.call(["pwsh", "./" + self.script_filename], cwd=buildfolder, timeout=build_timeout) == 0:
                     self.logger.info(f"Build succeeded in {buildfolder}")
                     return BuildStatus.Ok
                 else:
+                    self.logger.debug(f"Build failed in {buildfolder}")
                     return BuildStatus.Failed
 
         except subprocess.TimeoutExpired:
