@@ -151,12 +151,18 @@ def main():
 
     for version in minimum_install_req:
         if version["ZIPFile"]:
-            semvers = version["ZIPFile"].split("-")
-            vsvernums = version["MSVSShortVer"].split(".")
-            compiler_semver = semvers[1]
-            compiler_vernums = compiler_semver.split(".")
-            main_ver = int(compiler_vernums[0]) + 5
+            if '-' in version["ZIPFile"]:
+                semvers = version["ZIPFile"].split("-")
+                vsvernums = version["MSVSShortVer"].split(".")
+                compiler_semver = semvers[1]
+                compiler_vernums = compiler_semver.split(".")
+                main_ver = int(compiler_vernums[0]) + 5
 
+                name_suffix = f"msvc v{main_ver}.{compiler_vernums[1]} VS{vsvernums[0]}.{vsvernums[1]}"
+                compiler_id = f"{prefix}_v{main_ver}_{compiler_vernums[1]}_VS{vsvernums[0]}_{vsvernums[1]}"
+                write_compiler_props(version["ZIPFile"], compiler_id, compiler_semver, name_suffix)
+            else:
+                print(f"Warning: ZIPFile format invalid for version {version['MSVersionSemver']}. Skipping entry.")
             name_suffix = f"msvc v{main_ver}.{compiler_vernums[1]} VS{vsvernums[0]}.{vsvernums[1]}"
             compiler_id = f"{prefix}_v{main_ver}_{compiler_vernums[1]}_VS{vsvernums[0]}_{vsvernums[1]}"
             write_compiler_props(version["ZIPFile"], compiler_id, compiler_semver, name_suffix)
