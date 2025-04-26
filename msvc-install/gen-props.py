@@ -6,9 +6,6 @@ import argparse
 # Dictionary of compiler versions with their properties
 # fmt: off
 minimum_install_req = [
-    {"MSVersionSemver": "14.14.26428.1", "MSVSVer": "", "MSVSShortVer": "", "ZIPFile": ""},
-    {"MSVersionSemver": "14.15.26726", "MSVSVer": "", "MSVSShortVer": "", "ZIPFile": ""},
-    {"MSVersionSemver": "14.16.27051", "MSVSVer": "", "MSVSShortVer": "", "ZIPFile": ""},
     {"MSVersionSemver": "14.20.27525", "MSVSVer": "2019", "MSVSShortVer": "16.0.16", "ZIPFile": "14.20.27508-14.20.27525.0"},
     {"MSVersionSemver": "14.21.27702.2", "MSVSVer": "2019", "MSVSShortVer": "16.1.0", "ZIPFile": "14.21.27702-14.21.27702.2"},
     {"MSVersionSemver": "14.22.27906", "MSVSVer": "2019", "MSVSShortVer": "16.2.1", "ZIPFile": "14.22.27905-14.22.27905.0"},
@@ -37,6 +34,8 @@ minimum_install_req = [
     {"MSVersionSemver": "14.43.34808", "MSVSVer": "2022", "MSVSShortVer": "17.13.6", "ZIPFile": "14.43.34808-14.43.34810.0"},
 ]
 # fmt: on
+
+latest = minimum_install_req[-1]
 
 # Path constants
 ROOT_DIR = "Z:/compilers/msvc"
@@ -150,22 +149,28 @@ def main():
     prefix = args.prefix
 
     for version in minimum_install_req:
-        if version["ZIPFile"]:
-            if '-' in version["ZIPFile"]:
-                semvers = version["ZIPFile"].split("-")
-                vsvernums = version["MSVSShortVer"].split(".")
-                compiler_semver = semvers[1]
-                compiler_vernums = compiler_semver.split(".")
-                main_ver = int(compiler_vernums[0]) + 5
+        semvers = version["ZIPFile"].split("-")
+        assert len(semvers) == 2
+        vsvernums = version["MSVSShortVer"].split(".")
+        assert len(vsvernums) >= 2
+        compiler_semver = semvers[1]
+        compiler_vernums = compiler_semver.split(".")
+        assert len(compiler_vernums) > 1
+        main_ver = int(compiler_vernums[0]) + 5
 
-                name_suffix = f"msvc v{main_ver}.{compiler_vernums[1]} VS{vsvernums[0]}.{vsvernums[1]}"
-                compiler_id = f"{prefix}_v{main_ver}_{compiler_vernums[1]}_VS{vsvernums[0]}_{vsvernums[1]}"
-                write_compiler_props(version["ZIPFile"], compiler_id, compiler_semver, name_suffix)
-            else:
-                print(f"Warning: ZIPFile format invalid for version {version['MSVersionSemver']}. Skipping entry.")
-            name_suffix = f"msvc v{main_ver}.{compiler_vernums[1]} VS{vsvernums[0]}.{vsvernums[1]}"
-            compiler_id = f"{prefix}_v{main_ver}_{compiler_vernums[1]}_VS{vsvernums[0]}_{vsvernums[1]}"
-            write_compiler_props(version["ZIPFile"], compiler_id, compiler_semver, name_suffix)
+        compiler_id = f"{prefix}_v{main_ver}_{compiler_vernums[1]}_VS{vsvernums[0]}_{vsvernums[1]}"
+
+        name_suffix = f"msvc v{main_ver}.{compiler_vernums[1]} VS{vsvernums[0]}.{vsvernums[1]}"
+        write_compiler_props(version["ZIPFile"], compiler_id, compiler_semver, name_suffix)
+
+        if version == latest:
+            print()
+            print("#" * 40)
+            print('# Latest version: may be a duplicate but this is to always have a "latest" in the drop down')
+            # will break when we get a new major version, but maybe ok?
+            name_suffix = f"msvc v{main_ver}.latest"
+            write_compiler_props(latest["ZIPFile"], f"{prefix}_v{main_ver}_latest", compiler_semver, name_suffix)
+            print("#" * 40)
 
 
 if __name__ == "__main__":
