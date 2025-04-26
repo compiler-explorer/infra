@@ -1190,6 +1190,14 @@ libraries:
         targets:
         - main
         type: github
+      beman_task:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bemanproject/task
+        targets:
+        - main
+        type: github
       benchmark:
         build_type: cmake
         check_file: README.md
