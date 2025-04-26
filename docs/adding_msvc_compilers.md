@@ -66,7 +66,7 @@ You can apply changes as appropriate; making sure you leave all the old stuff al
 We try and keep a "latest" for each target manually up to date (`vcpp_v19_latest_x86` etc); either a "latest" being a prerelease and therefore a whole set of
 compiler configuration, or else making the most recent released compiler _also_ an alias for `vcpp_v19_latest_x86`.
 
-Deploy and test in winstaging. Remember you need to build a windows build. If you need to test a branch windows build, carefully push an appropriately-named `gh-xxxx` tag _at the exact same commit as the branch_.
+Deploy and test in winstaging. Remember you need to build a windows build (which probably means you need to push to main).
 
 ### For more info
 
