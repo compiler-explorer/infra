@@ -1182,6 +1182,14 @@ libraries:
         targets:
         - main
         type: github
+      beman_net:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bemanproject/net
+        targets:
+        - main
+        type: github
       beman_optional:
         build_type: none
         check_file: README.md
