@@ -84,6 +84,8 @@ compilers:
           - assertions-14.1.0
           - 14.2.0
           - assertions-14.2.0
+          - 15.1.0
+          - assertions-15.1.0
     cross:
       type: s3tarballs
       arch_prefix:
@@ -139,6 +141,7 @@ compilers:
               - 13.3.0
               - 14.1.0
               - 14.2.0
+              - 15.1.0
             arm-unknown:
               - check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
                 path_name: "{{subdir}}/gcc-arm-unknown-{{name}}"
@@ -151,6 +154,7 @@ compilers:
                   - 13.3.0
                   - 14.1.0
                   - 14.2.0
+                  - 15.1.0
             nightly:
               if: nightly
               type: nightly
@@ -320,6 +324,9 @@ compilers:
             - name: 14.2.0
               untar_dir: "gcc-{{name}}"
               check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
+            - name: 15.1.0
+              untar_dir: "gcc-{{name}}"
+              check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
 
         arm64:
           arch_prefix: aarch64-unknown-linux-gnu
@@ -358,6 +365,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
           nightly:
             if: nightly
             type: nightly
@@ -375,6 +383,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
           nightly:
             if: nightly
             type: nightly
@@ -408,6 +417,7 @@ compilers:
                 - 13.3.0
                 - 14.1.0
                 - 14.2.0
+                - 15.1.0
             mipsel:
               subdir: mipsel
               arch_prefix: "{{subdir}}-multilib-linux-gnu"
@@ -429,6 +439,7 @@ compilers:
                 - 13.3.0
                 - 14.1.0
                 - 14.2.0
+                - 15.1.0
             mips64:
               subdir: mips64
               targets:
@@ -446,6 +457,7 @@ compilers:
                 - 13.3.0
                 - 14.1.0
                 - 14.2.0
+                - 15.1.0
             mips64el:
               subdir: mips64el
               arch_prefix: "{{subdir}}-multilib-linux-uclibc"
@@ -467,6 +479,7 @@ compilers:
                 - 13.3.0
                 - 14.1.0
                 - 14.2.0
+                - 15.1.0
 
           - type: tarballs
             subdir: mips
@@ -497,6 +510,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         mrisc32:
           nightly:
             if: nightly
@@ -553,6 +567,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
           nightly:
             if: nightly
             type: nightly
@@ -589,6 +604,8 @@ compilers:
             - name: 14.1.0
               arch_prefix: "riscv32-unknown-linux-gnu"
             - name: 14.2.0
+              arch_prefix: "riscv32-unknown-linux-gnu"
+            - name: 15.1.0
               arch_prefix: "riscv32-unknown-linux-gnu"
 
           nightly:
@@ -648,6 +665,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         sh:
           arch_prefix: "sh-unknown-elf"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -663,6 +681,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         c6x:
           arch_prefix: "tic6x-elf"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -676,12 +695,14 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         hppa:
           arch_prefix: "hppa-unknown-linux-gnu"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
           subdir: hppa
           targets:
             - 14.2.0
+            - 15.1.0
         sparc:
           arch_prefix: "sparc-unknown-linux-gnu"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -695,6 +716,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         sparc64:
           arch_prefix: "sparc64-multilib-linux-gnu"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -708,6 +730,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         sparc-leon:
           arch_prefix: "sparc-leon-linux-uclibc"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -721,6 +744,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         loongarch64:
           arch_prefix: "{{subdir}}-unknown-linux-gnu"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -734,6 +758,7 @@ compilers:
             - 13.3.0
             - 14.1.0
             - 14.2.0
+            - 15.1.0
         powerpc:
           arch_prefix: "{{subdir}}-unknown-linux-gnu"
           check_exe: "{{arch_prefix}}/bin/{{arch_prefix}}-g++ --version"
@@ -752,6 +777,7 @@ compilers:
               - 13.3.0
               - 14.1.0
               - 14.2.0
+              - 15.1.0
           powerpc64:
             subdir: powerpc64
             targets:
@@ -767,6 +793,7 @@ compilers:
               - 13.3.0
               - 14.1.0
               - 14.2.0
+              - 15.1.0
             nightly:
               if: nightly
               type: nightly
@@ -791,6 +818,7 @@ compilers:
               - 13.3.0
               - 14.1.0
               - 14.2.0
+              - 15.1.0
             nightly:
               if: nightly
               type: nightly
@@ -811,7 +839,7 @@ compilers:
               s3_path_prefix: "vax-netbsdelf-gcc-{{name}}"
               untar_dir: "gcc-{{name}}"
             - name: 10.5.0-2023-11-16
-            - name: 12.4.0-2023-04-16
+            - name: 12.4.0-2025-04-16
         xtensa:
           subdir: xtensa
           url: https://github.com/espressif/crosstool-NG/releases/download/esp-{{name}}/{{arch_prefix}}-{{release_name}}-{{host_type}}.tar.{{compression}}

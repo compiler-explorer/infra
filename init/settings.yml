@@ -63,6 +63,9 @@ compiler:
     lfortran:
         version: ANY
         libcxx: ANY
+    qnx:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug]
 

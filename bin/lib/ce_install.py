@@ -516,7 +516,7 @@ def build(
                         _LOGGER.info("%s built OK", installable.name)
                     elif num_failed:
                         _LOGGER.info("%s failed to build", installable.name)
-                    else:
+                    elif num_skipped == 0:
                         _LOGGER.info("%s hit a BUG", installable.name)
                 except RuntimeError as e:
                     if buildfor:

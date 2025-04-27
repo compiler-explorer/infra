@@ -268,10 +268,7 @@ class Installable:
                 popular_compilers_only,
                 platform,
             )
-            if self.build_config.build_type == "cmake":
-                return cppbuilder.makebuild(buildfor)
-            elif self.build_config.build_type == "make":
-                return cppbuilder.makebuild(buildfor)
+            return cppbuilder.makebuild(buildfor)
         elif (
             self.build_config.build_type == "none"
             and self.build_config.lib_type == "headeronly"
@@ -308,8 +305,7 @@ class Installable:
                 _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config
             )
             return rbuilder.makebuild(buildfor)
-        else:
-            raise RuntimeError("Unsupported build_type")
+        raise RuntimeError(f"Unsupported build_type ${self.build_config.build_type}")
 
     def squash_to(self, destination_image: Path):
         destination_image.parent.mkdir(parents=True, exist_ok=True)
