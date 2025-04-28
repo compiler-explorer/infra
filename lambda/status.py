@@ -4,7 +4,7 @@ from datetime import datetime
 
 try:
     # Python 3.11+ has UTC directly
-    from datetime import UTC
+    from datetime import UTC  # type: ignore
 except ImportError:
     # For Python 3.10 and earlier
     from datetime import timezone
