@@ -1,15 +1,6 @@
 import boto3
 import json
-from datetime import datetime
-
-try:
-    # Python 3.11+ has UTC directly
-    from datetime import UTC  # type: ignore
-except ImportError:
-    # For Python 3.10 and earlier
-    from datetime import timezone
-
-    UTC = timezone.utc
+from datetime import datetime, timezone
 import os
 import re
 
@@ -152,7 +143,8 @@ def lambda_handler(event, _context):
 
         # Return JSON response
         return create_response(
-            status_code=200, body={"environments": environments_status, "timestamp": datetime.now(UTC).isoformat()}
+            status_code=200,
+            body={"environments": environments_status, "timestamp": datetime.now(timezone.utc).isoformat()},
         )
     except (ValueError, TypeError, KeyError, boto3.exceptions.Boto3Error) as e:
         return handle_error(e)
