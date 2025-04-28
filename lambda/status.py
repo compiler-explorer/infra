@@ -1,6 +1,15 @@
 import boto3
 import json
-from datetime import datetime, UTC
+from datetime import datetime
+
+try:
+    # Python 3.11+ has UTC directly
+    from datetime import UTC
+except ImportError:
+    # For Python 3.10 and earlier
+    from datetime import timezone
+
+    UTC = timezone.utc
 import os
 import re
 
