@@ -22,7 +22,7 @@ class TestStatusLambda(unittest.TestCase):
             "name": "prod",
             "description": "Production",
             "url": "godbolt.org",
-            "branch": "release",
+            "is_production": True,
             "version": "abc123",
             "health": {"healthy_targets": 2, "total_targets": 3, "status": "Online"},
         }
@@ -78,9 +78,10 @@ class TestStatusLambda(unittest.TestCase):
         env = {
             "name": "prod",
             "description": "Production",
-            "branch": "release",
             "url": "godbolt.org",
             "load_balancer": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/prod/abcdef",
+            "is_production": True,
+            "version_key": "version/release",
         }
 
         # Call the function
@@ -94,7 +95,7 @@ class TestStatusLambda(unittest.TestCase):
         self.assertEqual(result["health"]["status"], "Online")
 
         # Verify S3 client was called
-        mock_s3.get_object.assert_called_once_with(Bucket="compiler-explorer", Key="version/release")
+        mock_s3.get_object.assert_called_once_with(Bucket="compiler-explorer", Key=env["version_key"])
 
         # Verify load balancer client was called
         mock_lb.describe_target_health.assert_called_once_with(TargetGroupArn=env["load_balancer"])
@@ -105,7 +106,13 @@ class TestStatusLambda(unittest.TestCase):
         mock_s3.get_object.return_value = {"Body": MagicMock(read=lambda: b"def456")}
 
         # Test environment without load balancer
-        env = {"name": "test", "description": "Test", "branch": "release", "url": "test.godbolt.org"}
+        env = {
+            "name": "test",
+            "description": "Test",
+            "url": "test.godbolt.org",
+            "is_production": False,
+            "version_key": "version/release",
+        }
 
         # Call the function
         result = status.get_environment_status(env)

@@ -30,6 +30,7 @@ class StatusViewModel {
                 },
                 {
                     headerText: "Instances",
+                    headerTitle: "Format: Healthy instances / Total instances",
                     rowText: "instances"
                 },
                 {
@@ -59,29 +60,41 @@ class StatusViewModel {
                 return response.json();
             })
             .then(data => {
-                this.lastUpdated(new Date(data.timestamp).toLocaleString());
-                this.items.removeAll();
+                // Format the date with explicit UTC indicator
+                const timestamp = new Date(data.timestamp);
+                this.lastUpdated(`${timestamp.toLocaleString()} UTC`);
 
-                data.environments.forEach(env => {
+                // Create a map of current items by name for flicker-free updates
+                const currentItemsMap = {};
+                this.items().forEach(item => {
+                    currentItemsMap[item.name] = item;
+                });
+
+                // Process and sort environments
+                const updatedItems = data.environments.map(env => {
                     const versionInfo = env.version_info || {
                         type: 'Unknown',
                         version: env.version || 'Unknown',
                         version_num: 'unknown',
+                        branch: 'unknown',
                         hash_short: 'unknown',
                         hash_url: null
                     };
 
-                    // Create a formatted version display with commit link
+                    // Create a formatted version display with commit link and branch
                     let versionDisplay;
+                    const branch = versionInfo.branch || 'unknown';
 
                     if (versionInfo.hash_url) {
-                        // Make entire version text a clickable link to the GitHub commit
-                        versionDisplay = `<a href="${versionInfo.hash_url}" target="_blank" title="View commit ${versionInfo.hash}" class="version-link">${versionInfo.version} (${versionInfo.hash_short})</a>`;
+                        // Include branch in the version display
+                        versionDisplay = `<a href="${versionInfo.hash_url}" target="_blank"
+                            title="View commit ${versionInfo.hash}" class="version-link">
+                            ${versionInfo.version} [${branch}] (${versionInfo.hash_short})</a>`;
                     } else {
-                        versionDisplay = versionInfo.version || 'Unknown';
+                        versionDisplay = `${versionInfo.version || 'Unknown'} [${branch}]`;
                     }
 
-                    this.items.push({
+                    return {
                         name: env.name,
                         description: env.description,
                         version: env.version || 'Unknown',
@@ -90,11 +103,23 @@ class StatusViewModel {
                         status: env.health ? env.health.status : 'Unknown',
                         statusBadge: this.getStatusBadge(env.health ? env.health.status : 'Unknown'),
                         instances: env.health ?
-                            `${env.health.healthy_targets}/${env.health.total_targets}` :
+                            `<span title="Healthy instances / Total instances">${env.health.healthy_targets}/${env.health.total_targets}</span>` :
                             'N/A',
                         url: `<a href="https://${env.url}" target="_blank">${env.url}</a>`,
-                    });
+                        is_production: env.is_production || false
+                    };
                 });
+
+                // Sort environments: production first, then alphabetically by description
+                updatedItems.sort((a, b) => {
+                    if (a.is_production !== b.is_production) {
+                        return b.is_production ? 1 : -1; // Production environments first
+                    }
+                    return a.description.localeCompare(b.description); // Then alphabetically
+                });
+
+                // Update the observable array with minimal DOM changes
+                this.items(updatedItems);
 
                 this.isLoading(false);
             })

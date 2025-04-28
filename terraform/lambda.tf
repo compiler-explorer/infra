@@ -303,12 +303,14 @@ resource "aws_lambda_function" "status" {
 
   environment {
     variables = {
-      PROD_LB_ARN       = aws_alb_target_group.ce["prod"].arn
-      STAGING_LB_ARN    = aws_alb_target_group.ce["staging"].arn
-      BETA_LB_ARN       = aws_alb_target_group.ce["beta"].arn
-      GPU_LB_ARN        = aws_alb_target_group.ce["gpu"].arn
-      ARM_PROD_LB_ARN   = aws_alb_target_group.ce["aarch64prod"].arn
+      PROD_LB_ARN        = aws_alb_target_group.ce["prod"].arn
+      STAGING_LB_ARN     = aws_alb_target_group.ce["staging"].arn
+      BETA_LB_ARN        = aws_alb_target_group.ce["beta"].arn
+      GPU_LB_ARN         = aws_alb_target_group.ce["gpu"].arn
+      ARM_PROD_LB_ARN    = aws_alb_target_group.ce["aarch64prod"].arn
       ARM_STAGING_LB_ARN = aws_alb_target_group.ce["aarch64staging"].arn
+      WIN_PROD_LB_ARN    = aws_alb_target_group.ce["winprod"].arn
+      WIN_STAGING_LB_ARN = aws_alb_target_group.ce["winstaging"].arn
     }
   }
   depends_on = [aws_cloudwatch_log_group.status]

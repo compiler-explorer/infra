@@ -1,6 +1,6 @@
 import boto3
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 import os
 import re
 
@@ -9,49 +9,73 @@ s3_client = boto3.client("s3")
 lb_client = boto3.client("elbv2")
 ec2_client = boto3.client("ec2")
 
-# Environment configuration
+# Environment configuration based on bin/lib/env.py
 ENVIRONMENTS = [
+    # Production environments
     {
         "name": "prod",
         "description": "Production",
-        "branch": "release",
         "url": "godbolt.org",
         "load_balancer": os.environ.get("PROD_LB_ARN"),
-    },
-    {
-        "name": "staging",
-        "description": "Staging",
-        "branch": "staging",
-        "url": "godbolt.org/staging",
-        "load_balancer": os.environ.get("STAGING_LB_ARN"),
-    },
-    {
-        "name": "beta",
-        "description": "Beta",
-        "branch": "staging",
-        "url": "godbolt.org/beta",
-        "load_balancer": os.environ.get("BETA_LB_ARN"),
+        "is_production": True,
+        "version_key": "version/release",  # S3 path where version is stored
     },
     {
         "name": "gpu",
         "description": "GPU",
-        "branch": "release",
         "url": "godbolt.org/gpu",
         "load_balancer": os.environ.get("GPU_LB_ARN"),
+        "is_production": True,
+        "version_key": "version/gpu",
     },
     {
         "name": "aarch64prod",
         "description": "ARM64 Production",
-        "branch": "release",
         "url": "godbolt.org/aarch64prod",
         "load_balancer": os.environ.get("ARM_PROD_LB_ARN"),
+        "is_production": True,
+        "version_key": "version/aarch64prod",
+    },
+    {
+        "name": "winprod",
+        "description": "Windows Production",
+        "url": "godbolt.org/winprod",
+        "load_balancer": os.environ.get("WIN_PROD_LB_ARN"),
+        "is_production": True,
+        "version_key": "version/winprod",
+    },
+    # Non-production environments
+    {
+        "name": "staging",
+        "description": "Staging",
+        "url": "godbolt.org/staging",
+        "load_balancer": os.environ.get("STAGING_LB_ARN"),
+        "is_production": False,
+        "version_key": "version/staging",
+    },
+    {
+        "name": "beta",
+        "description": "Beta",
+        "url": "godbolt.org/beta",
+        "load_balancer": os.environ.get("BETA_LB_ARN"),
+        "is_production": False,
+        "version_key": "version/beta",
     },
     {
         "name": "aarch64staging",
         "description": "ARM64 Staging",
-        "branch": "staging",
         "url": "godbolt.org/aarch64staging",
         "load_balancer": os.environ.get("ARM_STAGING_LB_ARN"),
+        "is_production": False,
+        "version_key": "version/aarch64staging",
+    },
+    {
+        "name": "winstaging",
+        "description": "Windows Staging",
+        "url": "godbolt.org/winstaging",
+        "load_balancer": os.environ.get("WIN_STAGING_LB_ARN"),
+        "is_production": False,
+        "version_key": "version/winstaging",
     },
 ]
 
@@ -84,7 +108,7 @@ def lambda_handler(event, _context):
         return {
             "statusCode": 200,
             "headers": {**headers, "Content-Type": "application/json"},
-            "body": json.dumps({"environments": environments_status, "timestamp": datetime.utcnow().isoformat()}),
+            "body": json.dumps({"environments": environments_status, "timestamp": datetime.now(UTC).isoformat()}),
         }
     except (ValueError, TypeError, KeyError, boto3.exceptions.Boto3Error) as e:
         print(f"Error: {str(e)}")
@@ -141,7 +165,12 @@ def parse_version_info(version_str):
         cleaned_version = extract_version_from_key(version_str)
         version_info["version"] = cleaned_version
 
-        # Extract basic version string
+        # Extract basic version string and determine branch from path
+        # Extract branch from S3 path if possible (dist/gh/BRANCH/1234.tar.xz)
+        branch_match = re.match(r"dist/gh/([^/]+)/\d+[.][^/]+$", version_str)
+        branch = branch_match.group(1) if branch_match else "unknown"
+        version_info["branch"] = branch
+
         if "gh-" in cleaned_version:
             version_info["type"] = "GitHub"
             version_num = cleaned_version.split("-")[1] if "-" in cleaned_version else "unknown"
@@ -244,12 +273,12 @@ def get_environment_status(env):
         "name": env["name"],
         "description": env["description"],
         "url": env["url"],
-        "branch": env["branch"],
+        "is_production": env["is_production"],
     }
 
     # Get version from S3
     try:
-        version_key = f"version/{env['branch']}"
+        version_key = env["version_key"]
         version_obj = s3_client.get_object(Bucket="compiler-explorer", Key=version_key)
         raw_version = version_obj["Body"].read().decode("utf-8").strip()
         status["raw_version"] = raw_version  # Store the raw version for debugging

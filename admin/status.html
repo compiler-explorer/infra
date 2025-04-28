@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Compiler Explorer - Environment Status</title>
     <script src="knockout-3.4.2.js"></script>
-    <script src="knockout.simpleGrid.3.0.js"></script>
+    <script src="simpleGrid.js"></script>
     <link rel="icon" type="image/png"
           href="https://github.com/compiler-explorer/infra/blob/main/logo/favicon.png?raw=true"/>
     <link rel="stylesheet" href="status.css">
@@ -25,13 +25,13 @@
         </div>
     </div>
 
-    <div class="loading" data-bind="visible: isLoading">
+    <div class="loading" data-bind="visible: isLoading() && items().length === 0">
         Loading environment status...
     </div>
 
     <div class="error" data-bind="visible: hasError, text: errorMessage"></div>
 
-    <div data-bind="visible: !isLoading() && !hasError()">
+    <div data-bind="visible: !hasError()">
         <div data-bind="simpleGrid: gridViewModel"></div>
     </div>
 

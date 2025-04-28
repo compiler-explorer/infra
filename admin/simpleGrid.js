@@ -1,3 +1,8 @@
+/**
+ * SimpleGrid for Knockout.js
+ * Based on the example Knockout SimpleGrid, modified for Compiler Explorer admin pages
+ * Original source: https://knockoutjs.com/examples/grid.html
+ */
 (function () {
     // Private function
     function getColumnsForScaffolding(data) {
@@ -44,6 +49,7 @@
                         <thead>\
                             <tr data-bind=\"foreach: columns\">\
                                <th data-bind=\"text: headerText,\
+                                attr: { title: typeof headerTitle !== 'undefined' ? headerTitle : '' },\
                                 click: typeof headerClick === 'function' ? function () { headerClick($root) }: {},\
                                 style: typeof headerStyle === 'function' ? headerStyle($root) : {}\"></th>\
                             </tr>\
