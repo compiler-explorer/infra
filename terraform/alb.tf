@@ -233,3 +233,20 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 }
+
+# Status API ALB listener rule
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-status" {
+  priority = 11
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.lambda_status.arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/api/status"
+      ]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}

@@ -252,3 +252,73 @@ resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   batch_size                         = 100
   maximum_batching_window_in_seconds = 300
 }
+
+# Status Lambda Policy
+data "aws_iam_policy_document" "aws_lambda_status" {
+  statement {
+    sid       = "S3Access"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}/version/*"]
+  }
+  statement {
+    sid     = "ElbAccess"
+    actions = ["elasticloadbalancing:DescribeTargetHealth"]
+    resources = ["*"]  # Scope could be reduced to specific ARNs
+  }
+  statement {
+    sid     = "Ec2Access"
+    actions = ["ec2:DescribeInstances"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "aws_lambda_status" {
+  name        = "aws_lambda_status"
+  description = "Lambda status policy (S3, ELB, EC2)"
+  policy      = data.aws_iam_policy_document.aws_lambda_status.json
+}
+
+resource "aws_iam_role_policy_attachment" "aws_lambda_status" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.aws_lambda_status.arn
+}
+
+resource "aws_cloudwatch_log_group" "status" {
+  name              = "/aws/lambda/status"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_function" "status" {
+  description       = "Provide status information for CE environments"
+  s3_bucket         = data.aws_s3_object.lambda_zip.bucket
+  s3_key            = data.aws_s3_object.lambda_zip.key
+  s3_object_version = data.aws_s3_object.lambda_zip.version_id
+  source_code_hash  = chomp(data.aws_s3_object.lambda_zip_sha.body)
+  function_name     = "status"
+  role              = aws_iam_role.iam_for_lambda.arn
+  handler           = "status.lambda_handler"
+  timeout           = 10
+
+  runtime = "python3.12"
+
+  environment {
+    variables = {
+      PROD_LB_ARN       = aws_alb_target_group.ce["prod"].arn
+      STAGING_LB_ARN    = aws_alb_target_group.ce["staging"].arn
+      BETA_LB_ARN       = aws_alb_target_group.ce["beta"].arn
+      GPU_LB_ARN        = aws_alb_target_group.ce["gpu"].arn
+      ARM_PROD_LB_ARN   = aws_alb_target_group.ce["aarch64prod"].arn
+      ARM_STAGING_LB_ARN = aws_alb_target_group.ce["aarch64staging"].arn
+    }
+  }
+  depends_on = [aws_cloudwatch_log_group.status]
+}
+
+# Grant permission for the ALB to invoke the Lambda
+resource "aws_lambda_permission" "from_alb_status" {
+  statement_id  = "AllowExecutionFromALB"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.status.arn
+  principal     = "elasticloadbalancing.amazonaws.com"
+  source_arn    = aws_alb_target_group.lambda_status.arn
+}

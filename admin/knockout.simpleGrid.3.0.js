@@ -52,7 +52,7 @@
                            <tr data-bind=\"foreach: $parent.columns\">\
                                <td data-bind=\"html: typeof rowText === 'function' ? rowText($parent) : $parent[rowText],\
                                 style: typeof style === 'function' ? style($parent) : {},\
-                                click: typeof click === 'function' ? function () { click($parent) } : {}\"></td>\
+                                click: typeof click === 'function' ? function () { click($parent) } : undefined\"></td>\
                             </tr>\
                         </tbody>\
                     </table>");
