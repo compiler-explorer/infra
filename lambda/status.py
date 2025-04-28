@@ -89,22 +89,59 @@ ENVIRONMENTS = [
 ]
 
 
+def create_response(status_code=200, body=None, headers=None):
+    """Create a standardized API response"""
+    # Default CORS headers for browser access
+    default_headers = {
+        "Access-Control-Allow-Origin": "*",  # More permissive for testing
+        "Access-Control-Allow-Methods": "GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key",
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+
+    # Merge with content-type for JSON responses
+    if headers:
+        response_headers = {**default_headers, **headers}
+    else:
+        response_headers = default_headers
+
+    # Add content type for non-empty responses
+    if body and "Content-Type" not in response_headers:
+        response_headers["Content-Type"] = "application/json"
+
+    response = {
+        "statusCode": status_code,
+        "headers": response_headers,
+    }
+
+    # Add body if provided
+    if body is not None:
+        if isinstance(body, dict) or isinstance(body, list):
+            response["body"] = json.dumps(body)
+        else:
+            response["body"] = body
+
+    return response
+
+
+def handle_error(error, is_internal=False):
+    """Centralized error handler that logs and creates error responses"""
+    if is_internal:
+        print(f"Unexpected error: {str(error)}")
+        return create_response(status_code=500, body={"error": "Internal server error"})
+    else:
+        print(f"Error: {str(error)}")
+        return create_response(status_code=500, body={"error": str(error)})
+
+
 def lambda_handler(event, _context):
     """Handle Lambda invocation from API Gateway"""
     try:
-        # CORS headers for browser access
-        headers = {
-            "Access-Control-Allow-Origin": "*",  # More permissive for testing
-            "Access-Control-Allow-Methods": "GET, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key",
-            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        }
-
         # Handle preflight OPTIONS request
         if event.get("httpMethod") == "OPTIONS":
-            return {"statusCode": 200, "headers": headers, "body": ""}
+            return create_response(status_code=200, body="")
 
         # Collect status for all environments
         environments_status = []
@@ -114,26 +151,14 @@ def lambda_handler(event, _context):
             environments_status.append(status)
 
         # Return JSON response
-        return {
-            "statusCode": 200,
-            "headers": {**headers, "Content-Type": "application/json"},
-            "body": json.dumps({"environments": environments_status, "timestamp": datetime.now(UTC).isoformat()}),
-        }
+        return create_response(
+            status_code=200, body={"environments": environments_status, "timestamp": datetime.now(UTC).isoformat()}
+        )
     except (ValueError, TypeError, KeyError, boto3.exceptions.Boto3Error) as e:
-        print(f"Error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {**headers, "Content-Type": "application/json"},
-            "body": json.dumps({"error": str(e)}),
-        }
+        return handle_error(e)
     except Exception as e:  # pylint: disable=broad-exception-caught
         # Handle unexpected errors while still returning a proper response
-        print(f"Unexpected error: {str(e)}")
-        return {
-            "statusCode": 500,
-            "headers": {**headers, "Content-Type": "application/json"},
-            "body": json.dumps({"error": "Internal server error"}),
-        }
+        return handle_error(e, is_internal=True)
 
 
 def extract_version_from_key(key_str):
@@ -162,6 +187,41 @@ def extract_version_from_key(key_str):
         return filename.split(".")[0]
 
     return key_str
+
+
+def handle_version_parse_error(version_str, error, is_internal=False):
+    """Handle errors during version parsing with appropriate fallback values"""
+    error_type = "Unexpected error" if is_internal else "Error"
+    print(f"{error_type} parsing version '{version_str}': {str(error)}")
+
+    if is_internal:
+        # For unexpected errors, use completely safe defaults
+        return {
+            "type": "Unknown",
+            "version": "Unknown",
+            "version_num": "unknown",
+            "hash": "unknown",
+            "hash_short": "unknown",
+            "hash_url": None,
+        }
+    else:
+        # For known error types, try to extract some meaningful information
+        return {
+            "type": "GitHub",
+            "version": extract_version_from_key(version_str),
+            "version_num": version_str.split("/")[-1].split(".")[0] if "/" in version_str else "unknown",
+            "hash": "unknown",
+            "hash_short": "unknown",
+            "hash_url": None,
+        }
+
+
+def handle_hash_fetch_error(info_key, error, is_internal=False):
+    """Handle errors when fetching commit hash information"""
+    error_type = "Unexpected error" if is_internal else "Error"
+    print(f"{error_type} fetching hash from {info_key}: {str(error)}")
+
+    return {"hash": "unknown", "hash_short": "unknown", "hash_url": None}
 
 
 def parse_version_info(version_str):
@@ -220,60 +280,71 @@ def parse_version_info(version_str):
             if match:
                 info_key = f"dist/gh/{match.group(1)}.txt"
 
-        if info_key:
-            try:
-                print(f"Looking for info file at: {info_key}")
-                release_info = s3_client.get_object(Bucket="compiler-explorer", Key=info_key)
-                commit_hash = release_info["Body"].read().decode("utf-8").strip()
+        # Add hash information (or fallback values if not available)
+        hash_info = fetch_commit_hash(info_key) if info_key else None
 
-                # Validate that this looks like a git hash (40 hex chars)
-                if re.match(r"^[0-9a-f]{40}$", commit_hash):
-                    version_info["hash"] = commit_hash
-                    version_info["hash_short"] = commit_hash[:7]
-                    version_info[
-                        "hash_url"
-                    ] = f"https://github.com/compiler-explorer/compiler-explorer/tree/{commit_hash}"
-                else:
-                    version_info["hash"] = "unknown"
-                    version_info["hash_short"] = "unknown"
-                    version_info["hash_url"] = None
-            except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
-                print(f"Error fetching hash from {info_key}: {str(e)}")
-                version_info["hash"] = "unknown"
-                version_info["hash_short"] = "unknown"
-                version_info["hash_url"] = None
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                print(f"Unexpected error fetching hash from {info_key}: {str(e)}")
-                version_info["hash"] = "unknown"
-                version_info["hash_short"] = "unknown"
-                version_info["hash_url"] = None
+        if hash_info:
+            version_info.update(hash_info)
         else:
-            version_info["hash"] = "unknown"
-            version_info["hash_short"] = "unknown"
-            version_info["hash_url"] = None
+            version_info.update({"hash": "unknown", "hash_short": "unknown", "hash_url": None})
 
         return version_info
     except (ValueError, TypeError, KeyError, AttributeError, IndexError) as e:
-        print(f"Error parsing version '{version_str}': {str(e)}")
-        return {
-            "type": "GitHub",
-            "version": extract_version_from_key(version_str),
-            "version_num": version_str.split("/")[-1].split(".")[0] if "/" in version_str else "unknown",
-            "hash": "unknown",
-            "hash_short": "unknown",
-            "hash_url": None,
-        }
+        return handle_version_parse_error(version_str, e)
     except Exception as e:  # pylint: disable=broad-exception-caught
         # Fall back to safe defaults for unexpected errors
-        print(f"Unexpected error parsing version '{version_str}': {str(e)}")
-        return {
+        return handle_version_parse_error(version_str, e, is_internal=True)
+
+
+def fetch_commit_hash(info_key):
+    """Fetch and validate commit hash from S3"""
+    if not info_key:
+        return
+
+    try:
+        print(f"Looking for info file at: {info_key}")
+        release_info = s3_client.get_object(Bucket="compiler-explorer", Key=info_key)
+        commit_hash = release_info["Body"].read().decode("utf-8").strip()
+
+        # Validate that this looks like a git hash (40 hex chars)
+        if re.match(r"^[0-9a-f]{40}$", commit_hash):
+            return {
+                "hash": commit_hash,
+                "hash_short": commit_hash[:7],
+                "hash_url": f"https://github.com/compiler-explorer/compiler-explorer/tree/{commit_hash}",
+            }
+    except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
+        handle_hash_fetch_error(info_key, e)
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        handle_hash_fetch_error(info_key, e, is_internal=True)
+
+
+def handle_environment_error(env_name, error, is_internal=False):
+    """Handle and log errors specific to environment status"""
+    error_type = "Unexpected error" if is_internal else "Error"
+    print(f"{error_type} fetching version for {env_name}: {str(error)}")
+
+    return {
+        "version": "Unknown",
+        "raw_version": "Error",
+        "version_info": {
             "type": "Unknown",
             "version": "Unknown",
             "version_num": "unknown",
             "hash": "unknown",
             "hash_short": "unknown",
             "hash_url": None,
-        }
+        },
+    }
+
+
+def handle_lb_error(env_name, error, is_internal=False):
+    """Handle and log errors specific to load balancer status"""
+    error_type = "Unexpected error" if is_internal else "Error"
+    print(f"{error_type} fetching load balancer status for {env_name}: {str(error)}")
+
+    error_msg = "Internal error" if is_internal else str(error)
+    return {"status": "Unknown", "error": error_msg}
 
 
 def get_environment_status(env):
@@ -295,29 +366,9 @@ def get_environment_status(env):
         status["version"] = version_info["version"]  # Use the cleaned up version
         status["version_info"] = version_info
     except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
-        print(f"Error fetching version for {env['name']}: {str(e)}")
-        status["version"] = "Unknown"
-        status["raw_version"] = "Error"
-        status["version_info"] = {
-            "type": "Unknown",
-            "version": "Unknown",
-            "version_num": "unknown",
-            "hash": "unknown",
-            "hash_short": "unknown",
-            "hash_url": None,
-        }
+        status.update(handle_environment_error(env["name"], e))
     except Exception as e:  # pylint: disable=broad-exception-caught
-        print(f"Unexpected error fetching version for {env['name']}: {str(e)}")
-        status["version"] = "Unknown"
-        status["raw_version"] = "Error"
-        status["version_info"] = {
-            "type": "Unknown",
-            "version": "Unknown",
-            "version_num": "unknown",
-            "hash": "unknown",
-            "hash_short": "unknown",
-            "hash_url": None,
-        }
+        status.update(handle_environment_error(env["name"], e, is_internal=True))
 
     # Check load balancer status if ARN is provided
     if env.get("load_balancer"):
@@ -338,11 +389,9 @@ def get_environment_status(env):
                 "status": "Online" if healthy_targets > 0 else "Offline",
             }
         except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
-            print(f"Error fetching load balancer status for {env['name']}: {str(e)}")
-            status["health"] = {"status": "Unknown", "error": str(e)}
+            status["health"] = handle_lb_error(env["name"], e)
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"Unexpected error fetching load balancer status for {env['name']}: {str(e)}")
-            status["health"] = {"status": "Unknown", "error": "Internal error"}
+            status["health"] = handle_lb_error(env["name"], e, is_internal=True)
     else:
         status["health"] = {"status": "Unknown", "error": "No load balancer configured"}
 
