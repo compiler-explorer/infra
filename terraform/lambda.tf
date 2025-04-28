@@ -253,6 +253,11 @@ resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   maximum_batching_window_in_seconds = 300
 }
 
+# Get ARNs of all CE environment target groups
+locals {
+  ce_environment_arns = [for tg_key, tg in aws_alb_target_group.ce : tg.arn]
+}
+
 # Status Lambda Policy
 data "aws_iam_policy_document" "aws_lambda_status" {
   statement {
@@ -263,7 +268,7 @@ data "aws_iam_policy_document" "aws_lambda_status" {
   statement {
     sid     = "ElbAccess"
     actions = ["elasticloadbalancing:DescribeTargetHealth"]
-    resources = ["*"]  # Scope could be reduced to specific ARNs
+    resources = local.ce_environment_arns
   }
   statement {
     sid     = "Ec2Access"
