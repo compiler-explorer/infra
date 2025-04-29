@@ -253,11 +253,6 @@ resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   maximum_batching_window_in_seconds = 300
 }
 
-# Get ARNs of all CE environment target groups
-locals {
-  ce_environment_arns = [for tg_key, tg in aws_alb_target_group.ce : tg.arn]
-}
-
 # Status Lambda Policy
 data "aws_iam_policy_document" "aws_lambda_status" {
   statement {
@@ -268,7 +263,11 @@ data "aws_iam_policy_document" "aws_lambda_status" {
   statement {
     sid     = "ElbAccess"
     actions = ["elasticloadbalancing:DescribeTargetHealth"]
-    resources = local.ce_environment_arns
+    # Must use wildcard resource because DescribeTargetHealth requires permissions on both
+    # target groups AND their associated load balancers. AWS doesn't provide a way to determine
+    # which load balancer a target group belongs to at policy definition time.
+    # See: https://serverfault.com/questions/856737/aws-iam-policy-for-elasticloadbalancingdescribetargethealth
+    resources = ["*"]
   }
   statement {
     sid     = "Ec2Access"
