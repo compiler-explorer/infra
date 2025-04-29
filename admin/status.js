@@ -6,9 +6,10 @@ class StatusViewModel {
         this.lastUpdated = ko.observable('');
         this.items = ko.observableArray([]);
         this.autoRefreshEnabled = ko.observable(this.loadAutoRefreshSetting());
+        this.autoRefreshInterval = null;
 
         // Subscribe to changes of autoRefreshEnabled to save to localStorage
-        this.autoRefreshEnabled.subscribe((newValue) => {
+        this.autoRefreshEnabled.subscribe(newValue => {
             this.saveAutoRefreshSetting(newValue);
             this.setupAutoRefresh(newValue);
         });
@@ -51,8 +52,11 @@ class StatusViewModel {
         this.isLoading(true);
         this.hasError(false);
 
-        // Using the ALB endpoint
-        fetch('https://compiler-explorer.com/api/status')
+        // Using the ALB endpoint with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        fetch('https://compiler-explorer.com/api/status', { signal: controller.signal })
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
@@ -60,53 +64,53 @@ class StatusViewModel {
                 return response.json();
             })
             .then(data => {
+                clearTimeout(timeoutId);
+
                 // Format the date with explicit UTC indicator
                 const timestamp = new Date(data.timestamp);
                 this.lastUpdated(`${timestamp.toLocaleString()} UTC`);
 
-                // Create a map of current items by name for flicker-free updates
-                const currentItemsMap = {};
-                this.items().forEach(item => {
-                    currentItemsMap[item.name] = item;
-                });
-
                 // Process and sort environments
                 const updatedItems = data.environments.map(env => {
-                    const versionInfo = env.version_info || {
+                    // Use nullish coalescing for default values
+                    const versionInfo = env.version_info ?? {
                         type: 'Unknown',
-                        version: env.version || 'Unknown',
+                        version: env.version ?? 'Unknown',
                         version_num: 'unknown',
                         branch: 'unknown',
                         hash_short: 'unknown',
                         hash_url: null
                     };
 
-                    // Create a formatted version display with commit link and branch
-                    let versionDisplay;
-                    const branch = versionInfo.branch || 'unknown';
+                    // Use nullish coalescing for defaults
+                    const branch = versionInfo.branch ?? 'unknown';
 
-                    if (versionInfo.hash_url) {
-                        // Include branch in the version display
-                        versionDisplay = `<a href="${versionInfo.hash_url}" target="_blank"
+                    // Create a formatted version display with commit link and branch
+                    const versionDisplay = versionInfo.hash_url
+                        ? `<a href="${versionInfo.hash_url}" target="_blank"
                             title="View commit ${versionInfo.hash}" class="version-link">
-                            ${versionInfo.version} [${branch}] (${versionInfo.hash_short})</a>`;
-                    } else {
-                        versionDisplay = `${versionInfo.version || 'Unknown'} [${branch}]`;
-                    }
+                            ${versionInfo.version} [${branch}] (${versionInfo.hash_short})</a>`
+                        : `${versionInfo.version ?? 'Unknown'} [${branch}]`;
+
+                    // Use optional chaining for cleaner property access
+                    const healthStatus = env.health?.status ?? 'Unknown';
+
+                    // Use optional chaining and template literals
+                    const instancesDisplay = env.health
+                        ? `<span title="Healthy instances / Total instances">${env.health.healthy_targets}/${env.health.total_targets}</span>`
+                        : 'N/A';
 
                     return {
                         name: env.name,
                         description: env.description,
-                        version: env.version || 'Unknown',
-                        versionInfo: versionInfo,
-                        versionDisplay: versionDisplay,
-                        status: env.health ? env.health.status : 'Unknown',
-                        statusBadge: this.getStatusBadge(env.health ? env.health.status : 'Unknown'),
-                        instances: env.health ?
-                            `<span title="Healthy instances / Total instances">${env.health.healthy_targets}/${env.health.total_targets}</span>` :
-                            'N/A',
+                        version: env.version ?? 'Unknown',
+                        versionInfo,
+                        versionDisplay,
+                        status: healthStatus,
+                        statusBadge: this.getStatusBadge(healthStatus),
+                        instances: instancesDisplay,
                         url: `<a href="https://${env.url}" target="_blank">${env.url}</a>`,
-                        is_production: env.is_production || false
+                        is_production: env.is_production ?? false
                     };
                 });
 
@@ -118,31 +122,33 @@ class StatusViewModel {
                     return a.description.localeCompare(b.description); // Then alphabetically
                 });
 
-                // Update the observable array with minimal DOM changes
+                // Update the observable array
                 this.items(updatedItems);
-
                 this.isLoading(false);
             })
             .catch(error => {
+                clearTimeout(timeoutId);
                 console.error('Error fetching status:', error);
-                this.errorMessage(`Error loading status data: ${error.message}`);
+
+                // Improved error message for timeouts and connection issues
+                const errorMsg = error.name === 'AbortError'
+                    ? 'Request timed out'
+                    : `Error loading status data: ${error.message}`;
+
+                this.errorMessage(errorMsg);
                 this.hasError(true);
                 this.isLoading(false);
             });
     }
 
     getStatusBadge(status) {
-        let badgeClass = '';
-        switch (status) {
-            case 'Online':
-                badgeClass = 'badge-success';
-                break;
-            case 'Offline':
-                badgeClass = 'badge-danger';
-                break;
-            default:
-                badgeClass = 'badge-secondary';
-        }
+        // Use object literal instead of switch statement
+        const badgeClasses = {
+            'Online': 'badge-success',
+            'Offline': 'badge-danger'
+        };
+
+        const badgeClass = badgeClasses[status] ?? 'badge-secondary';
         return `<span class="badge ${badgeClass}">${status}</span>`;
     }
 

@@ -39,4 +39,4 @@ $ npx aws-amicleaner --region 'us-east-1' \
 - If you had to change the lambda code:
   - `make upload-lambda` - uploads the lambda code to S3 (NOT idempotent unfortunately so only do this if you change the code)
   - `make terraform-apply` - updates the endpoints/balancer config to point at the new lambda zip
-- `make deploy-admin` - deploys the admin site HTML and CSS etc
+- `make update-admin` - deploys the admin site HTML and CSS etc
