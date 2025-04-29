@@ -2,13 +2,14 @@ import time
 from tempfile import NamedTemporaryFile
 from typing import Sequence, TextIO
 
-import click
 import boto3
 import botocore.exceptions
-from lib.env import Environment
+import click
 
+from lib.env import Environment
 from lib.instance import RunnerInstance
-from lib.ssh import get_remote_file, run_remote_shell, exec_remote, exec_remote_to_stdout
+from lib.ssh import exec_remote, exec_remote_to_stdout, get_remote_file, run_remote_shell
+
 from .cli import cli
 
 EXPECTED_REMOTE_COMPILERS = {"gpu", "winprod"}
@@ -152,7 +153,7 @@ def runner_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             print("Still waiting for SSH: got: {}".format(e))
         time.sleep(5)
     else:
@@ -166,7 +167,7 @@ def runner_start():
                 or "compiler-explorer.service: Succeeded." in r  # 20.04
             ):
                 break
-        except:  # pylint: disable=bare-except
+        except:  # noqa: E722
             print("Waiting for startup to complete")
         time.sleep(5)
     else:

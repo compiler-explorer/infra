@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext

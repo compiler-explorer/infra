@@ -11,15 +11,15 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import Optional, Iterator, Dict, IO, Sequence, Union, Collection, List
+from typing import IO, Collection, Dict, Iterator, List, Optional, Sequence, Union
 
 import requests
 import requests.adapters
-import yaml
 import requests_cache
+import yaml
 
-from lib.library_platform import LibraryPlatform
 from lib.config_safe_loader import ConfigSafeLoader
+from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
@@ -319,9 +319,9 @@ class InstallationContext:
             )
 
         fulloutput = ""
-        if output.stdout != None:
+        if output.stdout is not None:
             fulloutput += output.stdout.decode("utf-8")
-        if output.stderr != None:
+        if output.stderr is not None:
             fulloutput += output.stderr.decode("utf-8")
 
         return fulloutput

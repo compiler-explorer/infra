@@ -1,6 +1,6 @@
-from configparser import ConfigParser
-import os
 import json
+import os
+from configparser import ConfigParser
 
 
 def main():

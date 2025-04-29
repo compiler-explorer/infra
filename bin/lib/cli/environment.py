@@ -2,7 +2,7 @@ import time
 
 import click
 
-from lib.amazon import get_autoscaling_groups_for, as_client
+from lib.amazon import as_client, get_autoscaling_groups_for
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.env import Config, Environment

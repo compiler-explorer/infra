@@ -1,4 +1,5 @@
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from lib.installation_context import is_windows
 
 valid_lib_types = ["static", "shared", "cshared", "headeronly"]
@@ -11,7 +12,7 @@ class LibraryBuildConfig:
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
         self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
         self.lib_type = self.config_get("lib_type", "headeronly")
-        if not self.lib_type in valid_lib_types:
+        if self.lib_type not in valid_lib_types:
             raise RuntimeError(f"{self.lib_type} not a valid lib_type")
         self.staticliblink = self.config_get("staticliblink", [])
         self.sharedliblink = self.config_get("sharedliblink", [])

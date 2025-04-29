@@ -3,8 +3,8 @@ import logging
 from multiprocessing.pool import ThreadPool
 from typing import Dict, Optional
 
-from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases, release_for
-from lib.ssh import exec_remote, can_ssh_to
+from lib.amazon import as_client, ec2, ec2_client, elb_client, get_all_releases, release_for
+from lib.ssh import can_ssh_to, exec_remote
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
 logger = logging.getLogger("instance")

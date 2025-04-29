@@ -1,14 +1,13 @@
+import logging
+import os
 import subprocess
 from pathlib import Path
 from unittest import mock
 
 import pytest
-import logging
-
 from lib.installable.git import GitHubInstallable
 from lib.installation_context import InstallationContext
 from lib.staging import StagingDir
-import os
 
 
 @pytest.fixture(autouse=True, scope="session")

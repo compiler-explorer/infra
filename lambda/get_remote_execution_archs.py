@@ -1,5 +1,6 @@
-import boto3
 import json
+
+import boto3
 
 remote_archs_table = "remote-exec-archs"
 db_client = boto3.client("dynamodb")

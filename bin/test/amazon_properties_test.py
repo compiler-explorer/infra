@@ -1,4 +1,5 @@
 import logging
+
 import pytest
 import requests
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
@@ -33,10 +34,10 @@ def test_googletest_should_have_versions():
         assert _libraries["googletest"]["versionprops"]["110"]["version"] == "1.10.0"
 
         details = get_specific_library_version_details(_libraries, "googletest", "1.10.0")
-        assert details != False
+        assert details
 
         details = get_specific_library_version_details(_libraries, "googletest", "release-1.10.0")
-        assert details != False
+        assert details
     except requests.exceptions.ConnectionError:
         pytest.skip("Connection error in test_googletest_should_have_versions, which needs internet access")
 

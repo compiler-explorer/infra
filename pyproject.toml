@@ -1,6 +1,6 @@
-[tool.black]
+[tool.ruff]
 line-length = 120
-target-version = ['py310']
+target-version = "py310"
 
 [tool.poetry]
 name = "compiler-explorer-infra"
@@ -24,5 +24,17 @@ requests-cache = "^1.2.1"
 pytest = "^8.2.2"
 pre-commit = "^3.7.1"
 requests-mock = "^1.10.0"
-black = "^24.3.0"
-pylint = "^3.2.3"
+ruff = "^0.11.7"
+
+[tool.ruff.lint]
+select = [
+    # https://docs.astral.sh/ruff/rules/
+    "E", # pycodestyle errors,
+    "W", # pycodestyle warnings
+    "F", # pyflake
+    "B", # flake8-bugbear
+    "I", # isort
+]
+ignore = [
+    "E501" # line length
+]

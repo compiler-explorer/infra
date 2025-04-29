@@ -11,19 +11,18 @@ import tempfile
 from collections import defaultdict
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Generator, TextIO
-from urllib3.exceptions import ProtocolError
+from typing import Any, Dict, Generator, List, Optional, TextIO
 
 import requests
-from lib.staging import StagingDir
-from lib.installation_context import InstallationContext
-from lib.library_platform import LibraryPlatform
-
-from lib.rust_crates import RustCrate, get_builder_user_agent_id
+from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_platform import LibraryPlatform
+from lib.rust_crates import RustCrate, get_builder_user_agent_id
+from lib.staging import StagingDir
 
 _TIMEOUT = 600
 skip_compilers = ["nightly", "beta", "gccrs-snapshot", "mrustc-master", "rustccggcc-master"]
@@ -105,7 +104,6 @@ class RustLibraryBuilder:
         if "url" in self.libraryprops[self.libid]:
             self.buildconfig.url = self.libraryprops[self.libid]["url"]
 
-    # pylint: disable=unused-argument
     def writebuildscript(
         self,
         buildfolder,
@@ -271,7 +269,7 @@ class RustLibraryBuilder:
         last_error = ""
         while retries > 0:
             try:
-                if headers != None:
+                if headers is not None:
                     request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
                     request = requests.post(
@@ -283,7 +281,7 @@ class RustLibraryBuilder:
                 last_error = e
                 retries = retries - 1
 
-        if request == None:
+        if request is None:
             request = {"ok": False, "text": last_error}
 
         return request
@@ -432,7 +430,7 @@ class RustLibraryBuilder:
 
     def get_source_folder(self, source_staging: StagingDir):
         source_folder = os.path.join(source_staging.path, f"crate_{self.libname}_{self.target_name}")
-        if not source_folder in self.cached_source_folders:
+        if source_folder not in self.cached_source_folders:
             if not os.path.exists(source_folder):
                 os.mkdir(source_folder)
             self.cached_source_folders.append(source_folder)
