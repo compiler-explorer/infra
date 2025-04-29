@@ -66,9 +66,11 @@ class StatusViewModel {
             .then(data => {
                 clearTimeout(timeoutId);
 
-                // Format the date with explicit UTC indicator
+                // Parse the ISO8601 timestamp
                 const timestamp = new Date(data.timestamp);
-                this.lastUpdated(`${timestamp.toLocaleString()} UTC`);
+
+                // Simply display local time with a clear indication it's local
+                this.lastUpdated(`${timestamp.toLocaleString()} (Local time)`);
 
                 // Process and sort environments
                 const updatedItems = data.environments.map(env => {
