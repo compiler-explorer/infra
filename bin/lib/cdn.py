@@ -11,7 +11,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 from zipfile import ZipFile
 
-from lib.amazon import botocore, s3_client, force_lazy_init
+from lib.amazon import botocore, force_lazy_init, s3_client
 
 logger = logging.getLogger("ce-cdn")
 
@@ -91,7 +91,6 @@ class DeploymentJob:
         with ZipFile(self.tar_file_path) as zipfile:
 
             def is_within_directory(directory, target):
-
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
 
@@ -100,7 +99,6 @@ class DeploymentJob:
                 return prefix == abs_directory
 
             def safe_extract(zipfile, path=".", members=None):
-
                 for member in zipfile.infolist():
                     member_path = os.path.join(path, member.filename)
                     if not is_within_directory(path, member_path):
@@ -122,7 +120,6 @@ class DeploymentJob:
         with tarfile.open(self.tar_file_path) as tar:
 
             def is_within_directory(directory, target):
-
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
 
@@ -131,7 +128,6 @@ class DeploymentJob:
                 return prefix == abs_directory
 
             def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-
                 for member in tar.getmembers():
                     member_path = os.path.join(path, member.name)
                     if not is_within_directory(path, member_path):

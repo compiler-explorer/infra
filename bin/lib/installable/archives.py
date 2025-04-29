@@ -3,23 +3,22 @@ from __future__ import annotations
 import functools
 import logging
 import os
+import re
+import shlex
+import socket
 import subprocess
 import tempfile
-import socket
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-import shlex
-from typing import Dict, Any
+from typing import Any, Dict
 
 from lib import amazon
 from lib.amazon import list_compilers
 from lib.installable.installable import Installable, command_config
 from lib.installation_context import InstallationContext, is_windows
-from lib.staging import StagingDir
 from lib.nightly_versions import NightlyVersions
-
-import re
+from lib.staging import StagingDir
 
 VERSIONED_RE = re.compile(r"^(.*)-([0-9.]+)$")
 
@@ -209,7 +208,7 @@ class TarballInstallable(Installable):
         elif self.config_get("compression") == "tar":
             decompress_flag = ""
         else:
-            raise RuntimeError(f'Unknown compression {self.config_get("compression")}')
+            raise RuntimeError(f"Unknown compression {self.config_get('compression')}")
         self.configure_command = command_config(self.config_get("configure_command", []))
         if is_windows() and decompress_flag == "J":
             self.tar_cmd = ["7z", "x"]
@@ -365,7 +364,6 @@ class RestQueryTarballInstallable(TarballInstallable):
         document = self.install_context.fetch_rest_query(self.config_get("url"))
         query = self.config_get("query")
         try:
-            # pylint: disable-next=eval-used
             self.url = eval(query, {}, dict(document=document))
         except Exception:
             self._logger.exception("Exception evaluating query '%s' for %s", query, self)

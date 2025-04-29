@@ -1,5 +1,5 @@
-import urllib
 import json
+import urllib
 
 
 def get_builder_user_agent_id():

@@ -5,37 +5,37 @@ import subprocess
 import sys
 import tempfile
 from collections import defaultdict
-from typing import Optional, Dict, Sequence
+from typing import Dict, Optional, Sequence
 
 import click
 import requests
 
 from lib.amazon import (
+    delete_bouncelock_file,
     download_release_file,
     download_release_fileobj,
     find_latest_release,
     find_release,
-    get_all_releases,
-    get_key_counterpart,
-    log_new_build,
-    set_current_key,
-    get_ssm_param,
     get_all_current,
-    get_releases,
-    remove_release,
+    get_all_releases,
     get_current_key,
+    get_key_counterpart,
+    get_releases,
+    get_ssm_param,
+    has_bouncelock_file,
     list_all_build_logs,
     list_period_build_logs,
+    log_new_build,
     put_bouncelock_file,
-    delete_bouncelock_file,
-    has_bouncelock_file,
+    remove_release,
+    set_current_key,
 )
 from lib.cdn import DeploymentJob
-from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
+from lib.ce_utils import are_you_sure, confirm_action, confirm_branch, describe_current_release, display_releases
 from lib.cli import cli
 from lib.cli.runner import runner_discoveryexists
 from lib.env import Config, Environment
-from lib.releases import Version, Release, VersionSource
+from lib.releases import Release, Version, VersionSource
 
 
 @cli.group()

@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import urllib.parse
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 import aws_embedded_metrics
 import boto3

@@ -1,6 +1,7 @@
-import boto3
 import json
 from typing import Dict
+
+import boto3
 
 versionTablename = "nightly-version"
 nightlyExeTablename = "nightly-exe"
@@ -8,7 +9,7 @@ db_client = boto3.client("dynamodb")
 
 
 def lambda_handler(event, _context):
-    if not ("queryStringParameters" in event):
+    if "queryStringParameters" not in event:
         return default_error("No event.queryStringParameters")
 
     jsonp = ""
@@ -18,18 +19,18 @@ def lambda_handler(event, _context):
     item = False
     if "id" in event["queryStringParameters"]:
         exeItem = get_exe_path_by_compiler_id(event["queryStringParameters"]["id"])
-        if not exeItem or not "Item" in exeItem:
+        if not exeItem or "Item" not in exeItem:
             return default_error("No exe found based on id " + event["queryStringParameters"]["id"])
         else:
             exe = exeItem["Item"]["exe"]["S"]
             item = get_exe_version(exe)
-            if not item or not "Item" in item:
+            if not item or "Item" not in item:
                 return default_error("No exe found based on path " + exe)
 
     if "exe" in event["queryStringParameters"]:
         exe = event["queryStringParameters"]["exe"]
         item = get_exe_version(exe)
-        if not item or not "Item" in item:
+        if not item or "Item" not in item:
             return default_error("No exe found based on path " + exe)
 
     return respond_with_version(item["Item"], jsonp)

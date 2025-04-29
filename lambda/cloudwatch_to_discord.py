@@ -1,7 +1,8 @@
 import json
-import requests
-import os
 import logging
+import os
+
+import requests
 
 BASE_CW_URL = "https://console.aws.amazon.com/cloudwatch/home"
 REGION = "us-east-1"

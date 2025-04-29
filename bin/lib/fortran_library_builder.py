@@ -9,19 +9,19 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from collections import defaultdict
 from enum import Enum, unique
 from pathlib import Path
-import time
-from typing import Dict, Any, List, Optional, Generator, TextIO
-from urllib3.exceptions import ProtocolError
+from typing import Any, Dict, Generator, List, Optional, TextIO
 
 import requests
+from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
-from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
-from lib.library_platform import LibraryPlatform
+from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
@@ -251,7 +251,7 @@ class FortranLibraryBuilder:
         last_error = ""
         while retries > 0:
             try:
-                if headers != None:
+                if headers is not None:
                     request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
                     request = requests.post(
@@ -264,7 +264,7 @@ class FortranLibraryBuilder:
                 retries = retries - 1
                 time.sleep(1)
 
-        if request == None:
+        if request is None:
             request = {"ok": False, "text": last_error}
 
         return request
@@ -708,7 +708,7 @@ class FortranLibraryBuilder:
             self.logger.debug("downloading compiler popularity csv")
             self.download_compiler_usage_csv()
 
-        if not compiler in popular_compilers:
+        if compiler not in popular_compilers:
             return False
 
         if popular_compilers[compiler] < compiler_popularity_treshhold:

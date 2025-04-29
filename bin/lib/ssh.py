@@ -105,4 +105,4 @@ def ssh_client_for(instance) -> paramiko.SSHClient:
 def exec_remote_all(instances, command):
     for instance in instances:
         result = exec_remote(instance, command)
-        print(f'{instance}: {result or "(no output)"}')
+        print(f"{instance}: {result or '(no output)'}")

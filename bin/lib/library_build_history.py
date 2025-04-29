@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 import botocore
+
 from lib.amazon import dynamodb_client
 
 

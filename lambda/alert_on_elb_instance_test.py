@@ -1,4 +1,4 @@
-from alert_on_elb_instance import parse_sns_message, Reason
+from alert_on_elb_instance import Reason, parse_sns_message
 
 UNHEALTHY_EVENT = dict(
     Origin="AutoScalingGroup",
@@ -69,7 +69,11 @@ SCALING_EVENT = dict(
         ],
     },
     AutoScalingGroupName="prod",
-    Cause="At 2022-12-23T19:12:06Z a monitor alarm TargetTracking-prod-AlarmLow-a83afbd9-b74b-408b-b787-b01c939e9da1 in state ALARM triggered policy cpu-tracker changing the desired capacity from 7 to 6.  At 2022-12-23T19:12:09Z an instance was taken out of service in response to a difference between desired and actual capacity, shrinking the capacity from 7 to 6.  At 2022-12-23T19:12:10Z instance i-0d1835f80668172d7 was selected for termination.",
+    Cause="At 2022-12-23T19:12:06Z a monitor alarm TargetTracking-prod-AlarmLow-a83afbd9-b74b-408b-b787-b01c939e9da1 in "
+    "state ALARM triggered policy cpu-tracker changing the desired capacity from 7 to 6.  At 2022-12-23T19:12:09Z "
+    "an instance was taken out of service in response to a difference between desired and actual capacity, "
+    "shrinking the capacity from 7 to 6.  At 2022-12-23T19:12:10Z instance i-0d1835f80668172d7 was "
+    "selected for termination.",
     Event="autoscaling:EC2_INSTANCE_TERMINATE",
 )
 
@@ -91,7 +95,10 @@ ENVIRONMENT_SHUTDOWN_EVENT = dict(
     StatusMessage="",
     Details={"Subnet ID": "subnet-690ed81e", "Availability Zone": "us-east-1a"},
     AutoScalingGroupName="staging",
-    Cause="At 2022-12-23T20:48:54Z a user request update of AutoScalingGroup constraints to min: 0, max: 4, desired: 0 changing the desired capacity from 1 to 0.  At 2022-12-23T20:49:01Z an instance was taken out of service in response to a difference between desired and actual capacity, shrinking the capacity from 1 to 0.  At 2022-12-23T20:49:01Z instance i-0bff86408fbe11f7a was selected for termination.",
+    Cause="At 2022-12-23T20:48:54Z a user request update of AutoScalingGroup constraints to min: 0, max: 4, desired: 0"
+    " changing the desired capacity from 1 to 0.  At 2022-12-23T20:49:01Z an instance was taken out of service in "
+    "response to a difference between desired and actual capacity, shrinking the capacity from 1 to 0.  "
+    "At 2022-12-23T20:49:01Z instance i-0bff86408fbe11f7a was selected for termination.",
     Event="autoscaling:EC2_INSTANCE_TERMINATE",
 )
 
@@ -113,7 +120,8 @@ INSTANCE_REFRESH_EVENT = dict(
     StatusMessage="",
     Details={"Subnet ID": "subnet-1bed1d42", "Availability Zone": "us-east-1b"},
     AutoScalingGroupName="prod",
-    Cause="At 2022-12-24T22:03:59Z an instance was taken out of service in response to an instance refresh.  At 2022-12-24T22:03:59Z instance i-0002075bea40ce1c8 was selected for termination.",
+    Cause="At 2022-12-24T22:03:59Z an instance was taken out of service in response to an instance refresh.  "
+    "At 2022-12-24T22:03:59Z instance i-0002075bea40ce1c8 was selected for termination.",
     Event="autoscaling:EC2_INSTANCE_TERMINATE",
 )
 

@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock
 
 import pytest
-
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
 

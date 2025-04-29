@@ -1,11 +1,11 @@
+import json
+import logging
 from datetime import datetime
 from operator import attrgetter
 from typing import List, Optional
-import logging
-import json
 
 from lib.env import Config, Environment
-from lib.releases import Version, Release, Hash, VersionSource
+from lib.releases import Hash, Release, Version, VersionSource
 
 S3_STORAGE_BUCKET = "storage.godbolt.org"
 
@@ -29,7 +29,6 @@ class LazyObjectWrapper:
 # this is a free function to avoid potentially shadowing any underlying members
 # which could happen if this was itself placed as a member of LazyObjectWrapper
 def force_lazy_init(lazy):
-    # pylint: disable=W0212
     lazy._LazyObjectWrapper__ensure_setup()
 
 
@@ -49,7 +48,6 @@ boto3 = LazyObjectWrapper(_import_boto)
 def _create_anon_s3_client():
     # https://github.com/boto/botocore/issues/1395
     obj = boto3.client("s3", aws_access_key_id="", aws_secret_access_key="")
-    # pylint: disable=W0212
     obj._request_signer.sign = lambda *args, **kwargs: None
     return obj
 

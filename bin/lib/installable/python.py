@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Any, Callable
+from typing import Any, Callable, Dict
 
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext

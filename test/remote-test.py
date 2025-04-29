@@ -2,13 +2,12 @@
 import glob
 import json
 import os
-import requests
+import re
+import sys
 from argparse import ArgumentParser
 from difflib import unified_diff
 
-import re
-
-import sys
+import requests
 
 _TIMEOUT = 10.0
 

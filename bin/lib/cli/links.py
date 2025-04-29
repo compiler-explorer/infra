@@ -4,12 +4,12 @@ from pprint import pformat
 import click
 
 from lib.amazon import (
-    get_short_link,
-    expand_short_link,
-    put_short_link,
-    list_short_links,
-    delete_short_link,
     delete_s3_links,
+    delete_short_link,
+    expand_short_link,
+    get_short_link,
+    list_short_links,
+    put_short_link,
 )
 from lib.ce_utils import are_you_sure
 from lib.cli import cli

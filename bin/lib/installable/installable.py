@@ -9,15 +9,15 @@ import socket
 import subprocess
 from functools import partial
 from pathlib import Path
-from typing import Optional, Callable, Dict, List, Any, Union
-from lib.nightly_versions import NightlyVersions
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from lib.library_platform import LibraryPlatform
+from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.installation_context import InstallationContext, is_windows
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
+from lib.library_platform import LibraryPlatform
+from lib.nightly_versions import NightlyVersions
 from lib.rust_library_builder import RustLibraryBuilder
-from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +41,7 @@ class Installable:
         self.config = config
         self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
-        self.name = f'{"/".join(self.context)} {self.target_name}'
+        self.name = f"{'/'.join(self.context)} {self.target_name}"
         self.is_library = False
         self.language = ""
         if len(self.context) > 0:
@@ -112,7 +112,7 @@ class Installable:
     def resolve(installables: list[Installable]) -> None:
         installables_by_name = {installable.name: installable for installable in installables}
         for installable in installables:
-            installable._resolve(installables_by_name)  # pylint: disable=protected-access
+            installable._resolve(installables_by_name)
 
     def find_dependee(self, name: str) -> Installable:
         for i in self.depends:

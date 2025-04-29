@@ -1,14 +1,13 @@
 import os
-import yaml
-
 from pathlib import Path
 from typing import List
 
-from lib.library_platform import LibraryPlatform
-from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
-from lib.rust_crates import TopRustCrates
+import yaml
 
+from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.config_safe_loader import ConfigSafeLoader
+from lib.library_platform import LibraryPlatform
+from lib.rust_crates import TopRustCrates
 
 
 class LibraryYaml:
@@ -29,12 +28,12 @@ class LibraryYaml:
         self.save()
 
     def add_rust_crate(self, libid, libversion):
-        if not "rust" in self.yaml_doc["libraries"]:
+        if "rust" not in self.yaml_doc["libraries"]:
             self.yaml_doc["libraries"]["rust"] = dict()
 
         libraries_for_language = self.yaml_doc["libraries"]["rust"]
         if libid in libraries_for_language:
-            if not libversion in libraries_for_language[libid]["targets"]:
+            if libversion not in libraries_for_language[libid]["targets"]:
                 libraries_for_language[libid]["targets"].append(libversion)
         else:
             libraries_for_language[libid] = dict(type="cratesio", build_type="cargo", targets=[libversion])
@@ -136,7 +135,8 @@ class LibraryYaml:
             lookupname = libid
             if linux_libid not in linux_libraries:
                 if linux_libid == "catch2v2":
-                    # hardcoded, we renamed this manually in the yaml file to distinguish catch2 versions that were header-only from the ones that are built
+                    # hardcoded, we renamed this manually in the yaml file to distinguish catch2 versions that were
+                    # header-only from the ones that are built
                     lookupname = "catch2"
                 else:
                     lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
