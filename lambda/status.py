@@ -171,18 +171,19 @@ def lambda_handler(event, _context):
 def extract_version_from_key(key_str):
     """Extract clean version number from an S3 key
 
-    For paths like 'dist/gh/main/12345.tar.xz', returns 'gh-12345'.
+    For paths like 'dist/gh/main/12345.tar.xz' or 'dist/gh/feature/branch/12345.tar.xz',
+    returns 'gh-12345'.
     We use 'gh-' prefix to indicate GitHub build numbers, following CLI tool conventions.
     """
     # Handle empty or None key
     if not key_str:
         return "unknown"
 
-    # Extract build number from dist/gh/{branch}/{number}.tar.xz format
-    # This is the only format we expect in S3 version files
-    path_match = re.search(r"dist/gh/[^/]+/(\d+)[.][^/]+$", key_str)
+    # Extract build number from dist/gh/**/{number}.tar.xz format
+    # This handles branch names with slashes (e.g., 'mg/wasming')
+    path_match = re.search(r"dist/gh/(.+)/(\d+)[.][^/]+$", key_str)
     if path_match:
-        return f"gh-{path_match.group(1)}"
+        return f"gh-{path_match.group(2)}"
 
     # For any other unexpected formats, just keep the original
     return key_str
@@ -240,8 +241,8 @@ def parse_version_info(version_str):
         if not version_str:
             return version_info
 
-        # Expected format: dist/gh/{branch}/{build_num}.tar.xz
-        path_match = re.match(r"dist/gh/([^/]+)/(\d+)[.][^/]+$", version_str)
+        # Expected format: dist/gh/{branch}/{build_num}.tar.xz, where branch may contain slashes
+        path_match = re.match(r"dist/gh/(.+)/(\d+)[.][^/]+$", version_str)
         if path_match:
             branch = path_match.group(1)
             build_num = path_match.group(2)

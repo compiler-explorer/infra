@@ -129,6 +129,10 @@ class TestStatusLambda(unittest.TestCase):
         # Main case we care about: GitHub versions
         self.assertEqual(status.extract_version_from_key("dist/gh/main/12345.tar.xz"), "gh-12345")
 
+        # Branch names with slashes
+        self.assertEqual(status.extract_version_from_key("dist/gh/mg/wasming/14615.tar.xz"), "gh-14615")
+        self.assertEqual(status.extract_version_from_key("dist/gh/feature/new-ui/99999.tar.xz"), "gh-99999")
+
         # Already formatted correctly
         self.assertEqual(status.extract_version_from_key("gh-12345"), "gh-12345")
 
@@ -165,6 +169,22 @@ class TestStatusLambda(unittest.TestCase):
             self.assertEqual(result["version"], "gh-12345")
             self.assertEqual(result["type"], "GitHub")
             self.assertEqual(result["version_num"], "12345")
+            self.assertEqual(result["branch"], "main")
+            self.assertEqual(result["hash"], "1234567890abcdef1234567890abcdef12345678")
+
+        # Branch with slashes
+        with patch("status.fetch_commit_hash") as mock_fetch:
+            mock_fetch.return_value = {
+                "hash": "1234567890abcdef1234567890abcdef12345678",
+                "hash_short": "1234567",
+                "hash_url": "https://github.com/compiler-explorer/compiler-explorer/tree/1234567890abcdef1234567890abcdef12345678",
+            }
+
+            result = status.parse_version_info("dist/gh/mg/wasming/14615.tar.xz")
+            self.assertEqual(result["version"], "gh-14615")
+            self.assertEqual(result["type"], "GitHub")
+            self.assertEqual(result["version_num"], "14615")
+            self.assertEqual(result["branch"], "mg/wasming")
             self.assertEqual(result["hash"], "1234567890abcdef1234567890abcdef12345678")
 
         # Basic fallback
