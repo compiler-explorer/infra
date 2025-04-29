@@ -154,30 +154,22 @@ def lambda_handler(event, _context):
 
 
 def extract_version_from_key(key_str):
-    """Extract clean version number from an S3 key"""
-    # Try to extract a version number from a path like 'dist/gh/main/14618.tar.xz'
-    # or directly from 'gh-14618.tar.xz'
+    """Extract clean version number from an S3 key
 
-    # First, check for a gh-XXXX format
-    gh_match = re.search(r"gh-(\d+)", key_str)
-    if gh_match:
-        return f"gh-{gh_match.group(1)}"
+    For paths like 'dist/gh/main/12345.tar.xz', returns 'gh-12345'.
+    We use 'gh-' prefix to indicate GitHub build numbers, following CLI tool conventions.
+    """
+    # Handle empty or None key
+    if not key_str:
+        return "unknown"
 
-    # Then look for a version number in a path like dist/gh/main/14618.tar.xz
+    # Extract build number from dist/gh/{branch}/{number}.tar.xz format
+    # This is the only format we expect in S3 version files
     path_match = re.search(r"dist/gh/[^/]+/(\d+)[.][^/]+$", key_str)
     if path_match:
         return f"gh-{path_match.group(1)}"
 
-    # Generic pattern for version number at the end of a path
-    generic_path_match = re.search(r"/(\d+)[.][^/]+$", key_str)
-    if generic_path_match:
-        return f"gh-{generic_path_match.group(1)}"
-
-    # For other formats, just use the filename without extension
-    filename = key_str.split("/")[-1]
-    if "." in filename:
-        return filename.split(".")[0]
-
+    # For any other unexpected formats, just keep the original
     return key_str
 
 
@@ -219,70 +211,42 @@ def handle_hash_fetch_error(info_key, error, is_internal=False):
 def parse_version_info(version_str):
     """Parse version information to extract branch, version number, and commit hash"""
     try:
-        # Get the full release info from S3
-        version_info = {}
+        # Initialize with defaults
+        version_info = {
+            "type": "GitHub",  # All builds are GitHub builds now
+            "version": "unknown",
+            "version_num": "unknown",
+            "branch": "unknown",
+            "hash": "unknown",
+            "hash_short": "unknown",
+            "hash_url": None,
+        }
 
-        # Set the clean version number - removing any paths and extensions
-        cleaned_version = extract_version_from_key(version_str)
-        version_info["version"] = cleaned_version
+        if not version_str:
+            return version_info
 
-        # Extract basic version string and determine branch from path
-        # Extract branch from S3 path if possible (dist/gh/BRANCH/1234.tar.xz)
-        branch_match = re.match(r"dist/gh/([^/]+)/\d+[.][^/]+$", version_str)
-        branch = branch_match.group(1) if branch_match else "unknown"
-        version_info["branch"] = branch
-
-        if "gh-" in cleaned_version:
-            version_info["type"] = "GitHub"
-            version_num = cleaned_version.split("-")[1] if "-" in cleaned_version else "unknown"
-            version_info["version_num"] = version_num
-        else:
-            # Even if the cleaned version doesn't have 'gh-', the original might still be a GitHub build
-            # Set default type based on the raw version string pattern
-            if "dist/gh/" in version_str:
-                version_info["type"] = "GitHub"
-                # Try to extract the build number from the path
-                build_match = re.search(r"/(\d+)[.][^/]+$", version_str)
-                if build_match:
-                    version_info["version_num"] = build_match.group(1)
-                else:
-                    version_info["version_num"] = "unknown"
-            else:
-                version_info["type"] = "Unknown"
-                version_info["version_num"] = "unknown"
-
-        # Try to determine the correct info file path
-        info_key = None
-
-        # Parse the S3 path pattern which looks like: dist/gh/main/14618.tar.xz
+        # Expected format: dist/gh/{branch}/{build_num}.tar.xz
         path_match = re.match(r"dist/gh/([^/]+)/(\d+)[.][^/]+$", version_str)
         if path_match:
             branch = path_match.group(1)
             build_num = path_match.group(2)
-            info_key = f"dist/gh/{branch}/{build_num}.txt"
-            print(f"Determined info key from path: {info_key}")
 
-            # Also update the version info to accurately reflect this is a GitHub build
-            version_info["type"] = "GitHub"
-            version_info["version"] = f"gh-{build_num}"
+            # Update version info with extracted details
+            version_info["branch"] = branch
             version_info["version_num"] = build_num
-        elif "gh-" in version_str:
-            # Extract GitHub version if it's embedded in the path
-            match = re.search(r"(gh-\d+)", version_str)
-            if match:
-                info_key = f"dist/gh/{match.group(1)}.txt"
+            version_info["version"] = f"gh-{build_num}"
 
-        # Add hash information (or fallback values if not available)
-        hash_info = fetch_commit_hash(info_key) if info_key else None
-
-        if hash_info:
-            version_info.update(hash_info)
+            # Get commit hash information
+            info_key = f"dist/gh/{branch}/{build_num}.txt"
+            hash_info = fetch_commit_hash(info_key)
+            if hash_info:
+                version_info.update(hash_info)
         else:
-            version_info.update({"hash": "unknown", "hash_short": "unknown", "hash_url": None})
+            # If not in the expected format, just use the original
+            # but still try to get a clean version display
+            version_info["version"] = extract_version_from_key(version_str)
 
         return version_info
-    except (ValueError, TypeError, KeyError, AttributeError, IndexError) as e:
-        return handle_version_parse_error(version_str, e)
     except Exception as e:  # pylint: disable=broad-exception-caught
         # Fall back to safe defaults for unexpected errors
         return handle_version_parse_error(version_str, e, is_internal=True)
@@ -291,10 +255,9 @@ def parse_version_info(version_str):
 def fetch_commit_hash(info_key):
     """Fetch and validate commit hash from S3"""
     if not info_key:
-        return
+        return None
 
     try:
-        print(f"Looking for info file at: {info_key}")
         release_info = s3_client.get_object(Bucket="compiler-explorer", Key=info_key)
         commit_hash = release_info["Body"].read().decode("utf-8").strip()
 
@@ -305,10 +268,11 @@ def fetch_commit_hash(info_key):
                 "hash_short": commit_hash[:7],
                 "hash_url": f"https://github.com/compiler-explorer/compiler-explorer/tree/{commit_hash}",
             }
-    except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
-        handle_hash_fetch_error(info_key, e)
+        return None
     except Exception as e:  # pylint: disable=broad-exception-caught
-        handle_hash_fetch_error(info_key, e, is_internal=True)
+        # Log error and return
+        print(f"Error fetching hash from {info_key}: {str(e)}")
+        return None
 
 
 def handle_environment_error(env_name, error, is_internal=False):

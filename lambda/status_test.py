@@ -122,6 +122,55 @@ class TestStatusLambda(unittest.TestCase):
         self.assertEqual(result["health"]["status"], "Unknown")
         self.assertIn("error", result["health"])
 
+    def test_extract_version_from_key(self):
+        """Test the essential version key extraction functionality"""
+        # Main case we care about: GitHub versions
+        self.assertEqual(status.extract_version_from_key("dist/gh/main/12345.tar.xz"), "gh-12345")
+
+        # Already formatted correctly
+        self.assertEqual(status.extract_version_from_key("gh-12345"), "gh-12345")
+
+        # Simple fallback case
+        self.assertEqual(status.extract_version_from_key("some-version"), "some-version")
+
+    @patch("status.s3_client")
+    def test_fetch_commit_hash(self, mock_s3):
+        """Test hash fetching functionality"""
+        # Valid hash
+        mock_s3.get_object.return_value = {"Body": MagicMock(read=lambda: b"1234567890abcdef1234567890abcdef12345678")}
+        result = status.fetch_commit_hash("dist/gh/main/12345.txt")
+        self.assertEqual(result["hash"], "1234567890abcdef1234567890abcdef12345678")
+        self.assertEqual(result["hash_short"], "1234567")
+
+        # Handle exceptions
+        mock_s3.get_object.side_effect = Exception("Test error")
+        result = status.fetch_commit_hash("dist/gh/main/12345.txt")
+        self.assertIsNone(result)
+
+    def test_parse_version_info(self):
+        """Test version parsing for the main cases we care about"""
+        # GitHub version with path
+        with patch("status.fetch_commit_hash") as mock_fetch:
+            mock_fetch.return_value = {
+                "hash": "1234567890abcdef1234567890abcdef12345678",
+                "hash_short": "1234567",
+                "hash_url": "https://github.com/compiler-explorer/compiler-explorer/tree/1234567890abcdef1234567890abcdef12345678",
+            }
+
+            result = status.parse_version_info("dist/gh/main/12345.tar.xz")
+            self.assertEqual(result["version"], "gh-12345")
+            self.assertEqual(result["type"], "GitHub")
+            self.assertEqual(result["version_num"], "12345")
+            self.assertEqual(result["hash"], "1234567890abcdef1234567890abcdef12345678")
+
+        # Basic fallback
+        with patch("status.fetch_commit_hash") as mock_fetch:
+            mock_fetch.return_value = None
+
+            result = status.parse_version_info("some-version")
+            self.assertEqual(result["version"], "some-version")
+            self.assertEqual(result["hash"], "unknown")
+
 
 if __name__ == "__main__":
     unittest.main()
