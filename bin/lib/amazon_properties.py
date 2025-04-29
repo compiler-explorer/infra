@@ -2,10 +2,11 @@ import os
 import re
 import urllib.parse
 from collections import defaultdict
-from typing import Dict, Any
-from lib.library_platform import LibraryPlatform
+from typing import Any, Dict
 
 import requests
+
+from lib.library_platform import LibraryPlatform
 
 
 def get_specific_library_version_details(libraries, libid, library_version):

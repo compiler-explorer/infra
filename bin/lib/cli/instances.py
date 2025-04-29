@@ -4,18 +4,18 @@ import shlex
 import subprocess
 import sys
 import time
-from typing import Sequence, Dict
+from typing import Dict, Sequence
 
 import click
 
-from lib.amazon import as_client, target_group_arn_for, get_autoscaling_group
-from lib.ce_utils import describe_current_release, are_you_sure, logger, wait_for_autoscale_state, set_update_message
+from lib.amazon import as_client, get_autoscaling_group, target_group_arn_for
+from lib.ce_utils import are_you_sure, describe_current_release, set_update_message, wait_for_autoscale_state
 from lib.cli import cli
 from lib.env import Config, Environment
-from lib.instance import print_instances, Instance
-from lib.ssh import exec_remote_all, run_remote_shell, exec_remote
+from lib.instance import Instance, print_instances
+from lib.ssh import exec_remote, exec_remote_all, run_remote_shell
 
-logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 
 @cli.group()
@@ -51,14 +51,14 @@ def instances_restart_one(cfg: Config):
     instance = pick_instance(cfg)
     as_instance_status = instance.describe_autoscale()
     if not as_instance_status:
-        logger.error("Failed restarting %s - was not in ASG", instance)
+        LOGGER.error("Failed restarting %s - was not in ASG", instance)
         return
     as_group_name = as_instance_status["AutoScalingGroupName"]
     modified_groups: Dict[str, int] = {}
     try:
         restart_one_instance(as_group_name, instance, modified_groups)
     except RuntimeError as e:
-        logger.error("Failed restarting %s - skipping: %s", instance, e)
+        LOGGER.error("Failed restarting %s - skipping: %s", instance, e)
 
 
 @instances.command(name="start")
@@ -101,25 +101,25 @@ def instances_restart(cfg: Config, motd: str):
     to_restart = pick_instances(cfg)
 
     for index, instance in enumerate(to_restart):
-        logger.info("Restarting %s (%d of %d)...", instance, index + 1, len(to_restart))
+        LOGGER.info("Restarting %s (%d of %d)...", instance, index + 1, len(to_restart))
         as_instance_status = instance.describe_autoscale()
         if not as_instance_status:
-            logger.warning("Skipping %s as it is no longer in the ASG", instance)
+            LOGGER.warning("Skipping %s as it is no longer in the ASG", instance)
             continue
         as_group_name = as_instance_status["AutoScalingGroupName"]
         if as_instance_status["LifecycleState"] != "InService":
-            logger.warning("Skipping %s as it is not InService (%s)", instance, as_instance_status)
+            LOGGER.warning("Skipping %s as it is not InService (%s)", instance, as_instance_status)
             continue
 
         try:
             restart_one_instance(as_group_name, instance, modified_groups)
         except RuntimeError as e:
-            logger.error("Failed restarting %s - skipping: %s", instance, e)
+            LOGGER.error("Failed restarting %s - skipping: %s", instance, e)
             failed = True
             # TODO, what here?
 
     for group, desired in iter(modified_groups.items()):
-        logger.info("Putting desired instances for %s back to %d", group, desired)
+        LOGGER.info("Putting desired instances for %s back to %d", group, desired)
         as_client.update_auto_scaling_group(AutoScalingGroupName=group, DesiredCapacity=desired)
     set_update_message(cfg, "")
     end_time = datetime.datetime.now()
@@ -154,48 +154,48 @@ def pick_instances(cfg: Config):
 
 def restart_one_instance(as_group_name: str, instance: Instance, modified_groups: Dict[str, int]):
     instance_id = instance.instance.instance_id
-    logger.info("Enabling instance protection for %s", instance)
+    LOGGER.info("Enabling instance protection for %s", instance)
     as_client.set_instance_protection(
         AutoScalingGroupName=as_group_name, InstanceIds=[instance_id], ProtectedFromScaleIn=True
     )
     as_group = get_autoscaling_group(as_group_name)
     adjustment_required = as_group["DesiredCapacity"] == as_group["MinSize"]
     if adjustment_required:
-        logger.info("Group '%s' needs to be adjusted to keep enough nodes", as_group_name)
+        LOGGER.info("Group '%s' needs to be adjusted to keep enough nodes", as_group_name)
         modified_groups[as_group["AutoScalingGroupName"]] = as_group["DesiredCapacity"]
-    logger.info("Putting %s into standby", instance)
+    LOGGER.info("Putting %s into standby", instance)
     as_client.enter_standby(
         InstanceIds=[instance_id],
         AutoScalingGroupName=as_group_name,
         ShouldDecrementDesiredCapacity=not adjustment_required,
     )
     wait_for_autoscale_state(instance, "Standby")
-    logger.info("Restarting service on %s", instance)
+    LOGGER.info("Restarting service on %s", instance)
     restart_response = exec_remote(instance, ["sudo", "systemctl", "restart", "compiler-explorer"])
     if restart_response:
-        logger.warning("Restart gave some output: %s", restart_response)
+        LOGGER.warning("Restart gave some output: %s", restart_response)
     wait_for_healthok(instance)
-    logger.info("Moving %s out of standby", instance)
+    LOGGER.info("Moving %s out of standby", instance)
     as_client.exit_standby(InstanceIds=[instance_id], AutoScalingGroupName=as_group_name)
     wait_for_autoscale_state(instance, "InService")
     wait_for_elb_state(instance, "healthy")
-    logger.info("Disabling instance protection for %s", instance)
+    LOGGER.info("Disabling instance protection for %s", instance)
     as_client.set_instance_protection(
         AutoScalingGroupName=as_group_name, InstanceIds=[instance_id], ProtectedFromScaleIn=False
     )
-    logger.info("Instance restarted ok")
+    LOGGER.info("Instance restarted ok")
 
 
 def wait_for_elb_state(instance, state):
-    logger.info("Waiting for %s to reach ELB state '%s'...", instance, state)
+    LOGGER.info("Waiting for %s to reach ELB state '%s'...", instance, state)
     while True:
         instance.update()
         instance_state = instance.instance.state["Name"]
         if instance_state != "running":
             raise RuntimeError("Instance no longer running (state {})".format(instance_state))
-        logger.debug("State is %s", instance.elb_health)
+        LOGGER.debug("State is %s", instance.elb_health)
         if instance.elb_health == state:
-            logger.info("...done")
+            LOGGER.info("...done")
             return
         time.sleep(5)
 
@@ -209,7 +209,7 @@ def is_everything_awesome(instance):
 
 
 def wait_for_healthok(instance):
-    logger.info("Waiting for instance to be Online %s", instance)
+    LOGGER.info("Waiting for instance to be Online %s", instance)
     sys.stdout.write("Waiting")
     while not is_everything_awesome(instance):
         sys.stdout.write(".")

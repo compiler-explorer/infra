@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import functools
+import logging
 import os
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from lib.amazon import list_s3_artifacts
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
 from lib.staging import StagingDir
-
-import logging
 
 _LOGGER = logging.getLogger(__name__)
 

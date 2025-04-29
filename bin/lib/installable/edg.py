@@ -1,16 +1,17 @@
 from __future__ import annotations
-from dataclasses import dataclass
-import logging
-import tempfile
-from typing import Dict, Any, Callable
 
+import logging
 import shlex
 import subprocess
+import tempfile
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable, Dict
+
 from lib import amazon
 from lib.installable.archives import NonFreeS3TarballInstallable
 from lib.installation_context import InstallationContext
 from lib.staging import StagingDir
-from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             return backend_path / "bin" / "gcc"
         else:
             # Currently only GCC emulation is supported on Compiler Explorer.
-            assert False, f"Emulation of the {self._compiler_type} C compiler family is not supported"
+            raise AssertionError(f"Emulation of the {self._compiler_type} C compiler family is not supported")
 
     def _resolve_emulated_cpp_compiler(self) -> Path:
         """The EDG front end generates C files and thus uses a backing C
@@ -127,7 +128,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             return backend_path / "bin" / "g++"
         else:
             # Currently only GCC emulation is supported on Compiler Explorer.
-            assert False, f"Emulation of the {self._compiler_type} C++ compiler family is not supported"
+            raise AssertionError(f"Emulation of the {self._compiler_type} C++ compiler family is not supported")
 
     def _scrape_backend_compiler(self, staging: StagingDir, backend_compiler_path: Path) -> EdgBackendCompilerScrape:
         """The EDG front end when emulating a compiler needs to know that
@@ -185,12 +186,12 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
             if self._compiler_type == "gcc":
                 command_args = ["--g++", str(emulated_cpp_compiler_path), "--gcc", str(emulated_c_compiler_path)]
             elif self._compiler_type == "clang":
-                assert (
-                    emulated_c_compiler_path == emulated_cpp_compiler_path
-                ), "The emulate clang C and C++ compiler should be the same binary"
+                assert emulated_c_compiler_path == emulated_cpp_compiler_path, (
+                    "The emulate clang C and C++ compiler should be the same binary"
+                )
                 command_args = ["--clang", str(emulated_cpp_compiler_path)]
             else:
-                assert False, f"Cannot generate macros for {self._compiler_type}"
+                raise AssertionError(f"Cannot generate macros for {self._compiler_type}")
 
             command = ["bash", temp_file.name, *command_args]
             _LOGGER.info("Running %s", shlex.join(command))

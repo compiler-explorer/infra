@@ -4,25 +4,25 @@ import json
 import logging
 import logging.config
 import multiprocessing
-from multiprocessing.pool import ThreadPool
 import os
 import signal
 import sys
 import traceback
 from dataclasses import dataclass
 from functools import partial
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import List, Optional, Tuple, TextIO
+from typing import List, Optional, TextIO, Tuple
 
 import click
 import yaml
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.library_platform import LibraryPlatform
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
 from lib.installation import installers_for
 from lib.installation_context import InstallationContext
+from lib.library_platform import LibraryPlatform
 from lib.library_yaml import LibraryYaml
 
 _LOGGER = logging.getLogger(__name__)
@@ -441,7 +441,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
                     else:
                         _LOGGER.info("%s installed OK", installable.name)
                         num_installed += 1
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:
                 _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
                 failed.append(installable.name)
         else:
@@ -449,7 +449,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
             num_skipped += 1
     print(
         f"{num_installed} packages installed "
-        f'{"(apparently; this was a dry-run) " if context.installation_context.dry_run else ""}OK, '
+        f"{'(apparently; this was a dry-run) ' if context.installation_context.dry_run else ''}OK, "
         f"{num_skipped} skipped, and {len(failed)} failed installation"
     )
     if len(failed):
@@ -466,8 +466,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
     "--buildfor",
     default="",
     metavar="BUILDFOR",
-    help="Filter to only build for given compiler (should be a CE compiler identifier), "
-    "leave empty to build for all",
+    help="Filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all",
 )
 @click.option("--popular-compilers-only", is_flag=True, help="Only build with popular (enough) compilers")
 @click.option("--temp-install", is_flag=True, help="Temporary install target if it's not installed yet")
@@ -632,7 +631,7 @@ def config_dump(context: CliContext, output: TextIO):
 
 
 def main():
-    cli(prog_name="ce_install")  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    cli(prog_name="ce_install")
 
 
 if __name__ == "__main__":

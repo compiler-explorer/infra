@@ -9,22 +9,22 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from collections import defaultdict
 from enum import Enum, unique
 from pathlib import Path
-import time
-from typing import Dict, Any, List, Optional, Generator, TextIO
+from typing import Any, Dict, Generator, List, Optional, TextIO
+
 import botocore
+import requests
 from urllib3.exceptions import ProtocolError
 
-import requests
-
-from lib.library_build_history import LibraryBuildHistory
 from lib.amazon import get_ssm_param
-from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
-from lib.library_platform import LibraryPlatform
+from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_build_history import LibraryBuildHistory
+from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
@@ -228,10 +228,9 @@ class LibraryBuilder:
         return False
 
     def getDefaultTargetFromCompiler(self, exe):
-        # pylint: disable=W0702
         try:
             return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore").strip()
-        except:
+        except:  # noqa: E722
             return False
 
     def get_compiler_support_output(self, exe, compilerType, ldPath):
@@ -246,7 +245,7 @@ class LibraryBuilder:
             if "icc" in exe:
                 output = subprocess.check_output([exe, "--help"], env=fullenv).decode("utf-8", "ignore")
             else:
-                if not ("zapcc" in exe) and not ("icpx" in exe):
+                if "zapcc" not in exe and "icpx" not in exe:
                     try:
                         output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
                     except subprocess.CalledProcessError as e:
@@ -350,7 +349,7 @@ class LibraryBuilder:
         last_error = ""
         while retries > 0:
             try:
-                if headers != None:
+                if headers is not None:
                     request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
                     request = requests.post(
@@ -363,7 +362,7 @@ class LibraryBuilder:
                 retries = retries - 1
                 time.sleep(1)
 
-        if request == None:
+        if request is None:
             request = {"ok": False, "text": last_error}
 
         return request
@@ -373,7 +372,7 @@ class LibraryBuilder:
         retries = 3
         while retries > 0:
             try:
-                if headers != None:
+                if headers is not None:
                     request = requests.get(url, stream=stream, headers=headers, timeout=timeout)
                 else:
                     request = requests.get(
@@ -609,7 +608,10 @@ class LibraryBuilder:
                         )
                         if boosttarget == "i386":
                             cxx_flags += " -DBOOST_STACKTRACE_LIBCXX_RUNTIME_MAY_CAUSE_MEMORY_LEAK "
-                            targetparams += ' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" "-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" "-DBOOST_LOCALE_ENABLE_ICU=OFF" '
+                            targetparams += (
+                                ' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" '
+                                '"-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" "-DBOOST_LOCALE_ENABLE_ICU=OFF" '
+                            )
 
                 generator = ""
                 if self.platform == LibraryPlatform.Linux:
@@ -633,7 +635,13 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" "-DCMAKE_C_FLAGS_DEBUG={c_flags}" "-DCMAKE_ASM_FLAGS_DEBUG={asm_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                cmakeline = (
+                    f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
+                    f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
+                    f'"-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" "-DCMAKE_C_FLAGS_DEBUG={c_flags}" '
+                    f'"-DCMAKE_ASM_FLAGS_DEBUG={asm_flags}" {extracmakeargs} {sourcefolder} '
+                    f"> cecmakelog.txt 2>&1\n"
+                )
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
@@ -1320,7 +1328,7 @@ class LibraryBuilder:
             self.logger.debug("downloading compiler popularity csv")
             self.download_compiler_usage_csv()
 
-        if not compiler in popular_compilers:
+        if compiler not in popular_compilers:
             return False
 
         if popular_compilers[compiler] < compiler_popularity_treshhold:

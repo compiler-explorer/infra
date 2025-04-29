@@ -6,7 +6,7 @@ import re
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 from lib.installable.installable import Installable
 from lib.staging import StagingDir

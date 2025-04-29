@@ -2,11 +2,11 @@ import itertools
 import json
 import logging
 import time
-from typing import Optional, Union, Set, List
+from typing import List, Optional, Set, Union
 
 import click
 
-from lib.amazon import get_current_key, release_for, get_releases, get_events_file, save_event_file
+from lib.amazon import get_current_key, get_events_file, get_releases, release_for, save_event_file
 from lib.env import Config
 from lib.instance import Instance
 from lib.releases import Hash, Release

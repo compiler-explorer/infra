@@ -4,17 +4,17 @@ Deterministic Lambda package builder for Compiler Explorer.
 Uses Poetry for dependency management and creates a reproducible ZIP file.
 """
 
-import shutil
-import zipfile
+import base64
 import hashlib
+import os
+import re
+import shlex
+import shutil
 import subprocess
 import tempfile
-import base64
-import re
-import os
-from pathlib import Path
+import zipfile
 from contextlib import contextmanager
-import shlex
+from pathlib import Path
 
 # Exclusion patterns for files we don't want in the package
 EXCLUDE_PATTERN = re.compile(r"(__pycache__|\.pyc$|/tests/|\.dist-info$)")

@@ -1,14 +1,13 @@
 import re
 from pathlib import Path
+from unittest import mock
 
 import pytest
 import yaml
-
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
 from lib.installation import targets_from
 from lib.installation_context import InstallationContext
-from unittest import mock
 
 
 def parse_targets(string_config, enabled=None):
@@ -20,23 +19,19 @@ def test_targets_from_simple_cases():
     assert list(targets_from({}, set())) == []
     assert parse_targets("") == []
 
-    assert (
-        parse_targets(
-            """
+    assert parse_targets(
+        """
 weasel:
     type: foo
     targets:
     - moo
     """
-        )
-        == [{"type": "foo", "name": "moo", "underscore_name": "moo", "context": ["weasel"]}]
-    )
+    ) == [{"type": "foo", "name": "moo", "underscore_name": "moo", "context": ["weasel"]}]
 
 
 def test_targets_from_carries_hierarchy_config():
-    assert (
-        parse_targets(
-            """
+    assert parse_targets(
+        """
 weasel:
     base_config: "weasel"
     weasel_config: "weasel"
@@ -46,18 +41,16 @@ weasel:
         targets:
         - ook
     """
-        )
-        == [
-            {
-                "type": "foo",
-                "base_config": "baboon",
-                "weasel_config": "weasel",
-                "context": ["weasel", "baboon"],
-                "name": "ook",
-                "underscore_name": "ook",
-            }
-        ]
-    )
+    ) == [
+        {
+            "type": "foo",
+            "base_config": "baboon",
+            "weasel_config": "weasel",
+            "context": ["weasel", "baboon"],
+            "name": "ook",
+            "underscore_name": "ook",
+        }
+    ]
 
 
 def test_codependent_configs():

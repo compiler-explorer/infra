@@ -4,7 +4,7 @@ import click
 
 from lib.cli import cli
 from lib.instance import ConanInstance
-from lib.ssh import run_remote_shell, exec_remote_to_stdout, exec_remote
+from lib.ssh import exec_remote, exec_remote_to_stdout, run_remote_shell
 
 
 @cli.group()

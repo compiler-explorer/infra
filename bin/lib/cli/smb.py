@@ -4,7 +4,7 @@ import click
 
 from lib.cli import cli
 from lib.instance import SMBInstance, SMBTestInstance
-from lib.ssh import run_remote_shell, exec_remote_to_stdout
+from lib.ssh import exec_remote_to_stdout, run_remote_shell
 
 
 @cli.group()

@@ -1,13 +1,12 @@
+import ast
+import io
 from logging import Logger
+from unittest import mock
 
 from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
 from lib.library_platform import LibraryPlatform
-
-from unittest import mock
-import io
-import ast
 
 BASE = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/"
 

@@ -3,21 +3,21 @@ from __future__ import annotations
 from collections import ChainMap
 from datetime import datetime
 
-from lib.config_expand import is_value_type, expand_target
+from lib.config_expand import expand_target, is_value_type
 from lib.installable.archives import (
-    S3TarballInstallable,
     NightlyInstallable,
-    TarballInstallable,
     NightlyTarballInstallable,
-    ZipArchiveInstallable,
-    RestQueryTarballInstallable,
     NonFreeS3TarballInstallable,
+    RestQueryTarballInstallable,
+    S3TarballInstallable,
+    TarballInstallable,
+    ZipArchiveInstallable,
 )
 from lib.installable.edg import EdgCompilerInstallable
-from lib.installable.git import GitHubInstallable, GitLabInstallable, BitbucketInstallable
+from lib.installable.git import BitbucketInstallable, GitHubInstallable, GitLabInstallable
 from lib.installable.installable import SingleFileInstallable
 from lib.installable.python import PipInstallable
-from lib.installable.rust import RustInstallable, CratesIOInstallable
+from lib.installable.rust import CratesIOInstallable, RustInstallable
 from lib.installable.script import ScriptInstallable
 from lib.installable.solidity import SolidityInstallable
 

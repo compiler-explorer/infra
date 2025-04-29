@@ -1,5 +1,5 @@
-from lib.cli.runner import runner_check_discovery_json_contents
 import pytest
+from lib.cli.runner import runner_check_discovery_json_contents
 
 
 def test_should_find_remote_compilers():
