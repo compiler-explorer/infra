@@ -91,9 +91,13 @@ def create_deterministic_zip(source_dir, output_path):
 def get_poetry_venv_site_packages(lambda_dir, repo_root):
     """Get the site-packages directory from Poetry's virtual environment"""
     try:
-        # Create or ensure the virtual environment exists
+        # Create or ensure the virtual environment exists with only main dependencies
         poetry_bin = repo_root / ".poetry/bin/poetry"
-        run_command([str(poetry_bin), "install", "--no-root", "--no-interaction"], cwd=lambda_dir, capture_output=False)
+        run_command(
+            [str(poetry_bin), "install", "--no-root", "--no-interaction", "--only", "main"],
+            cwd=lambda_dir,
+            capture_output=False,
+        )
 
         # Get the path to the virtual environment
         venv_path = run_command([str(poetry_bin), "env", "info", "--path"], cwd=lambda_dir)
