@@ -1,27 +1,21 @@
 import boto3
+import functools
 import json
 from datetime import datetime, timezone
 import os
 import re
-from functools import cache
 
 # AWS clients are initialized on demand with caching to make testing easier
-@cache
+@functools.cache
 def get_s3_client():
     """Get or initialize S3 client"""
     return boto3.client("s3")
 
 
-@cache
+@functools.cache
 def get_lb_client():
     """Get or initialize load balancer client"""
     return boto3.client("elbv2")
-
-
-@cache
-def get_ec2_client():
-    """Get or initialize EC2 client"""
-    return boto3.client("ec2")
 
 
 # Environment configuration based on bin/lib/env.py
@@ -268,8 +262,13 @@ def parse_version_info(version_str):
         return handle_version_parse_error(version_str, e, is_internal=True)
 
 
+@functools.lru_cache(maxsize=128)
 def fetch_commit_hash(info_key):
-    """Fetch and validate commit hash from S3"""
+    """Fetch and validate commit hash from S3
+
+    This function is cached using LRU cache since the S3 files containing commit hashes
+    are treated as immutable. Once we've read a hash, we don't need to fetch it again.
+    """
     if not info_key:
         return None
 

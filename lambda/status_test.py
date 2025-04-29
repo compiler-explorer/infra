@@ -142,6 +142,9 @@ class TestStatusLambda(unittest.TestCase):
     @patch("status.get_s3_client")
     def test_fetch_commit_hash(self, mock_s3_client):
         """Test hash fetching functionality"""
+        # Clear the cache for this test
+        status.fetch_commit_hash.cache_clear()
+
         # Valid hash
         mock_s3_client.return_value.get_object.return_value = {
             "Body": MagicMock(read=lambda: b"1234567890abcdef1234567890abcdef12345678")
@@ -150,9 +153,9 @@ class TestStatusLambda(unittest.TestCase):
         self.assertEqual(result["hash"], "1234567890abcdef1234567890abcdef12345678")
         self.assertEqual(result["hash_short"], "1234567")
 
-        # Handle exceptions
+        # Handle exceptions - use a different key to avoid cache
         mock_s3_client.return_value.get_object.side_effect = Exception("Test error")
-        result = status.fetch_commit_hash("dist/gh/main/12345.txt")
+        result = status.fetch_commit_hash("dist/gh/main/98765.txt")  # Different key to avoid cache
         self.assertIsNone(result)
 
     def test_parse_version_info(self):
