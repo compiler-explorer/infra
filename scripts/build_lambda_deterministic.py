@@ -149,10 +149,12 @@ def build_lambda_package():
 
         # Copy lambda Python files (excluding tests)
         print("Copying lambda Python files")
-        for item in lambda_dir.glob("*.py"):
+        for item in lambda_dir.rglob("*.py"):
             if not item.name.endswith("_test.py"):
-                shutil.copy2(item, staging_dir / item.name)
-                print(f"Copied: {item.name}")
+                target_path = staging_dir / item.relative_to(lambda_dir)
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(item, target_path)
+                print(f"Copied: {item.relative_to(lambda_dir)}")
 
         # Copy dependencies from site-packages
         print("Copying dependencies from Poetry virtual environment")
