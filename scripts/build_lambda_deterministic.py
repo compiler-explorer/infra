@@ -11,7 +11,9 @@ import subprocess
 import tempfile
 import base64
 import re
+import os
 from pathlib import Path
+from contextlib import contextmanager
 import shlex
 
 # Exclusion patterns for files we don't want in the package
@@ -23,6 +25,7 @@ EXCLUDE_COPY = shutil.ignore_patterns(
 
 def run_command(cmd, cwd=None, capture_output=True):
     """Run shell command and return output"""
+    cmd = [str(x) for x in cmd] if isinstance(cmd, list) else str(cmd)
     print(f"Running: {shlex.join(cmd) if isinstance(cmd, list) else cmd}")
 
     kwargs = {"cwd": cwd, "shell": isinstance(cmd, str)}
@@ -88,21 +91,30 @@ def create_deterministic_zip(source_dir, output_path):
     return sha256_base64
 
 
+@contextmanager
+def new_virtualenv(venv):
+    old_env = os.environ.get("VIRTUAL_ENV")
+    os.environ["VIRTUAL_ENV"] = str(venv)
+    yield
+    if old_env:
+        os.environ["VIRTUAL_ENV"] = old_env
+
+
 def get_poetry_venv_site_packages(lambda_dir, repo_root):
     """Get the site-packages directory from Poetry's virtual environment"""
-    try:
-        # Create or ensure the virtual environment exists with only main dependencies
-        poetry_bin = repo_root / ".poetry/bin/poetry"
+    # Create or ensure the virtual environment exists with only main dependencies
+    poetry_bin = repo_root / ".poetry/bin/poetry"
+    with new_virtualenv(lambda_dir / ".venv"):
         run_command(
-            [str(poetry_bin), "install", "--no-root", "--no-interaction", "--only", "main"],
+            [poetry_bin, "sync", "--no-root", "--no-interaction", "--only", "main"],
             cwd=lambda_dir,
             capture_output=False,
         )
-
         # Get the path to the virtual environment
-        venv_path = run_command([str(poetry_bin), "env", "info", "--path"], cwd=lambda_dir)
+        venv_path = run_command([poetry_bin, "env", "info", "--path"], cwd=lambda_dir)
         if not venv_path:
             raise RuntimeError("Could not determine Poetry virtual environment path")
+        print(lambda_dir, venv_path)
 
         # Find site-packages directory
         venv_path = Path(venv_path)
@@ -113,12 +125,7 @@ def get_poetry_venv_site_packages(lambda_dir, repo_root):
 
         site_packages = site_packages_dirs[0]
         print(f"Found site-packages directory: {site_packages}")
-        return site_packages
-
-    except RuntimeError:
-        raise
-    except Exception as e:
-        raise RuntimeError(f"Error with Poetry virtual environment: {e}") from e
+    return site_packages
 
 
 def build_lambda_package():
