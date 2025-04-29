@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Compiler Explorer - Environment Status</title>
+    <script src="knockout-3.4.2.js"></script>
+    <script src="simpleGrid.js"></script>
+    <link rel="icon" type="image/png"
+          href="https://github.com/compiler-explorer/infra/blob/main/logo/favicon.png?raw=true"/>
+    <link rel="stylesheet" href="status.css">
+</head>
+<body>
+    <div class="header">
+        <h1>Compiler Explorer Environment Status</h1>
+        <p>Last updated: <span data-bind="text: lastUpdated"></span></p>
+    </div>
+
+    <div class="controls">
+        <div class="refresh-container">
+            <button class="refresh-button" data-bind="click: refreshData">Refresh Data</button>
+            <label class="auto-refresh-label">
+                <input type="checkbox" data-bind="checked: autoRefreshEnabled">
+                Auto-refresh (30s)
+            </label>
+        </div>
+    </div>
+
+    <div class="loading" data-bind="visible: isLoading() && items().length === 0">
+        Loading environment status...
+    </div>
+
+    <div class="error" data-bind="visible: hasError, text: errorMessage"></div>
+
+    <div data-bind="visible: !hasError()">
+        <div data-bind="simpleGrid: gridViewModel"></div>
+    </div>
+
+    <script src="status.js"></script>
+    <script>
+        // Initialize and bind the view model
+        const statusViewModel = new StatusViewModel();
+        ko.applyBindings(statusViewModel);
+    </script>
+</body>
+</html>

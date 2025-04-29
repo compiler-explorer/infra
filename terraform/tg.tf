@@ -65,3 +65,16 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   target_id        = aws_instance.ConanNode.id
   port             = 1080
 }
+
+# Target group for the status Lambda
+resource "aws_alb_target_group" "lambda_status" {
+  name        = "StatusApiTargetGroup"
+  target_type = "lambda"
+}
+
+# Attach the Lambda function to the target group
+resource "aws_alb_target_group_attachment" "lambda-status-endpoint" {
+  target_group_arn = aws_alb_target_group.lambda_status.arn
+  target_id        = aws_lambda_function.status.arn
+  depends_on       = [aws_lambda_permission.from_alb_status]
+}
