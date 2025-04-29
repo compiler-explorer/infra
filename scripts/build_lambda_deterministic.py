@@ -114,7 +114,6 @@ def get_poetry_venv_site_packages(lambda_dir, repo_root):
         venv_path = run_command([poetry_bin, "env", "info", "--path"], cwd=lambda_dir)
         if not venv_path:
             raise RuntimeError("Could not determine Poetry virtual environment path")
-        print(lambda_dir, venv_path)
 
         # Find site-packages directory
         venv_path = Path(venv_path)
