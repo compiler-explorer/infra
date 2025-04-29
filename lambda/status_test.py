@@ -61,9 +61,15 @@ class TestStatusLambda(unittest.TestCase):
 
     @patch("status.get_s3_client")
     @patch("status.get_lb_client")
-    def test_get_environment_status(self, mock_lb_client, mock_s3_client):
+    @patch("status.get_as_client")
+    def test_get_environment_status(self, mock_as_client, mock_lb_client, mock_s3_client):
         # Mock S3 response
         mock_s3_client.return_value.get_object.return_value = {"Body": MagicMock(read=lambda: b"abc123")}
+
+        # Mock AutoScaling response
+        mock_as_client.return_value.describe_auto_scaling_groups.return_value = {
+            "AutoScalingGroups": [{"AutoScalingGroupName": "prod", "DesiredCapacity": 2, "MinSize": 2, "MaxSize": 24}]
+        }
 
         # Mock load balancer response
         mock_lb_client.return_value.describe_target_health.return_value = {
@@ -93,6 +99,8 @@ class TestStatusLambda(unittest.TestCase):
         self.assertEqual(result["health"]["healthy_targets"], 2)
         self.assertEqual(result["health"]["total_targets"], 3)
         self.assertEqual(result["health"]["status"], "Online")
+        self.assertEqual(result["health"]["status_type"], "success")
+        self.assertEqual(result["health"]["desired_capacity"], 2)
 
         # Verify S3 client was called
         mock_s3_client.return_value.get_object.assert_called_once_with(
@@ -101,6 +109,41 @@ class TestStatusLambda(unittest.TestCase):
 
         # Verify load balancer client was called
         mock_lb_client.return_value.describe_target_health.assert_called_once_with(TargetGroupArn=env["load_balancer"])
+
+    @patch("status.get_s3_client")
+    @patch("status.get_as_client")
+    def test_get_environment_status_deliberate_shutdown(self, mock_as_client, mock_s3_client):
+        """Test that we correctly identify environments that are deliberately shut down"""
+        # Mock S3 response
+        mock_s3_client.return_value.get_object.return_value = {"Body": MagicMock(read=lambda: b"abc123")}
+
+        # Mock AutoScaling response - desired capacity is 0
+        mock_as_client.return_value.describe_auto_scaling_groups.return_value = {
+            "AutoScalingGroups": [{"AutoScalingGroupName": "beta", "DesiredCapacity": 0, "MinSize": 0, "MaxSize": 4}]
+        }
+
+        # Mock LB client inside the status module
+        with patch("status.get_lb_client") as mock_lb_client:
+            # No healthy targets
+            mock_lb_client.return_value.describe_target_health.return_value = {"TargetHealthDescriptions": []}
+
+            # Test environment
+            env = {
+                "name": "beta",
+                "description": "Beta Environment",
+                "url": "godbolt.org/beta",
+                "load_balancer": "arn:aws:elasticloadbalancing:us-east-1:123:targetgroup/beta/xyz",
+                "is_production": False,
+                "version_key": "version/beta",
+            }
+
+            # Call the function
+            result = status.get_environment_status(env)
+
+            # Verify results - should be "Shut down" not "Offline"
+            self.assertEqual(result["health"]["status"], "Shut down")
+            self.assertEqual(result["health"]["status_type"], "secondary")
+            self.assertEqual(result["health"]["desired_capacity"], 0)
 
     @patch("status.get_s3_client")
     def test_get_environment_status_no_lb(self, mock_s3_client):

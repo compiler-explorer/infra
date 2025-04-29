@@ -270,6 +270,12 @@ data "aws_iam_policy_document" "aws_lambda_status" {
     resources = ["*"]
   }
   statement {
+    sid     = "AutoScalingAccess"
+    actions = ["autoscaling:DescribeAutoScalingGroups"]
+    # Must use wildcard resource as ASG ARNs cannot be specified more precisely in IAM
+    resources = ["*"]
+  }
+  statement {
     sid     = "Ec2Access"
     actions = ["ec2:DescribeInstances"]
     resources = ["*"]
@@ -278,7 +284,7 @@ data "aws_iam_policy_document" "aws_lambda_status" {
 
 resource "aws_iam_policy" "aws_lambda_status" {
   name        = "aws_lambda_status"
-  description = "Lambda status policy (S3, ELB, EC2)"
+  description = "Lambda status policy (S3, ELB, EC2, AutoScaling)"
   policy      = data.aws_iam_policy_document.aws_lambda_status.json
 }
 

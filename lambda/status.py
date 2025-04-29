@@ -18,6 +18,12 @@ def get_lb_client():
     return boto3.client("elbv2")
 
 
+@functools.cache
+def get_as_client():
+    """Get or initialize AutoScaling client"""
+    return boto3.client("autoscaling")
+
+
 # Environment configuration based on bin/lib/env.py
 ENVIRONMENTS = [
     # Production environments
@@ -315,7 +321,33 @@ def handle_lb_error(env_name, error, is_internal=False):
     print(f"{error_type} fetching load balancer status for {env_name}: {str(error)}")
 
     error_msg = "Internal error" if is_internal else str(error)
-    return {"status": "Unknown", "error": error_msg}
+    return {"status": "Unknown", "status_type": "secondary", "error": error_msg}
+
+
+def get_asg_status(env_name):
+    """Get AutoScaling group status for a given environment name
+
+    Returns:
+        dict: Contains desired_capacity, min_size, max_size, and is_deliberate_shutdown (True if desired=0)
+    """
+    try:
+        # Get ASG with matching name
+        response = get_as_client().describe_auto_scaling_groups(AutoScalingGroupNames=[env_name])
+
+        if not response["AutoScalingGroups"]:
+            print(f"No AutoScaling group found for environment: {env_name}")
+            return {"is_deliberate_shutdown": False}
+
+        asg = response["AutoScalingGroups"][0]
+        return {
+            "desired_capacity": asg["DesiredCapacity"],
+            "min_size": asg["MinSize"],
+            "max_size": asg["MaxSize"],
+            "is_deliberate_shutdown": asg["DesiredCapacity"] == 0 and asg["MinSize"] == 0,
+        }
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f"Error fetching ASG status for {env_name}: {str(e)}")
+        return {"is_deliberate_shutdown": False}
 
 
 def get_environment_status(env):
@@ -354,16 +386,33 @@ def get_environment_status(env):
                 if target.get("TargetHealth", {}).get("State") == "healthy":
                     healthy_targets += 1
 
+            # Get ASG status to determine if this is deliberate shutdown or an issue
+            asg_status = get_asg_status(env["name"])
+            is_deliberate_shutdown = asg_status["is_deliberate_shutdown"]
+
+            # Determine status based on healthy targets and ASG desired capacity
+            if is_deliberate_shutdown:
+                status_text = "Shut down" if total_targets == 0 else "Shutting down"
+                status_type = "secondary"  # Muted color for deliberate shutdown
+            elif healthy_targets > 0:
+                status_text = "Online"
+                status_type = "success"
+            else:
+                status_text = "Offline"
+                status_type = "danger"  # Alarm color for unintentional offline
+
             status["health"] = {
                 "healthy_targets": healthy_targets,
                 "total_targets": total_targets,
-                "status": "Online" if healthy_targets > 0 else "Offline",
+                "desired_capacity": asg_status.get("desired_capacity", 0),
+                "status": status_text,
+                "status_type": status_type,
             }
         except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
             status["health"] = handle_lb_error(env["name"], e)
         except Exception as e:  # pylint: disable=broad-exception-caught
             status["health"] = handle_lb_error(env["name"], e, is_internal=True)
     else:
-        status["health"] = {"status": "Unknown", "error": "No load balancer configured"}
+        status["health"] = {"status": "Unknown", "status_type": "secondary", "error": "No load balancer configured"}
 
     return status

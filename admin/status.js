@@ -109,6 +109,7 @@ class StatusViewModel {
                         versionInfo,
                         versionDisplay,
                         status: healthStatus,
+                        status_type: env.health?.status_type,
                         statusBadge: this.getStatusBadge(healthStatus),
                         instances: instancesDisplay,
                         url: `<a href="https://${env.url}" target="_blank">${env.url}</a>`,
@@ -147,7 +148,8 @@ class StatusViewModel {
         // Use object literal instead of switch statement
         const badgeClasses = {
             'Online': 'badge-success',
-            'Offline': 'badge-danger'
+            'Offline': 'badge-danger',
+            'Shut down': 'badge-secondary'  // Muted color for deliberate shutdowns
         };
 
         const badgeClass = badgeClasses[status] ?? 'badge-secondary';
