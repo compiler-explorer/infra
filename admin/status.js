@@ -181,7 +181,7 @@ class StatusViewModel {
 
         // Setup new interval if enabled
         if (enabled) {
-            this.autoRefreshInterval = setInterval(() => this.refreshData(), 15000);
+            this.autoRefreshInterval = setInterval(() => this.refreshData(), 30000);
         }
     }
 }
