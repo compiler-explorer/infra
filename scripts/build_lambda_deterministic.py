@@ -86,7 +86,7 @@ def create_deterministic_zip(source_dir, output_path):
     sha256_base64 = base64.b64encode(sha256.digest()).decode("utf-8")
 
     # Write SHA directly to the .sha256 file
-    Path(f"{output_path}.sha256").write_text(sha256_base64)
+    Path(f"{output_path}.sha256").write_text(sha256_base64, encoding="utf-8")
 
     return sha256_base64
 
