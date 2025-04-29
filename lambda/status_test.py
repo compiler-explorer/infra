@@ -59,14 +59,14 @@ class TestStatusLambda(unittest.TestCase):
         # Verify the mock was not called
         mock_get_status.assert_not_called()
 
-    @patch("status.s3_client")
-    @patch("status.lb_client")
-    def test_get_environment_status(self, mock_lb, mock_s3):
+    @patch("status.get_s3_client")
+    @patch("status.get_lb_client")
+    def test_get_environment_status(self, mock_lb_client, mock_s3_client):
         # Mock S3 response
-        mock_s3.get_object.return_value = {"Body": MagicMock(read=lambda: b"abc123")}
+        mock_s3_client.return_value.get_object.return_value = {"Body": MagicMock(read=lambda: b"abc123")}
 
         # Mock load balancer response
-        mock_lb.describe_target_health.return_value = {
+        mock_lb_client.return_value.describe_target_health.return_value = {
             "TargetHealthDescriptions": [
                 {"TargetHealth": {"State": "healthy"}},
                 {"TargetHealth": {"State": "healthy"}},
@@ -95,15 +95,17 @@ class TestStatusLambda(unittest.TestCase):
         self.assertEqual(result["health"]["status"], "Online")
 
         # Verify S3 client was called
-        mock_s3.get_object.assert_called_once_with(Bucket="compiler-explorer", Key=env["version_key"])
+        mock_s3_client.return_value.get_object.assert_called_once_with(
+            Bucket="compiler-explorer", Key=env["version_key"]
+        )
 
         # Verify load balancer client was called
-        mock_lb.describe_target_health.assert_called_once_with(TargetGroupArn=env["load_balancer"])
+        mock_lb_client.return_value.describe_target_health.assert_called_once_with(TargetGroupArn=env["load_balancer"])
 
-    @patch("status.s3_client")
-    def test_get_environment_status_no_lb(self, mock_s3):
+    @patch("status.get_s3_client")
+    def test_get_environment_status_no_lb(self, mock_s3_client):
         # Mock S3 response
-        mock_s3.get_object.return_value = {"Body": MagicMock(read=lambda: b"def456")}
+        mock_s3_client.return_value.get_object.return_value = {"Body": MagicMock(read=lambda: b"def456")}
 
         # Test environment without load balancer
         env = {
@@ -133,17 +135,19 @@ class TestStatusLambda(unittest.TestCase):
         # Simple fallback case
         self.assertEqual(status.extract_version_from_key("some-version"), "some-version")
 
-    @patch("status.s3_client")
-    def test_fetch_commit_hash(self, mock_s3):
+    @patch("status.get_s3_client")
+    def test_fetch_commit_hash(self, mock_s3_client):
         """Test hash fetching functionality"""
         # Valid hash
-        mock_s3.get_object.return_value = {"Body": MagicMock(read=lambda: b"1234567890abcdef1234567890abcdef12345678")}
+        mock_s3_client.return_value.get_object.return_value = {
+            "Body": MagicMock(read=lambda: b"1234567890abcdef1234567890abcdef12345678")
+        }
         result = status.fetch_commit_hash("dist/gh/main/12345.txt")
         self.assertEqual(result["hash"], "1234567890abcdef1234567890abcdef12345678")
         self.assertEqual(result["hash_short"], "1234567")
 
         # Handle exceptions
-        mock_s3.get_object.side_effect = Exception("Test error")
+        mock_s3_client.return_value.get_object.side_effect = Exception("Test error")
         result = status.fetch_commit_hash("dist/gh/main/12345.txt")
         self.assertIsNone(result)
 

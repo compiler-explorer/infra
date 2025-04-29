@@ -3,11 +3,26 @@ import json
 from datetime import datetime, timezone
 import os
 import re
+from functools import cache
 
-# Configure AWS resources
-s3_client = boto3.client("s3")
-lb_client = boto3.client("elbv2")
-ec2_client = boto3.client("ec2")
+# AWS clients are initialized on demand with caching to make testing easier
+@cache
+def get_s3_client():
+    """Get or initialize S3 client"""
+    return boto3.client("s3")
+
+
+@cache
+def get_lb_client():
+    """Get or initialize load balancer client"""
+    return boto3.client("elbv2")
+
+
+@cache
+def get_ec2_client():
+    """Get or initialize EC2 client"""
+    return boto3.client("ec2")
+
 
 # Environment configuration based on bin/lib/env.py
 ENVIRONMENTS = [
@@ -258,7 +273,7 @@ def fetch_commit_hash(info_key):
         return None
 
     try:
-        release_info = s3_client.get_object(Bucket="compiler-explorer", Key=info_key)
+        release_info = get_s3_client().get_object(Bucket="compiler-explorer", Key=info_key)
         commit_hash = release_info["Body"].read().decode("utf-8").strip()
 
         # Validate that this looks like a git hash (40 hex chars)
@@ -315,7 +330,7 @@ def get_environment_status(env):
     # Get version from S3
     try:
         version_key = env["version_key"]
-        version_obj = s3_client.get_object(Bucket="compiler-explorer", Key=version_key)
+        version_obj = get_s3_client().get_object(Bucket="compiler-explorer", Key=version_key)
         raw_version = version_obj["Body"].read().decode("utf-8").strip()
         status["raw_version"] = raw_version  # Store the raw version for debugging
         version_info = parse_version_info(raw_version)
@@ -329,7 +344,7 @@ def get_environment_status(env):
     # Check load balancer status if ARN is provided
     if env.get("load_balancer"):
         try:
-            lb_status = lb_client.describe_target_health(TargetGroupArn=env["load_balancer"])
+            lb_status = get_lb_client().describe_target_health(TargetGroupArn=env["load_balancer"])
 
             healthy_targets = 0
             total_targets = 0
