@@ -140,7 +140,11 @@ upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
 
 .PHONY: terraform-apply
 terraform-apply:  ## Applies terraform
-	cd terraform && terraform apply
+	terraform -chdir=terraform apply
+
+.PHONY: terraform-plan
+terraform-plan:  ## Plans terraform changes
+	terraform -chdir=terraform plan
 
 .PHONY: pre-commit
 pre-commit: ce  ## Runs all pre-commit hooks
