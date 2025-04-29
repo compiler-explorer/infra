@@ -123,6 +123,9 @@ def get_poetry_venv_site_packages(lambda_dir, repo_root):
         if not site_packages_dirs:
             raise RuntimeError("Could not find site-packages directory in Poetry virtual environment")
 
+        if len(site_packages_dirs) > 1:
+            raise RuntimeError(f"Multiple site-packages directories found: {site_packages_dirs}")
+
         site_packages = site_packages_dirs[0]
         print(f"Found site-packages directory: {site_packages}")
     return site_packages
