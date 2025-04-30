@@ -96,13 +96,9 @@ static-checks: ce  ## Runs all the static tests
 LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
 LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
-$(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
-	rm -rf $(LAMBDA_PACKAGE_DIR)
-	mkdir -p $(LAMBDA_PACKAGE_DIR)
-	$(POETRY) run python -mpip install -r lambda/requirements.txt -t $(LAMBDA_PACKAGE_DIR)
-	cp -R lambda/* $(LAMBDA_PACKAGE_DIR)
-	rm -f $(LAMBDA_PACKAGE)
-	cd $(LAMBDA_PACKAGE_DIR) && zip -r $(LAMBDA_PACKAGE) .
+# The deterministic script generates both the zip and the sha file
+$(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA): $(wildcard lambda/*.py) lambda/pyproject.toml lambda/poetry.lock Makefile scripts/build_lambda_deterministic.py
+	$(POETRY) run python scripts/build_lambda_deterministic.py
 
 EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
 EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
@@ -116,19 +112,36 @@ $(EVENTS_LAMBDA_PACKAGE):
 	rm -f $(EVENTS_LAMBDA_PACKAGE)
 	cd $(EVENTS_LAMBDA_PACKAGE_DIR) && zip -r $(EVENTS_LAMBDA_PACKAGE) .
 
-$(LAMBDA_PACKAGE_SHA): $(LAMBDA_PACKAGE)
-	openssl dgst -sha256 -binary $(LAMBDA_PACKAGE) | openssl enc -base64 > $@
-
 $(EVENTS_LAMBDA_PACKAGE_SHA): $(EVENTS_LAMBDA_PACKAGE)
 	openssl dgst -sha256 -binary $(EVENTS_LAMBDA_PACKAGE) | openssl enc -base64 > $@
 
 .PHONY: lambda-package  ## builds lambda
 lambda-package: $(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA)
 
+.PHONY: check-lambda-changed
+check-lambda-changed: lambda-package  ## Checks if lambda package has changed compared to S3
+	@mkdir -p $(dir $(LAMBDA_PACKAGE))
+	@echo "Checking if lambda package has changed..."
+	@aws s3 cp s3://compiler-explorer/lambdas/lambda-package.zip.sha256 $(LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote lambda SHA doesn't exist yet" && touch $(LAMBDA_PACKAGE_SHA).remote)
+	@if [ ! -f $(LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(LAMBDA_PACKAGE_SHA) $(LAMBDA_PACKAGE_SHA).remote; then \
+		echo "Lambda package has changed"; \
+		echo "LAMBDA_CHANGED=1" > $(LAMBDA_PACKAGE_SHA).status; \
+	else \
+		echo "Lambda package has not changed"; \
+		echo "LAMBDA_CHANGED=0" > $(LAMBDA_PACKAGE_SHA).status; \
+	fi
+
 .PHONY: upload-lambda
-upload-lambda: lambda-package  ## Uploads lambda to S3
-	aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip
-	aws s3 cp --content-type text/sha256 $(LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/lambda-package.zip.sha256
+upload-lambda: check-lambda-changed  ## Uploads lambda to S3 only if changed
+	@. $(LAMBDA_PACKAGE_SHA).status && \
+	if [ "$$LAMBDA_CHANGED" = "1" ]; then \
+		echo "Uploading new lambda package to S3..."; \
+		aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip; \
+		aws s3 cp --content-type text/sha256 $(LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/lambda-package.zip.sha256; \
+		echo "Lambda package uploaded successfully!"; \
+	else \
+		echo "Lambda package hasn't changed. No upload needed."; \
+	fi
 
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
@@ -139,11 +152,11 @@ upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
 	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
 
 .PHONY: terraform-apply
-terraform-apply:  ## Applies terraform
+terraform-apply:  upload-lambda ## Applies terraform
 	terraform -chdir=terraform apply
 
 .PHONY: terraform-plan
-terraform-plan:  ## Plans terraform changes
+terraform-plan:  upload-lambda ## Plans terraform changes
 	terraform -chdir=terraform plan
 
 .PHONY: pre-commit

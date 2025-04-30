@@ -1,0 +1,32 @@
+[tool.poetry]
+name = "compiler-explorer-lambda"
+version = "0.0.1"
+description = "Compiler Explorer Lambda Functions"
+authors = ["Matt Godbolt <matt@godbolt.org>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4"
+aws-embedded-metrics = "*"
+requests = "2.32.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+# Mostly copied from the parent project.
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    # https://docs.astral.sh/ruff/rules/
+    "E", # pycodestyle errors,
+    "W", # pycodestyle warnings
+    "F", # pyflake
+    "B", # flake8-bugbear
+    "I", # isort
+]
+ignore = [
+    "E501" # line length
+]
