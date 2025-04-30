@@ -41,13 +41,11 @@ def run_command(cmd, cwd=None, capture_output=True):
     return None
 
 
-def create_deterministic_zip(source_dir, output_path):
+def create_deterministic_zip(source_path, output_path):
     """Create a deterministic ZIP file with sorted entries and fixed timestamps"""
     # Use a fixed timestamp for reproducibility
     fixed_time = (1980, 1, 1, 0, 0, 0)
 
-    source_path = Path(source_dir)
-    output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Get all files, sorted for deterministic ordering
@@ -71,7 +69,7 @@ def create_deterministic_zip(source_dir, output_path):
     # Create the deterministic ZIP file
     with zipfile.ZipFile(output_path, "w", compression=zipfile.ZIP_DEFLATED) as zipf:
         for file_path, rel_path in all_files:
-            # Get file info with fixed timestamp
+            # Get file info with a fixed timestamp
             zip_info = zipfile.ZipInfo(str(rel_path))
             zip_info.date_time = fixed_time
             zip_info.external_attr = (file_path.stat().st_mode & 0o7777) << 16
@@ -128,7 +126,7 @@ def get_poetry_venv_site_packages(lambda_dir, repo_root):
 
 
 def build_lambda_package():
-    """Build the Lambda package in a deterministic way"""
+    """Build the Lambda package deterministically"""
     # Set up paths
     repo_root = Path(__file__).parent.parent
     lambda_dir = repo_root / "lambda"
