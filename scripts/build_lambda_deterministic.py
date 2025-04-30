@@ -53,16 +53,13 @@ def create_deterministic_zip(source_dir, output_path):
     # Get all files, sorted for deterministic ordering
     all_files = []
 
-    # Find all files recursively, filtering out unwanted ones
+    # Find all files recursively, filtering out unwanted ones, and keeping in a sorted order
     for path in sorted(source_path.rglob("*")):
         rel_path = path.relative_to(source_path)
         if EXCLUDE_PATTERN.search(str(rel_path)):
             continue
         if not path.is_dir():
             all_files.append((path, rel_path))
-
-    # Sort files by path for deterministic ordering
-    all_files.sort(key=lambda x: str(x[1]))
 
     # Log file stats
     print(f"Adding {len(all_files)} files to ZIP:")
