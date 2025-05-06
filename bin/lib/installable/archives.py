@@ -212,6 +212,8 @@ class TarballInstallable(Installable):
         self.configure_command = command_config(self.config_get("configure_command", []))
         if is_windows() and decompress_flag == "J":
             self.tar_cmd = ["7z", "x"]
+        elif is_windows() and decompress_flag == "j":
+            self.tar_cmd = ["7z", "x"]
         else:
             self.tar_cmd = ["tar", f"{decompress_flag}xf", "-"]
             strip_components = self.config_get("strip_components", 0)
@@ -219,7 +221,11 @@ class TarballInstallable(Installable):
                 self.tar_cmd += ["--strip-components", str(strip_components)]
         extract_only = self.config_get("extract_only", "")
         if extract_only:
-            self.tar_cmd += [extract_only]
+            if is_windows():
+                self.subdir = extract_only.split("/")[0]
+                self.untar_to = "."
+            else:
+                self.tar_cmd += [extract_only]
         extract_xattrs = self.config_get("extract_xattrs", False)
         if extract_xattrs:
             self.tar_cmd += ["--xattrs"]

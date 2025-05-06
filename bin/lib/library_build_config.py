@@ -8,7 +8,7 @@ valid_lib_types = ["static", "shared", "cshared", "headeronly"]
 class LibraryBuildConfig:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
-        self.build_type = self.config_get("build_type", "")
+        self.build_type = self.config_get("build_type", "none")
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
         self.build_fixed_stdlib = self.config_get("build_fixed_stdlib", "")
         self.lib_type = self.config_get("lib_type", "headeronly")
