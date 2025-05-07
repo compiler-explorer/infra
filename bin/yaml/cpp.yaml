@@ -1290,6 +1290,11 @@ compilers:
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/cd63be99-88b0-4981-bea1-2034fe17f5cf/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
           script: *intel-one-install-script
+        - name: 2025.1.1.9
+          check_exe: compiler/latest/bin/icx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/c4d2aef3-3123-475e-800c-7d66fd8da2a5/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
 
     nvhpc-sdk:
       type: script
