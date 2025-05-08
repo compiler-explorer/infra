@@ -142,6 +142,8 @@ class LibraryYaml:
                     lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
             if lookupname in ["nightly", "if", "install_always"]:
                 continue
+            if "build_type" in libraries_for_language[libid] and libraries_for_language[libid]["build_type"] == "never":
+                continue
 
             if lookupname not in reorganised_libs:
                 reorganised_libs[lookupname] = set()
@@ -156,6 +158,11 @@ class LibraryYaml:
             if linux_libid not in linux_libraries:
                 lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
             if lookupname in ["nightly", "if", "install_always"]:
+                continue
+            if (
+                "build_type" in nightly_libraries_for_language[libid]
+                and nightly_libraries_for_language[libid]["build_type"] == "never"
+            ):
                 continue
 
             if lookupname not in reorganised_libs:
