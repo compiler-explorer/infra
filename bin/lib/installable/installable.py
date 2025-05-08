@@ -129,13 +129,18 @@ class Installable:
 
         return self.install_always or not self.is_installed()
 
-    def should_build(self):
-        return (
-            self.is_library
-            and self.build_config.build_type != "manual"
-            and self.build_config.build_type != "none"
-            and self.build_config.build_type != ""
-        )
+    def should_build(self, platform: LibraryPlatform) -> bool:
+        if platform == LibraryPlatform.Windows:
+            return (
+                self.is_library
+                and self.build_config.build_type != "manual"
+                and self.build_config.build_type != "none"
+                and self.build_config.build_type != "never"
+            )
+        else:
+            return (
+                self.is_library and self.build_config.build_type != "manual" and self.build_config.build_type != "none"
+            )
 
     def install(self) -> None:
         self._logger.debug("Ensuring dependees are installed")

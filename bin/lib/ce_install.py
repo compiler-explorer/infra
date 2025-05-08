@@ -495,7 +495,7 @@ def build(
         else:
             print(f"Building {installable.name} ({platform.value}) for all")
 
-        if force or installable.should_build() or (platform == LibraryPlatform.Windows):
+        if force or installable.should_build(platform):
             was_temp_installed = False
 
             if not installable.is_installed() and temp_install:
@@ -528,7 +528,7 @@ def build(
                 _LOGGER.info("Uninstalling temporary %s", installable.name)
                 installable.uninstall()
         else:
-            _LOGGER.info("%s is already built, skipping", installable.name)
+            _LOGGER.info("%s does not have to build, skipping", installable.name)
             num_skipped += 1
     print(f"{num_installed} packages built OK, {num_skipped} skipped, and {num_failed} failed build")
     if num_failed:

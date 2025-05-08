@@ -214,6 +214,7 @@ libraries:
       - '3.8'
       type: bitbucket
     boost:
+      build_type: never
       check_file: boost/version.hpp
       compression: bz2
       dir: libs/boost_{{underscore_name}}
