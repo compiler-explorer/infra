@@ -28,6 +28,18 @@ libraries:
       - 1.6.0
       type: singleFile
       url: https://dl.google.com/android/maven2/androidx/annotation/annotation-jvm/{{name}}/annotation-jvm-{{name}}.jar
+    kotlinx-coroutines-core-jvm:
+      check_file: kotlinx-coroutines-core-jvm.jar
+      dir: kotlinx-coroutines-core-jvm-{{name}}
+      filename: kotlinx-coroutines-core-jvm.jar
+      targets:
+      - 1.10.2
+      - 1.9.0
+      - 1.8.1
+      - 1.7.3
+      - 1.6.4
+      type: singleFile
+      url: https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kotlinx-coroutines-core-jvm/{{name}}/kotlinx-coroutines-core-jvm-{{name}}.jar
     r8-keep-annotations:
       check_file: keepanno-annotations.jar
       dir: r8-{{name}}-keepanno
