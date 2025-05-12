@@ -33,13 +33,13 @@ fi
 exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/node/bin/node \
     -- app.js \
-    --suppressConsoleLog \
-    --tmpDir /nosym/tmp \
-    --logHost "${LOG_DEST_HOST}" \
-    --logPort "${LOG_DEST_PORT}" \
+    --suppress-console-log \
+    --tmp-dir /nosym/tmp \
+    --log-host "${LOG_DEST_HOST}" \
+    --log-port "${LOG_DEST_PORT}" \
     ${CE_PROP_ENV} \
     --port 10240 \
-    --metricsPort 10241 \
+    --metrics-port 10241 \
     --loki "http://127.0.0.1:3500" \
     --dist \
     ${COMPILERS_ARG} \
