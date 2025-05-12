@@ -121,6 +121,21 @@ function ConfigureSmbRights {
     gpupdate /Force
 }
 
+function GetConf {
+    Param(
+        $Name,
+        $Default = ""
+    )
+
+    try {
+        return (aws ssm get-parameter --name "$Name" | ConvertFrom-Json).Parameter.Value
+    }
+    catch {
+        Write-Host "GetConf($Name) raised Exception: $_"
+        return $Default
+    }
+}
+
 function InitializeAgentConfig {
     Write-Host "Downloading Grafana config template"
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/grafana/agent-win.yaml" -OutFile "/tmp/agent-win.yaml"
