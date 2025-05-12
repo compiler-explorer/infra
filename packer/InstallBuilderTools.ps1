@@ -144,6 +144,44 @@ function InitializeAgentConfig {
     }
 }
 
+function Disable-WindowsUpdatePermanent {
+    Write-Host "Disabling Windows Update service permanently..."
+
+    # Stop the Windows Update service
+    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+
+    # Disable the service to prevent future starts
+    Set-Service -Name wuauserv -StartupType Disabled
+
+    Write-Host "Windows Update service has been disabled."
+}
+
+function Disable-WindowsDefenderPermanent {
+    Write-Host "Disabling Windows Defender permanently..."
+
+    # Create Defender policy key if it doesn't exist
+    $defenderKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+    if (-not (Test-Path $defenderKey)) {
+        New-Item -Path $defenderKey -Force | Out-Null
+    }
+
+    # Set the DisableAntiSpyware registry value
+    Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
+
+    # Attempt to stop and disable Defender service
+    try {
+        Stop-Service -Name WinDefend -Force -ErrorAction SilentlyContinue
+        Set-Service -Name WinDefend -StartupType Disabled
+    } catch {
+        Write-Host "Note: WinDefend service may not be fully stopped on some Windows Server builds until after reboot."
+    }
+
+    Write-Host "Windows Defender has been disabled. A reboot is recommended."
+}
+
+Disable-WindowsUpdatePermanent
+Disable-WindowsDefenderPermanent
+
 ConfigureSmbRights
 InstallAwsTools
 InstallGIT
