@@ -1775,7 +1775,7 @@ libraries:
         type: github
       proxy:
         build_type: none
-        check_file: proxy.h
+        check_file: README.md
         method: nightlyclone
         repo: microsoft/proxy
         targets:
@@ -2143,7 +2143,7 @@ libraries:
         - ./configure
       type: github
     proxy:
-      check_file: proxy.h
+      check_file: README.md
       method: clone_branch
       repo: microsoft/proxy
       targets:
