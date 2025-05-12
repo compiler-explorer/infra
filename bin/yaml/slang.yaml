@@ -7,7 +7,7 @@ compilers:
       url: https://github.com/shader-slang/slang/releases/download/v{{name}}/slang-{{name}}-linux-x86_64.tar.gz
       compression: gz
       check_exe: bin/slangc -version
-      targets:
+      #targets:
         #- "2025.8.1" -- currently disabled as the above build is for a newer glibc than CE supports
       # Older URL format
       glibc-named:
