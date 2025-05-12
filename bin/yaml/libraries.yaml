@@ -1230,6 +1230,14 @@ libraries:
         targets:
         - main
         type: github
+      beman_scope:
+        build_type: none
+        check_file: README.md
+        method: nightlyclone
+        repo: bemanproject/scope
+        targets:
+        - main
+        type: github
       beman_task:
         build_type: none
         check_file: README.md
