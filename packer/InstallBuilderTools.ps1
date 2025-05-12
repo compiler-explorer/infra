@@ -8,7 +8,7 @@ function InstallAwsTools {
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i awscli.msi" -wait
     Write-Host "Deleting tmp files"
     Remove-Item -Force "awscli.msi"
-    
+
     $env:PATH = "C:\Program Files\Amazon\AWSCLIV2;$env:PATH"
 }
 
