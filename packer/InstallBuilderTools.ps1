@@ -161,26 +161,6 @@ function Disable-WindowsDefenderPermanent {
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
 
-function InstallCloudWatchAgent {
-    Write-Host "Downloading cloudwatch agent"
-    Invoke-WebRequest -Uri "https://amazoncloudwatch-agent-us-east-1.s3.us-east-1.amazonaws.com/windows/amd64/latest/amazon-cloudwatch-agent.msi" -OutFile "C:\tmp\amazon-cloudwatch-agent.msi"
-
-    Write-Host "Installing cloudwatch agent"
-    Start-Process "msiexec" -argumentlist "/quiet /i amazon-cloudwatch-agent.msi" -wait
-
-    Write-Host "Deleting tmp files"
-    Remove-Item -Force -Path "amazon-cloudwatch-agent.msi"
-
-    Write-Host "Downloading cloudwatch agent config template"
-    Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/packer/cloudwatch-agent.json" -OutFile "C:\tmp\cloudwatch-agent.json"
-
-    Write-Host "Saving cloudwatch agent config"
-    $config = Get-Content -Path "C:\tmp\cloudwatch-agent.json"
-    Set-Content -Path "$Env:ProgramData\Amazon\AmazonCloudWatchAgent\amazon-cloudwatch-agent.json" -Value $config
-}
-
-InstallCloudWatchAgent
-
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent
 
