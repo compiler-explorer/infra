@@ -1,5 +1,5 @@
 module "oidc_provider" {
-  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1//modules/provider"
+  source = "github.com/philips-labs/terraform-aws-github-oidc//modules/provider?ref=v0.8.1"
 }
 
 module "oidc_repo_sonar_source" {
