@@ -993,20 +993,14 @@ class LibraryBuilder:
             self.logger.info(f"Build timed out and was killed ({buildfolder})")
             return BuildStatus.TimedOut
 
-    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
-        hasher = hashlib.sha256()
+    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration):
         flagsstr = "|".join(x for x in flagscombination)
-        hasher.update(
-            bytes(
-                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
-            )
-        )
 
         self.logger.info(
             f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
         )
 
-        return compiler + "_" + hasher.hexdigest()
+        return compiler + "_" + str(iteration)
 
     def get_conan_hash(self, buildfolder: str) -> Optional[str]:
         if not self.install_context.dry_run:
@@ -1195,9 +1189,10 @@ class LibraryBuilder:
         ld_path,
         staging: StagingDir,
         compiler_props,
+        iteration,
     ):
         combined_hash = self.makebuildhash(
-            compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
+            compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration
         )
 
         build_folder = os.path.join(staging.path, combined_hash)
@@ -1540,9 +1535,11 @@ class LibraryBuilder:
             if fixedStdver:
                 stdvers = [fixedStdver]
 
+            iteration = 0
             for args in itertools.product(
                 build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
+                iteration += 1
                 with self.install_context.new_staging_dir() as staging:
                     buildstatus = self.makebuildfor(
                         compiler,
@@ -1554,6 +1551,7 @@ class LibraryBuilder:
                         self.compilerprops[compiler]["ldPath"],
                         staging,
                         self.compilerprops[compiler],
+                        iteration
                     )
                     if buildstatus == BuildStatus.Ok:
                         builds_succeeded = builds_succeeded + 1
