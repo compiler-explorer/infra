@@ -192,6 +192,16 @@ class LibraryBuilder:
 
         self.buildconfig.staticliblink += alternatelibs
 
+        alternatelibs = []
+        for lib in self.buildconfig.sharedliblink:
+            if lib.endswith("d") and lib[:-1] not in self.buildconfig.sharedliblink:
+                alternatelibs += [lib[:-1]]
+            else:
+                if f"{lib}d" not in self.buildconfig.sharedliblink:
+                    alternatelibs += [f"{lib}d"]
+
+        self.buildconfig.sharedliblink += alternatelibs
+
     def getToolchainPathFromOptions(self, options):
         match = re.search(r"--gcc-toolchain=(\S*)", options)
         if match:
