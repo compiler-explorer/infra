@@ -51,4 +51,7 @@ def test_can_write_conan_file(requests_mock):
     assert 'self.copy("libstatic2*.a", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libshared1*.so*", dst="lib", keep_path=False)' in lines
     assert 'self.copy("libshared2*.so*", dst="lib", keep_path=False)' in lines
-    assert 'self.cpp_info.libs = ["static1","static2","static1d","static2d","shared1","shared2","shared1d","shared2d"]' in lines
+    assert (
+        'self.cpp_info.libs = ["static1","static2","static1d","static2d","shared1","shared2","shared1d","shared2d"]'
+        in lines
+    )
