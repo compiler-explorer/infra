@@ -1,7 +1,6 @@
 import contextlib
 import csv
 import glob
-import hashlib
 import itertools
 import json
 import os
@@ -993,7 +992,9 @@ class LibraryBuilder:
             self.logger.info(f"Build timed out and was killed ({buildfolder})")
             return BuildStatus.TimedOut
 
-    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration):
+    def makebuildhash(
+        self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration
+    ):
         flagsstr = "|".join(x for x in flagscombination)
 
         self.logger.info(
@@ -1551,7 +1552,7 @@ class LibraryBuilder:
                         self.compilerprops[compiler]["ldPath"],
                         staging,
                         self.compilerprops[compiler],
-                        iteration
+                        iteration,
                     )
                     if buildstatus == BuildStatus.Ok:
                         builds_succeeded = builds_succeeded + 1
