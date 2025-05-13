@@ -111,7 +111,11 @@ class LibraryYaml:
                 linklist = ":".join(linux_lib_version["staticliblink"])
                 libverprops += f"{prefix}.staticliblink={linklist}\n"
             if "liblink" in linux_lib_version and linux_lib_version["liblink"]:
-                linklist = ":".join(linux_lib_version["liblink"])
+                if prefix.startswith("libs.qt"):
+                    # special case for qt, we need to add a 'd' to the end of the liblink on windows
+                    linklist = ":".join(map(lambda link: link + "d", linux_lib_version["liblink"]))
+                else:
+                    linklist = ":".join(linux_lib_version["liblink"])
                 libverprops += f"{prefix}.liblink={linklist}\n"
             if "dependencies" in linux_lib_version and linux_lib_version["dependencies"]:
                 linklist = ":".join(linux_lib_version["dependencies"])
