@@ -10,10 +10,6 @@ compilers:
       dir: golang-{{name}}
       create_untar_dir: true
       strip: true
-      after_stage_script:
-        - "export GOROOT=$(pwd)/go"
-        - "[[ $(go/bin/go version) =~ go([0-9]+)\\.([0-9]+) ]] && (( BASH_REMATCH[1] < 1 || ( BASH_REMATCH[1] == 1 && BASH_REMATCH[2] < 20 ) )) && exit 0"
-        - "go/bin/go tool dist list | while IFS=/ read -r goos goarch; do echo \"Populating build cache for ${goos}/${goarch}\"; GOOS=${goos} GOARCH=${goarch} go/bin/go build std; done"
       targets:
         - "1.4.1"
         - "1.7.2"
@@ -57,7 +53,3 @@ compilers:
           - compiler_name: go-trunk
             name: trunk
             symlink: go-tip
-        after_stage_script:
-          - "export GOROOT=$(pwd)/go"
-          - "[[ $(go/bin/go version) =~ go([0-9]+)\\.([0-9]+) ]] && (( BASH_REMATCH[1] < 1 || ( BASH_REMATCH[1] == 1 && BASH_REMATCH[2] < 20 ) )) && exit 0"
-          - "go/bin/go tool dist list | while IFS=/ read -r goos goarch; do echo \"Populating build cache for ${goos}/${goarch}\"; GOOS=${goos} GOARCH=${goarch} go/bin/go build std; done"
