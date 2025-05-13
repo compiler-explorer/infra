@@ -2201,7 +2201,7 @@ libraries:
       - -DBUILD_EXAMPLES=OFF
       - -DQT_BUILD_EXAMPLES_BY_DEFAULT=OFF
       - -DQT_BUILD_TESTS_BY_DEFAULT=OFF
-      - -DFEATURE_rpath=ON
+      - -DFEATURE_rpath=%cmake_bool_not_windows%
       - -DFEATURE_relocatable=ON
       - -DFEATURE_gui=OFF
       lib_type: shared

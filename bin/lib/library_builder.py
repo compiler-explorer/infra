@@ -342,6 +342,15 @@ class LibraryBuilder:
 
         expanded = self.replace_optional_arg(expanded, "intelarch", intelarch)
 
+        cmake_bool_windows = "OFF"
+        cmake_bool_not_windows = "ON"
+        if self.platform == LibraryPlatform.Windows:
+            cmake_bool_windows = "ON"
+            cmake_bool_not_windows = "OFF"
+
+        expanded = self.replace_optional_arg(expanded, "cmake_bool_not_windows", cmake_bool_not_windows)
+        expanded = self.replace_optional_arg(expanded, "cmake_bool_windows", cmake_bool_windows)
+
         return expanded
 
     def resil_post(self, url, json_data, headers=None):
