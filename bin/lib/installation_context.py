@@ -34,6 +34,10 @@ class FetchFailure(RuntimeError):
     pass
 
 
+class PostFailure(RuntimeError):
+    pass
+
+
 class InstallationContext:
     def __init__(
         self,

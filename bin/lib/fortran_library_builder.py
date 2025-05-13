@@ -20,6 +20,7 @@ from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
+from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -467,7 +468,7 @@ class FortranLibraryBuilder:
         request = self.resil_post(url, json_data=json.dumps(login_body))
         if not request.ok:
             self.logger.info(request.text)
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             self.conanserverproxy_token = response["token"]
@@ -509,7 +510,7 @@ class FortranLibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = requests.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
@@ -535,7 +536,7 @@ class FortranLibraryBuilder:
         url = f"{conanserver_url}/whathasfailedbefore"
         request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             current_commit = self.get_commit_hash()
@@ -573,7 +574,7 @@ class FortranLibraryBuilder:
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
 
     def makebuildfor(
         self,
@@ -693,7 +694,7 @@ class FortranLibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = requests.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
