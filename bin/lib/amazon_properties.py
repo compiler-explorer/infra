@@ -6,6 +6,7 @@ from typing import Any, Dict
 
 import requests
 
+from lib.installation_context import FetchFailure
 from lib.library_platform import LibraryPlatform
 
 
@@ -37,7 +38,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
 
     request = requests.get(url, timeout=30)
     if not request.ok:
-        raise RuntimeError(f"Fetch failure for {url}: {request}")
+        raise FetchFailure(f"Fetch failure for {url}: {request}")
     lines = request.text.splitlines(keepends=False)
 
     if platform == LibraryPlatform.Windows and "libs=\n" in request.text:
@@ -48,7 +49,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
             timeout=30,
         )
         if not request.ok:
-            raise RuntimeError(f"Fetch failure for {url}: {request}")
+            raise FetchFailure(f"Fetch failure for {url}: {request}")
         lines += request.text[request.text.index("libs=") :].splitlines(keepends=False)
 
     logger.debug("Reading properties for groups")

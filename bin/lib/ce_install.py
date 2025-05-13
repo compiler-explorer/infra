@@ -21,7 +21,7 @@ from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
 from lib.installation import installers_for
-from lib.installation_context import InstallationContext
+from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_platform import LibraryPlatform
 from lib.library_yaml import LibraryYaml
 
@@ -500,8 +500,12 @@ def build(
 
             if not installable.is_installed() and temp_install:
                 _LOGGER.info("Temporarily installing %s", installable.name)
-                installable.install()
-                was_temp_installed = True
+                try:
+                    installable.install()
+                    was_temp_installed = True
+                except FetchFailure:
+                    num_failed += 1
+                    continue
 
             if not installable.is_installed():
                 _LOGGER.info("%s is not installed, unable to build", installable.name)
