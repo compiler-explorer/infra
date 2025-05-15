@@ -3,7 +3,7 @@ compilers:
     type: pip
     dir: mojo-{name}
     python: /usr/bin/python3
-    package: max 
+    package: max
     check_exe: mojo --version
     after_stage_script:
       - set -e
