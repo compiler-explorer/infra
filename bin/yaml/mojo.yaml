@@ -7,4 +7,4 @@ compilers:
     check_exe: mojo --version
     after_stage_script:
       - set -e
-      - python3 -m pip install modular
+      - python3 -m pip install max
