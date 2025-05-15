@@ -1,0 +1,12 @@
+compilers:
+  mojo:
+    type: pip
+    dir: mojo-{name}
+    python: /usr/bin/python3
+    package: max
+    check_exe: mojo --version
+    after_stage_script:
+      - set -e
+      - if: nightly
+        then: python3 -m pip install max --index-url https://dl.modular.com/public/nightly/python/simple/
+        else: python3 -m pip install max
