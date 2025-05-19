@@ -205,10 +205,9 @@ def prepare_structured_data(body: Dict) -> Dict:
     """Prepare a structured JSON object for Claude's consumption."""
     # Extract and validate basic fields
     structured_data = {
-        "task": "Explain the relationship between source code and assembly output",
-        "language": body.get("language", "unknown"),
-        "compiler": body.get("compiler", "unknown"),
-        "sourceCode": body.get("code", ""),
+        "language": body["language"],
+        "compiler": body["compiler"],
+        "sourceCode": body["code"],
         "instructionSet": body.get("instructionSet", "unknown"),
     }
 
@@ -270,14 +269,18 @@ def process_request(body: Dict, api_key: Optional[str] = None) -> Dict:
         if not valid:
             return create_response(status_code=400, body={"status": "error", "message": error_message})
 
-        # Prepare structured data for Claude
+        language = body["language"]
+        arch = body.get("instructionSet", "")
+
         structured_data = prepare_structured_data(body)
 
-        # System prompt - can be customized for iterating on prompts locally
-        system_prompt = """You are an expert compiler analyst who explains the relationship between source code and assembly output.
-Provide clear, concise explanations that help programmers understand how their code translates to assembly.
-Focus on key transformations, optimizations, and important assembly patterns.
-Explanations should be educational and highlight why certain code constructs generate specific assembly instructions."""
+        system_prompt = f"""You are an expert in {arch} assembly code and {language}, helping users of the Compiler Explorer website understand how their code compiles to assembly.
+The request will be in the form of a JSON document, which explains a source program and how it was compiled, and the resulting assembly code that was generated.
+Provide clear, concise explanations. Focus on key transformations, optimizations, and important assembly patterns.
+Explanations should be educational and highlight why certain code constructs generate specific assembly instructions.
+Give no commentary on the original source: it is expected the user already understands their input, and is only looking for guidance on the assembly output.
+If it makes it easiest to explain, note the corresponding parts of the source code, but do not focus on this.
+Do not give an overall conclusion."""
 
         # Call Claude API with JSON structure
         try:
@@ -294,11 +297,20 @@ Explanations should be educational and highlight why certain code constructs gen
                         "content": [
                             {
                                 "type": "text",
-                                "text": "Explain the relationship between this source code and its assembly output.",
+                                "text": f"Explain the {arch} assembly output.",
                             },
                             {"type": "text", "text": json.dumps(structured_data)},
                         ],
-                    }
+                    },
+                    {
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "I have analysed the assembly code and my analysis is:",
+                            },
+                        ],
+                    },
                 ],
             )
 

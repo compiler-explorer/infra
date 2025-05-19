@@ -69,13 +69,27 @@ class TestExplainLambda(unittest.TestCase):
         self.assertEqual(kwargs["max_tokens"], explain.MAX_TOKENS)
         self.assertIn("system", kwargs)
 
-        # Check that the user message contains structured data
+        # Verify the system prompt contains appropriate instructions
+        system_prompt = kwargs["system"]
+        self.assertIn("expert", system_prompt.lower())
+        self.assertIn("assembly", system_prompt.lower())
+        self.assertIn("c++", system_prompt.lower())
+        self.assertIn("amd64", system_prompt.lower())
+
+        # Check that the messages array contains user and assistant messages
         messages = kwargs["messages"]
-        self.assertEqual(len(messages), 1)
+        self.assertEqual(len(messages), 2)
+        # Check user message
         self.assertEqual(messages[0]["role"], "user")
         self.assertEqual(len(messages[0]["content"]), 2)
         self.assertEqual(messages[0]["content"][0]["type"], "text")
+        self.assertIn("amd64", messages[0]["content"][0]["text"])
         self.assertEqual(messages[0]["content"][1]["type"], "text")
+        # Check assistant message
+        self.assertEqual(messages[1]["role"], "assistant")
+        self.assertEqual(len(messages[1]["content"]), 1)
+        self.assertEqual(messages[1]["content"][0]["type"], "text")
+        self.assertIn("analysis", messages[1]["content"][0]["text"])
 
         # Check the structured data has expected fields
         structured_data = json.loads(messages[0]["content"][1]["text"])
@@ -209,7 +223,6 @@ class TestExplainLambda(unittest.TestCase):
         result = explain.prepare_structured_data(body)
 
         # Verify all required fields exist
-        self.assertEqual(result["task"], "Explain the relationship between source code and assembly output")
         self.assertEqual(result["language"], "c++")
         self.assertEqual(result["compiler"], "g++")
         self.assertEqual(result["sourceCode"], "int square(int x) { return x * x; }")
