@@ -320,7 +320,8 @@ Do not give an overall conclusion."""
                 ],
             )
 
-            explanation = message.content[0].text
+            # Get explanation and strip leading/trailing whitespace
+            explanation = message.content[0].text.strip()
 
             # Extract usage information
             input_tokens = message.usage.input_tokens
