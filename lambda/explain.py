@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import functools
 import http.server
 import json
@@ -9,8 +10,10 @@ import sys
 from typing import Dict, List, Optional, Tuple, Union
 
 import anthropic
+import aws_embedded_metrics
 import boto3
 from anthropic import Anthropic
+from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -256,7 +259,7 @@ def prepare_structured_data(body: Dict) -> Dict:
     return structured_data
 
 
-def process_request(body: Dict, api_key: Optional[str] = None) -> Dict:
+def process_request(body: Dict, api_key: Optional[str] = None, metrics: Optional[MetricsLogger] = None) -> Dict:
     """Process a request and return the response.
 
     This is the core processing logic, separated from the lambda_handler
@@ -265,6 +268,7 @@ def process_request(body: Dict, api_key: Optional[str] = None) -> Dict:
     Args:
         body: The request body as a dictionary
         api_key: Optional API key for local development mode
+        metrics: Optional metrics logger for tracking stats
 
     Returns:
         A response dictionary with status and explanation
@@ -333,6 +337,44 @@ Do not give an overall conclusion."""
             output_cost = output_tokens * COST_PER_OUTPUT_TOKEN
             total_cost = input_cost + output_cost
 
+            # Record metrics if metrics logger is available
+            if metrics:
+                # Add CloudWatch metrics with properties instead of dimensions
+                metrics.set_property("language", language)
+                metrics.set_property("compiler", body["compiler"])
+                metrics.set_property("instructionSet", arch)
+                metrics.put_metric("ClaudeExplainRequest", 1)
+
+                # Track token usage
+                metrics.put_metric("ClaudeExplainInputTokens", input_tokens)
+                metrics.put_metric("ClaudeExplainOutputTokens", output_tokens)
+                metrics.put_metric("ClaudeExplainCost", total_cost)
+
+            # Record to SQS for long-term stats if available
+            try:
+                queue_url = os.environ.get("SQS_STATS_QUEUE")
+                if queue_url:
+                    sqs_client = boto3.client("sqs")
+                    date = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+                    time = datetime.datetime.utcnow().strftime("%H:%M:%S")
+                    sqs_client.send_message(
+                        QueueUrl=queue_url,
+                        MessageBody=json.dumps(
+                            dict(
+                                type="ClaudeExplain",
+                                date=date,
+                                time=time,
+                                value=f"{language}:{body['compiler']}:{arch}",
+                                tokens=total_tokens,
+                                cost=round(total_cost, 6),
+                            ),
+                            sort_keys=True,
+                        ),
+                    )
+            except Exception as e:
+                # Log but don't fail if stats recording fails
+                logger.warning(f"Failed to record stats to SQS: {str(e)}")
+
             # Construct the response with usage and cost information
             response_body = {
                 "status": "success",
@@ -359,8 +401,12 @@ Do not give an overall conclusion."""
         return handle_error(e, is_internal=True)
 
 
-def lambda_handler(event: Dict, context: object) -> Dict:
+@aws_embedded_metrics.metric_scope
+def lambda_handler(event: Dict, context: object, metrics: MetricsLogger) -> Dict:
     """Handle Lambda invocation from API Gateway."""
+    # Set metrics namespace for CloudWatch
+    metrics.set_namespace("CompilerExplorer")
+
     # Handle OPTIONS request (CORS preflight)
     if event.get("httpMethod") == "OPTIONS":
         return create_response(status_code=200, body={})
@@ -368,7 +414,7 @@ def lambda_handler(event: Dict, context: object) -> Dict:
     try:
         # Parse request body
         body = json.loads(event.get("body", "{}"))
-        return process_request(body)
+        return process_request(body, metrics=metrics)
     except json.JSONDecodeError:
         return create_response(400, {"status": "error", "message": "Invalid JSON in request body"})
     except Exception as e:
