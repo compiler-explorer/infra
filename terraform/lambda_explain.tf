@@ -3,7 +3,7 @@ data "aws_iam_policy_document" "aws_lambda_explain" {
   statement {
     sid       = "GetClaudeApiKey"
     actions   = ["ssm:GetParameter"]
-    resources = ["arn:aws:ssm:${local.region}:${data.aws_caller_identity.current.account_id}:parameter/ce/claude/api-key"]
+    resources = ["arn:aws:ssm:us-east-1:${data.aws_caller_identity.current.account_id}:parameter/ce/claude/api-key"]
   }
 }
 

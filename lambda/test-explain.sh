@@ -1,31 +1,30 @@
 #!/bin/bash
-# Test script for local Claude Explain server
-# Usage: ./test-explain.sh [host] [port]
+# Test script for Claude Explain server (local or deployed)
+# Usage: ./test-explain.sh [url]
 # Options:
 #   -p, --pretty    Format the JSON output nicely (requires jq)
+#   -u, --url URL   Full URL to the explain endpoint
 
 # Parse options
 PRETTY=0
-HOST=""
-PORT=""
+URL=""
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     -p|--pretty) PRETTY=1; shift ;;
+    -u|--url) URL="$2"; shift 2 ;;
     *)
-      if [[ "$HOST" == "" ]]; then
-        HOST="$1"
-      elif [[ "$PORT" == "" ]]; then
-        PORT="$1"
+      # First positional parameter is the URL
+      if [[ "$URL" == "" ]]; then
+        URL="$1"
       fi
       shift ;;
   esac
 done
 
-# Default host and port
-HOST=${HOST:-localhost}
-PORT=${PORT:-8080}
+# Default URL if nothing was provided
+URL=${URL:-http://localhost:8080/explain}
 
-echo "Testing Claude Explain server at http://$HOST:$PORT/explain"
+echo "Testing Claude Explain server at $URL"
 
 # Prepare the JSON payload
 JSON_PAYLOAD=$(cat <<'EOF'
@@ -150,12 +149,12 @@ EOF
 # Send the request using curl with the JSON payload
 if [[ $PRETTY -eq 1 ]]; then
   echo "Using pretty output format (jq)"
-  curl -s -X POST "http://$HOST:$PORT/explain" \
+  curl -s -X POST "$URL" \
     -H "Content-Type: application/json" \
     -d "$JSON_PAYLOAD" | jq '.'
 else
   echo "Using raw output format"
-  curl -X POST "http://$HOST:$PORT/explain" \
+  curl -X POST "$URL" \
     -H "Content-Type: application/json" \
     -d "$JSON_PAYLOAD"
 fi

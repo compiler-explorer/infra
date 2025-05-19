@@ -8,6 +8,11 @@ authors = ["Matt Godbolt <matt@godbolt.org>"]
 python = ">=3.9,<4"
 aws-embedded-metrics = "*"
 requests = "2.32.3"
+anthropic = "^0.51.0"
+
+# This is a workaround for pydantic-core issues in Lambda
+pydantic = "1.10.12"  # Older version that doesn't require pydantic-core
+typing-extensions = "^4.6.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
