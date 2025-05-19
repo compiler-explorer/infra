@@ -180,7 +180,10 @@ For the Claude Messages API, this would look like:
 message = client.messages.create(
     model=MODEL,
     max_tokens=MAX_TOKENS,
-    system="You are an expert compiler analyst who explains the relationship between source code and assembly output. Provide clear, concise explanations that help programmers understand how their code translates to assembly.",
+    system="""You are an expert compiler analyst who explains the relationship between source code and assembly output.
+    Provide clear, concise explanations that help programmers understand how their code translates to assembly.
+    Focus on key transformations, optimizations, and important assembly patterns.
+    Explanations should be educational and highlight why certain code constructs generate specific assembly instructions.""",
     messages=[
         {
             "role": "user",
@@ -230,6 +233,22 @@ This approach has several advantages:
    - Throttling rules to prevent abuse
    - Consider token bucket algorithm for more sophisticated rate limiting
 
+## Implementation Dependencies
+
+The implementation follows these dependency chains:
+
+1. **Infrastructure Dependencies**:
+   - Parameter Store setup → Lambda function deployment
+   - IAM Roles/Policies → Lambda function deployment
+   - Lambda deployment → API Gateway integration
+   - API Gateway setup → CORS configuration
+
+2. **Implementation Dependencies**:
+   - Input validation → Claude integration
+   - Structured data preparation → Claude prompt design
+   - Lambda handler → Error handling implementation
+   - API Gateway configuration → Rate limiting setup
+
 ## Security Considerations
 
 1. **API Key Management**:
@@ -238,22 +257,38 @@ This approach has several advantages:
 
 2. **Input Sanitization**:
    - Validate and sanitize all inputs
-   - Prevent prompt injection attacks
-   - Limit input size
+   - Limit input size for source code and assembly
+   - **Note on Prompt Injection**:
+     - As an open-source project, typical prompt injection concerns are minimal:
+       - System details are already public in the repository
+       - The technical nature of compiler explanations limits content misuse
+       - Users getting misleading explanations primarily affects only themselves
+     - Basic mitigation is still reasonable:
+       - Validate JSON structure for proper parsing
+       - Simple size limits to prevent resource abuse
+       - Basic system prompt that focuses the model on compiler explanation
 
 3. **Rate Limiting**:
    - Implement request throttling at API Gateway level
    - Consider IP-based rate limiting
    - Consider user authentication for higher rate limits
 
-4. **Privacy**:
-   - Be clear about data handling in privacy policy
-   - Consider anonymizing or truncating large inputs
-   - Implement appropriate logging controls
+4. **Resource Protection**:
+   - Implement strict timeouts for request processing
+   - Add circuit breakers to detect and prevent abuse
+   - Set hard limits on output token generation
 
-5. **Monitoring**:
+5. **Privacy**:
+   - **Note on Data Handling**:
+     - Compiler Explorer's UI will display a consent form before sending code to Anthropic
+     - The existing CE privacy policy will be updated to mention this feature specifically
+     - No need for additional PII protection beyond what's already in CE
+   - Implement appropriate logging controls for operational needs
+
+6. **Monitoring**:
    - Set up alarms for unusual usage patterns
    - Monitor costs and usage
+   - Create alerting for suspicious request patterns
 
 ## Cost Considerations
 
@@ -344,11 +379,11 @@ ssm = boto3.client('ssm')
 anthropic_client = None  # Initialized lazily
 
 # Constants
-MAX_CODE_LENGTH = 10000
-MAX_ASM_LENGTH = 20000
+MAX_CODE_LENGTH = 10000  # 10K chars should be enough for most source files
+MAX_ASM_LENGTH = 20000   # 20K chars for assembly output
 MODEL = "claude-3-haiku-20240307"
-MAX_TOKENS = 1024
-PARAM_NAME = "/ce/claude/api-key"
+MAX_TOKENS = 1024  # Adjust based on desired explanation length
+PARAM_NAME = "/ce/claude/api-key"  # Stored in Parameter Store
 
 def get_anthropic_client():
     """Get or initialize Anthropic client with API key from Parameter Store."""
@@ -557,7 +592,10 @@ def lambda_handler(event, context):
         message = client.messages.create(
             model=MODEL,
             max_tokens=MAX_TOKENS,
-            system="You are an expert compiler analyst who explains the relationship between source code and assembly output. Provide clear, concise explanations that help programmers understand how their code translates to assembly.",
+            system="""You are an expert compiler analyst who explains the relationship between source code and assembly output.
+    Provide clear, concise explanations that help programmers understand how their code translates to assembly.
+    Focus on key transformations, optimizations, and important assembly patterns.
+    Explanations should be educational and highlight why certain code constructs generate specific assembly instructions.""",
             messages=[
                 {
                     "role": "user",
@@ -618,7 +656,7 @@ resource "aws_iam_policy" "explain_ssm_policy" {
         "ssm:GetParameter",
       ]
       Effect = "Allow"
-      Resource = "arn:aws:ssm:${var.region}:${var.account_id}:parameter/ce/claude/api-key"
+      Resource = "arn:aws:ssm:${local.region}:${data.aws_caller_identity.current.account_id}:parameter/ce/claude/api-key"
     }]
   })
 }
@@ -744,6 +782,18 @@ resource "aws_lambda_permission" "explain_api" {
 - [ ] Validate functionality and performance
 - [ ] Deploy to production
 - [ ] Set up monitoring and alerting
+
+### Compiler Explorer Integration
+
+- [ ] Implement consent UI before sending code to Anthropic
+- [ ] Update CE privacy policy to mention this feature specifically
+- [ ] Add "Explain" button/option in the compiler output UI
+- [ ] Implement API client in CE frontend
+- [ ] Handle and display explanations in the CE UI
+- [ ] Add explanations to compiler tooltip options
+- [ ] Support markdown formatting in explanations
+- [ ] Add user feedback mechanism for explanation quality
+- [ ] Create fallback behavior for rate limiting or service unavailability
 
 ## Conclusion
 
