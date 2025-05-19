@@ -78,7 +78,18 @@ The service will return a JSON response with:
 {
   "explanation": "string",    // The generated explanation
   "status": "success" | "error",
-  "message": "string"         // Only present on error
+  "message": "string",        // Only present on error
+  "model": "string",          // The Claude model used (e.g., "claude-3-haiku-20240307")
+  "usage": {
+    "input_tokens": 123,      // Number of input tokens used in the request
+    "output_tokens": 456,     // Number of output tokens generated
+    "total_tokens": 579       // Total tokens used (input + output)
+  },
+  "cost": {
+    "input_cost": 0.000123,   // Cost in USD for input tokens
+    "output_cost": 0.000456,  // Cost in USD for output tokens
+    "total_cost": 0.000579    // Total cost in USD
+  }
 }
 ```
 

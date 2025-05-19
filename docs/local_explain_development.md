@@ -115,6 +115,35 @@ curl -X POST http://localhost:8080/explain \
   }'
 ```
 
+### Response Format
+
+The service returns a JSON response with the following structure:
+
+```json
+{
+  "explanation": "This assembly implements the square function...",
+  "status": "success",
+  "model": "claude-3-haiku-20240307",
+  "usage": {
+    "input_tokens": 123,
+    "output_tokens": 456,
+    "total_tokens": 579
+  },
+  "cost": {
+    "input_cost": 0.000123,
+    "output_cost": 0.000456,
+    "total_cost": 0.000579
+  }
+}
+```
+
+The response includes:
+
+- **explanation**: The explanation of the assembly code
+- **model**: The Claude model used for generation
+- **usage**: Token usage statistics
+- **cost**: Estimated cost of the API call in USD
+
 ## Iterating on the System Prompt
 
 The primary use case for local development is to iterate on the system prompt to optimize Claude's explanations. To modify the prompt:

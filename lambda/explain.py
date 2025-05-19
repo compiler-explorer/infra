@@ -32,6 +32,12 @@ MODEL = "claude-3-haiku-20240307"
 MAX_TOKENS = 1024  # Adjust based on desired explanation length
 PARAM_NAME = "/ce/claude/api-key"  # Stored in Parameter Store
 
+# Claude token costs (USD)
+# As of May 2024, these are the costs for Claude 3 Haiku
+# Update if model or pricing changes
+COST_PER_INPUT_TOKEN = 0.00000025  # $0.25/1M tokens
+COST_PER_OUTPUT_TOKEN = 0.00000125  # $1.25/1M tokens
+
 
 def get_anthropic_client(api_key=None) -> Anthropic:
     """Get or initialize Anthropic client with API key.
@@ -316,12 +322,35 @@ Do not give an overall conclusion."""
 
             explanation = message.content[0].text
 
+            # Extract usage information
+            input_tokens = message.usage.input_tokens
+            output_tokens = message.usage.output_tokens
+            total_tokens = input_tokens + output_tokens
+
+            # Calculate costs
+            input_cost = input_tokens * COST_PER_INPUT_TOKEN
+            output_cost = output_tokens * COST_PER_OUTPUT_TOKEN
+            total_cost = input_cost + output_cost
+
+            # Construct the response with usage and cost information
+            response_body = {
+                "status": "success",
+                "explanation": explanation,
+                "model": MODEL,
+                "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens, "total_tokens": total_tokens},
+                "cost": {
+                    "input_cost": round(input_cost, 6),
+                    "output_cost": round(output_cost, 6),
+                    "total_cost": round(total_cost, 6),
+                },
+            }
+
         except Exception as e:
             logger.error(f"Error calling Claude API: {str(e)}")
             return create_response(500, {"status": "error", "message": f"Error calling Claude API: {str(e)}"})
 
         # Return success response
-        return create_response(200, {"status": "success", "explanation": explanation})
+        return create_response(200, response_body)
 
     except json.JSONDecodeError:
         return create_response(400, {"status": "error", "message": "Invalid JSON in request body"})

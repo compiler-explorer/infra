@@ -44,6 +44,10 @@ class TestExplainLambda(unittest.TestCase):
         mock_content = MagicMock()
         mock_content.text = "This assembly code implements a simple square function..."
         mock_message.content = [mock_content]
+        # Add usage information to the mock
+        mock_message.usage = MagicMock()
+        mock_message.usage.input_tokens = 100
+        mock_message.usage.output_tokens = 50
         mock_client.messages.create.return_value = mock_message
         mock_get_anthropic.return_value = mock_client
 
@@ -59,6 +63,22 @@ class TestExplainLambda(unittest.TestCase):
         self.assertEqual(body["status"], "success")
         self.assertIn("explanation", body)
         self.assertEqual(body["explanation"], "This assembly code implements a simple square function...")
+
+        # Check new fields
+        self.assertIn("model", body)
+        self.assertEqual(body["model"], explain.MODEL)
+
+        # Check usage information
+        self.assertIn("usage", body)
+        self.assertEqual(body["usage"]["input_tokens"], 100)
+        self.assertEqual(body["usage"]["output_tokens"], 50)
+        self.assertEqual(body["usage"]["total_tokens"], 150)
+
+        # Check cost information
+        self.assertIn("cost", body)
+        self.assertIsInstance(body["cost"]["input_cost"], float)
+        self.assertIsInstance(body["cost"]["output_cost"], float)
+        self.assertIsInstance(body["cost"]["total_cost"], float)
 
         # Verify the mock was called correctly
         mock_client.messages.create.assert_called_once()
