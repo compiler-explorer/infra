@@ -63,4 +63,4 @@ compilers:
         dir: swift-dev-snapshot
         toolchain: swift-{{name}}-branch
         targets:
-          - '6.1'
+          - '6.2'
