@@ -10,6 +10,7 @@ authors = ["Matt Godbolt <matt@godbolt.org>", "partouf <partouf@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<4"
+anthropic = "^0.51.0"
 aws-embedded-metrics = "^3.3.0"
 boto3 = "^1.24.80"
 click = "^8.1.3"

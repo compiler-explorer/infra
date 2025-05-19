@@ -133,7 +133,7 @@ The service will return a JSON response with:
 
 ### Claude Prompt Strategy
 
-Instead of flattening the structured assembly data into plain text, we'll leverage Claude's ability to process JSON directly. This allows us to provide the full richness of the source-to-assembly mapping in a structured format that Claude can analyze more effectively.
+Instead of flattening the structured assembly data into plain text, we'll provide the structured JSON data as a string. While the Anthropic API doesn't support direct JSON objects with "type": "json" content blocks (as initially thought), sending the JSON as a string with "type": "text" is effective. Claude is still able to understand and process the structured format, allowing us to provide the full richness of the source-to-assembly mapping.
 
 The prompt will consist of:
 
@@ -193,8 +193,8 @@ message = client.messages.create(
                     "text": "Explain the relationship between this source code and its assembly output."
                 },
                 {
-                    "type": "json",
-                    "json": structured_data  # The JSON object shown above
+                    "type": "text",
+                    "text": json.dumps(structured_data)  # The JSON object serialized as a string
                 }
             ]
         }
@@ -204,10 +204,11 @@ message = client.messages.create(
 
 This approach has several advantages:
 - Preserves the complete structure of the data
-- Allows Claude to directly access the source-to-assembly mapping
-- Eliminates the need for text-based parsing
+- Allows Claude to access the source-to-assembly mapping in a structured way
+- Sends data in a format Claude can parse and understand
 - Makes it easier to handle large assembly outputs without losing context
 - Enables more precise analysis of the relationship between source and assembly
+- Works correctly with the Anthropic API which requires using "type": "text" rather than "type": "json"
 
 ### Terraform Configuration
 
@@ -605,8 +606,8 @@ def lambda_handler(event, context):
                             "text": "Explain the relationship between this source code and its assembly output."
                         },
                         {
-                            "type": "json",
-                            "json": structured_data
+                            "type": "text",
+                            "text": json.dumps(structured_data)
                         }
                     ]
                 }

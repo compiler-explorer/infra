@@ -13,3 +13,4 @@ node_modules
 /.poetry
 /.venv
 .pytest_cache
+.claude-explain-key
