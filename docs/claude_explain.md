@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Claude Explain service will provide AI-powered explanations of compiler output for Compiler Explorer users. This service will receive compiled code and its resulting assembly, then use Claude 3 Haiku to generate explanations that help users understand the relationship between their source code and the generated assembly.
+The Claude Explain service will provide AI-powered explanations of compiler output for Compiler Explorer users. This service will receive compiled code and its resulting assembly, then use Claude 3.5 Haiku to generate explanations that help users understand the relationship between their source code and the generated assembly.
 
 ## Architecture
 
@@ -191,10 +191,13 @@ For the Claude Messages API, this would look like:
 message = client.messages.create(
     model=MODEL,
     max_tokens=MAX_TOKENS,
-    system="""You are an expert compiler analyst who explains the relationship between source code and assembly output.
-    Provide clear, concise explanations that help programmers understand how their code translates to assembly.
-    Focus on key transformations, optimizations, and important assembly patterns.
-    Explanations should be educational and highlight why certain code constructs generate specific assembly instructions.""",
+    system="""You are an expert in assembly code and programming languages, helping users of the Compiler Explorer website understand how their code compiles to assembly.
+    Provide clear, concise explanations. Focus on key transformations, optimizations, and important assembly patterns.
+    Explanations should be educational and highlight why certain code constructs generate specific assembly instructions.
+    Give no commentary on the original source: it is expected the user already understands their input, and is only looking for guidance on the assembly output.
+    If it makes it easiest to explain, note the corresponding parts of the source code, but do not focus on this.
+    Do not give an overall conclusion.
+    Be precise and accurate about CPU features and optimizations - avoid making incorrect claims about branch prediction or other hardware details.""",
     messages=[
         {
             "role": "user",
@@ -305,6 +308,7 @@ The implementation follows these dependency chains:
 ## Cost Considerations
 
 1. **Claude API Costs**:
+   - Claude 3.5 Haiku is priced at $0.80/million input tokens and $4.00/million output tokens (as of November 2024)
    - Monitor token usage
    - Consider implementing a token budget per request
    - Set up cost alerting

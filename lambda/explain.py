@@ -70,15 +70,15 @@ def get_ssm_client():
 MAX_CODE_LENGTH = 10000  # 10K chars should be enough for most source files
 MAX_ASM_LENGTH = 20000  # 20K chars for assembly output
 MAX_ASSEMBLY_LINES = 300  # Maximum number of assembly lines to process
-MODEL = "claude-3-haiku-20240307"
+MODEL = "claude-3-5-haiku-20241105"
 MAX_TOKENS = 1024  # Adjust based on desired explanation length
 PARAM_NAME = "/ce/claude/api-key"  # Stored in Parameter Store
 
 # Claude token costs (USD)
-# As of May 2024, these are the costs for Claude 3 Haiku
+# As of November 2024, these are the costs for Claude 3.5 Haiku
 # Update if model or pricing changes
-COST_PER_INPUT_TOKEN = 0.00000025  # $0.25/1M tokens
-COST_PER_OUTPUT_TOKEN = 0.00000125  # $1.25/1M tokens
+COST_PER_INPUT_TOKEN = 0.0000008  # $0.80/1M tokens
+COST_PER_OUTPUT_TOKEN = 0.000004  # $4.00/1M tokens
 
 
 def get_anthropic_client(api_key=None) -> Anthropic:
@@ -331,7 +331,8 @@ Provide clear, concise explanations. Focus on key transformations, optimizations
 Explanations should be educational and highlight why certain code constructs generate specific assembly instructions.
 Give no commentary on the original source: it is expected the user already understands their input, and is only looking for guidance on the assembly output.
 If it makes it easiest to explain, note the corresponding parts of the source code, but do not focus on this.
-Do not give an overall conclusion."""
+Do not give an overall conclusion.
+Be precise and accurate about CPU features and optimizations - avoid making incorrect claims about branch prediction or other hardware details."""
 
         # Call Claude API with JSON structure
         try:
