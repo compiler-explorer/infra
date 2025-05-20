@@ -842,3 +842,9 @@ Remaining tasks before production release:
 The Claude Explain service will provide valuable insights into compiler behavior for Compiler Explorer users. By leveraging Claude Haiku's AI capabilities, we can offer explanations that help users understand the relationship between their source code and the resulting assembly.
 
 This service is designed to be maintainable, secure, and cost-effective, with room for future enhancements based on user feedback and evolving requirements.
+
+## Notes from Matt on prompt stuff
+
+- Need to stop claude confidently talking about branch prediction, e.g. "Branch Prediction: The code includes branch prediction hints (endbr64) to help the CPU predict the control flow and improve performance." - These are _not_ branch prediction hints.
+- Consider using a more expensive model to avoid this?
+- it's not good things like counting...so yeah maybe a better model: e.g. "Scalar Fallback: If the array length is small (less than or equal to 6), the compiler falls back to a scalar implementation that processes the elements one by one." when in fact it was looking at: "  lea eax, -1[rsi] |   cmp eax, 6 | jbe ..."
