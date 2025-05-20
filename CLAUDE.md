@@ -35,7 +35,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Testing Guidelines
 
 - Tests are in `bin/test` and `lambda` directories with `_test.py` suffix
-- Run tests with `make test` or `poetry run pytest path/to/test.py`
+- Run all tests with `make test`
+- Run specific tests with `poetry run pytest path/to/test.py -v`
+- Run a single test method with `poetry run pytest path/to/test.py::TestClass::test_method -v`
 - Test both success and error cases
 - Mock external dependencies when appropriate
 
