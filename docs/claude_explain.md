@@ -849,6 +849,7 @@ This service is designed to be maintainable, secure, and cost-effective, with ro
 
 ## Notes from Matt on prompt stuff
 
-- Need to stop claude confidently talking about branch prediction, e.g. "Branch Prediction: The code includes branch prediction hints (endbr64) to help the CPU predict the control flow and improve performance." - These are _not_ branch prediction hints.
-- Consider using a more expensive model to avoid this?
+- Need to stop claude confidently talking about branch prediction, e.g. "Branch Prediction: The code includes branch prediction hints (endbr64) to help the CPU predict the control flow and improve performance." - These are _not_ branch prediction hints. Now updated the prompt a bit.
+- Consider using a more expensive model to avoid this? Now using Haiku 3.5
 - it's not good things like counting...so yeah maybe a better model: e.g. "Scalar Fallback: If the array length is small (less than or equal to 6), the compiler falls back to a scalar implementation that processes the elements one by one." when in fact it was looking at: "  lea eax, -1[rsi] |   cmp eax, 6 | jbe ..."
+- should consider prompt caching
