@@ -51,7 +51,7 @@ class TestExplainLambda(unittest.TestCase):
         mock_client.messages.create.return_value = mock_message
         mock_get_anthropic.return_value = mock_client
 
-        # Call the lambda_handler
+        # Call lambda_handler directly, which will use NoopMetricsProvider
         response = explain.lambda_handler(self.event, None)
 
         # Verify response
@@ -124,7 +124,7 @@ class TestExplainLambda(unittest.TestCase):
             "httpMethod": "OPTIONS",
         }
 
-        # Call the lambda_handler
+        # Call lambda_handler directly
         response = explain.lambda_handler(options_event, None)
 
         # Verify CORS headers
@@ -282,7 +282,7 @@ class TestExplainLambda(unittest.TestCase):
         # Set up an event with invalid JSON
         invalid_event = {"httpMethod": "POST", "body": "{invalid json"}
 
-        # Call the lambda_handler
+        # Call lambda_handler directly
         response = explain.lambda_handler(invalid_event, None)
 
         # Verify response indicates error

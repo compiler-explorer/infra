@@ -7,6 +7,7 @@ import logging
 import os
 import socketserver
 import sys
+from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Tuple, Union
 
 import anthropic
@@ -14,6 +15,44 @@ import aws_embedded_metrics
 import boto3
 from anthropic import Anthropic
 from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
+
+
+class MetricsProvider(ABC):
+    """Abstract base class for metrics providers."""
+
+    @abstractmethod
+    def put_metric(self, name: str, value: Union[int, float]) -> None:
+        """Record a metric with the given name and value."""
+        pass
+
+    @abstractmethod
+    def set_property(self, name: str, value: str) -> None:
+        """Set a property/dimension for metrics."""
+        pass
+
+
+class CloudWatchMetricsProvider(MetricsProvider):
+    """Implementation that uses CloudWatch metrics via aws_embedded_metrics."""
+
+    def __init__(self, metrics_logger: MetricsLogger):
+        self.metrics = metrics_logger
+
+    def put_metric(self, name: str, value: Union[int, float]) -> None:
+        self.metrics.put_metric(name, value)
+
+    def set_property(self, name: str, value: str) -> None:
+        self.metrics.set_property(name, value)
+
+
+class NoopMetricsProvider(MetricsProvider):
+    """Metrics provider that does nothing - for testing."""
+
+    def put_metric(self, name: str, value: Union[int, float]) -> None:
+        pass
+
+    def set_property(self, name: str, value: str) -> None:
+        pass
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -259,7 +298,9 @@ def prepare_structured_data(body: Dict) -> Dict:
     return structured_data
 
 
-def process_request(body: Dict, api_key: Optional[str] = None, metrics: Optional[MetricsLogger] = None) -> Dict:
+def process_request(
+    body: Dict, api_key: Optional[str] = None, metrics_provider: Optional[MetricsProvider] = None
+) -> Dict:
     """Process a request and return the response.
 
     This is the core processing logic, separated from the lambda_handler
@@ -268,7 +309,7 @@ def process_request(body: Dict, api_key: Optional[str] = None, metrics: Optional
     Args:
         body: The request body as a dictionary
         api_key: Optional API key for local development mode
-        metrics: Optional metrics logger for tracking stats
+        metrics_provider: Optional metrics provider for tracking stats
 
     Returns:
         A response dictionary with status and explanation
@@ -337,18 +378,18 @@ Do not give an overall conclusion."""
             output_cost = output_tokens * COST_PER_OUTPUT_TOKEN
             total_cost = input_cost + output_cost
 
-            # Record metrics if metrics logger is available
-            if metrics:
-                # Add CloudWatch metrics with properties instead of dimensions
-                metrics.set_property("language", language)
-                metrics.set_property("compiler", body["compiler"])
-                metrics.set_property("instructionSet", arch)
-                metrics.put_metric("ClaudeExplainRequest", 1)
+            # Record metrics if metrics provider is available
+            if metrics_provider:
+                # Add metrics with properties/dimensions
+                metrics_provider.set_property("language", language)
+                metrics_provider.set_property("compiler", body["compiler"])
+                metrics_provider.set_property("instructionSet", arch)
+                metrics_provider.put_metric("ClaudeExplainRequest", 1)
 
                 # Track token usage
-                metrics.put_metric("ClaudeExplainInputTokens", input_tokens)
-                metrics.put_metric("ClaudeExplainOutputTokens", output_tokens)
-                metrics.put_metric("ClaudeExplainCost", total_cost)
+                metrics_provider.put_metric("ClaudeExplainInputTokens", input_tokens)
+                metrics_provider.put_metric("ClaudeExplainOutputTokens", output_tokens)
+                metrics_provider.put_metric("ClaudeExplainCost", total_cost)
 
             # Record to SQS for long-term stats if available
             try:
@@ -402,10 +443,17 @@ Do not give an overall conclusion."""
 
 
 @aws_embedded_metrics.metric_scope
-def lambda_handler(event: Dict, context: object, metrics: MetricsLogger) -> Dict:
+def lambda_handler(event: Dict, context: object, metrics: MetricsLogger = None) -> Dict:
     """Handle Lambda invocation from API Gateway."""
-    # Set metrics namespace for CloudWatch
-    metrics.set_namespace("CompilerExplorer")
+    # Set up metrics provider - either use CloudWatch metrics or a no-op for testing
+    metrics_provider: MetricsProvider
+    if metrics:
+        # Set metrics namespace for CloudWatch when running in AWS
+        metrics.set_namespace("CompilerExplorer")
+        metrics_provider = CloudWatchMetricsProvider(metrics)
+    else:
+        # Use no-op metrics for testing
+        metrics_provider = NoopMetricsProvider()
 
     # Handle OPTIONS request (CORS preflight)
     if event.get("httpMethod") == "OPTIONS":
@@ -414,7 +462,7 @@ def lambda_handler(event: Dict, context: object, metrics: MetricsLogger) -> Dict
     try:
         # Parse request body
         body = json.loads(event.get("body", "{}"))
-        return process_request(body, metrics=metrics)
+        return process_request(body, metrics_provider=metrics_provider)
     except json.JSONDecodeError:
         return create_response(400, {"status": "error", "message": "Invalid JSON in request body"})
     except Exception as e:
