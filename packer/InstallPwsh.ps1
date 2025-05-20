@@ -7,3 +7,9 @@ Write-Host "Installing Pwsh"
 Start-Process "msiexec" -argumentlist "/quiet /i PowerShell-7.3.2-win-x64.msi" -wait
 Write-Host "Removing tmp files"
 Remove-Item -Force "PowerShell-7.3.2-win-x64.msi"
+
+if (Test-Path -Path "C:\Program Files\PowerShell\7\pwsh.exe") {
+    Write-Host "Pwsh installed successfully"
+} else {
+    throw "Pwsh installation failed"
+}
