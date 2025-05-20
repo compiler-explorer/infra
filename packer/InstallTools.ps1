@@ -151,6 +151,26 @@ function InstallBuildTools {
     AllowAppContainerRXAccess -Path "C:\BuildTools\Ninja"
 }
 
+function Disable-WindowsUpdatePermanent {
+    Write-Host "Attempting to disable Windows Update..."
+
+    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    Set-Service -Name wuauserv -StartupType Manual
+}
+
+function Disable-WindowsDefenderPermanent {
+    Write-Host "Attempting to disable Windows Defender..."
+
+    $defenderKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+    if (-not (Test-Path $defenderKey)) {
+        New-Item -Path $defenderKey -Force | Out-Null
+    }
+    Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
+}
+
+Disable-WindowsUpdatePermanent
+Disable-WindowsDefenderPermanent
+
 InstallAwsTools
 InstallGIT
 InstallBuildTools
