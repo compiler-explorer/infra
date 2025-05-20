@@ -70,7 +70,7 @@ def get_ssm_client():
 MAX_CODE_LENGTH = 10000  # 10K chars should be enough for most source files
 MAX_ASM_LENGTH = 20000  # 20K chars for assembly output
 MAX_ASSEMBLY_LINES = 300  # Maximum number of assembly lines to process
-MODEL = "claude-3-5-haiku-20241105"
+MODEL = "claude-3-5-haiku-20241022"
 MAX_TOKENS = 1024  # Adjust based on desired explanation length
 PARAM_NAME = "/ce/claude/api-key"  # Stored in Parameter Store
 
