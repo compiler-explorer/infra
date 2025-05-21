@@ -725,8 +725,12 @@ class LibraryBuilder:
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
 
+                par_args = []
+                if self.platform == LibraryPlatform.Linux:
+                    par_args = ["-j$NUMCPUS"]
+
                 extramakeargs = " ".join(
-                    ["-j$NUMCPUS"]
+                    par_args
                     + [
                         self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
                         for arg in self.buildconfig.extra_make_arg
@@ -743,14 +747,20 @@ class LibraryBuilder:
                         lognum += 1
 
                     if not self.buildconfig.package_install:
-                        if len(self.buildconfig.staticliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.a')\n")
-                        elif len(self.buildconfig.sharedliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.so*')\n")
+                        if self.platform == LibraryPlatform.Linux:
+                            if len(self.buildconfig.staticliblink) != 0:
+                                f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                            elif len(self.buildconfig.sharedliblink) != 0:
+                                f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
-                    f.write('if [ "$libsfound" = "" ]; then\n')
-                    f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
-                    f.write("fi\n")
+                            f.write('if [ "$libsfound" = "" ]; then\n')
+                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write("fi\n")
+                        elif self.platform == LibraryPlatform.Windows:
+                            f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
+                            f.write("if ($libs.count -eq 0) {\n")
+                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write("}\n")
 
                 if self.buildconfig.package_install:
                     f.write(f"{make_utility} install > ceinstall_0.txt 2>&1\n")
