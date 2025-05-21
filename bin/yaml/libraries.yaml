@@ -993,7 +993,8 @@ libraries:
     libbpf:
       build_type: make
       check_file: README.md
-      extra_make_arg: -C src
+      extra_make_arg:
+      - -C src
       lib_type: shared
       method: clone_branch
       repo: libbpf/libbpf
