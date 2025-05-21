@@ -54,3 +54,39 @@ resource "aws_iam_role_policy" "s3_bronto" {
   role   = module.oidc_repo_brontosource.role.name
   policy = data.aws_iam_policy_document.s3_bronto.json
 }
+
+# Not really third party but
+module "oidc_repo_explain" {
+  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1"
+
+  openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
+  repo                        = "compiler-explorer/explain"
+  role_name                   = "explain-ci"
+
+  default_conditions = ["allow_main"]
+}
+
+data "aws_iam_policy_document" "ce_explain" {
+  # ECR public
+  statement {
+    actions   = ["ecr-public:GetAuthorizationToken", "sts:GetServiceBearerToken"]
+    resources = ["*"]
+  }
+  statement {
+    actions = [
+      "ecr-public:BatchCheckLayerAvailability",
+      "ecr-public:CompleteLayerUpload",
+      "ecr-public:InitiateLayerUpload",
+      "ecr-public:PutImage",
+      "ecr-public:UploadLayerPart"
+    ]
+    # TODO use magic to look up account id instead.
+    resources = ["arn:aws:ecr-public::052730242331:repository/compiler-explorer/explain"]
+  }
+}
+
+resource "aws_iam_role_policy" "ce_explain" {
+  name   = "ce-explain-policy"
+  role   = module.oidc_repo_explain.role.name
+  policy = data.aws_iam_policy_document.ce_explain.json
+}
