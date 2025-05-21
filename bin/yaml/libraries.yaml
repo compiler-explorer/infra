@@ -394,6 +394,7 @@ libraries:
       type: github
     cli11:
       build_type: none
+      lib_type: headeronly
       check_file: include/CLI/CLI.hpp
       repo: CLIUtils/CLI11
       target_prefix: v
