@@ -69,19 +69,19 @@ module "oidc_repo_explain" {
 data "aws_iam_policy_document" "ce_explain" {
   # ECR public
   statement {
-    actions   = ["ecr-public:GetAuthorizationToken", "sts:GetServiceBearerToken"]
+    actions   = ["ecr:GetAuthorizationToken"]
     resources = ["*"]
   }
   statement {
     actions = [
-      "ecr-public:BatchCheckLayerAvailability",
-      "ecr-public:CompleteLayerUpload",
-      "ecr-public:InitiateLayerUpload",
-      "ecr-public:PutImage",
-      "ecr-public:UploadLayerPart"
-    ]
-    # TODO use magic to look up account id instead.
-    resources = ["arn:aws:ecr-public::052730242331:repository/compiler-explorer/explain"]
+        "ecr:BatchGetImage",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:CompleteLayerUpload",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart"    ]
+    resources = [aws_ecr_repository.explain.arn]
   }
 }
 
