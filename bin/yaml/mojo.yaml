@@ -10,3 +10,11 @@ compilers:
     check_exe: bin/mojo --version
     targets:
       - 25.3.0
+    nightly:
+      if: nightly
+      install_always: true
+      targets:
+        - name: nightly
+          package:
+            - --index-url=https://dl.modular.com/public/nightly/python/simple/
+            - max
