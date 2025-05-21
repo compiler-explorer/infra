@@ -2,8 +2,16 @@
 """
 Deterministic Lambda package builder for Compiler Explorer.
 Uses Poetry for dependency management and creates a reproducible ZIP file.
+
+Usage:
+    python build_lambda_deterministic.py <source_dir> <output_zip_path>
+
+Arguments:
+    source_dir: Directory containing Lambda source code with pyproject.toml and poetry.lock
+    output_zip_path: Path to the output ZIP file (will also create <output_zip_path>.sha256)
 """
 
+import argparse
 import base64
 import hashlib
 import os
@@ -125,47 +133,78 @@ def get_poetry_venv_site_packages(lambda_dir, repo_root):
     return site_packages
 
 
-def build_lambda_package():
-    """Build the Lambda package deterministically"""
-    # Set up paths
-    repo_root = Path(__file__).parent.parent
-    lambda_dir = repo_root / "lambda"
-    dist_dir = repo_root / ".dist"
-    lambda_zip_path = dist_dir / "lambda-package.zip"
+def build_lambda_package(source_dir, output_zip_path):
+    """
+    Build the Lambda package deterministically
 
-    # Ensure dist directory exists
-    dist_dir.mkdir(parents=True, exist_ok=True)
+    Args:
+        source_dir: Path to the Lambda source directory containing pyproject.toml
+        output_zip_path: Path to the output ZIP file (will also create <output_zip_path>.sha256)
+
+    Returns:
+        Tuple of (zip_path, sha256_path)
+    """
+    # Set up paths
+    source_dir = Path(source_dir).resolve()
+    output_zip_path = Path(output_zip_path).resolve()
+    repo_root = Path(__file__).parent.parent
+
+    # Create output directory
+    output_dir = output_zip_path.parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Building Lambda package from: {source_dir}")
+    print(f"Output zip will be: {output_zip_path}")
 
     # Get the site-packages directory from Poetry's virtual environment
-    site_packages = get_poetry_venv_site_packages(lambda_dir, repo_root)
+    site_packages = get_poetry_venv_site_packages(source_dir, repo_root)
 
     # Create a temporary directory for staging the package content
     with tempfile.TemporaryDirectory() as temp_dir:
-        staging_dir = Path(temp_dir) / "lambda-package"
+        package_name = output_zip_path.stem
+        staging_dir = Path(temp_dir) / package_name
         staging_dir.mkdir(parents=True, exist_ok=True)
 
         # Copy lambda Python files (excluding tests)
-        print("Copying lambda Python files")
-        for item in lambda_dir.rglob("*.py"):
+        print(f"Copying Python files from {source_dir}")
+        for item in source_dir.rglob("*.py"):
             if not item.name.endswith("_test.py"):
-                target_path = staging_dir / item.relative_to(lambda_dir)
+                target_path = staging_dir / item.relative_to(source_dir)
                 target_path.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(item, target_path)
-                print(f"Copied: {item.relative_to(lambda_dir)}")
+                print(f"Copied: {item.relative_to(source_dir)}")
 
         # Copy dependencies from site-packages
         print("Copying dependencies from Poetry virtual environment")
         shutil.copytree(site_packages, staging_dir, symlinks=True, dirs_exist_ok=True, ignore=EXCLUDE_COPY)
 
         # Create the deterministic ZIP file
-        print(f"Creating deterministic ZIP at: {lambda_zip_path}")
-        sha256 = create_deterministic_zip(staging_dir, lambda_zip_path)
+        print(f"Creating deterministic ZIP at: {output_zip_path}")
+        sha256 = create_deterministic_zip(staging_dir, output_zip_path)
         print(f"SHA256: {sha256}")
 
-        return lambda_zip_path, Path(f"{lambda_zip_path}.sha256")
+        return output_zip_path, Path(f"{output_zip_path}.sha256")
+
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description="Build a deterministic Lambda package for Compiler Explorer",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "source_dir",
+        help="Directory containing Lambda source code with pyproject.toml and poetry.lock",
+    )
+    parser.add_argument(
+        "output_zip_path",
+        help="Path to the output ZIP file (will also create <output_zip_path>.sha256)",
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    result_zip_path, result_sha_path = build_lambda_package()
+    args = parse_args()
+    result_zip_path, result_sha_path = build_lambda_package(args.source_dir, args.output_zip_path)
     print(f"Lambda package created at: {result_zip_path}")
     print(f"Lambda package SHA256 hash created at: {result_sha_path}")
