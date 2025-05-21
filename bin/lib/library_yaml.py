@@ -146,7 +146,12 @@ class LibraryYaml:
                     lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
             if lookupname in ["nightly", "if", "install_always"]:
                 continue
-            if "build_type" in libraries_for_language[libid] and libraries_for_language[libid]["build_type"] == "never":
+            if "build_type" in libraries_for_language[libid] and (
+                libraries_for_language[libid]["build_type"] == "manual"
+                or libraries_for_language[libid]["build_type"] == "none"
+                or libraries_for_language[libid]["build_type"] == "never"
+                or libraries_for_language[libid]["build_type"] == "make"
+            ):
                 continue
 
             if lookupname not in reorganised_libs:
@@ -163,9 +168,11 @@ class LibraryYaml:
                 lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
             if lookupname in ["nightly", "if", "install_always"]:
                 continue
-            if (
-                "build_type" in nightly_libraries_for_language[libid]
-                and nightly_libraries_for_language[libid]["build_type"] == "never"
+            if "build_type" in nightly_libraries_for_language[libid] and (
+                nightly_libraries_for_language[libid]["build_type"] == "manual"
+                or nightly_libraries_for_language[libid]["build_type"] == "none"
+                or nightly_libraries_for_language[libid]["build_type"] == "never"
+                or nightly_libraries_for_language[libid]["build_type"] == "make"
             ):
                 continue
 
