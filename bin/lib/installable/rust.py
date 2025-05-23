@@ -69,6 +69,8 @@ class RustInstallable(Installable):
         self.do_rust_install(staging, self.base_package, base_path)
         for architecture in architectures:
             self.do_rust_install(staging, f"rust-std-{self.target_name}-{architecture}", base_path)
+        if self.nightly_like:
+            self.do_rust_install(staging, f"rust-src-{self.target_name}", base_path)
         for binary in (base_path / "bin").glob("*"):
             self.maybe_set_rpath(binary, "$ORIGIN/../lib")
         for shared_object in (base_path / "lib").glob("*.so"):
