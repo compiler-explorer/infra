@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "explain" {
 
 data "aws_ecr_image" "explain" {
   repository_name = aws_ecr_repository.explain.name
-  image_tag = "gh-24"
+  image_tag = "gh-28"
 }
 
 resource "aws_lambda_function" "explain" {
@@ -31,6 +31,7 @@ resource "aws_lambda_function" "explain" {
     variables = {
       ANTHROPIC_API_KEY = data.aws_ssm_parameter.anthropic_api_key.value
       ROOT_PATH = "/explain"
+      METRICS_ENABLED = "true"
     }
   }
 }
