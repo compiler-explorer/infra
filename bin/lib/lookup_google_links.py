@@ -304,8 +304,13 @@ def execute_athena_query(query: str, database: str = "default", output_location:
             response = athena.get_work_group(WorkGroup="primary")
             output_location = response["WorkGroup"]["Configuration"]["ResultConfiguration"]["OutputLocation"]
         except Exception:
-            # Fallback to a default location
-            output_location = "s3://aws-athena-query-results-us-east-1/"
+            # Get the AWS account ID and region for the default bucket name
+            sts = boto3.client("sts")
+            account_id = sts.get_caller_identity()["Account"]
+            region = athena.meta.region_name or "us-east-1"
+            # Use the standard Athena results bucket pattern (account_id-region order)
+            output_location = f"s3://aws-athena-query-results-{account_id}-{region}/"
+            print(f"Using default output location: {output_location}")
 
     # Start query execution
     response = athena.start_query_execution(
