@@ -332,13 +332,9 @@ def execute_athena_query(query: str, database: str = "default", output_location:
         if status == "SUCCEEDED":
             # Get the S3 path to results
             results_location = response["QueryExecution"]["ResultConfiguration"]["OutputLocation"]
-            # Ensure location ends with /
-            if not results_location.endswith("/"):
-                results_location += "/"
-            # Athena saves results as <query_id>.csv
-            result_path = f"{results_location}{query_execution_id}.csv"
-            logger.debug(f"Query succeeded, expecting results at: {result_path}")
-            return result_path
+            # OutputLocation already contains the full path to the CSV file
+            logger.debug(f"Query succeeded, results at: {results_location}")
+            return results_location
         elif status in ["FAILED", "CANCELLED"]:
             reason = response["QueryExecution"]["Status"].get("StateChangeReason", "Unknown error")
             raise Exception(f"Query {status}: {reason}")
