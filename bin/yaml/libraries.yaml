@@ -44,7 +44,11 @@ libraries:
       check_file: keepanno-annotations.jar
       dir: r8-{{name}}-keepanno
       filename: keepanno-annotations.jar
-      type: singleFile
+      nightly:
+        if: nightly
+        targets:
+        - latest
+        url: https://storage.googleapis.com/r8-releases/raw/latest-dev/keepanno-annotations.jar
       release:
         targets:
         - 8.7.18
@@ -60,11 +64,7 @@ libraries:
         - 8.2.42
         - 8.2.33
         url: https://storage.googleapis.com/r8-releases/raw/{{name}}/keepanno-annotations.jar
-      nightly:
-        if: nightly
-        targets:
-        - latest
-        url: https://storage.googleapis.com/r8-releases/raw/latest-dev/keepanno-annotations.jar
+      type: singleFile
   c:
     cs50:
       build_type: manual
@@ -83,8 +83,8 @@ libraries:
       make_targets:
       - all
       method: clone_branch
-      repo: abseil/abseil-cpp
       package_install: true
+      repo: abseil/abseil-cpp
       targets:
       - name: '20250127.0'
         staticliblink:
@@ -266,8 +266,10 @@ libraries:
       - sed -i 's/-Werror/-Wno-error/g' "$i"
       - done
       after_stage_script_pwsh:
-      - Get-ChildItem -Recurse -Filter "CMakeLists.txt, *.cmake" | ForEach-Object {{ "{" }}
-      -   (Get-Content $_.FullName) -replace '-Werror', '-Wno-error' | Set-Content $_.FullName {{ "}" }}
+      - Get-ChildItem -Recurse -Filter "CMakeLists.txt, *.cmake" | ForEach-Object
+        {{ "{" }}
+      - (Get-Content $_.FullName) -replace '-Werror', '-Wno-error' | Set-Content $_.FullName
+        {{ "}" }}
       build_type: cmake
       check_file: CMakeLists.txt
       compression: xz
@@ -310,9 +312,9 @@ libraries:
       - 1.3.0
       type: github
     bronto:
+      build_type: none
       check_file: include/bronto/bronto.hpp
       method: clone_branch
-      build_type: none
       repo: brontosource/bronto
       targets:
       - v0.1.0
@@ -394,8 +396,8 @@ libraries:
       type: github
     cli11:
       build_type: none
-      lib_type: headeronly
       check_file: include/CLI/CLI.hpp
+      lib_type: headeronly
       repo: CLIUtils/CLI11
       target_prefix: v
       targets:
@@ -802,9 +804,9 @@ libraries:
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
       build_type: cmake
+      check_file: CMakeLists.txt
       depends:
       - libraries/c++/boost 1.84.0
-      package_install: true
       extra_cmake_arg:
       - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DHPX_WITH_TESTS=OFF
@@ -815,16 +817,16 @@ libraries:
       - -DHPX_WITH_MALLOC=system
       - -DBOOST_ROOT=/opt/compiler-explorer/libs/boost_1_84_0/
       - -DHPX_INTERNAL_CACHE_LINE_SIZE_DETECT=64
-      check_file: CMakeLists.txt
       lib_type: shared
+      make_targets:
+      - all
+      package_install: true
       repo: STEllAR-GROUP/hpx
       sharedliblink:
       - hpx_core
       staticliblink:
       - hpx_init
       - hpx_wrap
-      make_targets:
-      - all
       target_prefix: v
       targets:
       - name: 1.10.0
@@ -860,11 +862,11 @@ libraries:
       type: github
     kokkos:
       build_type: cmake
+      lib_type: static
       make_targets:
       - all
       package_install: true
       repo: kokkos/kokkos
-      lib_type: static
       staticliblink:
       - kokkoscore
       - kokkoscontainers
@@ -1085,15 +1087,15 @@ libraries:
       - 0.7.3
       type: github
     mdspan:
+      build_type: none
       check_file: include/experimental/mdspan
+      path_name: libs/mdspan-{{name}}
       repo: kokkos/mdspan
       target_prefix: mdspan-
       targets:
-      - '0.6.0'
-      build_type: none
-      path_name: libs/mdspan-{{name}}
-      untar_dir: mdspan-mdspan-{{name}}
+      - 0.6.0
       type: github
+      untar_dir: mdspan-mdspan-{{name}}
     mfem:
       build_type: cmake
       lib_type: static
@@ -1168,22 +1170,6 @@ libraries:
         targets:
         - trunk
         type: github
-      beman_iterator_interface:
-        after_stage_script:
-        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
-        build_type: cmake
-        check_file: README.md
-        extra_cmake_arg:
-        - -DBUILD_TESTING=OFF
-        lib_type: static
-        method: nightlyclone
-        package_install: true
-        repo: bemanproject/iterator_interface
-        staticliblink:
-        - beman.iterator_interface
-        targets:
-        - main
-        type: github
       beman_any_view:
         build_type: none
         check_file: README.md
@@ -1213,6 +1199,22 @@ libraries:
         check_file: README.md
         method: nightlyclone
         repo: bemanproject/inplace_vector
+        targets:
+        - main
+        type: github
+      beman_iterator_interface:
+        after_stage_script:
+        - sed -i 's/add_subdirectory(examples)//g' CMakeLists.txt
+        build_type: cmake
+        check_file: README.md
+        extra_cmake_arg:
+        - -DBUILD_TESTING=OFF
+        lib_type: static
+        method: nightlyclone
+        package_install: true
+        repo: bemanproject/iterator_interface
+        staticliblink:
+        - beman.iterator_interface
         targets:
         - main
         type: github
@@ -1555,11 +1557,11 @@ libraries:
         type: github
       googletest:
         build_type: cmake
+        lib_type: static
         make_targets:
         - all
         method: nightlyclone
         repo: google/googletest
-        lib_type: static
         staticliblink:
         - gtest
         - gtest_main
@@ -1997,8 +1999,8 @@ libraries:
         type: github
       ztdcuneicode:
         build_type: cmake
-        lib_type: static
         check_file: README.md
+        lib_type: static
         make_targets:
         - ztd.cuneicode
         method: nightlyclone
@@ -2010,8 +2012,8 @@ libraries:
         type: github
       ztdencodingtables:
         build_type: cmake
-        lib_type: static
         check_file: README.md
+        lib_type: static
         make_targets:
         - ztd.encoding_tables
         method: nightlyclone
@@ -2023,8 +2025,8 @@ libraries:
         type: github
       ztdidk:
         build_type: cmake
-        lib_type: static
         check_file: README.md
+        lib_type: static
         make_targets:
         - ztd.idk
         method: nightlyclone
@@ -2036,8 +2038,8 @@ libraries:
         type: github
       ztdplatform:
         build_type: cmake
-        lib_type: static
         check_file: README.md
+        lib_type: static
         make_targets:
         - ztd.platform
         method: nightlyclone
@@ -3471,14 +3473,14 @@ libraries:
       type: cratesio
   sway:
     std:
-      subdir: sway/std
-      repo: fuellabs/sway
+      build_type: none
       check_file: README.md
       method: clone_branch
-      build_type: none
+      repo: fuellabs/sway
+      subdir: sway/std
       target_prefix: v
       targets:
-        - 0.66.7
+      - 0.66.7
       type: github
   zig:
     nightly:
