@@ -244,11 +244,11 @@ def worker_thread(
                     stats.increment("errors_other")
                 else:
                     stats.increment("success")
-                    print(f"Thread {thread_id}: Success: {uri} -> {expanded}")
+                    logger.debug(f"Thread {thread_id}: Success: {uri} -> {expanded}")
             else:
                 stats.increment("failed")
                 if status != 429:  # Don't double-count 429s
-                    print(f"Thread {thread_id}: Failed: {uri} (status: {status})")
+                    logger.debug(f"Thread {thread_id}: Failed: {uri} (status: {status})")
 
         except Exception as e:
             print(f"Thread {thread_id}: Error processing {uri}: {type(e).__name__}: {e}")
@@ -368,17 +368,6 @@ def read_csv_from_s3(s3_path: str) -> io.StringIO:
 
     # Read from S3
     s3 = boto3.client("s3")
-
-    # List objects to debug what files actually exist
-    key_prefix = key.rsplit("/", 1)[0] + "/" if "/" in key else ""
-    response = s3.list_objects_v2(Bucket=bucket, Prefix=key_prefix, MaxKeys=10)
-    if "Contents" in response:
-        logger.debug(f"Found {len(response['Contents'])} objects with prefix {key_prefix}")
-        for obj in response["Contents"]:
-            logger.debug(f"  - {obj['Key']}")
-    else:
-        logger.debug(f"No objects found with prefix {key_prefix}")
-
     response = s3.get_object(Bucket=bucket, Key=key)
 
     # Read content and decode
@@ -395,24 +384,24 @@ def progress_thread(stats: Stats, stop_event: threading.Event) -> None:
         stats: Shared statistics object
         stop_event: Event to signal thread shutdown
     """
+    last_processed = 0
     while not stop_event.is_set():
-        time.sleep(10)  # Update every 10 seconds
+        time.sleep(5)  # Update every 5 seconds
         progress = stats.get_progress()
 
         if progress["total"] > 0:
-            elapsed_str = time.strftime("%H:%M:%S", time.gmtime(progress["elapsed"]))
-            print(
-                f"\nProgress: {progress['processed']}/{progress['total']} "
-                f"({progress['percent']:.1f}%) - "
-                f"Rate: {progress['rate']:.1f}/s - "
-                f"Elapsed: {elapsed_str}"
-            )
-            print(
-                f"  Cached: {progress['cached']}, "
-                f"Success: {progress['success']}, "
-                f"Failed: {progress['failed']}, "
-                f"Rate limits: {progress['errors_429']}"
-            )
+            processed = progress["processed"]
+            # Only print if we've made progress
+            if processed > last_processed:
+                print(
+                    f"\rProgress: {processed}/{progress['total']} "
+                    f"({progress['percent']:.1f}%) - "
+                    f"Success: {progress['success']} - "
+                    f"Rate: {progress['rate']:.1f}/s",
+                    end="",
+                    flush=True,
+                )
+                last_processed = processed
 
 
 def process_from_athena(
@@ -420,6 +409,7 @@ def process_from_athena(
     num_threads: int = 5,
     athena_database: str = "default",
     athena_output_location: Optional[str] = None,
+    progress_callback: Optional[Any] = None,
 ) -> None:
     """
     Process Google shortened links from CloudFront logs using Athena.
@@ -445,10 +435,7 @@ def process_from_athena(
         # Execute Athena query
         print("Executing Athena query...")
         s3_path = execute_athena_query(athena_query, athena_database, athena_output_location)
-        print("Reading results from S3...")
         csv_source = read_csv_from_s3(s3_path)
-
-        print("Loading URIs from query results...")
 
         try:
             reader = csv.DictReader(csv_source)
@@ -488,10 +475,7 @@ def process_from_athena(
                 work_items.append((uri, fragment))
 
             stats.total = stats.cached + stats.failed + len(work_items)
-            print(
-                f"Found {stats.total} total URIs: {stats.cached} cached, "
-                f"{len(work_items)} to process, {stats.failed} invalid"
-            )
+            print(f"Found {stats.total} URIs ({stats.cached} cached, {len(work_items)} to process)")
 
             # Add work items to queue
             for item in work_items:
@@ -571,10 +555,7 @@ def process_csv(filename: str, db_path: str = "google_links.db", num_threads: in
                 work_items.append((uri, fragment))
 
             stats.total = stats.cached + stats.failed + len(work_items)
-            print(
-                f"Found {stats.total} total URIs: {stats.cached} cached, "
-                f"{len(work_items)} to process, {stats.failed} invalid"
-            )
+            print(f"Found {stats.total} URIs ({stats.cached} cached, {len(work_items)} to process)")
 
             # Add work items to queue
             for item in work_items:
@@ -638,15 +619,17 @@ def _process_work_items(
     final_stats = stats.get_progress()
     elapsed_str = time.strftime("%H:%M:%S", time.gmtime(final_stats["elapsed"]))
 
-    print(f"\n{'=' * 60}")
-    print("Summary:")
-    print(f"Total URIs: {final_stats['total']}")
-    print(f"Already cached: {final_stats['cached']}")
-    print(f"Successfully expanded: {final_stats['success']}")
-    print(f"Failed to expand: {final_stats['failed']}")
-    print(f"Rate limit errors: {final_stats['errors_429']}")
-    print(f"Total time: {elapsed_str}")
-    print(f"Average rate: {final_stats['rate']:.1f} URIs/second")
+    # Clear the progress line
+    print("\r" + " " * 80 + "\r", end="")
+
+    print("\nSummary:")
+    print(f"  Total: {final_stats['total']} URIs")
+    print(f"  Cached: {final_stats['cached']}")
+    print(f"  Expanded: {final_stats['success']}")
+    print(f"  Failed: {final_stats['failed']}")
+    if final_stats["errors_429"] > 0:
+        print(f"  Rate limited: {final_stats['errors_429']}")
+    print(f"  Time: {elapsed_str} ({final_stats['rate']:.1f} URIs/s)")
 
 
 # Main entry point removed - this module is now used by the ce CLI tool
