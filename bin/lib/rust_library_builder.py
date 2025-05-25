@@ -18,7 +18,7 @@ from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.installation_context import InstallationContext
+from lib.installation_context import FetchFailure, InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_platform import LibraryPlatform
 from lib.rust_crates import RustCrate, get_builder_user_agent_id
@@ -334,7 +334,7 @@ class RustLibraryBuilder:
         req_data = json.dumps(buildparameters_copy)
         request = self.resil_post(url, req_data, headers)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
 
     def get_build_annotations(self, buildfolder):
         conanhash = self.get_conan_hash(buildfolder)
@@ -345,7 +345,7 @@ class RustLibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = requests.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
@@ -366,7 +366,7 @@ class RustLibraryBuilder:
 
         request = self.resil_post(url, req_data)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             return response["response"]

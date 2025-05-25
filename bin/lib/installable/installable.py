@@ -136,6 +136,7 @@ class Installable:
                 and self.build_config.build_type != "manual"
                 and self.build_config.build_type != "none"
                 and self.build_config.build_type != "never"
+                and self.build_config.build_type != "make"
             )
         else:
             return (

@@ -1,7 +1,6 @@
 import contextlib
 import csv
 import glob
-import hashlib
 import itertools
 import json
 import os
@@ -22,6 +21,7 @@ from urllib3.exceptions import ProtocolError
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
+from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
 from lib.library_platform import LibraryPlatform
@@ -192,6 +192,16 @@ class LibraryBuilder:
 
         self.buildconfig.staticliblink += alternatelibs
 
+        alternatelibs = []
+        for lib in self.buildconfig.sharedliblink:
+            if lib.endswith("d") and lib[:-1] not in self.buildconfig.sharedliblink:
+                alternatelibs += [lib[:-1]]
+            else:
+                if f"{lib}d" not in self.buildconfig.sharedliblink:
+                    alternatelibs += [f"{lib}d"]
+
+        self.buildconfig.sharedliblink += alternatelibs
+
     def getToolchainPathFromOptions(self, options):
         match = re.search(r"--gcc-toolchain=(\S*)", options)
         if match:
@@ -340,6 +350,15 @@ class LibraryBuilder:
             intelarch = "intel64"
 
         expanded = self.replace_optional_arg(expanded, "intelarch", intelarch)
+
+        cmake_bool_windows = "OFF"
+        cmake_bool_not_windows = "ON"
+        if self.platform == LibraryPlatform.Windows:
+            cmake_bool_windows = "ON"
+            cmake_bool_not_windows = "OFF"
+
+        expanded = self.replace_optional_arg(expanded, "cmake_bool_not_windows", cmake_bool_not_windows)
+        expanded = self.replace_optional_arg(expanded, "cmake_bool_windows", cmake_bool_windows)
 
         return expanded
 
@@ -706,8 +725,12 @@ class LibraryBuilder:
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
 
+                par_args = []
+                if self.platform == LibraryPlatform.Linux:
+                    par_args = ["-j$NUMCPUS"]
+
                 extramakeargs = " ".join(
-                    ["-j$NUMCPUS"]
+                    par_args
                     + [
                         self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
                         for arg in self.buildconfig.extra_make_arg
@@ -724,14 +747,20 @@ class LibraryBuilder:
                         lognum += 1
 
                     if not self.buildconfig.package_install:
-                        if len(self.buildconfig.staticliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.a')\n")
-                        elif len(self.buildconfig.sharedliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.so*')\n")
+                        if self.platform == LibraryPlatform.Linux:
+                            if len(self.buildconfig.staticliblink) != 0:
+                                f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                            elif len(self.buildconfig.sharedliblink) != 0:
+                                f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
-                    f.write('if [ "$libsfound" = "" ]; then\n')
-                    f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
-                    f.write("fi\n")
+                            f.write('if [ "$libsfound" = "" ]; then\n')
+                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write("fi\n")
+                        elif self.platform == LibraryPlatform.Windows:
+                            f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
+                            f.write("if ($libs.count -eq 0) {\n")
+                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write("}\n")
 
                 if self.buildconfig.package_install:
                     f.write(f"{make_utility} install > ceinstall_0.txt 2>&1\n")
@@ -983,20 +1012,16 @@ class LibraryBuilder:
             self.logger.info(f"Build timed out and was killed ({buildfolder})")
             return BuildStatus.TimedOut
 
-    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
-        hasher = hashlib.sha256()
+    def makebuildhash(
+        self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration
+    ):
         flagsstr = "|".join(x for x in flagscombination)
-        hasher.update(
-            bytes(
-                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
-            )
-        )
 
         self.logger.info(
             f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
         )
 
-        return compiler + "_" + hasher.hexdigest()
+        return compiler + "_" + str(iteration)
 
     def get_conan_hash(self, buildfolder: str) -> Optional[str]:
         if not self.install_context.dry_run:
@@ -1027,7 +1052,7 @@ class LibraryBuilder:
         request = self.resil_post(url, json_data=json.dumps(login_body))
         if not request.ok:
             self.logger.info(request.text)
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             self.conanserverproxy_token = response["token"]
@@ -1079,7 +1104,7 @@ class LibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
             if not request or not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
@@ -1111,7 +1136,7 @@ class LibraryBuilder:
         url = f"{conanserver_url}/whathasfailedbefore"
         request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             current_commit = self.get_commit_hash()
@@ -1167,7 +1192,7 @@ class LibraryBuilder:
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
 
     def makebuildfor(
         self,
@@ -1185,9 +1210,10 @@ class LibraryBuilder:
         ld_path,
         staging: StagingDir,
         compiler_props,
+        iteration,
     ):
         combined_hash = self.makebuildhash(
-            compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
+            compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration
         )
 
         build_folder = os.path.join(staging.path, combined_hash)
@@ -1313,7 +1339,7 @@ class LibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
             if not request or not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
@@ -1530,9 +1556,11 @@ class LibraryBuilder:
             if fixedStdver:
                 stdvers = [fixedStdver]
 
+            iteration = 0
             for args in itertools.product(
                 build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
+                iteration += 1
                 with self.install_context.new_staging_dir() as staging:
                     buildstatus = self.makebuildfor(
                         compiler,
@@ -1544,6 +1572,7 @@ class LibraryBuilder:
                         self.compilerprops[compiler]["ldPath"],
                         staging,
                         self.compilerprops[compiler],
+                        iteration,
                     )
                     if buildstatus == BuildStatus.Ok:
                         builds_succeeded = builds_succeeded + 1
