@@ -310,7 +310,6 @@ def execute_athena_query(query: str, database: str = "default", output_location:
             region = athena.meta.region_name or "us-east-1"
             # Use the standard Athena results bucket pattern (account_id-region order)
             output_location = f"s3://aws-athena-query-results-{account_id}-{region}/"
-            print(f"Using default output location: {output_location}")
 
     # Start query execution
     response = athena.start_query_execution(
@@ -428,13 +427,12 @@ def process_from_athena(
 
     try:
         # Execute Athena query
-        print(f"Executing Athena query: {athena_query}")
+        print("Executing Athena query...")
         s3_path = execute_athena_query(athena_query, athena_database, athena_output_location)
-        print(f"Query results saved to: {s3_path}")
         print("Reading results from S3...")
         csv_source = read_csv_from_s3(s3_path)
 
-        print("Loading URIs from Athena query results...")
+        print("Loading URIs from query results...")
 
         try:
             reader = csv.DictReader(csv_source)
