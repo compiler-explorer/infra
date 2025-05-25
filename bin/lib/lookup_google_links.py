@@ -19,6 +19,7 @@ import urllib.parse
 from typing import Any, Dict, Optional, Tuple, Union
 
 import boto3
+import click
 
 logger = logging.getLogger(__name__)
 
@@ -145,7 +146,7 @@ def expand_google_link(short_url: str, backoff_time: float = 0) -> Tuple[Optiona
             link_id = short_url[3:]
             full_url = f"https://goo.gl/{link_id}"
         else:
-            print(f"Warning: URL doesn't match expected format: {short_url}")
+            click.echo(f"Warning: URL doesn't match expected format: {short_url}")
             return None, 0
 
         # Parse the URL
@@ -175,18 +176,18 @@ def expand_google_link(short_url: str, backoff_time: float = 0) -> Tuple[Optiona
                 if location:
                     return location, response.status
                 else:
-                    print(f"Error: No Location header in redirect for {short_url}")
+                    click.echo(f"Error: No Location header in redirect for {short_url}")
                     return None, response.status
             else:
                 if response.status != 429:  # Don't spam logs with rate limit errors
-                    print(f"Error: Got status {response.status} for {short_url}")
+                    click.echo(f"Error: Got status {response.status} for {short_url}")
                 return None, response.status
 
         finally:
             conn.close()
 
     except Exception as e:
-        print(f"Error expanding {short_url}: {type(e).__name__}: {e}")
+        click.echo(f"Error expanding {short_url}: {type(e).__name__}: {e}")
         return None, 0
 
 
@@ -227,7 +228,7 @@ def worker_thread(
                 if status == 429:  # Rate limited
                     stats.increment("errors_429")
                     backoff = min(backoff_base * (2**attempt), 60)  # Max 60s backoff
-                    print(f"Thread {thread_id}: Rate limited, backing off {backoff:.1f}s")
+                    click.echo(f"Thread {thread_id}: Rate limited, backing off {backoff:.1f}s")
                     continue
                 elif status == 503:  # Service unavailable
                     backoff = min(backoff_base * (2**attempt), 30)
@@ -251,7 +252,7 @@ def worker_thread(
                     logger.debug(f"Thread {thread_id}: Failed: {uri} (status: {status})")
 
         except Exception as e:
-            print(f"Thread {thread_id}: Error processing {uri}: {type(e).__name__}: {e}")
+            click.echo(f"Thread {thread_id}: Error processing {uri}: {type(e).__name__}: {e}")
             stats.increment("failed")
             result_queue.put((fragment, None, 0))
         finally:
@@ -278,7 +279,7 @@ def writer_thread(result_queue: queue.Queue, db_path: str, stop_event: threading
         except queue.Empty:
             continue
         except Exception as e:
-            print(f"Writer thread error: {type(e).__name__}: {e}")
+            click.echo(f"Writer thread error: {type(e).__name__}: {e}")
 
     conn.close()
 
@@ -376,40 +377,11 @@ def read_csv_from_s3(s3_path: str) -> io.StringIO:
     return io.StringIO(content)
 
 
-def progress_thread(stats: Stats, stop_event: threading.Event) -> None:
-    """
-    Thread that periodically prints progress updates.
-
-    Args:
-        stats: Shared statistics object
-        stop_event: Event to signal thread shutdown
-    """
-    last_processed = 0
-    while not stop_event.is_set():
-        time.sleep(5)  # Update every 5 seconds
-        progress = stats.get_progress()
-
-        if progress["total"] > 0:
-            processed = progress["processed"]
-            # Only print if we've made progress
-            if processed > last_processed:
-                print(
-                    f"\rProgress: {processed}/{progress['total']} "
-                    f"({progress['percent']:.1f}%) - "
-                    f"Success: {progress['success']} - "
-                    f"Rate: {progress['rate']:.1f}/s",
-                    end="",
-                    flush=True,
-                )
-                last_processed = processed
-
-
 def process_from_athena(
     db_path: str,
     num_threads: int = 5,
     athena_database: str = "default",
     athena_output_location: Optional[str] = None,
-    progress_callback: Optional[Any] = None,
 ) -> None:
     """
     Process Google shortened links from CloudFront logs using Athena.
@@ -433,7 +405,7 @@ def process_from_athena(
 
     try:
         # Execute Athena query
-        print("Executing Athena query...")
+        click.echo("Executing Athena query...")
         s3_path = execute_athena_query(athena_query, athena_database, athena_output_location)
         csv_source = read_csv_from_s3(s3_path)
 
@@ -443,7 +415,7 @@ def process_from_athena(
             # Check if uri column exists
             fieldnames = reader.fieldnames or []
             if "uri" not in fieldnames:
-                print(f"Error: No 'uri' column found in CSV. Available columns: {fieldnames}")
+                click.echo(f"Error: No 'uri' column found in CSV. Available columns: {fieldnames}")
                 return
 
             # First pass: load all work items and check cache
@@ -459,7 +431,7 @@ def process_from_athena(
                 if uri.startswith("/g/"):
                     fragment = uri[3:]
                 else:
-                    print(f"Warning: URI doesn't match expected format: {uri}")
+                    click.echo(f"Warning: URI doesn't match expected format: {uri}")
                     stats.increment("failed")
                     continue
 
@@ -468,14 +440,14 @@ def process_from_athena(
                 if found:
                     stats.increment("cached")
                     if cached_url is None:
-                        print(f"Cached (invalid): {uri}")
+                        click.echo(f"Cached (invalid): {uri}")
                     # Don't print successful cached entries to reduce noise
                     continue
 
                 work_items.append((uri, fragment))
 
             stats.total = stats.cached + stats.failed + len(work_items)
-            print(f"Found {stats.total} URIs ({stats.cached} cached, {len(work_items)} to process)")
+            click.echo(f"Found {stats.total} URIs ({stats.cached} cached, {len(work_items)} to process)")
 
             # Add work items to queue
             for item in work_items:
@@ -485,11 +457,33 @@ def process_from_athena(
             # Close the StringIO object
             csv_source.close()
 
-        # Common processing logic
-        _process_work_items(work_queue, result_queue, stats, stop_event, db_path, num_threads)
+        # Process work items with progress bar
+        if len(work_items) > 0:
+            with click.progressbar(
+                length=len(work_items),
+                label="Processing URIs",
+                show_eta=True,
+                show_percent=True,
+            ) as bar:
+                _process_work_items_with_progress(
+                    work_queue, result_queue, stats, stop_event, db_path, num_threads, bar
+                )
+
+        # Show summary
+        final_stats = stats.get_progress()
+        elapsed_str = time.strftime("%H:%M:%S", time.gmtime(final_stats["elapsed"]))
+
+        click.echo("\nSummary:")
+        click.echo(f"  Total: {final_stats['total']} URIs")
+        click.echo(f"  Cached: {final_stats['cached']}")
+        click.echo(f"  Expanded: {final_stats['success']}")
+        click.echo(f"  Failed: {final_stats['failed']}")
+        if final_stats["errors_429"] > 0:
+            click.echo(f"  Rate limited: {final_stats['errors_429']}")
+        click.echo(f"  Time: {elapsed_str} ({final_stats['rate']:.1f} URIs/s)")
 
     except Exception as e:
-        print(f"Error: {type(e).__name__}: {e}")
+        click.echo(f"Error: {type(e).__name__}: {e}")
         stop_event.set()
     finally:
         conn.close()
@@ -517,14 +511,14 @@ def process_csv(filename: str, db_path: str = "google_links.db", num_threads: in
     stop_event = threading.Event()
 
     try:
-        print(f"Loading URIs from {filename}...")
+        click.echo(f"Loading URIs from {filename}...")
         with open(filename, "r", encoding="utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
 
             # Check if uri column exists
             fieldnames = reader.fieldnames or []
             if "uri" not in fieldnames:
-                print(f"Error: No 'uri' column found in CSV. Available columns: {fieldnames}")
+                click.echo(f"Error: No 'uri' column found in CSV. Available columns: {fieldnames}")
                 return
 
             # First pass: load all work items and check cache
@@ -540,7 +534,7 @@ def process_csv(filename: str, db_path: str = "google_links.db", num_threads: in
                 if uri.startswith("/g/"):
                     fragment = uri[3:]
                 else:
-                    print(f"Warning: URI doesn't match expected format: {uri}")
+                    click.echo(f"Warning: URI doesn't match expected format: {uri}")
                     stats.increment("failed")
                     continue
 
@@ -549,13 +543,13 @@ def process_csv(filename: str, db_path: str = "google_links.db", num_threads: in
                 if found:
                     stats.increment("cached")
                     if cached_url is None:
-                        print(f"Cached (invalid): {uri}")
+                        click.echo(f"Cached (invalid): {uri}")
                     continue
 
                 work_items.append((uri, fragment))
 
             stats.total = stats.cached + stats.failed + len(work_items)
-            print(f"Found {stats.total} URIs ({stats.cached} cached, {len(work_items)} to process)")
+            click.echo(f"Found {stats.total} URIs ({stats.cached} cached, {len(work_items)} to process)")
 
             # Add work items to queue
             for item in work_items:
@@ -565,11 +559,11 @@ def process_csv(filename: str, db_path: str = "google_links.db", num_threads: in
         _process_work_items(work_queue, result_queue, stats, stop_event, db_path, num_threads)
 
     except FileNotFoundError:
-        print(f"Error: File '{filename}' not found")
+        click.echo(f"Error: File '{filename}' not found")
     except csv.Error as e:
-        print(f"Error reading CSV: {e}")
+        click.echo(f"Error reading CSV: {e}")
     except Exception as e:
-        print(f"Unexpected error: {type(e).__name__}: {e}")
+        click.echo(f"Unexpected error: {type(e).__name__}: {e}")
         stop_event.set()
     finally:
         conn.close()
@@ -584,17 +578,9 @@ def _process_work_items(
     num_threads: int,
 ) -> None:
     """Common logic for processing work items with multiple threads."""
-    # Start threads
-    print(f"Starting {num_threads} worker threads...")
-
     # Writer thread
     writer = threading.Thread(target=writer_thread, args=(result_queue, db_path, stop_event))
     writer.start()
-
-    # Progress thread
-    progress = threading.Thread(target=progress_thread, args=(stats, stop_event))
-    progress.daemon = True
-    progress.start()
 
     # Worker threads
     workers = []
@@ -615,21 +601,55 @@ def _process_work_items(
     stop_event.set()
     writer.join()
 
-    # Final statistics
-    final_stats = stats.get_progress()
-    elapsed_str = time.strftime("%H:%M:%S", time.gmtime(final_stats["elapsed"]))
 
-    # Clear the progress line
-    print("\r" + " " * 80 + "\r", end="")
+def _process_work_items_with_progress(
+    work_queue: queue.Queue[Tuple[str, str]],
+    result_queue: queue.Queue[Tuple[str, Optional[str], int]],
+    stats: Stats,
+    stop_event: threading.Event,
+    db_path: str,
+    num_threads: int,
+    progress_bar,
+) -> None:
+    """Process work items with multiple threads and update progress bar."""
+    # Writer thread
+    writer = threading.Thread(target=writer_thread, args=(result_queue, db_path, stop_event))
+    writer.start()
 
-    print("\nSummary:")
-    print(f"  Total: {final_stats['total']} URIs")
-    print(f"  Cached: {final_stats['cached']}")
-    print(f"  Expanded: {final_stats['success']}")
-    print(f"  Failed: {final_stats['failed']}")
-    if final_stats["errors_429"] > 0:
-        print(f"  Rate limited: {final_stats['errors_429']}")
-    print(f"  Time: {elapsed_str} ({final_stats['rate']:.1f} URIs/s)")
+    # Worker threads
+    workers = []
+    for i in range(num_threads):
+        t = threading.Thread(target=worker_thread, args=(work_queue, result_queue, stats, i + 1))
+        t.start()
+        workers.append(t)
+
+    # Monitor progress
+    last_processed = 0
+    while any(t.is_alive() for t in workers):
+        progress = stats.get_progress()
+        processed = progress["processed"]
+        if processed > last_processed:
+            progress_bar.update(processed - last_processed)
+            last_processed = processed
+        time.sleep(0.5)
+
+    # Wait for all work to complete
+    work_queue.join()
+
+    # Wait for workers to finish
+    for t in workers:
+        t.join()
+
+    # Final progress update
+    progress = stats.get_progress()
+    processed = progress["processed"]
+    if processed > last_processed:
+        progress_bar.update(processed - last_processed)
+
+    # Signal writer to stop after processing remaining items
+    result_queue.join()
+    stop_event.set()
+    writer.join()
 
 
 # Main entry point removed - this module is now used by the ce CLI tool
