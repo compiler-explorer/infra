@@ -9,6 +9,7 @@ Supports multi-threaded processing for faster operation.
 import csv
 import http.client
 import io
+import logging
 import queue
 import random
 import sqlite3
@@ -18,6 +19,8 @@ import urllib.parse
 from typing import Any, Dict, Optional, Tuple, Union
 
 import boto3
+
+logger = logging.getLogger(__name__)
 
 
 def create_database(db_path: str) -> sqlite3.Connection:
@@ -329,8 +332,13 @@ def execute_athena_query(query: str, database: str = "default", output_location:
         if status == "SUCCEEDED":
             # Get the S3 path to results
             results_location = response["QueryExecution"]["ResultConfiguration"]["OutputLocation"]
+            # Ensure location ends with /
+            if not results_location.endswith("/"):
+                results_location += "/"
             # Athena saves results as <query_id>.csv
-            return f"{results_location}{query_execution_id}.csv"
+            result_path = f"{results_location}{query_execution_id}.csv"
+            logger.debug(f"Query succeeded, expecting results at: {result_path}")
+            return result_path
         elif status in ["FAILED", "CANCELLED"]:
             reason = response["QueryExecution"]["Status"].get("StateChangeReason", "Unknown error")
             raise Exception(f"Query {status}: {reason}")
@@ -360,9 +368,21 @@ def read_csv_from_s3(s3_path: str) -> io.StringIO:
         raise ValueError(f"Invalid S3 path: {s3_path}")
 
     bucket, key = parts
+    logger.debug(f"Attempting to read from bucket={bucket}, key={key}")
 
     # Read from S3
     s3 = boto3.client("s3")
+
+    # List objects to debug what files actually exist
+    key_prefix = key.rsplit("/", 1)[0] + "/" if "/" in key else ""
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=key_prefix, MaxKeys=10)
+    if "Contents" in response:
+        logger.debug(f"Found {len(response['Contents'])} objects with prefix {key_prefix}")
+        for obj in response["Contents"]:
+            logger.debug(f"  - {obj['Key']}")
+    else:
+        logger.debug(f"No objects found with prefix {key_prefix}")
+
     response = s3.get_object(Bucket=bucket, Key=key)
 
     # Read content and decode
