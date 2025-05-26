@@ -287,6 +287,22 @@ resource "aws_iam_policy" "CeModifyStoredState" {
   policy      = data.aws_iam_policy_document.CeModifyStoredState.json
 }
 
+data "aws_iam_policy_document" "ReadGooGlLinks" {
+  statement {
+    sid = "ReadGooGlLinks"
+    actions = [
+      "dynamodb:GetItem"
+    ]
+    resources = [aws_dynamodb_table.goo_gl_links.arn]
+  }
+}
+
+resource "aws_iam_policy" "ReadGooGlLinks" {
+  name        = "ReadGooGlLinks"
+  description = "Read-only access to goo.gl links table"
+  policy      = data.aws_iam_policy_document.ReadGooGlLinks.json
+}
+
 data "aws_iam_policy_document" "CePutCompileStatsLog" {
   statement {
     sid     = "CePutCompileStatsLog"
@@ -404,6 +420,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ScanLibra
   policy_arn = aws_iam_policy.ScanLibraryBuildHistory.arn
 }
 
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadGooGlLinks" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.ReadGooGlLinks.arn
+}
+
 // CompilerExplorerRole but for Windows machines
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
@@ -433,6 +454,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_Re
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_AmazonSSMManagedInstanceCore" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_ReadGooGlLinks" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.ReadGooGlLinks.arn
 }
 
 // This is for the auth node temporarily to allow port 3000 from the alb
