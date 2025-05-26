@@ -212,3 +212,22 @@ resource "aws_dynamodb_table" "library-build-history" {
     type = "S"
   }
 }
+
+resource "aws_dynamodb_table" "goo_gl_links" {
+  name         = "goo-gl-links"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "fragment"
+
+  attribute {
+    name = "fragment"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
