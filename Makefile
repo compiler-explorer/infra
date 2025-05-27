@@ -1,12 +1,10 @@
 .NOTPARALLEL:
 
-export POETRY_HOME=$(CURDIR)/.poetry
-# https://github.com/python-poetry/poetry/issues/1917
-export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
-POETRY:=$(POETRY_HOME)/bin/poetry
-POETRY_VENV=$(CURDIR)/.venv
-POETRY_DEPS:=$(POETRY_VENV)/.deps
-SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.13 || command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
+# Use system uv if available, otherwise install locally
+UV_SYSTEM:=$(shell command -v uv 2>/dev/null)
+UV_BIN:=$(if $(UV_SYSTEM),$(UV_SYSTEM),$(CURDIR)/.uv/uv)
+UV_VENV:=$(CURDIR)/.venv
+UV_DEPS:=$(UV_VENV)/.deps
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
@@ -15,12 +13,16 @@ help: # with thanks to Ben Rady
 
 PACKER ?= packer
 
-$(SYS_PYTHON):
-	@echo "Python 3.9, 3.10, 3.11, 3.12 or 3.13 not found on path. Please install (sudo apt install python3 or similar)"
-	@exit 1
+$(CURDIR)/.uv/uv:
+	@echo "Installing uv..."
+	@mkdir -p $(dir $@)
+	@curl -LsSf https://astral.sh/uv/install.sh | UV_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$(CURDIR)/.uv sh -s
 
-config.json: make_json.py | $(POETRY_DEPS)
-	$(POETRY) run python make_json.py
+# Only require local uv installation if system uv is not available
+$(UV_BIN): $(if $(UV_SYSTEM),,$(CURDIR)/.uv/uv)
+
+config.json: make_json.py | $(UV_DEPS)
+	$(UV_BIN) run python make_json.py
 
 .PHONY: packer
 packer: config.json ## Builds the base image for compiler explorer nodes
@@ -64,39 +66,33 @@ packer-builder: config.json  ## Builds the base image for the CE builder
 
 .PHONY: clean
 clean:  ## Cleans up everything
-	rm -rf $(POETRY_HOME) $(POETRY_VENV)
+	rm -rf $(CURDIR)/.uv $(UV_VENV) uv.lock
 
 .PHONY: update-admin
 update-admin:  ## Updates the admin website
 	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
 
 .PHONY: ce
-ce: $(POETRY) $(POETRY_DEPS)  ## Installs and configures the python environment needed for the various admin commands
-$(POETRY): $(SYS_PYTHON) poetry.toml
-	curl -sSL https://install.python-poetry.org | $(SYS_PYTHON) -
-	@touch $@
+ce: $(UV_BIN) $(UV_DEPS)  ## Installs and configures the python environment needed for the various admin commands
 
-poetry.lock:
-	$(POETRY) lock
-
-$(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
-	$(POETRY) sync --no-root
+$(UV_DEPS): $(UV_BIN) pyproject.toml
+	$(UV_BIN) sync --no-install-project
 	@touch $@
 
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
 
 .PHONY: test
 test: ce  ## Runs the tests
-	$(POETRY) run pytest $(PY_SOURCE_ROOTS)
+	$(UV_BIN) run pytest $(PY_SOURCE_ROOTS)
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
-	env SKIP=test $(POETRY) run pre-commit run --all-files
+	env SKIP=test $(UV_BIN) run pre-commit run --all-files
 
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
 LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
-$(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA): $(wildcard lambda/*.py) lambda/pyproject.toml lambda/poetry.lock Makefile scripts/build_lambda_deterministic.py
-	$(POETRY) run python scripts/build_lambda_deterministic.py $(CURDIR)/lambda $(LAMBDA_PACKAGE)
+$(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA): $(wildcard lambda/*.py) lambda/pyproject.toml lambda/uv.lock Makefile scripts/build_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_lambda_deterministic.py $(CURDIR)/lambda $(LAMBDA_PACKAGE)
 
 .PHONY: lambda-package  ## builds lambda
 lambda-package: $(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA)
@@ -162,8 +158,8 @@ terraform-plan:  upload-lambda ## Plans terraform changes
 
 .PHONY: pre-commit
 pre-commit: ce  ## Runs all pre-commit hooks
-	$(POETRY) run pre-commit run --all-files
+	$(UV_BIN) run pre-commit run --all-files
 
 .PHONY: install-pre-commit
 install-pre-commit: ce  ## Install pre-commit hooks
-	$(POETRY) run pre-commit install
+	$(UV_BIN) run pre-commit install

@@ -1,17 +1,15 @@
-[tool.poetry]
+[project]
 name = "compiler-explorer-lambda"
 version = "0.0.1"
 description = "Compiler Explorer Lambda Functions"
-authors = ["Matt Godbolt <matt@godbolt.org>"]
-
-[tool.poetry.dependencies]
-python = ">=3.9,<4"
-aws-embedded-metrics = "*"
-requests = "2.32.3"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+authors = [
+    {name = "Matt Godbolt", email = "matt@godbolt.org"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aws-embedded-metrics",
+    "requests==2.32.3"
+]
 
 # Mostly copied from the parent project.
 [tool.ruff]
