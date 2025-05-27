@@ -1294,7 +1294,7 @@ libraries:
         repo: correaa/boost-mpi3
         targets:
         - trunk
-        type: gitlab        
+        type: gitlab
       brigand:
         build_type: none
         check_file: README.md
