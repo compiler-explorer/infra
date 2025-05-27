@@ -1799,8 +1799,8 @@ libraries:
         - trunk
         type: github
       proxy:
-        build_type: none
-        check_file: proxy.h
+        build_type: cmake
+        check_file: README.md
         method: nightlyclone
         repo: microsoft/proxy
         targets:
@@ -2168,14 +2168,19 @@ libraries:
         - ./configure
       type: github
     proxy:
-      check_file: proxy.h
-      method: clone_branch
+      build_type: cmake
+      check_file: README.md
       repo: microsoft/proxy
       targets:
-      - 3.0.0
-      - 3.1.0
-      - 3.2.0
-      - 3.2.1
+      - name: 3.0.0
+        build_type: none
+      - name: 3.1.0
+        build_type: none
+      - name: 3.2.0
+        build_type: none
+      - name: 3.2.1
+        build_type: none
+      - 3.3.0
       type: github
     pugixml:
       build_type: cmake
