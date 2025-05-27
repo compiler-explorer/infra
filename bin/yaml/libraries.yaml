@@ -1279,19 +1279,19 @@ libraries:
         targets:
         - trunk
         type: bitbucket
-      bmulti:
-        build_type: none
-        check_file: include/multi/array.hpp
-        method: nightlyclone
-        repo: correaa/boost-multi
-        targets:
-        - trunk
-        type: gitlab
       bmpi3:
         build_type: none
         check_file: include/mpi3/communicator.hpp
         method: nightlyclone
         repo: correaa/boost-mpi3
+        targets:
+        - trunk
+        type: gitlab
+      bmulti:
+        build_type: none
+        check_file: include/multi/array.hpp
+        method: nightlyclone
+        repo: correaa/boost-multi
         targets:
         - trunk
         type: gitlab
