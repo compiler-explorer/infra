@@ -1287,6 +1287,14 @@ libraries:
         targets:
         - trunk
         type: gitlab
+      bmpi3:
+        build_type: none
+        check_file: include/mpi3/communicator.hpp
+        method: nightlyclone
+        repo: correaa/boost-mpi3
+        targets:
+        - trunk
+        type: gitlab        
       brigand:
         build_type: none
         check_file: README.md
