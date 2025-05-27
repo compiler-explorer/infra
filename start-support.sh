@@ -34,11 +34,10 @@ mount_opt() {
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
     if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # don't be tempted to background this, it just causes everything to wedge
-        # during startup (startup time I/O etc goes through the roof).
-        ./mount-all-img.sh
+        # Use autofs for on-demand mounting instead of mounting everything at boot
+        ./init/mount-opt-autofs.sh
 
-        echo "Done mounting squash images"
+        echo "Done setting up autofs for squash images"
     fi
 }
 

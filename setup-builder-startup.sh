@@ -43,7 +43,8 @@ mount_opt() {
   [ -f /opt/.health ] || touch /opt/.health
   mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
-  ./mount-all-img.sh
+  # Use autofs for on-demand mounting instead of mounting everything at boot
+  ./init/mount-opt-autofs.sh
 }
 
 mount_opt
