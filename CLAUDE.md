@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - Setup environment: `make ce`
 - Run all tests: `make test`
-- Run a single test: `poetry run pytest bin/test/path_to_test.py::TestClass::test_method -v`
+- Run a single test: `uv run pytest bin/test/path_to_test.py::TestClass::test_method -v`
 - Run static checks: `make static-checks`
 - Check code style/linting: `make pre-commit`
 - Install pre-commit hooks: `make install-pre-commit`
@@ -35,7 +35,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Testing Guidelines
 
 - Tests are in `bin/test` and `lambda` directories with `_test.py` suffix
-- Run tests with `make test` or `poetry run pytest path/to/test.py`
+- Run tests with `make test` or `uv run pytest path/to/test.py`
 - Test both success and error cases
 - Mock external dependencies when appropriate
 

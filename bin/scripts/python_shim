@@ -16,8 +16,9 @@ if ! make -sq -C "${ROOT_DIR}" ce; then
     exit 1
 fi
 
-PYTHON_ENV=$(cd "${ROOT_DIR}" && "${ROOT_DIR}/.poetry/bin/poetry" env info --path)
-
-exec "${PYTHON_ENV}/bin/python" \
+cd "${ROOT_DIR}"
+# Use system uv if available, otherwise use local installation
+UV_BIN=$(command -v uv 2>/dev/null || echo "${ROOT_DIR}/.uv/uv")
+exec "${UV_BIN}" run python \
     -c "import sys; sys.path.append('${ROOT_DIR}/bin'); from lib.${MY_NAME} import main; main()" \
     "$@"

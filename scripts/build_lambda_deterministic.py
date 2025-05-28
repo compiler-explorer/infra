@@ -1,27 +1,25 @@
 #!/usr/bin/env python3
 """
 Deterministic Lambda package builder for Compiler Explorer.
-Uses Poetry for dependency management and creates a reproducible ZIP file.
+Uses uv for dependency management and creates a reproducible ZIP file.
 
 Usage:
     python build_lambda_deterministic.py <source_dir> <output_zip_path>
 
 Arguments:
-    source_dir: Directory containing Lambda source code with pyproject.toml and poetry.lock
+    source_dir: Directory containing Lambda source code with pyproject.toml and uv.lock
     output_zip_path: Path to the output ZIP file (will also create <output_zip_path>.sha256)
 """
 
 import argparse
 import base64
 import hashlib
-import os
 import re
 import shlex
 import shutil
 import subprocess
 import tempfile
 import zipfile
-from contextlib import contextmanager
 from pathlib import Path
 
 # Exclusion patterns for files we don't want in the package
@@ -94,43 +92,67 @@ def create_deterministic_zip(source_path, output_path):
     return sha256_base64
 
 
-@contextmanager
-def new_virtualenv(venv):
-    old_env = os.environ.get("VIRTUAL_ENV")
-    os.environ["VIRTUAL_ENV"] = str(venv)
-    yield
-    if old_env:
-        os.environ["VIRTUAL_ENV"] = old_env
-
-
-def get_poetry_venv_site_packages(lambda_dir, repo_root):
-    """Get the site-packages directory from Poetry's virtual environment"""
+def get_uv_venv_site_packages(lambda_dir, repo_root):
+    """Get the site-packages directory from uv's virtual environment"""
     # Create or ensure the virtual environment exists with only main dependencies
-    poetry_bin = repo_root / ".poetry/bin/poetry"
-    with new_virtualenv(lambda_dir / ".venv"):
+    # Use system uv if available, otherwise use local installation
+    system_uv = shutil.which("uv")
+    uv_bin = Path(system_uv) if system_uv else repo_root / ".uv/uv"
+
+    # Create a temporary directory for the lambda venv and project
+    with tempfile.TemporaryDirectory() as temp_venv_dir:
+        venv_path = Path(temp_venv_dir) / ".venv"
+
+        # Export production dependencies to requirements.txt for deterministic builds
+        requirements_file = Path(temp_venv_dir) / "requirements.txt"
         run_command(
-            [poetry_bin, "sync", "--no-root", "--no-interaction", "--only", "main"],
+            [uv_bin, "export", "--no-hashes", "--no-dev", "--output-file", requirements_file],
             cwd=lambda_dir,
             capture_output=False,
         )
-        # Get the path to the virtual environment
-        venv_path = run_command([poetry_bin, "env", "info", "--path"], cwd=lambda_dir)
-        if not venv_path:
-            raise RuntimeError("Could not determine Poetry virtual environment path")
+
+        # Create virtual environment (uv will use .python-version file)
+        run_command(
+            [uv_bin, "venv", venv_path],
+            cwd=lambda_dir,
+            capture_output=False,
+        )
+
+        # Install only production dependencies
+        run_command(
+            [
+                uv_bin,
+                "pip",
+                "install",
+                "-r",
+                requirements_file,
+                "--python",
+                str(venv_path / "bin/python"),
+                "--no-cache",
+            ],
+            cwd=temp_venv_dir,
+            capture_output=False,
+        )
 
         # Find site-packages directory
-        venv_path = Path(venv_path)
         site_packages_dirs = list(venv_path.glob("lib/python*/site-packages"))
 
         if not site_packages_dirs:
-            raise RuntimeError("Could not find site-packages directory in Poetry virtual environment")
+            raise RuntimeError("Could not find site-packages directory in uv virtual environment")
 
         if len(site_packages_dirs) > 1:
             raise RuntimeError(f"Multiple site-packages directories found: {site_packages_dirs}")
 
         site_packages = site_packages_dirs[0]
         print(f"Found site-packages directory: {site_packages}")
-    return site_packages
+
+        # Copy site-packages to a persistent location before temp dir is cleaned up
+        persistent_site_packages = lambda_dir / ".build_site_packages"
+        if persistent_site_packages.exists():
+            shutil.rmtree(persistent_site_packages)
+        shutil.copytree(site_packages, persistent_site_packages, symlinks=False, ignore=EXCLUDE_COPY)
+
+    return persistent_site_packages
 
 
 def build_lambda_package(source_dir, output_zip_path):
@@ -156,8 +178,8 @@ def build_lambda_package(source_dir, output_zip_path):
     print(f"Building Lambda package from: {source_dir}")
     print(f"Output zip will be: {output_zip_path}")
 
-    # Get the site-packages directory from Poetry's virtual environment
-    site_packages = get_poetry_venv_site_packages(source_dir, repo_root)
+    # Get the site-packages directory from uv's virtual environment
+    site_packages = get_uv_venv_site_packages(source_dir, repo_root)
 
     # Create a temporary directory for staging the package content
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -175,13 +197,17 @@ def build_lambda_package(source_dir, output_zip_path):
                 print(f"Copied: {item.relative_to(source_dir)}")
 
         # Copy dependencies from site-packages
-        print("Copying dependencies from Poetry virtual environment")
+        print("Copying dependencies from uv virtual environment")
         shutil.copytree(site_packages, staging_dir, symlinks=True, dirs_exist_ok=True, ignore=EXCLUDE_COPY)
 
         # Create the deterministic ZIP file
         print(f"Creating deterministic ZIP at: {output_zip_path}")
         sha256 = create_deterministic_zip(staging_dir, output_zip_path)
         print(f"SHA256: {sha256}")
+
+        # Clean up the temporary site-packages directory
+        if site_packages.exists():
+            shutil.rmtree(site_packages)
 
         return output_zip_path, Path(f"{output_zip_path}.sha256")
 
@@ -194,7 +220,7 @@ def parse_args():
     )
     parser.add_argument(
         "source_dir",
-        help="Directory containing Lambda source code with pyproject.toml and poetry.lock",
+        help="Directory containing Lambda source code with pyproject.toml and uv.lock",
     )
     parser.add_argument(
         "output_zip_path",
