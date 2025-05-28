@@ -106,29 +106,26 @@ def admin_mount_efs(local_path: str, use_sudo: bool):
     # Check ownership of the mount point
     try:
         stat_info = os.stat(local_path)
-        if stat_info.st_uid != os.getuid():
+        getuid = getattr(os, "getuid", None)
+        if getuid and stat_info.st_uid != getuid():
             click.echo(f"Warning: You don't own {local_path}. This may cause mount issues.", err=True)
-            click.echo(f"Current owner UID: {stat_info.st_uid}, your UID: {os.getuid()}", err=True)
+            click.echo(f"Current owner UID: {stat_info.st_uid}, your UID: {getuid()}", err=True)
     except Exception:
         pass
 
     # Mount via sshfs (readonly)
-    # Use uid/gid to map remote files to local user
-    uid = os.getuid()
-    gid = os.getgid()
-
     # Build sshfs options
     if use_sudo:
         # When using sudo, tell SSH to use the current user's known_hosts file
         home_dir = os.path.expanduser("~")
         known_hosts = f"{home_dir}/.ssh/known_hosts"
         sshfs_options = (
-            f"ro,uid={uid},gid={gid},"
+            f"ro,"
             f"reconnect,ServerAliveInterval=120,ServerAliveCountMax=3,"
             f"StrictHostKeyChecking=accept-new,UserKnownHostsFile={known_hosts}"
         )
     else:
-        sshfs_options = f"ro,uid={uid},gid={gid},reconnect,ServerAliveInterval=120,ServerAliveCountMax=3"
+        sshfs_options = "ro,reconnect,ServerAliveInterval=120,ServerAliveCountMax=3"
 
     sshfs_cmd = [
         "sshfs",
