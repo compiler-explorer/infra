@@ -1,6 +1,3 @@
-# Make sure your python is in PATH, otherwise do something like below before running this script
-# $env:PATH = "$env:PATH;E:\Python\Python311"
-
 $cwd = Get-Location
 
 # Check if uv is available system-wide, otherwise install locally
