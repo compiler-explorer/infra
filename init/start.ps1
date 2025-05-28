@@ -355,6 +355,19 @@ function AddToHosts {
     return $ip
 }
 
+function AddConanToHostsAndFirewall {
+    $hostname = "conan.compiler-explorer.com"
+    $ip = "100.26.146.45"
+
+    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
+    $content = $content,($ip + " " + $hostname)
+    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
+
+    netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
+
+    return $ip
+}
+
 function AddLocalHost {
     $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
     $content = $content,("127.0.0.1 localhost")
@@ -385,11 +398,13 @@ function ConfigureFirewall {
     netsh advfirewall firewall add rule name="Allow IP $ip out" dir=out remoteip="$ip" action=allow enable=yes
     netsh advfirewall firewall add rule name="Allow IP $ip in" dir=in remoteip="$ip" action=allow enable=yes
 
-    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com", "compiler-explorer-logs.s3.us-east-1.amazonaws.com", "prometheus-us-central1.grafana.net", "conan.compiler-explorer.com")
+    $restrict = ((GetLogHost), "ssm.us-east-1.amazonaws.com", "ssmmessages.us-east-1.amazonaws.com", "ec2messages.us-east-1.amazonaws.com", "s3.amazonaws.com", "s3.us-east-1.amazonaws.com", "compiler-explorer-logs.s3.us-east-1.amazonaws.com", "prometheus-us-central1.grafana.net")
     foreach ($hostname in $restrict) {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
+
+    AddConanToHostsAndFirewall
 
     # should disable dns, but has consequences to figure out
     netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
