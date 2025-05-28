@@ -19,7 +19,12 @@ $(CURDIR)/.uv/uv:
 	@curl -LsSf https://astral.sh/uv/install.sh | UV_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$(CURDIR)/.uv sh -s
 
 # Only require local uv installation if system uv is not available
-$(UV_BIN): $(if $(UV_SYSTEM),,$(CURDIR)/.uv/uv)
+# When UV_SYSTEM is set, UV_BIN points to the system uv, so no dependency needed
+# When UV_SYSTEM is empty, UV_BIN points to .uv/uv, but we don't want a circular dependency
+ifneq ($(UV_SYSTEM),)
+$(UV_BIN):
+	@true
+endif
 
 config.json: make_json.py | $(UV_DEPS)
 	$(UV_BIN) run python make_json.py
