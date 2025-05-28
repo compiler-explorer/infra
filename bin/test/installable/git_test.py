@@ -48,12 +48,15 @@ def staging_path_fixture(tmp_path) -> Path:
 def fake_remote_repo_fixture(tmp_path) -> str:
     repo = tmp_path / "some-remote-repo"
     repo.mkdir()
-    subprocess.check_call(["git", "init"], cwd=repo)
+    # Disable pre-commit hooks for test repositories
+    env = os.environ.copy()
+    env["PRE_COMMIT_ALLOW_NO_CONFIG"] = "1"
+    subprocess.check_call(["git", "init"], cwd=repo, env=env)
     subprocess.check_call(["git", "config", "--local", "user.email", "nobody@nowhere.not.real"], cwd=repo)
     subprocess.check_call(["git", "config", "--local", "user.name", "Not a Real Person"], cwd=repo)
     (repo / "some_file.txt").touch()
     subprocess.check_call(["git", "add", "some_file.txt"], cwd=repo)
-    subprocess.check_call(["git", "commit", "-minitial"], cwd=repo)
+    subprocess.check_call(["git", "commit", "-minitial"], cwd=repo, env=env)
     return str(repo)
 
 

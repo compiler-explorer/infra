@@ -355,6 +355,17 @@ function AddToHosts {
     return $ip
 }
 
+function AddConanToHostsAndFirewall {
+    $hostname = "conan.compiler-explorer.com"
+    $ip = "18.160.18.12"
+
+    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
+    $content = $content,($ip + " " + $hostname)
+    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
+
+    netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
+}
+
 function AddLocalHost {
     $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
     $content = $content,("127.0.0.1 localhost")
@@ -390,6 +401,8 @@ function ConfigureFirewall {
         $ip = AddToHosts $hostname
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
+
+    AddConanToHostsAndFirewall
 
     # should disable dns, but has consequences to figure out
     netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
