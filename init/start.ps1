@@ -357,15 +357,13 @@ function AddToHosts {
 
 function AddConanToHostsAndFirewall {
     $hostname = "conan.compiler-explorer.com"
-    $ip = "100.26.146.45"
+    $ip = "18.160.18.12"
 
     $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
     $content = $content,($ip + " " + $hostname)
     Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
 
     netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
-
-    return $ip
 }
 
 function AddLocalHost {
