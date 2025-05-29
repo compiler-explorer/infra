@@ -122,12 +122,12 @@ compilers:
           check_exe: bin/mrustc --version
           targets:
             - master
-#      rust-miri:
-#        if: nightly
-#        type: nightly
-#        check_exe: "bin/miri --version --verbose"
-#        targets:
-#          - nightly
+      rust-miri:
+        if: nightly
+        type: nightly
+        check_exe: "bin/miri --version --verbose"
+        targets:
+          - nightly
   rust-linux:
     type: s3tarballs
     subdir: rust-linux
