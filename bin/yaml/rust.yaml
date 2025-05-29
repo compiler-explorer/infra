@@ -122,7 +122,7 @@ compilers:
           check_exe: bin/mrustc --version
           targets:
             - master
-      rust-miri:
+      miri:
         if: nightly
         type: nightly
         check_exe: "bin/miri --version --verbose"
