@@ -839,6 +839,7 @@ libraries:
       target_prefix: v
       targets:
       - 0.168.3
+      - 0.177.0
       type: github
     jsoncpp:
       build_type: cmake
