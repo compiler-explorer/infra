@@ -69,6 +69,9 @@ def update_library_in_properties(existing_content, library_name, library_propert
         else:
             return (4, prop_name)
     
+    # Check if this is a single version update
+    update_version_id = library_properties.pop('_update_version_id', None)
+    
     lines = existing_content.splitlines()
     result_lines = []
     
@@ -76,6 +79,8 @@ def update_library_in_properties(existing_content, library_name, library_propert
     seen_props = set()
     inside_library_block = False
     last_library_line_idx = -1
+    existing_versions_line_idx = -1
+    existing_versions = []
     
     # First pass: update existing properties and track what we've seen
     for i, line in enumerate(lines):
@@ -92,6 +97,31 @@ def update_library_in_properties(existing_content, library_name, library_propert
                 prop_name = key[len(f'libs.{library_name}.'):]
                 seen_props.add(prop_name)
                 
+                # Special handling for versions line when updating a single version
+                if prop_name == 'versions' and update_version_id:
+                    existing_versions_line_idx = len(result_lines)
+                    # Parse existing versions
+                    if '=' in stripped:
+                        _, versions_value = stripped.split('=', 1)
+                        existing_versions = versions_value.split(':')
+                    
+                    # Check if version needs to be added
+                    if update_version_id not in existing_versions:
+                        existing_versions.append(update_version_id)
+                        # Sort version IDs numerically where possible
+                        def version_sort_key(v):
+                            try:
+                                # Try to extract numeric part for sorting
+                                return int(''.join(filter(str.isdigit, v)) or '0')
+                            except:
+                                return v
+                        existing_versions.sort(key=version_sort_key)
+                        result_lines.append(f"{key}={':'.join(existing_versions)}")
+                    else:
+                        # Version already exists, keep the line as is
+                        result_lines.append(line)
+                    continue
+                
                 # If we have a new value for this property, use it
                 if prop_name in library_properties:
                     result_lines.append(f"{key}={library_properties[prop_name]}")
@@ -107,7 +137,7 @@ def update_library_in_properties(existing_content, library_name, library_propert
     # Find properties that need to be added
     props_to_add = []
     for prop_name, value in library_properties.items():
-        if prop_name not in seen_props:
+        if prop_name not in seen_props and not prop_name.startswith('_'):
             props_to_add.append((prop_name, value))
     
     # If we have properties to add
@@ -326,8 +356,14 @@ def add_cpp_library(github_url: str, version: str, type: str):
 @cpp_library.command(name="generate-windows-props")
 @click.option('--input-file', type=click.Path(exists=True), help='Existing properties file to update')
 @click.option('--output-file', type=click.Path(), help='Output file (defaults to stdout)')
-def generate_cpp_windows_props(input_file, output_file):
+@click.option('--library', help='Only update this specific library')
+@click.option('--version', help='Only update this specific version (requires --library)')
+def generate_cpp_windows_props(input_file, output_file, library, version):
     """Generate C++ Windows properties file from libraries.yaml."""
+    if version and not library:
+        click.echo("Error: --version requires --library to be specified", err=True)
+        sys.exit(1)
+    
     # Load libraries.yaml
     yaml_dir = Path(__file__).parent.parent.parent / 'yaml'
     library_yaml = LibraryYaml(str(yaml_dir))
@@ -337,9 +373,16 @@ def generate_cpp_windows_props(input_file, output_file):
         click.echo("No C++ libraries found in libraries.yaml")
         return
     
-    # Generate properties using the existing method
-    logger = logging.getLogger()
-    new_properties_text = library_yaml.get_ce_properties_for_cpp_windows_libraries(logger)
+    if library:
+        # Generate properties for specific library only
+        # For now, we'll need to use the Linux generator and adapt it
+        # since get_ce_properties_for_cpp_windows_libraries doesn't support filtering
+        click.echo("Filtering by library for Windows properties is not yet implemented", err=True)
+        sys.exit(1)
+    else:
+        # Generate properties using the existing method
+        logger = logging.getLogger()
+        new_properties_text = library_yaml.get_ce_properties_for_cpp_windows_libraries(logger)
     
     if input_file:
         # Load existing properties file
@@ -364,8 +407,14 @@ def generate_cpp_windows_props(input_file, output_file):
 @cpp_library.command(name="generate-linux-props")
 @click.option('--input-file', type=click.Path(exists=True), help='Existing properties file to update')
 @click.option('--output-file', type=click.Path(), help='Output file (defaults to stdout)')
-def generate_cpp_linux_props(input_file, output_file):
+@click.option('--library', help='Only update this specific library')
+@click.option('--version', help='Only update this specific version (requires --library)')
+def generate_cpp_linux_props(input_file, output_file, library, version):
     """Generate C++ Linux properties file from libraries.yaml."""
+    if version and not library:
+        click.echo("Error: --version requires --library to be specified", err=True)
+        sys.exit(1)
+    
     # Load libraries.yaml
     yaml_dir = Path(__file__).parent.parent.parent / 'yaml'
     library_yaml = LibraryYaml(str(yaml_dir))
@@ -375,74 +424,198 @@ def generate_cpp_linux_props(input_file, output_file):
         click.echo("No C++ libraries found in libraries.yaml")
         return
     
-    # For now, we'll generate a simple properties format for Linux
-    # This follows a similar pattern to the Rust properties generation
     cpp_libraries = library_yaml.yaml_doc['libraries']['c++']
-    all_ids = []
-    properties_txt = ""
     
-    for lib_id, lib_info in cpp_libraries.items():
-        if lib_id in ['nightly', 'if', 'install_always']:
-            continue
-            
-        # Skip libraries that are manual or have no build type
-        if 'build_type' in lib_info and lib_info['build_type'] in ['manual', 'none', 'never']:
-            continue
-            
-        all_ids.append(lib_id)
+    if library:
+        # Check if the specified library exists
+        if library not in cpp_libraries:
+            click.echo(f"Error: Library '{library}' not found in libraries.yaml", err=True)
+            sys.exit(1)
         
-        # Generate basic properties
-        libverprops = f"libs.{lib_id}.name={lib_id}\n"
+        # Generate properties for specific library only
+        lib_info = cpp_libraries[library]
         
-        # Add URL if it's a GitHub library
-        if lib_info.get('type') == 'github' and 'repo' in lib_info:
-            libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+        # Check if library should be skipped
+        if lib_info.get('build_type') in ['manual', 'none', 'never']:
+            click.echo(f"Warning: Library '{library}' has build_type '{lib_info.get('build_type')}' and would normally be skipped", err=True)
         
-        # Add versions
+        # Generate properties for this library
+        lib_props = {}
+        
+        # Handle versions
         if 'targets' in lib_info and lib_info['targets']:
-            version_ids = []
-            for version in lib_info['targets']:
-                if isinstance(version, dict):
-                    ver_name = version.get('name', version)
-                    ver_id = ver_name.replace('.', '')
-                else:
-                    ver_name = version
-                    ver_id = version.replace('.', '')
-                version_ids.append(ver_id)
-            
-            libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
-            
-            # Add version details
-            for version in lib_info['targets']:
-                if isinstance(version, dict):
-                    ver_name = version.get('name', version)
-                    ver_id = ver_name.replace('.', '')
-                else:
-                    ver_name = version
-                    ver_id = version.replace('.', '')
+            if version:
+                # Filter to specific version
+                found_version = None
+                for target_version in lib_info['targets']:
+                    if isinstance(target_version, dict):
+                        ver_name = target_version.get('name', target_version)
+                    else:
+                        ver_name = target_version
                     
-                libverprops += f"libs.{lib_id}.versions.{ver_id}.version={ver_name}\n"
+                    if ver_name == version:
+                        found_version = target_version
+                        break
+                
+                if not found_version:
+                    click.echo(f"Error: Version '{version}' not found for library '{library}'", err=True)
+                    sys.exit(1)
+                
+                # Generate properties for single version
+                ver_id = version.replace('.', '')
+                lib_props[f'versions.{ver_id}.version'] = version
                 
                 # Add library type specific paths
                 if lib_info.get('lib_type') == 'headeronly' or lib_info.get('package_install'):
-                    libverprops += f"libs.{lib_id}.versions.{ver_id}.path=./\n"
+                    lib_props[f'versions.{ver_id}.path'] = './'
+                
+                # When updating a specific version, check if we need to update the versions list
+                if input_file:
+                    # We'll handle the versions list update specially in update_library_in_properties
+                    # by checking if the version already exists
+                    lib_props['_update_version_id'] = ver_id  # Special marker for version update
+            else:
+                # When updating all versions, we update library-level properties too
+                # Add basic properties
+                lib_props['name'] = library
+                
+                # Add URL if it's a GitHub library
+                if lib_info.get('type') == 'github' and 'repo' in lib_info:
+                    lib_props['url'] = f"https://github.com/{lib_info['repo']}"
+                
+                # Generate properties for all versions
+                version_ids = []
+                for target_version in lib_info['targets']:
+                    if isinstance(target_version, dict):
+                        ver_name = target_version.get('name', target_version)
+                        ver_id = ver_name.replace('.', '')
+                    else:
+                        ver_name = target_version
+                        ver_id = target_version.replace('.', '')
+                    version_ids.append(ver_id)
+                    
+                    lib_props[f'versions.{ver_id}.version'] = ver_name
+                    
+                    # Add library type specific paths
+                    if lib_info.get('lib_type') == 'headeronly' or lib_info.get('package_install'):
+                        lib_props[f'versions.{ver_id}.path'] = './'
+                
+                lib_props['versions'] = ':'.join(version_ids)
+        else:
+            # No targets specified, but we still need basic properties when not updating
+            if not version:
+                lib_props['name'] = library
+                if lib_info.get('type') == 'github' and 'repo' in lib_info:
+                    lib_props['url'] = f"https://github.com/{lib_info['repo']}"
         
-        properties_txt += libverprops + "\n"
-    
-    # Generate header
-    header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-    new_properties_text = header_properties_txt + properties_txt
-    
-    if input_file:
-        # Load existing properties file
-        with open(input_file, 'r', encoding='utf-8') as f:
-            existing_content = f.read()
-        
-        # Merge properties
-        merged_content = merge_properties(existing_content, new_properties_text)
-        result = merged_content
+        if input_file:
+            # Load existing properties file
+            with open(input_file, 'r', encoding='utf-8') as f:
+                existing_content = f.read()
+            
+            # Update only the specific library
+            result = update_library_in_properties(existing_content, library, lib_props)
+            
+            # If the library wasn't in the libs= list, we need to add it
+            if f'libs.{library}.' not in existing_content:
+                lines = result.splitlines()
+                for i, line in enumerate(lines):
+                    if line.strip().startswith('libs='):
+                        # Parse existing libs
+                        if '=' in line:
+                            prefix, libs_value = line.split('=', 1)
+                            existing_libs = [lib for lib in libs_value.split(':') if lib]
+                            if library not in existing_libs:
+                                existing_libs.append(library)
+                                lines[i] = f"{prefix}={':'.join(existing_libs)}"
+                        break
+                result = '\n'.join(lines)
+        else:
+            # Generate minimal properties for just this library
+            # When generating standalone (no input file), include all properties
+            if version and 'name' not in lib_props:
+                # Add library-level properties for standalone generation
+                lib_props['name'] = library
+                if lib_info.get('type') == 'github' and 'repo' in lib_info:
+                    lib_props['url'] = f"https://github.com/{lib_info['repo']}"
+            
+            properties_lines = []
+            properties_lines.append(f"libs={library}")
+            properties_lines.append("")
+            
+            # Remove the special marker before output
+            lib_props.pop('_update_version_id', None)
+            
+            for prop_name, value in sorted(lib_props.items()):
+                properties_lines.append(f"libs.{library}.{prop_name}={value}")
+            result = '\n'.join(properties_lines)
     else:
-        result = new_properties_text
+        # Generate properties for all libraries (existing behavior)
+        all_ids = []
+        properties_txt = ""
+        
+        for lib_id, lib_info in cpp_libraries.items():
+            if lib_id in ['nightly', 'if', 'install_always']:
+                continue
+                
+            # Skip libraries that are manual or have no build type
+            if 'build_type' in lib_info and lib_info['build_type'] in ['manual', 'none', 'never']:
+                continue
+                
+            all_ids.append(lib_id)
+            
+            # Generate basic properties
+            libverprops = f"libs.{lib_id}.name={lib_id}\n"
+            
+            # Add URL if it's a GitHub library
+            if lib_info.get('type') == 'github' and 'repo' in lib_info:
+                libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+            
+            # Add versions
+            if 'targets' in lib_info and lib_info['targets']:
+                version_ids = []
+                for target_version in lib_info['targets']:
+                    if isinstance(target_version, dict):
+                        ver_name = target_version.get('name', target_version)
+                        ver_id = ver_name.replace('.', '')
+                    else:
+                        ver_name = target_version
+                        ver_id = target_version.replace('.', '')
+                    version_ids.append(ver_id)
+                
+                libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
+                
+                # Add version details
+                for target_version in lib_info['targets']:
+                    if isinstance(target_version, dict):
+                        ver_name = target_version.get('name', target_version)
+                        ver_id = ver_name.replace('.', '')
+                    else:
+                        ver_name = target_version
+                        ver_id = target_version.replace('.', '')
+                        
+                    libverprops += f"libs.{lib_id}.versions.{ver_id}.version={ver_name}\n"
+                    
+                    # Add library type specific paths
+                    if lib_info.get('lib_type') == 'headeronly' or lib_info.get('package_install'):
+                        libverprops += f"libs.{lib_id}.versions.{ver_id}.path=./\n"
+            
+            properties_txt += libverprops + "\n"
+        
+        # Generate header
+        header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
+        new_properties_text = header_properties_txt + properties_txt
+        
+        if input_file:
+            # Load existing properties file
+            with open(input_file, 'r', encoding='utf-8') as f:
+                existing_content = f.read()
+            
+            # Merge properties
+            merged_content = merge_properties(existing_content, new_properties_text)
+            result = merged_content
+        else:
+            result = new_properties_text
     
     # Output
     if output_file:
