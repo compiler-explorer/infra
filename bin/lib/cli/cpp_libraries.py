@@ -239,6 +239,9 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
 
             # If the library wasn't in the libs= list, we need to add it
             if f"libs.{library}." not in existing_content:
+                # Preserve whether original content had final newline
+                original_ends_with_newline = existing_content.endswith("\n")
+
                 lines = result.splitlines()
                 for i, line in enumerate(lines):
                     if line.strip().startswith("libs="):
@@ -251,6 +254,9 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                                 lines[i] = f"{prefix}={':'.join(existing_libs)}"
                         break
                 result = "\n".join(lines)
+                # Preserve original final newline behavior
+                if original_ends_with_newline and not result.endswith("\n"):
+                    result += "\n"
         else:
             # Generate standalone properties for just this library
             # When generating standalone (no input file), include all properties

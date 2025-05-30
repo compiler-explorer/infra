@@ -6,6 +6,7 @@ from lib.library_props import (
     generate_library_path,
     generate_single_library_properties,
     generate_standalone_library_properties,
+    merge_properties,
     parse_properties_file,
     update_library_in_properties,
     version_to_id,
@@ -286,3 +287,59 @@ def test_generate_all_libraries_properties_with_target_prefix():
     result = generate_all_libraries_properties(cpp_libraries)
 
     assert "libs.nlohmann_json.versions.3113.path=/opt/compiler-explorer/libs/nlohmann_json/v3.11.3/include" in result
+
+
+def test_update_library_preserves_final_newline():
+    """Test that updating library properties preserves the original file's final newline."""
+    # Content with final newline
+    existing_content_with_newline = """libs=fmt
+
+libs.fmt.name=fmt
+libs.fmt.url=https://github.com/fmtlib/fmt
+libs.fmt.versions=1000
+"""
+
+    # Content without final newline
+    existing_content_without_newline = """libs=fmt
+
+libs.fmt.name=fmt
+libs.fmt.url=https://github.com/fmtlib/fmt
+libs.fmt.versions=1000"""
+
+    lib_props = {
+        "versions.1021.version": "10.2.1",
+        "versions.1021.path": "/opt/compiler-explorer/libs/fmt/10.2.1/include",
+    }
+
+    # Test with newline - should preserve it
+    result_with_newline = update_library_in_properties(existing_content_with_newline, "fmt", lib_props, "1021")
+    assert result_with_newline.endswith("\n"), "Should preserve final newline when original had one"
+
+    # Test without newline - should preserve that too
+    result_without_newline = update_library_in_properties(existing_content_without_newline, "fmt", lib_props, "1021")
+    assert not result_without_newline.endswith("\n"), "Should preserve no final newline when original didn't have one"
+
+
+def test_merge_properties_preserves_final_newline():
+    """Test that merging properties preserves the original file's final newline."""
+    # Existing content with final newline
+    existing_with_newline = """libs=fmt
+
+libs.fmt.name=fmt
+libs.fmt.versions=1000
+"""
+
+    # New content to merge
+    new_content = """libs=json
+
+libs.json.name=json
+libs.json.versions=3113
+"""
+
+    result = merge_properties(existing_with_newline, new_content)
+    assert result.endswith("\n"), "Should preserve final newline when original had one"
+
+    # Test without final newline
+    existing_without_newline = existing_with_newline.rstrip("\n")
+    result = merge_properties(existing_without_newline, new_content)
+    assert not result.endswith("\n"), "Should preserve no final newline when original didn't have one"

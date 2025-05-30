@@ -92,6 +92,9 @@ def update_library_in_properties(existing_content, library_name, library_propert
         else:
             return (4, prop_name)
 
+    # Preserve whether original content had final newline
+    original_ends_with_newline = existing_content.endswith("\n")
+
     lines = existing_content.splitlines()
     result_lines = []
 
@@ -167,7 +170,12 @@ def update_library_in_properties(existing_content, library_name, library_propert
                 full_key = generate_library_property_key(library_name, prop_name)
                 result_lines.append(f"{full_key}={value}")
 
-    return "\n".join(result_lines)
+    result = "\n".join(result_lines)
+    # Preserve original final newline behavior
+    if original_ends_with_newline and not result.endswith("\n"):
+        result += "\n"
+
+    return result
 
 
 def merge_properties(existing_content, new_content):
@@ -179,6 +187,9 @@ def merge_properties(existing_content, new_content):
         new_libs_list = new_props["libs"].split(":")
 
     result_content = existing_content
+
+    # Preserve whether original content had final newline
+    original_ends_with_newline = existing_content.endswith("\n")
 
     lines = result_content.splitlines()
     for i, line in enumerate(lines):
@@ -195,6 +206,8 @@ def merge_properties(existing_content, new_content):
 
             lines[i] = f"libs={':'.join(merged_libs)}"
             result_content = "\n".join(lines)
+            if original_ends_with_newline:
+                result_content += "\n"
             break
 
     libraries_to_update = {}
@@ -225,7 +238,12 @@ def merge_properties(existing_content, new_content):
             cleaned_lines.append(line)
             prev_empty = False
 
-    return "\n".join(cleaned_lines)
+    result = "\n".join(cleaned_lines)
+    # Preserve original final newline behavior
+    if original_ends_with_newline and not result.endswith("\n"):
+        result += "\n"
+
+    return result
 
 
 def generate_single_library_properties(library_name, lib_info, specific_version=None):
