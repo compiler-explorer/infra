@@ -29,6 +29,11 @@ def version_to_id(version):
     return version.replace(".", "")
 
 
+def generate_version_property_suffix(version_id, property_name):
+    """Generate the suffix for a version property key (versions.{version_id}.{property_name})."""
+    return f"versions.{version_id}.{property_name}"
+
+
 def extract_library_id_from_github_url(github_url):
     """Extract library ID from GitHub URL."""
     parsed = urlparse(github_url)
@@ -252,13 +257,13 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                 raise ValueError(f"Version '{specific_version}' not found for library '{library_name}'")
 
             ver_id = version_to_id(specific_version)
-            version_key = generate_version_property_key(library_name, ver_id, "version")
-            lib_props[version_key[len(f"libs.{library_name}."):]] = specific_version
+            version_suffix = generate_version_property_suffix(ver_id, "version")
+            lib_props[version_suffix] = specific_version
 
             if not lib_info.get("package_install"):
                 path = generate_library_path(library_name, specific_version)
-                path_key = generate_version_property_key(library_name, ver_id, "path")
-                lib_props[path_key[len(f"libs.{library_name}."):]] = path
+                path_suffix = generate_version_property_suffix(ver_id, "path")
+                lib_props[path_suffix] = path
 
         else:
             # When updating all versions, we update library-level properties too
@@ -283,13 +288,13 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                     ver_id = version_to_id(target_version)
                 version_ids.append(ver_id)
 
-                version_key = generate_version_property_key(library_name, ver_id, "version")
-                lib_props[version_key[len(f"libs.{library_name}."):]] = ver_name
+                version_suffix = generate_version_property_suffix(ver_id, "version")
+                lib_props[version_suffix] = ver_name
 
                 if not lib_info.get("package_install"):
                     path = generate_library_path(library_name, ver_name)
-                    path_key = generate_version_property_key(library_name, ver_id, "path")
-                    lib_props[path_key[len(f"libs.{library_name}."):]] = path
+                    path_suffix = generate_version_property_suffix(ver_id, "path")
+                    lib_props[path_suffix] = path
 
             lib_props["versions"] = ":".join(version_ids)
     else:
