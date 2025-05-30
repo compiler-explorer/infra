@@ -44,6 +44,99 @@ def parse_properties_file(content):
     return properties
 
 
+def update_library_in_properties(existing_content, library_name, library_properties):
+    """Update a single library in the properties content.
+    
+    Args:
+        existing_content: The existing properties file content
+        library_name: Name of the library to update
+        library_properties: Dict of properties for this library (without the libs.{library_name} prefix)
+    
+    Returns:
+        Updated content with the library properties merged
+    """
+    # Sort properties by type (base props, then versions, then version details)
+    def sort_key(item):
+        prop_name = item[0]
+        if prop_name == 'name':
+            return (0, prop_name)
+        elif prop_name == 'url':
+            return (1, prop_name)
+        elif prop_name == 'versions':
+            return (2, prop_name)
+        elif prop_name.startswith('versions.'):
+            return (3, prop_name)
+        else:
+            return (4, prop_name)
+    
+    lines = existing_content.splitlines()
+    result_lines = []
+    
+    # Track which properties we've already seen for this library
+    seen_props = set()
+    inside_library_block = False
+    last_library_line_idx = -1
+    
+    # First pass: update existing properties and track what we've seen
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        
+        # Check if this line is a property for our library
+        if '=' in stripped and not stripped.startswith('#'):
+            key = stripped.split('=', 1)[0]
+            if key.startswith(f'libs.{library_name}.'):
+                inside_library_block = True
+                last_library_line_idx = len(result_lines)
+                
+                # Extract the property name without the library prefix
+                prop_name = key[len(f'libs.{library_name}.'):]
+                seen_props.add(prop_name)
+                
+                # If we have a new value for this property, use it
+                if prop_name in library_properties:
+                    result_lines.append(f"{key}={library_properties[prop_name]}")
+                else:
+                    result_lines.append(line)
+                continue
+            elif inside_library_block and key.startswith('libs.') and not key.startswith(f'libs.{library_name}.'):
+                # We've moved to a different library
+                inside_library_block = False
+        
+        result_lines.append(line)
+    
+    # Find properties that need to be added
+    props_to_add = []
+    for prop_name, value in library_properties.items():
+        if prop_name not in seen_props:
+            props_to_add.append((prop_name, value))
+    
+    # If we have properties to add
+    if props_to_add:
+        if last_library_line_idx >= 0:
+            # Insert after the last property of this library
+            insert_idx = last_library_line_idx + 1
+            
+            props_to_add.sort(key=sort_key)
+            
+            # Insert the new properties
+            for prop_name, value in reversed(props_to_add):
+                full_key = f'libs.{library_name}.{prop_name}'
+                result_lines.insert(insert_idx, f'{full_key}={value}')
+        else:
+            # Library doesn't exist yet, add it at the end
+            if result_lines and result_lines[-1].strip() != '':
+                result_lines.append('')
+            
+            # Sort properties for new library
+            props_to_add.sort(key=sort_key)
+            
+            for prop_name, value in props_to_add:
+                full_key = f'libs.{library_name}.{prop_name}'
+                result_lines.append(f'{full_key}={value}')
+    
+    return '\n'.join(result_lines)
+
+
 def merge_properties(existing_content, new_content):
     """Merge new properties into existing properties file, preserving structure and comments."""
     # Parse both property sets
@@ -55,24 +148,16 @@ def merge_properties(existing_content, new_content):
     if 'libs' in new_props:
         new_libs_list = new_props['libs'].split(':')
     
-    # Build a set of existing library-related keys for quick lookup
-    existing_lib_keys = set()
-    for key in existing_props:
-        if key.startswith('libs.'):
-            existing_lib_keys.add(key)
+    # Start with the existing content
+    result_content = existing_content
     
-    # Build result preserving existing structure
-    result_lines = []
-    processed_keys = set()
-    
-    for line in existing_content.splitlines():
-        stripped = line.strip()
-        
-        # Check if this is the libs= line
-        if stripped.startswith('libs='):
+    # Update the libs= line first
+    lines = result_content.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip().startswith('libs='):
             existing_libs = []
-            if '=' in stripped:
-                _, value = stripped.split('=', 1)
+            if '=' in line.strip():
+                _, value = line.strip().split('=', 1)
                 existing_libs = [lib for lib in value.split(':') if lib]
             
             # Merge library lists
@@ -81,57 +166,34 @@ def merge_properties(existing_content, new_content):
                 if lib not in merged_libs:
                     merged_libs.append(lib)
             
-            # Write the merged libs line
-            result_lines.append(f"libs={':'.join(merged_libs)}")
-            processed_keys.add('libs')
-            continue
-        
-        # For other properties, check if we should update them
-        if '=' in stripped and not stripped.startswith('#'):
-            key = stripped.split('=', 1)[0]
-            processed_keys.add(key)
-            
-            # Keep existing library properties unless they're being updated
-            if key.startswith('libs.') and key in new_props:
-                # Replace with new value
-                result_lines.append(f"{key}={new_props[key]}")
-                continue
-        
-        result_lines.append(line)
+            lines[i] = f"libs={':'.join(merged_libs)}"
+            result_content = '\n'.join(lines)
+            break
     
     # Group new properties by library
-    libs_to_add = {}
-    other_props_to_add = []
+    libraries_to_update = {}
     
     for key, value in new_props.items():
-        if key not in processed_keys:
-            if key.startswith('libs.') and '.' in key[5:]:
-                # This is a library property
-                lib_name = key.split('.')[1]
-                if lib_name not in libs_to_add:
-                    libs_to_add[lib_name] = []
-                libs_to_add[lib_name].append((key, value))
-            elif key != 'libs':
-                other_props_to_add.append((key, value))
+        if key.startswith('libs.') and '.' in key[5:]:
+            # This is a library property
+            parts = key.split('.')
+            lib_name = parts[1]
+            prop_name = '.'.join(parts[2:])  # Handle nested properties like versions.120.version
+            
+            if lib_name not in libraries_to_update:
+                libraries_to_update[lib_name] = {}
+            
+            libraries_to_update[lib_name][prop_name] = value
     
-    # Add new library properties grouped by library
-    if libs_to_add:
-        result_lines.append("")  # Empty line before new properties
-        for lib_name in sorted(libs_to_add.keys()):
-            # Add properties for this library
-            for key, value in sorted(libs_to_add[lib_name]):
-                result_lines.append(f"{key}={value}")
-            result_lines.append("")  # Empty line after each library
-    
-    # Add other new properties
-    if other_props_to_add:
-        for key, value in sorted(other_props_to_add):
-            result_lines.append(f"{key}={value}")
+    # Update each library
+    for lib_name, lib_props in libraries_to_update.items():
+        result_content = update_library_in_properties(result_content, lib_name, lib_props)
     
     # Clean up any double empty lines
+    lines = result_content.splitlines()
     cleaned_lines = []
     prev_empty = False
-    for line in result_lines:
+    for line in lines:
         if line.strip() == "":
             if not prev_empty:
                 cleaned_lines.append(line)
