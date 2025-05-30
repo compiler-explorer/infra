@@ -101,16 +101,24 @@ ce_install fortran-library generate-props --library json_fortran \
 ce_install fortran-library generate-props --output-file fortran_libraries.properties
 ```
 
-## Library Path Structure
+## Properties Format
 
-Fortran libraries are installed in the following path structure:
-```
-/opt/compiler-explorer/libs/fortran/{library_name}/{version}/
-```
+Fortran libraries use a specific properties format that differs from C++ libraries:
 
-For libraries with target prefixes:
-```
-/opt/compiler-explorer/libs/fortran/{library_name}/{prefix}{version}/
+- No path properties (uses `packagedheaders=true` instead)
+- Includes `staticliblink` property with the library name
+- Direct library format: `libs.{library_name}.{property}`
+
+Example properties output:
+```properties
+libs=json_fortran:http_client
+
+libs.json_fortran.name=json_fortran
+libs.json_fortran.url=https://github.com/jacobwilliams/json-fortran
+libs.json_fortran.packagedheaders=true
+libs.json_fortran.staticliblink=json_fortran
+libs.json_fortran.versions=830
+libs.json_fortran.versions.830.version=8.3.0
 ```
 
 ## Notes

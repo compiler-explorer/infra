@@ -18,7 +18,8 @@ def test_generate_single_fortran_library_properties_specific_version():
     result = generate_single_fortran_library_properties("json_fortran", lib_info, specific_version="8.2.0")
 
     assert result["versions.820.version"] == "8.2.0"
-    assert result["versions.820.path"] == "/opt/compiler-explorer/libs/fortran/json_fortran/8.2.0"
+    # No path property for Fortran libraries
+    assert "versions.820.path" not in result
     # Should not have library-level properties for specific version
     assert "name" not in result
     assert "url" not in result
@@ -38,13 +39,16 @@ def test_generate_single_fortran_library_properties_all_versions():
     # Should have library-level properties
     assert result["name"] == "json_fortran"
     assert result["url"] == "https://github.com/jacobwilliams/json-fortran"
+    assert result["packagedheaders"] == "true"
+    assert result["staticliblink"] == "json_fortran"
     assert result["versions"] == "820:830"
 
     # Should have version-specific properties
     assert result["versions.820.version"] == "8.2.0"
-    assert result["versions.820.path"] == "/opt/compiler-explorer/libs/fortran/json_fortran/8.2.0"
     assert result["versions.830.version"] == "8.3.0"
-    assert result["versions.830.path"] == "/opt/compiler-explorer/libs/fortran/json_fortran/8.3.0"
+    # No path properties for Fortran libraries
+    assert "versions.820.path" not in result
+    assert "versions.830.path" not in result
 
 
 def test_generate_single_fortran_library_properties_with_target_prefix():
@@ -60,7 +64,8 @@ def test_generate_single_fortran_library_properties_with_target_prefix():
     result = generate_single_fortran_library_properties("http_client", lib_info, specific_version="0.1.0")
 
     assert result["versions.010.version"] == "0.1.0"
-    assert result["versions.010.path"] == "/opt/compiler-explorer/libs/fortran/http_client/v0.1.0"
+    # No path property for Fortran libraries
+    assert "versions.010.path" not in result
 
 
 def test_generate_single_fortran_library_properties_version_not_found():
@@ -99,19 +104,25 @@ def test_generate_all_fortran_libraries_properties():
 
     result = generate_all_fortran_libraries_properties(fortran_libraries)
 
-    # Should start with libs.fortran= line
-    assert result.startswith("libs.fortran=json_fortran:http_client\n\n")
+    # Should start with libs= line
+    assert result.startswith("libs=json_fortran:http_client\n\n")
 
     # Should contain json_fortran properties
-    assert "libs.fortran.json_fortran.name=json_fortran" in result
-    assert "libs.fortran.json_fortran.url=https://github.com/jacobwilliams/json-fortran" in result
-    assert "libs.fortran.json_fortran.versions.830.version=8.3.0" in result
-    assert "libs.fortran.json_fortran.versions.830.path=/opt/compiler-explorer/libs/fortran/json_fortran/8.3.0" in result
+    assert "libs.json_fortran.name=json_fortran" in result
+    assert "libs.json_fortran.url=https://github.com/jacobwilliams/json-fortran" in result
+    assert "libs.json_fortran.packagedheaders=true" in result
+    assert "libs.json_fortran.staticliblink=json_fortran" in result
+    assert "libs.json_fortran.versions.830.version=8.3.0" in result
 
-    # Should contain http_client properties with target_prefix
-    assert "libs.fortran.http_client.name=http_client" in result
-    assert "libs.fortran.http_client.versions.010.version=0.1.0" in result
-    assert "libs.fortran.http_client.versions.010.path=/opt/compiler-explorer/libs/fortran/http_client/v0.1.0" in result
+    # Should contain http_client properties
+    assert "libs.http_client.name=http_client" in result
+    assert "libs.http_client.packagedheaders=true" in result
+    assert "libs.http_client.staticliblink=http_client" in result
+    assert "libs.http_client.versions.010.version=0.1.0" in result
+
+    # Should not contain path properties
+    assert "libs.json_fortran.versions.830.path=" not in result
+    assert "libs.http_client.versions.010.path=" not in result
 
     # Should not contain nightly or manual_lib
     assert "nightly" not in result
@@ -122,13 +133,15 @@ def test_generate_standalone_fortran_library_properties():
     """Test generating standalone properties for a Fortran library."""
     lib_props = {
         "versions.830.version": "8.3.0",
-        "versions.830.path": "/opt/compiler-explorer/libs/fortran/json_fortran/8.3.0",
+        "packagedheaders": "true",
+        "staticliblink": "json_fortran",
     }
 
     result = generate_standalone_fortran_library_properties("json_fortran", lib_props, specific_version="8.3.0")
 
     lines = result.split("\n")
-    assert lines[0] == "libs.fortran=json_fortran"
+    assert lines[0] == "libs=json_fortran"
     assert lines[1] == ""
-    assert "libs.fortran.json_fortran.versions.830.path=/opt/compiler-explorer/libs/fortran/json_fortran/8.3.0" in lines
-    assert "libs.fortran.json_fortran.versions.830.version=8.3.0" in lines
+    assert "libs.json_fortran.packagedheaders=true" in lines
+    assert "libs.json_fortran.staticliblink=json_fortran" in lines
+    assert "libs.json_fortran.versions.830.version=8.3.0" in lines

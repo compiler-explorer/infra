@@ -69,13 +69,28 @@ def add_fortran_library(github_url, version, target_prefix):
     existing_lib_id = find_existing_library_by_github_url(fortran_libraries, github_url)
 
     if existing_lib_id:
-        # Library exists, just add the version
-        lib_id = existing_lib_id  # Use the existing library ID
-        if version not in fortran_libraries[lib_id]["targets"]:
-            fortran_libraries[lib_id]["targets"].append(version)
-            click.echo(f"Added version {version} to existing library {lib_id}")
+        # Library exists, check if it's in main section or nightly
+        if existing_lib_id in fortran_libraries:
+            # Library is in main section
+            lib_id = existing_lib_id
+            if version not in fortran_libraries[lib_id]["targets"]:
+                fortran_libraries[lib_id]["targets"].append(version)
+                click.echo(f"Added version {version} to existing library {lib_id}")
+
+                # Update target_prefix if specified and not already set
+                if target_prefix and "target_prefix" not in fortran_libraries[lib_id]:
+                    fortran_libraries[lib_id]["target_prefix"] = target_prefix
+                    click.echo(f"Added target_prefix '{target_prefix}' to library {lib_id}")
+            else:
+                click.echo(f"Version {version} already exists for library {lib_id}")
         else:
-            click.echo(f"Version {version} already exists for library {lib_id}")
+            # Library exists in nightly section - this is a conflict
+            click.echo(
+                f"Error: A library with the same GitHub repository already exists in the nightly section as '{existing_lib_id}'. "
+                f"Please use a different library name or update the nightly version instead.",
+                err=True,
+            )
+            sys.exit(1)
     elif lib_id in fortran_libraries:
         # Library ID exists but with different GitHub URL
         click.echo(
@@ -154,17 +169,17 @@ def generate_fortran_props(input_file, output_file, library, version):
             if version:
                 update_version_id = version_to_id(version)
             result = update_library_in_properties(
-                existing_content, f"fortran.{library}", lib_props, update_version_id
+                existing_content, library, lib_props, update_version_id
             )
 
-            # If the library wasn't in the libs.fortran= list, we need to add it
-            if f"libs.fortran.{library}." not in existing_content:
+            # If the library wasn't in the libs= list, we need to add it
+            if f"libs.{library}." not in existing_content:
                 # Preserve whether original content had final newline
                 original_ends_with_newline = existing_content.endswith("\n")
 
                 lines = result.splitlines()
                 for i, line in enumerate(lines):
-                    if line.strip().startswith("libs.fortran="):
+                    if line.strip().startswith("libs="):
                         # Parse existing libs
                         if "=" in line:
                             prefix, libs_value = line.split("=", 1)
@@ -218,17 +233,17 @@ def generate_single_fortran_library_properties(library_name, lib_info, specific_
             ver_id = version_to_id(specific_version)
             lib_props[f"versions.{ver_id}.version"] = specific_version
 
-            # Generate path
-            target_prefix = lib_info.get("target_prefix", "")
-            prefixed_version = f"{target_prefix}{specific_version}" if target_prefix else specific_version
-            path = f"/opt/compiler-explorer/libs/fortran/{library_name}/{prefixed_version}"
-            lib_props[f"versions.{ver_id}.path"] = path
+            # No path for Fortran libraries - they use packagedheaders=true
         else:
             # Generate properties for all versions
             lib_props["name"] = library_name
 
             if lib_info.get("type") == "github" and "repo" in lib_info:
                 lib_props["url"] = f"https://github.com/{lib_info['repo']}"
+
+            # Add Fortran-specific properties
+            lib_props["packagedheaders"] = "true"
+            lib_props["staticliblink"] = library_name  # Use library name as default
 
             version_ids = []
             for version in lib_info["targets"]:
@@ -237,11 +252,7 @@ def generate_single_fortran_library_properties(library_name, lib_info, specific_
 
                 lib_props[f"versions.{ver_id}.version"] = version
 
-                # Generate path
-                target_prefix = lib_info.get("target_prefix", "")
-                prefixed_version = f"{target_prefix}{version}" if target_prefix else version
-                path = f"/opt/compiler-explorer/libs/fortran/{library_name}/{prefixed_version}"
-                lib_props[f"versions.{ver_id}.path"] = path
+                # No path for Fortran libraries
 
             lib_props["versions"] = ":".join(version_ids)
     else:
@@ -250,6 +261,10 @@ def generate_single_fortran_library_properties(library_name, lib_info, specific_
             lib_props["name"] = library_name
             if lib_info.get("type") == "github" and "repo" in lib_info:
                 lib_props["url"] = f"https://github.com/{lib_info['repo']}"
+
+            # Add Fortran-specific properties even without targets
+            lib_props["packagedheaders"] = "true"
+            lib_props["staticliblink"] = library_name
 
     return lib_props
 
@@ -265,10 +280,14 @@ def generate_all_fortran_libraries_properties(fortran_libraries):
 
         all_ids.append(lib_id)
 
-        libverprops = f"libs.fortran.{lib_id}.name={lib_id}\n"
+        libverprops = f"libs.{lib_id}.name={lib_id}\n"
 
         if lib_info.get("type") == "github" and "repo" in lib_info:
-            libverprops += f"libs.fortran.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+            libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+
+        # Add Fortran-specific properties
+        libverprops += f"libs.{lib_id}.packagedheaders=true\n"
+        libverprops += f"libs.{lib_id}.staticliblink={lib_id}\n"
 
         if "targets" in lib_info and lib_info["targets"]:
             version_ids = []
@@ -276,31 +295,27 @@ def generate_all_fortran_libraries_properties(fortran_libraries):
                 ver_id = version_to_id(version)
                 version_ids.append(ver_id)
 
-            libverprops += f"libs.fortran.{lib_id}.versions={':'.join(version_ids)}\n"
+            libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
 
             for version in lib_info["targets"]:
                 ver_id = version_to_id(version)
-                libverprops += f"libs.fortran.{lib_id}.versions.{ver_id}.version={version}\n"
+                libverprops += f"libs.{lib_id}.versions.{ver_id}.version={version}\n"
 
-                # Generate path
-                target_prefix = lib_info.get("target_prefix", "")
-                prefixed_version = f"{target_prefix}{version}" if target_prefix else version
-                path = f"/opt/compiler-explorer/libs/fortran/{lib_id}/{prefixed_version}"
-                libverprops += f"libs.fortran.{lib_id}.versions.{ver_id}.path={path}\n"
+                # No path for Fortran libraries
 
         properties_txt += libverprops + "\n"
 
-    header_properties_txt = "libs.fortran=" + ":".join(all_ids) + "\n\n"
+    header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
     return header_properties_txt + properties_txt
 
 
 def generate_standalone_fortran_library_properties(library_name, lib_props, specific_version=None):
     """Generate standalone properties for a single Fortran library."""
     properties_lines = []
-    properties_lines.append(f"libs.fortran={library_name}")
+    properties_lines.append(f"libs={library_name}")
     properties_lines.append("")
 
     for prop_name, value in sorted(lib_props.items()):
-        properties_lines.append(f"libs.fortran.{library_name}.{prop_name}={value}")
+        properties_lines.append(f"libs.{library_name}.{prop_name}={value}")
 
     return "\n".join(properties_lines)
