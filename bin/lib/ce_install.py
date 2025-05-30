@@ -288,6 +288,33 @@ def verify(context: CliContext, filter_: List[str]):
         sys.exit(1)
 
 
+@cli.command(name="list-paths")
+@click.pass_obj
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
+@click.option("--absolute", is_flag=True, help="Show absolute paths")
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def list_paths(context: CliContext, filter_: List[str], as_json: bool, absolute: bool):
+    """List installation paths for targets matching FILTER without installing."""
+    paths = {}
+    for installable in context.get_installables(filter_):
+        if absolute:
+            # Combine with destination to get absolute path
+            path = str(context.installation_context.destination / installable.install_path)
+        else:
+            # Relative path within the installation directory
+            path = installable.install_path
+
+        if as_json:
+            paths[installable.name] = path
+        else:
+            print(f"{installable.name}: {path}")
+
+    if as_json:
+        import json
+
+        print(json.dumps(paths, indent=2))
+
+
 @cli.command()
 @click.pass_obj
 @click.argument("filter_", metavar="FILTER", nargs=-1)

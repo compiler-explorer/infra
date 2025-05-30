@@ -14,6 +14,17 @@ The directory `/opt/compiler-explorer` is required, otherwise you'll have to sup
 
 `ce_install list` or `ce_install --enable nightly list`
 
+### Listing installation paths
+
+To see where compilers/tools would be installed without actually installing them:
+
+`ce_install list-paths <filter>`
+
+Examples:
+- `ce_install list-paths 'libraries/c++/fmt'` - Show all fmt library version paths
+- `ce_install list-paths --absolute 'libraries/c++/fmt 10.2.1'` - Show absolute path for specific version
+- `ce_install list-paths --json 'compilers/c++'` - Output all C++ compiler paths in JSON format
+
 ### For versioned compilers/tools
 
 `ce_install install <name>`
