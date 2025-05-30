@@ -13,6 +13,7 @@ from lib.library_props import (
     generate_standalone_library_properties,
     merge_properties,
     update_library_in_properties,
+    version_to_id,
 )
 from lib.library_yaml import LibraryYaml
 
@@ -201,9 +202,7 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
 
         # Generate properties for this library using the refactored function
         try:
-            lib_props = generate_single_library_properties(
-                library, lib_info, specific_version=version, for_update=bool(input_file)
-            )
+            lib_props = generate_single_library_properties(library, lib_info, specific_version=version)
         except ValueError as e:
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
@@ -214,7 +213,11 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                 existing_content = f.read()
 
             # Update only the specific library
-            result = update_library_in_properties(existing_content, library, lib_props)
+            # If we're updating a specific version, pass the version ID
+            update_version_id = None
+            if version:
+                update_version_id = version_to_id(version)
+            result = update_library_in_properties(existing_content, library, lib_props, update_version_id)
 
             # If the library wasn't in the libs= list, we need to add it
             if f"libs.{library}." not in existing_content:

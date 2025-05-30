@@ -61,13 +61,14 @@ def parse_properties_file(content):
     return properties
 
 
-def update_library_in_properties(existing_content, library_name, library_properties):
+def update_library_in_properties(existing_content, library_name, library_properties, update_version_id=None):
     """Update a single library in the properties content.
 
     Args:
         existing_content: The existing properties file content
         library_name: Name of the library to update
         library_properties: Dict of properties for this library (without the libs.{library_name} prefix)
+        update_version_id: If provided, indicates this is a single version update
 
     Returns:
         Updated content with the library properties merged
@@ -87,8 +88,8 @@ def update_library_in_properties(existing_content, library_name, library_propert
         else:
             return (4, prop_name)
 
-    # Check if this is a single version update
-    update_version_id = library_properties.pop("_update_version_id", None)
+    # Check if this is a single version update (passed as parameter)
+    # Note: update_version_id parameter tells us this is a single version update
 
     lines = existing_content.splitlines()
     result_lines = []
@@ -252,14 +253,13 @@ def merge_properties(existing_content, new_content):
     return "\n".join(cleaned_lines)
 
 
-def generate_single_library_properties(library_name, lib_info, specific_version=None, for_update=False):
+def generate_single_library_properties(library_name, lib_info, specific_version=None):
     """Generate properties for a single library.
 
     Args:
         library_name: Name of the library
         lib_info: Library information from libraries.yaml
         specific_version: If provided, only generate properties for this version
-        for_update: If True, add special markers for property updates
 
     Returns:
         Dict of properties (without libs.{library_name} prefix)
@@ -294,9 +294,8 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                 path = generate_library_path(library_name, specific_version)
                 lib_props[f"versions.{ver_id}.path"] = path
 
-            # When updating a specific version, check if we need to update the versions list
-            if for_update:
-                lib_props["_update_version_id"] = ver_id  # Special marker for version update
+            # Note: When this function is used for updates, the caller will pass the version ID
+            # to update_library_in_properties() separately
         else:
             # When updating all versions, we update library-level properties too
             # Add basic properties
@@ -427,8 +426,7 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
     properties_lines.append(f"libs={library_name}")
     properties_lines.append("")
 
-    # Remove the special marker before output
-    props_copy.pop("_update_version_id", None)
+    # No need to remove special markers anymore since we don't use them
 
     for prop_name, value in sorted(props_copy.items()):
         properties_lines.append(f"libs.{library_name}.{prop_name}={value}")

@@ -7,6 +7,7 @@ from lib.library_props import (
     generate_single_library_properties,
     generate_standalone_library_properties,
     parse_properties_file,
+    update_library_in_properties,
     version_to_id,
 )
 
@@ -160,7 +161,6 @@ def test_generate_standalone_library_properties():
     lib_props = {
         "versions.1021.version": "10.2.1",
         "versions.1021.path": "/opt/compiler-explorer/libs/fmt/10.2.1/include",
-        "_update_version_id": "1021",  # Should be removed
     }
 
     result = generate_standalone_library_properties("fmt", lib_props, specific_version="10.2.1")
@@ -171,8 +171,35 @@ def test_generate_standalone_library_properties():
     assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in lines
     assert "libs.fmt.versions.1021.version=10.2.1" in lines
 
-    # Should not contain the special marker
-    assert "_update_version_id" not in result
+
+def test_update_library_in_properties_with_version_id():
+    """Test update_library_in_properties with explicit update_version_id parameter."""
+    existing_content = """libs=fmt:json
+
+libs.fmt.name=fmt
+libs.fmt.url=https://github.com/fmtlib/fmt
+libs.fmt.versions=1000:1011
+
+libs.fmt.versions.1000.version=10.0.0
+libs.fmt.versions.1000.path=/opt/compiler-explorer/libs/fmt/10.0.0/include
+libs.fmt.versions.1011.version=10.1.1
+libs.fmt.versions.1011.path=/opt/compiler-explorer/libs/fmt/10.1.1/include
+"""
+
+    # Properties for a new version
+    lib_props = {
+        "versions.1021.version": "10.2.1",
+        "versions.1021.path": "/opt/compiler-explorer/libs/fmt/10.2.1/include",
+    }
+
+    # Call with explicit version ID parameter
+    result = update_library_in_properties(existing_content, "fmt", lib_props, update_version_id="1021")
+
+    # Should add the new version to the versions list
+    assert "libs.fmt.versions=1000:1011:1021" in result
+    # Should include the new version properties
+    assert "libs.fmt.versions.1021.version=10.2.1" in result
+    assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in result
 
 
 def test_find_existing_library_by_github_url():
