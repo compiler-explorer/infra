@@ -30,7 +30,7 @@ $env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
 
 $nodeargs = (
     "--max_old_space_size=6000", "--", "app.js",
-    "--debug", "--prop-debug",
+#    "--debug", "--prop-debug",
     "--dist",
     "--port", "10240",
     "--metrics-port", "10241",
