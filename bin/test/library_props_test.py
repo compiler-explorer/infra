@@ -209,7 +209,7 @@ def test_generate_single_library_properties_with_link_properties():
         "repo": "fmtlib/fmt",
         "targets": ["10.2.1"],
         "sharedliblink": ["fmt", "fmtd"],
-        "staticliblink": ["fmts", "fmtsd"]
+        "staticliblink": ["fmts", "fmtsd"],
     }
 
     result = generate_single_library_properties("fmt", lib_info)
@@ -230,7 +230,7 @@ def test_generate_all_libraries_properties_with_link_properties():
             "repo": "fmtlib/fmt",
             "targets": ["10.2.1"],
             "sharedliblink": ["fmt"],
-            "staticliblink": ["fmts"]
+            "staticliblink": ["fmts"],
         }
     }
 

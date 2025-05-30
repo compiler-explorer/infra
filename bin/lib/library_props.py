@@ -91,7 +91,6 @@ def update_library_in_properties(existing_content, library_name, library_propert
         else:
             return (4, prop_name)
 
-
     lines = existing_content.splitlines()
     result_lines = []
 
@@ -404,7 +403,6 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
     properties_lines = []
     properties_lines.append(f"libs={library_name}")
     properties_lines.append("")
-
 
     for prop_name, value in sorted(props_copy.items()):
         property_key = generate_library_property_key(library_name, prop_name)
