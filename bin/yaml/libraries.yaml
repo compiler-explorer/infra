@@ -2177,18 +2177,18 @@ libraries:
       type: github
     proxy:
       build_type: cmake
-      type: github
       check_file: README.md
-      repo: microsoft/proxy
-      targets:
-        - 3.3.0
       older:
         build_type: none
         targets:
-          - 3.0.0
-          - 3.1.0
-          - 3.2.0
-          - 3.2.1
+        - 3.0.0
+        - 3.1.0
+        - 3.2.0
+        - 3.2.1
+      repo: microsoft/proxy
+      targets:
+      - 3.3.0
+      type: github
     pugixml:
       build_type: cmake
       check_file: README.md
