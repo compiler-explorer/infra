@@ -29,7 +29,10 @@ minimum_install_req = [
     {"MSVersionSemver": "14.38.33133", "MSVSVer": "2022", "MSVSShortVer": "17.8.3", "ZIPFile": "14.38.33130-14.38.33133.0"},
     {"MSVersionSemver": "14.39.33519", "MSVSVer": "2022", "MSVSShortVer": "17.9.7", "ZIPFile": "14.39.33519-14.39.33523.0"},
     {"MSVersionSemver": "14.40.33807", "MSVSVer": "2022", "MSVSShortVer": "17.10.3", "ZIPFile": "14.40.33807-14.40.33811.0"},
-    {"MSVersionSemver": "14.41.33923", "MSVSVer": "2022", "MSVSShortVer": "17.11.0", "ZIPFile": "14.41.33923-14.41.33923.0"},
+    # See https://github.com/compiler-explorer/compiler-explorer/issues/7745#issuecomment-2923042678
+    # this came from a previously pre-release
+    # {"MSVersionSemver": "14.41.33923", "MSVSVer": "2022", "MSVSShortVer": "17.11.0", "ZIPFile": "14.41.33923-14.41.33923.0"},
+    {"MSVersionSemver": "14.41.34120", "MSVSVer": "2022", "MSVSShortVer": "17.11.6", "ZIPFile": "14.41.34120-14.41.34123.0"},
     {"MSVersionSemver": "14.42.34433", "MSVSVer": "2022", "MSVSShortVer": "17.12.7", "ZIPFile": "14.42.34433-14.42.34441.0"},
     {"MSVersionSemver": "14.43.34808", "MSVSVer": "2022", "MSVSShortVer": "17.13.6", "ZIPFile": "14.43.34808-14.43.34810.0"},
 ]
