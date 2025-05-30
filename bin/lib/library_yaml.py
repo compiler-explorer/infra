@@ -171,14 +171,7 @@ class LibraryYaml:
             lookupname = libid
             if linux_libid not in linux_libraries:
                 lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
-            if lookupname in ["nightly", "if", "install_always"]:
-                continue
-            if "build_type" in nightly_libraries_for_language[libid] and (
-                nightly_libraries_for_language[libid]["build_type"] == "manual"
-                or nightly_libraries_for_language[libid]["build_type"] == "none"
-                or nightly_libraries_for_language[libid]["build_type"] == "never"
-                or nightly_libraries_for_language[libid]["build_type"] == "make"
-            ):
+            if should_skip_library(lookupname, nightly_libraries_for_language[libid]):
                 continue
 
             if lookupname not in reorganised_libs:
