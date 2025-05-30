@@ -10,7 +10,7 @@ from lib.library_platform import LibraryPlatform
 from lib.library_props import (
     generate_library_property_key,
     generate_version_property_key,
-    should_skip_library,
+    should_skip_library_for_windows,
     version_to_id,
 )
 from lib.rust_crates import TopRustCrates
@@ -156,7 +156,7 @@ class LibraryYaml:
                     lookupname = "catch2"
                 else:
                     lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
-            if should_skip_library(lookupname, libraries_for_language[libid]):
+            if should_skip_library_for_windows(lookupname, libraries_for_language[libid]):
                 continue
 
             if lookupname not in reorganised_libs:
@@ -171,7 +171,7 @@ class LibraryYaml:
             lookupname = libid
             if linux_libid not in linux_libraries:
                 lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
-            if should_skip_library(lookupname, nightly_libraries_for_language[libid]):
+            if should_skip_library_for_windows(lookupname, nightly_libraries_for_language[libid]):
                 continue
 
             if lookupname not in reorganised_libs:

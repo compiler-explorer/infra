@@ -309,10 +309,7 @@ def generate_all_libraries_properties(cpp_libraries):
     properties_txt = ""
 
     for lib_id, lib_info in cpp_libraries.items():
-        if lib_id in ["nightly", "if", "install_always"]:
-            continue
-
-        if "build_type" in lib_info and lib_info["build_type"] in ["manual", "none", "never"]:
+        if should_skip_library(lib_id, lib_info):
             continue
 
         all_ids.append(lib_id)
@@ -392,6 +389,25 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
 
 def should_skip_library(lib_id, lib_info):
     """Check if a library should be skipped based on its configuration.
+
+    Args:
+        lib_id: Library identifier
+        lib_info: Library configuration dictionary
+
+    Returns:
+        True if the library should be skipped, False otherwise
+    """
+    if lib_id in ["nightly", "if", "install_always"]:
+        return True
+
+    if "build_type" in lib_info and lib_info["build_type"] in ["manual", "none", "never"]:
+        return True
+
+    return False
+
+
+def should_skip_library_for_windows(lib_id, lib_info):
+    """Check if a library should be skipped for Windows properties based on its configuration.
 
     Args:
         lib_id: Library identifier
