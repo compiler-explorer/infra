@@ -7,6 +7,12 @@ import yaml
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
+from lib.library_props import (
+    generate_library_property_key,
+    generate_version_property_key,
+    should_skip_library,
+    version_to_id,
+)
 from lib.rust_crates import TopRustCrates
 
 
@@ -49,18 +55,24 @@ class LibraryYaml:
             all_libver_ids: List[str] = []
 
             for libver in libraries_for_language[libid]["targets"]:
-                all_libver_ids.append(libver.replace(".", ""))
+                all_libver_ids.append(version_to_id(libver))
 
-            libverprops = f"libs.{libid}.name={libid}\n"
-            libverprops += f"libs.{libid}.url=https://crates.io/crates/{libid}\n"
-            libverprops += f"libs.{libid}.versions="
+            name_key = generate_library_property_key(libid, "name")
+            url_key = generate_library_property_key(libid, "url")
+            versions_key = generate_library_property_key(libid, "versions")
+
+            libverprops = f"{name_key}={libid}\n"
+            libverprops += f"{url_key}=https://crates.io/crates/{libid}\n"
+            libverprops += f"{versions_key}="
             libverprops += ":".join(all_libver_ids) + "\n"
 
             for libver in libraries_for_language[libid]["targets"]:
-                libverid = libver.replace(".", "")
-                libverprops += f"libs.{libid}.versions.{libverid}.version={libver}\n"
+                libverid = version_to_id(libver)
+                version_key = generate_version_property_key(libid, libverid, "version")
+                path_key = generate_version_property_key(libid, libverid, "path")
                 underscore_lib = libid.replace("-", "_")
-                libverprops += f"libs.{libid}.versions.{libverid}.path=lib{underscore_lib}.rlib\n"
+                libverprops += f"{version_key}={libver}\n"
+                libverprops += f"{path_key}=lib{underscore_lib}.rlib\n"
 
             properties_txt += libverprops + "\n"
 
@@ -76,10 +88,10 @@ class LibraryYaml:
 
     def get_libverid(self, libver) -> str:
         if isinstance(libver, dict) and "name" in libver:
-            libverid = libver["name"].replace(".", "")
+            version_name = libver["name"]
         else:
-            libverid = libver.replace(".", "")
-        return libverid
+            version_name = libver
+        return version_to_id(version_name)
 
     def get_libvername(self, libver) -> str:
         if isinstance(libver, dict) and "name" in libver:
@@ -144,14 +156,7 @@ class LibraryYaml:
                     lookupname = "catch2"
                 else:
                     lookupname = self.get_possible_lookupname(linux_libraries, linux_libid)
-            if lookupname in ["nightly", "if", "install_always"]:
-                continue
-            if "build_type" in libraries_for_language[libid] and (
-                libraries_for_language[libid]["build_type"] == "manual"
-                or libraries_for_language[libid]["build_type"] == "none"
-                or libraries_for_language[libid]["build_type"] == "never"
-                or libraries_for_language[libid]["build_type"] == "make"
-            ):
+            if should_skip_library(lookupname, libraries_for_language[libid]):
                 continue
 
             if lookupname not in reorganised_libs:
@@ -190,12 +195,16 @@ class LibraryYaml:
             if "name" in linux_lib:
                 libname = linux_lib["name"]
 
-            libverprops = f"libs.{linux_libid}.name={libname}\n"
+            name_property_key = generate_library_property_key(linux_libid, "name")
+            libverprops = f"{name_property_key}={libname}\n"
             if "url" in linux_lib:
-                libverprops += f"libs.{linux_libid}.url={linux_lib['url']}\n"
+                url_property_key = generate_library_property_key(linux_libid, "url")
+                libverprops += f"{url_property_key}={linux_lib['url']}\n"
             if "description" in linux_lib:
-                libverprops += f"libs.{linux_libid}.description={linux_lib['description']}\n"
-            libverprops += f"libs.{linux_libid}.packagedheaders=true\n"
+                description_property_key = generate_library_property_key(linux_libid, "description")
+                libverprops += f"{description_property_key}={linux_lib['description']}\n"
+            packagedheaders_property_key = generate_library_property_key(linux_libid, "packagedheaders")
+            libverprops += f"{packagedheaders_property_key}=true\n"
 
             all_libver_ids: List[str] = []
             for yamllibid in reorganised_libs[linux_libid]:
@@ -210,10 +219,12 @@ class LibraryYaml:
                         for libver in nightly_libraries_for_language[yamllibid]["targets"]:
                             all_libver_ids.append(self.get_libverid(libver))
 
-            libverprops += f"libs.{linux_libid}.versions="
+            versions_property_key = generate_library_property_key(linux_libid, "versions")
+            libverprops += f"{versions_property_key}="
             libverprops += ":".join(all_libver_ids) + "\n"
 
-            prefix = f"libs.{linux_libid}"
+            prefix = generate_library_property_key(linux_libid, "")
+            prefix = prefix.rstrip(".")
             libverprops += self.get_link_props(linux_lib, prefix)
 
             for yamllibid in reorganised_libs[linux_libid]:
@@ -225,7 +236,8 @@ class LibraryYaml:
                         for libver in libraries_for_language[yamllibid]["targets"]:
                             libverid = self.get_libverid(libver)
                             libvername = self.get_libvername(libver)
-                            libverprops += f"libs.{linux_libid}.versions.{libverid}.version={libvername}\n"
+                            version_property_key = generate_version_property_key(linux_libid, libverid, "version")
+                            libverprops += f"{version_property_key}={libvername}\n"
                             linux_lib_version = get_specific_library_version_details(
                                 linux_libraries, linux_libid, libverid
                             )
@@ -234,7 +246,8 @@ class LibraryYaml:
                                     linux_libraries, linux_libid, libvername
                                 )
 
-                            prefix = f"libs.{linux_libid}.versions.{libverid}"
+                            prefix = generate_version_property_key(linux_libid, libverid, "")
+                            prefix = prefix.rstrip(".")
                             libverprops += self.get_link_props(linux_lib_version, prefix)
 
                 if yamllibid in nightly_libraries_for_language:
@@ -247,7 +260,8 @@ class LibraryYaml:
                         for libver in nightly_libraries_for_language[yamllibid]["targets"]:
                             libverid = self.get_libverid(libver)
                             libvername = self.get_libvername(libver)
-                            libverprops += f"libs.{linux_libid}.versions.{libverid}.version={libvername}\n"
+                            version_property_key = generate_version_property_key(linux_libid, libverid, "version")
+                            libverprops += f"{version_property_key}={libvername}\n"
                             linux_lib_version = get_specific_library_version_details(
                                 linux_libraries, linux_libid, libverid
                             )
@@ -256,7 +270,8 @@ class LibraryYaml:
                                     linux_libraries, linux_libid, libvername
                                 )
 
-                            prefix = f"libs.{linux_libid}.versions.{libverid}"
+                            prefix = generate_version_property_key(linux_libid, libverid, "")
+                            prefix = prefix.rstrip(".")
                             libverprops += self.get_link_props(linux_lib_version, prefix)
 
             properties_txt += libverprops + "\n"

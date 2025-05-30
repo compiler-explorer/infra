@@ -76,11 +76,7 @@ libs.json.versions=3113
 
 def test_generate_single_library_properties_specific_version():
     """Test generating properties for a single library version."""
-    lib_info = {
-        "type": "github",
-        "repo": "fmtlib/fmt",
-        "targets": ["10.0.0", "10.1.1", "10.2.1"]
-    }
+    lib_info = {"type": "github", "repo": "fmtlib/fmt", "targets": ["10.0.0", "10.1.1", "10.2.1"]}
 
     result = generate_single_library_properties("fmt", lib_info, specific_version="10.2.1")
 
@@ -93,11 +89,7 @@ def test_generate_single_library_properties_specific_version():
 
 def test_generate_single_library_properties_all_versions():
     """Test generating properties for all versions of a library."""
-    lib_info = {
-        "type": "github",
-        "repo": "fmtlib/fmt",
-        "targets": ["10.0.0", "10.1.1", "10.2.1"]
-    }
+    lib_info = {"type": "github", "repo": "fmtlib/fmt", "targets": ["10.0.0", "10.1.1", "10.2.1"]}
 
     result = generate_single_library_properties("fmt", lib_info)
 
@@ -115,12 +107,7 @@ def test_generate_single_library_properties_all_versions():
 
 def test_generate_single_library_properties_package_install():
     """Test that package_install libraries don't get paths."""
-    lib_info = {
-        "type": "github",
-        "repo": "nlohmann/json",
-        "targets": ["3.11.3"],
-        "package_install": True
-    }
+    lib_info = {"type": "github", "repo": "nlohmann/json", "targets": ["3.11.3"], "package_install": True}
 
     result = generate_single_library_properties("json", lib_info, specific_version="3.11.3")
 
@@ -131,11 +118,7 @@ def test_generate_single_library_properties_package_install():
 
 def test_generate_single_library_properties_version_not_found():
     """Test error when requested version is not found."""
-    lib_info = {
-        "type": "github",
-        "repo": "fmtlib/fmt",
-        "targets": ["10.0.0", "10.1.1"]
-    }
+    lib_info = {"type": "github", "repo": "fmtlib/fmt", "targets": ["10.0.0", "10.1.1"]}
 
     with pytest.raises(ValueError, match="Version '10.2.1' not found for library 'fmt'"):
         generate_single_library_properties("fmt", lib_info, specific_version="10.2.1")
@@ -144,23 +127,11 @@ def test_generate_single_library_properties_version_not_found():
 def test_generate_all_libraries_properties():
     """Test generating properties for multiple libraries."""
     cpp_libraries = {
-        "fmt": {
-            "type": "github",
-            "repo": "fmtlib/fmt",
-            "targets": ["10.2.1"]
-        },
-        "json": {
-            "type": "github",
-            "repo": "nlohmann/json",
-            "targets": ["3.11.3"],
-            "package_install": True
-        },
+        "fmt": {"type": "github", "repo": "fmtlib/fmt", "targets": ["10.2.1"]},
+        "json": {"type": "github", "repo": "nlohmann/json", "targets": ["3.11.3"], "package_install": True},
         # These should be skipped
         "nightly": {"some": "config"},
-        "manual_lib": {
-            "build_type": "manual",
-            "targets": ["1.0.0"]
-        }
+        "manual_lib": {"build_type": "manual", "targets": ["1.0.0"]},
     }
 
     result = generate_all_libraries_properties(cpp_libraries)
@@ -189,12 +160,12 @@ def test_generate_standalone_library_properties():
     lib_props = {
         "versions.1021.version": "10.2.1",
         "versions.1021.path": "/opt/compiler-explorer/libs/fmt/10.2.1/include",
-        "_update_version_id": "1021"  # Should be removed
+        "_update_version_id": "1021",  # Should be removed
     }
 
     result = generate_standalone_library_properties("fmt", lib_props, specific_version="10.2.1")
 
-    lines = result.split('\n')
+    lines = result.split("\n")
     assert lines[0] == "libs=fmt"
     assert lines[1] == ""
     assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in lines
@@ -207,20 +178,9 @@ def test_generate_standalone_library_properties():
 def test_find_existing_library_by_github_url():
     """Test finding existing libraries by GitHub URL."""
     cpp_libraries = {
-        "fmt": {
-            "repo": "fmtlib/fmt",
-            "type": "github"
-        },
-        "json": {
-            "repo": "nlohmann/json",
-            "type": "github"
-        },
-        "nightly": {
-            "some_lib": {
-                "repo": "some/nightly-lib",
-                "type": "github"
-            }
-        }
+        "fmt": {"repo": "fmtlib/fmt", "type": "github"},
+        "json": {"repo": "nlohmann/json", "type": "github"},
+        "nightly": {"some_lib": {"repo": "some/nightly-lib", "type": "github"}},
     }
 
     # Should find existing libraries

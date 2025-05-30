@@ -436,6 +436,27 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
     return "\n".join(properties_lines)
 
 
+def should_skip_library(lib_id, lib_info):
+    """Check if a library should be skipped based on its configuration.
+
+    Args:
+        lib_id: Library identifier
+        lib_info: Library configuration dictionary
+
+    Returns:
+        True if the library should be skipped, False otherwise
+    """
+    # Skip special sections
+    if lib_id in ["nightly", "if", "install_always"]:
+        return True
+
+    # Skip libraries with manual or never build types
+    if "build_type" in lib_info and lib_info["build_type"] in ["manual", "none", "never", "make"]:
+        return True
+
+    return False
+
+
 def find_existing_library_by_github_url(cpp_libraries, github_url):
     """Find if a library already exists by checking the GitHub URL."""
     # Parse the URL to get the repo in owner/repo format
