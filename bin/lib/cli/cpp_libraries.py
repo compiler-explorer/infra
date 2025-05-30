@@ -34,7 +34,12 @@ def cpp_library():
     default="header-only",
     help="Library type (default: header-only)",
 )
-def add_cpp_library(github_url: str, version: str, type: str):
+@click.option(
+    "--target-prefix",
+    default="",
+    help="Prefix for version tags (e.g., 'v' for tags like v3.11.3)",
+)
+def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str):
     """Add or update a C++ library entry in libraries.yaml."""
     # Load libraries.yaml first to search for existing library
     yaml_dir = Path(__file__).parent.parent.parent / "yaml"
@@ -77,6 +82,11 @@ def add_cpp_library(github_url: str, version: str, type: str):
             if existing_lib_id:
                 click.echo(f"Found existing library '{lib_id}' for {github_url}")
             click.echo(f"Added version {version} to library {lib_id}")
+
+            # Update target_prefix if specified and not already set
+            if target_prefix and "target_prefix" not in cpp_libraries[lib_id]:
+                cpp_libraries[lib_id]["target_prefix"] = target_prefix
+                click.echo(f"Added target_prefix '{target_prefix}' to library {lib_id}")
         else:
             click.echo(f"Version {version} already exists for library {lib_id}")
     else:
@@ -87,6 +97,10 @@ def add_cpp_library(github_url: str, version: str, type: str):
             "check_file": "README.md",  # Default check file
             "targets": [version],
         }
+
+        # Add target_prefix if specified
+        if target_prefix:
+            library_entry["target_prefix"] = target_prefix
 
         # Set properties based on library type
         if type == "packaged-headers":
@@ -110,10 +124,10 @@ def add_cpp_library(github_url: str, version: str, type: str):
     library_yaml.save()
     click.echo(f"Successfully updated {library_yaml.yaml_path}")
     click.echo(f"\nLibrary '{lib_id}' is now available for property generation.")
-    click.echo(f"To update the properties file, run:")
+    click.echo("To update the properties file, run:")
     click.echo(f"  ce_install cpp-library generate-linux-props --library {lib_id} --version {version} \\")
-    click.echo(f"    --input-file <ce-repo>/etc/config/c++.amazon.properties \\")
-    click.echo(f"    --output-file <ce-repo>/etc/config/c++.amazon.properties")
+    click.echo("    --input-file <ce-repo>/etc/config/c++.amazon.properties \\")
+    click.echo("    --output-file <ce-repo>/etc/config/c++.amazon.properties")
 
 
 @cpp_library.command(name="generate-windows-props")

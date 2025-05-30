@@ -17,13 +17,14 @@ The C++ library commands allow you to:
 Add a new C++ library or update an existing library version.
 
 ```bash
-ce_install cpp-library add <github_url> <version> [--type <library_type>]
+ce_install cpp-library add <github_url> <version> [--type <library_type>] [--target-prefix <prefix>]
 ```
 
 **Parameters:**
 - `github_url`: GitHub URL of the library (e.g., `https://github.com/fmtlib/fmt`)
 - `version`: Version to add (e.g., `10.2.1`)
 - `--type`: Library type (optional, default: `header-only`)
+- `--target-prefix`: Prefix for version tags (optional, e.g., 'v' for tags like v3.11.3)
 
 **Library Types:**
 - `header-only`: Header-only library (default)
@@ -38,6 +39,9 @@ ce_install cpp-library add https://github.com/fmtlib/fmt 10.2.1 --type static
 
 # Add a header-only library
 ce_install cpp-library add https://github.com/nlohmann/json 3.11.3
+
+# Add a library with 'v' prefixed version tags
+ce_install cpp-library add https://github.com/nlohmann/json 3.11.3 --target-prefix v
 ```
 
 ### `cpp-library generate-linux-props`

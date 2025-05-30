@@ -9,9 +9,10 @@ across different parts of the system.
 from urllib.parse import urlparse
 
 
-def generate_library_path(library_name, version):
+def generate_library_path(library_name, version, target_prefix=""):
     """Generate the standard library path for Compiler Explorer."""
-    return f"/opt/compiler-explorer/libs/{library_name}/{version}/include"
+    prefixed_version = f"{target_prefix}{version}" if target_prefix else version
+    return f"/opt/compiler-explorer/libs/{library_name}/{prefixed_version}/include"
 
 
 def generate_version_property_key(library_name, version_id, property_name):
@@ -261,7 +262,8 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
             lib_props[version_suffix] = specific_version
 
             if not lib_info.get("package_install"):
-                path = generate_library_path(library_name, specific_version)
+                target_prefix = lib_info.get("target_prefix", "")
+                path = generate_library_path(library_name, specific_version, target_prefix)
                 path_suffix = generate_version_property_suffix(ver_id, "path")
                 lib_props[path_suffix] = path
 
@@ -292,7 +294,8 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                 lib_props[version_suffix] = ver_name
 
                 if not lib_info.get("package_install"):
-                    path = generate_library_path(library_name, ver_name)
+                    target_prefix = lib_info.get("target_prefix", "")
+                    path = generate_library_path(library_name, ver_name, target_prefix)
                     path_suffix = generate_version_property_suffix(ver_id, "path")
                     lib_props[path_suffix] = path
 
@@ -372,7 +375,8 @@ def generate_all_libraries_properties(cpp_libraries):
                 libverprops += f"{version_key}={ver_name}\n"
 
                 if not lib_info.get("package_install"):
-                    path = generate_library_path(lib_id, ver_name)
+                    target_prefix = lib_info.get("target_prefix", "")
+                    path = generate_library_path(lib_id, ver_name, target_prefix)
                     path_key = generate_version_property_key(lib_id, ver_id, "path")
                     libverprops += f"{path_key}={path}\n"
 

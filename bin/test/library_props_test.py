@@ -16,6 +16,12 @@ def test_generate_library_path():
     """Test library path generation."""
     assert generate_library_path("fmt", "10.2.1") == "/opt/compiler-explorer/libs/fmt/10.2.1/include"
     assert generate_library_path("json", "3.11.3") == "/opt/compiler-explorer/libs/json/3.11.3/include"
+    # Test with target_prefix
+    assert (
+        generate_library_path("nlohmann_json", "3.11.3", "v")
+        == "/opt/compiler-explorer/libs/nlohmann_json/v3.11.3/include"
+    )
+    assert generate_library_path("test", "1.0.0", "") == "/opt/compiler-explorer/libs/test/1.0.0/include"
 
 
 def test_version_to_id():
@@ -259,3 +265,24 @@ def test_find_existing_library_by_github_url():
 
     # Should return None for non-GitHub URLs
     assert find_existing_library_by_github_url(cpp_libraries, "https://gitlab.com/fmtlib/fmt") is None
+
+
+def test_generate_single_library_properties_with_target_prefix():
+    """Test generating properties with target_prefix for version tags."""
+    lib_info = {"type": "github", "repo": "nlohmann/json", "targets": ["3.11.3"], "target_prefix": "v"}
+
+    result = generate_single_library_properties("nlohmann_json", lib_info, specific_version="3.11.3")
+
+    assert result["versions.3113.version"] == "3.11.3"
+    assert result["versions.3113.path"] == "/opt/compiler-explorer/libs/nlohmann_json/v3.11.3/include"
+
+
+def test_generate_all_libraries_properties_with_target_prefix():
+    """Test generating properties for libraries with target_prefix."""
+    cpp_libraries = {
+        "nlohmann_json": {"type": "github", "repo": "nlohmann/json", "targets": ["3.11.3"], "target_prefix": "v"}
+    }
+
+    result = generate_all_libraries_properties(cpp_libraries)
+
+    assert "libs.nlohmann_json.versions.3113.path=/opt/compiler-explorer/libs/nlohmann_json/v3.11.3/include" in result
