@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -24,6 +25,122 @@ def extract_library_id_from_github_url(github_url):
     repo_name = path_parts[1]
     # Convert to lowercase and replace hyphens with underscores
     return repo_name.lower().replace('-', '_')
+
+
+def parse_properties_file(content):
+    """Parse a properties file into a dictionary."""
+    properties = {}
+    current_section = None
+    
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+            
+        if '=' in line:
+            key, value = line.split('=', 1)
+            properties[key] = value
+    
+    return properties
+
+
+def merge_properties(existing_content, new_content):
+    """Merge new properties into existing properties file, preserving structure and comments."""
+    # Parse both property sets
+    existing_props = parse_properties_file(existing_content)
+    new_props = parse_properties_file(new_content)
+    
+    # Extract library list from new properties
+    new_libs_list = []
+    if 'libs' in new_props:
+        new_libs_list = new_props['libs'].split(':')
+    
+    # Build a set of existing library-related keys for quick lookup
+    existing_lib_keys = set()
+    for key in existing_props:
+        if key.startswith('libs.'):
+            existing_lib_keys.add(key)
+    
+    # Build result preserving existing structure
+    result_lines = []
+    processed_keys = set()
+    
+    for line in existing_content.splitlines():
+        stripped = line.strip()
+        
+        # Check if this is the libs= line
+        if stripped.startswith('libs='):
+            existing_libs = []
+            if '=' in stripped:
+                _, value = stripped.split('=', 1)
+                existing_libs = [lib for lib in value.split(':') if lib]
+            
+            # Merge library lists
+            merged_libs = existing_libs.copy()
+            for lib in new_libs_list:
+                if lib not in merged_libs:
+                    merged_libs.append(lib)
+            
+            # Write the merged libs line
+            result_lines.append(f"libs={':'.join(merged_libs)}")
+            processed_keys.add('libs')
+            continue
+        
+        # For other properties, check if we should update them
+        if '=' in stripped and not stripped.startswith('#'):
+            key = stripped.split('=', 1)[0]
+            processed_keys.add(key)
+            
+            # Keep existing library properties unless they're being updated
+            if key.startswith('libs.') and key in new_props:
+                # Replace with new value
+                result_lines.append(f"{key}={new_props[key]}")
+                continue
+        
+        result_lines.append(line)
+    
+    # Group new properties by library
+    libs_to_add = {}
+    other_props_to_add = []
+    
+    for key, value in new_props.items():
+        if key not in processed_keys:
+            if key.startswith('libs.') and '.' in key[5:]:
+                # This is a library property
+                lib_name = key.split('.')[1]
+                if lib_name not in libs_to_add:
+                    libs_to_add[lib_name] = []
+                libs_to_add[lib_name].append((key, value))
+            elif key != 'libs':
+                other_props_to_add.append((key, value))
+    
+    # Add new library properties grouped by library
+    if libs_to_add:
+        result_lines.append("")  # Empty line before new properties
+        for lib_name in sorted(libs_to_add.keys()):
+            # Add properties for this library
+            for key, value in sorted(libs_to_add[lib_name]):
+                result_lines.append(f"{key}={value}")
+            result_lines.append("")  # Empty line after each library
+    
+    # Add other new properties
+    if other_props_to_add:
+        for key, value in sorted(other_props_to_add):
+            result_lines.append(f"{key}={value}")
+    
+    # Clean up any double empty lines
+    cleaned_lines = []
+    prev_empty = False
+    for line in result_lines:
+        if line.strip() == "":
+            if not prev_empty:
+                cleaned_lines.append(line)
+            prev_empty = True
+        else:
+            cleaned_lines.append(line)
+            prev_empty = False
+    
+    return '\n'.join(cleaned_lines)
 
 
 def find_existing_library_by_github_url(cpp_libraries, github_url):
@@ -145,7 +262,9 @@ def add_cpp_library(github_url: str, version: str, type: str):
 
 
 @cpp_library.command(name="generate-windows-props")
-def generate_cpp_windows_props():
+@click.option('--input-file', type=click.Path(exists=True), help='Existing properties file to update')
+@click.option('--output-file', type=click.Path(), help='Output file (defaults to stdout)')
+def generate_cpp_windows_props(input_file, output_file):
     """Generate C++ Windows properties file from libraries.yaml."""
     # Load libraries.yaml
     yaml_dir = Path(__file__).parent.parent.parent / 'yaml'
@@ -158,14 +277,32 @@ def generate_cpp_windows_props():
     
     # Generate properties using the existing method
     logger = logging.getLogger()
-    properties_text = library_yaml.get_ce_properties_for_cpp_windows_libraries(logger)
+    new_properties_text = library_yaml.get_ce_properties_for_cpp_windows_libraries(logger)
     
-    # Output to stdout (can be redirected to a file)
-    click.echo(properties_text)
+    if input_file:
+        # Load existing properties file
+        with open(input_file, 'r', encoding='utf-8') as f:
+            existing_content = f.read()
+        
+        # Merge properties
+        merged_content = merge_properties(existing_content, new_properties_text)
+        result = merged_content
+    else:
+        result = new_properties_text
+    
+    # Output
+    if output_file:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(result)
+        click.echo(f"Properties written to {output_file}")
+    else:
+        click.echo(result)
 
 
 @cpp_library.command(name="generate-linux-props")
-def generate_cpp_linux_props():
+@click.option('--input-file', type=click.Path(exists=True), help='Existing properties file to update')
+@click.option('--output-file', type=click.Path(), help='Output file (defaults to stdout)')
+def generate_cpp_linux_props(input_file, output_file):
     """Generate C++ Linux properties file from libraries.yaml."""
     # Load libraries.yaml
     yaml_dir = Path(__file__).parent.parent.parent / 'yaml'
@@ -232,6 +369,23 @@ def generate_cpp_linux_props():
     
     # Generate header
     header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
+    new_properties_text = header_properties_txt + properties_txt
     
-    # Output to stdout
-    click.echo(header_properties_txt + properties_txt)
+    if input_file:
+        # Load existing properties file
+        with open(input_file, 'r', encoding='utf-8') as f:
+            existing_content = f.read()
+        
+        # Merge properties
+        merged_content = merge_properties(existing_content, new_properties_text)
+        result = merged_content
+    else:
+        result = new_properties_text
+    
+    # Output
+    if output_file:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(result)
+        click.echo(f"Properties written to {output_file}")
+    else:
+        click.echo(result)
