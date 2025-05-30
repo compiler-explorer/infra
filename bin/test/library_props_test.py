@@ -202,6 +202,45 @@ libs.fmt.versions.1011.path=/opt/compiler-explorer/libs/fmt/10.1.1/include
     assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in result
 
 
+def test_generate_single_library_properties_with_link_properties():
+    """Test that sharedliblink and staticliblink are included in properties."""
+    lib_info = {
+        "type": "github",
+        "repo": "fmtlib/fmt",
+        "targets": ["10.2.1"],
+        "sharedliblink": ["fmt", "fmtd"],
+        "staticliblink": ["fmts", "fmtsd"]
+    }
+
+    result = generate_single_library_properties("fmt", lib_info)
+
+    # Should have library-level properties including link properties
+    assert result["name"] == "fmt"
+    assert result["url"] == "https://github.com/fmtlib/fmt"
+    assert result["liblink"] == "fmt:fmtd"
+    assert result["staticliblink"] == "fmts:fmtsd"
+    assert result["versions"] == "1021"
+
+
+def test_generate_all_libraries_properties_with_link_properties():
+    """Test that sharedliblink and staticliblink are included in all libraries output."""
+    cpp_libraries = {
+        "fmt": {
+            "type": "github",
+            "repo": "fmtlib/fmt",
+            "targets": ["10.2.1"],
+            "sharedliblink": ["fmt"],
+            "staticliblink": ["fmts"]
+        }
+    }
+
+    result = generate_all_libraries_properties(cpp_libraries)
+
+    # Should contain the link properties
+    assert "libs.fmt.liblink=fmt" in result
+    assert "libs.fmt.staticliblink=fmts" in result
+
+
 def test_find_existing_library_by_github_url():
     """Test finding existing libraries by GitHub URL."""
     cpp_libraries = {

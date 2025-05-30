@@ -267,6 +267,12 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
             if lib_info.get("type") == "github" and "repo" in lib_info:
                 lib_props["url"] = f"https://github.com/{lib_info['repo']}"
 
+            # Add link properties if present
+            if "sharedliblink" in lib_info and lib_info["sharedliblink"]:
+                lib_props["liblink"] = ":".join(lib_info["sharedliblink"])
+            if "staticliblink" in lib_info and lib_info["staticliblink"]:
+                lib_props["staticliblink"] = ":".join(lib_info["staticliblink"])
+
             version_ids = []
             for target_version in lib_info["targets"]:
                 if isinstance(target_version, dict):
@@ -292,6 +298,12 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
             lib_props["name"] = library_name
             if lib_info.get("type") == "github" and "repo" in lib_info:
                 lib_props["url"] = f"https://github.com/{lib_info['repo']}"
+
+            # Add link properties if present
+            if "sharedliblink" in lib_info and lib_info["sharedliblink"]:
+                lib_props["liblink"] = ":".join(lib_info["sharedliblink"])
+            if "staticliblink" in lib_info and lib_info["staticliblink"]:
+                lib_props["staticliblink"] = ":".join(lib_info["staticliblink"])
 
     return lib_props
 
@@ -320,6 +332,14 @@ def generate_all_libraries_properties(cpp_libraries):
         if lib_info.get("type") == "github" and "repo" in lib_info:
             url_key = generate_library_property_key(lib_id, "url")
             libverprops += f"{url_key}=https://github.com/{lib_info['repo']}\n"
+
+        # Add link properties if present
+        if "sharedliblink" in lib_info and lib_info["sharedliblink"]:
+            liblink_key = generate_library_property_key(lib_id, "liblink")
+            libverprops += f"{liblink_key}={':'.join(lib_info['sharedliblink'])}\n"
+        if "staticliblink" in lib_info and lib_info["staticliblink"]:
+            staticliblink_key = generate_library_property_key(lib_id, "staticliblink")
+            libverprops += f"{staticliblink_key}={':'.join(lib_info['staticliblink'])}\n"
 
         if "targets" in lib_info and lib_info["targets"]:
             version_ids = []
