@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "explain" {
 
 data "aws_ecr_image" "explain" {
   repository_name = aws_ecr_repository.explain.name
-  image_tag = "gh-28"
+  image_tag = "gh-41"
 }
 
 resource "aws_lambda_function" "explain" {
@@ -32,8 +32,35 @@ resource "aws_lambda_function" "explain" {
       ANTHROPIC_API_KEY = data.aws_ssm_parameter.anthropic_api_key.value
       ROOT_PATH = "/explain"
       METRICS_ENABLED = "true"
+      CACHE_ENABLED = "true"
+      CACHE_S3_BUCKET = aws_s3_bucket.storage-godbolt-org.bucket
+      CACHE_S3_PREFIX = "explain-cache/"
+      CACHE_S3_TTL = "2d"
     }
   }
+}
+
+# IAM Policy for S3 Access
+data "aws_iam_policy_document" "explain_s3_access" {
+  statement {
+    sid = "ExplainCacheAccess"
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject"
+    ]
+    resources = ["${aws_s3_bucket.storage-godbolt-org.arn}/explain-cache/*"]
+  }
+}
+
+resource "aws_iam_policy" "explain_s3_access" {
+  name        = "explain_lambda_s3_access"
+  description = "Allow explain lambda to access explain-cache prefix in storage bucket"
+  policy      = data.aws_iam_policy_document.explain_s3_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "explain_s3_access" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.explain_s3_access.arn
 }
 
 # API Gateway Integration
