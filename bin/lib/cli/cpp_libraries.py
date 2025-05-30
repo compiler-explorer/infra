@@ -1,19 +1,23 @@
 import logging
 import sys
 from pathlib import Path
-from urllib.parse import urlparse
 
 import click
 
 from lib.library_props import (
+    add_version_to_library,
     extract_library_id_from_github_url,
+    extract_repo_from_github_url,
     find_existing_library_by_github_url,
     generate_all_libraries_properties,
     generate_single_library_properties,
     generate_standalone_library_properties,
+    load_library_yaml_section,
     merge_properties,
-    update_library_in_properties,
-    version_to_id,
+    output_properties,
+    process_all_libraries_properties,
+    process_library_specific_properties,
+    validate_library_version_args,
 )
 from lib.library_yaml import LibraryYaml
 
@@ -41,15 +45,8 @@ def cpp_library():
 )
 def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str):
     """Add or update a C++ library entry in libraries.yaml."""
-    # Load libraries.yaml first to search for existing library
-    yaml_dir = Path(__file__).parent.parent.parent / "yaml"
-    library_yaml = LibraryYaml(str(yaml_dir))
-
-    # Ensure c++ section exists
-    if "c++" not in library_yaml.yaml_doc["libraries"]:
-        library_yaml.yaml_doc["libraries"]["c++"] = {}
-
-    cpp_libraries = library_yaml.yaml_doc["libraries"]["c++"]
+    # Load libraries.yaml and get C++ section
+    library_yaml, cpp_libraries = load_library_yaml_section("c++")
 
     # Search for existing library by GitHub URL
     existing_lib_id = find_existing_library_by_github_url(cpp_libraries, github_url)
@@ -62,33 +59,19 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
         # Extract library ID from GitHub URL for new library
         try:
             lib_id = extract_library_id_from_github_url(github_url)
+            repo_field = extract_repo_from_github_url(github_url)
         except ValueError as e:
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
-        # Extract owner and repo from URL for the repo field
-        parsed = urlparse(github_url)
-        path_parts = parsed.path.strip("/").split("/")
-        repo_field = f"{path_parts[0]}/{path_parts[1]}"
-
     # Check if library already exists
     if lib_id in cpp_libraries:
         # Add version to existing library
-        if "targets" not in cpp_libraries[lib_id]:
-            cpp_libraries[lib_id]["targets"] = []
+        if existing_lib_id:
+            click.echo(f"Found existing library '{lib_id}' for {github_url}")
 
-        if version not in cpp_libraries[lib_id]["targets"]:
-            cpp_libraries[lib_id]["targets"].append(version)
-            if existing_lib_id:
-                click.echo(f"Found existing library '{lib_id}' for {github_url}")
-            click.echo(f"Added version {version} to library {lib_id}")
-
-            # Update target_prefix if specified and not already set
-            if target_prefix and "target_prefix" not in cpp_libraries[lib_id]:
-                cpp_libraries[lib_id]["target_prefix"] = target_prefix
-                click.echo(f"Added target_prefix '{target_prefix}' to library {lib_id}")
-        else:
-            click.echo(f"Version {version} already exists for library {lib_id}")
+        message = add_version_to_library(cpp_libraries, lib_id, version, target_prefix)
+        click.echo(message)
     else:
         # Create new library entry
         library_entry = {
@@ -188,8 +171,10 @@ def generate_cpp_windows_props(input_file, output_file, library, version):
 @click.option("--version", help="Only update this specific version (requires --library)")
 def generate_cpp_linux_props(input_file, output_file, library, version):
     """Generate C++ Linux properties file from libraries.yaml."""
-    if version and not library:
-        click.echo("Error: --version requires --library to be specified", err=True)
+    # Validate arguments
+    error = validate_library_version_args(library, version)
+    if error:
+        click.echo(error, err=True)
         sys.exit(1)
 
     # Load libraries.yaml
@@ -226,66 +211,22 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
-        if input_file:
-            # Load existing properties file
-            with open(input_file, "r", encoding="utf-8") as f:
-                existing_content = f.read()
+        # When generating standalone (no input file), include all properties
+        if not input_file and version and "name" not in lib_props:
+            # Add library-level properties for standalone generation
+            lib_props["name"] = library
+            if lib_info.get("type") == "github" and "repo" in lib_info:
+                lib_props["url"] = f"https://github.com/{lib_info['repo']}"
 
-            # Update only the specific library
-            update_version_id = None
-            if version:
-                update_version_id = version_to_id(version)
-            result = update_library_in_properties(existing_content, library, lib_props, update_version_id)
-
-            # If the library wasn't in the libs= list, we need to add it
-            if f"libs.{library}." not in existing_content:
-                # Preserve whether original content had final newline
-                original_ends_with_newline = existing_content.endswith("\n")
-
-                lines = result.splitlines()
-                for i, line in enumerate(lines):
-                    if line.strip().startswith("libs="):
-                        # Parse existing libs
-                        if "=" in line:
-                            prefix, libs_value = line.split("=", 1)
-                            existing_libs = [lib for lib in libs_value.split(":") if lib]
-                            if library not in existing_libs:
-                                existing_libs.append(library)
-                                lines[i] = f"{prefix}={':'.join(existing_libs)}"
-                        break
-                result = "\n".join(lines)
-                # Preserve original final newline behavior
-                if original_ends_with_newline and not result.endswith("\n"):
-                    result += "\n"
-        else:
-            # Generate standalone properties for just this library
-            # When generating standalone (no input file), include all properties
-            if version and "name" not in lib_props:
-                # Add library-level properties for standalone generation
-                lib_props["name"] = library
-                if lib_info.get("type") == "github" and "repo" in lib_info:
-                    lib_props["url"] = f"https://github.com/{lib_info['repo']}"
-
-            result = generate_standalone_library_properties(library, lib_props, specific_version=version)
+        result = process_library_specific_properties(
+            input_file, library, lib_props, version, generate_standalone_library_properties
+        )
     else:
         # Generate properties for all libraries using the refactored function
         new_properties_text = generate_all_libraries_properties(cpp_libraries)
-
-        if input_file:
-            # Load existing properties file
-            with open(input_file, "r", encoding="utf-8") as f:
-                existing_content = f.read()
-
-            # Merge properties
-            merged_content = merge_properties(existing_content, new_properties_text)
-            result = merged_content
-        else:
-            result = new_properties_text
+        result = process_all_libraries_properties(input_file, new_properties_text)
 
     # Output
-    if output_file:
-        with open(output_file, "w", encoding="utf-8") as f:
-            f.write(result)
-        click.echo(f"Properties written to {output_file}")
-    else:
-        click.echo(result)
+    message = output_properties(result, output_file)
+    if message:
+        click.echo(message)
