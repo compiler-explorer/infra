@@ -10,7 +10,7 @@ from lib.library_props import (
     find_existing_library_by_github_url,
     generate_library_property_key,
     generate_version_property_key,
-    parse_properties_file,
+    generate_version_property_suffix,
     should_skip_library,
     update_library_in_properties,
     version_to_id,
@@ -37,7 +37,7 @@ def fortran_library():
 )
 def add_fortran_library(github_url, version, target_prefix):
     """Add a new Fortran library from GitHub URL with version.
-    
+
     All Fortran libraries use FPM (Fortran Package Manager) for building.
     """
     # Extract library ID from GitHub URL
@@ -168,9 +168,7 @@ def generate_fortran_props(input_file, output_file, library, version):
             update_version_id = None
             if version:
                 update_version_id = version_to_id(version)
-            result = update_library_in_properties(
-                existing_content, library, lib_props, update_version_id
-            )
+            result = update_library_in_properties(existing_content, library, lib_props, update_version_id)
 
             # If the library wasn't in the libs= list, we need to add it
             if f"libs.{library}." not in existing_content:
@@ -206,6 +204,7 @@ def generate_fortran_props(input_file, output_file, library, version):
 
             # Merge properties
             from lib.library_props import merge_properties
+
             merged_content = merge_properties(existing_content, new_properties_text)
             result = merged_content
         else:
@@ -231,7 +230,8 @@ def generate_single_fortran_library_properties(library_name, lib_info, specific_
                 raise ValueError(f"Version '{specific_version}' not found for library '{library_name}'")
 
             ver_id = version_to_id(specific_version)
-            lib_props[f"versions.{ver_id}.version"] = specific_version
+            version_suffix = generate_version_property_suffix(ver_id, "version")
+            lib_props[version_suffix] = specific_version
 
             # No path for Fortran libraries - they use packagedheaders=true
         else:
@@ -250,7 +250,8 @@ def generate_single_fortran_library_properties(library_name, lib_info, specific_
                 ver_id = version_to_id(version)
                 version_ids.append(ver_id)
 
-                lib_props[f"versions.{ver_id}.version"] = version
+                version_suffix = generate_version_property_suffix(ver_id, "version")
+                lib_props[version_suffix] = version
 
                 # No path for Fortran libraries
 
@@ -280,14 +281,18 @@ def generate_all_fortran_libraries_properties(fortran_libraries):
 
         all_ids.append(lib_id)
 
-        libverprops = f"libs.{lib_id}.name={lib_id}\n"
+        name_key = generate_library_property_key(lib_id, "name")
+        libverprops = f"{name_key}={lib_id}\n"
 
         if lib_info.get("type") == "github" and "repo" in lib_info:
-            libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+            url_key = generate_library_property_key(lib_id, "url")
+            libverprops += f"{url_key}=https://github.com/{lib_info['repo']}\n"
 
         # Add Fortran-specific properties
-        libverprops += f"libs.{lib_id}.packagedheaders=true\n"
-        libverprops += f"libs.{lib_id}.staticliblink={lib_id}\n"
+        packagedheaders_key = generate_library_property_key(lib_id, "packagedheaders")
+        libverprops += f"{packagedheaders_key}=true\n"
+        staticliblink_key = generate_library_property_key(lib_id, "staticliblink")
+        libverprops += f"{staticliblink_key}={lib_id}\n"
 
         if "targets" in lib_info and lib_info["targets"]:
             version_ids = []
@@ -295,11 +300,13 @@ def generate_all_fortran_libraries_properties(fortran_libraries):
                 ver_id = version_to_id(version)
                 version_ids.append(ver_id)
 
-            libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
+            versions_key = generate_library_property_key(lib_id, "versions")
+            libverprops += f"{versions_key}={':'.join(version_ids)}\n"
 
             for version in lib_info["targets"]:
                 ver_id = version_to_id(version)
-                libverprops += f"libs.{lib_id}.versions.{ver_id}.version={version}\n"
+                version_key = generate_version_property_key(lib_id, ver_id, "version")
+                libverprops += f"{version_key}={version}\n"
 
                 # No path for Fortran libraries
 
@@ -316,6 +323,7 @@ def generate_standalone_fortran_library_properties(library_name, lib_props, spec
     properties_lines.append("")
 
     for prop_name, value in sorted(lib_props.items()):
-        properties_lines.append(f"libs.{library_name}.{prop_name}={value}")
+        property_key = generate_library_property_key(library_name, prop_name)
+        properties_lines.append(f"{property_key}={value}")
 
     return "\n".join(properties_lines)
