@@ -99,11 +99,12 @@ def update_library_in_properties(existing_content, library_name, library_propert
 
         if "=" in stripped and not stripped.startswith("#"):
             key = stripped.split("=", 1)[0]
-            if key.startswith(f"libs.{library_name}."):
+            library_prefix = generate_library_property_key(library_name, "")
+            if key.startswith(library_prefix):
                 inside_library_block = True
                 last_library_line_idx = len(result_lines)
 
-                prop_name = key[len(f"libs.{library_name}.") :]
+                prop_name = key[len(library_prefix) :]
                 seen_props.add(prop_name)
 
                 if prop_name == "versions" and update_version_id:
@@ -131,7 +132,7 @@ def update_library_in_properties(existing_content, library_name, library_propert
                 else:
                     result_lines.append(line)
                 continue
-            elif inside_library_block and key.startswith("libs.") and not key.startswith(f"libs.{library_name}."):
+            elif inside_library_block and key.startswith("libs.") and not key.startswith(library_prefix):
                 inside_library_block = False
 
         result_lines.append(line)
@@ -148,7 +149,7 @@ def update_library_in_properties(existing_content, library_name, library_propert
             props_to_add.sort(key=sort_key)
 
             for prop_name, value in reversed(props_to_add):
-                full_key = f"libs.{library_name}.{prop_name}"
+                full_key = generate_library_property_key(library_name, prop_name)
                 result_lines.insert(insert_idx, f"{full_key}={value}")
         else:
             if result_lines and result_lines[-1].strip() != "":
@@ -157,7 +158,7 @@ def update_library_in_properties(existing_content, library_name, library_propert
             props_to_add.sort(key=sort_key)
 
             for prop_name, value in props_to_add:
-                full_key = f"libs.{library_name}.{prop_name}"
+                full_key = generate_library_property_key(library_name, prop_name)
                 result_lines.append(f"{full_key}={value}")
 
     return "\n".join(result_lines)
@@ -251,11 +252,13 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                 raise ValueError(f"Version '{specific_version}' not found for library '{library_name}'")
 
             ver_id = version_to_id(specific_version)
-            lib_props[f"versions.{ver_id}.version"] = specific_version
+            version_key = generate_version_property_key(library_name, ver_id, "version")
+            lib_props[version_key[len(f"libs.{library_name}."):]] = specific_version
 
             if not lib_info.get("package_install"):
                 path = generate_library_path(library_name, specific_version)
-                lib_props[f"versions.{ver_id}.path"] = path
+                path_key = generate_version_property_key(library_name, ver_id, "path")
+                lib_props[path_key[len(f"libs.{library_name}."):]] = path
 
         else:
             # When updating all versions, we update library-level properties too
@@ -274,11 +277,13 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                     ver_id = version_to_id(target_version)
                 version_ids.append(ver_id)
 
-                lib_props[f"versions.{ver_id}.version"] = ver_name
+                version_key = generate_version_property_key(library_name, ver_id, "version")
+                lib_props[version_key[len(f"libs.{library_name}."):]] = ver_name
 
                 if not lib_info.get("package_install"):
                     path = generate_library_path(library_name, ver_name)
-                    lib_props[f"versions.{ver_id}.path"] = path
+                    path_key = generate_version_property_key(library_name, ver_id, "path")
+                    lib_props[path_key[len(f"libs.{library_name}."):]] = path
 
             lib_props["versions"] = ":".join(version_ids)
     else:
@@ -312,10 +317,12 @@ def generate_all_libraries_properties(cpp_libraries):
 
         all_ids.append(lib_id)
 
-        libverprops = f"libs.{lib_id}.name={lib_id}\n"
+        name_key = generate_library_property_key(lib_id, "name")
+        libverprops = f"{name_key}={lib_id}\n"
 
         if lib_info.get("type") == "github" and "repo" in lib_info:
-            libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+            url_key = generate_library_property_key(lib_id, "url")
+            libverprops += f"{url_key}=https://github.com/{lib_info['repo']}\n"
 
         if "targets" in lib_info and lib_info["targets"]:
             version_ids = []
@@ -328,7 +335,8 @@ def generate_all_libraries_properties(cpp_libraries):
                     ver_id = version_to_id(target_version)
                 version_ids.append(ver_id)
 
-            libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
+            versions_key = generate_library_property_key(lib_id, "versions")
+            libverprops += f"{versions_key}={':'.join(version_ids)}\n"
 
             for target_version in lib_info["targets"]:
                 if isinstance(target_version, dict):
@@ -338,11 +346,13 @@ def generate_all_libraries_properties(cpp_libraries):
                     ver_name = target_version
                     ver_id = version_to_id(target_version)
 
-                libverprops += f"libs.{lib_id}.versions.{ver_id}.version={ver_name}\n"
+                version_key = generate_version_property_key(lib_id, ver_id, "version")
+                libverprops += f"{version_key}={ver_name}\n"
 
                 if not lib_info.get("package_install"):
                     path = generate_library_path(lib_id, ver_name)
-                    libverprops += f"libs.{lib_id}.versions.{ver_id}.path={path}\n"
+                    path_key = generate_version_property_key(lib_id, ver_id, "path")
+                    libverprops += f"{path_key}={path}\n"
 
         properties_txt += libverprops + "\n"
 
@@ -374,7 +384,8 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
 
 
     for prop_name, value in sorted(props_copy.items()):
-        properties_lines.append(f"libs.{library_name}.{prop_name}={value}")
+        property_key = generate_library_property_key(library_name, prop_name)
+        properties_lines.append(f"{property_key}={value}")
 
     return "\n".join(properties_lines)
 
