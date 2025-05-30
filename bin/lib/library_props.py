@@ -16,7 +16,8 @@ def generate_library_path(library_name, version):
 
 def generate_version_property_key(library_name, version_id, property_name):
     """Generate a property key for a library version."""
-    return f"libs.{library_name}.versions.{version_id}.{property_name}"
+    suffix = generate_version_property_suffix(version_id, property_name)
+    return f"libs.{library_name}.{suffix}"
 
 
 def generate_library_property_key(library_name, property_name):
