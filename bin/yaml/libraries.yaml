@@ -665,6 +665,7 @@ libraries:
       - 11.1.4
       - 11.2.0
       - 12.0.0
+      - 11.3.0
       type: github
     gcem:
       build_type: cmake
