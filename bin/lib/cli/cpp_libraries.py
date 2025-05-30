@@ -213,7 +213,6 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                 existing_content = f.read()
 
             # Update only the specific library
-            # If we're updating a specific version, pass the version ID
             update_version_id = None
             if version:
                 update_version_id = version_to_id(version)
