@@ -31,6 +31,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Don't add comments above self-documenting code
 - Maintain backwards compatibility with existing scripts
 - For AWS resources, follow terraform best practices
+- Never call functions within f-strings: create a variable first, then use it in the f-string
 
 ## Testing Guidelines
 
