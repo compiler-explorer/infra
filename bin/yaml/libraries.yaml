@@ -544,6 +544,7 @@ libraries:
       - 2.3.6
       - 2.3.7
       - 2.3.8
+      - 2.4.12
       type: github
     eastl:
       build_type: none
