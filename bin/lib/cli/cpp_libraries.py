@@ -109,6 +109,11 @@ def add_cpp_library(github_url: str, version: str, type: str):
     # Save the updated YAML
     library_yaml.save()
     click.echo(f"Successfully updated {library_yaml.yaml_path}")
+    click.echo(f"\nLibrary '{lib_id}' is now available for property generation.")
+    click.echo(f"To update the properties file, run:")
+    click.echo(f"  ce_install cpp-library generate-linux-props --library {lib_id} --version {version} \\")
+    click.echo(f"    --input-file <ce-repo>/etc/config/c++.amazon.properties \\")
+    click.echo(f"    --output-file <ce-repo>/etc/config/c++.amazon.properties")
 
 
 @cpp_library.command(name="generate-windows-props")
