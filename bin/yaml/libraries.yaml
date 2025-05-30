@@ -664,6 +664,8 @@ libraries:
       - 11.0.0
       - 11.1.4
       - 11.2.0
+      - 12.0.0
+      - 11.3.0
       type: github
     gcem:
       build_type: cmake
@@ -2095,6 +2097,7 @@ libraries:
       - 3.9.1
       - 3.10.5
       - 3.11.1
+      - 3.11.3
       type: github
     nsimd:
       check_file: x86_64/include/nsimd/nsimd.h

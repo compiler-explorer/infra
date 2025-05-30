@@ -248,6 +248,10 @@ def cli(
     )
 
 
+# Import CLI modules to register commands
+from lib.cli import cpp_libraries  # noqa: F401, E402
+
+
 @cli.command(name="list")
 @click.pass_obj
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
