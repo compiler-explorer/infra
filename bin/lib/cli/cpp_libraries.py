@@ -17,7 +17,7 @@ from lib.library_props import (
 )
 from lib.library_yaml import LibraryYaml
 
-from .cli import cli
+from ..ce_install import cli
 
 
 @cli.group()
