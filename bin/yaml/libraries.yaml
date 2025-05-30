@@ -2910,6 +2910,11 @@ libraries:
         - stdlib-fpm
         type: github
   rust:
+    ahash:
+      build_type: cargo
+      targets:
+      - 0.8.12
+      type: cratesio
     aho-corasick:
       build_type: cargo
       targets:
