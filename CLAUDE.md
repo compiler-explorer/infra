@@ -26,7 +26,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Follow shell best practices (shellcheck enforced)
 - No unused imports or variables (autoflake enforced)
 - Error handling: Use appropriate error classes and logging
-- Write unit tests for new functionality
+- Write unit tests for new functionality (required for all new code)
+- Design code to be testable: prefer pure functions and clear interfaces
 - Documentation: Comments should explain "why", not "what" unless non-obvious
 - Don't add comments above self-documenting code
 - Maintain backwards compatibility with existing scripts
@@ -39,6 +40,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Run tests with `make test` or `uv run pytest path/to/test.py`
 - Test both success and error cases
 - Mock external dependencies when appropriate
+- **Always write tests for new functionality** - prefer testable code design
+- Use pytest framework with descriptive test function names (e.g., `test_function_name_scenario`)
+- Test files should import from `lib` modules directly
+- Use `pytest.raises()` for exception testing with message matching
+- Include both happy path and edge case scenarios
+- Follow existing test patterns: simple functions, clear assertions, good docstrings
 
 ## Infrastructure Notes
 
