@@ -253,6 +253,190 @@ def merge_properties(existing_content, new_content):
     return "\n".join(cleaned_lines)
 
 
+def generate_single_library_properties(library_name, lib_info, specific_version=None, for_update=False):
+    """Generate properties for a single library.
+
+    Args:
+        library_name: Name of the library
+        lib_info: Library information from libraries.yaml
+        specific_version: If provided, only generate properties for this version
+        for_update: If True, add special markers for property updates
+
+    Returns:
+        Dict of properties (without libs.{library_name} prefix)
+    """
+    lib_props = {}
+
+    # Handle versions
+    if "targets" in lib_info and lib_info["targets"]:
+        if specific_version:
+            # Filter to specific version
+            found_version = None
+            for target_version in lib_info["targets"]:
+                if isinstance(target_version, dict):
+                    ver_name = target_version.get("name", target_version)
+                else:
+                    ver_name = target_version
+
+                if ver_name == specific_version:
+                    found_version = target_version
+                    break
+
+            if not found_version:
+                raise ValueError(f"Version '{specific_version}' not found for library '{library_name}'")
+
+            # Generate properties for single version
+            ver_id = version_to_id(specific_version)
+            lib_props[f"versions.{ver_id}.version"] = specific_version
+
+            # Add library type specific paths
+            # Only set path if package_install is not true
+            if not lib_info.get("package_install"):
+                path = generate_library_path(library_name, specific_version)
+                lib_props[f"versions.{ver_id}.path"] = path
+
+            # When updating a specific version, check if we need to update the versions list
+            if for_update:
+                lib_props["_update_version_id"] = ver_id  # Special marker for version update
+        else:
+            # When updating all versions, we update library-level properties too
+            # Add basic properties
+            lib_props["name"] = library_name
+
+            # Add URL if it's a GitHub library
+            if lib_info.get("type") == "github" and "repo" in lib_info:
+                lib_props["url"] = f"https://github.com/{lib_info['repo']}"
+
+            # Generate properties for all versions
+            version_ids = []
+            for target_version in lib_info["targets"]:
+                if isinstance(target_version, dict):
+                    ver_name = target_version.get("name", target_version)
+                    ver_id = version_to_id(ver_name)
+                else:
+                    ver_name = target_version
+                    ver_id = version_to_id(target_version)
+                version_ids.append(ver_id)
+
+                lib_props[f"versions.{ver_id}.version"] = ver_name
+
+                # Add library type specific paths
+                # Only set path if package_install is not true
+                if not lib_info.get("package_install"):
+                    path = generate_library_path(library_name, ver_name)
+                    lib_props[f"versions.{ver_id}.path"] = path
+
+            lib_props["versions"] = ":".join(version_ids)
+    else:
+        # No targets specified, but we still need basic properties when not updating
+        if not specific_version:
+            lib_props["name"] = library_name
+            if lib_info.get("type") == "github" and "repo" in lib_info:
+                lib_props["url"] = f"https://github.com/{lib_info['repo']}"
+
+    return lib_props
+
+
+def generate_all_libraries_properties(cpp_libraries):
+    """Generate properties for all C++ libraries.
+
+    Args:
+        cpp_libraries: Dict of C++ libraries from libraries.yaml
+
+    Returns:
+        String containing all properties in CE format
+    """
+    all_ids = []
+    properties_txt = ""
+
+    for lib_id, lib_info in cpp_libraries.items():
+        if lib_id in ["nightly", "if", "install_always"]:
+            continue
+
+        # Skip libraries that are manual or have no build type
+        if "build_type" in lib_info and lib_info["build_type"] in ["manual", "none", "never"]:
+            continue
+
+        all_ids.append(lib_id)
+
+        # Generate basic properties
+        libverprops = f"libs.{lib_id}.name={lib_id}\n"
+
+        # Add URL if it's a GitHub library
+        if lib_info.get("type") == "github" and "repo" in lib_info:
+            libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
+
+        # Add versions
+        if "targets" in lib_info and lib_info["targets"]:
+            version_ids = []
+            for target_version in lib_info["targets"]:
+                if isinstance(target_version, dict):
+                    ver_name = target_version.get("name", target_version)
+                    ver_id = version_to_id(ver_name)
+                else:
+                    ver_name = target_version
+                    ver_id = version_to_id(target_version)
+                version_ids.append(ver_id)
+
+            libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
+
+            # Add version details
+            for target_version in lib_info["targets"]:
+                if isinstance(target_version, dict):
+                    ver_name = target_version.get("name", target_version)
+                    ver_id = version_to_id(ver_name)
+                else:
+                    ver_name = target_version
+                    ver_id = version_to_id(target_version)
+
+                libverprops += f"libs.{lib_id}.versions.{ver_id}.version={ver_name}\n"
+
+                # Add library type specific paths
+                # Only set path if package_install is not true
+                if not lib_info.get("package_install"):
+                    path = generate_library_path(lib_id, ver_name)
+                    libverprops += f"libs.{lib_id}.versions.{ver_id}.path={path}\n"
+
+        properties_txt += libverprops + "\n"
+
+    # Generate header
+    header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
+    return header_properties_txt + properties_txt
+
+
+def generate_standalone_library_properties(library_name, lib_props, specific_version=None):
+    """Generate standalone properties for a single library.
+
+    Args:
+        library_name: Name of the library
+        lib_props: Library properties dict
+        specific_version: If provided, add library-level properties for standalone generation
+
+    Returns:
+        String containing properties in CE format
+    """
+    # Make a copy to avoid modifying the original
+    props_copy = lib_props.copy()
+
+    # When generating standalone (no input file), include all properties
+    if specific_version and "name" not in props_copy:
+        # Add library-level properties for standalone generation
+        props_copy["name"] = library_name
+        # Note: URL would need to be passed in or retrieved separately
+
+    properties_lines = []
+    properties_lines.append(f"libs={library_name}")
+    properties_lines.append("")
+
+    # Remove the special marker before output
+    props_copy.pop("_update_version_id", None)
+
+    for prop_name, value in sorted(props_copy.items()):
+        properties_lines.append(f"libs.{library_name}.{prop_name}={value}")
+
+    return "\n".join(properties_lines)
+
+
 def find_existing_library_by_github_url(cpp_libraries, github_url):
     """Find if a library already exists by checking the GitHub URL."""
     # Parse the URL to get the repo in owner/repo format
@@ -460,80 +644,14 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                 err=True,
             )
 
-        # Generate properties for this library
-        lib_props = {}
-
-        # Handle versions
-        if "targets" in lib_info and lib_info["targets"]:
-            if version:
-                # Filter to specific version
-                found_version = None
-                for target_version in lib_info["targets"]:
-                    if isinstance(target_version, dict):
-                        ver_name = target_version.get("name", target_version)
-                    else:
-                        ver_name = target_version
-
-                    if ver_name == version:
-                        found_version = target_version
-                        break
-
-                if not found_version:
-                    click.echo(f"Error: Version '{version}' not found for library '{library}'", err=True)
-                    sys.exit(1)
-
-                # Generate properties for single version
-                ver_id = version_to_id(version)
-                lib_props[f"versions.{ver_id}.version"] = version
-
-                # Add library type specific paths
-                # Only set path if package_install is not true
-                if not lib_info.get("package_install"):
-                    # Generate proper path
-                    path = generate_library_path(library, version)
-                    lib_props[f"versions.{ver_id}.path"] = path
-
-                # When updating a specific version, check if we need to update the versions list
-                if input_file:
-                    # We'll handle the versions list update specially in update_library_in_properties
-                    # by checking if the version already exists
-                    lib_props["_update_version_id"] = ver_id  # Special marker for version update
-            else:
-                # When updating all versions, we update library-level properties too
-                # Add basic properties
-                lib_props["name"] = library
-
-                # Add URL if it's a GitHub library
-                if lib_info.get("type") == "github" and "repo" in lib_info:
-                    lib_props["url"] = f"https://github.com/{lib_info['repo']}"
-
-                # Generate properties for all versions
-                version_ids = []
-                for target_version in lib_info["targets"]:
-                    if isinstance(target_version, dict):
-                        ver_name = target_version.get("name", target_version)
-                        ver_id = version_to_id(ver_name)
-                    else:
-                        ver_name = target_version
-                        ver_id = version_to_id(target_version)
-                    version_ids.append(ver_id)
-
-                    lib_props[f"versions.{ver_id}.version"] = ver_name
-
-                    # Add library type specific paths
-                    # Only set path if package_install is not true
-                    if not lib_info.get("package_install"):
-                        # Generate proper path
-                        path = generate_library_path(library, ver_name)
-                        lib_props[f"versions.{ver_id}.path"] = path
-
-                lib_props["versions"] = ":".join(version_ids)
-        else:
-            # No targets specified, but we still need basic properties when not updating
-            if not version:
-                lib_props["name"] = library
-                if lib_info.get("type") == "github" and "repo" in lib_info:
-                    lib_props["url"] = f"https://github.com/{lib_info['repo']}"
+        # Generate properties for this library using the refactored function
+        try:
+            lib_props = generate_single_library_properties(
+                library, lib_info, specific_version=version, for_update=bool(input_file)
+            )
+        except ValueError as e:
+            click.echo(f"Error: {e}", err=True)
+            sys.exit(1)
 
         if input_file:
             # Load existing properties file
@@ -558,7 +676,7 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                         break
                 result = "\n".join(lines)
         else:
-            # Generate minimal properties for just this library
+            # Generate standalone properties for just this library
             # When generating standalone (no input file), include all properties
             if version and "name" not in lib_props:
                 # Add library-level properties for standalone generation
@@ -566,75 +684,10 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                 if lib_info.get("type") == "github" and "repo" in lib_info:
                     lib_props["url"] = f"https://github.com/{lib_info['repo']}"
 
-            properties_lines = []
-            properties_lines.append(f"libs={library}")
-            properties_lines.append("")
-
-            # Remove the special marker before output
-            lib_props.pop("_update_version_id", None)
-
-            for prop_name, value in sorted(lib_props.items()):
-                properties_lines.append(f"libs.{library}.{prop_name}={value}")
-            result = "\n".join(properties_lines)
+            result = generate_standalone_library_properties(library, lib_props, specific_version=version)
     else:
-        # Generate properties for all libraries (existing behavior)
-        all_ids = []
-        properties_txt = ""
-
-        for lib_id, lib_info in cpp_libraries.items():
-            if lib_id in ["nightly", "if", "install_always"]:
-                continue
-
-            # Skip libraries that are manual or have no build type
-            if "build_type" in lib_info and lib_info["build_type"] in ["manual", "none", "never"]:
-                continue
-
-            all_ids.append(lib_id)
-
-            # Generate basic properties
-            libverprops = f"libs.{lib_id}.name={lib_id}\n"
-
-            # Add URL if it's a GitHub library
-            if lib_info.get("type") == "github" and "repo" in lib_info:
-                libverprops += f"libs.{lib_id}.url=https://github.com/{lib_info['repo']}\n"
-
-            # Add versions
-            if "targets" in lib_info and lib_info["targets"]:
-                version_ids = []
-                for target_version in lib_info["targets"]:
-                    if isinstance(target_version, dict):
-                        ver_name = target_version.get("name", target_version)
-                        ver_id = version_to_id(ver_name)
-                    else:
-                        ver_name = target_version
-                        ver_id = version_to_id(target_version)
-                    version_ids.append(ver_id)
-
-                libverprops += f"libs.{lib_id}.versions={':'.join(version_ids)}\n"
-
-                # Add version details
-                for target_version in lib_info["targets"]:
-                    if isinstance(target_version, dict):
-                        ver_name = target_version.get("name", target_version)
-                        ver_id = version_to_id(ver_name)
-                    else:
-                        ver_name = target_version
-                        ver_id = version_to_id(target_version)
-
-                    libverprops += f"libs.{lib_id}.versions.{ver_id}.version={ver_name}\n"
-
-                    # Add library type specific paths
-                    # Only set path if package_install is not true
-                    if not lib_info.get("package_install"):
-                        # Generate proper path
-                        path = generate_library_path(lib_id, ver_name)
-                        libverprops += f"libs.{lib_id}.versions.{ver_id}.path={path}\n"
-
-            properties_txt += libverprops + "\n"
-
-        # Generate header
-        header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-        new_properties_text = header_properties_txt + properties_txt
+        # Generate properties for all libraries using the refactored function
+        new_properties_text = generate_all_libraries_properties(cpp_libraries)
 
         if input_file:
             # Load existing properties file
