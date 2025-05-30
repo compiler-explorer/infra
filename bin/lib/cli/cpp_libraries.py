@@ -466,8 +466,8 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                 lib_props[f'versions.{ver_id}.version'] = version
                 
                 # Add library type specific paths
-                if lib_info.get('lib_type') == 'headeronly' or lib_info.get('package_install'):
-                    lib_props[f'versions.{ver_id}.path'] = './'
+                # Generate proper path: /opt/compiler-explorer/libs/{library}/{version}/include
+                lib_props[f'versions.{ver_id}.path'] = f'/opt/compiler-explorer/libs/{library}/{version}/include'
                 
                 # When updating a specific version, check if we need to update the versions list
                 if input_file:
@@ -497,8 +497,8 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                     lib_props[f'versions.{ver_id}.version'] = ver_name
                     
                     # Add library type specific paths
-                    if lib_info.get('lib_type') == 'headeronly' or lib_info.get('package_install'):
-                        lib_props[f'versions.{ver_id}.path'] = './'
+                    # Generate proper path: /opt/compiler-explorer/libs/{library}/{version}/include
+                    lib_props[f'versions.{ver_id}.path'] = f'/opt/compiler-explorer/libs/{library}/{ver_name}/include'
                 
                 lib_props['versions'] = ':'.join(version_ids)
         else:
@@ -597,8 +597,8 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
                     libverprops += f"libs.{lib_id}.versions.{ver_id}.version={ver_name}\n"
                     
                     # Add library type specific paths
-                    if lib_info.get('lib_type') == 'headeronly' or lib_info.get('package_install'):
-                        libverprops += f"libs.{lib_id}.versions.{ver_id}.path=./\n"
+                    # Generate proper path: /opt/compiler-explorer/libs/{library}/{version}/include
+                    libverprops += f"libs.{lib_id}.versions.{ver_id}.path=/opt/compiler-explorer/libs/{lib_id}/{ver_name}/include\n"
             
             properties_txt += libverprops + "\n"
         
