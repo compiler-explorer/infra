@@ -15,8 +15,6 @@ from typing import Any, Dict, List
 
 from lib.env import Environment
 
-# CloudFront invalidation configuration
-# Maps environment to a list of CloudFront distributions and their paths to invalidate
 CLOUDFRONT_INVALIDATION_CONFIG: Dict[Environment, List[Dict[str, Any]]] = {
     Environment.PROD: [
         {

@@ -114,7 +114,6 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
                 break
     set_update_message(cfg, "")
 
-    # Create CloudFront invalidations after all ASG refreshes are complete
     if not skip_cloudfront:
         invalidate_cloudfront_distributions(cfg)
 

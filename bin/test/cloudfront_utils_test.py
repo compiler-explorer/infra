@@ -74,7 +74,6 @@ class TestCloudFrontUtils(unittest.TestCase):
 
         cfg = Config(env=Environment.PROD)
 
-        # Override config to test with real distribution IDs
         original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
         CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
             {
@@ -93,7 +92,6 @@ class TestCloudFrontUtils(unittest.TestCase):
             assert any("test.example.com" in call for call in print_calls)
             assert any("Invalidation created: test-invalidation-id" in call for call in print_calls)
         finally:
-            # Restore original config
             CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = original_config
 
     @patch("lib.cloudfront_utils.create_cloudfront_invalidation")
@@ -102,7 +100,6 @@ class TestCloudFrontUtils(unittest.TestCase):
         """Test that example distribution IDs are skipped."""
         cfg = Config(env=Environment.PROD)
 
-        # Override config to test with example distribution IDs
         original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
         CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
             {
@@ -115,12 +112,10 @@ class TestCloudFrontUtils(unittest.TestCase):
         try:
             invalidate_cloudfront_distributions(cfg)
 
-            # Should not call create_cloudfront_invalidation for example distribution IDs
             mock_create.assert_not_called()
             print_calls = [call[0][0] for call in mock_print.call_args_list]
             assert any("Skipping" in call and "distribution ID not configured" in call for call in print_calls)
         finally:
-            # Restore original config
             CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = original_config
 
     @patch("lib.cloudfront_utils.create_cloudfront_invalidation")
@@ -132,7 +127,6 @@ class TestCloudFrontUtils(unittest.TestCase):
 
         cfg = Config(env=Environment.PROD)
 
-        # Override config to test with real distribution IDs
         original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
         CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
             {
@@ -149,7 +143,6 @@ class TestCloudFrontUtils(unittest.TestCase):
             assert any("Failed to create invalidation: AWS error" in call for call in print_calls)
             mock_logger.error.assert_called_once()
         finally:
-            # Restore original config
             CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = original_config
 
     @patch("lib.cloudfront_utils.logger")
@@ -169,16 +162,12 @@ class TestCloudFrontUtils(unittest.TestCase):
 
         cfg = Config(env=Environment.PROD)
 
-        # Use the real configuration but with mocked API calls
         invalidate_cloudfront_distributions(cfg)
 
-        # Get the actual config to verify behavior matches
         prod_config = CLOUDFRONT_INVALIDATION_CONFIG.get(Environment.PROD, [])
 
         if not prod_config:
-            # If no config, should not call create_cloudfront_invalidation
             mock_create.assert_not_called()
         else:
-            # Should be called once per non-example distribution
             expected_calls = sum(1 for config in prod_config if not config["distribution_id"].startswith("EXAMPLE_"))
             assert mock_create.call_count == expected_calls
