@@ -1,7 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from lib.cloudfront_config import CLOUDFRONT_INVALIDATION_CONFIG
 from lib.cloudfront_utils import (
@@ -18,12 +16,10 @@ class TestCloudFrontUtils(unittest.TestCase):
     @patch("lib.cloudfront_utils.cloudfront_client")
     def test_create_cloudfront_invalidation(self, mock_client):
         """Test creating a CloudFront invalidation."""
-        mock_client.create_invalidation.return_value = {
-            "Invalidation": {"Id": "test-invalidation-id"}
-        }
-        
+        mock_client.create_invalidation.return_value = {"Invalidation": {"Id": "test-invalidation-id"}}
+
         result = create_cloudfront_invalidation("test-dist-id", ["/*"])
-        
+
         assert result == "test-invalidation-id"
         mock_client.create_invalidation.assert_called_once()
         call_args = mock_client.create_invalidation.call_args[1]
@@ -35,14 +31,10 @@ class TestCloudFrontUtils(unittest.TestCase):
     @patch("lib.cloudfront_utils.cloudfront_client")
     def test_create_cloudfront_invalidation_with_caller_reference(self, mock_client):
         """Test creating a CloudFront invalidation with custom caller reference."""
-        mock_client.create_invalidation.return_value = {
-            "Invalidation": {"Id": "test-invalidation-id"}
-        }
-        
-        result = create_cloudfront_invalidation(
-            "test-dist-id", ["/*"], caller_reference="custom-ref"
-        )
-        
+        mock_client.create_invalidation.return_value = {"Invalidation": {"Id": "test-invalidation-id"}}
+
+        result = create_cloudfront_invalidation("test-dist-id", ["/*"], caller_reference="custom-ref")
+
         assert result == "test-invalidation-id"
         call_args = mock_client.create_invalidation.call_args[1]
         assert call_args["InvalidationBatch"]["CallerReference"] == "custom-ref"
@@ -51,16 +43,12 @@ class TestCloudFrontUtils(unittest.TestCase):
     @patch("lib.cloudfront_utils.time.sleep")
     def test_wait_for_invalidation_success(self, mock_sleep, mock_client):
         """Test waiting for an invalidation to complete successfully."""
-        mock_client.get_invalidation.return_value = {
-            "Invalidation": {"Status": "Completed"}
-        }
-        
+        mock_client.get_invalidation.return_value = {"Invalidation": {"Status": "Completed"}}
+
         result = wait_for_invalidation("test-dist-id", "test-inv-id")
-        
+
         assert result is True
-        mock_client.get_invalidation.assert_called_once_with(
-            DistributionId="test-dist-id", Id="test-inv-id"
-        )
+        mock_client.get_invalidation.assert_called_once_with(DistributionId="test-dist-id", Id="test-inv-id")
         mock_sleep.assert_not_called()
 
     @patch("lib.cloudfront_utils.cloudfront_client")
@@ -70,12 +58,10 @@ class TestCloudFrontUtils(unittest.TestCase):
         """Test waiting for an invalidation that times out."""
         # Mock time to exceed timeout immediately
         mock_time.side_effect = [0, 601]  # Start time, check time (after timeout)
-        mock_client.get_invalidation.return_value = {
-            "Invalidation": {"Status": "InProgress"}
-        }
-        
+        mock_client.get_invalidation.return_value = {"Invalidation": {"Status": "InProgress"}}
+
         result = wait_for_invalidation("test-dist-id", "test-inv-id", timeout=600)
-        
+
         assert result is False
         # No sleep should be called because timeout is immediately exceeded
         mock_sleep.assert_not_called()
@@ -85,9 +71,9 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_prod(self, mock_print, mock_create):
         """Test invalidating CloudFront distributions for production."""
         mock_create.return_value = "test-invalidation-id"
-        
+
         cfg = Config(env=Environment.PROD)
-        
+
         # Override config to test with real distribution IDs
         original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
         CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
@@ -97,10 +83,10 @@ class TestCloudFrontUtils(unittest.TestCase):
                 "paths": ["/*"],
             }
         ]
-        
+
         try:
             invalidate_cloudfront_distributions(cfg)
-            
+
             mock_create.assert_called_once_with("REAL_DIST_ID", ["/*"])
             print_calls = [call[0][0] for call in mock_print.call_args_list]
             assert any("Creating CloudFront invalidations for prod" in call for call in print_calls)
@@ -115,9 +101,9 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_skip_example(self, mock_print, mock_create):
         """Test that example distribution IDs are skipped."""
         cfg = Config(env=Environment.PROD)
-        
+
         invalidate_cloudfront_distributions(cfg)
-        
+
         # Should not call create_cloudfront_invalidation for example distribution IDs
         mock_create.assert_not_called()
         print_calls = [call[0][0] for call in mock_print.call_args_list]
@@ -129,9 +115,9 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_error_handling(self, mock_print, mock_logger, mock_create):
         """Test error handling when creating invalidation fails."""
         mock_create.side_effect = Exception("AWS error")
-        
+
         cfg = Config(env=Environment.PROD)
-        
+
         # Override config to test with real distribution IDs
         original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
         CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
@@ -141,10 +127,10 @@ class TestCloudFrontUtils(unittest.TestCase):
                 "paths": ["/*"],
             }
         ]
-        
+
         try:
             invalidate_cloudfront_distributions(cfg)
-            
+
             print_calls = [call[0][0] for call in mock_print.call_args_list]
             assert any("Failed to create invalidation: AWS error" in call for call in print_calls)
             mock_logger.error.assert_called_once()
@@ -156,9 +142,7 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_no_config(self, mock_logger):
         """Test handling of environment with no CloudFront configuration."""
         cfg = Config(env=Environment.STAGING)  # Empty config for staging
-        
+
         invalidate_cloudfront_distributions(cfg)
-        
-        mock_logger.info.assert_called_once_with(
-            "No CloudFront distributions configured for environment staging"
-        )
+
+        mock_logger.info.assert_called_once_with("No CloudFront distributions configured for environment staging")

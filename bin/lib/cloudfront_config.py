@@ -11,13 +11,13 @@ Each distribution configuration should include:
 - paths: List of paths to invalidate (["/*"] for all content)
 """
 
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from lib.env import Environment
 
 # CloudFront invalidation configuration
 # Maps environment to a list of CloudFront distributions and their paths to invalidate
-CLOUDFRONT_INVALIDATION_CONFIG: Dict[Environment, List[Dict[str, any]]] = {
+CLOUDFRONT_INVALIDATION_CONFIG: Dict[Environment, List[Dict[str, Any]]] = {
     Environment.PROD: [
         {
             "distribution_id": "EFCZGUFIBB1UY",
@@ -86,8 +86,7 @@ CLOUDFRONT_INVALIDATION_CONFIG: Dict[Environment, List[Dict[str, any]]] = {
             "paths": ["/gpu/*"],
         },
     ],
-    Environment.RUNNER: [
-    ],
+    Environment.RUNNER: [],
     Environment.WINPROD: [
         {
             "distribution_id": "EFCZGUFIBB1UY",
@@ -122,10 +121,7 @@ CLOUDFRONT_INVALIDATION_CONFIG: Dict[Environment, List[Dict[str, any]]] = {
             "paths": ["/winstaging/*"],
         },
     ],
-    Environment.WINTEST: [
-    ],
-    Environment.AARCH64PROD: [
-    ],
-    Environment.AARCH64STAGING: [
-    ],
+    Environment.WINTEST: [],
+    Environment.AARCH64PROD: [],
+    Environment.AARCH64STAGING: [],
 }
