@@ -249,7 +249,7 @@ def cli(
 
 
 # Import CLI modules to register commands
-from lib.cli import cpp_libraries  # noqa: F401, E402
+from lib.cli import cpp_libraries, fortran_libraries  # noqa: F401, E402
 
 
 @cli.command(name="list")

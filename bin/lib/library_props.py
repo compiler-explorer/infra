@@ -471,17 +471,25 @@ def should_skip_library_for_windows(lib_id, lib_info):
     return False
 
 
-def find_existing_library_by_github_url(cpp_libraries, github_url):
-    """Find if a library already exists by checking the GitHub URL."""
+def extract_repo_from_github_url(github_url):
+    """Extract owner/repo from GitHub URL."""
     parsed = urlparse(github_url)
     if parsed.netloc != "github.com":
-        return None
+        raise ValueError(f"URL must be a GitHub URL, got: {github_url}")
 
     path_parts = parsed.path.strip("/").split("/")
     if len(path_parts) < 2:
-        return None
+        raise ValueError(f"Invalid GitHub URL format: {github_url}")
 
-    github_repo = f"{path_parts[0]}/{path_parts[1]}"
+    return f"{path_parts[0]}/{path_parts[1]}"
+
+
+def find_existing_library_by_github_url(cpp_libraries, github_url):
+    """Find if a library already exists by checking the GitHub URL."""
+    try:
+        github_repo = extract_repo_from_github_url(github_url)
+    except ValueError:
+        return None
 
     for lib_id, lib_info in cpp_libraries.items():
         if isinstance(lib_info, dict) and lib_info.get("repo") == github_repo:
@@ -492,4 +500,118 @@ def find_existing_library_by_github_url(cpp_libraries, github_url):
             if isinstance(lib_info, dict) and lib_info.get("repo") == github_repo:
                 return lib_id
 
+    return None
+
+
+def load_library_yaml_section(language):
+    """Load libraries.yaml and return the specified language section."""
+    from pathlib import Path
+
+    from lib.library_yaml import LibraryYaml
+
+    yaml_dir = Path(__file__).parent.parent / "yaml"
+    library_yaml = LibraryYaml(str(yaml_dir))
+
+    # Ensure language section exists
+    if language not in library_yaml.yaml_doc["libraries"]:
+        library_yaml.yaml_doc["libraries"][language] = {}
+
+    return library_yaml, library_yaml.yaml_doc["libraries"][language]
+
+
+def add_version_to_library(libraries_dict, lib_id, version, target_prefix=None):
+    """Add a version to an existing library entry."""
+    if "targets" not in libraries_dict[lib_id]:
+        libraries_dict[lib_id]["targets"] = []
+
+    if version not in libraries_dict[lib_id]["targets"]:
+        libraries_dict[lib_id]["targets"].append(version)
+
+        # Update target_prefix if specified and not already set
+        if target_prefix and "target_prefix" not in libraries_dict[lib_id]:
+            libraries_dict[lib_id]["target_prefix"] = target_prefix
+            return f"Added version {version} and target_prefix '{target_prefix}' to library {lib_id}"
+        else:
+            return f"Added version {version} to library {lib_id}"
+    else:
+        return f"Version {version} already exists for library {lib_id}"
+
+
+def handle_property_file_output(result, output_file):
+    """Handle writing properties to file or stdout."""
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(result)
+        return f"Properties written to {output_file}"
+    else:
+        return result  # Will be printed by caller
+
+
+def process_library_specific_properties(input_file, library, lib_props, specific_version, generate_standalone_fn):
+    """Handle the full flow for library-specific property generation."""
+    if input_file:
+        # Load existing properties file
+        with open(input_file, "r", encoding="utf-8") as f:
+            existing_content = f.read()
+
+        # Update only the specific library
+        update_version_id = None
+        if specific_version:
+            update_version_id = version_to_id(specific_version)
+        result = update_library_in_properties(existing_content, library, lib_props, update_version_id)
+
+        # If the library wasn't in the libs= list, we need to add it
+        if f"libs.{library}." not in existing_content:
+            # Preserve whether original content had final newline
+            original_ends_with_newline = existing_content.endswith("\n")
+
+            lines = result.splitlines()
+            for i, line in enumerate(lines):
+                if line.strip().startswith("libs="):
+                    # Parse existing libs
+                    if "=" in line:
+                        prefix, libs_value = line.split("=", 1)
+                        existing_libs = [lib for lib in libs_value.split(":") if lib]
+                        if library not in existing_libs:
+                            existing_libs.append(library)
+                            lines[i] = f"{prefix}={':'.join(existing_libs)}"
+                    break
+            result = "\n".join(lines)
+            # Preserve original final newline behavior
+            if original_ends_with_newline and not result.endswith("\n"):
+                result += "\n"
+        return result
+    else:
+        # Generate standalone properties for just this library
+        return generate_standalone_fn(library, lib_props, specific_version)
+
+
+def process_all_libraries_properties(input_file, new_properties_text):
+    """Handle the full flow for all-libraries property generation."""
+    if input_file:
+        # Load existing properties file
+        with open(input_file, "r", encoding="utf-8") as f:
+            existing_content = f.read()
+
+        # Merge properties
+        return merge_properties(existing_content, new_properties_text)
+    else:
+        return new_properties_text
+
+
+def output_properties(result, output_file):
+    """Output properties to file or stdout."""
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(result)
+        return f"Properties written to {output_file}"
+    else:
+        print(result)
+        return None
+
+
+def validate_library_version_args(library, version):
+    """Validate that library/version arguments are provided correctly."""
+    if version and not library:
+        return "Error: --version requires --library to be specified"
     return None
