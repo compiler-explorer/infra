@@ -101,7 +101,7 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_skip_example(self, mock_print, mock_create):
         """Test that example distribution IDs are skipped."""
         cfg = Config(env=Environment.PROD)
-        
+
         # Override config to test with example distribution IDs
         original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
         CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
@@ -111,7 +111,7 @@ class TestCloudFrontUtils(unittest.TestCase):
                 "paths": ["/*"],
             }
         ]
-        
+
         try:
             invalidate_cloudfront_distributions(cfg)
 
@@ -166,20 +166,19 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_with_real_config(self, mock_print, mock_create):
         """Test that invalidation works with whatever configuration is present."""
         mock_create.return_value = "test-invalidation-id"
-        
+
         cfg = Config(env=Environment.PROD)
-        
+
         # Use the real configuration but with mocked API calls
         invalidate_cloudfront_distributions(cfg)
-        
+
         # Get the actual config to verify behavior matches
         prod_config = CLOUDFRONT_INVALIDATION_CONFIG.get(Environment.PROD, [])
-        
+
         if not prod_config:
             # If no config, should not call create_cloudfront_invalidation
             mock_create.assert_not_called()
         else:
             # Should be called once per non-example distribution
-            expected_calls = sum(1 for config in prod_config 
-                               if not config["distribution_id"].startswith("EXAMPLE_"))
+            expected_calls = sum(1 for config in prod_config if not config["distribution_id"].startswith("EXAMPLE_"))
             assert mock_create.call_count == expected_calls
