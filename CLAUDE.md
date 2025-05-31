@@ -18,11 +18,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ALWAYS run pre-commit hooks before committing: `make pre-commit`
 - The hooks will run tests and lint checks, and will fail the commit if there are any issues
 - Failing to run pre-commit hooks may result in style issues and commit failures
+- For comprehensive validation, run `make static-checks` before committing (includes all linting and type checking)
+- If static checks fail, fix the issues before committing to avoid CI failures
 
 ## Code Style Guidelines
 
 - Python formatting: Black with 120 char line length
 - Use type hints for Python code (mypy for validation)
+  - Use `typing.Any` instead of builtin `any` for type annotations
+  - Import types from `typing` module (e.g., `List`, `Dict`, `Optional`, `Any`)
 - Follow shell best practices (shellcheck enforced)
 - No unused imports or variables (autoflake enforced)
 - Error handling: Use appropriate error classes and logging
