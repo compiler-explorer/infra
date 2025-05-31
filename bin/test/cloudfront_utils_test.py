@@ -101,13 +101,27 @@ class TestCloudFrontUtils(unittest.TestCase):
     def test_invalidate_cloudfront_distributions_skip_example(self, mock_print, mock_create):
         """Test that example distribution IDs are skipped."""
         cfg = Config(env=Environment.PROD)
+        
+        # Override config to test with example distribution IDs
+        original_config = CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD]
+        CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = [
+            {
+                "distribution_id": "EXAMPLE_DISTRIBUTION_ID_1",
+                "domain": "test.example.com",
+                "paths": ["/*"],
+            }
+        ]
+        
+        try:
+            invalidate_cloudfront_distributions(cfg)
 
-        invalidate_cloudfront_distributions(cfg)
-
-        # Should not call create_cloudfront_invalidation for example distribution IDs
-        mock_create.assert_not_called()
-        print_calls = [call[0][0] for call in mock_print.call_args_list]
-        assert any("Skipping" in call and "distribution ID not configured" in call for call in print_calls)
+            # Should not call create_cloudfront_invalidation for example distribution IDs
+            mock_create.assert_not_called()
+            print_calls = [call[0][0] for call in mock_print.call_args_list]
+            assert any("Skipping" in call and "distribution ID not configured" in call for call in print_calls)
+        finally:
+            # Restore original config
+            CLOUDFRONT_INVALIDATION_CONFIG[Environment.PROD] = original_config
 
     @patch("lib.cloudfront_utils.create_cloudfront_invalidation")
     @patch("lib.cloudfront_utils.logger")
@@ -141,8 +155,31 @@ class TestCloudFrontUtils(unittest.TestCase):
     @patch("lib.cloudfront_utils.logger")
     def test_invalidate_cloudfront_distributions_no_config(self, mock_logger):
         """Test handling of environment with no CloudFront configuration."""
-        cfg = Config(env=Environment.STAGING)  # Empty config for staging
+        cfg = Config(env=Environment.RUNNER)  # RUNNER has empty config
 
         invalidate_cloudfront_distributions(cfg)
 
-        mock_logger.info.assert_called_once_with("No CloudFront distributions configured for environment staging")
+        mock_logger.info.assert_called_once_with("No CloudFront distributions configured for environment runner")
+
+    @patch("lib.cloudfront_utils.create_cloudfront_invalidation")
+    @patch("builtins.print")
+    def test_invalidate_cloudfront_distributions_with_real_config(self, mock_print, mock_create):
+        """Test that invalidation works with whatever configuration is present."""
+        mock_create.return_value = "test-invalidation-id"
+        
+        cfg = Config(env=Environment.PROD)
+        
+        # Use the real configuration but with mocked API calls
+        invalidate_cloudfront_distributions(cfg)
+        
+        # Get the actual config to verify behavior matches
+        prod_config = CLOUDFRONT_INVALIDATION_CONFIG.get(Environment.PROD, [])
+        
+        if not prod_config:
+            # If no config, should not call create_cloudfront_invalidation
+            mock_create.assert_not_called()
+        else:
+            # Should be called once per non-example distribution
+            expected_calls = sum(1 for config in prod_config 
+                               if not config["distribution_id"].startswith("EXAMPLE_"))
+            assert mock_create.call_count == expected_calls
