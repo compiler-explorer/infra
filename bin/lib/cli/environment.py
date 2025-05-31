@@ -5,6 +5,7 @@ import click
 from lib.amazon import as_client, get_autoscaling_groups_for
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
+from lib.cloudfront_utils import invalidate_cloudfront_distributions
 from lib.env import Config, Environment
 
 
@@ -54,8 +55,14 @@ def environment_start(cfg: Config):
     help="Set the message of the day used during refresh",
     show_default=True,
 )
+@click.option(
+    "--skip-cloudfront",
+    is_flag=True,
+    help="Skip CloudFront invalidation after refresh",
+    default=False,
+)
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_cloudfront: bool):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
@@ -107,12 +114,23 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str):
                 break
     set_update_message(cfg, "")
 
+    if not skip_cloudfront:
+        invalidate_cloudfront_distributions(cfg)
+
 
 @environment.command(name="clearmsg")
 @click.pass_obj
 def update_clearmsg(cfg: Config):
     """Clears the 'Site is being updated' message."""
     set_update_message(cfg, "")
+
+
+@environment.command(name="invalidate-cloudfront")
+@click.pass_obj
+def environment_invalidate_cloudfront(cfg: Config):
+    """Manually trigger CloudFront invalidations for an environment."""
+    if are_you_sure(f"create CloudFront invalidations for {cfg.env.value}", cfg):
+        invalidate_cloudfront_distributions(cfg)
 
 
 @environment.command(name="stop")
