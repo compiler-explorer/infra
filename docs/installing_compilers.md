@@ -50,24 +50,3 @@ You can install a small amount of Windows compilers using ce_install.ps1, a regu
 !no sudo!
 
 `ce smb sync`
-
-## Library Management
-
-CE provides commands for managing C++ and Fortran libraries:
-
-### C++ Libraries
-
-See [C++ Library Commands](cpp_library_commands.md) for detailed documentation.
-
-### Fortran Libraries
-
-See [Fortran Library Commands](fortran_library_commands.md) for detailed documentation.
-
-Quick example:
-```bash
-# Add a Fortran library
-ce_install fortran-library add https://github.com/jacobwilliams/json-fortran 8.3.0
-
-# Generate properties
-ce_install fortran-library generate-props --output-file fortran.properties
-```
