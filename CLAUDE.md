@@ -20,6 +20,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Failing to run pre-commit hooks may result in style issues and commit failures
 - For comprehensive validation, run `make static-checks` before committing (includes all linting and type checking)
 - If static checks fail, fix the issues before committing to avoid CI failures
+- **Critical**: After fixing any issues, run `make static-checks` AGAIN. Repeat until it passes completely. Only commit when `make static-checks` runs with zero errors.
+
+### Correct Commit Workflow
+1. Make changes
+2. Run `make static-checks`
+3. If it fails, fix the issues
+4. Run `make static-checks` again (fixes might introduce new issues or be auto-formatted)
+5. Repeat steps 3-4 until `make static-checks` passes completely
+6. Only then create the commit
 
 ## Code Style Guidelines
 
