@@ -275,7 +275,7 @@ class BlueGreenDeployment:
                 if response["AutoScalingGroups"]:
                     asg = response["AutoScalingGroups"][0]
                     instance_ids = [i["InstanceId"] for i in asg["Instances"]]
-                    
+
                     # Get target group health
                     tg_healthy_count = 0
                     tg_status = "unknown"
@@ -283,13 +283,15 @@ class BlueGreenDeployment:
                         try:
                             tg_arn = self.get_target_group_arn(color)
                             tg_health = elb_client.describe_target_health(
-                                TargetGroupArn=tg_arn,
-                                Targets=[{"Id": iid} for iid in instance_ids]
+                                TargetGroupArn=tg_arn, Targets=[{"Id": iid} for iid in instance_ids]
                             )
-                            tg_healthy_count = len([
-                                t for t in tg_health["TargetHealthDescriptions"]
-                                if t["TargetHealth"]["State"] == "healthy"
-                            ])
+                            tg_healthy_count = len(
+                                [
+                                    t
+                                    for t in tg_health["TargetHealthDescriptions"]
+                                    if t["TargetHealth"]["State"] == "healthy"
+                                ]
+                            )
                             if tg_healthy_count == len(instance_ids):
                                 tg_status = "all_healthy"
                             elif tg_healthy_count > 0:
@@ -298,7 +300,7 @@ class BlueGreenDeployment:
                                 tg_status = "unhealthy"
                         except Exception:
                             tg_status = "error"
-                    
+
                     status["asgs"][color] = {
                         "name": asg_name,
                         "desired": asg["DesiredCapacity"],

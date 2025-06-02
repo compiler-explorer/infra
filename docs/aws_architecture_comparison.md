@@ -68,7 +68,7 @@ Time →
 │       │       │       │       │       │
 Start   25%     50%     75%     100%    Done
         killed  killed  killed  Complete
-        
+
 Traffic: [AAAA] → [AAAB] → [AABB] → [ABBB] → [BBBB]
          100%A    75%A     50%A     25%A     100%B
                   25%B     50%B     75%B
@@ -79,7 +79,7 @@ USER EXPERIENCE: Mixed versions for ~20 minutes! ❌
 ### Blue-Green: Atomic Switch
 ```
 Time →
-0min    5min    10min   15min   20min   
+0min    5min    10min   15min   20min
 ├───────┼───────┼───────┼───────┼
 │       │       │       │       │
 Start   Scale   Health  Switch  Cleanup
