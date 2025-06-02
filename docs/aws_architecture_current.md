@@ -7,22 +7,22 @@ graph TB
     subgraph "Internet"
         User[Users]
     end
-    
+
     subgraph "CloudFront CDN"
         CF[CloudFront Distribution<br/>godbolt.org]
     end
-    
+
     subgraph "Route 53"
         R53[Route 53 DNS<br/>godbolt.org]
     end
-    
+
     subgraph "Application Load Balancer"
         ALB[ALB: GccExplorerApp<br/>Port 80/443]
-        
+
         subgraph "Listener Rules"
             HTTPS[HTTPS Listener :443]
             HTTP[HTTP Listener :80]
-            
+
             DefRule[Default Rule → Prod TG]
             BetaRule[/beta* → Beta TG]
             StagingRule[/staging* → Staging TG]
@@ -31,7 +31,7 @@ graph TB
             AArch64Rule[/aarch64* → AArch64 TGs]
         end
     end
-    
+
     subgraph "Target Groups"
         TGProd[TG: Prod<br/>Port 80]
         TGBeta[TG: Beta<br/>Port 80]
@@ -41,7 +41,7 @@ graph TB
         TGAArch[TG: AArch64Prod/Staging<br/>Port 80]
         TGConan[TG: Conan<br/>Port 1080]
     end
-    
+
     subgraph "Auto Scaling Groups"
         ASGProd[ASG: prod-mixed<br/>Min: 2, Max: 24<br/>Spot Instances]
         ASGBeta[ASG: beta<br/>Min: 0, Max: 4]
@@ -50,7 +50,7 @@ graph TB
         ASGWin[ASG: winprod-mixed<br/>Windows Instances]
         ASGAArch[ASG: aarch64prod-mixed<br/>ARM Instances]
     end
-    
+
     subgraph "EC2 Instances"
         EC2Prod[EC2 Instances<br/>m5/m6 family<br/>EBS Optimized]
         EC2Beta[EC2 Instances<br/>On-demand]
@@ -60,36 +60,36 @@ graph TB
         EC2AArch[EC2 Instances<br/>ARM/Graviton]
         ConanNode[Conan Node<br/>Static Instance]
     end
-    
+
     subgraph "Storage"
         EFS[EFS: Compiler Cache<br/>Shared Storage]
         S3Logs[S3: compiler-explorer-logs]
         S3Static[S3: compiler-explorer]
     end
-    
+
     %% Connections
     User --> CF
     User --> R53
     R53 --> CF
     CF --> ALB
-    
+
     ALB --> HTTPS
     ALB --> HTTP
-    
+
     HTTPS --> DefRule
     HTTPS --> BetaRule
     HTTPS --> StagingRule
     HTTPS --> GPURule
     HTTPS --> WinRule
     HTTPS --> AArch64Rule
-    
+
     DefRule --> TGProd
     BetaRule --> TGBeta
     StagingRule --> TGStaging
     GPURule --> TGGpu
     WinRule --> TGWin
     AArch64Rule --> TGAArch
-    
+
     TGProd --> ASGProd
     TGBeta --> ASGBeta
     TGStaging --> ASGStaging
@@ -97,19 +97,19 @@ graph TB
     TGWin --> ASGWin
     TGAArch --> ASGAArch
     TGConan --> ConanNode
-    
+
     ASGProd --> EC2Prod
     ASGBeta --> EC2Beta
     ASGStaging --> EC2Staging
     ASGGpu --> EC2Gpu
     ASGWin --> EC2Win
     ASGAArch --> EC2AArch
-    
+
     EC2Prod --> EFS
     EC2Beta --> EFS
     EC2Staging --> EFS
     EC2Gpu --> EFS
-    
+
     ALB --> S3Logs
     CF --> S3Static
 ```
@@ -119,7 +119,7 @@ graph TB
 ### CloudFront Distribution
 - **Domain**: godbolt.org, compiler-explorer.com
 - **Origin**: ALB (GccExplorerApp)
-- **Behaviors**: 
+- **Behaviors**:
   - Static content cached
   - Dynamic content passed through
 - **SSL**: ACM certificate for HTTPS
@@ -127,7 +127,7 @@ graph TB
 ### Application Load Balancer (ALB)
 - **Name**: GccExplorerApp
 - **Type**: Internet-facing
-- **Listeners**: 
+- **Listeners**:
   - HTTP (80) → Redirect to HTTPS
   - HTTPS (443) → Route based on path
 - **Health Checks**: `/healthcheck` endpoint

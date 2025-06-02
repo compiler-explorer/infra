@@ -79,7 +79,7 @@ ce --env beta blue-green validate
    ```bash
    # Scale up blue ASG
    aws autoscaling set-desired-capacity --auto-scaling-group-name beta-blue --desired-capacity 1
-   
+
    # Wait for instance to be healthy
    ce --env beta blue-green status
    ```
@@ -89,7 +89,7 @@ ce --env beta blue-green validate
    # For initial testing, manually update the ALB rule
    # Get the rule ARN first
    aws elbv2 describe-rules --listener-arn <HTTPS_LISTENER_ARN> | grep -B5 "/beta"
-   
+
    # Update the rule to point to Beta-Blue target group
    aws elbv2 modify-rule --rule-arn <RULE_ARN> \
      --actions Type=forward,TargetGroupArn=<BETA_BLUE_TG_ARN>
@@ -131,7 +131,7 @@ ce --env beta blue-green validate
    ```bash
    # Deploy with specific capacity
    ce --env beta blue-green deploy --capacity 2
-   
+
    # Monitor scaling
    watch 'ce --env beta blue-green status'
    ```

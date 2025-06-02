@@ -103,12 +103,12 @@ elb_client.deregister_targets(
 ### Recommended Sequencing Strategy
 
 ```python
-def perform_blue_green_switch(self, target_group_arn: str, 
-                             old_instances: List[str], 
+def perform_blue_green_switch(self, target_group_arn: str,
+                             old_instances: List[str],
                              new_instances: List[str]):
     """
     Performs a zero-downtime switch between ASGs.
-    
+
     Timeline:
     0s: Start - Old instances serving 100% traffic
     0-5s: Register all new instances (batch API calls)
@@ -118,7 +118,7 @@ def perform_blue_green_switch(self, target_group_arn: str,
     50-70s: Connection draining for old instances
     70s: Complete - New instances serving 100% traffic
     """
-    
+
     # Step 1: Register new instances (fast - API calls only)
     # Can handle up to 20 instances per API call
     for i in range(0, len(new_instances), 20):
@@ -127,15 +127,15 @@ def perform_blue_green_switch(self, target_group_arn: str,
             TargetGroupArn=target_group_arn,
             Targets=[{'Id': instance_id} for instance_id in batch]
         )
-    
+
     # Step 2: Wait for new instances to become healthy
     # This is the longest part - typically 20-40 seconds
     healthy_new = self.wait_for_targets_healthy(target_group_arn, new_instances)
-    
+
     # Step 3: Verify minimum healthy count
     if len(healthy_new) < len(new_instances):
         raise Exception(f"Only {len(healthy_new)}/{len(new_instances)} instances became healthy")
-    
+
     # Step 4: Deregister old instances (fast - API calls only)
     for i in range(0, len(old_instances), 20):
         batch = old_instances[i:i+20]
@@ -143,7 +143,7 @@ def perform_blue_green_switch(self, target_group_arn: str,
             TargetGroupArn=target_group_arn,
             Targets=[{'Id': instance_id} for instance_id in batch]
         )
-    
+
     # Connection draining happens automatically (20s)
 ```
 
@@ -275,7 +275,7 @@ def get_active_target_groups():
 def switch_environment(env: str, new_color: str):
     rule_arn = get_rule_arn_for_environment(env)
     new_tg_arn = get_target_group_arn(f"{env}-{new_color}")
-    
+
     elb_client.modify_rule(
         RuleArn=rule_arn,
         Actions=[{
@@ -314,19 +314,19 @@ def deploy_with_target_group_switching(env: str):
     # 1. Identify current active target group
     current_tg = f"{env}-blue"  # example
     new_tg = f"{env}-green"
-    
+
     # 2. Ensure new ASG is attached to new target group
     as_client.attach_load_balancer_target_groups(
         AutoScalingGroupName=f"{env}-green",
         TargetGroupARNs=[get_tg_arn(new_tg)]
     )
-    
+
     # 3. Scale up new ASG
     scale_up_asg(f"{env}-green")
-    
+
     # 4. Wait for healthy instances in new target group
     wait_for_healthy_targets(new_tg)
-    
+
     # 5. ATOMIC SWITCH - Update ALB rule
     rule_arn = get_listener_rule_for_path(f"/{env}*")
     elb_client.modify_rule(
@@ -336,7 +336,7 @@ def deploy_with_target_group_switching(env: str):
             'TargetGroupArn': get_tg_arn(new_tg)
         }]
     )
-    
+
     # 6. Scale down old ASG
     scale_down_asg(f"{env}-blue")
 ```
@@ -379,7 +379,7 @@ resource "aws_alb_target_group" "prod_blue" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = module.ce_network.vpc.id
-  
+
   health_check {
     path                = "/healthcheck"
     timeout             = 8
@@ -426,13 +426,13 @@ class HybridDeployment:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.env = cfg.env.value
-    
+
     def refresh(self):
         if self.env == "prod":
             self._blue_green_deploy_prod()
         else:
             self._rolling_deploy_other()
-    
+
     def _blue_green_deploy_prod(self):
         """Target group switching for production"""
         # 1. Get current active target group
@@ -440,7 +440,7 @@ class HybridDeployment:
             Name="/compiler-explorer/prod/active-target-group"
         )
         current_tg_arn = param['Parameter']['Value']
-        
+
         # 2. Determine new target group
         if "Blue" in current_tg_arn:
             new_tg_arn = current_tg_arn.replace("Blue", "Green")
@@ -450,13 +450,13 @@ class HybridDeployment:
             new_tg_arn = current_tg_arn.replace("Green", "Blue")
             new_asg = "prod-blue"
             old_asg = "prod-green"
-        
+
         # 3. Scale up new ASG (already attached to its TG)
         scale_up_asg(new_asg)
-        
+
         # 4. Wait for healthy instances
         wait_for_healthy_targets(new_tg_arn)
-        
+
         # 5. ATOMIC SWITCH - Update default listener
         listener_arn = get_default_listener_arn()
         elb_client.modify_listener(
@@ -466,17 +466,17 @@ class HybridDeployment:
                 'TargetGroupArn': new_tg_arn
             }]
         )
-        
+
         # 6. Update SSM parameter
         ssm_client.put_parameter(
             Name="/compiler-explorer/prod/active-target-group",
             Value=new_tg_arn,
             Overwrite=True
         )
-        
+
         # 7. Scale down old ASG
         scale_down_asg(old_asg)
-    
+
     def _rolling_deploy_other(self):
         """Keep existing rolling deployment for non-prod"""
         # Current refresh logic
@@ -541,15 +541,15 @@ resource "aws_autoscaling_group" "beta_blue" {
   desired_capacity          = 0  # Start with zero
   health_check_type         = "ELB"
   health_check_grace_period = 240
-  
+
   launch_template {
     id      = aws_launch_template.CompilerExplorer-beta.id
     version = "$Latest"
   }
-  
+
   # Attach to blue target group
   target_group_arns = [aws_alb_target_group.beta_blue.arn]
-  
+
   tag {
     key                 = "Color"
     value               = "blue"
@@ -652,37 +652,37 @@ def migrate_to_blue_green_prod():
     Migrate production from single ASG to blue/green with downtime.
     Total time: ~30 minutes with validation
     """
-    
+
     # 1. Set maintenance message (T+0)
     set_update_message("Upgrading deployment system - brief downtime expected")
-    
+
     # 2. Note current version (T+1)
     current_version = get_current_build_version("prod")
     current_instances = get_healthy_instances("prod")
-    
+
     # 3. Create new blue ASG with current version (T+2)
     set_build_version("prod-blue", current_version)
     scale_asg("prod-blue", len(current_instances))
-    
+
     # 4. Wait for blue instances healthy in new TG (T+5 to T+10)
     wait_for_healthy_targets("Prod-Blue", timeout=300)
-    
+
     # 5. CRITICAL: Atomic switch to blue target group (T+10)
     # This is the actual downtime moment - ~1 second
     switch_alb_default_action_to("Prod-Blue")
     update_parameter_store("/compiler-explorer/prod/active-target-group", "blue")
-    
+
     # 6. Verify traffic flowing (T+11)
     verify_health_endpoint()
     verify_no_5xx_errors()
-    
+
     # 7. Drain and terminate old ASG (T+12 to T+15)
     # Set desired=0, let ALB drain connections (20 seconds)
     scale_asg("prod", 0)
-    
+
     # 8. Clear maintenance message (T+20)
     set_update_message("")
-    
+
     # 9. Test green deployment (T+25)
     test_blue_green_switch()
 ```
@@ -695,35 +695,35 @@ def migrate_zero_downtime():
     Migrate with zero downtime using instance-level management.
     Total time: ~45 minutes but no service interruption
     """
-    
+
     # 1. Create blue ASG with same version
     current_version = get_current_build_version("prod")
     set_build_version("prod-blue", current_version)
-    
+
     # 2. Scale blue to match current capacity
     current_count = get_instance_count("prod")
     scale_asg("prod-blue", current_count)
-    
+
     # 3. Wait for blue instances healthy
     blue_instances = wait_for_healthy_instances("prod-blue")
-    
+
     # 4. Gradually migrate instances to blue target group
     for instance in blue_instances[:len(blue_instances)//2]:
         # Register new instance
         register_target("Prod-Blue", instance)
         wait_for_target_healthy("Prod-Blue", instance)
-        
+
         # Deregister one old instance
         old_instance = get_instances("prod")[0]
         deregister_target("Prod", old_instance)
         terminate_instance(old_instance)
-        
+
         # Wait to avoid thundering herd
         time.sleep(30)
-    
+
     # 5. Switch default action to blue TG
     switch_alb_default_action_to("Prod-Blue")
-    
+
     # 6. Migrate remaining instances
     # ... continue gradual migration
 ```
@@ -735,7 +735,7 @@ def migrate_zero_downtime():
    # Verify blue deployment
    ce --env prod environment status
    ce --env prod environment health-check
-   
+
    # Test switch to green
    ce --env prod environment refresh --strategy=blue-green --dry-run
    ```
@@ -790,24 +790,24 @@ If issues arise during migration:
 ### Health Check Verification Function
 
 ```python
-def wait_for_targets_healthy(self, target_group_arn: str, 
-                           instance_ids: List[str], 
+def wait_for_targets_healthy(self, target_group_arn: str,
+                           instance_ids: List[str],
                            timeout: int = 300) -> List[str]:
     """
     Wait for instances to become healthy in the target group.
     Returns list of healthy instances.
     """
     start_time = time.time()
-    
+
     while time.time() - start_time < timeout:
         response = elb_client.describe_target_health(
             TargetGroupArn=target_group_arn,
             Targets=[{'Id': iid} for iid in instance_ids]
         )
-        
+
         healthy = []
         unhealthy = []
-        
+
         for target in response['TargetHealthDescriptions']:
             if target['TargetHealth']['State'] == 'healthy':
                 healthy.append(target['Target']['Id'])
@@ -817,16 +817,16 @@ def wait_for_targets_healthy(self, target_group_arn: str,
                     'state': target['TargetHealth']['State'],
                     'reason': target['TargetHealth'].get('Reason', 'Unknown')
                 })
-        
+
         if len(healthy) == len(instance_ids):
             return healthy
-            
+
         print(f"Health check status: {len(healthy)}/{len(instance_ids)} healthy")
         if unhealthy:
             print(f"Unhealthy instances: {unhealthy}")
-            
+
         time.sleep(5)
-    
+
     raise TimeoutError(f"Timeout waiting for instances to become healthy")
 ```
 
@@ -844,17 +844,17 @@ resource "aws_autoscaling_group" "prod-blue" {
   health_check_type         = "ELB"
   health_check_grace_period = 240
   # Note: No target_group_arns here - will be attached dynamically
-  
+
   mixed_instances_policy {
     # ... existing configuration ...
   }
-  
+
   tag {
     key                 = "Environment"
     value               = "prod"
     propagate_at_launch = true
   }
-  
+
   tag {
     key                 = "Color"
     value               = "blue"
@@ -893,38 +893,38 @@ class BlueGreenDeployment:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.env = cfg.env.value
-        
+
     def get_active_color(self) -> str:
         """Get currently active ASG color from Parameter Store"""
         param_name = f"/compiler-explorer/{self.env}/active-asg"
         response = ssm_client.get_parameter(Name=param_name)
         return response['Parameter']['Value']
-    
+
     def get_inactive_color(self, active: str) -> str:
         """Determine inactive color"""
         return "green" if active == "blue" else "blue"
-    
+
     def wait_for_instances_healthy(self, asg_name: str) -> List[str]:
         """Wait for all instances in ASG to be healthy"""
         while True:
             asg = as_client.describe_auto_scaling_groups(
                 AutoScalingGroupNames=[asg_name]
             )['AutoScalingGroups'][0]
-            
+
             healthy_instances = [
                 i['InstanceId'] for i in asg['Instances']
-                if i['HealthStatus'] == 'Healthy' 
+                if i['HealthStatus'] == 'Healthy'
                 and i['LifecycleState'] == 'InService'
             ]
-            
+
             if len(healthy_instances) == asg['DesiredCapacity']:
                 return healthy_instances
-                
+
             print(f"Waiting for instances: {len(healthy_instances)}/{asg['DesiredCapacity']} healthy")
             time.sleep(10)
-    
-    def perform_switch(self, target_group_arn: str, 
-                      old_instances: List[str], 
+
+    def perform_switch(self, target_group_arn: str,
+                      old_instances: List[str],
                       new_instances: List[str]):
         """Atomically switch target group attachments"""
         # Register new instances
@@ -933,17 +933,17 @@ class BlueGreenDeployment:
                 TargetGroupArn=target_group_arn,
                 Targets=[{'Id': instance_id}]
             )
-        
+
         # Wait for new instances to be healthy in target group
         self.wait_for_targets_healthy(target_group_arn, new_instances)
-        
+
         # Deregister old instances
         for instance_id in old_instances:
             elb_client.deregister_targets(
                 TargetGroupArn=target_group_arn,
                 Targets=[{'Id': instance_id}]
             )
-        
+
         # Update active ASG parameter
         param_name = f"/compiler-explorer/{self.env}/active-asg"
         new_color = self.get_inactive_color(self.get_active_color())
@@ -975,7 +975,7 @@ Update `bin/lib/cli/environment.py`:
 @click.pass_obj
 def environment_refresh(cfg: Config, strategy: str, min_healthy_percent: int, motd: str):
     """Refreshes an environment using the specified strategy."""
-    
+
     if strategy == "blue-green":
         deployment = BlueGreenDeployment(cfg)
         deployment.execute()
@@ -996,7 +996,7 @@ def environment_refresh(cfg: Config, strategy: str, min_healthy_percent: int, mo
    ```bash
    ce --env prod environment refresh --strategy=blue-green
    ```
-   
+
    This will:
    - Identify inactive ASG (e.g., "green")
    - Scale up inactive ASG with new instances
