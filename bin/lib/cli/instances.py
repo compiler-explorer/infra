@@ -9,7 +9,13 @@ from typing import Dict, Sequence
 import click
 
 from lib.amazon import as_client, get_autoscaling_group, target_group_arn_for
-from lib.ce_utils import are_you_sure, describe_current_release, set_update_message, wait_for_autoscale_state
+from lib.ce_utils import (
+    are_you_sure,
+    describe_current_release,
+    is_running_on_admin_node,
+    set_update_message,
+    wait_for_autoscale_state,
+)
 from lib.cli import cli
 from lib.env import Config, Environment
 from lib.instance import Instance, print_instances
@@ -169,8 +175,8 @@ def instances_status(cfg: Config):
             marker = " (ACTIVE)" if active_color == "green" else ""
             print(f"Green Instances{marker}: No instances")
 
-        # Add note about Service/Version information
-        if blue_instances or green_instances:
+        # Add note about Service/Version information if not on admin node
+        if (blue_instances or green_instances) and not is_running_on_admin_node():
             print()
             print("Note: Service and Version information requires SSH access from admin node.")
 

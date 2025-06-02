@@ -1,6 +1,5 @@
 """Blue-green deployment management for Compiler Explorer."""
 
-import socket
 import time
 from typing import Any, Dict, List, Optional
 
@@ -8,6 +7,7 @@ import requests
 from botocore.exceptions import ClientError
 
 from lib.amazon import as_client, ec2_client, elb_client, ssm_client
+from lib.ce_utils import is_running_on_admin_node
 from lib.env import Config
 
 
@@ -17,7 +17,7 @@ class BlueGreenDeployment:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.env = cfg.env.value
-        self.running_on_admin_node = socket.gethostname() == "admin-node"
+        self.running_on_admin_node = is_running_on_admin_node()
 
     def get_active_color(self) -> str:
         """Get currently active color (blue/green) from Parameter Store."""
@@ -221,7 +221,7 @@ class BlueGreenDeployment:
             return {
                 "status": "skipped",
                 "message": "HTTP health checks only available from admin node",
-                "hostname": socket.gethostname(),
+                "hostname": "local-machine",
             }
 
         try:
@@ -319,7 +319,7 @@ class BlueGreenDeployment:
                 print("HTTP health checks timed out (this is normal if admin security group rule not applied)")
                 print("Proceeding with deployment based on ALB target group health...")
         else:
-            print(f"\nStep 3.5: Skipping HTTP health checks (not running on admin node: {socket.gethostname()})")
+            print("\nStep 3.5: Skipping HTTP health checks (not running on admin node)")
             print("Please manually verify instances are healthy before proceeding.")
 
         # Step 3.9: Additional confirmation when not on admin node
