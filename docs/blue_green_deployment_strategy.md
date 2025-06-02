@@ -42,6 +42,185 @@ Implement a dual ASG pattern where:
 3. **Pre-deployment Testing**: Validate new instances before switching
 4. **Reduced Risk**: Atomic switch minimizes failure window
 
+## Technical Deep Dive: ASG to Target Group Attachment
+
+### AWS API Options for Target Group Management
+
+There are two primary approaches for managing ASG-to-target-group associations:
+
+#### Option 1: Direct ASG Attachment (Not Suitable for Blue-Green)
+```python
+# This permanently attaches an ASG to a target group
+as_client.attach_load_balancer_target_groups(
+    AutoScalingGroupName='prod-blue',
+    TargetGroupARNs=['arn:aws:elasticloadbalancing:...']
+)
+```
+**Problem**: This creates a permanent association. All future instances in the ASG automatically register with the target group. You cannot have an ASG "standing by" without being in the target group.
+
+#### Option 2: Individual Instance Registration (Recommended)
+```python
+# Register instances individually
+elb_client.register_targets(
+    TargetGroupArn='arn:aws:elasticloadbalancing:...',
+    Targets=[
+        {'Id': 'i-1234567890abcdef0'},
+        {'Id': 'i-0987654321fedcba0'}
+    ]
+)
+
+# Deregister instances
+elb_client.deregister_targets(
+    TargetGroupArn='arn:aws:elasticloadbalancing:...',
+    Targets=[{'Id': 'i-1234567890abcdef0'}]
+)
+```
+
+### Timing and Performance Characteristics
+
+1. **Registration Speed**
+   - API call: Near-instant (< 1 second)
+   - Health check passing: 20-40 seconds (depends on health check configuration)
+   - Total time to serve traffic: ~30-50 seconds per instance
+
+2. **Deregistration Speed**
+   - API call: Near-instant (< 1 second)
+   - Connection draining: 20 seconds (configured `deregistration_delay`)
+   - Instance fully removed: ~20-30 seconds
+
+3. **Batch Operations**
+   - Both APIs support up to 20 targets per call
+   - For larger ASGs, multiple API calls needed
+   - Can register/deregister in parallel
+
+### Critical Consideration: No Atomic Swap API
+
+**Important**: AWS does **not** provide an atomic "swap" operation for target groups. This means:
+- You must orchestrate the attach/detach sequence yourself
+- There will be a brief period where both ASGs have instances in the target group
+- This is actually beneficial for zero-downtime deployment
+
+### Recommended Sequencing Strategy
+
+```python
+def perform_blue_green_switch(self, target_group_arn: str, 
+                             old_instances: List[str], 
+                             new_instances: List[str]):
+    """
+    Performs a zero-downtime switch between ASGs.
+    
+    Timeline:
+    0s: Start - Old instances serving 100% traffic
+    0-5s: Register all new instances (batch API calls)
+    5-45s: Wait for new instances to pass health checks
+    45s: Both old and new instances serving traffic
+    45-50s: Deregister old instances
+    50-70s: Connection draining for old instances
+    70s: Complete - New instances serving 100% traffic
+    """
+    
+    # Step 1: Register new instances (fast - API calls only)
+    # Can handle up to 20 instances per API call
+    for i in range(0, len(new_instances), 20):
+        batch = new_instances[i:i+20]
+        elb_client.register_targets(
+            TargetGroupArn=target_group_arn,
+            Targets=[{'Id': instance_id} for instance_id in batch]
+        )
+    
+    # Step 2: Wait for new instances to become healthy
+    # This is the longest part - typically 20-40 seconds
+    healthy_new = self.wait_for_targets_healthy(target_group_arn, new_instances)
+    
+    # Step 3: Verify minimum healthy count
+    if len(healthy_new) < len(new_instances):
+        raise Exception(f"Only {len(healthy_new)}/{len(new_instances)} instances became healthy")
+    
+    # Step 4: Deregister old instances (fast - API calls only)
+    for i in range(0, len(old_instances), 20):
+        batch = old_instances[i:i+20]
+        elb_client.deregister_targets(
+            TargetGroupArn=target_group_arn,
+            Targets=[{'Id': instance_id} for instance_id in batch]
+        )
+    
+    # Connection draining happens automatically (20s)
+```
+
+### Alternative Approach: Target Group Switching
+
+Instead of switching instances, you could switch entire target groups:
+
+```python
+# Update ALB listener rule to point to new target group
+elb_client.modify_rule(
+    RuleArn='arn:aws:elasticloadbalancing:...',
+    Actions=[{
+        'Type': 'forward',
+        'TargetGroupArn': new_target_group_arn
+    }]
+)
+```
+
+**Pros**:
+- Truly atomic switch
+- Instant traffic cutover
+
+**Cons**:
+- Requires duplicating target groups for each environment
+- More complex Terraform management
+- Breaks the current path-based routing model
+
+### Why "Attach New First, Then Detach Old"?
+
+1. **Zero Downtime**: Ensures capacity never drops below required
+2. **Gradual Transition**: New instances start taking traffic gradually
+3. **Safe Rollback**: Old instances still available if issues detected
+4. **Connection Preservation**: Existing connections complete gracefully
+
+### Health Check Verification Function
+
+```python
+def wait_for_targets_healthy(self, target_group_arn: str, 
+                           instance_ids: List[str], 
+                           timeout: int = 300) -> List[str]:
+    """
+    Wait for instances to become healthy in the target group.
+    Returns list of healthy instances.
+    """
+    start_time = time.time()
+    
+    while time.time() - start_time < timeout:
+        response = elb_client.describe_target_health(
+            TargetGroupArn=target_group_arn,
+            Targets=[{'Id': iid} for iid in instance_ids]
+        )
+        
+        healthy = []
+        unhealthy = []
+        
+        for target in response['TargetHealthDescriptions']:
+            if target['TargetHealth']['State'] == 'healthy':
+                healthy.append(target['Target']['Id'])
+            else:
+                unhealthy.append({
+                    'id': target['Target']['Id'],
+                    'state': target['TargetHealth']['State'],
+                    'reason': target['TargetHealth'].get('Reason', 'Unknown')
+                })
+        
+        if len(healthy) == len(instance_ids):
+            return healthy
+            
+        print(f"Health check status: {len(healthy)}/{len(instance_ids)} healthy")
+        if unhealthy:
+            print(f"Unhealthy instances: {unhealthy}")
+            
+        time.sleep(5)
+    
+    raise TimeoutError(f"Timeout waiting for instances to become healthy")
+```
+
 ## Implementation Plan
 
 ### Phase 1: Terraform Infrastructure Changes
