@@ -184,4 +184,5 @@ output "beta_green_target_group_arn" {
 output "beta_active_color" {
   value       = aws_ssm_parameter.beta_active_color.value
   description = "Currently active color for beta environment"
+  sensitive   = true
 }
