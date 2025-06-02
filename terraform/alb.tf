@@ -44,10 +44,10 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
     # Ignore changes to the action since it's managed by blue-green deployment
     ignore_changes = [action]
   }
-  
+
   priority = 1
   action {
-    type             = "forward"
+    type = "forward"
     # This target group ARN is managed by blue-green deployment process
     # The initial value doesn't matter as it will be overridden
     target_group_arn = aws_alb_target_group.ce["beta"].arn

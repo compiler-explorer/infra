@@ -276,8 +276,8 @@ data "aws_iam_policy_document" "aws_lambda_status" {
     resources = ["*"]
   }
   statement {
-    sid     = "Ec2Access"
-    actions = ["ec2:DescribeInstances"]
+    sid       = "Ec2Access"
+    actions   = ["ec2:DescribeInstances"]
     resources = ["*"]
   }
 }

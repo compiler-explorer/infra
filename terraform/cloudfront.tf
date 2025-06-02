@@ -112,23 +112,23 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   }
 
   ordered_cache_behavior {
-    allowed_methods            = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cache_policy_id            = "ce5806f2-1018-4efc-9127-db3038758622"
-    cached_methods             = [
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
       "GET",
       "HEAD"
     ]
-    compress                   = true
-    origin_request_policy_id   = "216adef6-5c7f-47e4-b989-5492eafa07d3"
-    path_pattern               = "/client-options.js"
-    smooth_streaming           = false
-    target_origin_id           = "ALB-compiler-explorer"
-    trusted_key_groups         = []
-    trusted_signers            = []
-    viewer_protocol_policy     = "allow-all"
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
   }
 
   default_cache_behavior {
@@ -272,23 +272,23 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   }
 
   ordered_cache_behavior {
-    allowed_methods            = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cache_policy_id            = "ce5806f2-1018-4efc-9127-db3038758622"
-    cached_methods             = [
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
       "GET",
       "HEAD"
     ]
-    compress                   = true
-    origin_request_policy_id   = "216adef6-5c7f-47e4-b989-5492eafa07d3"
-    path_pattern               = "/client-options.js"
-    smooth_streaming           = false
-    target_origin_id           = "ALB-compiler-explorer"
-    trusted_key_groups         = []
-    trusted_signers            = []
-    viewer_protocol_policy     = "allow-all"
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
   }
 
   default_cache_behavior {
@@ -430,23 +430,23 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   }
 
   ordered_cache_behavior {
-    allowed_methods            = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cache_policy_id            = "ce5806f2-1018-4efc-9127-db3038758622"
-    cached_methods             = [
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
       "GET",
       "HEAD"
     ]
-    compress                   = true
-    origin_request_policy_id   = "216adef6-5c7f-47e4-b989-5492eafa07d3"
-    path_pattern               = "/client-options.js"
-    smooth_streaming           = false
-    target_origin_id           = "ALB-compiler-explorer"
-    trusted_key_groups         = []
-    trusted_signers            = []
-    viewer_protocol_policy     = "allow-all"
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
   }
 
   default_cache_behavior {

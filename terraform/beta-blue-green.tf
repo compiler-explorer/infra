@@ -158,7 +158,7 @@ resource "aws_ssm_parameter" "beta_active_color" {
     # Ignore changes to value since it's managed by blue-green deployment
     ignore_changes = [value]
   }
-  
+
   name  = "/compiler-explorer/beta/active-color"
   type  = "String"
   value = "blue" # Initial value
@@ -175,7 +175,7 @@ resource "aws_ssm_parameter" "beta_active_target_group" {
     # Ignore changes to value since it's managed by blue-green deployment
     ignore_changes = [value]
   }
-  
+
   name  = "/compiler-explorer/beta/active-target-group-arn"
   type  = "String"
   value = aws_alb_target_group.beta_blue.arn # Initial value

@@ -60,7 +60,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
       noncurrent_days = 1
     }
     filter {
-      prefix=""
+      prefix = ""
     }
   }
 }
