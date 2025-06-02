@@ -323,5 +323,3 @@ def blue_green_validate(cfg: Config):
             print(f"  - {issue}")
     else:
         print("\n✅ All validation checks passed!")
-
-

@@ -5,7 +5,7 @@
 # - ASG desired_capacity for both blue and green
 # - ALB listener rule target group (in alb.tf)
 # - SSM parameter values
-# 
+#
 # Terraform is configured to ignore changes to these values to prevent conflicts.
 
 # Blue target group for beta
