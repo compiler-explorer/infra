@@ -2,7 +2,7 @@
 
 import click
 
-from lib.amazon import as_client, elb_client
+from lib.amazon import as_client, ec2_client, elb_client
 from lib.blue_green_deploy import BlueGreenDeployment
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
@@ -121,6 +121,16 @@ def blue_green_status(cfg: Config, detailed: bool):
                             except Exception:
                                 tg_health = "error"
 
+                            # Get private IP address
+                            private_ip = "unknown"
+                            try:
+                                ec2_response = ec2_client.describe_instances(InstanceIds=[iid])
+                                if ec2_response["Reservations"] and ec2_response["Reservations"][0]["Instances"]:
+                                    ec2_instance = ec2_response["Reservations"][0]["Instances"][0]
+                                    private_ip = ec2_instance.get("PrivateIpAddress", "unknown")
+                            except Exception:
+                                private_ip = "error"
+
                             # Get HTTP health for this instance if available
                             http_health = "unknown"
                             http_details = ""
@@ -131,9 +141,12 @@ def blue_green_status(cfg: Config, detailed: bool):
                                     http_details = f" ({http_result['response_time_ms']}ms)"
                                 elif "message" in http_result:
                                     http_details = f" ({http_result['message']})"
+                                # Use private_ip from HTTP health result if available (more reliable)
+                                if "private_ip" in http_result:
+                                    private_ip = http_result["private_ip"]
 
                             print(
-                                f"      {iid}: ASG={asg_health}, TG={tg_health}, HTTP={http_health}{http_details}, State={lifecycle}"
+                                f"      {iid}: IP={private_ip}, ASG={asg_health}, TG={tg_health}, HTTP={http_health}{http_details}, State={lifecycle}"
                             )
 
                 except Exception as e:
