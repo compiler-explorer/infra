@@ -169,6 +169,11 @@ def instances_status(cfg: Config):
             marker = " (ACTIVE)" if active_color == "green" else ""
             print(f"Green Instances{marker}: No instances")
 
+        # Add note about Service/Version information
+        if blue_instances or green_instances:
+            print()
+            print("Note: Service and Version information requires SSH access from admin node.")
+
     except (ValueError, Exception):
         # Fall back to legacy single target group
         print(f"Environment: {cfg.env.value}")
