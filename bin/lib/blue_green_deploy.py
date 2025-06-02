@@ -81,9 +81,16 @@ class BlueGreenDeployment:
         response = elb_client.describe_load_balancers(Names=["GccExplorerApp"])
         return response["LoadBalancers"][0]["LoadBalancerArn"]
 
-    def wait_for_instances_healthy(self, asg_name: str, timeout: int = 600) -> List[str]:
+    def wait_for_instances_healthy(self, asg_name: str, timeout: int = 900) -> List[str]:
         """Wait for all instances in ASG to be healthy."""
         start_time = time.time()
+        last_status_time = 0.0
+
+        print(f"Waiting for instances in {asg_name} to become healthy (this typically takes 5-10 minutes)...")
+
+        # Don't check for the first 30 seconds - instances need time to boot
+        print("Initial boot period (30s)...")
+        time.sleep(30)
 
         while time.time() - start_time < timeout:
             try:
@@ -105,24 +112,45 @@ class BlueGreenDeployment:
                     if i["HealthStatus"] == "Healthy" and i["LifecycleState"] == "InService"
                 ]
 
-                print(f"ASG {asg_name}: {len(healthy_instances)}/{desired} instances healthy")
+                current_time = time.time()
 
                 if len(healthy_instances) == desired:
+                    elapsed_mins = int((current_time - start_time) / 60)
+                    elapsed_secs = int((current_time - start_time) % 60)
+                    print(f"✅ All {desired} instances healthy after {elapsed_mins}m {elapsed_secs}s")
+
+                    # Print full status when all instances are healthy
+                    print("Instance details:")
+                    for instance in asg["Instances"]:
+                        iid = instance["InstanceId"]
+                        health = instance["HealthStatus"]
+                        state = instance["LifecycleState"]
+                        print(f"  {iid}: {health}, {state}")
+
                     return healthy_instances
+
+                # Only print status every 60 seconds to reduce noise
+                if current_time - last_status_time >= 60:
+                    elapsed_mins = int((current_time - start_time) / 60)
+                    print(f"[{elapsed_mins}m] ASG {asg_name}: {len(healthy_instances)}/{desired} instances healthy")
+                    last_status_time = current_time
 
             except ClientError as e:
                 print(f"Error checking ASG health: {e}")
 
-            time.sleep(10)
+            time.sleep(30)  # Check every 30 seconds instead of 10
 
         raise TimeoutError(f"Timeout waiting for instances in {asg_name} to become healthy")
 
-    def wait_for_targets_healthy(self, target_group_arn: str, instance_ids: List[str], timeout: int = 300) -> List[str]:
+    def wait_for_targets_healthy(self, target_group_arn: str, instance_ids: List[str], timeout: int = 600) -> List[str]:
         """Wait for instances to become healthy in the target group."""
         if not instance_ids:
             return []
 
         start_time = time.time()
+        last_status_time = 0.0
+
+        print(f"Waiting for {len(instance_ids)} instances to become healthy in target group...")
 
         while time.time() - start_time < timeout:
             response = elb_client.describe_target_health(
@@ -144,15 +172,36 @@ class BlueGreenDeployment:
                         }
                     )
 
-            print(f"Target group health: {len(healthy)}/{len(instance_ids)} healthy")
+            current_time = time.time()
 
             if len(healthy) == len(instance_ids):
+                elapsed_mins = int((current_time - start_time) / 60)
+                elapsed_secs = int((current_time - start_time) % 60)
+                print(f"✅ All {len(instance_ids)} targets healthy after {elapsed_mins}m {elapsed_secs}s")
+
+                # Print full status when all targets are healthy
+                print("Target health details:")
+                for target in response["TargetHealthDescriptions"]:
+                    iid = target["Target"]["Id"]
+                    state = target["TargetHealth"]["State"]
+                    print(f"  {iid}: {state}")
+
                 return healthy
 
-            if unhealthy:
-                print(f"Unhealthy targets: {unhealthy}")
+            # Only print status every 30 seconds to reduce noise
+            if current_time - last_status_time >= 30:
+                elapsed_mins = int((current_time - start_time) / 60)
+                print(f"[{elapsed_mins}m] Target group health: {len(healthy)}/{len(instance_ids)} healthy")
 
-            time.sleep(5)
+                # Only show detailed unhealthy info occasionally to reduce noise
+                if unhealthy and current_time - last_status_time >= 60:
+                    print(f"  Unhealthy targets: {[f'{u["id"]}: {u["state"]}' for u in unhealthy[:3]]}")
+                    if len(unhealthy) > 3:
+                        print(f"  ... and {len(unhealthy) - 3} more")
+
+                last_status_time = current_time
+
+            time.sleep(15)  # Check every 15 seconds instead of 5
 
         raise TimeoutError("Timeout waiting for targets to become healthy")
 
@@ -162,6 +211,9 @@ class BlueGreenDeployment:
             return []
 
         start_time = time.time()
+        last_status_time = 0.0
+
+        print(f"Testing HTTP health for {len(instance_ids)} instances...")
 
         while time.time() - start_time < timeout:
             healthy_instances = []
@@ -180,16 +232,20 @@ class BlueGreenDeployment:
                         }
                     )
 
-            print(f"HTTP health: {len(healthy_instances)}/{len(instance_ids)} healthy")
+            current_time = time.time()
 
             if len(healthy_instances) == len(instance_ids):
+                elapsed_secs = int(current_time - start_time)
+                print(f"✅ All {len(instance_ids)} instances responding to HTTP health checks after {elapsed_secs}s")
                 return healthy_instances
 
-            if unhealthy_instances:
-                for instance in unhealthy_instances:
-                    print(f"  {instance['id']}: {instance['status']} - {instance['message']}")
+            # Only print status every 10 seconds to reduce noise
+            if current_time - last_status_time >= 10:
+                elapsed_secs = int(current_time - start_time)
+                print(f"[{elapsed_secs}s] HTTP health: {len(healthy_instances)}/{len(instance_ids)} healthy")
+                last_status_time = current_time
 
-            time.sleep(10)
+            time.sleep(5)  # Keep checking every 5 seconds since HTTP checks are faster
 
         raise TimeoutError(f"Timeout waiting for HTTP health checks to pass for {len(instance_ids)} instances")
 
