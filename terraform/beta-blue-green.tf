@@ -7,10 +7,10 @@ resource "aws_alb_target_group" "beta_blue" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = module.ce_network.vpc.id
-  
+
   deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
-  
+
   health_check {
     path                = "/healthcheck"
     timeout             = 8
@@ -19,7 +19,7 @@ resource "aws_alb_target_group" "beta_blue" {
     interval            = 10
     protocol            = "HTTP"
   }
-  
+
   tags = {
     Environment = "beta"
     Color       = "blue"
@@ -32,10 +32,10 @@ resource "aws_alb_target_group" "beta_green" {
   port     = 80
   protocol = "HTTP"
   vpc_id   = module.ce_network.vpc.id
-  
+
   deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
-  
+
   health_check {
     path                = "/healthcheck"
     timeout             = 8
@@ -44,7 +44,7 @@ resource "aws_alb_target_group" "beta_green" {
     interval            = 10
     protocol            = "HTTP"
   }
-  
+
   tags = {
     Environment = "beta"
     Color       = "green"
@@ -61,7 +61,7 @@ resource "aws_autoscaling_group" "beta_blue" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  
+
   launch_template {
     id      = aws_launch_template.CompilerExplorer-beta.id
     version = "$Latest"
@@ -69,12 +69,12 @@ resource "aws_autoscaling_group" "beta_blue" {
 
   max_size            = 4
   min_size            = 0
-  desired_capacity    = 0  # Start with zero capacity
+  desired_capacity    = 0 # Start with zero capacity
   vpc_zone_identifier = local.subnets
 
   # Attach to blue target group
   target_group_arns = [aws_alb_target_group.beta_blue.arn]
-  
+
   enabled_metrics = local.common_enabled_metrics
 
   tag {
@@ -82,13 +82,13 @@ resource "aws_autoscaling_group" "beta_blue" {
     value               = "beta"
     propagate_at_launch = true
   }
-  
+
   tag {
     key                 = "Color"
     value               = "blue"
     propagate_at_launch = true
   }
-  
+
   tag {
     key                 = "Name"
     value               = "CompilerExplorer-beta-blue"
@@ -106,7 +106,7 @@ resource "aws_autoscaling_group" "beta_green" {
   default_cooldown          = local.cooldown
   health_check_grace_period = local.grace_period
   health_check_type         = "ELB"
-  
+
   launch_template {
     id      = aws_launch_template.CompilerExplorer-beta.id
     version = "$Latest"
@@ -114,12 +114,12 @@ resource "aws_autoscaling_group" "beta_green" {
 
   max_size            = 4
   min_size            = 0
-  desired_capacity    = 0  # Start with zero capacity
+  desired_capacity    = 0 # Start with zero capacity
   vpc_zone_identifier = local.subnets
 
   # Attach to green target group
   target_group_arns = [aws_alb_target_group.beta_green.arn]
-  
+
   enabled_metrics = local.common_enabled_metrics
 
   tag {
@@ -127,13 +127,13 @@ resource "aws_autoscaling_group" "beta_green" {
     value               = "beta"
     propagate_at_launch = true
   }
-  
+
   tag {
     key                 = "Color"
     value               = "green"
     propagate_at_launch = true
   }
-  
+
   tag {
     key                 = "Name"
     value               = "CompilerExplorer-beta-green"
@@ -145,8 +145,8 @@ resource "aws_autoscaling_group" "beta_green" {
 resource "aws_ssm_parameter" "beta_active_color" {
   name  = "/compiler-explorer/beta/active-color"
   type  = "String"
-  value = "blue"  # Initial value
-  
+  value = "blue" # Initial value
+
   tags = {
     Environment = "beta"
     Purpose     = "blue-green-deployment"
@@ -157,8 +157,8 @@ resource "aws_ssm_parameter" "beta_active_color" {
 resource "aws_ssm_parameter" "beta_active_target_group" {
   name  = "/compiler-explorer/beta/active-target-group-arn"
   type  = "String"
-  value = aws_alb_target_group.beta_blue.arn  # Initial value
-  
+  value = aws_alb_target_group.beta_blue.arn # Initial value
+
   tags = {
     Environment = "beta"
     Purpose     = "blue-green-deployment"
@@ -172,16 +172,16 @@ data "aws_ssm_parameter" "beta_active_tg" {
 
 # Output values for reference
 output "beta_blue_target_group_arn" {
-  value = aws_alb_target_group.beta_blue.arn
+  value       = aws_alb_target_group.beta_blue.arn
   description = "ARN of the beta blue target group"
 }
 
 output "beta_green_target_group_arn" {
-  value = aws_alb_target_group.beta_green.arn
+  value       = aws_alb_target_group.beta_green.arn
   description = "ARN of the beta green target group"
 }
 
 output "beta_active_color" {
-  value = aws_ssm_parameter.beta_active_color.value
+  value       = aws_ssm_parameter.beta_active_color.value
   description = "Currently active color for beta environment"
 }
