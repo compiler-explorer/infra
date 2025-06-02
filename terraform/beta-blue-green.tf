@@ -1,5 +1,12 @@
 # Blue-Green deployment infrastructure for Beta environment
 # This is used for testing the blue-green deployment strategy before applying to production
+#
+# IMPORTANT: The following resources are managed by the blue-green deployment process:
+# - ASG desired_capacity for both blue and green
+# - ALB listener rule target group (in alb.tf)
+# - SSM parameter values
+# 
+# Terraform is configured to ignore changes to these values to prevent conflicts.
 
 # Blue target group for beta
 resource "aws_alb_target_group" "beta_blue" {
@@ -55,6 +62,8 @@ resource "aws_alb_target_group" "beta_green" {
 resource "aws_autoscaling_group" "beta_blue" {
   lifecycle {
     create_before_destroy = true
+    # Ignore changes to desired_capacity since it's managed by blue-green deployment
+    ignore_changes = [desired_capacity]
   }
 
   name                      = "beta-blue"
@@ -69,7 +78,7 @@ resource "aws_autoscaling_group" "beta_blue" {
 
   max_size            = 4
   min_size            = 0
-  desired_capacity    = 0 # Start with zero capacity
+  desired_capacity    = 0 # Initial capacity (will be managed by deployment)
   vpc_zone_identifier = local.subnets
 
   # Attach to blue target group
@@ -100,6 +109,8 @@ resource "aws_autoscaling_group" "beta_blue" {
 resource "aws_autoscaling_group" "beta_green" {
   lifecycle {
     create_before_destroy = true
+    # Ignore changes to desired_capacity since it's managed by blue-green deployment
+    ignore_changes = [desired_capacity]
   }
 
   name                      = "beta-green"
@@ -114,7 +125,7 @@ resource "aws_autoscaling_group" "beta_green" {
 
   max_size            = 4
   min_size            = 0
-  desired_capacity    = 0 # Start with zero capacity
+  desired_capacity    = 0 # Initial capacity (will be managed by deployment)
   vpc_zone_identifier = local.subnets
 
   # Attach to green target group
@@ -143,6 +154,11 @@ resource "aws_autoscaling_group" "beta_green" {
 
 # SSM Parameter to track which color is active for beta
 resource "aws_ssm_parameter" "beta_active_color" {
+  lifecycle {
+    # Ignore changes to value since it's managed by blue-green deployment
+    ignore_changes = [value]
+  }
+  
   name  = "/compiler-explorer/beta/active-color"
   type  = "String"
   value = "blue" # Initial value
@@ -155,6 +171,11 @@ resource "aws_ssm_parameter" "beta_active_color" {
 
 # SSM Parameter to track active target group ARN
 resource "aws_ssm_parameter" "beta_active_target_group" {
+  lifecycle {
+    # Ignore changes to value since it's managed by blue-green deployment
+    ignore_changes = [value]
+  }
+  
   name  = "/compiler-explorer/beta/active-target-group-arn"
   type  = "String"
   value = aws_alb_target_group.beta_blue.arn # Initial value

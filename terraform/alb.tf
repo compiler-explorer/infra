@@ -40,12 +40,16 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+  
   priority = 1
   action {
     type             = "forward"
-    # For blue-green testing, this will be manually updated via AWS CLI/API
-    # During normal operation, it points to the legacy beta target group
-    # Once blue-green is proven, we'll switch to using the SSM parameter
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
     target_group_arn = aws_alb_target_group.ce["beta"].arn
   }
   condition {
