@@ -1,11 +1,13 @@
 """Blue-green deployment management for Compiler Explorer."""
 
+import socket
 import time
 from typing import Any, Dict, List, Optional
 
+import requests
 from botocore.exceptions import ClientError
 
-from lib.amazon import as_client, elb_client, ssm_client
+from lib.amazon import as_client, ec2_client, elb_client, ssm_client
 from lib.env import Config
 
 
@@ -15,6 +17,7 @@ class BlueGreenDeployment:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self.env = cfg.env.value
+        self.running_on_admin_node = socket.gethostname() == "admin-node"
 
     def get_active_color(self) -> str:
         """Get currently active color (blue/green) from Parameter Store."""
@@ -153,6 +156,43 @@ class BlueGreenDeployment:
 
         raise TimeoutError("Timeout waiting for targets to become healthy")
 
+    def wait_for_http_health(self, instance_ids: List[str], timeout: int = 300) -> List[str]:
+        """Wait for instances to respond healthy to HTTP health checks."""
+        if not instance_ids:
+            return []
+
+        start_time = time.time()
+
+        while time.time() - start_time < timeout:
+            healthy_instances = []
+            unhealthy_instances = []
+
+            for instance_id in instance_ids:
+                health_result = self.check_instance_health(instance_id)
+                if health_result["status"] == "healthy":
+                    healthy_instances.append(instance_id)
+                else:
+                    unhealthy_instances.append(
+                        {
+                            "id": instance_id,
+                            "status": health_result["status"],
+                            "message": health_result.get("message", "Unknown error"),
+                        }
+                    )
+
+            print(f"HTTP health: {len(healthy_instances)}/{len(instance_ids)} healthy")
+
+            if len(healthy_instances) == len(instance_ids):
+                return healthy_instances
+
+            if unhealthy_instances:
+                for instance in unhealthy_instances:
+                    print(f"  {instance['id']}: {instance['status']} - {instance['message']}")
+
+            time.sleep(10)
+
+        raise TimeoutError(f"Timeout waiting for HTTP health checks to pass for {len(instance_ids)} instances")
+
     def scale_asg(self, asg_name: str, desired_capacity: int) -> None:
         """Scale an ASG to the specified capacity."""
         print(f"Scaling {asg_name} to {desired_capacity} instances")
@@ -175,6 +215,57 @@ class BlueGreenDeployment:
             Name=f"/compiler-explorer/{self.env}/active-target-group-arn", Value=new_tg_arn, Overwrite=True
         )
 
+    def check_instance_health(self, instance_id: str) -> Dict[str, Any]:
+        """Check the health of an instance by testing its /healthcheck endpoint."""
+        if not self.running_on_admin_node:
+            return {
+                "status": "skipped",
+                "message": "HTTP health checks only available from admin node",
+                "hostname": socket.gethostname(),
+            }
+
+        try:
+            # Get instance private IP
+            response = ec2_client.describe_instances(InstanceIds=[instance_id])
+            if not response["Reservations"] or not response["Reservations"][0]["Instances"]:
+                return {"status": "error", "message": "Instance not found"}
+
+            instance = response["Reservations"][0]["Instances"][0]
+            if instance["State"]["Name"] != "running":
+                return {"status": "error", "message": f"Instance state: {instance['State']['Name']}"}
+
+            private_ip = instance.get("PrivateIpAddress")
+            if not private_ip:
+                return {"status": "error", "message": "No private IP address"}
+
+            # Test HTTP healthcheck endpoint
+            url = f"http://{private_ip}/healthcheck"
+            try:
+                response = requests.get(url, timeout=5)
+                if response.status_code == 200:
+                    return {
+                        "status": "healthy",
+                        "http_code": response.status_code,
+                        "response_time_ms": int(response.elapsed.total_seconds() * 1000),
+                        "private_ip": private_ip,
+                    }
+                else:
+                    return {
+                        "status": "unhealthy",
+                        "http_code": response.status_code,
+                        "response_time_ms": int(response.elapsed.total_seconds() * 1000),
+                        "private_ip": private_ip,
+                        "message": f"HTTP {response.status_code}",
+                    }
+            except requests.exceptions.ConnectTimeout:
+                return {"status": "timeout", "message": "Connection timeout", "private_ip": private_ip}
+            except requests.exceptions.ConnectionError:
+                return {"status": "connection_error", "message": "Connection refused", "private_ip": private_ip}
+            except requests.exceptions.RequestException as e:
+                return {"status": "error", "message": f"Request error: {str(e)}", "private_ip": private_ip}
+        except Exception as e:
+            return {"status": "error", "message": f"Unexpected error: {str(e)}"}
+
     def get_current_capacity(self) -> int:
         """Get the current capacity of the active ASG."""
         active_color = self.get_active_color()
@@ -186,7 +277,7 @@ class BlueGreenDeployment:
             return response["AutoScalingGroups"][0]["DesiredCapacity"]
         return 0
 
-    def deploy(self, target_capacity: Optional[int] = None) -> None:
+    def deploy(self, target_capacity: Optional[int] = None, skip_confirmation: bool = False) -> None:
         """Perform a blue-green deployment."""
         active_color = self.get_active_color()
         inactive_color = self.get_inactive_color()
@@ -217,6 +308,30 @@ class BlueGreenDeployment:
         print("\nStep 3: Waiting for instances to be healthy in target group")
         inactive_tg_arn = self.get_target_group_arn(inactive_color)
         self.wait_for_targets_healthy(inactive_tg_arn, instances)
+
+        # Step 3.5: Optional HTTP health check (will timeout gracefully if security group not configured)
+        if self.running_on_admin_node:
+            print("\nStep 3.5: Checking HTTP health endpoints")
+            try:
+                self.wait_for_http_health(instances, timeout=30)  # Short timeout since this is optional
+                print("HTTP health checks passed!")
+            except TimeoutError:
+                print("HTTP health checks timed out (this is normal if admin security group rule not applied)")
+                print("Proceeding with deployment based on ALB target group health...")
+        else:
+            print(f"\nStep 3.5: Skipping HTTP health checks (not running on admin node: {socket.gethostname()})")
+            print("Please manually verify instances are healthy before proceeding.")
+
+        # Step 3.9: Additional confirmation when not on admin node
+        if not self.running_on_admin_node and not skip_confirmation:
+            print(f"\n⚠️  WARNING: About to switch traffic to {inactive_color} without HTTP health verification!")
+            print("Since you're not running on the admin node, HTTP health checks were skipped.")
+            print(f"Please ensure the {inactive_color} instances are responding properly before continuing.")
+
+            response = input("\nDo you want to proceed with the traffic switch? (yes/no): ").strip().lower()
+            if response not in ["yes", "y"]:
+                print("Deployment cancelled. Traffic remains on current instances.")
+                return
 
         # Step 4: Switch traffic to new color
         print(f"\nStep 4: Switching traffic to {inactive_color}")
@@ -287,16 +402,16 @@ class BlueGreenDeployment:
                             )
                             healthy_count = 0
                             unused_count = 0
-                            
+
                             for target in tg_health["TargetHealthDescriptions"]:
                                 state = target["TargetHealth"]["State"]
                                 if state == "healthy":
                                     healthy_count += 1
                                 elif state == "unused":
                                     unused_count += 1
-                            
+
                             tg_healthy_count = healthy_count + unused_count  # Both are "ready"
-                            
+
                             if healthy_count == len(instance_ids):
                                 tg_status = "all_healthy"
                             elif unused_count == len(instance_ids):
@@ -310,6 +425,19 @@ class BlueGreenDeployment:
                         except Exception:
                             tg_status = "error"
 
+                    # Get HTTP health checks for instances
+                    http_health_results = {}
+                    http_healthy_count = 0
+                    http_skipped = False
+                    if instance_ids:
+                        for instance_id in instance_ids:
+                            health_result = self.check_instance_health(instance_id)
+                            http_health_results[instance_id] = health_result
+                            if health_result["status"] == "healthy":
+                                http_healthy_count += 1
+                            elif health_result["status"] == "skipped":
+                                http_skipped = True
+
                     status["asgs"][color] = {
                         "name": asg_name,
                         "desired": asg["DesiredCapacity"],
@@ -319,6 +447,9 @@ class BlueGreenDeployment:
                         "healthy_instances": len([i for i in asg["Instances"] if i["HealthStatus"] == "Healthy"]),
                         "target_group_healthy": tg_healthy_count,
                         "target_group_status": tg_status,
+                        "http_health_results": http_health_results,
+                        "http_healthy_count": http_healthy_count,
+                        "http_skipped": http_skipped,
                     }
                 else:
                     status["asgs"][color] = {"error": "ASG not found"}

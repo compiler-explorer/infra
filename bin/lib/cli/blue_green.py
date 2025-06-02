@@ -71,6 +71,29 @@ def blue_green_status(cfg: Config, detailed: bool):
                 elif tg_status == "error":
                     print("      Note: Error checking target group health")
 
+            # Show HTTP health check results if available
+            if "http_healthy_count" in asg_info:
+                http_healthy = asg_info["http_healthy_count"]
+                total_instances = asg_info["instances"]
+                http_skipped = asg_info.get("http_skipped", False)
+
+                if http_skipped:
+                    print("    HTTP Health: skipped (not running on admin node) ℹ️")
+                    if detailed:
+                        print("      Note: Run from admin node to test HTTP endpoints directly")
+                elif http_healthy == total_instances and total_instances > 0:
+                    http_emoji = "✅"
+                    print(f"    HTTP Health: {http_healthy}/{total_instances} healthy {http_emoji}")
+                elif http_healthy > 0:
+                    http_emoji = "⚠️"
+                    print(f"    HTTP Health: {http_healthy}/{total_instances} healthy {http_emoji}")
+                elif total_instances > 0:
+                    http_emoji = "❌"
+                    print(f"    HTTP Health: {http_healthy}/{total_instances} healthy {http_emoji}")
+                else:
+                    http_emoji = "⚪"  # No instances
+                    print(f"    HTTP Health: {http_healthy}/{total_instances} healthy {http_emoji}")
+
             # Show detailed instance information if requested
             if detailed and asg_info.get("instances", 0) > 0:
                 print("    Detailed Instance Status:")
@@ -98,7 +121,20 @@ def blue_green_status(cfg: Config, detailed: bool):
                             except Exception:
                                 tg_health = "error"
 
-                            print(f"      {iid}: ASG={asg_health}, TG={tg_health}, State={lifecycle}")
+                            # Get HTTP health for this instance if available
+                            http_health = "unknown"
+                            http_details = ""
+                            if "http_health_results" in asg_info and iid in asg_info["http_health_results"]:
+                                http_result = asg_info["http_health_results"][iid]
+                                http_health = http_result["status"]
+                                if "response_time_ms" in http_result:
+                                    http_details = f" ({http_result['response_time_ms']}ms)"
+                                elif "message" in http_result:
+                                    http_details = f" ({http_result['message']})"
+
+                            print(
+                                f"      {iid}: ASG={asg_health}, TG={tg_health}, HTTP={http_health}{http_details}, State={lifecycle}"
+                            )
 
                 except Exception as e:
                     print(f"      Error getting detailed status: {e}")
@@ -124,7 +160,7 @@ def blue_green_deploy(cfg: Config, capacity: int, skip_confirmation: bool):
             return
 
     try:
-        deployment.deploy(target_capacity=capacity)
+        deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation)
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
     except Exception as e:
