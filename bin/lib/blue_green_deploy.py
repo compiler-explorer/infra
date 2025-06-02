@@ -19,6 +19,93 @@ class BlueGreenDeployment:
         self.env = cfg.env.value
         self.running_on_admin_node = is_running_on_admin_node()
 
+    def _print_elapsed_time(self, message: str, start_time: float, **kwargs) -> None:
+        """Print a message with elapsed time in minutes and seconds format."""
+        elapsed_total_secs = int(time.time() - start_time)
+        elapsed_mins = elapsed_total_secs // 60
+        elapsed_secs = elapsed_total_secs % 60
+        formatted_msg = message.format(**kwargs) if kwargs else message
+        print(f"{formatted_msg} after {elapsed_mins}m {elapsed_secs}s")
+
+    def _print_elapsed_minutes(self, message: str, start_time: float, **kwargs) -> None:
+        """Print a message with elapsed time in minutes only."""
+        elapsed_mins = int((time.time() - start_time) / 60)
+        formatted_msg = message.format(**kwargs) if kwargs else message
+        print(f"[{elapsed_mins}m] {formatted_msg}")
+
+    def _get_instance_private_ip(self, instance_id: str) -> Optional[str]:
+        """Get the private IP address of an EC2 instance."""
+        try:
+            response = ec2_client.describe_instances(InstanceIds=[instance_id])
+            if response["Reservations"] and response["Reservations"][0]["Instances"]:
+                instance = response["Reservations"][0]["Instances"][0]
+                if instance["State"]["Name"] == "running":
+                    return instance.get("PrivateIpAddress")
+        except Exception:
+            pass
+        return None
+
+    def _update_ssm_parameters(self, color: str, target_group_arn: str) -> None:
+        """Update SSM parameters for active color and target group."""
+        ssm_client.put_parameter(Name=f"/compiler-explorer/{self.env}/active-color", Value=color, Overwrite=True)
+        ssm_client.put_parameter(
+            Name=f"/compiler-explorer/{self.env}/active-target-group-arn", Value=target_group_arn, Overwrite=True
+        )
+
+    def _print_instance_details(self, instances: List[Dict[str, Any]], prefix: str = "  ") -> None:
+        """Print details for a list of instances."""
+        for instance in instances:
+            iid = instance["InstanceId"]
+            health = instance["HealthStatus"]
+            state = instance["LifecycleState"]
+            print(f"{prefix}{iid}: ASG Health={health}, Lifecycle={state}")
+
+    def _get_asg_info(self, asg_name: str) -> Optional[Dict[str, Any]]:
+        """Get ASG information or return None if not found."""
+        try:
+            response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+            if response["AutoScalingGroups"]:
+                return response["AutoScalingGroups"][0]
+        except ClientError:
+            pass
+        return None
+
+    def _get_target_health_counts(self, target_group_arn: str, instance_ids: List[str]) -> Dict[str, int]:
+        """Get counts of healthy and unused instances in a target group."""
+        try:
+            tg_health = elb_client.describe_target_health(
+                TargetGroupArn=target_group_arn, Targets=[{"Id": iid} for iid in instance_ids]
+            )
+            healthy_count = 0
+            unused_count = 0
+
+            for target in tg_health["TargetHealthDescriptions"]:
+                state = target["TargetHealth"]["State"]
+                if state == "healthy":
+                    healthy_count += 1
+                elif state == "unused":
+                    unused_count += 1
+
+            return {"healthy": healthy_count, "unused": unused_count}
+        except Exception:
+            return {"healthy": 0, "unused": 0}
+
+    def _print_target_group_diagnostics(self, color: str, instance_ids: List[str]) -> None:
+        """Print diagnostic information about target group health status."""
+        print("\nChecking target group status for diagnostic purposes...")
+        try:
+            tg_arn = self.get_target_group_arn(color)
+            response = elb_client.describe_target_health(
+                TargetGroupArn=tg_arn, Targets=[{"Id": iid} for iid in instance_ids]
+            )
+            print("Target group health status:")
+            for target in response["TargetHealthDescriptions"]:
+                state = target["TargetHealth"]["State"]
+                reason = target["TargetHealth"].get("Reason", "")
+                print(f"  {target['Target']['Id']}: {state} - {reason}")
+        except Exception as e:
+            print(f"  Could not check target group status: {e}")
+
     def get_active_color(self) -> str:
         """Get currently active color (blue/green) from Parameter Store."""
         param_name = f"/compiler-explorer/{self.env}/active-color"
@@ -118,35 +205,24 @@ class BlueGreenDeployment:
                 current_time = time.time()
 
                 if len(in_service_instances) == desired:
-                    elapsed_mins = int((current_time - start_time) / 60)
-                    elapsed_secs = int((current_time - start_time) % 60)
-                    print(f"✅ All {desired} instances in service after {elapsed_mins}m {elapsed_secs}s")
+                    self._print_elapsed_time("✅ All {count} instances in service", start_time, count=desired)
 
                     # Print full status when all instances are in service
                     print("Instance details:")
-                    for instance in asg["Instances"]:
-                        iid = instance["InstanceId"]
-                        health = instance["HealthStatus"]
-                        state = instance["LifecycleState"]
-                        print(f"  {iid}: ASG Health={health}, Lifecycle={state}")
+                    self._print_instance_details(asg["Instances"])
 
                     return in_service_instances
 
                 # Only print status every 60 seconds to reduce noise
                 if current_time - last_status_time >= 60:
-                    elapsed_mins = int((current_time - start_time) / 60)
-                    print(
-                        f"[{elapsed_mins}m] ASG {asg_name}: {len(in_service_instances)}/{desired} instances in service"
+                    self._print_elapsed_minutes(
+                        f"ASG {asg_name}: {len(in_service_instances)}/{desired} instances in service", start_time
                     )
 
                     # Debug output to diagnose status
                     if len(in_service_instances) < desired:
                         print("  Instance states:")
-                        for instance in asg["Instances"]:
-                            iid = instance["InstanceId"]
-                            health = instance["HealthStatus"]
-                            state = instance["LifecycleState"]
-                            print(f"    {iid}: ASG Health={health}, Lifecycle={state}")
+                        self._print_instance_details(asg["Instances"], prefix="    ")
 
                     last_status_time = current_time
 
@@ -190,9 +266,7 @@ class BlueGreenDeployment:
             current_time = time.time()
 
             if len(healthy) == len(instance_ids):
-                elapsed_mins = int((current_time - start_time) / 60)
-                elapsed_secs = int((current_time - start_time) % 60)
-                print(f"✅ All {len(instance_ids)} targets healthy after {elapsed_mins}m {elapsed_secs}s")
+                self._print_elapsed_time("✅ All {count} targets healthy", start_time, count=len(instance_ids))
 
                 # Print full status when all targets are healthy
                 print("Target health details:")
@@ -205,8 +279,9 @@ class BlueGreenDeployment:
 
             # Only print status every 30 seconds to reduce noise
             if current_time - last_status_time >= 30:
-                elapsed_mins = int((current_time - start_time) / 60)
-                print(f"[{elapsed_mins}m] Target group health: {len(healthy)}/{len(instance_ids)} healthy")
+                self._print_elapsed_minutes(
+                    f"Target group health: {len(healthy)}/{len(instance_ids)} healthy", start_time
+                )
 
                 # Always show details when nothing is healthy yet
                 if len(healthy) == 0 and unhealthy:
@@ -289,10 +364,7 @@ class BlueGreenDeployment:
         elb_client.modify_rule(RuleArn=rule_arn, Actions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}])
 
         # Update SSM parameters
-        ssm_client.put_parameter(Name=f"/compiler-explorer/{self.env}/active-color", Value=new_color, Overwrite=True)
-        ssm_client.put_parameter(
-            Name=f"/compiler-explorer/{self.env}/active-target-group-arn", Value=new_tg_arn, Overwrite=True
-        )
+        self._update_ssm_parameters(new_color, new_tg_arn)
 
     def check_instance_health(self, instance_id: str) -> Dict[str, Any]:
         """Check the health of an instance by testing its /healthcheck endpoint."""
@@ -305,17 +377,9 @@ class BlueGreenDeployment:
 
         try:
             # Get instance private IP
-            response = ec2_client.describe_instances(InstanceIds=[instance_id])
-            if not response["Reservations"] or not response["Reservations"][0]["Instances"]:
-                return {"status": "error", "message": "Instance not found"}
-
-            instance = response["Reservations"][0]["Instances"][0]
-            if instance["State"]["Name"] != "running":
-                return {"status": "error", "message": f"Instance state: {instance['State']['Name']}"}
-
-            private_ip = instance.get("PrivateIpAddress")
+            private_ip = self._get_instance_private_ip(instance_id)
             if not private_ip:
-                return {"status": "error", "message": "No private IP address"}
+                return {"status": "error", "message": "Instance not found or not running"}
 
             # Test HTTP healthcheck endpoint
             url = f"http://{private_ip}/healthcheck"
@@ -350,11 +414,8 @@ class BlueGreenDeployment:
         active_color = self.get_active_color()
         asg_name = self.get_asg_name(active_color)
 
-        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
-
-        if response["AutoScalingGroups"]:
-            return response["AutoScalingGroups"][0]["DesiredCapacity"]
-        return 0
+        asg_info = self._get_asg_info(asg_name)
+        return asg_info["DesiredCapacity"] if asg_info else 0
 
     def deploy(self, target_capacity: Optional[int] = None, skip_confirmation: bool = False) -> None:
         """Perform a blue-green deployment."""
@@ -396,19 +457,7 @@ class BlueGreenDeployment:
                 print("This indicates instances are not properly responding to health checks")
 
                 # Try to get more info about what's wrong
-                print("\nChecking target group status for diagnostic purposes...")
-                inactive_tg_arn = self.get_target_group_arn(inactive_color)
-                try:
-                    response = elb_client.describe_target_health(
-                        TargetGroupArn=inactive_tg_arn, Targets=[{"Id": iid} for iid in instances]
-                    )
-                    print("Target group health status:")
-                    for target in response["TargetHealthDescriptions"]:
-                        state = target["TargetHealth"]["State"]
-                        reason = target["TargetHealth"].get("Reason", "")
-                        print(f"  {target['Target']['Id']}: {state} - {reason}")
-                except Exception as e:
-                    print(f"  Could not check target group status: {e}")
+                self._print_target_group_diagnostics(inactive_color, instances)
 
                 raise RuntimeError("Instances are not passing health checks. Deployment aborted.") from None
         else:
@@ -443,13 +492,12 @@ class BlueGreenDeployment:
 
         # Check if previous ASG has capacity
         previous_asg = self.get_asg_name(previous_color)
-        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[previous_asg])
+        asg_info = self._get_asg_info(previous_asg)
 
-        if not response["AutoScalingGroups"]:
+        if not asg_info:
             raise ValueError(f"Previous ASG {previous_asg} not found")
 
-        asg = response["AutoScalingGroups"][0]
-        if asg["DesiredCapacity"] == 0:
+        if asg_info["DesiredCapacity"] == 0:
             raise ValueError(f"Previous ASG {previous_asg} has no running instances for rollback")
 
         # Switch back
@@ -479,45 +527,34 @@ class BlueGreenDeployment:
 
         for color in ["blue", "green"]:
             asg_name = self.get_asg_name(color)
-            try:
-                response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
-                if response["AutoScalingGroups"]:
-                    asg = response["AutoScalingGroups"][0]
-                    instance_ids = [i["InstanceId"] for i in asg["Instances"]]
+            asg_info = self._get_asg_info(asg_name)
 
-                    # Get target group health
-                    tg_healthy_count = 0
-                    tg_status = "unknown"
-                    if instance_ids:
-                        try:
-                            tg_arn = self.get_target_group_arn(color)
-                            tg_health = elb_client.describe_target_health(
-                                TargetGroupArn=tg_arn, Targets=[{"Id": iid} for iid in instance_ids]
-                            )
-                            healthy_count = 0
-                            unused_count = 0
+            if asg_info:
+                instance_ids = [i["InstanceId"] for i in asg_info["Instances"]]
 
-                            for target in tg_health["TargetHealthDescriptions"]:
-                                state = target["TargetHealth"]["State"]
-                                if state == "healthy":
-                                    healthy_count += 1
-                                elif state == "unused":
-                                    unused_count += 1
+                # Get target group health
+                tg_healthy_count = 0
+                tg_status = "unknown"
+                if instance_ids:
+                    try:
+                        tg_arn = self.get_target_group_arn(color)
+                        counts = self._get_target_health_counts(tg_arn, instance_ids)
+                        healthy_count = counts["healthy"]
+                        unused_count = counts["unused"]
+                        tg_healthy_count = healthy_count + unused_count  # Both are "ready"
 
-                            tg_healthy_count = healthy_count + unused_count  # Both are "ready"
-
-                            if healthy_count == len(instance_ids):
-                                tg_status = "all_healthy"
-                            elif unused_count == len(instance_ids):
-                                tg_status = "all_unused"  # Ready but not receiving traffic
-                            elif (healthy_count + unused_count) == len(instance_ids):
-                                tg_status = "mixed_ready"  # Some healthy, some unused
-                            elif tg_healthy_count > 0:
-                                tg_status = "partially_healthy"
-                            else:
-                                tg_status = "unhealthy"
-                        except Exception:
-                            tg_status = "error"
+                        if healthy_count == len(instance_ids):
+                            tg_status = "all_healthy"
+                        elif unused_count == len(instance_ids):
+                            tg_status = "all_unused"  # Ready but not receiving traffic
+                        elif (healthy_count + unused_count) == len(instance_ids):
+                            tg_status = "mixed_ready"  # Some healthy, some unused
+                        elif tg_healthy_count > 0:
+                            tg_status = "partially_healthy"
+                        else:
+                            tg_status = "unhealthy"
+                    except Exception:
+                        tg_status = "error"
 
                     # Get HTTP health checks for instances
                     http_health_results = {}
@@ -532,22 +569,20 @@ class BlueGreenDeployment:
                             elif health_result["status"] == "skipped":
                                 http_skipped = True
 
-                    status["asgs"][color] = {
-                        "name": asg_name,
-                        "desired": asg["DesiredCapacity"],
-                        "min": asg["MinSize"],
-                        "max": asg["MaxSize"],
-                        "instances": len(asg["Instances"]),
-                        "healthy_instances": len([i for i in asg["Instances"] if i["HealthStatus"] == "Healthy"]),
-                        "target_group_healthy": tg_healthy_count,
-                        "target_group_status": tg_status,
-                        "http_health_results": http_health_results,
-                        "http_healthy_count": http_healthy_count,
-                        "http_skipped": http_skipped,
-                    }
-                else:
-                    status["asgs"][color] = {"error": "ASG not found"}
-            except ClientError as e:
-                status["asgs"][color] = {"error": str(e)}
+                status["asgs"][color] = {
+                    "name": asg_name,
+                    "desired": asg_info["DesiredCapacity"],
+                    "min": asg_info["MinSize"],
+                    "max": asg_info["MaxSize"],
+                    "instances": len(asg_info["Instances"]),
+                    "healthy_instances": len([i for i in asg_info["Instances"] if i["HealthStatus"] == "Healthy"]),
+                    "target_group_healthy": tg_healthy_count,
+                    "target_group_status": tg_status,
+                    "http_health_results": http_health_results,
+                    "http_healthy_count": http_healthy_count,
+                    "http_skipped": http_skipped,
+                }
+            else:
+                status["asgs"][color] = {"error": "ASG not found"}
 
         return status
