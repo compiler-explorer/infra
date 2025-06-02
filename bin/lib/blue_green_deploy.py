@@ -83,7 +83,7 @@ class BlueGreenDeployment:
 
     def wait_for_instances_healthy(self, asg_name: str, timeout: int = 900) -> List[str]:
         """Wait for all instances in ASG to be InService (running).
-        
+
         Note: This only waits for instances to be running, not for health checks to pass.
         Actual health verification is done by target group and HTTP health checks.
         """
@@ -113,11 +113,7 @@ class BlueGreenDeployment:
                 # For deployment, we only need instances to be InService (running)
                 # The actual health checking is done by target group and HTTP checks
                 all_instances = asg["Instances"]
-                in_service_instances = [
-                    i["InstanceId"]
-                    for i in all_instances
-                    if i["LifecycleState"] == "InService"
-                ]
+                in_service_instances = [i["InstanceId"] for i in all_instances if i["LifecycleState"] == "InService"]
 
                 current_time = time.time()
 
@@ -139,8 +135,10 @@ class BlueGreenDeployment:
                 # Only print status every 60 seconds to reduce noise
                 if current_time - last_status_time >= 60:
                     elapsed_mins = int((current_time - start_time) / 60)
-                    print(f"[{elapsed_mins}m] ASG {asg_name}: {len(in_service_instances)}/{desired} instances in service")
-                    
+                    print(
+                        f"[{elapsed_mins}m] ASG {asg_name}: {len(in_service_instances)}/{desired} instances in service"
+                    )
+
                     # Debug output to diagnose status
                     if len(in_service_instances) < desired:
                         print("  Instance states:")
@@ -149,7 +147,7 @@ class BlueGreenDeployment:
                             health = instance["HealthStatus"]
                             state = instance["LifecycleState"]
                             print(f"    {iid}: ASG Health={health}, Lifecycle={state}")
-                    
+
                     last_status_time = current_time
 
             except ClientError as e:
@@ -210,8 +208,16 @@ class BlueGreenDeployment:
                 elapsed_mins = int((current_time - start_time) / 60)
                 print(f"[{elapsed_mins}m] Target group health: {len(healthy)}/{len(instance_ids)} healthy")
 
-                # Only show detailed unhealthy info occasionally to reduce noise
-                if unhealthy and current_time - last_status_time >= 60:
+                # Always show details when nothing is healthy yet
+                if len(healthy) == 0 and unhealthy:
+                    print("  Target health details:")
+                    for u in unhealthy:
+                        desc = f"{u['state']}"
+                        if u.get("reason"):
+                            desc += f" - {u['reason']}"
+                        print(f"    {u['id']}: {desc}")
+                # Only show detailed unhealthy info occasionally when some are healthy
+                elif unhealthy and current_time - last_status_time >= 60:
                     print(f"  Unhealthy targets: {[f'{u["id"]}: {u["state"]}' for u in unhealthy[:3]]}")
                     if len(unhealthy) > 3:
                         print(f"  ... and {len(unhealthy) - 3} more")
@@ -377,26 +383,40 @@ class BlueGreenDeployment:
         if len(instances) != target_capacity:
             raise RuntimeError(f"Expected {target_capacity} instances, but only {len(instances)} are healthy")
 
-        # Step 3: Wait for instances to be healthy in target group
-        print("\nStep 3: Waiting for instances to be healthy in target group")
-        inactive_tg_arn = self.get_target_group_arn(inactive_color)
-        self.wait_for_targets_healthy(inactive_tg_arn, instances)
-
-        # Step 3.5: HTTP health check (important for verifying instances are actually serving)
+        # Step 3: Verify instances are healthy
+        # For blue-green deployments, we can't rely on ALB target group health since
+        # the inactive color isn't receiving traffic. We must use HTTP health checks.
         if self.running_on_admin_node:
-            print("\nStep 3.5: Checking HTTP health endpoints")
+            print("\nStep 3: Checking HTTP health endpoints")
             try:
                 self.wait_for_http_health(instances, timeout=300)  # 5 minute timeout for HTTP checks
-                print("HTTP health checks passed!")
+                print("✅ All instances are responding to health checks!")
             except TimeoutError:
                 print("⚠️  HTTP health checks timed out after 5 minutes")
-                print("This could indicate instances are not properly responding to health checks")
-                print("Proceeding with deployment based on ALB target group health...")
-        else:
-            print("\nStep 3.5: Skipping HTTP health checks (not running on admin node)")
-            print("Please manually verify instances are healthy before proceeding.")
+                print("This indicates instances are not properly responding to health checks")
 
-        # Step 3.9: Additional confirmation when not on admin node
+                # Try to get more info about what's wrong
+                print("\nChecking target group status for diagnostic purposes...")
+                inactive_tg_arn = self.get_target_group_arn(inactive_color)
+                try:
+                    response = elb_client.describe_target_health(
+                        TargetGroupArn=inactive_tg_arn, Targets=[{"Id": iid} for iid in instances]
+                    )
+                    print("Target group health status:")
+                    for target in response["TargetHealthDescriptions"]:
+                        state = target["TargetHealth"]["State"]
+                        reason = target["TargetHealth"].get("Reason", "")
+                        print(f"  {target['Target']['Id']}: {state} - {reason}")
+                except Exception as e:
+                    print(f"  Could not check target group status: {e}")
+
+                raise RuntimeError("Instances are not passing health checks. Deployment aborted.") from None
+        else:
+            print("\nStep 3: Cannot verify instance health (not running on admin node)")
+            print("⚠️  WARNING: Unable to verify instances are actually healthy!")
+            print("Please manually verify instances are responding to health checks before proceeding.")
+
+        # Additional confirmation when not on admin node
         if not self.running_on_admin_node and not skip_confirmation:
             print(f"\n⚠️  WARNING: About to switch traffic to {inactive_color} without HTTP health verification!")
             print("Since you're not running on the admin node, HTTP health checks were skipped.")
@@ -411,7 +431,7 @@ class BlueGreenDeployment:
         print(f"\nStep 4: Switching traffic to {inactive_color}")
         self.switch_target_group(inactive_color)
 
-        print(f"\nBlue-green deployment complete! Now serving from {inactive_color}")
+        print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
         print(f"Old {active_color} ASG remains running for rollback if needed")
 
     def rollback(self) -> None:
