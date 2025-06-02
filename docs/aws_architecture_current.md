@@ -23,12 +23,12 @@ graph TB
             HTTPS[HTTPS Listener :443]
             HTTP[HTTP Listener :80]
 
-            DefRule[Default Rule → Prod TG]
-            BetaRule[/beta* → Beta TG]
-            StagingRule[/staging* → Staging TG]
-            GPURule[/gpu* → GPU TG]
-            WinRule[/win* → Win TGs]
-            AArch64Rule[/aarch64* → AArch64 TGs]
+            DefRule["Default Rule - Prod TG"]
+            BetaRule["'/beta*' - Beta TG"]
+            StagingRule["'/staging*' - Staging TG"]
+            GPURule["'/gpu*' - GPU TG"]
+            WinRule["'/win*' - Win TGs"]
+            AArch64Rule["'/aarch64*' - AArch64 TGs"]
         end
     end
 
