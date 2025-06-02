@@ -343,6 +343,184 @@ def deploy_with_target_group_switching(env: str):
 
 While this approach provides a truly atomic switch, the added complexity of managing double the target groups and coordinating path-based rules makes it less attractive than the instance-switching approach for Compiler Explorer's architecture.
 
+### Hybrid Approach: Target Group Switching for Production Only
+
+An interesting middle ground would be implementing target group switching **only for production** while keeping the simpler model for other environments:
+
+```
+ALB (compiler-explorer.com)
+├── Default rule → prod-blue OR prod-green (switchable)
+├── /beta* → beta target group (unchanged)
+├── /staging* → staging target group (unchanged)
+└── /gpu* → gpu target group (unchanged)
+```
+
+#### Why This Makes Sense
+
+1. **Production is Special**:
+   - Handles 95%+ of total traffic
+   - Most critical for zero-downtime
+   - Worth the extra complexity for atomic switching
+   - Default route (no path prefix) is simpler to manage
+
+2. **Other Environments Stay Simple**:
+   - Lower traffic, less critical
+   - Can tolerate rolling deployments
+   - Easier to debug and manage
+   - No need to double resources
+
+#### Implementation for Prod-Only Target Group Switching
+
+**Terraform Changes**:
+```hcl
+# Two target groups for production only
+resource "aws_alb_target_group" "prod_blue" {
+  name     = "Prod-Blue"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.ce_network.vpc.id
+  
+  health_check {
+    path                = "/healthcheck"
+    timeout             = 8
+    unhealthy_threshold = 3
+    healthy_threshold   = 2
+    interval            = 10
+  }
+}
+
+resource "aws_alb_target_group" "prod_green" {
+  name = "Prod-Green"
+  # ... identical configuration
+}
+
+# Track active production target group
+resource "aws_ssm_parameter" "prod_active_tg" {
+  name  = "/compiler-explorer/prod/active-target-group"
+  type  = "String"
+  value = aws_alb_target_group.prod_blue.arn
+}
+
+# Update default listener to use parameter
+resource "aws_alb_listener" "https" {
+  default_action {
+    type             = "forward"
+    # This is the key change - dynamic target group
+    target_group_arn = data.aws_ssm_parameter.prod_active_tg.value
+  }
+}
+
+# Keep other environments unchanged
+resource "aws_alb_listener_rule" "staging" {
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["staging"].arn
+  }
+  # ... rest unchanged
+}
+```
+
+**Python Implementation**:
+```python
+class HybridDeployment:
+    def __init__(self, cfg: Config):
+        self.cfg = cfg
+        self.env = cfg.env.value
+    
+    def refresh(self):
+        if self.env == "prod":
+            self._blue_green_deploy_prod()
+        else:
+            self._rolling_deploy_other()
+    
+    def _blue_green_deploy_prod(self):
+        """Target group switching for production"""
+        # 1. Get current active target group
+        param = ssm_client.get_parameter(
+            Name="/compiler-explorer/prod/active-target-group"
+        )
+        current_tg_arn = param['Parameter']['Value']
+        
+        # 2. Determine new target group
+        if "Blue" in current_tg_arn:
+            new_tg_arn = current_tg_arn.replace("Blue", "Green")
+            new_asg = "prod-green"
+            old_asg = "prod-blue"
+        else:
+            new_tg_arn = current_tg_arn.replace("Green", "Blue")
+            new_asg = "prod-blue"
+            old_asg = "prod-green"
+        
+        # 3. Scale up new ASG (already attached to its TG)
+        scale_up_asg(new_asg)
+        
+        # 4. Wait for healthy instances
+        wait_for_healthy_targets(new_tg_arn)
+        
+        # 5. ATOMIC SWITCH - Update default listener
+        listener_arn = get_default_listener_arn()
+        elb_client.modify_listener(
+            ListenerArn=listener_arn,
+            DefaultActions=[{
+                'Type': 'forward',
+                'TargetGroupArn': new_tg_arn
+            }]
+        )
+        
+        # 6. Update SSM parameter
+        ssm_client.put_parameter(
+            Name="/compiler-explorer/prod/active-target-group",
+            Value=new_tg_arn,
+            Overwrite=True
+        )
+        
+        # 7. Scale down old ASG
+        scale_down_asg(old_asg)
+    
+    def _rolling_deploy_other(self):
+        """Keep existing rolling deployment for non-prod"""
+        # Current refresh logic
+        perform_instance_refresh(self.cfg)
+```
+
+#### Advantages of Hybrid Approach
+
+1. **Best of Both Worlds**:
+   - Atomic switching for production (where it matters most)
+   - Simple management for other environments
+   - Reduced infrastructure complexity
+
+2. **Easier Migration Path**:
+   - Start with production only
+   - Prove the concept works
+   - Optionally expand to other environments later
+
+3. **Cost Efficient**:
+   - Only duplicate resources for production
+   - Other environments stay lean
+
+4. **Cleaner Terraform**:
+   - Default listener can be dynamic
+   - Path-based rules stay static
+   - Less state management complexity
+
+#### Considerations
+
+1. **Different Deployment Strategies**:
+   - Team needs to understand two approaches
+   - Different commands for prod vs non-prod
+   - Documentation must be clear
+
+2. **Monitoring Differences**:
+   - Production has two target groups to monitor
+   - Different alerting rules needed
+
+3. **Testing Strategy**:
+   - Can't test the prod deployment strategy in staging
+   - Need separate testing approach
+
+This hybrid approach offers a pragmatic solution that provides maximum benefit (atomic switching for 95% of traffic) with minimum complexity (only doubling production resources).
+
 ### Why "Attach New First, Then Detach Old"?
 
 1. **Zero Downtime**: Ensures capacity never drops below required
