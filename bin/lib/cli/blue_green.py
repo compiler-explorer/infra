@@ -16,8 +16,9 @@ def blue_green():
 
 
 @blue_green.command(name="status")
+@click.option("--detailed", is_flag=True, help="Show detailed instance and target health information")
 @click.pass_obj
-def blue_green_status(cfg: Config):
+def blue_green_status(cfg: Config, detailed: bool):
     """Show the current blue-green deployment status."""
     if cfg.env.value != "beta":
         print("Blue-green deployment is currently only available for beta environment")
@@ -39,7 +40,63 @@ def blue_green_status(cfg: Config):
             print(f"  {color}{active_marker}:")
             print(f"    ASG Name: {asg_info['name']}")
             print(f"    Desired/Min/Max: {asg_info['desired']}/{asg_info['min']}/{asg_info['max']}")
-            print(f"    Instances: {asg_info['healthy_instances']}/{asg_info['instances']} healthy")
+            print(f"    ASG Health: {asg_info['healthy_instances']}/{asg_info['instances']} healthy")
+            
+            # Show target group health if available
+            if "target_group_healthy" in asg_info:
+                tg_status = asg_info["target_group_status"]
+                tg_healthy = asg_info["target_group_healthy"]
+                total_instances = asg_info["instances"]
+                
+                status_emoji = {
+                    "all_healthy": "✅",
+                    "partially_healthy": "⚠️",
+                    "unhealthy": "❌",
+                    "unknown": "❓",
+                    "error": "💥"
+                }.get(tg_status, "❓")
+                
+                print(f"    Target Group: {tg_healthy}/{total_instances} healthy {status_emoji}")
+                
+                if tg_status == "unhealthy" and total_instances > 0:
+                    print(f"      Note: Instances may still be starting up or failing health checks")
+                elif tg_status == "partially_healthy":
+                    print(f"      Note: Some instances are still starting up")
+                elif tg_status == "error":
+                    print(f"      Note: Error checking target group health")
+            
+            # Show detailed instance information if requested
+            if detailed and asg_info.get("instances", 0) > 0:
+                print(f"    Detailed Instance Status:")
+                try:
+                    deployment = BlueGreenDeployment(cfg)
+                    asg_name = asg_info["name"]
+                    response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+                    if response["AutoScalingGroups"]:
+                        asg = response["AutoScalingGroups"][0]
+                        
+                        for instance in asg["Instances"]:
+                            iid = instance["InstanceId"]
+                            asg_health = instance["HealthStatus"]
+                            lifecycle = instance["LifecycleState"]
+                            
+                            # Get target group health for this instance
+                            tg_health = "unknown"
+                            try:
+                                tg_arn = deployment.get_target_group_arn(color)
+                                tg_response = elb_client.describe_target_health(
+                                    TargetGroupArn=tg_arn,
+                                    Targets=[{"Id": iid}]
+                                )
+                                if tg_response["TargetHealthDescriptions"]:
+                                    tg_health = tg_response["TargetHealthDescriptions"][0]["TargetHealth"]["State"]
+                            except Exception:
+                                tg_health = "error"
+                            
+                            print(f"      {iid}: ASG={asg_health}, TG={tg_health}, State={lifecycle}")
+                            
+                except Exception as e:
+                    print(f"      Error getting detailed status: {e}")
 
 
 @blue_green.command(name="deploy")
