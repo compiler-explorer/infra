@@ -82,11 +82,15 @@ class BlueGreenDeployment:
         return response["LoadBalancers"][0]["LoadBalancerArn"]
 
     def wait_for_instances_healthy(self, asg_name: str, timeout: int = 900) -> List[str]:
-        """Wait for all instances in ASG to be healthy."""
+        """Wait for all instances in ASG to be InService (running).
+        
+        Note: This only waits for instances to be running, not for health checks to pass.
+        Actual health verification is done by target group and HTTP health checks.
+        """
         start_time = time.time()
         last_status_time = 0.0
 
-        print(f"Waiting for instances in {asg_name} to become healthy (this typically takes 5-10 minutes)...")
+        print(f"Waiting for instances in {asg_name} to be in service...")
 
         # Don't check for the first 30 seconds - instances need time to boot
         print("Initial boot period (30s)...")
@@ -106,33 +110,46 @@ class BlueGreenDeployment:
                     print(f"ASG {asg_name} has desired capacity of 0")
                     return []
 
-                healthy_instances = [
+                # For deployment, we only need instances to be InService (running)
+                # The actual health checking is done by target group and HTTP checks
+                all_instances = asg["Instances"]
+                in_service_instances = [
                     i["InstanceId"]
-                    for i in asg["Instances"]
-                    if i["HealthStatus"] == "Healthy" and i["LifecycleState"] == "InService"
+                    for i in all_instances
+                    if i["LifecycleState"] == "InService"
                 ]
 
                 current_time = time.time()
 
-                if len(healthy_instances) == desired:
+                if len(in_service_instances) == desired:
                     elapsed_mins = int((current_time - start_time) / 60)
                     elapsed_secs = int((current_time - start_time) % 60)
-                    print(f"✅ All {desired} instances healthy after {elapsed_mins}m {elapsed_secs}s")
+                    print(f"✅ All {desired} instances in service after {elapsed_mins}m {elapsed_secs}s")
 
-                    # Print full status when all instances are healthy
+                    # Print full status when all instances are in service
                     print("Instance details:")
                     for instance in asg["Instances"]:
                         iid = instance["InstanceId"]
                         health = instance["HealthStatus"]
                         state = instance["LifecycleState"]
-                        print(f"  {iid}: {health}, {state}")
+                        print(f"  {iid}: ASG Health={health}, Lifecycle={state}")
 
-                    return healthy_instances
+                    return in_service_instances
 
                 # Only print status every 60 seconds to reduce noise
                 if current_time - last_status_time >= 60:
                     elapsed_mins = int((current_time - start_time) / 60)
-                    print(f"[{elapsed_mins}m] ASG {asg_name}: {len(healthy_instances)}/{desired} instances healthy")
+                    print(f"[{elapsed_mins}m] ASG {asg_name}: {len(in_service_instances)}/{desired} instances in service")
+                    
+                    # Debug output to diagnose status
+                    if len(in_service_instances) < desired:
+                        print("  Instance states:")
+                        for instance in asg["Instances"]:
+                            iid = instance["InstanceId"]
+                            health = instance["HealthStatus"]
+                            state = instance["LifecycleState"]
+                            print(f"    {iid}: ASG Health={health}, Lifecycle={state}")
+                    
                     last_status_time = current_time
 
             except ClientError as e:
@@ -353,8 +370,8 @@ class BlueGreenDeployment:
         print(f"\nStep 1: Scaling up {inactive_asg} to {target_capacity} instances")
         self.scale_asg(inactive_asg, target_capacity)
 
-        # Step 2: Wait for instances to be healthy in ASG
-        print(f"\nStep 2: Waiting for instances in {inactive_asg} to be healthy")
+        # Step 2: Wait for instances to be in service (running)
+        print(f"\nStep 2: Waiting for instances in {inactive_asg} to be in service")
         instances = self.wait_for_instances_healthy(inactive_asg)
 
         if len(instances) != target_capacity:
@@ -365,14 +382,15 @@ class BlueGreenDeployment:
         inactive_tg_arn = self.get_target_group_arn(inactive_color)
         self.wait_for_targets_healthy(inactive_tg_arn, instances)
 
-        # Step 3.5: Optional HTTP health check (will timeout gracefully if security group not configured)
+        # Step 3.5: HTTP health check (important for verifying instances are actually serving)
         if self.running_on_admin_node:
             print("\nStep 3.5: Checking HTTP health endpoints")
             try:
-                self.wait_for_http_health(instances, timeout=30)  # Short timeout since this is optional
+                self.wait_for_http_health(instances, timeout=300)  # 5 minute timeout for HTTP checks
                 print("HTTP health checks passed!")
             except TimeoutError:
-                print("HTTP health checks timed out (this is normal if admin security group rule not applied)")
+                print("⚠️  HTTP health checks timed out after 5 minutes")
+                print("This could indicate instances are not properly responding to health checks")
                 print("Proceeding with deployment based on ALB target group health...")
         else:
             print("\nStep 3.5: Skipping HTTP health checks (not running on admin node)")
