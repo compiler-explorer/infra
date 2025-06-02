@@ -50,6 +50,8 @@ def blue_green_status(cfg: Config, detailed: bool):
 
                 status_emoji = {
                     "all_healthy": "✅",
+                    "all_unused": "🟡",  # Ready but not receiving traffic
+                    "mixed_ready": "🔄",  # Some healthy, some unused
                     "partially_healthy": "⚠️",
                     "unhealthy": "❌",
                     "unknown": "❓",
@@ -62,6 +64,10 @@ def blue_green_status(cfg: Config, detailed: bool):
                     print("      Note: Instances may still be starting up or failing health checks")
                 elif tg_status == "partially_healthy":
                     print("      Note: Some instances are still starting up")
+                elif tg_status == "all_unused":
+                    print("      Note: Instances are ready but not receiving traffic (standby)")
+                elif tg_status == "mixed_ready":
+                    print("      Note: Some instances receiving traffic, others on standby")
                 elif tg_status == "error":
                     print("      Note: Error checking target group health")
 

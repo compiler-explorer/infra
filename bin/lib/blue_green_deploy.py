@@ -285,15 +285,24 @@ class BlueGreenDeployment:
                             tg_health = elb_client.describe_target_health(
                                 TargetGroupArn=tg_arn, Targets=[{"Id": iid} for iid in instance_ids]
                             )
-                            tg_healthy_count = len(
-                                [
-                                    t
-                                    for t in tg_health["TargetHealthDescriptions"]
-                                    if t["TargetHealth"]["State"] == "healthy"
-                                ]
-                            )
-                            if tg_healthy_count == len(instance_ids):
+                            healthy_count = 0
+                            unused_count = 0
+                            
+                            for target in tg_health["TargetHealthDescriptions"]:
+                                state = target["TargetHealth"]["State"]
+                                if state == "healthy":
+                                    healthy_count += 1
+                                elif state == "unused":
+                                    unused_count += 1
+                            
+                            tg_healthy_count = healthy_count + unused_count  # Both are "ready"
+                            
+                            if healthy_count == len(instance_ids):
                                 tg_status = "all_healthy"
+                            elif unused_count == len(instance_ids):
+                                tg_status = "all_unused"  # Ready but not receiving traffic
+                            elif (healthy_count + unused_count) == len(instance_ids):
+                                tg_status = "mixed_ready"  # Some healthy, some unused
                             elif tg_healthy_count > 0:
                                 tg_status = "partially_healthy"
                             else:
