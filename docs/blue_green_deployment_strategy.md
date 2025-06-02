@@ -171,6 +171,178 @@ elb_client.modify_rule(
 - More complex Terraform management
 - Breaks the current path-based routing model
 
+#### How Current Path-Based Routing Works
+
+The current architecture uses a single ALB with path-based routing rules:
+
+```
+ALB (compiler-explorer.com)
+├── Default rule → prod target group
+├── /beta* → beta target group
+├── /staging* → staging target group
+├── /gpu* → gpu target group
+└── /wintest* → wintest target group
+```
+
+Each environment has:
+- **One target group** (e.g., "Prod", "Beta", "Staging")
+- **One ASG** attached to that target group
+- **Path-based routing** to direct traffic
+
+Example current Terraform:
+```hcl
+# One target group per environment
+resource "aws_alb_target_group" "ce" {
+  for_each = {
+    "prod"    = 1
+    "staging" = 2
+    "beta"    = 3
+  }
+  name = title(each.key)
+}
+
+# ALB listener rules route by path
+resource "aws_alb_listener_rule" "staging" {
+  priority = 2
+  condition {
+    path_pattern {
+      values = ["/staging*"]
+    }
+  }
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.ce["staging"].arn
+  }
+}
+```
+
+#### How Target Group Switching Would Change This
+
+With target group switching, each environment would need **two target groups**:
+
+```
+ALB (compiler-explorer.com)
+├── Default rule → prod-blue OR prod-green (switchable)
+├── /beta* → beta-blue OR beta-green (switchable)
+├── /staging* → staging-blue OR staging-green (switchable)
+└── /gpu* → gpu-blue OR gpu-green (switchable)
+```
+
+Required changes:
+
+1. **Double the Target Groups**:
+```hcl
+# Need blue AND green target groups for each environment
+resource "aws_alb_target_group" "ce_blue" {
+  for_each = var.environments
+  name = "${title(each.key)}-Blue"
+}
+
+resource "aws_alb_target_group" "ce_green" {
+  for_each = var.environments
+  name = "${title(each.key)}-Green"
+}
+```
+
+2. **Dynamic Listener Rules**:
+```hcl
+# Listener rules must be updateable via Terraform variables or data sources
+resource "aws_alb_listener_rule" "staging" {
+  condition {
+    path_pattern {
+      values = ["/staging*"]
+    }
+  }
+  action {
+    type = "forward"
+    # This would need to be dynamic based on active color
+    target_group_arn = data.aws_ssm_parameter.staging_active_tg.value
+  }
+}
+```
+
+3. **Complex State Management**:
+```python
+# Need to track which target group is active for EACH environment
+def get_active_target_groups():
+    return {
+        "prod": "prod-blue",      # or "prod-green"
+        "staging": "staging-green", # or "staging-blue"
+        "beta": "beta-blue",      # or "beta-green"
+    }
+
+# Switching would update the ALB rule for that specific path
+def switch_environment(env: str, new_color: str):
+    rule_arn = get_rule_arn_for_environment(env)
+    new_tg_arn = get_target_group_arn(f"{env}-{new_color}")
+    
+    elb_client.modify_rule(
+        RuleArn=rule_arn,
+        Actions=[{
+            'Type': 'forward',
+            'TargetGroupArn': new_tg_arn
+        }]
+    )
+```
+
+#### Why This Breaks the Current Model
+
+1. **Terraform Complexity**:
+   - Currently: 9 target groups (one per environment)
+   - With switching: 18 target groups (two per environment)
+   - Need dynamic rule updates based on external state
+
+2. **State Synchronization**:
+   - Must track active color for EACH environment separately
+   - Can't use a single "active color" for all environments
+   - Risk of state drift between Terraform and reality
+
+3. **Path-Based Routing Complications**:
+   - Each path rule needs independent blue/green state
+   - Can't refresh all environments simultaneously
+   - More complex rollback scenarios
+
+4. **Operational Overhead**:
+   - Double the health checks to monitor
+   - Double the CloudWatch alarms
+   - More complex debugging ("which target group is /staging using?")
+
+#### Example Deployment Sequence with Target Group Switching
+
+```python
+def deploy_with_target_group_switching(env: str):
+    # 1. Identify current active target group
+    current_tg = f"{env}-blue"  # example
+    new_tg = f"{env}-green"
+    
+    # 2. Ensure new ASG is attached to new target group
+    as_client.attach_load_balancer_target_groups(
+        AutoScalingGroupName=f"{env}-green",
+        TargetGroupARNs=[get_tg_arn(new_tg)]
+    )
+    
+    # 3. Scale up new ASG
+    scale_up_asg(f"{env}-green")
+    
+    # 4. Wait for healthy instances in new target group
+    wait_for_healthy_targets(new_tg)
+    
+    # 5. ATOMIC SWITCH - Update ALB rule
+    rule_arn = get_listener_rule_for_path(f"/{env}*")
+    elb_client.modify_rule(
+        RuleArn=rule_arn,
+        Actions=[{
+            'Type': 'forward',
+            'TargetGroupArn': get_tg_arn(new_tg)
+        }]
+    )
+    
+    # 6. Scale down old ASG
+    scale_down_asg(f"{env}-blue")
+```
+
+While this approach provides a truly atomic switch, the added complexity of managing double the target groups and coordinating path-based rules makes it less attractive than the instance-switching approach for Compiler Explorer's architecture.
+
 ### Why "Attach New First, Then Detach Old"?
 
 1. **Zero Downtime**: Ensures capacity never drops below required
