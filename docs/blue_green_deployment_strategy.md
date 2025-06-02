@@ -521,6 +521,265 @@ class HybridDeployment:
 
 This hybrid approach offers a pragmatic solution that provides maximum benefit (atomic switching for 95% of traffic) with minimum complexity (only doubling production resources).
 
+## Testing Strategy: Using Beta Environment
+
+Beta environment is ideal for testing blue-green deployments because:
+- Usually offline, minimizing user impact
+- Has path-based routing (/beta*) similar to other environments
+- Lower stakes for testing infrastructure changes
+- Can validate both target group and instance switching approaches
+
+### Phase 1: Beta Environment Test Plan
+
+#### 1.1 Infrastructure Setup for Beta Testing
+```hcl
+# Create blue/green resources for beta
+resource "aws_autoscaling_group" "beta_blue" {
+  name                      = "beta-blue"
+  min_size                  = 0
+  max_size                  = 2
+  desired_capacity          = 0  # Start with zero
+  health_check_type         = "ELB"
+  health_check_grace_period = 240
+  
+  launch_template {
+    id      = aws_launch_template.CompilerExplorer-beta.id
+    version = "$Latest"
+  }
+  
+  # Attach to blue target group
+  target_group_arns = [aws_alb_target_group.beta_blue.arn]
+  
+  tag {
+    key                 = "Color"
+    value               = "blue"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_autoscaling_group" "beta_green" {
+  # Identical setup with green target group
+}
+
+# Two target groups for beta
+resource "aws_alb_target_group" "beta_blue" {
+  name = "Beta-Blue"
+  # ... standard configuration
+}
+
+resource "aws_alb_target_group" "beta_green" {
+  name = "Beta-Green"
+  # ... standard configuration
+}
+```
+
+#### 1.2 Test Sequence
+```bash
+# 1. Deploy test infrastructure
+terraform apply -target=aws_autoscaling_group.beta_blue
+terraform apply -target=aws_autoscaling_group.beta_green
+
+# 2. Start with blue
+ce --env beta environment start  # Scale up beta-blue
+ce --env beta environment test-blue-green --validate
+
+# 3. Deploy new version to green
+ce --env beta builds set_current <test-version>
+ce --env beta environment refresh --strategy=blue-green --target=green
+
+# 4. Test the switch
+ce --env beta environment switch --from=blue --to=green
+
+# 5. Validate and switch back
+ce --env beta environment validate
+ce --env beta environment switch --from=green --to=blue
+```
+
+### Phase 2: Testing Scenarios
+
+#### Test Cases for Beta
+1. **Happy Path**
+   - Deploy to inactive color
+   - Health checks pass
+   - Switch traffic
+   - Verify no 5xx errors during switch
+
+2. **Rollback Test**
+   - Deploy bad version to green
+   - Detect failures
+   - Quick rollback to blue
+   - Measure rollback time (<1 minute target)
+
+3. **Capacity Test**
+   - Ensure sufficient capacity during switch
+   - Test with different instance counts
+   - Verify traffic distribution
+
+4. **Monitoring Test**
+   - CloudWatch metrics for both target groups
+   - Alert on switching events
+   - Track deployment duration
+
+## Migration Strategy: From Current to Blue-Green
+
+### Pre-Migration Checklist
+
+1. **Communication**
+   - Announce maintenance window (2-3 hours recommended)
+   - Prepare rollback plan documentation
+   - Brief operations team on new process
+
+2. **Infrastructure Preparation**
+   ```bash
+   # Create new resources without affecting existing
+   terraform plan -out=blue-green.tfplan
+   terraform apply blue-green.tfplan
+   ```
+
+3. **Validation Steps**
+   - Verify new ASGs are created but scaled to zero
+   - Confirm target groups are healthy (no targets yet)
+   - Test parameter store access
+   - Validate IAM permissions for switching
+
+### Migration Plan for Production
+
+#### Option A: Safe Migration with Maintenance Window
+
+```python
+def migrate_to_blue_green_prod():
+    """
+    Migrate production from single ASG to blue/green with downtime.
+    Total time: ~30 minutes with validation
+    """
+    
+    # 1. Set maintenance message (T+0)
+    set_update_message("Upgrading deployment system - brief downtime expected")
+    
+    # 2. Note current version (T+1)
+    current_version = get_current_build_version("prod")
+    current_instances = get_healthy_instances("prod")
+    
+    # 3. Create new blue ASG with current version (T+2)
+    set_build_version("prod-blue", current_version)
+    scale_asg("prod-blue", len(current_instances))
+    
+    # 4. Wait for blue instances healthy in new TG (T+5 to T+10)
+    wait_for_healthy_targets("Prod-Blue", timeout=300)
+    
+    # 5. CRITICAL: Atomic switch to blue target group (T+10)
+    # This is the actual downtime moment - ~1 second
+    switch_alb_default_action_to("Prod-Blue")
+    update_parameter_store("/compiler-explorer/prod/active-target-group", "blue")
+    
+    # 6. Verify traffic flowing (T+11)
+    verify_health_endpoint()
+    verify_no_5xx_errors()
+    
+    # 7. Drain and terminate old ASG (T+12 to T+15)
+    # Set desired=0, let ALB drain connections (20 seconds)
+    scale_asg("prod", 0)
+    
+    # 8. Clear maintenance message (T+20)
+    set_update_message("")
+    
+    # 9. Test green deployment (T+25)
+    test_blue_green_switch()
+```
+
+#### Option B: Zero-Downtime Migration (Complex but Safer)
+
+```python
+def migrate_zero_downtime():
+    """
+    Migrate with zero downtime using instance-level management.
+    Total time: ~45 minutes but no service interruption
+    """
+    
+    # 1. Create blue ASG with same version
+    current_version = get_current_build_version("prod")
+    set_build_version("prod-blue", current_version)
+    
+    # 2. Scale blue to match current capacity
+    current_count = get_instance_count("prod")
+    scale_asg("prod-blue", current_count)
+    
+    # 3. Wait for blue instances healthy
+    blue_instances = wait_for_healthy_instances("prod-blue")
+    
+    # 4. Gradually migrate instances to blue target group
+    for instance in blue_instances[:len(blue_instances)//2]:
+        # Register new instance
+        register_target("Prod-Blue", instance)
+        wait_for_target_healthy("Prod-Blue", instance)
+        
+        # Deregister one old instance
+        old_instance = get_instances("prod")[0]
+        deregister_target("Prod", old_instance)
+        terminate_instance(old_instance)
+        
+        # Wait to avoid thundering herd
+        time.sleep(30)
+    
+    # 5. Switch default action to blue TG
+    switch_alb_default_action_to("Prod-Blue")
+    
+    # 6. Migrate remaining instances
+    # ... continue gradual migration
+```
+
+### Post-Migration Validation
+
+1. **Functional Tests**
+   ```bash
+   # Verify blue deployment
+   ce --env prod environment status
+   ce --env prod environment health-check
+   
+   # Test switch to green
+   ce --env prod environment refresh --strategy=blue-green --dry-run
+   ```
+
+2. **Performance Tests**
+   - Load test during switch
+   - Measure switch time
+   - Verify no increase in error rates
+
+3. **Monitoring Setup**
+   - CloudWatch dashboard for blue/green target groups
+   - Alerts for failed deployments
+   - Deployment duration metrics
+
+### Rollback Plan
+
+If issues arise during migration:
+
+1. **Before ALB Switch**:
+   - Simply terminate new ASGs
+   - No impact to service
+
+2. **After ALB Switch**:
+   ```python
+   # Quick rollback to original setup
+   switch_alb_default_action_to("Prod")  # Original TG
+   scale_asg("prod", original_capacity)
+   scale_asg("prod-blue", 0)
+   ```
+
+3. **Emergency Procedure**:
+   - Have terraform state backup
+   - Document original ALB listener configuration
+   - Keep original ASG configuration as terraform backup
+
+### Success Criteria
+
+- [ ] Zero 5xx errors during migration
+- [ ] Switch time < 2 seconds
+- [ ] All health checks passing
+- [ ] Successful test deployment post-migration
+- [ ] Rollback tested and timed (< 1 minute)
+- [ ] Team trained on new procedures
+
 ### Why "Attach New First, Then Detach Old"?
 
 1. **Zero Downtime**: Ensures capacity never drops below required
