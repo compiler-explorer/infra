@@ -30,6 +30,7 @@ output "beta_green_target_group_arn" {
 output "beta_active_target_group_arn" {
   value       = module.beta_blue_green.active_target_group_arn
   description = "Currently active target group ARN for beta"
+  sensitive   = true
 }
 
 output "beta_active_color" {
