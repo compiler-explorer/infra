@@ -5,7 +5,7 @@ from typing import Any, Dict, Optional
 from botocore.exceptions import ClientError
 
 from lib.amazon import elb_client, ssm_client
-from lib.aws_utils import get_asg_info, get_target_health_counts, scale_asg
+from lib.aws_utils import get_asg_info, get_target_health_counts, reset_asg_min_size, scale_asg
 from lib.ce_utils import is_running_on_admin_node
 from lib.deployment_utils import (
     check_instance_health,
@@ -50,12 +50,8 @@ class BlueGreenDeployment:
 
     def get_target_group_arn(self, color: str) -> str:
         """Get target group ARN for the specified color."""
-        # For beta, we have specific blue/green target groups
-        if self.env == "beta":
-            tg_name = f"Beta-{color.capitalize()}"
-        else:
-            # For other environments, construct the name
-            tg_name = f"{self.env.capitalize()}-{color.capitalize()}"
+        # Construct target group name: Environment-Color (e.g., Beta-Blue, Prod-Green)
+        tg_name = f"{self.env.capitalize()}-{color.capitalize()}"
 
         # List all target groups and find the matching one
         response = elb_client.describe_target_groups()
@@ -72,18 +68,25 @@ class BlueGreenDeployment:
     def get_listener_rule_arn(self) -> Optional[str]:
         """Get the ALB listener rule ARN for this environment."""
         # For beta environment with path-based routing
-        if self.env == "beta":
-            # Need to find the rule that matches /beta*
-            listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
+        if self.env != "beta":
+            return None
 
-            for listener in listeners["Listeners"]:
-                if listener["Port"] == 443:  # HTTPS listener
-                    rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
-                    for rule in rules["Rules"]:
-                        if rule.get("Conditions"):
-                            for condition in rule["Conditions"]:
-                                if condition.get("Field") == "path-pattern" and "/beta*" in condition.get("Values", []):
-                                    return rule["RuleArn"]
+        # Need to find the rule that matches /beta*
+        listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
+
+        # Find HTTPS listener
+        https_listeners = [listener for listener in listeners["Listeners"] if listener["Port"] == 443]
+        if not https_listeners:
+            return None
+
+        # Check rules for path pattern matching /beta*
+        for listener in https_listeners:
+            rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
+            for rule in rules["Rules"]:
+                conditions = rule.get("Conditions", [])
+                for condition in conditions:
+                    if condition.get("Field") == "path-pattern" and "/beta*" in condition.get("Values", []):
+                        return rule["RuleArn"]
 
         return None
 
@@ -131,9 +134,10 @@ class BlueGreenDeployment:
 
         inactive_asg = self.get_asg_name(inactive_color)
 
-        # Step 1: Scale up inactive ASG
+        # Step 1: Scale up inactive ASG with min size protection
         print(f"\nStep 1: Scaling up {inactive_asg} to {target_capacity} instances")
-        scale_asg(inactive_asg, target_capacity)
+        print("         Setting minimum size to prevent autoscaling interference during deployment")
+        scale_asg(inactive_asg, target_capacity, set_min_size=True)
 
         # Step 2: Wait for instances to be in service (running)
         print(f"\nStep 2: Waiting for instances in {inactive_asg} to be in service")
@@ -178,6 +182,10 @@ class BlueGreenDeployment:
         # Step 4: Switch traffic to new color
         print(f"\nStep 4: Switching traffic to {inactive_color}")
         self.switch_target_group(inactive_color)
+
+        # Step 5: Reset minimum size back to 0 now that deployment is complete
+        print(f"\nStep 5: Resetting minimum size of {inactive_asg} back to 0")
+        reset_asg_min_size(inactive_asg, min_size=0)
 
         print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
         print(f"Old {active_color} ASG remains running for rollback if needed")

@@ -52,7 +52,32 @@ def get_target_health_counts(target_group_arn: str, instance_ids: List[str]) -> 
         return {"healthy": 0, "unused": 0}
 
 
-def scale_asg(asg_name: str, desired_capacity: int) -> None:
-    """Scale an ASG to the specified capacity."""
+def scale_asg(asg_name: str, desired_capacity: int, set_min_size: bool = False) -> None:
+    """Scale an ASG to the specified capacity.
+
+    Args:
+        asg_name: Name of the Auto Scaling Group
+        desired_capacity: Target number of instances
+        set_min_size: If True, also sets MinSize to match desired_capacity
+    """
     print(f"Scaling {asg_name} to {desired_capacity} instances")
-    as_client.set_desired_capacity(AutoScalingGroupName=asg_name, DesiredCapacity=desired_capacity)
+
+    if set_min_size:
+        # Set both desired capacity and min size to prevent scale-down during deployment
+        print(f"  Also setting minimum size to {desired_capacity} to prevent scale-down")
+        as_client.update_auto_scaling_group(
+            AutoScalingGroupName=asg_name, MinSize=desired_capacity, DesiredCapacity=desired_capacity
+        )
+    else:
+        as_client.set_desired_capacity(AutoScalingGroupName=asg_name, DesiredCapacity=desired_capacity)
+
+
+def reset_asg_min_size(asg_name: str, min_size: int = 0) -> None:
+    """Reset the minimum size of an ASG.
+
+    Args:
+        asg_name: Name of the Auto Scaling Group
+        min_size: Minimum size to set (default: 0)
+    """
+    print(f"Resetting {asg_name} minimum size to {min_size}")
+    as_client.update_auto_scaling_group(AutoScalingGroupName=asg_name, MinSize=min_size)
