@@ -81,3 +81,22 @@ def reset_asg_min_size(asg_name: str, min_size: int = 0) -> None:
     """
     print(f"Resetting {asg_name} minimum size to {min_size}")
     as_client.update_auto_scaling_group(AutoScalingGroupName=asg_name, MinSize=min_size)
+
+
+def protect_asg_capacity(asg_name: str) -> Optional[int]:
+    """Protect an ASG from scaling down by setting MinSize to current capacity.
+
+    Returns the original MinSize value for restoration, or None if ASG not found.
+    """
+    asg_info = get_asg_info(asg_name)
+    if not asg_info:
+        return None
+
+    original_min = asg_info["MinSize"]
+    current_capacity = asg_info["DesiredCapacity"]
+
+    if current_capacity > 0 and original_min < current_capacity:
+        print(f"Protecting {asg_name} from scale-down: setting MinSize to {current_capacity}")
+        as_client.update_auto_scaling_group(AutoScalingGroupName=asg_name, MinSize=current_capacity)
+
+    return original_min

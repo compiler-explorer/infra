@@ -1,11 +1,13 @@
 """Blue-green deployment management for Compiler Explorer."""
 
+import signal
+import sys
 from typing import Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 
 from lib.amazon import elb_client, ssm_client
-from lib.aws_utils import get_asg_info, get_target_health_counts, reset_asg_min_size, scale_asg
+from lib.aws_utils import get_asg_info, get_target_health_counts, protect_asg_capacity, reset_asg_min_size, scale_asg
 from lib.ce_utils import is_running_on_admin_node
 from lib.deployment_utils import (
     check_instance_health,
@@ -132,63 +134,111 @@ class BlueGreenDeployment:
             if target_capacity == 0:
                 target_capacity = 1  # Default to 1 if nothing is running
 
+        active_asg = self.get_asg_name(active_color)
         inactive_asg = self.get_asg_name(inactive_color)
 
-        # Step 1: Scale up inactive ASG with min size protection
-        print(f"\nStep 1: Scaling up {inactive_asg} to {target_capacity} instances")
-        print("         Setting minimum size to prevent autoscaling interference during deployment")
-        scale_asg(inactive_asg, target_capacity, set_min_size=True)
+        # Track original min sizes for cleanup
+        active_original_min = None
+        deployment_succeeded = False
+        cleanup_handler_installed = False
+        old_sigint = None
+        old_sigterm = None
 
-        # Step 2: Wait for instances to be in service (running)
-        print(f"\nStep 2: Waiting for instances in {inactive_asg} to be in service")
-        instances = wait_for_instances_healthy(inactive_asg)
+        # Define cleanup handler for signals
+        def cleanup_on_signal(signum, frame):
+            print(f"\n\n⚠️  Deployment interrupted by signal {signum}!")
+            print("Performing cleanup...")
+            if active_original_min is not None:
+                print(f"Restoring original minimum size for {active_asg}")
+                reset_asg_min_size(active_asg, min_size=active_original_min)
+            print(f"Resetting minimum size of {inactive_asg}")
+            reset_asg_min_size(inactive_asg, min_size=0)
+            print("Cleanup complete. Exiting.")
+            sys.exit(1)
 
-        if len(instances) != target_capacity:
-            raise RuntimeError(f"Expected {target_capacity} instances, but only {len(instances)} are healthy")
+        try:
+            # Install signal handlers for cleanup
+            old_sigint = signal.signal(signal.SIGINT, cleanup_on_signal)
+            old_sigterm = signal.signal(signal.SIGTERM, cleanup_on_signal)
+            cleanup_handler_installed = True
+            # Step 0: Protect active ASG from scaling down during deployment
+            print(f"\nStep 0: Protecting active {active_color} ASG from scale-down during deployment")
+            active_original_min = protect_asg_capacity(active_asg)
 
-        # Step 3: Verify instances are healthy
-        # For blue-green deployments, we can't rely on ALB target group health since
-        # the inactive color isn't receiving traffic. We must use HTTP health checks.
-        if self.running_on_admin_node:
-            print("\nStep 3: Checking HTTP health endpoints")
-            try:
-                wait_for_http_health(instances, timeout=300)  # 5 minute timeout for HTTP checks
-                print("✅ All instances are responding to health checks!")
-            except TimeoutError:
-                print("⚠️  HTTP health checks timed out after 5 minutes")
-                print("This indicates instances are not properly responding to health checks")
+            # Step 1: Scale up inactive ASG with min size protection
+            print(f"\nStep 1: Scaling up {inactive_asg} to {target_capacity} instances")
+            print("         Setting minimum size to prevent autoscaling interference during deployment")
+            scale_asg(inactive_asg, target_capacity, set_min_size=True)
 
-                # Try to get more info about what's wrong
-                tg_arn = self.get_target_group_arn(inactive_color)
-                print_target_group_diagnostics(tg_arn, instances)
+            # Step 2: Wait for instances to be in service (running)
+            print(f"\nStep 2: Waiting for instances in {inactive_asg} to be in service")
+            instances = wait_for_instances_healthy(inactive_asg)
 
-                raise RuntimeError("Instances are not passing health checks. Deployment aborted.") from None
-        else:
-            print("\nStep 3: Cannot verify instance health (not running on admin node)")
-            print("⚠️  WARNING: Unable to verify instances are actually healthy!")
-            print("Please manually verify instances are responding to health checks before proceeding.")
+            if len(instances) != target_capacity:
+                raise RuntimeError(f"Expected {target_capacity} instances, but only {len(instances)} are healthy")
 
-        # Additional confirmation when not on admin node
-        if not self.running_on_admin_node and not skip_confirmation:
-            print(f"\n⚠️  WARNING: About to switch traffic to {inactive_color} without HTTP health verification!")
-            print("Since you're not running on the admin node, HTTP health checks were skipped.")
-            print(f"Please ensure the {inactive_color} instances are responding properly before continuing.")
+            # Step 3: Verify instances are healthy
+            # For blue-green deployments, we can't rely on ALB target group health since
+            # the inactive color isn't receiving traffic. We must use HTTP health checks.
+            if self.running_on_admin_node:
+                print("\nStep 3: Checking HTTP health endpoints")
+                try:
+                    wait_for_http_health(instances, timeout=300)  # 5 minute timeout for HTTP checks
+                    print("✅ All instances are responding to health checks!")
+                except TimeoutError:
+                    print("⚠️  HTTP health checks timed out after 5 minutes")
+                    print("This indicates instances are not properly responding to health checks")
 
-            response = input("\nDo you want to proceed with the traffic switch? (yes/no): ").strip().lower()
-            if response not in ["yes", "y"]:
-                print("Deployment cancelled. Traffic remains on current instances.")
-                return
+                    # Try to get more info about what's wrong
+                    tg_arn = self.get_target_group_arn(inactive_color)
+                    print_target_group_diagnostics(tg_arn, instances)
 
-        # Step 4: Switch traffic to new color
-        print(f"\nStep 4: Switching traffic to {inactive_color}")
-        self.switch_target_group(inactive_color)
+                    raise RuntimeError("Instances are not passing health checks. Deployment aborted.") from None
+            else:
+                print("\nStep 3: Cannot verify instance health (not running on admin node)")
+                print("⚠️  WARNING: Unable to verify instances are actually healthy!")
+                print("Please manually verify instances are responding to health checks before proceeding.")
 
-        # Step 5: Reset minimum size back to 0 now that deployment is complete
-        print(f"\nStep 5: Resetting minimum size of {inactive_asg} back to 0")
-        reset_asg_min_size(inactive_asg, min_size=0)
+            # Additional confirmation when not on admin node
+            if not self.running_on_admin_node and not skip_confirmation:
+                print(f"\n⚠️  WARNING: About to switch traffic to {inactive_color} without HTTP health verification!")
+                print("Since you're not running on the admin node, HTTP health checks were skipped.")
+                print(f"Please ensure the {inactive_color} instances are responding properly before continuing.")
 
-        print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
-        print(f"Old {active_color} ASG remains running for rollback if needed")
+                response = input("\nDo you want to proceed with the traffic switch? (yes/no): ").strip().lower()
+                if response not in ["yes", "y"]:
+                    print("Deployment cancelled. Traffic remains on current instances.")
+                    # Cleanup will happen in finally block
+                    return
+
+            # Step 4: Switch traffic to new color
+            print(f"\nStep 4: Switching traffic to {inactive_color}")
+            self.switch_target_group(inactive_color)
+
+            # Step 5: Reset minimum size back to 0 now that deployment is complete
+            print(f"\nStep 5: Resetting minimum size of {inactive_asg} back to 0")
+            reset_asg_min_size(inactive_asg, min_size=0)
+
+            print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
+            print(f"Old {active_color} ASG remains running for rollback if needed")
+
+            deployment_succeeded = True
+
+        finally:
+            # Always restore active ASG min size, regardless of success or failure
+            if active_original_min is not None:
+                print(f"\nStep 6: Restoring original minimum size for {active_asg}")
+                reset_asg_min_size(active_asg, min_size=active_original_min)
+
+            # If deployment failed, also reset the inactive ASG min size
+            if not deployment_succeeded:
+                print(f"\nCleaning up: Resetting minimum size of {inactive_asg} after failed deployment")
+                reset_asg_min_size(inactive_asg, min_size=0)
+
+            # Restore original signal handlers
+            if cleanup_handler_installed:
+                signal.signal(signal.SIGINT, old_sigint)
+                signal.signal(signal.SIGTERM, old_sigterm)
 
     def rollback(self) -> None:
         """Rollback to the previous color."""
