@@ -286,18 +286,42 @@ class BlueGreenDeployment:
             # Step 0.5: Set version after ASG is protected but before scaling
             if version:
                 # Get current version first for potential rollback
-                from lib.amazon import get_current_key, has_bouncelock_file
-                from lib.builds_core import set_version_for_deployment
+                from lib.amazon import get_current_key
+                from lib.builds_core import (
+                    check_compiler_discovery,
+                    get_release_without_discovery_check,
+                    set_version_for_deployment,
+                )
 
                 original_version_key = get_current_key(self.cfg)
 
                 print(f"\nStep 0.5: Setting build version to {version}")
                 print(f"         (Current version: {original_version_key})")
 
-                if has_bouncelock_file(self.cfg):
-                    raise RuntimeError(f"{self.cfg.env.value} is bounce locked. Cannot set new version.")
+                # Check if version exists and has discovery
+                try:
+                    release = check_compiler_discovery(self.cfg, version, branch)
+                    if not release:
+                        raise RuntimeError(f"Version {version} not found")
+                except RuntimeError as e:
+                    # Discovery hasn't run - ask for confirmation unless skip_confirmation is True
+                    if skip_confirmation:
+                        print(f"⚠️  WARNING: {e}")
+                        print("Proceeding anyway due to --skip-confirmation")
+                        release = get_release_without_discovery_check(self.cfg, version, branch)
+                        if not release:
+                            raise RuntimeError(f"Version {version} not found") from None
+                    else:
+                        print(f"⚠️  WARNING: {e}")
+                        response = input("Are you sure you want to continue? (yes/no): ").strip().lower()
+                        if response not in ["yes", "y"]:
+                            print("Version setting cancelled.")
+                            raise DeploymentCancelledException("Version setting cancelled by user") from None
+                        release = get_release_without_discovery_check(self.cfg, version, branch)
+                        if not release:
+                            raise RuntimeError(f"Version {version} not found") from None
 
-                if not set_version_for_deployment(self.cfg, version, branch):
+                if not set_version_for_deployment(self.cfg, release):
                     raise RuntimeError(f"Failed to set version {version}")
 
                 version_was_changed = True

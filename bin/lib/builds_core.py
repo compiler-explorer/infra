@@ -72,35 +72,29 @@ def deploy_staticfiles(release: Release) -> bool:
             return job.run()
 
 
-def set_version_for_deployment(cfg: Config, version: str, branch: Optional[str] = None) -> bool:
-    """Set version for deployment without interactive prompts.
+def check_compiler_discovery(cfg: Config, version: str, branch: Optional[str] = None) -> Optional[Release]:
+    """Check if a version exists and has compiler discovery run.
 
-    Returns True if successful, False otherwise.
+    Returns the Release object if found, None if not found.
+    Raises RuntimeError if discovery hasn't run.
     """
-    if has_bouncelock_file(cfg):
-        print(f"{cfg.env.value} is currently bounce locked. Cannot set new version.")
-        return False
-
     release: Optional[Release] = None
-    to_set: Optional[str] = None
 
     if version == "latest":
         release = find_latest_release(cfg, branch or "")
         if not release:
             print("Unable to find latest version" + (f" for branch {branch}" if branch else ""))
-            return False
+            return None
     else:
         try:
             release = find_release(cfg, Version.from_string(version))
         except Exception as e:
             print(f"Invalid version format {version}: {e}")
-            return False
+            return None
 
         if not release:
             print(f"Unable to find version {version}")
-            return False
-
-    to_set = release.key
+            return None
 
     # Check compiler discovery
     if (
@@ -108,8 +102,33 @@ def set_version_for_deployment(cfg: Config, version: str, branch: Optional[str] 
         and not cfg.env.is_windows
         and not runner_discoveryexists(cfg.env.value, str(release.version))
     ):
-        print(f"Warning: Compiler discovery has not run for {cfg.env.value}/{release.version}")
-        # In deployment context, we proceed anyway
+        raise RuntimeError(f"Compiler discovery has not run for {cfg.env.value}/{release.version}")
+
+    return release
+
+
+def get_release_without_discovery_check(cfg: Config, version: str, branch: Optional[str] = None) -> Optional[Release]:
+    """Get a release without checking compiler discovery."""
+    if version == "latest":
+        return find_latest_release(cfg, branch or "")
+    else:
+        try:
+            return find_release(cfg, Version.from_string(version))
+        except Exception:
+            return None
+
+
+def set_version_for_deployment(cfg: Config, release: Release) -> bool:
+    """Set version for deployment without interactive prompts.
+
+    Returns True if successful, False otherwise.
+    Assumes release has already been validated.
+    """
+    if has_bouncelock_file(cfg):
+        print(f"{cfg.env.value} is currently bounce locked. Cannot set new version.")
+        return False
+
+    to_set = release.key
 
     # Log the new build
     try:
