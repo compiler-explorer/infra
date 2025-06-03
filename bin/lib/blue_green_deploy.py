@@ -26,6 +26,44 @@ class BlueGreenDeployment:
         self.env = cfg.env.value
         self.running_on_admin_node = is_running_on_admin_node()
 
+        # Deployment state for signal handling
+        self._deployment_state: Dict[str, Any] = {
+            "active_asg": None,
+            "inactive_asg": None,
+            "active_original_min": None,
+            "in_deployment": False,
+        }
+
+    def _cleanup_on_signal(self, signum, frame):
+        """Handle cleanup when deployment is interrupted by a signal."""
+        if not self._deployment_state["in_deployment"]:
+            # Not in a deployment, just exit
+            sys.exit(1)
+
+        print(f"\n\n⚠️  Deployment interrupted by signal {signum}!")
+        print("Performing cleanup...")
+
+        active_asg = self._deployment_state["active_asg"]
+        inactive_asg = self._deployment_state["inactive_asg"]
+        active_original_min = self._deployment_state["active_original_min"]
+
+        if active_original_min is not None and active_asg:
+            print(f"Restoring original minimum size for {active_asg}")
+            try:
+                reset_asg_min_size(active_asg, min_size=active_original_min)
+            except Exception as e:
+                print(f"Warning: Failed to restore min size for {active_asg}: {e}")
+
+        if inactive_asg:
+            print(f"Resetting minimum size of {inactive_asg}")
+            try:
+                reset_asg_min_size(inactive_asg, min_size=0)
+            except Exception as e:
+                print(f"Warning: Failed to reset min size for {inactive_asg}: {e}")
+
+        print("Cleanup complete. Exiting.")
+        sys.exit(1)
+
     def _update_ssm_parameters(self, color: str, target_group_arn: str) -> None:
         """Update SSM parameters for active color and target group."""
         ssm_client.put_parameter(Name=f"/compiler-explorer/{self.env}/active-color", Value=color, Overwrite=True)
@@ -144,27 +182,28 @@ class BlueGreenDeployment:
         old_sigint = None
         old_sigterm = None
 
-        # Define cleanup handler for signals
-        def cleanup_on_signal(signum, frame):
-            print(f"\n\n⚠️  Deployment interrupted by signal {signum}!")
-            print("Performing cleanup...")
-            if active_original_min is not None:
-                print(f"Restoring original minimum size for {active_asg}")
-                reset_asg_min_size(active_asg, min_size=active_original_min)
-            print(f"Resetting minimum size of {inactive_asg}")
-            reset_asg_min_size(inactive_asg, min_size=0)
-            print("Cleanup complete. Exiting.")
-            sys.exit(1)
+        # Update deployment state for signal handler
+        self._deployment_state.update(
+            {
+                "active_asg": active_asg,
+                "inactive_asg": inactive_asg,
+                "active_original_min": None,  # Will be set after protection
+                "in_deployment": True,
+            }
+        )
+
+        # Install signal handlers for cleanup
+        old_sigint = signal.signal(signal.SIGINT, self._cleanup_on_signal)
+        old_sigterm = signal.signal(signal.SIGTERM, self._cleanup_on_signal)
+        cleanup_handler_installed = True
+
+        # Step 0: Protect active ASG from scaling down during deployment
+        print(f"\nStep 0: Protecting active {active_color} ASG from scale-down during deployment")
+        active_original_min = protect_asg_capacity(active_asg)
+        # Update deployment state with the original min size
+        self._deployment_state["active_original_min"] = active_original_min
 
         try:
-            # Install signal handlers for cleanup
-            old_sigint = signal.signal(signal.SIGINT, cleanup_on_signal)
-            old_sigterm = signal.signal(signal.SIGTERM, cleanup_on_signal)
-            cleanup_handler_installed = True
-            # Step 0: Protect active ASG from scaling down during deployment
-            print(f"\nStep 0: Protecting active {active_color} ASG from scale-down during deployment")
-            active_original_min = protect_asg_capacity(active_asg)
-
             # Step 1: Scale up inactive ASG with min size protection
             print(f"\nStep 1: Scaling up {inactive_asg} to {target_capacity} instances")
             print("         Setting minimum size to prevent autoscaling interference during deployment")
@@ -239,6 +278,14 @@ class BlueGreenDeployment:
             if cleanup_handler_installed:
                 signal.signal(signal.SIGINT, old_sigint)
                 signal.signal(signal.SIGTERM, old_sigterm)
+
+            # Clear deployment state
+            self._deployment_state = {
+                "active_asg": None,
+                "inactive_asg": None,
+                "active_original_min": None,
+                "in_deployment": False,
+            }
 
     def rollback(self) -> None:
         """Rollback to the previous color."""
