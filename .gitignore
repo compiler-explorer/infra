@@ -16,6 +16,5 @@ node_modules
 # uv
 /.uv
 /uv.lock
-/lambda/uv.lock
 /lambda/.build_site_packages
 *.egg-info
