@@ -46,6 +46,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Maintain backwards compatibility with existing scripts
 - For AWS resources, follow terraform best practices
 - Never call functions within f-strings: create a variable first, then use it in the f-string
+- Never use nested functions - always use class methods or module-level functions instead
 
 ## Testing Guidelines
 

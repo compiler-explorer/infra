@@ -52,6 +52,16 @@ resource "aws_security_group_rule" "CE_HttpFromAlb" {
   description              = "Allow HTTP access from the ALB"
 }
 
+resource "aws_security_group_rule" "CE_HttpFromAdminNode" {
+  security_group_id        = aws_security_group.CompilerExplorer.id
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  source_security_group_id = aws_security_group.AdminNode.id
+  protocol                 = "tcp"
+  description              = "Allow HTTP access from admin node for health checks"
+}
+
 resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"

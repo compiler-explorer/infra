@@ -13,7 +13,7 @@ resource "aws_ecr_repository" "explain" {
 
 data "aws_ecr_image" "explain" {
   repository_name = aws_ecr_repository.explain.name
-  image_tag = "gh-41"
+  image_tag       = "gh-41"
 }
 
 resource "aws_lambda_function" "explain" {
@@ -30,12 +30,12 @@ resource "aws_lambda_function" "explain" {
   environment {
     variables = {
       ANTHROPIC_API_KEY = data.aws_ssm_parameter.anthropic_api_key.value
-      ROOT_PATH = "/explain"
-      METRICS_ENABLED = "true"
-      CACHE_ENABLED = "true"
-      CACHE_S3_BUCKET = aws_s3_bucket.claude-explain-cache-godbolt-org.bucket
-      CACHE_S3_PREFIX = ""
-      CACHE_S3_TTL = "2d"  # TTL is the client-side TTL
+      ROOT_PATH         = "/explain"
+      METRICS_ENABLED   = "true"
+      CACHE_ENABLED     = "true"
+      CACHE_S3_BUCKET   = aws_s3_bucket.claude-explain-cache-godbolt-org.bucket
+      CACHE_S3_PREFIX   = ""
+      CACHE_S3_TTL      = "2d" # TTL is the client-side TTL
     }
   }
 }

@@ -9,7 +9,13 @@ from typing import Dict, Sequence
 import click
 
 from lib.amazon import as_client, get_autoscaling_group, target_group_arn_for
-from lib.ce_utils import are_you_sure, describe_current_release, set_update_message, wait_for_autoscale_state
+from lib.ce_utils import (
+    are_you_sure,
+    describe_current_release,
+    is_running_on_admin_node,
+    set_update_message,
+    wait_for_autoscale_state,
+)
 from lib.cli import cli
 from lib.env import Config, Environment
 from lib.instance import Instance, print_instances
@@ -132,7 +138,52 @@ def instances_restart(cfg: Config, motd: str):
 @click.pass_obj
 def instances_status(cfg: Config):
     """Get the status of the instances."""
-    print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
+    # Check if blue-green target groups exist for this environment
+    try:
+        from lib.blue_green_deploy import BlueGreenDeployment
+
+        deployment = BlueGreenDeployment(cfg)
+
+        # Try to get blue and green target groups
+        blue_tg_arn = deployment.get_target_group_arn("blue")
+        green_tg_arn = deployment.get_target_group_arn("green")
+        active_color = deployment.get_active_color()
+
+        print(f"Blue-Green Environment: {cfg.env.value}")
+        print(f"Active Color: {active_color}")
+        print()
+
+        # Show blue instances
+        blue_instances = Instance.elb_instances(blue_tg_arn)
+        if blue_instances:
+            marker = " (ACTIVE)" if active_color == "blue" else ""
+            print(f"Blue Instances{marker}:")
+            print_instances(blue_instances, number=False)
+        else:
+            marker = " (ACTIVE)" if active_color == "blue" else ""
+            print(f"Blue Instances{marker}: No instances")
+
+        print()
+
+        # Show green instances
+        green_instances = Instance.elb_instances(green_tg_arn)
+        if green_instances:
+            marker = " (ACTIVE)" if active_color == "green" else ""
+            print(f"Green Instances{marker}:")
+            print_instances(green_instances, number=False)
+        else:
+            marker = " (ACTIVE)" if active_color == "green" else ""
+            print(f"Green Instances{marker}: No instances")
+
+        # Add note about Service/Version information if not on admin node
+        if (blue_instances or green_instances) and not is_running_on_admin_node():
+            print()
+            print("Note: Service and Version information requires SSH access from admin node.")
+
+    except (ValueError, Exception):
+        # Fall back to legacy single target group
+        print(f"Environment: {cfg.env.value}")
+        print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
 
 
 def pick_instance(cfg: Config):

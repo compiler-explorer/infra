@@ -276,8 +276,8 @@ data "aws_iam_policy_document" "aws_lambda_status" {
     resources = ["*"]
   }
   statement {
-    sid     = "Ec2Access"
-    actions = ["ec2:DescribeInstances"]
+    sid       = "Ec2Access"
+    actions   = ["ec2:DescribeInstances"]
     resources = ["*"]
   }
 }
@@ -315,7 +315,8 @@ resource "aws_lambda_function" "status" {
     variables = {
       PROD_LB_ARN        = aws_alb_target_group.ce["prod"].arn
       STAGING_LB_ARN     = aws_alb_target_group.ce["staging"].arn
-      BETA_LB_ARN        = aws_alb_target_group.ce["beta"].arn
+      BETA_LB_BLUE_ARN   = module.beta_blue_green.target_group_arns["blue"]
+      BETA_LB_GREEN_ARN  = module.beta_blue_green.target_group_arns["green"]
       GPU_LB_ARN         = aws_alb_target_group.ce["gpu"].arn
       ARM_PROD_LB_ARN    = aws_alb_target_group.ce["aarch64prod"].arn
       ARM_STAGING_LB_ARN = aws_alb_target_group.ce["aarch64staging"].arn
