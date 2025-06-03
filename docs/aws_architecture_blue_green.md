@@ -23,12 +23,12 @@ graph TB
             HTTPS[HTTPS Listener :443]
             HTTP[HTTP Listener :80]
 
-            DefRule["Default Rule → Prod TG"]
-            BetaRule["'/beta*' Rule → Switchable"]
-            StagingRule["'/staging*' → Staging TG"]
-            GPURule["'/gpu*' → GPU TG"]
-            WinRule["'/win*' → Win TGs"]
-            AArch64Rule["'/aarch64*' → AArch64 TGs"]
+            DefRule["Default Rule -> Prod TG"]
+            BetaRule["'/beta*' Rule -> Switchable"]
+            StagingRule["'/staging*' -> Staging TG"]
+            GPURule["'/gpu*' -> GPU TG"]
+            WinRule["'/win*' -> Win TGs"]
+            AArch64Rule["'/aarch64*' -> AArch64 TGs"]
         end
     end
 
@@ -73,7 +73,7 @@ graph TB
     end
 
     subgraph "Terraform Module"
-        ModuleBG[module "beta_blue_green"<br/>source = "./modules/blue_green"]
+        ModuleBG[module beta_blue_green<br/>source = ./modules/blue_green]
     end
 
     subgraph "Storage"
@@ -252,7 +252,7 @@ ASG Status:
     Desired/Min/Max: 0/0/4
     Target Group: 0/0 healthy ❓
 
-ALB Rule: /beta* → Beta-Blue TG
+ALB Rule: /beta* -> Beta-Blue TG
 ```
 
 ### State 2: During Deployment
@@ -265,11 +265,11 @@ Step 3: Verifying HTTP health checks
 
 ### State 3: Traffic Switch
 ```
-Step 4: Switching /beta* rule → Beta-Green TG
+Step 4: Switching /beta* rule -> Beta-Green TG
 Step 5: Resetting green ASG MinSize to 0
 
 Result:
-  ALB Rule: /beta* → Beta-Green TG (atomic switch)
+  ALB Rule: /beta* -> Beta-Green TG (atomic switch)
   SSM: active-color = "green"
   SSM: active-target-group-arn = "Beta-Green ARN"
 ```
