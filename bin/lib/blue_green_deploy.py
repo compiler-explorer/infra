@@ -242,6 +242,12 @@ class BlueGreenDeployment:
                 # Get target group health
                 tg_healthy_count = 0
                 tg_status = "unknown"
+
+                # Initialize HTTP health variables
+                http_health_results = {}
+                http_healthy_count = 0
+                http_skipped = False
+
                 if instance_ids:
                     try:
                         tg_arn = self.get_target_group_arn(color)
@@ -264,17 +270,13 @@ class BlueGreenDeployment:
                         tg_status = "error"
 
                     # Get HTTP health checks for instances
-                    http_health_results = {}
-                    http_healthy_count = 0
-                    http_skipped = False
-                    if instance_ids:
-                        for instance_id in instance_ids:
-                            health_result = check_instance_health(instance_id, self.running_on_admin_node)
-                            http_health_results[instance_id] = health_result
-                            if health_result["status"] == "healthy":
-                                http_healthy_count += 1
-                            elif health_result["status"] == "skipped":
-                                http_skipped = True
+                    for instance_id in instance_ids:
+                        health_result = check_instance_health(instance_id, self.running_on_admin_node)
+                        http_health_results[instance_id] = health_result
+                        if health_result["status"] == "healthy":
+                            http_healthy_count += 1
+                        elif health_result["status"] == "skipped":
+                            http_skipped = True
 
                 status["asgs"][color] = {
                     "name": asg_name,
