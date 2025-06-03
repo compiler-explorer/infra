@@ -27,6 +27,7 @@ on:
         - heaptrack
         - ispc
         - iwyu
+        - jakt
         - lfortran
         - mads
         - nasm
