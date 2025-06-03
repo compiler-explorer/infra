@@ -7,7 +7,14 @@ from typing import Any, Dict, Optional
 from botocore.exceptions import ClientError
 
 from lib.amazon import elb_client, ssm_client
-from lib.aws_utils import get_asg_info, get_target_health_counts, protect_asg_capacity, reset_asg_min_size, scale_asg
+from lib.aws_utils import (
+    get_asg_info,
+    get_target_health_counts,
+    protect_asg_capacity,
+    reset_asg_min_size,
+    restore_asg_capacity_protection,
+    scale_asg,
+)
 from lib.ce_utils import is_running_on_admin_node
 from lib.deployment_utils import (
     check_instance_health,
@@ -37,6 +44,7 @@ class BlueGreenDeployment:
             "active_asg": None,
             "inactive_asg": None,
             "active_original_min": None,
+            "active_original_max": None,
             "in_deployment": False,
         }
 
@@ -52,13 +60,14 @@ class BlueGreenDeployment:
         active_asg = self._deployment_state["active_asg"]
         inactive_asg = self._deployment_state["inactive_asg"]
         active_original_min = self._deployment_state["active_original_min"]
+        active_original_max = self._deployment_state["active_original_max"]
 
-        if active_original_min is not None and active_asg:
-            print(f"Restoring original minimum size for {active_asg}")
+        if active_original_min is not None and active_original_max is not None and active_asg:
+            print(f"Restoring original capacity settings for {active_asg}")
             try:
-                reset_asg_min_size(active_asg, min_size=active_original_min)
+                restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
             except Exception as e:
-                print(f"Warning: Failed to restore min size for {active_asg}: {e}")
+                print(f"Warning: Failed to restore capacity settings for {active_asg}: {e}")
 
         if inactive_asg:
             print(f"Resetting minimum size of {inactive_asg}")
@@ -226,6 +235,7 @@ class BlueGreenDeployment:
                 "active_asg": active_asg,
                 "inactive_asg": inactive_asg,
                 "active_original_min": None,  # Will be set after protection
+                "active_original_max": None,  # Will be set after protection
                 "in_deployment": True,
             }
         )
@@ -235,11 +245,16 @@ class BlueGreenDeployment:
         old_sigterm = signal.signal(signal.SIGTERM, self._cleanup_on_signal)
         cleanup_handler_installed = True
 
-        # Step 0: Protect active ASG from scaling down during deployment
-        print(f"\nStep 0: Protecting active {active_color} ASG from scale-down during deployment")
-        active_original_min = protect_asg_capacity(active_asg)
-        # Update deployment state with the original min size
-        self._deployment_state["active_original_min"] = active_original_min
+        # Step 0: Protect active ASG from scaling during deployment
+        print(f"\nStep 0: Protecting active {active_color} ASG from scaling during deployment")
+        protection_result = protect_asg_capacity(active_asg)
+        if protection_result:
+            active_original_min, active_original_max = protection_result
+            # Update deployment state with the original sizes
+            self._deployment_state["active_original_min"] = active_original_min
+            self._deployment_state["active_original_max"] = active_original_max
+        else:
+            active_original_min, active_original_max = None, None
 
         try:
             # Step 1: Scale up inactive ASG with min size protection
@@ -302,10 +317,10 @@ class BlueGreenDeployment:
             deployment_succeeded = True
 
         finally:
-            # Always restore active ASG min size, regardless of success or failure
-            if active_original_min is not None:
-                print(f"\nStep 6: Restoring original minimum size for {active_asg}")
-                reset_asg_min_size(active_asg, min_size=active_original_min)
+            # Always restore active ASG capacity settings, regardless of success or failure
+            if active_original_min is not None and active_original_max is not None:
+                print(f"\nStep 6: Restoring original capacity settings for {active_asg}")
+                restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
 
             # If deployment failed, also reset the inactive ASG min size
             if not deployment_succeeded:
@@ -322,6 +337,7 @@ class BlueGreenDeployment:
                 "active_asg": None,
                 "inactive_asg": None,
                 "active_original_min": None,
+                "active_original_max": None,
                 "in_deployment": False,
             }
 

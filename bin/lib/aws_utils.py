@@ -1,6 +1,6 @@
 """General AWS utility functions for Compiler Explorer infrastructure."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from botocore.exceptions import ClientError
 
@@ -83,20 +83,39 @@ def reset_asg_min_size(asg_name: str, min_size: int = 0) -> None:
     as_client.update_auto_scaling_group(AutoScalingGroupName=asg_name, MinSize=min_size)
 
 
-def protect_asg_capacity(asg_name: str) -> Optional[int]:
-    """Protect an ASG from scaling down by setting MinSize to current capacity.
+def restore_asg_capacity_protection(asg_name: str, original_min_size: int, original_max_size: int) -> None:
+    """Restore ASG capacity protection settings by resetting MinSize and MaxSize.
 
-    Returns the original MinSize value for restoration, or None if ASG not found.
+    Args:
+        asg_name: Name of the Auto Scaling Group
+        original_min_size: Original minimum size to restore
+        original_max_size: Original maximum size to restore
+    """
+    print(
+        f"Restoring original capacity settings for {asg_name}: MinSize={original_min_size}, MaxSize={original_max_size}"
+    )
+    as_client.update_auto_scaling_group(
+        AutoScalingGroupName=asg_name, MinSize=original_min_size, MaxSize=original_max_size
+    )
+
+
+def protect_asg_capacity(asg_name: str) -> Optional[Tuple[int, int]]:
+    """Protect an ASG from scaling by setting MinSize and MaxSize to current capacity.
+
+    Returns a tuple of (original_min_size, original_max_size) for restoration, or None if ASG not found.
     """
     asg_info = get_asg_info(asg_name)
     if not asg_info:
         return None
 
     original_min = asg_info["MinSize"]
+    original_max = asg_info["MaxSize"]
     current_capacity = asg_info["DesiredCapacity"]
 
-    if current_capacity > 0 and original_min < current_capacity:
-        print(f"Protecting {asg_name} from scale-down: setting MinSize to {current_capacity}")
-        as_client.update_auto_scaling_group(AutoScalingGroupName=asg_name, MinSize=current_capacity)
+    if current_capacity > 0:
+        print(f"Protecting {asg_name} from scaling: setting MinSize and MaxSize to {current_capacity}")
+        as_client.update_auto_scaling_group(
+            AutoScalingGroupName=asg_name, MinSize=current_capacity, MaxSize=current_capacity
+        )
 
-    return original_min
+    return (original_min, original_max)
