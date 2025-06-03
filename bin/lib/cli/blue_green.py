@@ -3,6 +3,7 @@
 import click
 
 from lib.amazon import as_client, ec2_client, elb_client
+from lib.aws_utils import get_asg_info, scale_asg
 from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
@@ -266,6 +267,45 @@ def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
         deployment.cleanup_inactive()
     except Exception as e:
         print(f"Cleanup failed: {e}")
+        raise
+
+
+@blue_green.command(name="shutdown")
+@click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
+@click.pass_obj
+def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
+    """Shutdown the beta environment by scaling the active ASG to 0."""
+    if cfg.env.value != "beta":
+        print("Blue-green deployment is currently only available for beta environment")
+        return
+
+    deployment = BlueGreenDeployment(cfg)
+    active_color = deployment.get_active_color()
+    active_asg = deployment.get_asg_name(active_color)
+
+    # Check if active ASG has any instances
+    asg_info = get_asg_info(active_asg)
+    if not asg_info or asg_info["DesiredCapacity"] == 0:
+        print(f"Beta environment is already shut down (active {active_color} ASG has 0 instances)")
+        return
+
+    current_capacity = asg_info["DesiredCapacity"]
+    
+    if not skip_confirmation:
+        print(f"⚠️  WARNING: This will shut down the beta environment by scaling the active {active_color} ASG to 0.")
+        print(f"Currently serving traffic with {current_capacity} instance(s).")
+        print("This will cause downtime until you deploy or switch to another color.")
+        
+        if not are_you_sure(f"shutdown beta environment (scale active {active_color} ASG to 0)", cfg):
+            return
+
+    try:
+        print(f"Shutting down beta environment: scaling {active_asg} from {current_capacity} to 0 instances")
+        scale_asg(active_asg, 0)
+        print(f"✅ Beta environment shut down successfully")
+        print(f"To restart: run 'ce --env beta blue-green deploy' or scale up manually")
+    except Exception as e:
+        print(f"Shutdown failed: {e}")
         raise
 
 
