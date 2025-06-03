@@ -43,6 +43,10 @@ def deploy_staticfiles_windows(release: Release) -> bool:
     print("Deploying static files to cdn (Windows)")
     cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
 
+    if not release.static_key:
+        print("No static files to deploy")
+        return True
+
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
         f.flush()
@@ -57,6 +61,10 @@ def deploy_staticfiles(release: Release) -> bool:
     print("Deploying static files to cdn")
     cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
 
+    if not release.static_key:
+        print("No static files to deploy")
+        return True
+
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
         f.flush()
@@ -66,20 +74,20 @@ def deploy_staticfiles(release: Release) -> bool:
 
 def set_version_for_deployment(cfg: Config, version: str, branch: Optional[str] = None) -> bool:
     """Set version for deployment without interactive prompts.
-    
+
     Returns True if successful, False otherwise.
     """
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. Cannot set new version.")
         return False
-    
+
     release: Optional[Release] = None
     to_set: Optional[str] = None
-    
+
     if version == "latest":
         release = find_latest_release(cfg, branch or "")
         if not release:
-            print(f"Unable to find latest version" + (f" for branch {branch}" if branch else ""))
+            print("Unable to find latest version" + (f" for branch {branch}" if branch else ""))
             return False
     else:
         try:
@@ -87,26 +95,29 @@ def set_version_for_deployment(cfg: Config, version: str, branch: Optional[str] 
         except Exception as e:
             print(f"Invalid version format {version}: {e}")
             return False
-            
+
         if not release:
             print(f"Unable to find version {version}")
             return False
-    
+
     to_set = release.key
-    
+
     # Check compiler discovery
-    if ((cfg.env.value != "runner") and not cfg.env.is_windows and 
-        not runner_discoveryexists(cfg.env.value, str(release.version))):
+    if (
+        (cfg.env.value != "runner")
+        and not cfg.env.is_windows
+        and not runner_discoveryexists(cfg.env.value, str(release.version))
+    ):
         print(f"Warning: Compiler discovery has not run for {cfg.env.value}/{release.version}")
         # In deployment context, we proceed anyway
-    
+
     # Log the new build
     try:
         log_new_build(cfg, to_set)
     except Exception as e:
         print(f"Failed to log new build: {e}")
         return False
-    
+
     # Deploy static files
     if release.static_key:
         try:
@@ -124,17 +135,17 @@ def set_version_for_deployment(cfg: Config, version: str, branch: Optional[str] 
     else:
         # Use old deploy method if no static_key
         old_deploy_staticfiles(None, to_set)
-    
+
     # Set the current key
     try:
         set_current_key(cfg, to_set)
     except Exception as e:
         print(f"Failed to set current key: {e}")
         return False
-    
+
     # Notify sentry
     notify_sentry_deployment(cfg, release)
-    
+
     return True
 
 
