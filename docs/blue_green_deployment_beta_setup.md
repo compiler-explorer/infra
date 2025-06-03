@@ -1,214 +1,276 @@
-# Blue-Green Deployment Beta Testing Setup
+# Blue-Green Deployment Beta Environment - User Guide
 
-This document describes how to deploy and test the blue-green deployment infrastructure for the beta environment.
+This document describes how to use the blue-green deployment system for the beta environment, which is now fully operational.
+
+## Overview
+
+The beta environment uses a blue-green deployment strategy with:
+- Two ASGs: `beta-blue` and `beta-green`
+- Two target groups: `Beta-Blue` and `Beta-Green`
+- ALB listener rule switching for `/beta*` traffic
+- State tracking via SSM parameters
 
 ## Prerequisites
 
 - AWS credentials with appropriate permissions
-- Terraform installed
-- Access to the CE infrastructure repository
+- Access to the CE CLI (`ce` command)
+- Beta environment must be available
 
-## Deployment Steps
+## Basic Usage
 
-### 1. Deploy Terraform Infrastructure
-
-First, review the changes that will be made:
+### Check Current Status
 
 ```bash
-cd terraform/
-terraform plan -target=module.beta_blue_green
-```
-
-The plan should show:
-- 2 new target groups (Beta-Blue, Beta-Green)
-- 2 new ASGs (beta-blue, beta-green)
-- 2 new SSM parameters for tracking active color/target group
-
-Deploy the infrastructure:
-
-```bash
-# Deploy blue-green resources for beta
-terraform apply -target=aws_alb_target_group.beta_blue
-terraform apply -target=aws_alb_target_group.beta_green
-terraform apply -target=aws_autoscaling_group.beta_blue
-terraform apply -target=aws_autoscaling_group.beta_green
-terraform apply -target=aws_ssm_parameter.beta_active_color
-terraform apply -target=aws_ssm_parameter.beta_active_target_group
-
-# Or apply all at once if you're confident
-terraform apply
-```
-
-### 2. Verify Infrastructure
-
-Check that resources were created:
-
-```bash
-# Check ASGs
-aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names beta-blue beta-green
-
-# Check target groups
-aws elbv2 describe-target-groups --names Beta-Blue Beta-Green
-
-# Check SSM parameters
-aws ssm get-parameter --name /compiler-explorer/beta/active-color
-```
-
-### 3. Initial Setup
-
-The blue ASG is set as active by default. To prepare for testing:
-
-```bash
-# Check current status
 ce --env beta blue-green status
+```
 
-# Validate the setup
+Example output:
+```
+Blue-Green Status for beta:
+Active Color: blue
+Inactive Color: green
+
+ASG Status:
+  blue (ACTIVE):
+    ASG Name: beta-blue
+    Desired/Min/Max: 1/0/4
+    ASG Health: 1/1 healthy
+    Target Group: 1/1 healthy ✅
+  green:
+    ASG Name: beta-green
+    Desired/Min/Max: 0/0/4
+    ASG Health: 0/0 healthy
+    Target Group: 0/0 healthy ❓
+```
+
+### Deploy New Version
+
+```bash
+# Deploy to inactive color (automatically determined)
+ce --env beta blue-green deploy
+
+# Deploy with specific capacity
+ce --env beta blue-green deploy --capacity 2
+
+# Skip confirmation prompts (for automation)
+ce --env beta blue-green deploy --skip-confirmation
+```
+
+The deployment process:
+1. Identifies active (blue) and inactive (green) colors
+2. Protects active ASG from scaling during deployment
+3. Scales up inactive ASG with new instances
+4. Waits for health checks to pass
+5. Switches ALB listener rule to point to new target group
+6. Cleans up and restores ASG settings
+
+### Manual Operations
+
+```bash
+# Switch to specific color (if instances already exist)
+ce --env beta blue-green switch green
+
+# Rollback to previous color
+ce --env beta blue-green rollback
+
+# Clean up inactive ASG (scale to 0)
+ce --env beta blue-green cleanup
+
+# Shut down entire environment
+ce --env beta blue-green shutdown
+
+# Validate infrastructure setup
 ce --env beta blue-green validate
 ```
 
-## Testing Procedures
+## Advanced Usage
 
-### Test 1: Basic Blue-Green Switch
+### Deployment with Existing Instances
 
-1. **Start with blue active (default)**
-   ```bash
-   ce --env beta environment start  # This starts the legacy beta ASG
-   ```
+If the inactive ASG already has instances, the system will warn you:
 
-2. **Deploy to blue ASG**
-   ```bash
-   # Scale up blue ASG
-   aws autoscaling set-desired-capacity --auto-scaling-group-name beta-blue --desired-capacity 1
+```
+⚠️  WARNING: The green ASG already has 1 instance(s) running!
+This means you'll be switching to existing instances rather than deploying fresh ones.
 
-   # Wait for instance to be healthy
-   ce --env beta blue-green status
-   ```
+If you want to:
+  • Switch traffic to existing green instances → use 'ce --env beta blue-green switch'
+  • Roll back to green → use 'ce --env beta blue-green rollback'
+  • Deploy fresh instances → run 'ce --env beta blue-green cleanup' first, then deploy
 
-3. **Set the ALB rule to use blue target group**
-   ```bash
-   # For initial testing, manually update the ALB rule
-   # Get the rule ARN first
-   aws elbv2 describe-rules --listener-arn <HTTPS_LISTENER_ARN> | grep -B5 "/beta"
+Do you want to continue with deployment to existing green instances? (yes/no):
+```
 
-   # Update the rule to point to Beta-Blue target group
-   aws elbv2 modify-rule --rule-arn <RULE_ARN> \
-     --actions Type=forward,TargetGroupArn=<BETA_BLUE_TG_ARN>
-   ```
+### Automation-Friendly Commands
 
-4. **Deploy new version to green**
-   ```bash
-   ce --env beta builds set_current <test-version>
-   ce --env beta blue-green deploy --capacity 1
-   ```
+```bash
+# Deploy without any confirmation prompts
+ce --env beta blue-green deploy --skip-confirmation
 
-5. **Verify the switch worked**
-   ```bash
-   # Check that traffic is now going to green
-   curl https://godbolt.org/beta/healthcheck
-   ce --env beta blue-green status
-   ```
+# Switch without confirmation
+ce --env beta blue-green switch green --skip-confirmation
 
-### Test 2: Rollback Scenario
+# Shutdown without confirmation
+ce --env beta blue-green shutdown --skip-confirmation
+```
 
-1. **With green active from Test 1**
-   ```bash
-   ce --env beta blue-green status  # Should show green active
-   ```
+## Safety Features
 
-2. **Simulate an issue and rollback**
-   ```bash
-   ce --env beta blue-green rollback
-   ```
+### ASG Protection During Deployment
 
-3. **Verify rollback**
-   ```bash
-   ce --env beta blue-green status  # Should show blue active again
-   ```
+During deployment, the active ASG is protected from unwanted scaling:
+- MinSize and MaxSize are temporarily set to current capacity
+- Prevents CloudWatch alarms from scaling up
+- Prevents autoscaling policies from scaling down
+- Protection is automatically restored after deployment
 
-### Test 3: Capacity Scaling
+### Signal Handling
 
-1. **Test scaling during deployment**
-   ```bash
-   # Deploy with specific capacity
-   ce --env beta blue-green deploy --capacity 2
+If a deployment is interrupted (Ctrl+C, SIGTERM), the system:
+- Detects the interruption
+- Restores original ASG capacity settings
+- Resets inactive ASG to min size 0
+- Exits cleanly without orphaned resources
 
-   # Monitor scaling
-   watch 'ce --env beta blue-green status'
-   ```
+### Confirmation Prompts
 
-### Test 4: Cleanup
+Most operations require confirmation unless `--skip-confirmation` is used:
+- Deployment operations
+- Traffic switching
+- Environment shutdown
+- ASG cleanup
 
-1. **Scale down inactive ASG**
-   ```bash
-   ce --env beta blue-green cleanup
-   ```
+## Monitoring and Troubleshooting
 
-## Monitoring During Tests
+### Health Check Types
 
-Watch these metrics during testing:
+The status command shows multiple health indicators:
 
-1. **Target Group Health**
-   - Monitor both Beta-Blue and Beta-Green target groups in AWS Console
-   - Check `/healthcheck` endpoint responses
+1. **ASG Health**: EC2 instance health from ASG perspective
+2. **Target Group Health**: ALB target group health status
+   - ✅ Healthy and receiving traffic
+   - 🟡 Healthy but not receiving traffic (standby)
+   - ❌ Unhealthy or failing health checks
+   - ❓ Unknown state
+3. **HTTP Health**: Direct HTTP endpoint checks (when run from admin node)
 
-2. **ASG Metrics**
-   - Instance launch times
-   - Health check status
-   - Scaling activities
+### Common Issues
 
-3. **Application Logs**
-   - Check for any errors during switches
-   - Verify version changes
+#### Deployment Fails to Start
+```bash
+# Check if ASGs exist
+ce --env beta blue-green validate
 
-## Troubleshooting
+# Check current status
+ce --env beta blue-green status
+```
 
-### If deployment fails:
+#### Health Checks Failing
+```bash
+# Check detailed instance information
+ce --env beta blue-green status --detailed
 
-1. Check ASG scaling activities:
-   ```bash
-   aws autoscaling describe-scaling-activities --auto-scaling-group-name beta-blue
-   ```
+# Check ASG scaling activities
+aws autoscaling describe-scaling-activities --auto-scaling-group-name beta-blue
+```
 
-2. Check target group health:
-   ```bash
-   aws elbv2 describe-target-health --target-group-arn <TG_ARN>
-   ```
+#### Traffic Not Switching
+```bash
+# Verify ALB listener rule configuration
+ce --env beta blue-green validate
 
-3. Check instance logs:
-   ```bash
-   ce --env beta instances list
-   ce --env beta instances ssh <instance-id>
-   ```
+# Check SSM parameters
+aws ssm get-parameter --name /compiler-explorer/beta/active-color
+aws ssm get-parameter --name /compiler-explorer/beta/active-target-group-arn
+```
 
-### To reset to original state:
+### Manual Recovery
 
-1. Point ALB rule back to original beta target group:
-   ```bash
-   aws elbv2 modify-rule --rule-arn <RULE_ARN> \
-     --actions Type=forward,TargetGroupArn=<ORIGINAL_BETA_TG_ARN>
-   ```
+If something goes wrong, you can manually reset:
 
-2. Scale down blue-green ASGs:
-   ```bash
-   aws autoscaling set-desired-capacity --auto-scaling-group-name beta-blue --desired-capacity 0
-   aws autoscaling set-desired-capacity --auto-scaling-group-name beta-green --desired-capacity 0
-   ```
+```bash
+# Scale down both ASGs
+aws autoscaling set-desired-capacity --auto-scaling-group-name beta-blue --desired-capacity 0
+aws autoscaling set-desired-capacity --auto-scaling-group-name beta-green --desired-capacity 0
 
-## Success Criteria
+# Reset SSM parameters to known state
+aws ssm put-parameter --name /compiler-explorer/beta/active-color --value blue --overwrite
 
-- [ ] Can deploy to inactive color without affecting active traffic
-- [ ] Switch between blue and green takes < 5 seconds
-- [ ] No 5xx errors during switch
-- [ ] Rollback works within 1 minute
-- [ ] Health checks pass throughout deployment
-- [ ] Can scale ASGs independently
-- [ ] SSM parameters correctly track active color
+# Start fresh
+ce --env beta blue-green deploy --capacity 1
+```
 
-## Next Steps
+## Environment Lifecycle
 
-After successful beta testing:
+### Typical Workflow
 
-1. Document any issues or improvements needed
-2. Update monitoring and alerting
-3. Plan production rollout strategy
-4. Create runbooks for operations team
+1. **Normal Operation**: One color active, other inactive
+2. **Deploy New Version**: Scale up inactive, switch traffic
+3. **Verify Deployment**: Check status and health
+4. **Cleanup**: Scale down old version (optional)
+5. **Next Deployment**: Process repeats with colors swapped
+
+### Environment Shutdown
+
+For cost savings or maintenance:
+
+```bash
+# Shutdown entire environment
+ce --env beta blue-green shutdown
+
+# Restart when needed
+ce --env beta blue-green deploy --capacity 1
+```
+
+### Long-term Maintenance
+
+```bash
+# Periodic cleanup of inactive instances
+ce --env beta blue-green cleanup
+
+# Validate infrastructure health
+ce --env beta blue-green validate
+```
+
+## Integration with Existing Workflows
+
+### Build and Deploy
+
+```bash
+# Set the version to deploy
+ce --env beta builds set_current <version>
+
+# Deploy using blue-green strategy
+ce --env beta blue-green deploy
+```
+
+### Monitoring Integration
+
+The blue-green system integrates with existing monitoring:
+- CloudWatch metrics for both ASGs
+- ALB target group health monitoring
+- SSM parameter change events
+
+## Best Practices
+
+1. **Always check status** before performing operations
+2. **Use cleanup regularly** to avoid resource waste
+3. **Validate infrastructure** after infrastructure changes
+4. **Monitor health checks** during deployments
+5. **Keep deployments small** for easier rollback
+6. **Use skip-confirmation** in automation only
+7. **Test rollback procedures** periodically
+
+## Limitations
+
+- Currently only available for beta environment
+- Requires manual capacity planning
+- Health checks must pass before traffic switch
+- No gradual traffic shifting (atomic switch only)
+
+## Future Enhancements
+
+See GitHub issue #1653 for planned improvements including:
+- Intentional shutdown state tracking
+- Enhanced monitoring capabilities
+- Production environment support

@@ -1,6 +1,6 @@
-# Compiler Explorer AWS Architecture - Blue-Green Deployment
+# Compiler Explorer AWS Architecture - Blue-Green Deployment (Current Implementation)
 
-## Blue-Green Architecture Diagram (Proposed)
+## Blue-Green Architecture Diagram
 
 ```mermaid
 graph TB
@@ -23,61 +23,57 @@ graph TB
             HTTPS[HTTPS Listener :443]
             HTTP[HTTP Listener :80]
 
-            DefRule["Default Rule - Switchable"]
-            BetaRule["'/beta*' - Switchable"]
-            StagingRule["'/staging*' - Staging TG"]
-            GPURule["'/gpu*' - GPU TG"]
-            WinRule["'/win*' - Win TGs"]
-            AArch64Rule["'/aarch64*' - AArch64 TGs"]
+            DefRule["Default Rule → Prod TG"]
+            BetaRule["'/beta*' Rule → Switchable"]
+            StagingRule["'/staging*' → Staging TG"]
+            GPURule["'/gpu*' → GPU TG"]
+            WinRule["'/win*' → Win TGs"]
+            AArch64Rule["'/aarch64*' → AArch64 TGs"]
         end
     end
 
-    subgraph "Production Blue-Green"
-        subgraph "Prod Target Groups"
-            TGProdBlue[TG: Prod-Blue<br/>Port 80]
-            TGProdGreen[TG: Prod-Green<br/>Port 80]
-            ProdSwitch{{"SSM: /prod/active-tg"}}
-        end
-
-        subgraph "Prod ASGs"
-            ASGProdBlue[ASG: prod-blue<br/>Min: 0, Max: 24<br/>Spot Instances]
-            ASGProdGreen[ASG: prod-green<br/>Min: 0, Max: 24<br/>Spot Instances]
-        end
-
-        subgraph "Prod EC2"
-            EC2ProdBlue[EC2 Instances<br/>Version A<br/>m5/m6 family]
-            EC2ProdGreen[EC2 Instances<br/>Version B<br/>m5/m6 family]
-        end
-    end
-
-    subgraph "Beta Blue-Green"
+    subgraph "Beta Blue-Green (Implemented)"
         subgraph "Beta Target Groups"
-            TGBetaBlue[TG: Beta-Blue<br/>Port 80]
-            TGBetaGreen[TG: Beta-Green<br/>Port 80]
-            BetaSwitch{{"SSM: /beta/active-tg"}}
+            TGBetaBlue[Target Group: Beta-Blue<br/>Port 80<br/>Health: /healthcheck]
+            TGBetaGreen[Target Group: Beta-Green<br/>Port 80<br/>Health: /healthcheck]
         end
 
         subgraph "Beta ASGs"
-            ASGBetaBlue[ASG: beta-blue<br/>Min: 0, Max: 4]
-            ASGBetaGreen[ASG: beta-green<br/>Min: 0, Max: 4]
+            ASGBetaBlue[ASG: beta-blue<br/>Min: 0, Max: 4<br/>Launch Template: beta]
+            ASGBetaGreen[ASG: beta-green<br/>Min: 0, Max: 4<br/>Launch Template: beta]
         end
 
-        subgraph "Beta EC2"
-            EC2BetaBlue[EC2 Instances<br/>Version A]
-            EC2BetaGreen[EC2 Instances<br/>Version B]
+        subgraph "Beta EC2 Instances"
+            EC2BetaBlue[EC2 Instances<br/>Color: blue]
+            EC2BetaGreen[EC2 Instances<br/>Color: green]
+        end
+
+        subgraph "State Management"
+            SSMColor[SSM: /compiler-explorer/beta/active-color]
+            SSMTargetGroup[SSM: /compiler-explorer/beta/active-target-group-arn]
         end
     end
 
-    subgraph "Legacy Environments"
-        TGStaging[TG: Staging<br/>Port 80]
-        TGGpu[TG: GPU<br/>Port 80]
-        TGWin[TG: WinProd/Staging<br/>Port 80]
-        TGAArch[TG: AArch64Prod/Staging<br/>Port 80]
+    subgraph "Production (Single ASG)"
+        TGProd[Target Group: Prod<br/>Port 80]
+        ASGProd[ASG: prod-mixed<br/>Min: 2, Max: 24<br/>Rolling Deployment]
+        EC2Prod[EC2 Instances<br/>Spot + On-Demand]
+    end
+
+    subgraph "Other Environments (Single ASG)"
+        TGStaging[Target Group: Staging<br/>Port 80]
+        TGGpu[Target Group: GPU<br/>Port 80]
+        TGWin[Target Groups: Win*<br/>Port 80]
+        TGAArch[Target Groups: AArch64*<br/>Port 80]
 
         ASGStaging[ASG: staging<br/>Rolling Deploy]
         ASGGpu[ASG: gpu<br/>Rolling Deploy]
         ASGWin[ASG: winprod-mixed<br/>Rolling Deploy]
         ASGAArch[ASG: aarch64prod-mixed<br/>Rolling Deploy]
+    end
+
+    subgraph "Terraform Module"
+        ModuleBG[module "beta_blue_green"<br/>source = "./modules/blue_green"]
     end
 
     subgraph "Storage"
@@ -95,23 +91,17 @@ graph TB
     ALB --> HTTPS
     ALB --> HTTP
 
-    %% Production Blue-Green Flow
+    %% Production (unchanged)
     HTTPS --> DefRule
-    DefRule -.->|Active| TGProdBlue
-    DefRule -.->|Inactive| TGProdGreen
-    ProdSwitch -->|Controls| DefRule
+    DefRule --> TGProd
+    TGProd --> ASGProd
 
-    TGProdBlue --> ASGProdBlue
-    TGProdGreen --> ASGProdGreen
-
-    ASGProdBlue --> EC2ProdBlue
-    ASGProdGreen --> EC2ProdGreen
-
-    %% Beta Blue-Green Flow
+    %% Beta Blue-Green Flow (switchable)
     HTTPS --> BetaRule
     BetaRule -.->|Active| TGBetaBlue
     BetaRule -.->|Inactive| TGBetaGreen
-    BetaSwitch -->|Controls| BetaRule
+    SSMColor -->|Tracks Active| BetaRule
+    SSMTargetGroup -->|Current TG ARN| BetaRule
 
     TGBetaBlue --> ASGBetaBlue
     TGBetaGreen --> ASGBetaGreen
@@ -119,7 +109,7 @@ graph TB
     ASGBetaBlue --> EC2BetaBlue
     ASGBetaGreen --> EC2BetaGreen
 
-    %% Legacy routing (unchanged)
+    %% Other environments (unchanged)
     HTTPS --> StagingRule
     HTTPS --> GPURule
     HTTPS --> WinRule
@@ -135,11 +125,18 @@ graph TB
     TGWin --> ASGWin
     TGAArch --> ASGAArch
 
+    %% Terraform Module creates blue-green resources
+    ModuleBG -.->|Creates| TGBetaBlue
+    ModuleBG -.->|Creates| TGBetaGreen
+    ModuleBG -.->|Creates| ASGBetaBlue
+    ModuleBG -.->|Creates| ASGBetaGreen
+    ModuleBG -.->|Creates| SSMColor
+    ModuleBG -.->|Creates| SSMTargetGroup
+
     %% Storage connections
-    EC2ProdBlue --> EFS
-    EC2ProdGreen --> EFS
     EC2BetaBlue --> EFS
     EC2BetaGreen --> EFS
+    EC2Prod --> EFS
 
     ALB --> S3Logs
     CF --> S3Static
@@ -148,173 +145,216 @@ graph TB
     classDef active fill:#90EE90,stroke:#228B22,stroke-width:3px
     classDef inactive fill:#FFB6C1,stroke:#DC143C,stroke-width:2px,stroke-dasharray: 5 5
     classDef switch fill:#87CEEB,stroke:#4682B4,stroke-width:2px
+    classDef module fill:#DDA0DD,stroke:#8B008B,stroke-width:2px
 
-    class TGProdBlue,ASGProdBlue,EC2ProdBlue active
-    class TGProdGreen,ASGProdGreen,EC2ProdGreen inactive
     class TGBetaBlue,ASGBetaBlue,EC2BetaBlue active
     class TGBetaGreen,ASGBetaGreen,EC2BetaGreen inactive
-    class ProdSwitch,BetaSwitch switch
+    class SSMColor,SSMTargetGroup switch
+    class ModuleBG module
 ```
 
-## Blue-Green Deployment Flow
+## Current Implementation Details
 
-### Production Environment
+### Terraform Module Structure
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant ALB
-    participant SSM as SSM Parameter
-    participant Blue as Prod-Blue (Active)
-    participant Green as Prod-Green (Inactive)
-    participant Deploy as Deployment Process
+The blue-green implementation uses a reusable Terraform module:
 
-    Note over Blue: Version 1.0 Running
-    Note over Green: Scaled to 0
+```hcl
+# terraform/beta-blue-green.tf
+module "beta_blue_green" {
+  source = "./modules/blue_green"
 
-    User->>ALB: Requests to godbolt.org
-    ALB->>Blue: Route all traffic
-    Blue->>User: Response v1.0
-
-    Deploy->>Green: Deploy version 2.0
-    Deploy->>Green: Scale up instances
-    Note over Green: Launching...
-
-    Deploy->>Green: Health checks
-    Note over Green: All healthy
-
-    Deploy->>SSM: Update active-tg to Green
-    Deploy->>ALB: Switch default rule to Green TG
-
-    Note over Blue,Green: Atomic Switch
-
-    User->>ALB: Requests to godbolt.org
-    ALB->>Green: Route all traffic
-    Green->>User: Response v2.0
-
-    Deploy->>Blue: Scale down to 0
-    Note over Blue: Standby for rollback
+  environment               = "beta"
+  vpc_id                    = module.ce_network.vpc.id
+  launch_template_id        = aws_launch_template.CompilerExplorer-beta.id
+  subnets                   = local.subnets
+  asg_max_size              = 4
+  initial_desired_capacity  = 0
+  initial_active_color      = "blue"
+}
 ```
 
-### Beta Environment
+### Module Components
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant ALB
-    participant SSM as SSM Parameter
-    participant Blue as Beta-Blue (Active)
-    participant Green as Beta-Green (Inactive)
-    participant Deploy as Deployment Process
+The `./modules/blue_green` module creates:
 
-    Note over Blue: Version A Running
-    Note over Green: Scaled to 0
+1. **Two Target Groups**:
+   ```hcl
+   resource "aws_alb_target_group" "color" {
+     for_each = toset(["blue", "green"])
+     name     = "${title(var.environment)}-${title(each.value)}"
+     # ... configuration
+   }
+   ```
 
-    User->>ALB: Requests to /beta
-    ALB->>Blue: Route based on rule
-    Blue->>User: Response vA
+2. **Two ASGs**:
+   ```hcl
+   resource "aws_autoscaling_group" "color" {
+     for_each = toset(["blue", "green"])
+     name     = "${var.environment}-${each.value}"
+     # ... configuration
+   }
+   ```
 
-    Deploy->>Green: Deploy version B
-    Deploy->>Green: Scale up instances
-    Deploy->>Green: Health checks
+3. **SSM Parameters**:
+   ```hcl
+   resource "aws_ssm_parameter" "active_color" {
+     name  = "/compiler-explorer/${var.environment}/active-color"
+     value = var.initial_active_color
+   }
 
-    Deploy->>SSM: Update active-tg
-    Deploy->>ALB: Switch /beta rule to Green TG
+   resource "aws_ssm_parameter" "active_target_group" {
+     name  = "/compiler-explorer/${var.environment}/active-target-group-arn"
+     value = aws_alb_target_group.color[var.initial_active_color].arn
+   }
+   ```
 
-    User->>ALB: Requests to /beta
-    ALB->>Green: Route based on rule
-    Green->>User: Response vB
+### ALB Listener Rule Configuration
 
-    Deploy->>Blue: Scale down (optional)
+The beta listener rule was updated to reference the blue-green target groups:
+
+```hcl
+# terraform/alb.tf
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 1
+  action {
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    target_group_arn = module.beta_blue_green.target_group_arns["blue"]
+  }
+  condition {
+    path_pattern {
+      values = ["/beta*"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
 ```
 
-## Key Differences from Current Architecture
+## Deployment State Transitions
 
-### Production (Hybrid Approach)
-- **Two Target Groups**: Prod-Blue and Prod-Green
-- **Two ASGs**: prod-blue and prod-green (only one active)
-- **SSM Parameter**: Controls which TG receives traffic
-- **ALB Default Rule**: Dynamically points to active TG
-- **Deployment**: Scale up inactive, switch, scale down old
-
-### Beta (Full Blue-Green)
-- **Two Target Groups**: Beta-Blue and Beta-Green
-- **Two ASGs**: beta-blue and beta-green
-- **Path-based Rule**: `/beta*` switches between TGs
-- **Testing Ground**: Validates blue-green before prod
-
-### Other Environments (Unchanged)
-- Staging, GPU, Windows, AArch64 keep rolling deployments
-- Single target group and ASG per environment
-- Instance refresh for updates
-
-## Deployment States
-
-### State 1: Normal Operation
+### State 1: Normal Operation (Blue Active)
 ```
-Production:
-  - Blue: Active (10 instances) → Serving traffic
-  - Green: Inactive (0 instances) → Standby
+Beta Status:
+  Active Color: blue
+  Inactive Color: green
 
-Beta:
-  - Blue: Active (1 instance) → Serving traffic
-  - Green: Inactive (0 instances) → Standby
+ASG Status:
+  blue (ACTIVE):
+    Desired/Min/Max: 1/0/4
+    Target Group: 1/1 healthy ✅
+  green:
+    Desired/Min/Max: 0/0/4
+    Target Group: 0/0 healthy ❓
+
+ALB Rule: /beta* → Beta-Blue TG
 ```
 
 ### State 2: During Deployment
 ```
-Production:
-  - Blue: Active (10 instances) → Still serving
-  - Green: Warming up (10 instances) → Health checks
-
-Beta:
-  - Blue: Active (1 instance) → Still serving
-  - Green: Warming up (1 instance) → Health checks
+Step 0: Protecting blue ASG (MinSize=1, MaxSize=1)
+Step 1: Scaling up green ASG to 1 instance
+Step 2: Waiting for green instances to be healthy
+Step 3: Verifying HTTP health checks
 ```
 
-### State 3: Switch Moment
+### State 3: Traffic Switch
 ```
-Production:
-  - ALB Default Rule: Prod-Blue TG → Prod-Green TG
-  - Traffic instantly moves to new version
-  - No mixed versions!
+Step 4: Switching /beta* rule → Beta-Green TG
+Step 5: Resetting green ASG MinSize to 0
 
-Beta:
-  - ALB /beta Rule: Beta-Blue TG → Beta-Green TG
-  - Instant switch for beta traffic
-```
-
-### State 4: Post-Deployment
-```
-Production:
-  - Blue: Inactive (10 instances) → Rollback ready
-  - Green: Active (10 instances) → Serving traffic
-
-Beta:
-  - Blue: Inactive (0 instances) → Scaled down
-  - Green: Active (1 instance) → Serving traffic
+Result:
+  ALB Rule: /beta* → Beta-Green TG (atomic switch)
+  SSM: active-color = "green"
+  SSM: active-target-group-arn = "Beta-Green ARN"
 ```
 
-## Advantages Over Current System
+### State 4: Post-Deployment (Green Active)
+```
+Beta Status:
+  Active Color: green
+  Inactive Color: blue
 
-1. **No Mixed Versions**: Traffic switches atomically between versions
-2. **Instant Rollback**: Previous version stays warm (prod) or can be quickly restored
-3. **Pre-deployment Validation**: New instances fully tested before receiving traffic
-4. **Reduced Risk**: Bad deployments never receive production traffic
-5. **Flexible Strategy**: Different approaches for different environments
+ASG Status:
+  blue:
+    Desired/Min/Max: 1/0/4
+    Target Group: 1/1 healthy 🟡 (standby)
+  green (ACTIVE):
+    Desired/Min/Max: 1/0/4
+    Target Group: 1/1 healthy ✅
+```
 
-## Implementation Priority
+## Migration from Single ASG
 
-1. **Phase 1**: Beta environment (testing ground)
-   - Validate blue-green mechanics
-   - Test CLI tooling
-   - Measure switch timing
+The implementation replaced the old single beta ASG:
 
-2. **Phase 2**: Production environment
-   - Implement hybrid approach
-   - Keep old ASG warm for rollback
-   - Monitor performance impact
+### Removed Components
+- `aws_autoscaling_group.beta` resource
+- "beta" entry from `ce-target-groups` variable
+- Direct ASG attachment to single target group
 
-3. **Phase 3**: Consider other environments
-   - Evaluate if staging/gpu need blue-green
-   - Keep simpler environments on rolling deploy
+### Added Components
+- Blue-green Terraform module
+- Dual target groups and ASGs
+- SSM parameter state tracking
+- Updated ALB listener rule reference
+
+### No Impact Areas
+- Other environments remain unchanged
+- Production still uses single ASG with rolling deployment
+- Existing monitoring and logging continue to work
+
+## CLI Commands and State Management
+
+### Command Overview
+```bash
+ce --env beta blue-green status     # Check current state
+ce --env beta blue-green deploy     # Deploy to inactive color
+ce --env beta blue-green switch     # Manual color switch
+ce --env beta blue-green rollback   # Revert to previous color
+ce --env beta blue-green cleanup    # Scale down inactive ASG
+ce --env beta blue-green shutdown   # Scale down active ASG
+ce --env beta blue-green validate   # Verify infrastructure
+```
+
+### State Tracking
+The system tracks state via SSM parameters:
+- `/compiler-explorer/beta/active-color`: "blue" or "green"
+- `/compiler-explorer/beta/active-target-group-arn`: Current target group ARN
+
+### Safety Features
+- ASG capacity protection during deployment (MinSize/MaxSize locking)
+- Existing instance detection and warnings
+- Signal handling for graceful cleanup
+- Confirmation prompts for destructive operations
+
+## Future Architecture Considerations
+
+### Production Implementation
+To extend blue-green to production:
+- Create `prod-blue-green.tf` using the same module
+- Update default ALB listener rule
+- Implement production-specific safety checks
+
+### Other Environments
+The blue-green module can be reused for any environment:
+```hcl
+module "staging_blue_green" {
+  source = "./modules/blue_green"
+  environment = "staging"
+  # ... other parameters
+}
+```
+
+### Monitoring Enhancements
+- CloudWatch dashboards for blue-green metrics
+- Alerts for deployment failures
+- Deployment duration tracking
+- Target group health monitoring
+
+This architecture provides a solid foundation for zero-downtime deployments while maintaining compatibility with existing infrastructure patterns.

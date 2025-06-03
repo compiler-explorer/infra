@@ -290,20 +290,20 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
         return
 
     current_capacity = asg_info["DesiredCapacity"]
-    
+
     if not skip_confirmation:
         print(f"⚠️  WARNING: This will shut down the beta environment by scaling the active {active_color} ASG to 0.")
         print(f"Currently serving traffic with {current_capacity} instance(s).")
         print("This will cause downtime until you deploy or switch to another color.")
-        
+
         if not are_you_sure(f"shutdown beta environment (scale active {active_color} ASG to 0)", cfg):
             return
 
     try:
         print(f"Shutting down beta environment: scaling {active_asg} from {current_capacity} to 0 instances")
         scale_asg(active_asg, 0)
-        print(f"✅ Beta environment shut down successfully")
-        print(f"To restart: run 'ce --env beta blue-green deploy' or scale up manually")
+        print("✅ Beta environment shut down successfully")
+        print("To restart: run 'ce --env beta blue-green deploy' or scale up manually")
     except Exception as e:
         print(f"Shutdown failed: {e}")
         raise
