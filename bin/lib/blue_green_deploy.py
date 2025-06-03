@@ -18,6 +18,12 @@ from lib.deployment_utils import (
 from lib.env import Config
 
 
+class DeploymentCancelledException(Exception):
+    """Exception raised when a deployment is cancelled by the user."""
+
+    pass
+
+
 class BlueGreenDeployment:
     """Manages blue-green deployments for Compiler Explorer environments."""
 
@@ -174,6 +180,38 @@ class BlueGreenDeployment:
 
         active_asg = self.get_asg_name(active_color)
         inactive_asg = self.get_asg_name(inactive_color)
+
+        # Check if inactive ASG already has instances running
+        inactive_asg_info = get_asg_info(inactive_asg)
+        if inactive_asg_info and inactive_asg_info["DesiredCapacity"] > 0:
+            print(
+                f"\n⚠️  WARNING: The {inactive_color} ASG already has {inactive_asg_info['DesiredCapacity']} instance(s) running!"
+            )
+            print("This means you'll be switching to existing instances rather than deploying fresh ones.")
+            print("\nIf you want to:")
+            print(
+                f"  • Switch traffic to existing {inactive_color} instances → use 'ce --env {self.env} blue-green switch'"
+            )
+            print(f"  • Roll back to {inactive_color} → use 'ce --env {self.env} blue-green rollback'")
+            print(f"  • Deploy fresh instances → run 'ce --env {self.env} blue-green cleanup' first, then deploy")
+
+            if skip_confirmation:
+                print("\nDeployment cancelled (--skip-confirmation prevents deploying to existing instances).")
+                print("Use one of the commands above instead.")
+                raise DeploymentCancelledException(
+                    "Deployment cancelled: existing instances found with --skip-confirmation"
+                )
+            else:
+                response = (
+                    input(
+                        f"\nDo you want to continue with deployment to existing {inactive_color} instances? (yes/no): "
+                    )
+                    .strip()
+                    .lower()
+                )
+                if response not in ["yes", "y"]:
+                    print("Deployment cancelled.")
+                    raise DeploymentCancelledException("Deployment cancelled by user")
 
         # Track original min sizes for cleanup
         active_original_min = None

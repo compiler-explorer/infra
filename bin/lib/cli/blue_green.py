@@ -3,7 +3,7 @@
 import click
 
 from lib.amazon import as_client, ec2_client, elb_client
-from lib.blue_green_deploy import BlueGreenDeployment
+from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
 from lib.env import Config
@@ -176,6 +176,9 @@ def blue_green_deploy(cfg: Config, capacity: int, skip_confirmation: bool):
         deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation)
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
+    except DeploymentCancelledException:
+        # Deployment was cancelled - don't show success message or raise
+        return
     except Exception as e:
         print(f"\nDeployment failed: {e}")
         print("The inactive ASG may be partially scaled. Check status and clean up if needed.")
