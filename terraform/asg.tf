@@ -31,7 +31,6 @@ resource "aws_autoscaling_notification" "notify" {
     aws_autoscaling_group.prod-mixed.name,
     aws_autoscaling_group.gpu.name,
     aws_autoscaling_group.staging.name,
-    aws_autoscaling_group.beta.name,
     aws_autoscaling_group.winprod-mixed.name,
     aws_autoscaling_group.aarch64prod-mixed.name
   ]

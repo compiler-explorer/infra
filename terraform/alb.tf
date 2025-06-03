@@ -50,7 +50,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
     # The initial value doesn't matter as it will be overridden
-    target_group_arn = aws_alb_target_group.ce["beta"].arn
+    target_group_arn = module.beta_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
