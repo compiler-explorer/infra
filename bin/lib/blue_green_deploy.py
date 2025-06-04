@@ -46,6 +46,8 @@ class BlueGreenDeployment:
             "active_original_min": None,
             "active_original_max": None,
             "in_deployment": False,
+            "original_version_key": None,
+            "version_was_changed": False,
         }
 
     def _cleanup_on_signal(self, signum, frame):
@@ -61,6 +63,8 @@ class BlueGreenDeployment:
         inactive_asg = self._deployment_state["inactive_asg"]
         active_original_min = self._deployment_state["active_original_min"]
         active_original_max = self._deployment_state["active_original_max"]
+        original_version_key = self._deployment_state.get("original_version_key")
+        version_was_changed = self._deployment_state.get("version_was_changed", False)
 
         if active_original_min is not None and active_original_max is not None and active_asg:
             print(f"Restoring original capacity settings for {active_asg}")
@@ -75,6 +79,18 @@ class BlueGreenDeployment:
                 reset_asg_min_size(inactive_asg, min_size=0)
             except Exception as e:
                 print(f"Warning: Failed to reset min size for {inactive_asg}: {e}")
+
+        # Rollback version if it was changed
+        if version_was_changed and original_version_key:
+            print(f"Rolling back version to {original_version_key}")
+            try:
+                from lib.amazon import set_current_key
+
+                set_current_key(self.cfg, original_version_key)
+                print("✓ Version rolled back successfully")
+            except Exception as e:
+                print(f"⚠️  WARNING: Failed to rollback version: {e}")
+                print(f"You may need to manually set version back to {original_version_key}")
 
         print("Cleanup complete. Exiting.")
         sys.exit(1)
@@ -173,8 +189,14 @@ class BlueGreenDeployment:
         asg_info = get_asg_info(asg_name)
         return asg_info["DesiredCapacity"] if asg_info else 0
 
-    def deploy(self, target_capacity: Optional[int] = None, skip_confirmation: bool = False) -> None:
-        """Perform a blue-green deployment."""
+    def deploy(
+        self,
+        target_capacity: Optional[int] = None,
+        skip_confirmation: bool = False,
+        version: Optional[str] = None,
+        branch: Optional[str] = None,
+    ) -> None:
+        """Perform a blue-green deployment with optional version setting."""
         active_color = self.get_active_color()
         inactive_color = self.get_inactive_color()
 
@@ -228,6 +250,8 @@ class BlueGreenDeployment:
         cleanup_handler_installed = False
         old_sigint = None
         old_sigterm = None
+        original_version_key = None
+        version_was_changed = False
 
         # Update deployment state for signal handler
         self._deployment_state.update(
@@ -237,6 +261,8 @@ class BlueGreenDeployment:
                 "active_original_min": None,  # Will be set after protection
                 "active_original_max": None,  # Will be set after protection
                 "in_deployment": True,
+                "original_version_key": None,
+                "version_was_changed": False,
             }
         )
 
@@ -257,6 +283,52 @@ class BlueGreenDeployment:
             active_original_min, active_original_max = None, None
 
         try:
+            # Step 0.5: Set version after ASG is protected but before scaling
+            if version:
+                # Get current version first for potential rollback
+                from lib.amazon import get_current_key
+                from lib.builds_core import (
+                    check_compiler_discovery,
+                    get_release_without_discovery_check,
+                    set_version_for_deployment,
+                )
+
+                original_version_key = get_current_key(self.cfg)
+
+                print(f"\nStep 0.5: Setting build version to {version}")
+                print(f"         (Current version: {original_version_key})")
+
+                # Check if version exists and has discovery
+                try:
+                    release = check_compiler_discovery(self.cfg, version, branch)
+                    if not release:
+                        raise RuntimeError(f"Version {version} not found")
+                except RuntimeError as e:
+                    # Discovery hasn't run - ask for confirmation unless skip_confirmation is True
+                    if skip_confirmation:
+                        print(f"⚠️  WARNING: {e}")
+                        print("Proceeding anyway due to --skip-confirmation")
+                        release = get_release_without_discovery_check(self.cfg, version, branch)
+                        if not release:
+                            raise RuntimeError(f"Version {version} not found") from None
+                    else:
+                        print(f"⚠️  WARNING: {e}")
+                        response = input("Are you sure you want to continue? (yes/no): ").strip().lower()
+                        if response not in ["yes", "y"]:
+                            print("Version setting cancelled.")
+                            raise DeploymentCancelledException("Version setting cancelled by user") from None
+                        release = get_release_without_discovery_check(self.cfg, version, branch)
+                        if not release:
+                            raise RuntimeError(f"Version {version} not found") from None
+
+                if not set_version_for_deployment(self.cfg, release):
+                    raise RuntimeError(f"Failed to set version {version}")
+
+                version_was_changed = True
+                self._deployment_state["original_version_key"] = original_version_key
+                self._deployment_state["version_was_changed"] = True
+
+                print(f"✓ Version {version} set successfully")
             # Step 1: Scale up inactive ASG with min size protection
             print(f"\nStep 1: Scaling up {inactive_asg} to {target_capacity} instances")
             print("         Setting minimum size to prevent autoscaling interference during deployment")
@@ -327,6 +399,18 @@ class BlueGreenDeployment:
                 print(f"\nCleaning up: Resetting minimum size of {inactive_asg} after failed deployment")
                 reset_asg_min_size(inactive_asg, min_size=0)
 
+                # Rollback version if it was changed
+                if version_was_changed and original_version_key:
+                    print(f"\nRolling back version to {original_version_key}")
+                    try:
+                        from lib.amazon import set_current_key
+
+                        set_current_key(self.cfg, original_version_key)
+                        print("✓ Version rolled back successfully")
+                    except Exception as e:
+                        print(f"⚠️  WARNING: Failed to rollback version: {e}")
+                        print(f"You may need to manually set version back to {original_version_key}")
+
             # Restore original signal handlers
             if cleanup_handler_installed:
                 signal.signal(signal.SIGINT, old_sigint)
@@ -339,6 +423,8 @@ class BlueGreenDeployment:
                 "active_original_min": None,
                 "active_original_max": None,
                 "in_deployment": False,
+                "original_version_key": None,
+                "version_was_changed": False,
             }
 
     def rollback(self) -> None:

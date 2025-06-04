@@ -1,18 +1,14 @@
 import datetime
-import json
 import os
-import subprocess
 import sys
 import tempfile
 from collections import defaultdict
 from typing import Dict, Optional, Sequence
 
 import click
-import requests
 
 from lib.amazon import (
     delete_bouncelock_file,
-    download_release_file,
     download_release_fileobj,
     find_latest_release,
     find_release,
@@ -21,7 +17,6 @@ from lib.amazon import (
     get_current_key,
     get_key_counterpart,
     get_releases,
-    get_ssm_param,
     has_bouncelock_file,
     list_all_build_logs,
     list_period_build_logs,
@@ -29,6 +24,12 @@ from lib.amazon import (
     put_bouncelock_file,
     remove_release,
     set_current_key,
+)
+from lib.builds_core import (
+    deploy_staticfiles,
+    deploy_staticfiles_windows,
+    notify_sentry_deployment,
+    old_deploy_staticfiles,
 )
 from lib.cdn import DeploymentJob
 from lib.ce_utils import are_you_sure, confirm_action, confirm_branch, describe_current_release, display_releases
@@ -48,43 +49,6 @@ def builds():
 def builds_current(cfg: Config):
     """Print the current release."""
     print(describe_current_release(cfg))
-
-
-def old_deploy_staticfiles(branch, versionfile):
-    print("Deploying static files")
-    downloadfile = versionfile
-    filename = "deploy.tar.xz"
-    remotefile = branch + "/" + downloadfile
-    download_release_file(remotefile[1:], filename)
-    os.mkdir("deploy")
-    subprocess.call(["tar", "-C", "deploy", "-Jxf", filename])
-    os.remove(filename)
-    subprocess.call(["aws", "s3", "sync", "deploy/out/dist/dist", "s3://compiler-explorer/dist/cdn"])
-    subprocess.call(["rm", "-Rf", "deploy"])
-
-
-def deploy_staticfiles_windows(release) -> bool:
-    print("Deploying static files to cdn (Windows)")
-    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
-
-    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
-        download_release_fileobj(release.static_key, f)
-        f.flush()
-        with DeploymentJob(
-            f.name, "ce-cdn.net", version=release.version, cache_control=cc, bucket_path="windows"
-        ) as job:
-            return job.run()
-
-
-def deploy_staticfiles(release) -> bool:
-    print("Deploying static files to cdn")
-    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
-
-    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
-        download_release_fileobj(release.static_key, f)
-        f.flush()
-        with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
-            return job.run()
 
 
 def check_staticfiles_for_deployment(release) -> bool:
@@ -196,17 +160,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
         if release:
-            print("Marking as a release in sentry...")
-            token = get_ssm_param("/compiler-explorer/sentryAuthToken")
-            result = requests.post(
-                f"https://sentry.io/api/0/organizations/compiler-explorer/releases/{release.version}/deploys/",
-                data=dict(environment=cfg.env.value),
-                headers=dict(Authorization=f"Bearer {token}"),
-                timeout=30,
-            )
-            if not result.ok:
-                raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
-            print("...done", json.loads(result.content.decode()))
+            notify_sentry_deployment(cfg, release)
 
 
 @builds.command(name="rm_old")
