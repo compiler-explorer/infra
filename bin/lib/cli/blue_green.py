@@ -1,5 +1,7 @@
 """Blue-green deployment CLI commands."""
 
+from typing import Optional
+
 import click
 
 from lib.amazon import as_client, ec2_client, elb_client
@@ -157,9 +159,17 @@ def blue_green_status(cfg: Config, detailed: bool):
 @blue_green.command(name="deploy")
 @click.option("--capacity", type=int, help="Target capacity for deployment (default: match current)")
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
+@click.option("--branch", help="If version == 'latest', branch to get latest version from")
+@click.argument("version", required=False)
 @click.pass_obj
-def blue_green_deploy(cfg: Config, capacity: int, skip_confirmation: bool):
-    """Deploy to the inactive color using blue-green strategy."""
+def blue_green_deploy(
+    cfg: Config, capacity: int, skip_confirmation: bool, branch: Optional[str], version: Optional[str]
+):
+    """Deploy to the inactive color using blue-green strategy.
+
+    Optionally specify VERSION to set before deployment.
+    If VERSION is "latest" then the latest version (optionally filtered by --branch) is set.
+    """
     if cfg.env.value not in ["beta", "prod"]:
         print("Blue-green deployment is only available for beta and prod environments")
         return
@@ -169,12 +179,19 @@ def blue_green_deploy(cfg: Config, capacity: int, skip_confirmation: bool):
     active = deployment.get_active_color()
     inactive = deployment.get_inactive_color()
 
+    # Show what version will be deployed if specified
+    if version:
+        print(f"\nWill set version to: {version}")
+
     if not skip_confirmation:
-        if not are_you_sure(f"deploy to {inactive} (currently active: {active})", cfg):
+        confirm_msg = f"deploy to {inactive} (currently active: {active})"
+        if version:
+            confirm_msg += f" with version {version}"
+        if not are_you_sure(confirm_msg, cfg):
             return
 
     try:
-        deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation)
+        deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation, version=version, branch=branch)
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
     except DeploymentCancelledException:
