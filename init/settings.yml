@@ -67,7 +67,7 @@ compiler:
         version: ANY
         libcxx: ANY
 
-build_type: [Debug]
+build_type: [Debug, Release]
 
 flagcollection: ANY
 
