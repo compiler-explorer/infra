@@ -654,11 +654,13 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
+                # Use appropriate CMAKE_*_FLAGS based on build type
+                cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
                 cmakeline = (
                     f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
-                    f'"-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" "-DCMAKE_C_FLAGS_DEBUG={c_flags}" '
-                    f'"-DCMAKE_ASM_FLAGS_DEBUG={asm_flags}" {extracmakeargs} {sourcefolder} '
+                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder} '
                     f"> cecmakelog.txt 2>&1\n"
                 )
                 self.logger.debug(cmakeline)
@@ -1556,9 +1558,14 @@ class LibraryBuilder:
             if fixedStdver:
                 stdvers = [fixedStdver]
 
+            # Use Release build type for MSVC compilers on Windows
+            buildtypes = build_supported_buildtype
+            if is_msvc and self.platform == LibraryPlatform.Windows:
+                buildtypes = ["Release"]
+
             iteration = 0
             for args in itertools.product(
-                build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
+                build_supported_os, buildtypes, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
                 iteration += 1
                 with self.install_context.new_staging_dir() as staging:
