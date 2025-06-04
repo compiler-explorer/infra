@@ -2,7 +2,7 @@
 
 ## Overview
 
-Compiler Explorer has implemented a blue-green deployment strategy for the beta environment, providing zero-downtime deployments with instant rollback capabilities. This implementation uses ALB listener rule switching with dual ASGs and target groups.
+Compiler Explorer has implemented a blue-green deployment strategy for both beta and production environments, providing zero-downtime deployments with instant rollback capabilities. This implementation uses ALB listener rule switching (beta) or listener default action switching (production) with dual ASGs and target groups.
 
 ## Problem Solved
 
@@ -13,17 +13,27 @@ The previous deployment process caused version inconsistencies during rolling up
 
 ## Architecture
 
-### Implementation Approach: ALB Listener Rule Switching
+### Implementation Approach: ALB Listener Rule/Action Switching
 
-The implementation uses **dual target groups** with **listener rule switching**:
+The implementation uses **dual target groups** with different switching mechanisms:
 
+**Beta Environment** - Uses listener rule switching:
 ```
 ALB (godbolt.org)
 ├── HTTPS Listener :443
-    ├── Default rule → prod target group (unchanged)
+    ├── Default rule → prod target groups
     ├── /beta* rule → Beta-Blue OR Beta-Green (switchable)
     ├── /staging* rule → staging target group (unchanged)
     └── /gpu* rule → gpu target group (unchanged)
+```
+
+**Production Environment** - Uses default action switching:
+```
+ALB (godbolt.org)
+├── HTTP Listener :80
+│   └── Default action → Prod-Blue OR Prod-Green (switchable)
+├── HTTPS Listener :443
+    └── Default action → Prod-Blue OR Prod-Green (switchable)
 ```
 
 ### Terraform Module Structure
@@ -31,7 +41,7 @@ ALB (godbolt.org)
 The blue-green infrastructure is defined using a reusable Terraform module:
 
 ```hcl
-# terraform/modules/blue_green/
+# Beta environment configuration
 module "beta_blue_green" {
   source = "./modules/blue_green"
 
@@ -43,16 +53,50 @@ module "beta_blue_green" {
   initial_desired_capacity  = 0
   initial_active_color      = "blue"
 }
+
+# Production environment configuration
+module "prod_blue_green" {
+  source = "./modules/blue_green"
+
+  environment               = "prod"
+  vpc_id                    = module.ce_network.vpc.id
+  launch_template_id        = aws_launch_template.CompilerExplorer-prod.id
+  subnets                   = local.subnets
+  asg_max_size              = 40
+  initial_desired_capacity  = 0
+  initial_active_color      = "blue"
+
+  # Production uses mixed instances for cost optimization
+  use_mixed_instances_policy = true
+  on_demand_base_capacity    = 0
+  on_demand_percentage_above_base_capacity = 0
+  spot_allocation_strategy   = "price-capacity-optimized"
+  mixed_instances_overrides = [
+    { instance_type = "m5zn.large" },
+    { instance_type = "m5.large" },
+    # ... additional instance types
+  ]
+
+  # Enable auto-scaling for production
+  enable_autoscaling_policy = true
+  autoscaling_target_cpu    = 50.0
+}
 ```
 
 ### Components Created
 
-For each environment using blue-green (currently beta):
+For each environment using blue-green:
 
-1. **Two Target Groups**: `Beta-Blue` and `Beta-Green`
-2. **Two ASGs**: `beta-blue` and `beta-green`
+1. **Two Target Groups**:
+   - Beta: `Beta-Blue` and `Beta-Green`
+   - Prod: `Prod-Blue` and `Prod-Green`
+2. **Two ASGs**:
+   - Beta: `beta-blue` and `beta-green`
+   - Prod: `prod-blue` and `prod-green`
 3. **SSM Parameters**: Track active color and target group ARN
-4. **Terraform Module**: Reusable for other environments
+   - `/compiler-explorer/{env}/active-color`
+   - `/compiler-explorer/{env}/active-target-group-arn`
+4. **Auto-scaling Policies** (production only): CPU-based scaling
 
 ## Deployment Process
 
@@ -60,25 +104,25 @@ For each environment using blue-green (currently beta):
 
 ```bash
 # Check current status
-ce --env beta blue-green status
+ce --env {beta|prod} blue-green status
 
 # Deploy to inactive color
-ce --env beta blue-green deploy [--capacity N]
+ce --env {beta|prod} blue-green deploy [--capacity N]
 
 # Switch to specific color manually
-ce --env beta blue-green switch green
+ce --env {beta|prod} blue-green switch {blue|green}
 
 # Rollback to previous color
-ce --env beta blue-green rollback
+ce --env {beta|prod} blue-green rollback
 
 # Clean up inactive ASG
-ce --env beta blue-green cleanup
+ce --env {beta|prod} blue-green cleanup
 
 # Shut down environment
-ce --env beta blue-green shutdown
+ce --env {beta|prod} blue-green shutdown
 
 # Validate setup
-ce --env beta blue-green validate
+ce --env {beta|prod} blue-green validate
 ```
 
 ### Deployment Flow
@@ -93,24 +137,30 @@ ce --env beta blue-green validate
 
 ### Switch Mechanism
 
-The system switches traffic by updating the ALB listener rule:
+The system switches traffic differently based on environment:
 
+**Beta Environment** - Updates listener rule:
 ```python
-# From blue_green_deploy.py
-def switch_target_group(self, new_color: str) -> None:
-    rule_arn = self.get_listener_rule_arn()
-    new_tg_arn = self.get_target_group_arn(new_color)
+elb_client.modify_rule(
+    RuleArn=rule_arn,
+    Actions=[{
+        "Type": "forward",
+        "TargetGroupArn": new_tg_arn
+    }]
+)
+```
 
-    elb_client.modify_rule(
-        RuleArn=rule_arn,
-        Actions=[{
+**Production Environment** - Updates listener default actions:
+```python
+# Updates both HTTP and HTTPS listeners
+for listener in [http_listener, https_listener]:
+    elb_client.modify_listener(
+        ListenerArn=listener["ListenerArn"],
+        DefaultActions=[{
             "Type": "forward",
             "TargetGroupArn": new_tg_arn
         }]
     )
-
-    # Update SSM parameters for state tracking
-    self._update_ssm_parameters(new_color, new_tg_arn)
 ```
 
 ## Safety Features
@@ -200,24 +250,52 @@ ASG Status:
 ## Current Implementation Scope
 
 - **Beta Environment**: Fully implemented and operational
-- **Production**: Still uses rolling deployments
+- **Production Environment**: Fully implemented with mixed instances and auto-scaling
 - **Other Environments**: Continue with existing deployment strategies
+
+## Migration Considerations
+
+### Production Migration
+
+When migrating production to blue-green:
+
+1. **Initial Setup**:
+   - Apply Terraform changes to create blue-green infrastructure
+   - The old `prod-mixed` ASG remains commented out for safety
+   - Initial active color is set to "blue" with 0 instances
+
+2. **Migration Steps**:
+   ```bash
+   # 1. Deploy initial instances to blue ASG
+   ce --env prod blue-green deploy --capacity 10
+
+   # 2. Verify blue instances are healthy
+   ce --env prod blue-green status --detailed
+
+   # 3. Switch traffic to blue (this updates ALB default actions)
+   ce --env prod blue-green switch blue
+
+   # 4. Monitor and verify traffic is being served correctly
+
+   # 5. Remove old prod-mixed ASG from Terraform after successful migration
+   ```
+
+3. **Rollback Plan**:
+   - If issues occur, manually update ALB listeners to point back to old target group
+   - Old `prod-mixed` ASG remains available until explicitly removed
+
+### Special Considerations for Production
+
+1. **CloudFront Integration**: CloudFront automatically uses the ALB's default actions
+2. **Mixed Instances**: Production uses spot instances for cost optimization
+3. **Auto-scaling**: CPU-based scaling is enabled (target: 50%)
+4. **Capacity**: Production supports up to 40 instances vs beta's 4
 
 ## Future Enhancements
 
-Based on beta experience, potential improvements include:
+Based on implementation experience, potential improvements include:
 
-1. **Production Implementation**: Extend to production environment
-2. **Canary Deployments**: Gradual traffic shifting
-3. **Automated Testing**: Integration tests before traffic switch
-4. **Enhanced Monitoring**: Blue-green specific metrics and alerts
-
-## Migration from Previous Architecture
-
-The implementation replaced the old single beta ASG with:
-- Removal of `aws_autoscaling_group.beta` resource
-- Removal of "beta" from target groups variable
-- Updated ALB listener rule to use blue-green target groups
-- Added blue-green module infrastructure
-
-This ensures no conflicts between old and new deployment strategies.
+1. **Canary Deployments**: Gradual traffic shifting between colors
+2. **Automated Testing**: Integration tests before traffic switch
+3. **Enhanced Monitoring**: Blue-green specific metrics and alerts
+4. **Cross-region Support**: Extend to other AWS regions

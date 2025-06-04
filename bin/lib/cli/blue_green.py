@@ -12,7 +12,7 @@ from lib.env import Config
 
 @cli.group(name="blue-green")
 def blue_green():
-    """Blue-green deployment commands (BETA - for testing only)."""
+    """Blue-green deployment commands."""
     pass
 
 
@@ -21,8 +21,8 @@ def blue_green():
 @click.pass_obj
 def blue_green_status(cfg: Config, detailed: bool):
     """Show the current blue-green deployment status."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -160,8 +160,8 @@ def blue_green_status(cfg: Config, detailed: bool):
 @click.pass_obj
 def blue_green_deploy(cfg: Config, capacity: int, skip_confirmation: bool):
     """Deploy to the inactive color using blue-green strategy."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -192,8 +192,8 @@ def blue_green_deploy(cfg: Config, capacity: int, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool):
     """Manually switch to a specific color (blue or green)."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -228,8 +228,8 @@ def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_rollback(cfg: Config, skip_confirmation: bool):
     """Rollback to the previous color."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -252,8 +252,8 @@ def blue_green_rollback(cfg: Config, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
     """Scale down the inactive ASG to save resources."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -274,9 +274,9 @@ def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
 @click.pass_obj
 def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
-    """Shutdown the beta environment by scaling the active ASG to 0."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    """Shutdown the environment by scaling the active ASG to 0."""
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -286,24 +286,28 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
     # Check if active ASG has any instances
     asg_info = get_asg_info(active_asg)
     if not asg_info or asg_info["DesiredCapacity"] == 0:
-        print(f"Beta environment is already shut down (active {active_color} ASG has 0 instances)")
+        print(
+            f"{cfg.env.value.capitalize()} environment is already shut down (active {active_color} ASG has 0 instances)"
+        )
         return
 
     current_capacity = asg_info["DesiredCapacity"]
 
     if not skip_confirmation:
-        print(f"⚠️  WARNING: This will shut down the beta environment by scaling the active {active_color} ASG to 0.")
+        print(
+            f"⚠️  WARNING: This will shut down the {cfg.env.value} environment by scaling the active {active_color} ASG to 0."
+        )
         print(f"Currently serving traffic with {current_capacity} instance(s).")
         print("This will cause downtime until you deploy or switch to another color.")
 
-        if not are_you_sure(f"shutdown beta environment (scale active {active_color} ASG to 0)", cfg):
+        if not are_you_sure(f"shutdown {cfg.env.value} environment (scale active {active_color} ASG to 0)", cfg):
             return
 
     try:
-        print(f"Shutting down beta environment: scaling {active_asg} from {current_capacity} to 0 instances")
+        print(f"Shutting down {cfg.env.value} environment: scaling {active_asg} from {current_capacity} to 0 instances")
         scale_asg(active_asg, 0)
-        print("✅ Beta environment shut down successfully")
-        print("To restart: run 'ce --env beta blue-green deploy' or scale up manually")
+        print(f"✅ {cfg.env.value.capitalize()} environment shut down successfully")
+        print(f"To restart: run 'ce --env {cfg.env.value} blue-green deploy' or scale up manually")
     except Exception as e:
         print(f"Shutdown failed: {e}")
         raise
@@ -313,8 +317,8 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_validate(cfg: Config):
     """Validate the blue-green deployment setup."""
-    if cfg.env.value != "beta":
-        print("Blue-green deployment is currently only available for beta environment")
+    if cfg.env.value not in ["beta", "prod"]:
+        print("Blue-green deployment is only available for beta and prod environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -354,9 +358,15 @@ def blue_green_validate(cfg: Config):
     try:
         rule_arn = deployment.get_listener_rule_arn()
         if rule_arn:
-            print("✓ ALB listener rule found")
+            if cfg.env.value == "prod":
+                print("✓ ALB listener found for production")
+            else:
+                print("✓ ALB listener rule found")
         else:
-            issues.append("ALB listener rule not found for /beta*")
+            if cfg.env.value == "prod":
+                issues.append("ALB listener not found for production")
+            else:
+                issues.append(f"ALB listener rule not found for /{cfg.env.value}*")
     except Exception as e:
         issues.append(f"Error checking listener rule: {e}")
 
