@@ -1,7 +1,7 @@
 # Blue-Green deployment infrastructure for Production environment
 # Uses the blue_green module to create matching blue and green infrastructure
 #
-# NOTE: This creates the blue-green infrastructure but production traffic 
+# NOTE: This creates the blue-green infrastructure but production traffic
 # still flows through the old prod-mixed ASG. To migrate:
 # 1. Apply this terraform to create the blue-green resources
 # 2. Test the blue-green module thoroughly with beta
