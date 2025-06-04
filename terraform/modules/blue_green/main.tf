@@ -50,9 +50,39 @@ resource "aws_autoscaling_group" "color" {
   health_check_grace_period = var.health_check_grace_period
   health_check_type         = "ELB"
 
-  launch_template {
-    id      = var.launch_template_id
-    version = "$Latest"
+  # Use either mixed instances policy or simple launch template
+  dynamic "mixed_instances_policy" {
+    for_each = var.use_mixed_instances_policy ? [1] : []
+    content {
+      instances_distribution {
+        on_demand_allocation_strategy            = "lowest-price"
+        on_demand_base_capacity                  = var.on_demand_base_capacity
+        on_demand_percentage_above_base_capacity = var.on_demand_percentage_above_base_capacity
+        spot_allocation_strategy                 = var.spot_allocation_strategy
+        spot_instance_pools                      = 0
+      }
+      launch_template {
+        launch_template_specification {
+          launch_template_id = var.launch_template_id
+          version            = "$Latest"
+        }
+        dynamic "override" {
+          for_each = var.mixed_instances_overrides
+          content {
+            instance_type = override.value.instance_type
+          }
+        }
+      }
+    }
+  }
+
+  # Simple launch template when not using mixed instances
+  dynamic "launch_template" {
+    for_each = var.use_mixed_instances_policy ? [] : [1]
+    content {
+      id      = var.launch_template_id
+      version = "$Latest"
+    }
   }
 
   max_size            = var.asg_max_size
@@ -121,4 +151,25 @@ resource "aws_ssm_parameter" "active_target_group" {
 # Data source to read the active target group dynamically
 data "aws_ssm_parameter" "active_tg" {
   name = aws_ssm_parameter.active_target_group.name
+}
+
+# Auto-scaling policies for both colors (if enabled)
+resource "aws_autoscaling_policy" "color" {
+  for_each = var.enable_autoscaling_policy ? toset(local.colors) : []
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  autoscaling_group_name    = aws_autoscaling_group.color[each.value].name
+  name                      = "cpu-tracker"
+  policy_type               = "TargetTrackingScaling"
+  estimated_instance_warmup = var.health_check_grace_period + 30
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = var.autoscaling_target_cpu
+  }
 }
