@@ -15,6 +15,7 @@ on:
 jobs:
     librarybuild:
       runs-on: ['win-builder']
+      timeout-minutes: 720
 
       steps:
       - name: Download build script
