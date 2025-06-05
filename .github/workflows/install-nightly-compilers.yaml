@@ -7,6 +7,7 @@ on:
 
 jobs:
   install:
+    timeout-minutes: 720
     runs-on: ['admin']
     steps:
       - name: Install nightly compilers
