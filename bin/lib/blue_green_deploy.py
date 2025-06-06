@@ -24,6 +24,9 @@ from lib.deployment_utils import (
 )
 from lib.env import Config
 
+# Environments that support blue-green deployment
+BLUE_GREEN_ENABLED_ENVIRONMENTS = ["beta", "prod"]
+
 
 class DeploymentCancelledException(Exception):
     """Exception raised when a deployment is cancelled by the user."""
@@ -138,11 +141,7 @@ class BlueGreenDeployment:
 
     def get_listener_rule_arn(self) -> Optional[str]:
         """Get the ALB listener rule ARN for this environment."""
-        # For beta environment with path-based routing
-        if self.env != "beta":
-            return None
-
-        # Need to find the rule that matches /beta*
+        # Get listeners for the load balancer
         listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
 
         # Find HTTPS listener
@@ -150,14 +149,19 @@ class BlueGreenDeployment:
         if not https_listeners:
             return None
 
-        # Check rules for path pattern matching /beta*
-        for listener in https_listeners:
-            rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
-            for rule in rules["Rules"]:
-                conditions = rule.get("Conditions", [])
-                for condition in conditions:
-                    if condition.get("Field") == "path-pattern" and "/beta*" in condition.get("Values", []):
-                        return rule["RuleArn"]
+        # For production, we return the listener ARN itself (to modify default action)
+        # For beta, we find the specific rule for /beta*
+        if self.env == "prod":
+            return https_listeners[0]["ListenerArn"]
+        elif self.env == "beta":
+            # Check rules for path pattern matching /beta*
+            for listener in https_listeners:
+                rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
+                for rule in rules["Rules"]:
+                    conditions = rule.get("Conditions", [])
+                    for condition in conditions:
+                        if condition.get("Field") == "path-pattern" and "/beta*" in condition.get("Values", []):
+                            return rule["RuleArn"]
 
         return None
 
@@ -169,14 +173,30 @@ class BlueGreenDeployment:
 
     def switch_target_group(self, new_color: str) -> None:
         """Switch the ALB to point to the new color's target group."""
-        rule_arn = self.get_listener_rule_arn()
-        if not rule_arn:
-            raise ValueError(f"No listener rule found for environment {self.env}")
+        rule_or_listener_arn = self.get_listener_rule_arn()
+        if not rule_or_listener_arn:
+            raise ValueError(f"No listener rule/listener found for environment {self.env}")
 
         new_tg_arn = self.get_target_group_arn(new_color)
 
         print(f"Switching {self.env} to {new_color} target group")
-        elb_client.modify_rule(RuleArn=rule_arn, Actions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}])
+
+        if self.env == "prod":
+            # For production, modify both HTTP and HTTPS listeners' default actions
+            listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
+
+            for listener in listeners["Listeners"]:
+                if listener["Port"] in [80, 443]:
+                    print(f"  Updating {listener['Protocol']} listener on port {listener['Port']}")
+                    elb_client.modify_listener(
+                        ListenerArn=listener["ListenerArn"],
+                        DefaultActions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}],
+                    )
+        else:
+            # For beta (and other environments with rules), modify the rule
+            elb_client.modify_rule(
+                RuleArn=rule_or_listener_arn, Actions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}]
+            )
 
         # Update SSM parameters
         self._update_ssm_parameters(new_color, new_tg_arn)

@@ -1,3 +1,5 @@
+# NOTE: Temporarily re-enabled while testing blue-green deployment module changes
+# Will be replaced by blue-green deployment after validation
 resource "aws_autoscaling_group" "prod-mixed" {
   lifecycle {
     create_before_destroy = true
@@ -86,6 +88,7 @@ resource "aws_autoscaling_group" "prod-mixed" {
   target_group_arns = [aws_alb_target_group.ce["prod"].arn]
 }
 
+# NOTE: Temporarily re-enabled while testing blue-green deployment module changes
 resource "aws_autoscaling_policy" "prod-mixed" {
   lifecycle {
     create_before_destroy = true

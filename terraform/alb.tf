@@ -17,9 +17,19 @@ resource "aws_alb" "GccExplorerApp" {
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
+  # NOTE: Temporarily reverted to use old production target group while testing blue-green
+  # Uncomment lifecycle block when ready to migrate to blue-green
+  # lifecycle {
+  #   # Ignore changes to the default_action since it's managed by blue-green deployment
+  #   ignore_changes = [default_action]
+  # }
+
   default_action {
-    type             = "forward"
+    type = "forward"
+    # Temporarily using old production target group
     target_group_arn = aws_alb_target_group.ce["prod"].arn
+    # Blue-green target group (use after validation):
+    # target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
 
   load_balancer_arn = aws_alb.GccExplorerApp.arn
@@ -28,9 +38,19 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
+  # NOTE: Temporarily reverted to use old production target group while testing blue-green
+  # Uncomment lifecycle block when ready to migrate to blue-green
+  # lifecycle {
+  #   # Ignore changes to the default_action since it's managed by blue-green deployment
+  #   ignore_changes = [default_action]
+  # }
+
   default_action {
-    type             = "forward"
+    type = "forward"
+    # Temporarily using old production target group
     target_group_arn = aws_alb_target_group.ce["prod"].arn
+    # Blue-green target group (use after validation):
+    # target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
   load_balancer_arn = aws_alb.GccExplorerApp.arn
   port              = 443
