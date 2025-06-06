@@ -6,7 +6,7 @@ import click
 
 from lib.amazon import as_client, ec2_client, elb_client
 from lib.aws_utils import get_asg_info, scale_asg
-from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
+from lib.blue_green_deploy import BLUE_GREEN_ENABLED_ENVIRONMENTS, BlueGreenDeployment, DeploymentCancelledException
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
 from lib.env import Config
@@ -23,8 +23,8 @@ def blue_green():
 @click.pass_obj
 def blue_green_status(cfg: Config, detailed: bool):
     """Show the current blue-green deployment status."""
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
