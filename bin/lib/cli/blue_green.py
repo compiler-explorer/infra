@@ -170,8 +170,8 @@ def blue_green_deploy(
     Optionally specify VERSION to set before deployment.
     If VERSION is "latest" then the latest version (optionally filtered by --branch) is set.
     """
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -209,8 +209,8 @@ def blue_green_deploy(
 @click.pass_obj
 def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool):
     """Manually switch to a specific color (blue or green)."""
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -245,8 +245,8 @@ def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_rollback(cfg: Config, skip_confirmation: bool):
     """Rollback to the previous color."""
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -269,8 +269,8 @@ def blue_green_rollback(cfg: Config, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
     """Scale down the inactive ASG to save resources."""
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -292,8 +292,8 @@ def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
     """Shutdown the environment by scaling the active ASG to 0."""
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
@@ -334,8 +334,8 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
 @click.pass_obj
 def blue_green_validate(cfg: Config):
     """Validate the blue-green deployment setup."""
-    if cfg.env.value not in ["beta", "prod"]:
-        print("Blue-green deployment is only available for beta and prod environments")
+    if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
+        print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
         return
 
     deployment = BlueGreenDeployment(cfg)
