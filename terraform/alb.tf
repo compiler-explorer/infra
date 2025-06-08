@@ -17,9 +17,14 @@ resource "aws_alb" "GccExplorerApp" {
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
+  lifecycle {
+    # Ignore changes to the default_action since it's managed by blue-green deployment
+    ignore_changes = [default_action]
+  }
+
   default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["prod"].arn
+    type = "forward"
+    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
 
   load_balancer_arn = aws_alb.GccExplorerApp.arn
@@ -28,9 +33,14 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
+  lifecycle {
+    # Ignore changes to the default_action since it's managed by blue-green deployment
+    ignore_changes = [default_action]
+  }
+
   default_action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["prod"].arn
+    type = "forward"
+    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
   load_balancer_arn = aws_alb.GccExplorerApp.arn
   port              = 443

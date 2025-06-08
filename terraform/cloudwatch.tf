@@ -193,21 +193,46 @@ resource "aws_cloudwatch_metric_alarm" "efs_burst_credit" {
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
 
-resource "aws_cloudwatch_metric_alarm" "no_prod_nodes" {
-  alarm_name         = "NoHealthyProdNodes"
-  alarm_description  = "Ensure there's at least one healthy node in production"
-  evaluation_periods = 1
-  period             = 60
-  namespace          = "AWS/AutoScaling"
-  metric_name        = "GroupInServiceInstances"
-  statistic          = "Minimum"
-  dimensions = {
-    AutoScalingGroupName = aws_autoscaling_group.prod-mixed.name
-  }
-
+resource "aws_cloudwatch_metric_alarm" "no_prod_nodes_blue_green" {
+  alarm_name          = "NoHealthyProdNodes"
+  alarm_description   = "Ensure there's at least one healthy node in production (blue-green)"
+  evaluation_periods  = 1
   threshold           = 1
   comparison_operator = "LessThanThreshold"
   alarm_actions       = [data.aws_sns_topic.alert.arn]
+
+  metric_query {
+    id          = "total_healthy_instances"
+    expression  = "blue_instances + green_instances"
+    label       = "Total Healthy Instances (Blue + Green)"
+    return_data = true
+  }
+
+  metric_query {
+    id = "blue_instances"
+    metric {
+      metric_name = "GroupInServiceInstances"
+      namespace   = "AWS/AutoScaling"
+      stat        = "Minimum"
+      period      = 60
+      dimensions = {
+        AutoScalingGroupName = module.prod_blue_green.asg_names["blue"]
+      }
+    }
+  }
+
+  metric_query {
+    id = "green_instances"
+    metric {
+      metric_name = "GroupInServiceInstances"
+      namespace   = "AWS/AutoScaling"
+      stat        = "Minimum"
+      period      = 60
+      dimensions = {
+        AutoScalingGroupName = module.prod_blue_green.asg_names["green"]
+      }
+    }
+  }
 }
 
 resource "aws_cloudwatch_metric_alarm" "waf_throttled" {

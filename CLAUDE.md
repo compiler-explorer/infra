@@ -47,6 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - For AWS resources, follow terraform best practices
 - Never call functions within f-strings: create a variable first, then use it in the f-string
 - Never use nested functions - always use class methods or module-level functions instead
+- **When making a change based on feedback, search for similar patterns in the codebase** - if someone suggests a change that makes sense, check for other locations where the same improvement should be applied
 
 ## Testing Guidelines
 

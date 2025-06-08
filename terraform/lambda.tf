@@ -313,7 +313,8 @@ resource "aws_lambda_function" "status" {
 
   environment {
     variables = {
-      PROD_LB_ARN        = aws_alb_target_group.ce["prod"].arn
+      PROD_LB_BLUE_ARN   = module.prod_blue_green.target_group_arns["blue"]
+      PROD_LB_GREEN_ARN  = module.prod_blue_green.target_group_arns["green"]
       STAGING_LB_ARN     = aws_alb_target_group.ce["staging"].arn
       BETA_LB_BLUE_ARN   = module.beta_blue_green.target_group_arns["blue"]
       BETA_LB_GREEN_ARN  = module.beta_blue_green.target_group_arns["green"]

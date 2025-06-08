@@ -1,7 +1,6 @@
 variable "ce-target-groups" {
   description = "Target groups to create on port 80 for CE"
   default = {
-    "prod"           = 1
     "staging"        = 2
     "gpu"            = 4
     "wintest"        = 5
