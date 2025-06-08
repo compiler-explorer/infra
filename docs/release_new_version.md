@@ -72,12 +72,25 @@ This is unsurprisingly accomplished by running `ce --env staging environment sto
 Instead of now rerunning the first step of compiler discovery for your commit but now for the prod environment,
 you can instead run `ce runner safeforprod staging gh-xxxx`, and it will create a compiler discovery result for prod.
 
-## Set current version in prod
+## Version Management for Different Environments
 
-Now that you've tested that everything works correctly,
-running `ce --env prod builds set_current gh-xxxx` will mark your build as current for the prod environment.
+Now that you've tested that everything works correctly, the deployment process varies by environment:
 
-_If this fails complaining that prod is currently bounce locked, it means that someone has blocked prod from updating.
+### For Blue-Green Environments (prod, beta)
+**Do NOT use `set_current`** - instead pass the version directly to the deploy command:
+- Production: `ce --env prod blue-green deploy --version gh-xxxx`
+- Beta: `ce --env beta blue-green deploy --version gh-xxxx`
+
+### For Traditional Environments (staging, gpu, winprod, etc.)
+Use `set_current` followed by environment refresh:
+```bash
+# Examples:
+ce --env staging builds set_current gh-xxxx
+ce --env gpu builds set_current gh-xxxx  
+ce --env winprod builds set_current gh-xxxx
+```
+
+_If any command fails complaining about bounce lock, it means someone has blocked that environment from updating.
 The usual reason is that a conference is currently running and we don't want to have any big changes at this moment.
 There are instructions in the error message on how to bypass this if necessary, but ask around to check first._
 
@@ -95,8 +108,10 @@ This shows which color (blue or green) is currently active and serving traffic.
 
 ### Deploy to inactive color
 ```bash
-ce --env prod blue-green deploy
+ce --env prod blue-green deploy --version gh-xxxx
 ```
+
+Replace `gh-xxxx` with the actual build version you set as current in the previous step.
 
 This will:
 1. Deploy new instances to the inactive color
@@ -112,7 +127,7 @@ If you prefer more control, you can use individual commands:
 
 ```bash
 # Deploy without automatic switch
-ce --env prod blue-green deploy --skip-switch
+ce --env prod blue-green deploy --version gh-xxxx --skip-switch
 
 # Manually switch when ready
 ce --env prod blue-green switch {blue|green}
