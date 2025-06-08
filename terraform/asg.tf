@@ -28,7 +28,6 @@ resource "aws_sns_topic" "elb-instance-terminate" {
 
 resource "aws_autoscaling_notification" "notify" {
   group_names = [
-    aws_autoscaling_group.prod-mixed.name,
     aws_autoscaling_group.gpu.name,
     aws_autoscaling_group.staging.name,
     aws_autoscaling_group.winprod-mixed.name,
