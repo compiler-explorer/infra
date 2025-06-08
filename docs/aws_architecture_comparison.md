@@ -1,8 +1,8 @@
-# Architecture Comparison: Current vs Blue-Green
+# Architecture Comparison: Previous vs Current Blue-Green
 
 ## Side-by-Side Comparison
 
-### Current Architecture (Rolling Deployment)
+### Previous Architecture (Rolling Deployment)
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         CURRENT STATE                           │
@@ -30,7 +30,7 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Blue-Green Architecture (Proposed)
+### Blue-Green Architecture (Current)
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      BLUE-GREEN STATE                           │
@@ -60,7 +60,7 @@
 
 ## Deployment Timeline Comparison
 
-### Current: Rolling Deployment (Instance Refresh)
+### Previous: Rolling Deployment (Instance Refresh)
 ```
 Time →
 0min    5min    10min   15min   20min   25min
@@ -100,12 +100,12 @@ USER EXPERIENCE: Clean cut-over, no mixed versions! ✅
 
 ## Production Environment Specifics
 
-### Current Production
+### Previous Production
 ```
 ┌──────────────────────────────────┐
-│         Production (Now)         │
+│      Production (Previous)       │
 ├──────────────────────────────────┤
-│ • Single "prod" ASG              │
+│ • Single "prod-mixed" ASG        │
 │ • Single "Prod" target group     │
 │ • 10-15 instances typical        │
 │ • Instance refresh for updates   │
@@ -116,29 +116,31 @@ USER EXPERIENCE: Clean cut-over, no mixed versions! ✅
 └──────────────────────────────────┘
 ```
 
-### Blue-Green Production
+### Blue-Green Production (Current)
 ```
 ┌──────────────────────────────────┐
-│     Production (Blue-Green)      │
+│  Production (Blue-Green Current) │
 ├──────────────────────────────────┤
 │ • "prod-blue" ASG                │
 │ • "prod-green" ASG               │
 │ • "Prod-Blue" target group       │
 │ • "Prod-Green" target group      │
 │ • Only one ASG active            │
-│ • Atomic ALB rule switch         │
+│ • Atomic ALB listener switch     │
 │ • ~10 min deployment time        │
 │ • No mixed versions              │
 │ • Instant rollback available     │
+│ • Mixed instances (spot/on-dem)  │
+│ • Auto-scaling enabled (50% CPU) │
 └──────────────────────────────────┘
 ```
 
 ## Beta Environment Specifics
 
-### Current Beta
+### Previous Beta
 ```
 ┌──────────────────────────────────┐
-│          Beta (Now)              │
+│        Beta (Previous)           │
 ├──────────────────────────────────┤
 │ • Single "beta" ASG              │
 │ • Single "Beta" target group     │
@@ -148,25 +150,25 @@ USER EXPERIENCE: Clean cut-over, no mixed versions! ✅
 └──────────────────────────────────┘
 ```
 
-### Blue-Green Beta (Testing Ground)
+### Blue-Green Beta (Current)
 ```
 ┌──────────────────────────────────┐
-│       Beta (Blue-Green)          │
+│    Beta (Blue-Green Current)     │
 ├──────────────────────────────────┤
 │ • "beta-blue" ASG                │
 │ • "beta-green" ASG               │
 │ • "Beta-Blue" target group       │
 │ • "Beta-Green" target group      │
 │ • Path rule switches TGs         │
-│ • CLI commands for testing       │
-│ • Validates before prod          │
+│ • CLI commands implemented       │
+│ • Fully operational              │
 └──────────────────────────────────┘
 ```
 
 ## Key Metrics Comparison
 
-| Metric | Current (Rolling) | Blue-Green |
-|--------|------------------|------------|
+| Metric | Previous (Rolling) | Current (Blue-Green) |
+|--------|-------------------|----------------------|
 | Deployment Time | ~20-25 minutes | ~10 minutes |
 | Mixed Version Period | ~20 minutes | 0 minutes |
 | Rollback Time | ~20 minutes | <1 minute |
@@ -174,30 +176,32 @@ USER EXPERIENCE: Clean cut-over, no mixed versions! ✅
 | Resource Cost | 1x ASG | 2x ASG (briefly) |
 | Complexity | Simple | Moderate |
 | Risk Level | Medium | Low |
+| Environments | All | Beta + Production |
 
-## Implementation Roadmap
+## Implementation Status
 
 ```
-Week 1-2: Beta Testing
-├── Deploy beta blue-green infrastructure
-├── Test CLI commands
-├── Validate switching mechanics
-└── Measure timing and performance
+✅ COMPLETED: Beta Environment
+├── Beta blue-green infrastructure deployed
+├── CLI commands fully implemented
+├── Switching mechanics validated
+└── Performance metrics measured
 
-Week 3-4: Production Prep
-├── Create prod blue-green infrastructure
-├── Update deployment procedures
-├── Train team on new process
-└── Prepare rollback procedures
+✅ COMPLETED: Production Environment
+├── Production blue-green infrastructure deployed
+├── Deployment procedures updated
+├── Team trained on new process
+└── Rollback procedures tested
 
-Week 5: Production Rollout
-├── Deploy during low-traffic window
-├── Monitor closely
-├── Keep old ASG warm initially
-└── Document lessons learned
+📋 CURRENT STATE:
+├── Beta: Fully operational with blue-green
+├── Production: Fully operational with blue-green
+├── Staging: Still using rolling deployments
+├── GPU/Win/AArch64: Still using rolling deployments
 
-Future: Expand as Needed
-├── Evaluate other environments
-├── Consider automation improvements
-└── Optimize resource usage
+🔮 FUTURE CONSIDERATIONS:
+├── Evaluate other environments for blue-green
+├── Implement canary deployments
+├── Add automated testing before switch
+└── Optimize resource usage patterns
 ```

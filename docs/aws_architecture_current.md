@@ -33,8 +33,10 @@ graph TB
     end
 
     subgraph "Target Groups"
-        TGProd[TG: Prod<br/>Port 80]
-        TGBeta[TG: Beta<br/>Port 80]
+        TGProdBlue[TG: Prod-Blue<br/>Port 80]
+        TGProdGreen[TG: Prod-Green<br/>Port 80]
+        TGBetaBlue[TG: Beta-Blue<br/>Port 80]
+        TGBetaGreen[TG: Beta-Green<br/>Port 80]
         TGStaging[TG: Staging<br/>Port 80]
         TGGpu[TG: GPU<br/>Port 80]
         TGWin[TG: WinProd/Staging<br/>Port 80]
@@ -43,8 +45,10 @@ graph TB
     end
 
     subgraph "Auto Scaling Groups"
-        ASGProd[ASG: prod-mixed<br/>Min: 2, Max: 24<br/>Spot Instances]
-        ASGBeta[ASG: beta<br/>Min: 0, Max: 4]
+        ASGProdBlue[ASG: prod-blue<br/>Min: 0, Max: 40<br/>Spot Instances]
+        ASGProdGreen[ASG: prod-green<br/>Min: 0, Max: 40<br/>Spot Instances]
+        ASGBetaBlue[ASG: beta-blue<br/>Min: 0, Max: 4]
+        ASGBetaGreen[ASG: beta-green<br/>Min: 0, Max: 4]
         ASGStaging[ASG: staging<br/>Min: 0, Max: 4]
         ASGGpu[ASG: gpu<br/>Min: 0, Max: 8<br/>GPU Instances]
         ASGWin[ASG: winprod-mixed<br/>Windows Instances]
@@ -83,23 +87,29 @@ graph TB
     HTTPS --> WinRule
     HTTPS --> AArch64Rule
 
-    DefRule --> TGProd
-    BetaRule --> TGBeta
+    DefRule -.->|Switchable| TGProdBlue
+    DefRule -.->|Switchable| TGProdGreen
+    BetaRule -.->|Switchable| TGBetaBlue
+    BetaRule -.->|Switchable| TGBetaGreen
     StagingRule --> TGStaging
     GPURule --> TGGpu
     WinRule --> TGWin
     AArch64Rule --> TGAArch
 
-    TGProd --> ASGProd
-    TGBeta --> ASGBeta
+    TGProdBlue --> ASGProdBlue
+    TGProdGreen --> ASGProdGreen
+    TGBetaBlue --> ASGBetaBlue
+    TGBetaGreen --> ASGBetaGreen
     TGStaging --> ASGStaging
     TGGpu --> ASGGpu
     TGWin --> ASGWin
     TGAArch --> ASGAArch
     TGConan --> ConanNode
 
-    ASGProd --> EC2Prod
-    ASGBeta --> EC2Beta
+    ASGProdBlue --> EC2Prod
+    ASGProdGreen --> EC2Prod
+    ASGBetaBlue --> EC2Beta
+    ASGBetaGreen --> EC2Beta
     ASGStaging --> EC2Staging
     ASGGpu --> EC2Gpu
     ASGWin --> EC2Win
@@ -146,11 +156,15 @@ graph TB
 
 ### Auto Scaling Groups
 
-#### Production ASG (prod-mixed)
-- **Instance Types**: m5.large, m6.large, etc. (mixed)
+#### Production ASGs (Blue-Green)
+- **Blue ASG**: prod-blue (active or standby)
+- **Green ASG**: prod-green (active or standby)
+- **Instance Types**: m5.large, m6.large, etc. (mixed instances policy)
 - **Purchase Options**: 100% Spot instances
-- **Scaling**: CPU target tracking (50%)
+- **Scaling**: CPU target tracking (50%) on active ASG
 - **Health Check**: ELB type, 240s grace period
+- **Target Groups**: Prod-Blue and Prod-Green (ALB switches between them)
+- **State Management**: SSM parameters track active color
 
 #### Specialized ASGs
 - **GPU**: g4dn.xlarge instances for CUDA compilers
@@ -198,7 +212,6 @@ graph TB
 
 ## Current Limitations
 
-1. **Rolling Deployments**: Instance refresh causes mixed versions
-2. **No Instant Rollback**: Must wait for full refresh to revert
-3. **Shared Target Groups**: Can't pre-stage new versions
-4. **Single Color Model**: No blue-green capability (except upcoming beta test)
+1. **Other Environments**: Rolling deployments still cause mixed versions in staging/gpu/win/aarch64
+2. **Legacy Dependencies**: Some monitoring/tooling may still reference old ASG names
+3. **Resource Overhead**: Blue-green requires brief 2x capacity during deployments

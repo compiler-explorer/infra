@@ -58,9 +58,9 @@
 │                          AUTO SCALING GROUP LAYER                               │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │ ASG: prod-mixed          │ ASG: beta           │ ASG: staging           │  │
-│  │ Min: 2, Max: 24         │ Min: 0, Max: 4      │ Min: 0, Max: 4        │  │
-│  │ Current: ~10-15         │ Current: 0-1        │ Current: 0-1          │  │
+│  │ ASG: prod-blue/green     │ ASG: beta-blue/green│ ASG: staging           │  │
+│  │ Min: 0, Max: 40 each    │ Min: 0, Max: 4 each │ Min: 0, Max: 4        │  │
+│  │ Current: ~10-15 (1 ASG) │ Current: 0-1 (1 ASG)│ Current: 0-1          │  │
 │  │ Spot: 100%              │ On-Demand: 100%     │ On-Demand: 100%       │  │
 │  │ ┌─────┐ ┌─────┐ ┌─────┐│ ┌─────┐             │ ┌─────┐               │  │
 │  │ │ EC2 │ │ EC2 │ │ EC2 ││ │ EC2 │             │ │ EC2 │               │  │
@@ -91,7 +91,7 @@
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Instance Refresh Process (Current Problem)
+## Instance Refresh Process (Legacy Issue - Solved for Prod/Beta)
 
 ```
 Time →
@@ -114,9 +114,10 @@ T5: Final state (all instances version B)
     [B] [B] [B] [B] [B] [B] [B] [B]
 
 Problem Period: T2-T4 where both A and B serve traffic
+NOTE: This problem is now solved for production and beta via blue-green deployment!
 ```
 
-## Proposed Blue-Green for Beta (Testing)
+## Blue-Green Deployment (Current for Prod/Beta)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐

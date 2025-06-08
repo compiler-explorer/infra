@@ -23,7 +23,7 @@ graph TB
             HTTPS[HTTPS Listener :443]
             HTTP[HTTP Listener :80]
 
-            DefRule["Default Rule -> Prod TG"]
+            DefRule["Default Rule -> Switchable"]
             BetaRule["'/beta*' Rule -> Switchable"]
             StagingRule["'/staging*' -> Staging TG"]
             GPURule["'/gpu*' -> GPU TG"]
@@ -54,10 +54,26 @@ graph TB
         end
     end
 
-    subgraph "Production (Single ASG)"
-        TGProd[Target Group: Prod<br/>Port 80]
-        ASGProd[ASG: prod-mixed<br/>Min: 2, Max: 24<br/>Rolling Deployment]
-        EC2Prod[EC2 Instances<br/>Spot + On-Demand]
+    subgraph "Production Blue-Green (Implemented)"
+        subgraph "Production Target Groups"
+            TGProdBlue[Target Group: Prod-Blue<br/>Port 80<br/>Health: /healthcheck]
+            TGProdGreen[Target Group: Prod-Green<br/>Port 80<br/>Health: /healthcheck]
+        end
+
+        subgraph "Production ASGs"
+            ASGProdBlue[ASG: prod-blue<br/>Min: 0, Max: 40<br/>Launch Template: prod]
+            ASGProdGreen[ASG: prod-green<br/>Min: 0, Max: 40<br/>Launch Template: prod]
+        end
+
+        subgraph "Production EC2 Instances"
+            EC2ProdBlue[EC2 Instances<br/>Color: blue<br/>Mixed Instances]
+            EC2ProdGreen[EC2 Instances<br/>Color: green<br/>Mixed Instances]
+        end
+
+        subgraph "Production State Management"
+            SSMProdColor[SSM: /compiler-explorer/prod/active-color]
+            SSMProdTargetGroup[SSM: /compiler-explorer/prod/active-target-group-arn]
+        end
     end
 
     subgraph "Other Environments (Single ASG)"
@@ -72,8 +88,9 @@ graph TB
         ASGAArch[ASG: aarch64prod-mixed<br/>Rolling Deploy]
     end
 
-    subgraph "Terraform Module"
-        ModuleBG[module beta_blue_green<br/>source = ./modules/blue_green]
+    subgraph "Terraform Modules"
+        ModuleBetaBG[module beta_blue_green<br/>source = ./modules/blue_green]
+        ModuleProdBG[module prod_blue_green<br/>source = ./modules/blue_green]
     end
 
     subgraph "Storage"
@@ -91,10 +108,19 @@ graph TB
     ALB --> HTTPS
     ALB --> HTTP
 
-    %% Production (unchanged)
+    %% Production Blue-Green Flow (switchable)
     HTTPS --> DefRule
-    DefRule --> TGProd
-    TGProd --> ASGProd
+    HTTP --> DefRule
+    DefRule -.->|Active| TGProdBlue
+    DefRule -.->|Inactive| TGProdGreen
+    SSMProdColor -->|Tracks Active| DefRule
+    SSMProdTargetGroup -->|Current TG ARN| DefRule
+
+    TGProdBlue --> ASGProdBlue
+    TGProdGreen --> ASGProdGreen
+
+    ASGProdBlue --> EC2ProdBlue
+    ASGProdGreen --> EC2ProdGreen
 
     %% Beta Blue-Green Flow (switchable)
     HTTPS --> BetaRule
@@ -125,32 +151,42 @@ graph TB
     TGWin --> ASGWin
     TGAArch --> ASGAArch
 
-    %% Terraform Module creates blue-green resources
-    ModuleBG -.->|Creates| TGBetaBlue
-    ModuleBG -.->|Creates| TGBetaGreen
-    ModuleBG -.->|Creates| ASGBetaBlue
-    ModuleBG -.->|Creates| ASGBetaGreen
-    ModuleBG -.->|Creates| SSMColor
-    ModuleBG -.->|Creates| SSMTargetGroup
+    %% Terraform Modules create blue-green resources
+    ModuleBetaBG -.->|Creates| TGBetaBlue
+    ModuleBetaBG -.->|Creates| TGBetaGreen
+    ModuleBetaBG -.->|Creates| ASGBetaBlue
+    ModuleBetaBG -.->|Creates| ASGBetaGreen
+    ModuleBetaBG -.->|Creates| SSMColor
+    ModuleBetaBG -.->|Creates| SSMTargetGroup
+
+    ModuleProdBG -.->|Creates| TGProdBlue
+    ModuleProdBG -.->|Creates| TGProdGreen
+    ModuleProdBG -.->|Creates| ASGProdBlue
+    ModuleProdBG -.->|Creates| ASGProdGreen
+    ModuleProdBG -.->|Creates| SSMProdColor
+    ModuleProdBG -.->|Creates| SSMProdTargetGroup
 
     %% Storage connections
     EC2BetaBlue --> EFS
     EC2BetaGreen --> EFS
-    EC2Prod --> EFS
+    EC2ProdBlue --> EFS
+    EC2ProdGreen --> EFS
 
     ALB --> S3Logs
     CF --> S3Static
 
     %% Styling
-    classDef active fill:#90EE90,stroke:#228B22,stroke-width:3px
-    classDef inactive fill:#FFB6C1,stroke:#DC143C,stroke-width:2px,stroke-dasharray: 5 5
-    classDef switch fill:#87CEEB,stroke:#4682B4,stroke-width:2px
-    classDef module fill:#DDA0DD,stroke:#8B008B,stroke-width:2px
+    classDef active fill:#90EE90,stroke:#228B22,stroke-width:3px,color:#000000
+    classDef inactive fill:#FFB6C1,stroke:#DC143C,stroke-width:2px,stroke-dasharray: 5 5,color:#000000
+    classDef switch fill:#87CEEB,stroke:#4682B4,stroke-width:2px,color:#000000
+    classDef module fill:#DDA0DD,stroke:#8B008B,stroke-width:2px,color:#000000
 
     class TGBetaBlue,ASGBetaBlue,EC2BetaBlue active
     class TGBetaGreen,ASGBetaGreen,EC2BetaGreen inactive
-    class SSMColor,SSMTargetGroup switch
-    class ModuleBG module
+    class TGProdBlue,ASGProdBlue,EC2ProdBlue active
+    class TGProdGreen,ASGProdGreen,EC2ProdGreen inactive
+    class SSMColor,SSMTargetGroup,SSMProdColor,SSMProdTargetGroup switch
+    class ModuleBetaBG,ModuleProdBG module
 ```
 
 ## Current Implementation Details
@@ -306,26 +342,29 @@ The implementation replaced the old single beta ASG:
 
 ### No Impact Areas
 - Other environments remain unchanged
-- Production still uses single ASG with rolling deployment
 - Existing monitoring and logging continue to work
+- CloudFront integration continues to work seamlessly
 
 ## CLI Commands and State Management
 
 ### Command Overview
 ```bash
-ce --env beta blue-green status     # Check current state
-ce --env beta blue-green deploy     # Deploy to inactive color
-ce --env beta blue-green switch     # Manual color switch
-ce --env beta blue-green rollback   # Revert to previous color
-ce --env beta blue-green cleanup    # Scale down inactive ASG
-ce --env beta blue-green shutdown   # Scale down active ASG
-ce --env beta blue-green validate   # Verify infrastructure
+# Commands work for both beta and prod environments
+ce --env {beta|prod} blue-green status     # Check current state
+ce --env {beta|prod} blue-green deploy     # Deploy to inactive color
+ce --env {beta|prod} blue-green switch     # Manual color switch
+ce --env {beta|prod} blue-green rollback   # Revert to previous color
+ce --env {beta|prod} blue-green cleanup    # Scale down inactive ASG
+ce --env {beta|prod} blue-green shutdown   # Scale down active ASG
+ce --env {beta|prod} blue-green validate   # Verify infrastructure
 ```
 
 ### State Tracking
 The system tracks state via SSM parameters:
-- `/compiler-explorer/beta/active-color`: "blue" or "green"
-- `/compiler-explorer/beta/active-target-group-arn`: Current target group ARN
+- `/compiler-explorer/{env}/active-color`: "blue" or "green"
+- `/compiler-explorer/{env}/active-target-group-arn`: Current target group ARN
+
+Where {env} is "beta" or "prod"
 
 ### Safety Features
 - ASG capacity protection during deployment (MinSize/MaxSize locking)
@@ -335,11 +374,12 @@ The system tracks state via SSM parameters:
 
 ## Future Architecture Considerations
 
-### Production Implementation
-To extend blue-green to production:
-- Create `prod-blue-green.tf` using the same module
-- Update default ALB listener rule
-- Implement production-specific safety checks
+### Production Implementation (Completed)
+Production blue-green has been implemented with:
+- `prod-blue-green.tf` using the same module with production-specific settings
+- Default ALB listener actions updated to switch between blue/green target groups
+- Mixed instances policy for cost optimization
+- Auto-scaling enabled with CPU target of 50%
 
 ### Other Environments
 The blue-green module can be reused for any environment:
