@@ -78,8 +78,8 @@ Now that you've tested that everything works correctly, the deployment process v
 
 ### For Blue-Green Environments (prod, beta)
 **Do NOT use `set_current`** - instead pass the version directly to the deploy command:
-- Production: `ce --env prod blue-green deploy --version gh-xxxx`
-- Beta: `ce --env beta blue-green deploy --version gh-xxxx`
+- Production: `ce --env prod blue-green deploy gh-xxxx`
+- Beta: `ce --env beta blue-green deploy gh-xxxx`
 
 ### For Traditional Environments (staging, gpu, winprod, etc.)
 Use `set_current` followed by environment refresh:
@@ -108,10 +108,10 @@ This shows which color (blue or green) is currently active and serving traffic.
 
 ### Deploy to inactive color
 ```bash
-ce --env prod blue-green deploy --version gh-xxxx
+ce --env prod blue-green deploy gh-xxxx
 ```
 
-Replace `gh-xxxx` with the actual build version you set as current in the previous step.
+Replace `gh-xxxx` with the actual build version you identified earlier.
 
 This will:
 1. Deploy new instances to the inactive color
@@ -127,7 +127,7 @@ If you prefer more control, you can use individual commands:
 
 ```bash
 # Deploy without automatic switch
-ce --env prod blue-green deploy --version gh-xxxx --skip-switch
+ce --env prod blue-green deploy gh-xxxx --skip-switch
 
 # Manually switch when ready
 ce --env prod blue-green switch {blue|green}
