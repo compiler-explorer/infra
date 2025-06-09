@@ -318,6 +318,7 @@ libraries:
       repo: brontosource/bronto
       targets:
       - v0.1.0
+      - v0.2.0
       type: github
     catch2:
       build_type: cmake
