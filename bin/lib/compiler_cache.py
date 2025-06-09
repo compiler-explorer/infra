@@ -3,8 +3,12 @@
 from pathlib import Path
 from typing import Dict, Optional
 
-from lib.compiler_utils import CMakeCacheExtractor, CompilerPropertyManager, PlatformEnvironmentManager, ScriptExecutor
+from lib.cmake_cache_extractor import CMakeCacheExtractor
+from lib.compiler_info import CompilerInfo
+from lib.compiler_properties import CompilerPropertyManager
 from lib.library_platform import LibraryPlatform
+from lib.platform_environment import PlatformEnvironmentManager
+from lib.script_executor import ScriptExecutor
 
 
 class CompilerCacheExtractor:
@@ -61,8 +65,6 @@ class CompilerCacheExtractor:
         compiler_info = self.property_manager.get_compiler_info("c++", compiler_id)
         if not compiler_info:
             # Fallback to creating CompilerInfo from props if not found in manager
-            from lib.compiler_utils import CompilerInfo
-
             compiler_info = CompilerInfo(compiler_id, compiler_props)
 
         # Use the shared environment manager with default toolchain and arch
@@ -87,8 +89,6 @@ class CompilerCacheExtractor:
         compiler_info = self.property_manager.get_compiler_info("c++", compiler_id)
         if not compiler_info:
             # Fallback to creating CompilerInfo from props if not found in manager
-            from lib.compiler_utils import CompilerInfo
-
             compiler_info = CompilerInfo(compiler_id, compiler_props)
 
         # Create compiler-specific output directory
@@ -114,6 +114,7 @@ class CompilerCacheExtractor:
             keep_temp_dir=False,
             compiler_id=compiler_id,
             upload_to_s3=upload_to_s3,
+            compiler_info=compiler_info,
         )
 
         if success:

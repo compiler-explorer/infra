@@ -21,11 +21,13 @@ from urllib3.exceptions import ProtocolError
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
-from lib.compiler_utils import CMakeCacheExtractor, CompilerInfo, PlatformEnvironmentManager
+from lib.cmake_cache_extractor import CMakeCacheExtractor
+from lib.compiler_info import CompilerInfo
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
 from lib.library_platform import LibraryPlatform
+from lib.platform_environment import PlatformEnvironmentManager
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
