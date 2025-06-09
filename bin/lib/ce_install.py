@@ -685,9 +685,10 @@ def compilercache():
 )
 @click.option("--list-compilers", is_flag=True, help="List available compilers and exit")
 @click.option("--platform", type=click.Choice(["linux", "windows"]), help="Target platform (default: current platform)")
+@click.option("--upload-to-s3", is_flag=True, help="Upload generated ZIP files to S3 (s3://storage.godbolt.org/compiler-cmake-cache/)")
 @click.pass_obj
 def extract_cache(
-    context: CliContext, compiler_id: Optional[str], output_dir: Path, list_compilers: bool, platform: Optional[str]
+    context: CliContext, compiler_id: Optional[str], output_dir: Path, list_compilers: bool, platform: Optional[str], upload_to_s3: bool
 ):
     """Extract CMake cache files for compilers.
 
@@ -710,6 +711,12 @@ def extract_cache(
 
         # Custom output directory
         ce_install compilercache extract --output-dir /path/to/output
+
+        # Upload ZIP files to S3 automatically
+        ce_install compilercache extract --upload-to-s3
+
+        # Extract for specific compiler and upload to S3
+        ce_install compilercache extract --compiler-id g142 --upload-to-s3
     """
     from lib.compiler_cache import CompilerCacheExtractor
     from lib.library_platform import LibraryPlatform
@@ -750,7 +757,10 @@ def extract_cache(
         if compiler_id:
             print(f"Filtering to compiler: {compiler_id}")
 
-        success_count, failed_count = extractor.extract_all_compilers(output_dir, compiler_id)
+        if upload_to_s3:
+            print("S3 upload enabled - ZIP files will be uploaded to s3://storage.godbolt.org/compiler-cmake-cache/")
+
+        success_count, failed_count = extractor.extract_all_compilers(output_dir, compiler_id, upload_to_s3)
 
         if failed_count == 0:
             print(f"✅ Successfully extracted cache files for {success_count} compiler(s)")

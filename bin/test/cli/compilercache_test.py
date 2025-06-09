@@ -378,7 +378,7 @@ class TestCompilerCacheExtractor(unittest.TestCase):
 
         self.assertEqual(success_count, 1)
         self.assertEqual(failed_count, 0)
-        mock_extract.assert_called_once_with("compiler1", {"exe": "C:/compiler1/cl.exe"}, output_dir)
+        mock_extract.assert_called_once_with("compiler1", {"exe": "C:/compiler1/cl.exe"}, output_dir, False)
 
     @patch.object(CompilerCacheExtractor, "get_supported_compilers")
     def test_extract_all_compilers_invalid_filter(self, mock_get_compilers):

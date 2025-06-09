@@ -77,7 +77,7 @@ class CompilerCacheExtractor:
 
         return env
 
-    def extract_cache_for_compiler(self, compiler_id: str, compiler_props: dict, output_dir: Path) -> bool:
+    def extract_cache_for_compiler(self, compiler_id: str, compiler_props: dict, output_dir: Path, upload_to_s3: bool = False) -> bool:
         """Extract CMake cache for a specific compiler using Python implementation."""
         self.logger.info(f"Extracting cache for compiler: {compiler_id}")
 
@@ -111,6 +111,7 @@ class CompilerCacheExtractor:
             create_zip=True,
             keep_temp_dir=False,
             compiler_id=compiler_id,
+            upload_to_s3=upload_to_s3,
         )
 
         if success:
@@ -121,7 +122,7 @@ class CompilerCacheExtractor:
             self.logger.error(f"Cache extraction failed for {compiler_id}: {message}")
             return False
 
-    def extract_all_compilers(self, output_dir: Path, compiler_filter: Optional[str] = None):
+    def extract_all_compilers(self, output_dir: Path, compiler_filter: Optional[str] = None, upload_to_s3: bool = False):
         """Extract cache files for all or filtered compilers."""
         compilers = self.get_supported_compilers()
 
@@ -134,7 +135,7 @@ class CompilerCacheExtractor:
         failed_count = 0
 
         for compiler_id, compiler_props in compilers.items():
-            if self.extract_cache_for_compiler(compiler_id, compiler_props, output_dir):
+            if self.extract_cache_for_compiler(compiler_id, compiler_props, output_dir, upload_to_s3):
                 success_count += 1
             else:
                 failed_count += 1
