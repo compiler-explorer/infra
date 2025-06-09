@@ -567,7 +567,9 @@ cmake ../your-project
                                 # Log the error but don't fail the entire operation
                                 self.logger.warning(f"S3 upload failed: {upload_message}")
                         else:
-                            self.logger.warning("S3 upload requested but no compiler_id provided for this extraction - skipping upload")
+                            self.logger.warning(
+                                "S3 upload requested but no compiler_id provided for this extraction - skipping upload"
+                            )
                     else:
                         self.logger.debug("S3 upload not requested")
 
