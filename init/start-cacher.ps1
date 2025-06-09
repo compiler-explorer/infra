@@ -28,7 +28,7 @@ function FetchInfra {
         git reset --hard
         git pull
     } else {
-        git clone https://github.com/compiler-explorer/infra
+        git clone https://github.com/compiler-explorer/infra --branch add-compiler-cache-extraction
     }
 
     Set-Location -Path "/tmp/infra"
