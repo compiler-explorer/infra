@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Dict, Optional
 
-from lib.compiler_utils import CompilerPropertyManager, PlatformEnvironmentManager, ScriptExecutor
+from lib.compiler_utils import CMakeCacheExtractor, CompilerPropertyManager, PlatformEnvironmentManager, ScriptExecutor
 from lib.library_platform import LibraryPlatform
 
 
@@ -30,6 +30,7 @@ class CompilerCacheExtractor:
         self.property_manager = CompilerPropertyManager(logger, self.platform)
         self.env_manager = PlatformEnvironmentManager(self.platform)
         self.script_executor = ScriptExecutor(logger, self.platform)
+        self.cmake_extractor = CMakeCacheExtractor(logger, self.platform)
         self.compilerprops = None
 
     def load_compilers(self):
@@ -77,34 +78,47 @@ class CompilerCacheExtractor:
         return env
 
     def extract_cache_for_compiler(self, compiler_id: str, compiler_props: dict, output_dir: Path) -> bool:
-        """Extract CMake cache for a specific compiler."""
+        """Extract CMake cache for a specific compiler using Python implementation."""
         self.logger.info(f"Extracting cache for compiler: {compiler_id}")
 
-        # Set up environment
-        env = self.setup_compiler_environment(compiler_id, compiler_props)
+        # Get compiler info from the property manager
+        compiler_info = self.property_manager.get_compiler_info("c++", compiler_id)
+        if not compiler_info:
+            # Fallback to creating CompilerInfo from props if not found in manager
+            from lib.compiler_utils import CompilerInfo
+
+            compiler_info = CompilerInfo(compiler_id, compiler_props)
 
         # Create compiler-specific output directory
         compiler_output_dir = output_dir / compiler_id
         compiler_output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Path to Extract-CMakeCache.ps1 script
-        script_path = Path(__file__).parent.parent.parent / "extract-cmakecache" / "Extract-CMakeCache.ps1"
+        # Extract C and C++ compiler paths from the compiler info
+        cxx_compiler = compiler_info.executable
+        c_compiler = compiler_info.get_c_compiler()
 
-        if not script_path.exists():
-            self.logger.error(f"Extract-CMakeCache.ps1 script not found at {script_path}")
-            return False
+        # Get compiler flags
+        cxx_flags = compiler_info.options if compiler_info.options else None
+        c_flags = cxx_flags  # Use same flags for C as C++ by default
 
-        # Use the shared script executor to run PowerShell
-        args = ["-OutputDir", str(compiler_output_dir), "-ZipOutput:$true"]
-        success, stdout, stderr = self.script_executor.execute_powershell(script_path, args=args, env=env, timeout=300)
+        # Use the Python CMake cache extractor
+        success, message = self.cmake_extractor.extract_cache(
+            c_compiler_path=c_compiler,
+            c_flags=c_flags,
+            cxx_compiler_path=cxx_compiler,
+            cxx_flags=cxx_flags,
+            output_dir=compiler_output_dir,
+            create_zip=True,
+            keep_temp_dir=False,
+            compiler_id=compiler_id,
+        )
 
         if success:
             self.logger.info(f"Successfully extracted cache for {compiler_id}")
-            self.logger.debug(f"Output: {stdout}")
+            self.logger.debug(message)
             return True
         else:
-            self.logger.error(f"Cache extraction failed for {compiler_id}")
-            self.logger.error(f"Stderr: {stderr}")
+            self.logger.error(f"Cache extraction failed for {compiler_id}: {message}")
             return False
 
     def extract_all_compilers(self, output_dir: Path, compiler_filter: Optional[str] = None):

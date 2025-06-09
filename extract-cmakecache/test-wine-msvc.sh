@@ -59,8 +59,10 @@ export WindowsSdkDir="$SDK_WIN_ROOT\\"
 export WindowsSDKVersion="10.0.22621.0\\"
 
 # Set compiler paths
-export CC="$(winepath -w "$MSVC_ROOT/bin/Hostx64/x64/cl.exe")"
-export CXX="$(winepath -w "$MSVC_ROOT/bin/Hostx64/x64/cl.exe")"
+CC_WIN_PATH="$(winepath -w "$MSVC_ROOT/bin/Hostx64/x64/cl.exe")"
+CXX_WIN_PATH="$(winepath -w "$MSVC_ROOT/bin/Hostx64/x64/cl.exe")"
+export CC="$CC_WIN_PATH"
+export CXX="$CXX_WIN_PATH"
 
 # Set compiler flags for MSVC
 export CFLAGS="/std:c17"
@@ -75,7 +77,9 @@ export LIB="$LIB_PATHS"
 export LIBPATH="$LIB_PATHS"
 
 # Add CMake and compiler to PATH
-export PATH="$(winepath -u "$CMAKE_WIN_ROOT\\bin"):$(winepath -u "$MSVC_WIN_ROOT\\bin\\Hostx64\\x64"):$PATH"
+CMAKE_PATH_UNIX="$(winepath -u "$CMAKE_WIN_ROOT\\bin")"
+MSVC_PATH_UNIX="$(winepath -u "$MSVC_WIN_ROOT\\bin\\Hostx64\\x64")"
+export PATH="$CMAKE_PATH_UNIX:$MSVC_PATH_UNIX:$PATH"
 
 echo ""
 echo "Environment setup complete. Testing compiler..."
@@ -83,7 +87,7 @@ echo "Environment setup complete. Testing compiler..."
 # Test if the compiler works through Wine
 echo "Testing MSVC compiler through Wine..."
 echo '#include <stdio.h>' > /tmp/test.c
-echo 'int main() { printf("Hello from MSVC!\\n"); return 0; }' >> /tmp/test.c
+printf 'int main() { printf("Hello from MSVC!\\n"); return 0; }\n' >> /tmp/test.c
 
 if wine "$MSVC_ROOT/bin/Hostx64/x64/cl.exe" /Fe:test.exe "$(winepath -w /tmp/test.c)" 2>/dev/null; then
     echo "✓ MSVC compiler test successful"

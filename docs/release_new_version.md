@@ -86,7 +86,7 @@ Use `set_current` followed by environment refresh:
 ```bash
 # Examples:
 ce --env staging builds set_current gh-xxxx
-ce --env gpu builds set_current gh-xxxx  
+ce --env gpu builds set_current gh-xxxx
 ce --env winprod builds set_current gh-xxxx
 ```
 

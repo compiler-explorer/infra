@@ -278,13 +278,10 @@ class TestCompilerCacheExtractor(unittest.TestCase):
         self.assertNotIn("CFLAGS", env)
         self.assertNotIn("CXXFLAGS", env)
 
-    @patch("pathlib.Path.exists")
-    def test_extract_cache_for_compiler_success(self, mock_exists):
+    def test_extract_cache_for_compiler_success(self):
         """Test successful cache extraction for a compiler."""
-        mock_exists.return_value = True
-
-        # Mock the ScriptExecutor.execute_powershell method
-        self.extractor.script_executor.execute_powershell = Mock(return_value=(True, "Success", ""))
+        # Mock the CMakeCacheExtractor.extract_cache method
+        self.extractor.cmake_extractor.extract_cache = Mock(return_value=(True, "Cache extracted successfully"))
 
         compiler_props = {"exe": "C:/Program Files/Microsoft Visual Studio/VC/bin/cl.exe", "options": "/O2"}
 
@@ -292,47 +289,39 @@ class TestCompilerCacheExtractor(unittest.TestCase):
             output_dir = Path(temp_dir)
             result = self.extractor.extract_cache_for_compiler("test_compiler", compiler_props, output_dir)
 
-        self.assertTrue(result)
-        self.assertTrue((output_dir / "test_compiler").exists())
+            self.assertTrue(result)
+            # The compiler-specific directory is created by the method itself
+            self.assertTrue((output_dir / "test_compiler").exists())
 
-        # Check that ScriptExecutor.execute_powershell was called with correct arguments
-        self.extractor.script_executor.execute_powershell.assert_called_once()
-        call_args = self.extractor.script_executor.execute_powershell.call_args
+        # Check that CMakeCacheExtractor.extract_cache was called with correct arguments
+        self.extractor.cmake_extractor.extract_cache.assert_called_once()
+        call_args = self.extractor.cmake_extractor.extract_cache.call_args
 
-        # Verify script path
-        script_path = call_args[0][0]
-        self.assertTrue(str(script_path).endswith("Extract-CMakeCache.ps1"))
+        # Verify arguments include compiler paths and output directory
+        kwargs = call_args[1]
+        self.assertIn("cxx_compiler_path", kwargs)
+        self.assertIn("output_dir", kwargs)
+        self.assertEqual(kwargs["create_zip"], True)
+        self.assertEqual(kwargs["keep_temp_dir"], False)
 
-        # Verify arguments
-        args = call_args[1]["args"]
-        self.assertIn("-OutputDir", args)
-        self.assertIn("-ZipOutput:$true", args)
+    def test_extract_cache_for_compiler_compiler_not_found(self):
+        """Test cache extraction when compiler is not found."""
+        # Mock the CMakeCacheExtractor.extract_cache method to return failure
+        self.extractor.cmake_extractor.extract_cache = Mock(return_value=(False, "C compiler not found: nonexistent"))
 
-    @patch("pathlib.Path.exists")
-    def test_extract_cache_for_compiler_script_not_found(self, mock_exists):
-        """Test cache extraction when script is not found."""
-        mock_exists.return_value = False
-
-        # Mock the ScriptExecutor.execute_powershell method
-        self.extractor.script_executor.execute_powershell = Mock()
-
-        compiler_props = {"exe": "C:/compiler/cl.exe"}
+        compiler_props = {"exe": "nonexistent", "compilerType": "gcc"}
 
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir)
             result = self.extractor.extract_cache_for_compiler("test_compiler", compiler_props, output_dir)
 
         self.assertFalse(result)
-        self.extractor.script_executor.execute_powershell.assert_not_called()
-        self.logger.error.assert_called_with(unittest.mock.ANY)
+        self.extractor.cmake_extractor.extract_cache.assert_called_once()
 
-    @patch("pathlib.Path.exists")
-    def test_extract_cache_for_compiler_failure(self, mock_exists):
+    def test_extract_cache_for_compiler_failure(self):
         """Test cache extraction failure."""
-        mock_exists.return_value = True
-
-        # Mock the ScriptExecutor.execute_powershell method to return failure
-        self.extractor.script_executor.execute_powershell = Mock(return_value=(False, "", "Error message"))
+        # Mock the CMakeCacheExtractor.extract_cache method to return failure
+        self.extractor.cmake_extractor.extract_cache = Mock(return_value=(False, "CMake configuration failed"))
 
         compiler_props = {"exe": "C:/compiler/cl.exe"}
 
@@ -343,13 +332,12 @@ class TestCompilerCacheExtractor(unittest.TestCase):
         self.assertFalse(result)
         self.logger.error.assert_called()
 
-    @patch("pathlib.Path.exists")
-    def test_extract_cache_for_compiler_timeout(self, mock_exists):
+    def test_extract_cache_for_compiler_timeout(self):
         """Test cache extraction timeout."""
-        mock_exists.return_value = True
-
-        # Mock the ScriptExecutor.execute_powershell method to return timeout error
-        self.extractor.script_executor.execute_powershell = Mock(return_value=(False, "", "Timeout after 300 seconds"))
+        # Mock the CMakeCacheExtractor.extract_cache method to return timeout error
+        self.extractor.cmake_extractor.extract_cache = Mock(
+            return_value=(False, "CMake configuration timed out after 300 seconds")
+        )
 
         compiler_props = {"exe": "C:/compiler/cl.exe"}
 
