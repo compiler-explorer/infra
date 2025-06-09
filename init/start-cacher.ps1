@@ -1,10 +1,4 @@
 
-param(
-    [String] $Compiler
-)
-
-
-
 do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
@@ -83,9 +77,4 @@ FetchInfra
 Set-Location /tmp/infra
 
 
-$FORCECOMPILERPARAM = ""
-# if ( $Compiler -ne "all" ) {
-#   $FORCECOMPILERPARAM = "--compiler-id $Compiler"
-# }
-
-pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" compilercache extract $FORCECOMPILERPARAM --platform windows
+pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" compilercache extract --platform windows

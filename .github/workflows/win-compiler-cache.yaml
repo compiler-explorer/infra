@@ -19,4 +19,4 @@ jobs:
       - name: Download build script
         run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/add-compiler-cache-extraction/init/start-cacher.ps1" -OutFile "C:\tmp\start-cacher.ps1"
       - name: Build libraries
-        run: Set-Location "C:\tmp"; pwsh .\start-cacher.ps1 -Compiler "${{ github.event.inputs.compiler }}"
+        run: Set-Location "C:\tmp"; pwsh .\start-cacher.ps1
