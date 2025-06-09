@@ -77,4 +77,4 @@ FetchInfra
 Set-Location /tmp/infra
 
 
-pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" compilercache extract --platform windows
+pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" compilercache extract --platform windows --upload-to-s3
