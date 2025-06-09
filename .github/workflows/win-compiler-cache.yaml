@@ -1,0 +1,20 @@
+name: CMake Compiler Caches for Windows compilers
+
+on:
+    workflow_dispatch:
+        inputs:
+            compiler:
+                description: 'Compiler'
+                default: 'all'
+                required: true
+
+jobs:
+    librarybuild:
+      runs-on: ['win-builder']
+      timeout-minutes: 720
+
+      steps:
+      - name: Download build script
+        run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/init/start-cacher.ps1" -OutFile "C:\tmp\start-cacher.ps1"
+      - name: Build libraries
+        run: Set-Location "C:\tmp"; pwsh .\start-cacher.ps1 -Compiler "${{ github.event.inputs.compiler }}"
