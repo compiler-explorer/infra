@@ -1,15 +1,17 @@
 name: CMake Compiler Caches for Windows compilers
 
-on:
-    workflow_dispatch:
-        inputs:
-            compiler:
-                description: 'Compiler'
-                default: 'all'
-                required: true
+# on:
+#     workflow_dispatch:
+#         inputs:
+#             compiler:
+#                 description: 'Compiler'
+#                 default: 'all'
+#                 required: true
+
+on: [push, pull_request]
 
 jobs:
-    librarybuild:
+    compilercache:
       runs-on: ['win-builder']
       timeout-minutes: 720
 

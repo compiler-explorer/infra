@@ -1,27 +1,8 @@
 
 param(
-    [String] $ConanPassword,
-    [String] $Language,
-    [String] $Library,
     [String] $Compiler
 )
 
-if ($ConanPassword -eq "") {
-    Write-Error "ConanPassword parameter required"
-    exit
-}
-if ($Language -eq "") {
-    Write-Error "Language parameter required"
-    exit
-}
-if ($Library -eq "") {
-    Write-Error "Library parameter required"
-    exit
-}
-if ($Compiler -eq "") {
-    Write-Error "Compiler parameter required"
-    exit
-}
 
 
 do {
@@ -102,8 +83,8 @@ Set-Location /tmp/infra
 
 
 $FORCECOMPILERPARAM = ""
-if ( $Compiler -ne "all" ) {
-  $FORCECOMPILERPARAM = "--compiler-id $Compiler"
-}
+# if ( $Compiler -ne "all" ) {
+#   $FORCECOMPILERPARAM = "--compiler-id $Compiler"
+# }
 
 pwsh .\ce_install.ps1 --staging-dir "C:/tmp/staging" --dest "C:/tmp/staging" compilercache extract $FORCECOMPILERPARAM --platform windows
