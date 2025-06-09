@@ -21,7 +21,7 @@ from urllib3.exceptions import ProtocolError
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
-from lib.compiler_utils import CompilerInfo, PlatformEnvironmentManager
+from lib.compiler_utils import CMakeCacheExtractor, CompilerInfo, PlatformEnvironmentManager
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
@@ -118,6 +118,9 @@ class LibraryBuilder:
 
         # Initialize shared environment manager
         self.env_manager = PlatformEnvironmentManager(self.platform)
+
+        # Initialize CMake cache extractor for generator logic
+        self.cmake_extractor = CMakeCacheExtractor(self.logger, self.platform)
 
         self.history = LibraryBuildHistory(self.logger)
 
@@ -603,12 +606,9 @@ class LibraryBuilder:
                                 '"-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" "-DBOOST_LOCALE_ENABLE_ICU=OFF" '
                             )
 
-                generator = ""
-                if self.platform == LibraryPlatform.Linux:
-                    if make_utility == "ninja":
-                        generator = "-GNinja"
-                elif self.platform == LibraryPlatform.Windows:
-                    generator = "-GNinja"
+                # Use shared generator logic from CMakeCacheExtractor
+                generator_args = self.cmake_extractor.get_cmake_generator(make_utility)
+                generator = " ".join(generator_args)
 
                 for line in self.buildconfig.prebuild_script:
                     expanded_line = self.expand_build_script_line(

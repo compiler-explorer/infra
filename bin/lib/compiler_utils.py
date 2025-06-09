@@ -455,6 +455,26 @@ class CMakeCacheExtractor:
         self.logger = logger
         self.platform = platform or LibraryPlatform.Linux
 
+    def get_cmake_generator(self, make_utility: str = "make") -> List[str]:
+        """
+        Get CMake generator arguments based on platform and make utility.
+
+        This follows the same logic as library_builder.py:
+        - Windows: Always use Ninja
+        - Linux: Use Ninja if make_utility is "ninja"
+
+        Args:
+            make_utility: The make utility to use (e.g., "make", "ninja")
+
+        Returns:
+            List of CMake arguments for generator selection (empty if default)
+        """
+        if self.platform == LibraryPlatform.Windows:
+            return ["-G", "Ninja"]
+        elif self.platform == LibraryPlatform.Linux and make_utility == "ninja":
+            return ["-G", "Ninja"]
+        return []
+
     def resolve_compiler_path(self, compiler_path: str) -> Optional[str]:
         """Resolve compiler path to full path."""
         if not compiler_path:
@@ -556,7 +576,14 @@ int main() {
         try:
             self.logger.info("Running CMake to detect compiler...")
 
-            cmd = ["cmake", ".."]
+            # Use the same generator logic as library_builder.py
+            generator_args = self.get_cmake_generator("ninja")  # Default to ninja for cache extraction
+
+            cmd = ["cmake"] + generator_args + [".."]
+
+            if generator_args:
+                self.logger.info(f"Using CMake generator: {' '.join(generator_args)}")
+
             result = subprocess.run(cmd, cwd=build_dir, env=env, capture_output=True, text=True, timeout=300)
 
             if result.returncode != 0:
