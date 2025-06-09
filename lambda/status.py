@@ -30,12 +30,20 @@ def get_as_client():
 ENVIRONMENTS = [
     # Production environments
     {
-        "name": "prod",
-        "description": "Production",
+        "name": "prod-blue",
+        "description": "Production-blue",
         "url": "godbolt.org",
-        "load_balancer": os.environ.get("PROD_LB_ARN"),
+        "load_balancer": os.environ.get("PROD_LB_BLUE_ARN"),
         "is_production": True,
         "version_key": "version/release",  # S3 path where version is stored
+    },
+    {
+        "name": "prod-green",
+        "description": "Production-green",
+        "url": "godbolt.org",
+        "load_balancer": os.environ.get("PROD_LB_GREEN_ARN"),
+        "is_production": True,
+        "version_key": "version/release",
     },
     {
         "name": "gpu",
