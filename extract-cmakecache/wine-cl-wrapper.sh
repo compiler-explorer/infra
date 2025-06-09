@@ -49,13 +49,13 @@ done
 i=0
 while [[ $i -lt ${#args[@]} ]]; do
     arg="${args[$i]}"
-    
+
     if [[ "$SKIP_NEXT" == "true" ]]; then
         SKIP_NEXT=false
         ((i++))
         continue
     fi
-    
+
     if [[ "$arg" == "-o" ]]; then
         # Skip -o flag and its argument for MSVC (we'll use /Fo instead)
         SKIP_NEXT=true
@@ -113,7 +113,7 @@ if [[ $WINE_EXIT_CODE -eq 0 ]] && [[ "$COMPILE_ONLY" == "true" ]] && [[ -n "$OUT
     if [[ "$OUTPUT_FILE" =~ \.o$ ]]; then
         # CMake expects .o but MSVC creates .obj
         OBJ_FILE="${OUTPUT_FILE%.o}.obj"
-        
+
         # Make paths absolute
         if [[ "$OUTPUT_FILE" =~ ^/.* ]]; then
             ABS_O_FILE="$OUTPUT_FILE"
@@ -122,7 +122,7 @@ if [[ $WINE_EXIT_CODE -eq 0 ]] && [[ "$COMPILE_ONLY" == "true" ]] && [[ -n "$OUT
             ABS_O_FILE="$(pwd)/$OUTPUT_FILE"
             ABS_OBJ_FILE="$(pwd)/$OBJ_FILE"
         fi
-        
+
         # If MSVC created .obj file, create a symlink as .o
         if [[ -f "$ABS_OBJ_FILE" ]] && [[ ! -f "$ABS_O_FILE" ]]; then
             ln -s "$(basename "$ABS_OBJ_FILE")" "$ABS_O_FILE" 2>/dev/null || cp "$ABS_OBJ_FILE" "$ABS_O_FILE"

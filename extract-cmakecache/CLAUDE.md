@@ -82,7 +82,7 @@ cmake ..  # Should skip compiler detection
 CMake performs several expensive operations during compiler detection:
 
 1. **Compiler Identification** - Determines compiler type and version
-2. **ABI Detection** - Tests compiler ABI compatibility  
+2. **ABI Detection** - Tests compiler ABI compatibility
 3. **Feature Detection** - Tests which language features are supported
 4. **Toolchain Discovery** - Finds associated tools (linker, archiver, etc.)
 
@@ -143,7 +143,7 @@ Originally investigated how CMake on Windows instructs MSVC to compile test prog
 
 Typical time savings per project configuration:
 - **Small projects**: 0.2-0.5 seconds saved
-- **Large projects**: 1-3 seconds saved  
+- **Large projects**: 1-3 seconds saved
 - **CI/CD pipelines**: Cumulative savings across multiple builds
 - **Docker builds**: Faster layer rebuilds when only source changes
 

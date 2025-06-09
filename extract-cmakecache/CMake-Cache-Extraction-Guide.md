@@ -253,7 +253,7 @@ When using the cache successfully, you'll see these phases skipped:
 -- Check for working CXX compiler: /usr/bin/g++ - skipped  ← Key indicator!
 -- Detecting C compile features                      ← Uses cached features
 -- Detecting C compile features - done
--- Detecting CXX compile features                    ← Uses cached features  
+-- Detecting CXX compile features                    ← Uses cached features
 -- Detecting CXX compile features - done
 ```
 
@@ -305,7 +305,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 Typical savings per project configuration:
 
 - **Small projects**: 0.2-0.5 seconds saved
-- **Large projects**: 1-3 seconds saved  
+- **Large projects**: 1-3 seconds saved
 - **CI/CD pipelines**: Cumulative savings across multiple builds
 - **Docker builds**: Faster layer rebuilds when only source changes
 

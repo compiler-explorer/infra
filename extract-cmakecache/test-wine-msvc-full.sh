@@ -50,7 +50,7 @@ export PATH="$(winepath -u "$WINE_PATH"):$PATH"
 # Set up INCLUDE paths
 INCLUDE_PATHS="$MSVC_WIN\\include;$SDK_WIN\\Include\\$WindowsSDKVersion\\ucrt;$SDK_WIN\\Include\\$WindowsSDKVersion\\shared;$SDK_WIN\\Include\\$WindowsSDKVersion\\um;$SDK_WIN\\Include\\$WindowsSDKVersion\\winrt"
 
-# Set up LIB paths  
+# Set up LIB paths
 LIB_PATHS="$MSVC_WIN\\lib\\x64;$SDK_WIN\\Lib\\$WindowsSDKVersion\\ucrt\\x64;$SDK_WIN\\Lib\\$WindowsSDKVersion\\um\\x64"
 
 export INCLUDE="$INCLUDE_PATHS"
@@ -93,7 +93,7 @@ EOF
 echo "Compiling test program..."
 if wine "$MSVC_ROOT/bin/Hostx64/x64/cl.exe" /EHsc "/Fe:$(winepath -w /tmp/wine_test.exe)" "$(winepath -w /tmp/wine_test.cpp)" >/dev/null 2>&1; then
     echo "✓ MSVC compilation successful"
-    
+
     # Test execution
     if wine /tmp/wine_test.exe 2>/dev/null; then
         echo "✓ MSVC program execution successful"
@@ -122,19 +122,19 @@ echo "Now attempting to run PowerShell cache extraction..."
 # Check if pwsh is available in Wine
 if wine pwsh.exe -? >/dev/null 2>&1; then
     echo "✓ PowerShell Core found in Wine"
-    
+
     # Run our cache extraction script
     echo "Running Extract-CMakeCache.ps1 with MSVC..."
-    
+
     if wine pwsh.exe -File "$(winepath -w "$(pwd)/Extract-CMakeCache.ps1")" -OutputDir "$(winepath -w "$(pwd)/msvc-cache-wine")"; then
         echo "🎉 SUCCESS: MSVC cache extraction completed via Wine!"
-        
+
         if [ -f "msvc-cache-wine/CMakeCache.txt" ]; then
             echo "✓ Cache files generated successfully"
             echo "Generated files:"
             ls -la msvc-cache-wine/
         fi
-        
+
         if [ -f "cmake-compiler-cache-extracted.zip" ]; then
             echo "✓ Zip file created: cmake-compiler-cache-extracted.zip"
             echo "Size: $(du -h cmake-compiler-cache-extracted.zip | cut -f1)"
@@ -142,29 +142,29 @@ if wine pwsh.exe -? >/dev/null 2>&1; then
     else
         echo "❌ PowerShell cache extraction failed"
     fi
-    
+
 elif command -v pwsh >/dev/null 2>&1; then
     echo "⚠ PowerShell Core not found in Wine, but available on host system"
     echo "Attempting to run with host PowerShell and Wine environment..."
-    
+
     # Run with host PowerShell but Wine environment variables
     echo "Running with verbose error output..."
     set +e  # Don't exit on error so we can examine the failure
     pwsh -File "Extract-CMakeCache.ps1" -OutputDir "msvc-cache-native" -KeepTempDir 2>&1 | tee pwsh-output.log
     PWSH_EXIT_CODE=$?
     set -e
-    
+
     # Check for both exit code and error indicators in output
     HAS_CMAKE_ERROR=$(grep -c "CMake configuration failed\|CMake Error\|-- Configuring incomplete" pwsh-output.log 2>/dev/null || echo "0")
     HAS_SUCCESS_OUTPUT=$(grep -c "Compiler cache extraction complete\|✓ CMake configuration successful" pwsh-output.log 2>/dev/null || echo "0")
-    
+
     # Remove any whitespace/newlines
     HAS_CMAKE_ERROR=$(echo "$HAS_CMAKE_ERROR" | tr -d '\n\r ')
     HAS_SUCCESS_OUTPUT=$(echo "$HAS_SUCCESS_OUTPUT" | tr -d '\n\r ')
-    
+
     if [[ $PWSH_EXIT_CODE -eq 0 ]] && [[ $HAS_CMAKE_ERROR -eq 0 ]] && [[ $HAS_SUCCESS_OUTPUT -gt 0 ]]; then
         echo "🎉 SUCCESS: MSVC cache extraction completed with native PowerShell!"
-        
+
         if [ -f "msvc-cache-native/CMakeCache.txt" ]; then
             echo "✓ Cache files generated successfully"
             echo "Generated files:"
@@ -180,11 +180,11 @@ elif command -v pwsh >/dev/null 2>&1; then
         cat pwsh-output.log
         echo "============================"
         echo ""
-        
+
         # Look for temp directories that might have been created
         echo "=== Searching for temporary directories ==="
         find /tmp -name "*cmake-cache-extract*" -type d 2>/dev/null | head -5 || echo "No temp directories found"
-        
+
         # Check if any were mentioned in the output
         TEMP_DIR=$(grep -o "/tmp/cmake-cache-extract-[0-9]*" pwsh-output.log | head -1 || echo "")
         if [ -n "$TEMP_DIR" ] && [ -d "$TEMP_DIR" ]; then
@@ -193,19 +193,19 @@ elif command -v pwsh >/dev/null 2>&1; then
             echo "Directory structure:"
             find "$TEMP_DIR" -type f | head -20
             echo ""
-            
+
             if [ -f "$TEMP_DIR/build/CMakeFiles/CMakeError.log" ]; then
                 echo "=== CMake Error Log ==="
                 cat "$TEMP_DIR/build/CMakeFiles/CMakeError.log"
                 echo "======================="
             fi
-            
+
             if [ -f "$TEMP_DIR/build/CMakeFiles/CMakeOutput.log" ]; then
                 echo "=== CMake Output Log ==="
                 cat "$TEMP_DIR/build/CMakeFiles/CMakeOutput.log"
                 echo "========================"
             fi
-            
+
             # Look for the specific failed compilation
             echo "=== Looking for failed test compilation ==="
             find "$TEMP_DIR" -name "TryCompile-*" -type d | while read trydir; do

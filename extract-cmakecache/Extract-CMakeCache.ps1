@@ -6,9 +6,9 @@
 .DESCRIPTION
     This script runs a minimal CMake configuration to generate compiler detection files,
     then extracts the reusable components that can skip compiler detection in other projects.
-    This approach leverages CMake's own comprehensive compiler detection instead of 
+    This approach leverages CMake's own comprehensive compiler detection instead of
     maintaining our own version-specific logic.
-    
+
     Supports both C and C++ compilers in a single pass.
 
 .PARAMETER CCompilerPath
@@ -81,11 +81,11 @@ if (-not $CCompilerPath -and -not $CXXCompilerPath) {
 # Function to resolve compiler path
 function Resolve-CompilerPath {
     param([string]$CompilerPath)
-    
+
     if (-not $CompilerPath) {
         return $null
     }
-    
+
     try {
         if ($IsWindows -or $PSVersionTable.PSVersion.Major -lt 6) {
             return (Get-Command $CompilerPath -ErrorAction Stop).Source
@@ -123,7 +123,7 @@ Write-Host "Creating temporary project in: $TempDir" -ForegroundColor Cyan
 
 try {
     New-Item -Path $TempDir -ItemType Directory -Force | Out-Null
-    
+
     # Determine which languages to enable
     $Languages = @()
     if ($CCompilerFullPath) { $Languages += "C" }
@@ -215,14 +215,14 @@ int main() {
     $OriginalCFLAGS = $env:CFLAGS
     $OriginalCXX = $env:CXX
     $OriginalCXXFLAGS = $env:CXXFLAGS
-    
+
     if ($CCompilerFullPath) {
         $env:CC = $CCompilerFullPath
         if ($CCompilerFlags) {
             $env:CFLAGS = $CCompilerFlags
         }
     }
-    
+
     if ($CXXCompilerFullPath) {
         $env:CXX = $CXXCompilerFullPath
         if ($CXXCompilerFlags) {
@@ -232,7 +232,7 @@ int main() {
 
     try {
         Write-Host "Running CMake to detect compiler..." -ForegroundColor Yellow
-        
+
         # Run CMake configuration
         Push-Location $BuildDir
         $CMakeOutput = cmake .. 2>&1
@@ -248,16 +248,16 @@ int main() {
         }
 
         Write-Host "✓ CMake configuration successful" -ForegroundColor Green
-        
+
         # Find the CMake version directory
         $CMakeFilesDir = Join-Path $BuildDir "CMakeFiles"
         $VersionDirs = Get-ChildItem -Path $CMakeFilesDir -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+$' }
-        
+
         if ($VersionDirs.Count -eq 0) {
             Write-Error "Could not find CMake version directory in $CMakeFilesDir"
             exit 1
         }
-        
+
         $CMakeVersion = $VersionDirs[0].Name
         $CMakeVersionDir = Join-Path $CMakeFilesDir $CMakeVersion
         Write-Host "Found CMake version: $CMakeVersion" -ForegroundColor Cyan
@@ -286,7 +286,7 @@ int main() {
                 Description = "System information"
             }
         )
-        
+
         # Add C compiler files if C compiler was used
         if ($CCompilerFullPath) {
             $FilesToCopy += @{
@@ -295,7 +295,7 @@ int main() {
                 Description = "C compiler detection"
             }
         }
-        
+
         # Add C++ compiler files if C++ compiler was used
         if ($CXXCompilerFullPath) {
             $FilesToCopy += @{
@@ -306,7 +306,7 @@ int main() {
         }
 
         Write-Host "Extracting reusable cache files..." -ForegroundColor Yellow
-        
+
         foreach ($file in $FilesToCopy) {
             if (Test-Path $file.Source) {
                 Copy-Item -Path $file.Source -Destination $file.Dest -Force
@@ -319,13 +319,13 @@ int main() {
         # Create a sanitized version of CMakeCache.txt with portable paths
         $CacheContent = Get-Content -Path (Join-Path $OutputDir "CMakeCache.txt")
         $SanitizedCache = @()
-        
+
         foreach ($line in $CacheContent) {
             # Skip project-specific directory paths
             if ($line -match '^(CMAKE_CACHEFILE_DIR|CMAKE_HOME_DIRECTORY|.*_BINARY_DIR|.*_SOURCE_DIR):') {
                 continue
             }
-            
+
             # Replace absolute paths in compiler-related variables with correct paths
             if ($line -match '^CMAKE_C_COMPILER:FILEPATH=(.+)$' -and $CCompilerFullPath) {
                 $SanitizedCache += "CMAKE_C_COMPILER:FILEPATH=$CCompilerFullPath"
@@ -354,11 +354,11 @@ int main() {
         $EssentialVars = @(
             "CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1"
         )
-        
+
         if ($CCompilerFullPath) {
             $EssentialVars += "CMAKE_C_COMPILER_LOADED:INTERNAL=1"
         }
-        
+
         if ($CXXCompilerFullPath) {
             $EssentialVars += "CMAKE_CXX_COMPILER_LOADED:INTERNAL=1"
         }
@@ -382,12 +382,12 @@ int main() {
             $CompilerInfo += "- C++ Compiler: $CXXCompilerFullPath"
             if ($CXXCompilerFlags) { $CompilerInfo += "- C++ Compiler Flags: $CXXCompilerFlags" }
         }
-        
+
         $GeneratedFilesList = @("- CMakeCache.txt: Sanitized cache variables (project paths removed)")
         if ($CCompilerFullPath) { $GeneratedFilesList += "- CMakeFiles/$CMakeVersion/CMakeCCompiler.cmake: Complete C compiler detection results" }
         if ($CXXCompilerFullPath) { $GeneratedFilesList += "- CMakeFiles/$CMakeVersion/CMakeCXXCompiler.cmake: Complete C++ compiler detection results" }
         $GeneratedFilesList += "- CMakeFiles/$CMakeVersion/CMakeSystem.cmake: System information"
-        
+
         $UsageInstructions = @"
 # CMake Compiler Cache - Extracted from Real CMake
 
@@ -465,11 +465,11 @@ cmake ../your-project
             if (Test-Path $ZipFile) {
                 Remove-Item $ZipFile -Force
             }
-            
+
             Write-Host "Creating zip archive..." -ForegroundColor Yellow
             Compress-Archive -Path "$OutputDir/*" -DestinationPath $ZipFile -Force
             Write-Host "✓ Created: $ZipFile" -ForegroundColor Green
-            
+
             $ZipSizeMB = [math]::Round((Get-Item $ZipFile).Length / 1MB, 2)
             Write-Host "  Size: $ZipSizeMB MB" -ForegroundColor Gray
         }
@@ -488,19 +488,19 @@ cmake ../your-project
         } else {
             Remove-Item Env:CC -ErrorAction SilentlyContinue
         }
-        
+
         if ($OriginalCFLAGS) {
             $env:CFLAGS = $OriginalCFLAGS
         } else {
             Remove-Item Env:CFLAGS -ErrorAction SilentlyContinue
         }
-        
+
         if ($OriginalCXX) {
             $env:CXX = $OriginalCXX
         } else {
             Remove-Item Env:CXX -ErrorAction SilentlyContinue
         }
-        
+
         if ($OriginalCXXFLAGS) {
             $env:CXXFLAGS = $OriginalCXXFLAGS
         } else {

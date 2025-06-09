@@ -21,6 +21,7 @@ from urllib3.exceptions import ProtocolError
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
+from lib.compiler_utils import CompilerInfo, PlatformEnvironmentManager
 from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_build_history import LibraryBuildHistory
@@ -114,6 +115,9 @@ class LibraryBuilder:
         self.conanserverproxy_token = None
         self.current_commit_hash = ""
         self.platform = platform
+
+        # Initialize shared environment manager
+        self.env_manager = PlatformEnvironmentManager(self.platform)
 
         self.history = LibraryBuildHistory(self.logger)
 
@@ -456,62 +460,33 @@ class LibraryBuilder:
         compiler_props,
     ):
         with open_script(Path(buildfolder) / self.script_filename) as f:
-            compilerexecc = ""
             if self.platform == LibraryPlatform.Linux:
                 f.write("#!/bin/sh\n\n")
 
-                compilerexecc = compilerexe[:-2]
-                if compilerexe.endswith("clang++"):
-                    compilerexecc = f"{compilerexecc}"
-                elif compilerexe.endswith("g++"):
-                    compilerexecc = f"{compilerexecc}cc"
-                elif compilerType == "edg":
-                    compilerexecc = compilerexe
+            # Use shared compiler utilities
+            compiler_info = CompilerInfo(
+                compiler,
+                {
+                    "exe": compilerexe,
+                    "compilerType": compilerType,
+                    "options": compileroptions,
+                    "includePath": compiler_props.get("includePath", ""),
+                    "libPath": compiler_props.get("libPath", ""),
+                    "ldPath": ldPath,
+                },
+            )
 
-            elif self.platform == LibraryPlatform.Windows:
-                compilerexecc = compilerexe.replace("++.exe", "")
-                if compilerexe.endswith("clang++.exe"):
-                    compilerexecc = f"{compilerexecc}.exe"
-                elif compilerexe.endswith("g++.exe"):
-                    compilerexecc = f"{compilerexecc}cc.exe"
-                elif compilerType == "edg":
-                    compilerexecc = compilerexe
-                else:
-                    if not compilerexecc.endswith(".exe"):
-                        compilerexecc = compilerexecc + ".exe"
-
+            compilerexecc = compiler_info.get_c_compiler()
             f.write(self.script_env("CC", compilerexecc))
             f.write(self.script_env("CXX", compilerexe))
 
             is_msvc = compilerType == "win32-vc"
 
-            libparampaths = []
-            archflag = ""
-            if is_msvc:
-                libparampaths = compiler_props["libPath"].split(";")
-            else:
-                if arch == "" or arch == "x86_64":
-                    # note: native arch for the compiler, so most of the time 64, but not always
-                    if os.path.exists(f"{toolchain}/lib64"):
-                        libparampaths.append(f"{toolchain}/lib64")
-                        libparampaths.append(f"{toolchain}/lib")
-                    else:
-                        libparampaths.append(f"{toolchain}/lib")
-                elif arch == "x86":
-                    libparampaths.append(f"{toolchain}/lib")
-                    if os.path.exists(f"{toolchain}/lib32"):
-                        libparampaths.append(f"{toolchain}/lib32")
-
-                    if compilerType == "clang" or compilerType == "win32-mingw-clang":
-                        archflag = "-m32"
-                    elif compilerType == "" or compilerType == "gcc" or compilerType == "win32-mingw-gcc":
-                        archflag = "-march=i386 -m32"
-
-            rpathflags = ""
-            ldflags = ""
-            if compilerType != "edg" and not is_msvc:
-                for path in libparampaths:
-                    rpathflags += f"-Wl,-rpath={path} "
+            # Use shared environment utilities
+            libparampaths = self.env_manager.get_library_paths(compiler_info, toolchain, arch)
+            archflag = self.env_manager.get_arch_flags(compiler_info, arch)
+            rpathflags = self.env_manager.get_rpath_flags(compiler_info, libparampaths)
+            ldflags = self.env_manager.get_ld_flags(compiler_info, libparampaths)
 
             if is_msvc:
                 f.write(self.script_env("INCLUDE", compiler_props["includePath"]))
@@ -520,10 +495,6 @@ class LibraryBuilder:
                 #  somehow this is not a thing on CE, but it is an issue for when used with CMake
                 x64path = Path(compilerexe).parent / "../x64"
                 f.write(self.script_addtoend_env("PATH", os.path.abspath(x64path)))
-            else:
-                for path in libparampaths:
-                    if path != "":
-                        ldflags += f"-L{path} "
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
 

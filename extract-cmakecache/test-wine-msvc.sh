@@ -101,16 +101,16 @@ echo "Testing PowerShell via Wine..."
 # Check if PowerShell Core is available via Wine
 if command -v wine >/dev/null 2>&1; then
     echo "Wine is available"
-    
+
     # Try to run our PowerShell script via Wine
     echo "Attempting to run Extract-CMakeCache.ps1 via Wine..."
     echo "Note: This may fail due to Wine/PowerShell compatibility issues"
-    
+
     # Copy the script to a location Wine can access
     WINE_SCRIPT_PATH="$WINEPREFIX/drive_c/temp/Extract-CMakeCache.ps1"
     mkdir -p "$(dirname "$WINE_SCRIPT_PATH")"
     cp "Extract-CMakeCache.ps1" "$WINE_SCRIPT_PATH"
-    
+
     # Try to run with Wine + PowerShell
     # Note: This requires PowerShell to be installed in the Wine prefix
     if wine powershell.exe -File "C:\\temp\\Extract-CMakeCache.ps1" 2>/dev/null; then
