@@ -96,19 +96,38 @@ class TestCompilerCacheExtractor(unittest.TestCase):
                     "exe": "C:/Program Files/Microsoft Visual Studio/VC/bin/x86/cl.exe",
                 },
             ),
+            "mingw_gcc": CompilerInfo(
+                "mingw_gcc",
+                {
+                    "compilerType": "win32-mingw-gcc",
+                    "exe": "C:/mingw64/bin/g++.exe",
+                },
+            ),
+            "mingw_clang": CompilerInfo(
+                "mingw_clang",
+                {
+                    "compilerType": "win32-mingw-clang",
+                    "exe": "C:/msys64/clang64/bin/clang++.exe",
+                },
+            ),
             "gcc12": CompilerInfo("gcc12", {"compilerType": "gcc", "exe": "/usr/bin/g++-12"}),
         }
 
-        # Mock the property manager's get_supported_compilers method
-        self.extractor.property_manager.get_supported_compilers = Mock(return_value=mock_compilers)
+        # Mock the property manager's get_supported_compilers method to return only Windows compilers
+        # (simulating that platform filtering has already been applied)
+        windows_only_compilers = {k: v for k, v in mock_compilers.items() if k != "gcc12"}
+        self.extractor.property_manager.get_supported_compilers = Mock(return_value=windows_only_compilers)
 
         supported_compilers = self.extractor.get_supported_compilers()
 
-        # Should include all compilers since we're mocking
-        self.assertEqual(len(supported_compilers), 3)
+        # Should include Windows compilers (MSVC + MinGW) but exclude Unix GCC
+        self.assertEqual(len(supported_compilers), 4)
         self.assertIn("msvc_v193_x64", supported_compilers)
         self.assertIn("msvc_v192_x86", supported_compilers)
-        self.assertIn("gcc12", supported_compilers)
+        self.assertIn("mingw_gcc", supported_compilers)
+        self.assertIn("mingw_clang", supported_compilers)
+        # Unix GCC should be excluded on Windows
+        self.assertNotIn("gcc12", supported_compilers)
 
     def test_get_supported_compilers_missing_executable(self):
         """Test that compilers with missing executables are filtered out."""
@@ -130,7 +149,7 @@ class TestCompilerCacheExtractor(unittest.TestCase):
         self.assertNotIn("clang15", supported_compilers)
 
     def test_get_windows_compilers_filters_correctly(self):
-        """Test that only Windows MSVC compilers are returned."""
+        """Test that Windows compilers (MSVC + MinGW) are returned."""
         from lib.compiler_utils import CompilerInfo
 
         # Set extractor to Windows platform for this test
@@ -151,6 +170,20 @@ class TestCompilerCacheExtractor(unittest.TestCase):
                     "exe": "C:/Program Files/Microsoft Visual Studio/VC/bin/x86/cl.exe",
                 },
             ),
+            "mingw_gcc": CompilerInfo(
+                "mingw_gcc",
+                {
+                    "compilerType": "win32-mingw-gcc",
+                    "exe": "C:/mingw64/bin/g++.exe",
+                },
+            ),
+            "mingw_clang": CompilerInfo(
+                "mingw_clang",
+                {
+                    "compilerType": "win32-mingw-clang",
+                    "exe": "C:/msys64/clang64/bin/clang++.exe",
+                },
+            ),
         }
 
         # Mock the property manager's get_supported_compilers method to return only Windows compilers
@@ -158,9 +191,11 @@ class TestCompilerCacheExtractor(unittest.TestCase):
 
         windows_compilers = self.extractor.get_windows_compilers()
 
-        self.assertEqual(len(windows_compilers), 2)
+        self.assertEqual(len(windows_compilers), 4)
         self.assertIn("msvc_v193_x64", windows_compilers)
         self.assertIn("msvc_v192_x86", windows_compilers)
+        self.assertIn("mingw_gcc", windows_compilers)
+        self.assertIn("mingw_clang", windows_compilers)
 
     def test_setup_compiler_environment_basic(self):
         """Test basic compiler environment setup for Windows MSVC."""

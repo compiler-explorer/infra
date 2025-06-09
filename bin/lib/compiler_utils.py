@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from lib.amazon import S3_STORAGE_BUCKET, botocore, s3_client
+from lib.amazon import S3_STORAGE_BUCKET, s3_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.library_platform import LibraryPlatform
 
@@ -49,6 +49,18 @@ class CompilerInfo:
     @property
     def is_msvc(self) -> bool:
         return self.compiler_type == "win32-vc"
+
+    @property
+    def is_mingw_gcc(self) -> bool:
+        return self.compiler_type == "win32-mingw-gcc"
+
+    @property
+    def is_mingw_clang(self) -> bool:
+        return self.compiler_type == "win32-mingw-clang"
+
+    @property
+    def is_windows_compiler(self) -> bool:
+        return self.is_msvc or self.is_mingw_gcc or self.is_mingw_clang
 
     @property
     def is_clang(self) -> bool:
@@ -157,7 +169,7 @@ class PlatformEnvironmentManager:
         Generate rpath flags for Unix-like systems.
         This logic is extracted from library_builder.py writebuildscript()
         """
-        if compiler.compiler_type == "edg" or compiler.is_msvc:
+        if compiler.compiler_type == "edg" or compiler.is_windows_compiler:
             return ""
 
         rpathflags = ""
@@ -212,6 +224,24 @@ class PlatformEnvironmentManager:
             x64_path = Path(compiler.executable).parent / "../x64"
             if x64_path.exists():
                 self._append_to_path(env, str(x64_path.resolve()))
+
+        elif self.platform == LibraryPlatform.Windows and (compiler.is_mingw_gcc or compiler.is_mingw_clang):
+            # Windows MinGW setup (MinGW GCC/Clang on Windows)
+            compiler_dir = str(Path(compiler.executable).parent)
+            self._append_to_path(env, compiler_dir)
+
+            # Set up library paths for MinGW
+            if compiler.ld_path:
+                # On Windows, use semicolon separator instead of colon
+                ld_lib_paths = compiler.ld_path.replace("${exePath}", os.path.dirname(compiler.executable)).replace(
+                    "|", ";"
+                )
+                env["LD_LIBRARY_PATH"] = ld_lib_paths
+
+            # Set up LDFLAGS with library paths (no rpath on Windows)
+            ldflags = self.get_ld_flags(compiler, libparampaths)
+            if ldflags:
+                env["LDFLAGS"] = ldflags
 
         else:
             # Linux/Unix setup
@@ -305,12 +335,12 @@ class CompilerPropertyManager:
             # Platform-specific filtering
             if platform_filter:
                 if self.platform == LibraryPlatform.Windows:
-                    # For Windows, only support MSVC compilers
-                    if not compiler_info.is_msvc:
+                    # For Windows, support MSVC, MinGW GCC, and MinGW Clang compilers
+                    if not compiler_info.is_windows_compiler:
                         continue
                 else:
-                    # For Linux, support GCC, Clang, and other Unix compilers
-                    if compiler_info.is_msvc:
+                    # For Linux, support GCC, Clang, and other Unix compilers (exclude Windows compilers)
+                    if compiler_info.is_windows_compiler:
                         continue
 
             supported[compiler_id] = compiler_info
@@ -701,32 +731,27 @@ cmake ../your-project
         try:
             # S3 key format: compiler-cmake-cache/{compiler_id}.zip
             s3_key = f"compiler-cmake-cache/{compiler_id}.zip"
-            
+
             self.logger.info(f"Uploading {zip_file_path} to s3://{S3_STORAGE_BUCKET}/{s3_key}")
-            
+
             # Prepare extra args for upload
             extra_args = {
                 "ContentType": "application/zip",
                 "Metadata": {
                     "compiler-id": compiler_id,
                     "upload-date": datetime.now().isoformat(),
-                    "generated-by": "compiler-explorer-infra"
-                }
+                    "generated-by": "compiler-explorer-infra",
+                },
             }
-            
+
             # Upload the file
-            s3_client.upload_file(
-                str(zip_file_path),
-                S3_STORAGE_BUCKET,
-                s3_key,
-                ExtraArgs=extra_args
-            )
-            
+            s3_client.upload_file(str(zip_file_path), S3_STORAGE_BUCKET, s3_key, ExtraArgs=extra_args)
+
             s3_url = f"https://{S3_STORAGE_BUCKET}/{s3_key}"
             self.logger.info(f"✓ Successfully uploaded to: {s3_url}")
-            
+
             return True, f"Uploaded to {s3_url}"
-            
+
         except Exception as e:
             error_msg = f"Failed to upload to S3: {e}"
             self.logger.error(error_msg)

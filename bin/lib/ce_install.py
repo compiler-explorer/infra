@@ -685,10 +685,19 @@ def compilercache():
 )
 @click.option("--list-compilers", is_flag=True, help="List available compilers and exit")
 @click.option("--platform", type=click.Choice(["linux", "windows"]), help="Target platform (default: current platform)")
-@click.option("--upload-to-s3", is_flag=True, help="Upload generated ZIP files to S3 (s3://storage.godbolt.org/compiler-cmake-cache/)")
+@click.option(
+    "--upload-to-s3",
+    is_flag=True,
+    help="Upload generated ZIP files to S3 (s3://storage.godbolt.org/compiler-cmake-cache/)",
+)
 @click.pass_obj
 def extract_cache(
-    context: CliContext, compiler_id: Optional[str], output_dir: Path, list_compilers: bool, platform: Optional[str], upload_to_s3: bool
+    context: CliContext,
+    compiler_id: Optional[str],
+    output_dir: Path,
+    list_compilers: bool,
+    platform: Optional[str],
+    upload_to_s3: bool,
 ):
     """Extract CMake cache files for compilers.
 
