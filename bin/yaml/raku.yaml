@@ -5,7 +5,8 @@ compilers:
       compression: gz
       check_exe: "bin/rakudo --version"
       url: https://rakudo.org/dl/rakudo/rakudo-moar-{{name}}-linux-x86_64-gcc.tar.gz
-      dir: rakudo-moar-{{name}}-linux-x86_64-gcc
+      untar_dir: rakudo-moar-{{name}}-linux-x86_64-gcc
+      dir: raku/rakudo-moar-{{name}}-linux-x86_64-gcc
       targets:
         - 2025.05-01
         - 2025.04-01
