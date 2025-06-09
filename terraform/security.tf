@@ -726,3 +726,25 @@ resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedIns
   role       = "ce-ci-windows-x64-win-builder-runner-role"
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
+
+# CMake Cache Storage Access Policy
+data "aws_iam_policy_document" "CeCmakeCacheAccess" {
+  statement {
+    sid     = "CmakeCacheS3Access"
+    actions = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+    resources = [
+      "${aws_s3_bucket.storage-godbolt-org.arn}/compiler-cmake-cache/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeCmakeCacheAccess" {
+  name        = "CeCmakeCacheAccess"
+  description = "Can write CMake cache files to storage.godbolt.org"
+  policy      = data.aws_iam_policy_document.CeCmakeCacheAccess.json
+}
+
+resource "aws_iam_role_policy_attachment" "WinBuilder_attach_CeCmakeCacheAccess" {
+  role       = "ce-ci-windows-x64-win-builder-runner-role"
+  policy_arn = aws_iam_policy.CeCmakeCacheAccess.arn
+}
