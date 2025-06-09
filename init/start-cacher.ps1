@@ -27,6 +27,7 @@ function FetchInfra {
 
         git reset --hard
         git pull
+        git checkout add-compiler-cache-extraction
     } else {
         git clone https://github.com/compiler-explorer/infra --branch add-compiler-cache-extraction
     }
