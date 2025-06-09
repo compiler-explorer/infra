@@ -669,6 +669,140 @@ def config_dump(context: CliContext, output: TextIO):
             output.write(json.dumps(as_dict) + "\n")
 
 
+@cli.group()
+def compilercache():
+    """Generate CMake compiler cache files for compilers."""
+    pass
+
+
+@compilercache.command(name="extract")
+@click.option("--compiler-id", help="Specific compiler ID to process (default: all supported compilers)")
+@click.option(
+    "--output-dir",
+    default="./cmake-cache-output",
+    help="Output directory for cache files",
+    type=click.Path(path_type=Path),
+)
+@click.option("--list-compilers", is_flag=True, help="List available compilers and exit")
+@click.option("--platform", type=click.Choice(["linux", "windows"]), help="Target platform (default: current platform)")
+@click.pass_obj
+def extract_cache(
+    context: CliContext, compiler_id: Optional[str], output_dir: Path, list_compilers: bool, platform: Optional[str]
+):
+    """Extract CMake cache files for compilers.
+
+    This command runs the Extract-CMakeCache.ps1 script for supported compilers
+    to generate reusable CMake compiler cache files. The cache files can significantly
+    speed up CMake configuration by skipping expensive compiler detection phases.
+
+    Examples:
+        # Extract cache for all supported compilers on current platform
+        ce_install compilercache extract
+
+        # Extract cache for specific compiler
+        ce_install compilercache extract --compiler-id gcc12
+
+        # Extract cache for Windows compilers
+        ce_install compilercache extract --platform windows
+
+        # List available compilers
+        ce_install compilercache extract --list-compilers
+
+        # Custom output directory
+        ce_install compilercache extract --output-dir /path/to/output
+    """
+    from lib.compiler_cache import CompilerCacheExtractor
+    from lib.library_platform import LibraryPlatform
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Determine target platform
+        if platform == "windows":
+            target_platform = LibraryPlatform.Windows
+        elif platform == "linux":
+            target_platform = LibraryPlatform.Linux
+        else:
+            # Default to current platform based on enabled flags
+            target_platform = LibraryPlatform.Windows if "windows" in context.enabled else LibraryPlatform.Linux
+
+        # Use staging and dest from installation context
+        extractor = CompilerCacheExtractor(
+            logger,
+            str(context.installation_context._staging_root),
+            str(context.installation_context.destination),
+            target_platform,
+        )
+
+        if list_compilers:
+            compilers = extractor.get_supported_compilers()
+            print(f"Available compilers on {target_platform.value}:")
+            for comp_id, props in compilers.items():
+                exe_path = props.get("exe", "Unknown")
+                compiler_type = props.get("compilerType", "Unknown")
+                print(f"  {comp_id}: {exe_path} ({compiler_type})")
+            return
+
+        # Create output directory
+        output_dir.mkdir(parents=True, exist_ok=True)
+        print(f"Extracting CMake cache files to: {output_dir}")
+
+        if compiler_id:
+            print(f"Filtering to compiler: {compiler_id}")
+
+        success_count, failed_count = extractor.extract_all_compilers(output_dir, compiler_id)
+
+        if failed_count == 0:
+            print(f"✅ Successfully extracted cache files for {success_count} compiler(s)")
+        else:
+            print(f"⚠️  Extracted cache files for {success_count} compiler(s), {failed_count} failed")
+            if success_count == 0:
+                raise click.ClickException("All cache extractions failed")
+
+    except Exception as e:
+        logger.error(f"Cache extraction failed: {e}")
+        raise click.ClickException(f"Cache extraction failed: {e}") from e
+
+
+@compilercache.command(name="list")
+@click.option("--platform", type=click.Choice(["linux", "windows"]), help="Target platform (default: current platform)")
+@click.pass_obj
+def list_compilers(context: CliContext, platform: Optional[str]):
+    """List available compilers."""
+    from lib.compiler_cache import CompilerCacheExtractor
+    from lib.library_platform import LibraryPlatform
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Determine target platform
+        if platform == "windows":
+            target_platform = LibraryPlatform.Windows
+        elif platform == "linux":
+            target_platform = LibraryPlatform.Linux
+        else:
+            # Default to current platform based on enabled flags
+            target_platform = LibraryPlatform.Windows if "windows" in context.enabled else LibraryPlatform.Linux
+
+        extractor = CompilerCacheExtractor(logger, platform=target_platform)
+        compilers = extractor.get_supported_compilers()
+
+        print(f"Found {len(compilers)} supported compilers on {target_platform.value}:")
+        for comp_id, props in compilers.items():
+            exe_path = props.get("exe", "Unknown")
+            compiler_type = props.get("compilerType", "Unknown")
+            print(f"  {comp_id}:")
+            print(f"    Executable: {exe_path}")
+            print(f"    Type: {compiler_type}")
+            if "options" in props:
+                print(f"    Options: {props['options']}")
+            print()
+
+    except Exception as e:
+        logger.error(f"Failed to list compilers: {e}")
+        raise click.ClickException(f"Failed to list compilers: {e}") from e
+
+
 def main():
     cli(prog_name="ce_install")
 
