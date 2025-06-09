@@ -772,9 +772,9 @@ def extract_cache(
         success_count, failed_count = extractor.extract_all_compilers(output_dir, compiler_id, upload_to_s3)
 
         if failed_count == 0:
-            print(f"✅ Successfully extracted cache files for {success_count} compiler(s)")
+            print(f"Successfully extracted cache files for {success_count} compiler(s)")
         else:
-            print(f"⚠️  Extracted cache files for {success_count} compiler(s), {failed_count} failed")
+            print(f"WARNING: Extracted cache files for {success_count} compiler(s), {failed_count} failed")
             if success_count == 0:
                 raise click.ClickException("All cache extractions failed")
 
