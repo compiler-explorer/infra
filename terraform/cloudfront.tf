@@ -664,9 +664,7 @@ resource "aws_wafv2_ip_set" "banned-ipv4" {
   description        = "Banned ipv4"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
-  addresses          = [
-    "185.177.72.0/24" // Anomolous GETs on 2025/06/09
-  ]
+  addresses          = []
 }
 
 resource "aws_wafv2_ip_set" "banned-ipv6" {
