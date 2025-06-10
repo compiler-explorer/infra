@@ -193,6 +193,14 @@ resource "aws_cloudwatch_metric_alarm" "efs_burst_credit" {
   alarm_actions       = [data.aws_sns_topic.alert.arn]
 }
 
+# This alarm prevents false positives from CloudWatch metric math behavior when one ASG
+# has missing data. When CloudWatch evaluates "missing + 0", it returns 0 instead of
+# missing, causing false alarms. Using DATAPOINT_COUNT() > 0 ensures we only calculate
+# the sum when both blue and green metrics have at least one data point. If either is
+# missing, the expression returns missing (not 0), allowing the default missing data
+# behavior to maintain alarm state rather than triggering false alarms. This fixes the
+# issue where metric gaps during scaling events triggered false alarms while preserving
+# the ability to detect persistent data loss.
 resource "aws_cloudwatch_metric_alarm" "no_prod_nodes_blue_green" {
   alarm_name          = "NoHealthyProdNodes"
   alarm_description   = "Ensure there's at least one healthy node in production (blue-green)"
@@ -203,7 +211,7 @@ resource "aws_cloudwatch_metric_alarm" "no_prod_nodes_blue_green" {
 
   metric_query {
     id          = "total_healthy_instances"
-    expression  = "blue_instances + green_instances"
+    expression  = "IF(DATAPOINT_COUNT(blue_instances) > 0 AND DATAPOINT_COUNT(green_instances) > 0, blue_instances + green_instances)"
     label       = "Total Healthy Instances (Blue + Green)"
     return_data = true
   }
