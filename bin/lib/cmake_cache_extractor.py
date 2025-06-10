@@ -198,7 +198,7 @@ int main() {
     def sanitize_cmake_cache(
         self, cache_file: Path, c_compiler: Optional[str], cxx_compiler: Optional[str]
     ) -> List[str]:
-        """Sanitize CMakeCache.txt to make it portable."""
+        """Sanitize CMakeCache.txt to make it portable while preserving essential compiler detection cache."""
         cache_content = cache_file.read_text().splitlines()
         sanitized_cache = []
 
@@ -220,17 +220,89 @@ int main() {
                 sanitized_cache.append(line)
             elif re.match(r"^CMAKE_EXECUTABLE_SUFFIX:", line):
                 sanitized_cache.append(line)
+            # Preserve compiler identification variables to skip "The C/CXX compiler identification is..."
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILER_ID:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILER_VERSION:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILER_VERSION_INTERNAL:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILER_WRAPPER:", line):
+                sanitized_cache.append(line)
+            # Preserve ABI and architecture detection to skip "Detecting C/CXX compiler ABI info"
+            elif re.match(r"^CMAKE_(C|CXX)_ABI_COMPILED:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILER_ABI:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_BYTE_ORDER:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_LIBRARY_ARCHITECTURE:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_SIZEOF_DATA_PTR:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILER_ARCHITECTURE_ID:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_MSVC_VERSION:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_MSVC.*:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_SIMULATE_ID:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_SIMULATE_VERSION:", line):
+                sanitized_cache.append(line)
+            # Preserve feature detection to skip "Detecting C/CXX compile features"
+            elif re.match(r"^CMAKE_(C|CXX)_COMPILE_FEATURES:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)\d+_COMPILE_FEATURES:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_STANDARD_COMPUTED_DEFAULT:", line):
+                sanitized_cache.append(line)
+            # Preserve platform and system information
+            elif re.match(r"^CMAKE_SYSTEM_NAME:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_SYSTEM_VERSION:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_SYSTEM_PROCESSOR:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_HOST_SYSTEM.*:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_CROSSCOMPILING:", line):
+                sanitized_cache.append(line)
+            # Preserve linker information
+            elif re.match(r"^CMAKE_(C|CXX)_LINKER_PREFERENCE:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_(C|CXX)_LINKER_PREFERENCE_PROPAGATES:", line):
+                sanitized_cache.append(line)
+            # Preserve important internal state
+            elif re.match(r"^CMAKE_PLATFORM_INFO_DIR:", line):
+                sanitized_cache.append(line)
+            elif re.match(r"^CMAKE_GENERATOR.*:", line):
+                sanitized_cache.append(line)
             elif line.startswith("#") or line.strip() == "":
                 sanitized_cache.append(line)
 
-        # Add essential cache variables if missing
-        essential_vars = ["CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1"]
+        # Add essential cache variables if missing to ensure compiler detection is skipped
+        essential_vars = [
+            "CMAKE_PLATFORM_INFO_INITIALIZED:INTERNAL=1",
+        ]
 
         if c_compiler:
-            essential_vars.append("CMAKE_C_COMPILER_LOADED:INTERNAL=1")
+            essential_vars.extend(
+                [
+                    "CMAKE_C_COMPILER_LOADED:INTERNAL=1",
+                    "CMAKE_C_COMPILER_WORKS:INTERNAL=1",
+                    "CMAKE_C_ABI_COMPILED:INTERNAL=1",
+                ]
+            )
 
         if cxx_compiler:
-            essential_vars.append("CMAKE_CXX_COMPILER_LOADED:INTERNAL=1")
+            essential_vars.extend(
+                [
+                    "CMAKE_CXX_COMPILER_LOADED:INTERNAL=1",
+                    "CMAKE_CXX_COMPILER_WORKS:INTERNAL=1",
+                    "CMAKE_CXX_ABI_COMPILED:INTERNAL=1",
+                ]
+            )
 
         for var in essential_vars:
             var_name = var.split(":")[0]
