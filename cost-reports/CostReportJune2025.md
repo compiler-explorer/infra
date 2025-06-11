@@ -132,7 +132,8 @@ Based on ALB request data from Oct 2024 - Apr 2025, the infrastructure handles:
 - **Purpose:** Centralized storage for 100+ compiler toolchains
 - **Configuration:** Multi-AZ EFS with lifecycle policies (14-day transition to IA storage)
 - **Contents:**
-  - `/efs/compiler-explorer/` - All compiler binaries and toolchains
+  - `/efs/compiler-explorer/` - All compiler binaries, toolchains and library sources
+  - `/efs/winshared` - All Windows compiler binaries and tools
   - `/efs/squash-images/` - Compressed compiler environments
   - `/efs/cefs-images/` - In-progress sketch of alternative compressed file system
   - Total ~4TB
