@@ -311,15 +311,6 @@ libraries:
       targets:
       - 1.3.0
       type: github
-    bronto:
-      build_type: none
-      check_file: include/bronto/bronto.hpp
-      method: clone_branch
-      repo: brontosource/bronto
-      targets:
-      - v0.1.0
-      - v0.2.0
-      type: github
     catch2:
       build_type: cmake
       make_targets:
@@ -1298,6 +1289,14 @@ libraries:
         targets:
         - trunk
         type: gitlab
+      bronto:
+        build_type: none
+        check_file: include/bronto/bronto.hpp
+        method: nightlyclone
+        repo: brontosource/bronto
+        targets:
+        - main
+        type: github
       brigand:
         build_type: none
         check_file: README.md
