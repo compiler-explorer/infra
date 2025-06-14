@@ -1,0 +1,16 @@
+compilers:
+  nix:
+    type: tarballs
+    compression: gz
+    dir: nix-{{name}}
+    create_untar_dir: true
+    check_exe: nix --version
+    targets:
+      - name: 2.29.0
+        url: https://github.com/Rucadi/unofficial_nix_static_releases/releases/download/0.0.1/nix_2.29.0-x86_64-linux.tar.gz
+      - name: 2.28.3
+        url: https://github.com/Rucadi/unofficial_nix_static_releases/releases/download/0.0.1/nix_2.28.3-x86_64-linux.tar.gz
+      - name: 2.27.1
+        url: https://github.com/Rucadi/unofficial_nix_static_releases/releases/download/0.0.1/nix_2.27.1-x86_64-linux.tar.gz
+      - name: 2.26.3
+        url: https://github.com/Rucadi/unofficial_nix_static_releases/releases/download/0.0.1/nix_2.26.3-x86_64-linux.tar.gz
