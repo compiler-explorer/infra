@@ -23,7 +23,7 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   }
 
   default_action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
 
@@ -39,7 +39,7 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
   }
 
   default_action {
-    type = "forward"
+    type             = "forward"
     target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
   load_balancer_arn = aws_alb.GccExplorerApp.arn
