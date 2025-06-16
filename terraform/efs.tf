@@ -18,3 +18,10 @@ resource "aws_efs_mount_target" "fs-db4c8192" {
   subnet_id       = module.ce_network.subnet[each.key].id
   security_groups = [aws_security_group.efs.id]
 }
+
+resource "aws_efs_access_point" "elfshaker" {
+  file_system_id = aws_efs_file_system.fs-db4c8192.id
+  root_directory {
+    path = "/manyclangs"
+  }
+}
