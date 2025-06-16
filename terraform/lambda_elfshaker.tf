@@ -9,6 +9,12 @@ resource "aws_iam_role_policy_attachment" "elfshaker_basic_lambda" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Access to our VPC to access EFS
+resource "aws_iam_role_policy_attachment" "elfshaker_vpc" {
+  role       = aws_iam_role.elfshaker.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}
+
 resource "aws_cloudwatch_log_group" "elfshaker" {
   name              = "/aws/lambda/elfshaker"
   retention_in_days = 14
