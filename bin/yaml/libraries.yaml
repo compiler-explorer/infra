@@ -2722,6 +2722,33 @@ libraries:
       - 1.16.0
       - 1.17.0
       type: github
+  kokkos:
+      build_type: cmake
+      lib_type: static
+      make_targets:
+      - all
+      extra_cmake_arg:
+      - -DCMAKE_BUILD_TYPE=Release -DKokkos_ENABLE_CUDA=ON
+      package_install: true
+      repo: kokkos/kokkos
+      staticliblink:
+      - kokkoscore
+      - kokkoscontainers
+      - kokkossimd
+      targets:
+      - 4.0.01
+      - 4.1.00
+      - 4.2.00
+      - 4.2.01
+      - 4.3.00
+      - 4.3.01
+      - 4.4.00
+      - 4.4.01
+      - 4.5.00
+      - 4.5.01
+      - 4.6.00
+      - 4.6.01
+      type: github
   d:
     mir-algorithm:
       check_file: README.md
