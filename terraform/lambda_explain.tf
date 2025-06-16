@@ -21,7 +21,7 @@ resource "aws_lambda_function" "explain" {
   package_type  = "Image"
   image_uri     = data.aws_ecr_image.explain.image_uri
   function_name = "explain"
-  role          = aws_iam_role.iam_for_lambda.arn
+  role          = aws_iam_role.iam_for_lambda.arn  # TODO separate role?
   timeout       = 30
   memory_size   = 256
 

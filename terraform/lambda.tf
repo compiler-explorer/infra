@@ -19,6 +19,7 @@ resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Pretty sure this is subsumed by https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AWSLambdaBasicExecutionRole.html above?
 data "aws_iam_policy_document" "aws_lambda_logging" {
   statement {
     sid       = "AllowLogging"
