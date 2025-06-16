@@ -2730,6 +2730,7 @@ libraries:
       extra_cmake_arg:
       - -DCMAKE_BUILD_TYPE=Release
       - -DKokkos_ENABLE_CUDA=ON
+      - -DKokkos_ARCH_TURING75=ON
       package_install: true
       repo: kokkos/kokkos
       staticliblink:
