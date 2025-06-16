@@ -2728,7 +2728,8 @@ libraries:
       make_targets:
       - all
       extra_cmake_arg:
-      - -DCMAKE_BUILD_TYPE=Release -DKokkos_ENABLE_CUDA=ON
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DKokkos_ENABLE_CUDA=ON
       package_install: true
       repo: kokkos/kokkos
       staticliblink:
