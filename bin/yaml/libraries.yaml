@@ -2728,7 +2728,6 @@ libraries:
       make_targets:
       - all
       extra_cmake_arg:
-      - -DCMAKE_BUILD_TYPE=RelWithDebInfo
       - -DKokkos_ENABLE_CUDA=ON
       - -DKokkos_ARCH_TURING75=ON
       package_install: true
