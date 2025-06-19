@@ -2,6 +2,8 @@ do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
 
+# On newer ubuntus this started returning empty and we had to use cloud-init BUT I think that's
+# ubuntu specific.
 $userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
 $env:CE_ENV = $userdata -as [string]
 $DEPLOY_DIR = "/compilerexplorer"

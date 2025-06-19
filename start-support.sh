@@ -4,7 +4,7 @@
 
 SKIP_SQUASH=0
 CE_USER=ce
-ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
+ENV=$(cloud-init query userdata)
 ENV=${ENV:-prod}
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
