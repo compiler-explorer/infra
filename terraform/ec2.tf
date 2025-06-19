@@ -193,3 +193,54 @@ resource "aws_instance" "CESMBServer" {
 //    Name = "CESMBTestServer"
 //  }
 //}
+
+resource "aws_instance" "elfshaker" {
+  ami                         = "ami-0b97d4bbd77733fc0"
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name  // TODO
+  instance_type               = "t4g.2xlarge"
+  monitoring                  = false
+  key_name                    = "pwaller" // TODO
+  subnet_id                   = "subnet-1bed1d42" // TODO local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id, "sg-0451c2db0fa8005ca"] // TODO
+  associate_public_ip_address = true
+  user_da
+  user_data = <<EOF
+{ pkgs, modulesPath, ... }: {
+  imports = [ "$${modulesPath}/virtualisation/amazon-image.nix" ];
+  ec2.efi = true;
+
+  environment.systemPackages = with pkgs; [ vim nfs-utils htop tmux dool nix-output-monitor git patchelf bintools ];
+  nix.settings.extra-experimental-features = "flakes nix-command";
+
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFBzJtdBiXHs5qV2k9IaIDlOZiIHss4aeOW7bGGAu7Us pwaller"
+  ];
+
+  fileSystems."/mnt/manyclangs" = {
+    fsType = "nfs4";
+    device = "fs-db4c8192.efs.us-east-1.amazonaws.com:/manyclangs";
+    options = [ "noresvport" "rsize=1048576" "wsize=1048576" "hard" "timeo=600" "retrans=2" "_netdev" "nofail" ];
+  };
+
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    stdenv.cc.cc
+  ];
+}
+EOF
+
+  root_block_device {
+    volume_type           = "gp3"
+    volume_size           = 100
+    delete_on_termination = false
+  }
+
+  tags = {
+    Name = "ElfShaker"
+  }
+
+  volume_tags = {
+    Name = "ElfShaker"
+    Site = "CompilerExplorer"
+  }
+}
