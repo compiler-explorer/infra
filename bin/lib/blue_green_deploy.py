@@ -24,9 +24,6 @@ from lib.deployment_utils import (
 )
 from lib.env import Config
 
-# Environments that support blue-green deployment
-BLUE_GREEN_ENABLED_ENVIRONMENTS = ["beta", "prod"]
-
 
 class DeploymentCancelledException(Exception):
     """Exception raised when a deployment is cancelled by the user."""

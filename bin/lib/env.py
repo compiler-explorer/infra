@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
 
+# Environments that support blue-green deployment
+BLUE_GREEN_ENABLED_ENVIRONMENTS = ["beta", "prod"]
+
 
 class Environment(Enum):
     PROD = "prod"
@@ -43,6 +46,10 @@ class Environment(Enum):
     @property
     def version_key(self) -> str:
         return f"version/{self.branch_name}"
+
+    @property
+    def supports_blue_green(self) -> bool:
+        return self.value in BLUE_GREEN_ENABLED_ENVIRONMENTS
 
 
 @dataclass(frozen=True)

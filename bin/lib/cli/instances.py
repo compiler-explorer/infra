@@ -9,6 +9,7 @@ from typing import Dict, Sequence
 import click
 
 from lib.amazon import as_client, get_autoscaling_group, target_group_arn_for
+from lib.blue_green_deploy import BlueGreenDeployment
 from lib.ce_utils import (
     are_you_sure,
     describe_current_release,
@@ -187,7 +188,7 @@ def instances_status(cfg: Config):
 
 
 def pick_instance(cfg: Config):
-    elb_instances = Instance.elb_instances(target_group_arn_for(cfg))
+    elb_instances = get_instances_for_environment(cfg)
     if len(elb_instances) == 1:
         return elb_instances[0]
     while True:
@@ -200,6 +201,21 @@ def pick_instance(cfg: Config):
 
 
 def pick_instances(cfg: Config):
+    return get_instances_for_environment(cfg)
+
+
+def get_instances_for_environment(cfg: Config):
+    """Get instances for the environment, handling both blue-green and legacy deployments."""
+    if cfg.env.supports_blue_green:
+        try:
+            deployment = BlueGreenDeployment(cfg)
+            active_color = deployment.get_active_color()
+            active_tg_arn = deployment.get_target_group_arn(active_color)
+
+            return Instance.elb_instances(active_tg_arn)
+        except Exception:
+            pass
+
     return Instance.elb_instances(target_group_arn_for(cfg))
 
 
