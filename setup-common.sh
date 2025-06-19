@@ -29,7 +29,7 @@ apt-get -y install \
   jq \
   libc6-arm64-cross \
   libdatetime-perl \
-  libtinfo5 \
+  libtinfo\* \
   libwww-perl \
   nfs-common \
   python-is-python3 \
