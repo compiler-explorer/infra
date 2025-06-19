@@ -70,7 +70,7 @@ resource "aws_autoscaling_policy" "aarch64prod_blue" {
   name                      = "aarch64prod-mq-tracker-blue"
   policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
-  
+
   target_tracking_configuration {
     target_value = 3
     customized_metric_specification {
@@ -125,7 +125,7 @@ resource "aws_autoscaling_policy" "aarch64prod_green" {
   name                      = "aarch64prod-mq-tracker-green"
   policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
-  
+
   target_tracking_configuration {
     target_value = 3
     customized_metric_specification {
@@ -181,7 +181,7 @@ resource "aws_autoscaling_policy" "aarch64staging_blue" {
   name                      = "aarch64staging-mq-tracker-blue"
   policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
-  
+
   target_tracking_configuration {
     target_value = 3
     customized_metric_specification {
@@ -236,7 +236,7 @@ resource "aws_autoscaling_policy" "aarch64staging_green" {
   name                      = "aarch64staging-mq-tracker-green"
   policy_type               = "TargetTrackingScaling"
   estimated_instance_warmup = local.cooldown
-  
+
   target_tracking_configuration {
     target_value = 3
     customized_metric_specification {
