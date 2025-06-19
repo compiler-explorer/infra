@@ -139,50 +139,50 @@ def instances_restart(cfg: Config, motd: str):
 @click.pass_obj
 def instances_status(cfg: Config):
     """Get the status of the instances."""
-    # Check if blue-green target groups exist for this environment
-    try:
-        from lib.blue_green_deploy import BlueGreenDeployment
+    if cfg.env.supports_blue_green:
+        try:
+            deployment = BlueGreenDeployment(cfg)
 
-        deployment = BlueGreenDeployment(cfg)
+            # Try to get blue and green target groups
+            blue_tg_arn = deployment.get_target_group_arn("blue")
+            green_tg_arn = deployment.get_target_group_arn("green")
+            active_color = deployment.get_active_color()
 
-        # Try to get blue and green target groups
-        blue_tg_arn = deployment.get_target_group_arn("blue")
-        green_tg_arn = deployment.get_target_group_arn("green")
-        active_color = deployment.get_active_color()
-
-        print(f"Blue-Green Environment: {cfg.env.value}")
-        print(f"Active Color: {active_color}")
-        print()
-
-        # Show blue instances
-        blue_instances = Instance.elb_instances(blue_tg_arn)
-        if blue_instances:
-            marker = " (ACTIVE)" if active_color == "blue" else ""
-            print(f"Blue Instances{marker}:")
-            print_instances(blue_instances, number=False)
-        else:
-            marker = " (ACTIVE)" if active_color == "blue" else ""
-            print(f"Blue Instances{marker}: No instances")
-
-        print()
-
-        # Show green instances
-        green_instances = Instance.elb_instances(green_tg_arn)
-        if green_instances:
-            marker = " (ACTIVE)" if active_color == "green" else ""
-            print(f"Green Instances{marker}:")
-            print_instances(green_instances, number=False)
-        else:
-            marker = " (ACTIVE)" if active_color == "green" else ""
-            print(f"Green Instances{marker}: No instances")
-
-        # Add note about Service/Version information if not on admin node
-        if (blue_instances or green_instances) and not is_running_on_admin_node():
+            print(f"Blue-Green Environment: {cfg.env.value}")
+            print(f"Active Color: {active_color}")
             print()
-            print("Note: Service and Version information requires SSH access from admin node.")
 
-    except (ValueError, Exception):
-        # Fall back to legacy single target group
+            # Show blue instances
+            blue_instances = Instance.elb_instances(blue_tg_arn)
+            if blue_instances:
+                marker = " (ACTIVE)" if active_color == "blue" else ""
+                print(f"Blue Instances{marker}:")
+                print_instances(blue_instances, number=False)
+            else:
+                marker = " (ACTIVE)" if active_color == "blue" else ""
+                print(f"Blue Instances{marker}: No instances")
+
+            print()
+
+            # Show green instances
+            green_instances = Instance.elb_instances(green_tg_arn)
+            if green_instances:
+                marker = " (ACTIVE)" if active_color == "green" else ""
+                print(f"Green Instances{marker}:")
+                print_instances(green_instances, number=False)
+            else:
+                marker = " (ACTIVE)" if active_color == "green" else ""
+                print(f"Green Instances{marker}: No instances")
+
+            # Add note about Service/Version information if not on admin node
+            if (blue_instances or green_instances) and not is_running_on_admin_node():
+                print()
+                print("Note: Service and Version information requires SSH access from admin node.")
+
+        except Exception as e:
+            print(f"Error: Failed to get blue-green status for {cfg.env.value}: {e}")
+    else:
+        # Legacy single target group environment
         print(f"Environment: {cfg.env.value}")
         print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
 
@@ -213,8 +213,8 @@ def get_instances_for_environment(cfg: Config):
             active_tg_arn = deployment.get_target_group_arn(active_color)
 
             return Instance.elb_instances(active_tg_arn)
-        except Exception:
-            pass
+        except Exception as e:
+            raise RuntimeError(f"Failed to get instances for blue-green environment {cfg.env.value}: {e}") from e
 
     return Instance.elb_instances(target_group_arn_for(cfg))
 
