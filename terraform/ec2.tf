@@ -203,7 +203,6 @@ resource "aws_instance" "elfshaker" {
   subnet_id                   = "subnet-1bed1d42" // TODO local.admin_subnet
   vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id, "sg-0451c2db0fa8005ca"] // TODO
   associate_public_ip_address = true
-  user_da
   user_data = <<EOF
 { pkgs, modulesPath, ... }: {
   imports = [ "$${modulesPath}/virtualisation/amazon-image.nix" ];
