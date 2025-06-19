@@ -2162,6 +2162,14 @@ libraries:
       targets:
       - 2.8.0
       type: github
+    ppdt:
+      build_type: none
+      check_file: README.md
+      method: clone_branch
+      repo: Eczbek/ppdt
+      targets:
+      - main
+      type: github
     protobuf:
       lib_type: shared
       method: clone_branch
