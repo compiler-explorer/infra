@@ -2,7 +2,17 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Environments that support blue-green deployment
-BLUE_GREEN_ENABLED_ENVIRONMENTS = ["beta", "prod"]
+BLUE_GREEN_ENABLED_ENVIRONMENTS = [
+    "beta",
+    "prod",
+    "staging",
+    "gpu",
+    "wintest",
+    "winstaging",
+    "winprod",
+    "aarch64staging",
+    "aarch64prod",
+]
 
 
 class Environment(Enum):

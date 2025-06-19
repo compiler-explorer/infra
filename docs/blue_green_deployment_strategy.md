@@ -103,26 +103,26 @@ For each environment using blue-green:
 ### CLI Commands
 
 ```bash
-# Check current status
-ce --env {beta|prod} blue-green status
+# Check current status (available for all environments)
+ce --env {beta|prod|staging|gpu|wintest|winstaging|winprod|aarch64staging|aarch64prod} blue-green status
 
 # Deploy to inactive color
-ce --env {beta|prod} blue-green deploy [--capacity N]
+ce --env <environment> blue-green deploy [--capacity N]
 
 # Switch to specific color manually
-ce --env {beta|prod} blue-green switch {blue|green}
+ce --env <environment> blue-green switch {blue|green}
 
 # Rollback to previous color
-ce --env {beta|prod} blue-green rollback
+ce --env <environment> blue-green rollback
 
 # Clean up inactive ASG
-ce --env {beta|prod} blue-green cleanup
+ce --env <environment> blue-green cleanup
 
 # Shut down environment
-ce --env {beta|prod} blue-green shutdown
+ce --env <environment> blue-green shutdown
 
 # Validate setup
-ce --env {beta|prod} blue-green validate
+ce --env <environment> blue-green validate
 ```
 
 ### Deployment Flow
@@ -251,7 +251,10 @@ ASG Status:
 
 - **Beta Environment**: Fully implemented and operational
 - **Production Environment**: Fully implemented and operational with mixed instances and auto-scaling
-- **Other Environments**: Continue with existing deployment strategies
+- **Staging Environment**: Blue-green infrastructure implemented
+- **GPU Environment**: Blue-green infrastructure implemented with mixed instances and auto-scaling
+- **Windows Environments**: Blue-green infrastructure implemented for wintest, winstaging, and winprod
+- **AArch64 Environments**: Blue-green infrastructure implemented for aarch64staging and aarch64prod with SQS-based scaling
 
 ## Migration Considerations
 
@@ -291,6 +294,39 @@ Production has been successfully migrated to blue-green deployment. The migratio
 2. **Mixed Instances**: Production uses spot instances for cost optimization
 3. **Auto-scaling**: CPU-based scaling is enabled (target: 50%)
 4. **Capacity**: Production supports up to 40 instances vs beta's 4
+
+## Environment-Specific Implementations
+
+### All Environment Terraform Files Created
+
+New blue-green infrastructure files have been created:
+- `staging-blue-green.tf` - Staging environment (AMD64)
+- `gpu-blue-green.tf` - GPU environment with mixed instances and auto-scaling
+- `windows-blue-green.tf` - Windows environments (wintest, winstaging, winprod)
+- `aarch64-blue-green.tf` - AArch64 environments with custom SQS-based scaling
+
+### Environment-Specific Features
+
+**GPU Environment**:
+- Mixed instances policy (g4dn.xlarge, g4dn.2xlarge)
+- CPU-based auto-scaling (50% target)
+- On-demand base capacity of 1 instance
+
+**Windows Environments**:
+- Increased health check grace periods (300s-500s)
+- WinProd uses mixed instances policy with CPU auto-scaling
+
+**AArch64 Environments**:
+- Custom SQS queue backlog-based auto-scaling
+- Separate scaling policies for blue and green ASGs
+- Target: 3 messages per instance
+
+### Migration Strategy for New Environments
+
+1. **Phase 1**: Deploy blue-green infrastructure (no traffic impact)
+2. **Phase 2**: Test blue-green deployments on each environment
+3. **Phase 3**: Update ALB listener rules to use blue-green target groups
+4. **Phase 4**: Remove old single ASG resources
 
 ## Future Enhancements
 

@@ -76,21 +76,42 @@ graph TB
         end
     end
 
-    subgraph "Other Environments (Single ASG)"
-        TGStaging[Target Group: Staging<br/>Port 80]
-        TGGpu[Target Group: GPU<br/>Port 80]
-        TGWin[Target Groups: Win*<br/>Port 80]
-        TGAArch[Target Groups: AArch64*<br/>Port 80]
+    subgraph "All Other Environments Blue-Green (Implemented)"
+        subgraph "Staging Target Groups"
+            TGStagingBlue[Target Group: Staging-Blue<br/>Port 80]
+            TGStagingGreen[Target Group: Staging-Green<br/>Port 80]
+        end
 
-        ASGStaging[ASG: staging<br/>Rolling Deploy]
-        ASGGpu[ASG: gpu<br/>Rolling Deploy]
-        ASGWin[ASG: winprod-mixed<br/>Rolling Deploy]
-        ASGAArch[ASG: aarch64prod-mixed<br/>Rolling Deploy]
+        subgraph "GPU Target Groups"
+            TGGpuBlue[Target Group: Gpu-Blue<br/>Port 80]
+            TGGpuGreen[Target Group: Gpu-Green<br/>Port 80]
+        end
+
+        subgraph "Windows Target Groups"
+            TGWinBlue[Target Groups: Wintest/Winstaging/Winprod-Blue<br/>Port 80]
+            TGWinGreen[Target Groups: Wintest/Winstaging/Winprod-Green<br/>Port 80]
+        end
+
+        subgraph "AArch64 Target Groups"
+            TGAArchBlue[Target Groups: Aarch64staging/prod-Blue<br/>Port 80]
+            TGAArchGreen[Target Groups: Aarch64staging/prod-Green<br/>Port 80]
+        end
+
+        subgraph "Blue-Green ASGs"
+            ASGStagingBG[ASGs: staging-blue/green<br/>Blue-Green Deploy]
+            ASGGpuBG[ASGs: gpu-blue/green<br/>Blue-Green Deploy]
+            ASGWinBG[ASGs: win*-blue/green<br/>Blue-Green Deploy]
+            ASGAArchBG[ASGs: aarch64*-blue/green<br/>Blue-Green Deploy]
+        end
     end
 
     subgraph "Terraform Modules"
         ModuleBetaBG[module beta_blue_green<br/>source = ./modules/blue_green]
         ModuleProdBG[module prod_blue_green<br/>source = ./modules/blue_green]
+        ModuleStagingBG[module staging_blue_green<br/>source = ./modules/blue_green]
+        ModuleGpuBG[module gpu_blue_green<br/>source = ./modules/blue_green]
+        ModuleWinBG[modules wintest/staging/prod_blue_green<br/>source = ./modules/blue_green]
+        ModuleAArchBG[modules aarch64staging/prod_blue_green<br/>source = ./modules/blue_green]
     end
 
     subgraph "Storage"
@@ -135,21 +156,29 @@ graph TB
     ASGBetaBlue --> EC2BetaBlue
     ASGBetaGreen --> EC2BetaGreen
 
-    %% Other environments (unchanged)
+    %% Other environments (now blue-green)
     HTTPS --> StagingRule
     HTTPS --> GPURule
     HTTPS --> WinRule
     HTTPS --> AArch64Rule
 
-    StagingRule --> TGStaging
-    GPURule --> TGGpu
-    WinRule --> TGWin
-    AArch64Rule --> TGAArch
+    StagingRule -.->|Active| TGStagingBlue
+    StagingRule -.->|Inactive| TGStagingGreen
+    GPURule -.->|Active| TGGpuBlue
+    GPURule -.->|Inactive| TGGpuGreen
+    WinRule -.->|Active| TGWinBlue
+    WinRule -.->|Inactive| TGWinGreen
+    AArch64Rule -.->|Active| TGAArchBlue
+    AArch64Rule -.->|Inactive| TGAArchGreen
 
-    TGStaging --> ASGStaging
-    TGGpu --> ASGGpu
-    TGWin --> ASGWin
-    TGAArch --> ASGAArch
+    TGStagingBlue --> ASGStagingBG
+    TGStagingGreen --> ASGStagingBG
+    TGGpuBlue --> ASGGpuBG
+    TGGpuGreen --> ASGGpuBG
+    TGWinBlue --> ASGWinBG
+    TGWinGreen --> ASGWinBG
+    TGAArchBlue --> ASGAArchBG
+    TGAArchGreen --> ASGAArchBG
 
     %% Terraform Modules create blue-green resources
     ModuleBetaBG -.->|Creates| TGBetaBlue
@@ -165,6 +194,16 @@ graph TB
     ModuleProdBG -.->|Creates| ASGProdGreen
     ModuleProdBG -.->|Creates| SSMProdColor
     ModuleProdBG -.->|Creates| SSMProdTargetGroup
+
+    %% Additional modules create their blue-green resources
+    ModuleStagingBG -.->|Creates| TGStagingBlue
+    ModuleStagingBG -.->|Creates| TGStagingGreen
+    ModuleGpuBG -.->|Creates| TGGpuBlue
+    ModuleGpuBG -.->|Creates| TGGpuGreen
+    ModuleWinBG -.->|Creates| TGWinBlue
+    ModuleWinBG -.->|Creates| TGWinGreen
+    ModuleAArchBG -.->|Creates| TGAArchBlue
+    ModuleAArchBG -.->|Creates| TGAArchGreen
 
     %% Storage connections
     EC2BetaBlue --> EFS
@@ -349,14 +388,14 @@ The implementation replaced the old single beta ASG:
 
 ### Command Overview
 ```bash
-# Commands work for both beta and prod environments
-ce --env {beta|prod} blue-green status     # Check current state
-ce --env {beta|prod} blue-green deploy     # Deploy to inactive color
-ce --env {beta|prod} blue-green switch     # Manual color switch
-ce --env {beta|prod} blue-green rollback   # Revert to previous color
-ce --env {beta|prod} blue-green cleanup    # Scale down inactive ASG
-ce --env {beta|prod} blue-green shutdown   # Scale down active ASG
-ce --env {beta|prod} blue-green validate   # Verify infrastructure
+# Commands work for all blue-green environments
+ce --env {beta|prod|staging|gpu|wintest|winstaging|winprod|aarch64staging|aarch64prod} blue-green status     # Check current state
+ce --env <environment> blue-green deploy     # Deploy to inactive color
+ce --env <environment> blue-green switch     # Manual color switch
+ce --env <environment> blue-green rollback   # Revert to previous color
+ce --env <environment> blue-green cleanup    # Scale down inactive ASG
+ce --env <environment> blue-green shutdown   # Scale down active ASG
+ce --env <environment> blue-green validate   # Verify infrastructure
 ```
 
 ### State Tracking
@@ -364,7 +403,7 @@ The system tracks state via SSM parameters:
 - `/compiler-explorer/{env}/active-color`: "blue" or "green"
 - `/compiler-explorer/{env}/active-target-group-arn`: Current target group ARN
 
-Where {env} is "beta" or "prod"
+Where {env} is any of the blue-green enabled environments
 
 ### Safety Features
 - ASG capacity protection during deployment (MinSize/MaxSize locking)
@@ -381,13 +420,19 @@ Production blue-green has been implemented with:
 - Mixed instances policy for cost optimization
 - Auto-scaling enabled with CPU target of 50%
 
-### Other Environments
-The blue-green module can be reused for any environment:
+### All Environments Now Implemented
+Blue-green deployment is now available for all major environments via these Terraform files:
+- `staging-blue-green.tf`
+- `gpu-blue-green.tf`
+- `windows-blue-green.tf`
+- `aarch64-blue-green.tf`
+
+Each uses the reusable blue-green module:
 ```hcl
 module "staging_blue_green" {
   source = "./modules/blue_green"
   environment = "staging"
-  # ... other parameters
+  # ... environment-specific parameters
 }
 ```
 

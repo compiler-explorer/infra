@@ -33,3 +33,23 @@ output "active_target_group_arn" {
   description = "Currently active target group ARN (from SSM parameter)"
   value       = data.aws_ssm_parameter.active_tg.value
 }
+
+output "blue_asg_name" {
+  description = "Blue ASG name"
+  value       = aws_autoscaling_group.color["blue"].name
+}
+
+output "green_asg_name" {
+  description = "Green ASG name"
+  value       = aws_autoscaling_group.color["green"].name
+}
+
+output "blue_target_group_arn" {
+  description = "Blue target group ARN"
+  value       = aws_alb_target_group.color["blue"].arn
+}
+
+output "green_target_group_arn" {
+  description = "Green target group ARN"
+  value       = aws_alb_target_group.color["green"].arn
+}
