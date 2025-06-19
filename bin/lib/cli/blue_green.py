@@ -6,10 +6,10 @@ import click
 
 from lib.amazon import as_client, ec2_client, elb_client
 from lib.aws_utils import get_asg_info, scale_asg
-from lib.blue_green_deploy import BLUE_GREEN_ENABLED_ENVIRONMENTS, BlueGreenDeployment, DeploymentCancelledException
+from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
-from lib.env import Config
+from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config
 
 
 @cli.group(name="blue-green")
