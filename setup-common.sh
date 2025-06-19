@@ -41,8 +41,6 @@ apt-get -y install \
   wget
 
 apt-get -y autoremove
-pip3 install --upgrade pip
-hash -r pip
 
 # This returns amd64 or arm64
 ARCH=$(dpkg --print-architecture)
