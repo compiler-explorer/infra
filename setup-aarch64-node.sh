@@ -53,6 +53,8 @@ git clone --recursive --branch ce https://github.com/compiler-explorer/nsjail.gi
 cd nsjail
 make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
+# See https://github.com/google/nsjail/issues/243
+chmod +s /usr/local/bin/nsjail
 popd
 
 
