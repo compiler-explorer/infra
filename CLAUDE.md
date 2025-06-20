@@ -125,9 +125,13 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 - **`ce workflows list`** - List available workflows across repositories
 
 - **`ce workflows status [OPTIONS]`** - Show recent workflow run status
-  - Filter by `--repo`, `--workflow`, `--status`, `--branch`
+  - By default shows both infra and compiler-explorer repositories
+  - Filter by `--repo` to show specific repository, `--workflow`, `--status`, `--branch`
   - Limit results with `--limit` (default: 10)
-  - Example: `ce workflows status --workflow compiler-discovery.yml --status in_progress`
+  - Examples:
+    - `ce workflows status` (shows both repos)
+    - `ce workflows status --repo infra --workflow compiler-discovery.yml`
+    - `ce workflows status --status in_progress`
 
 - **`ce workflows watch RUN_ID [OPTIONS]`** - View details of a specific workflow run
   - Use `--repo` to specify repository (default: infra)

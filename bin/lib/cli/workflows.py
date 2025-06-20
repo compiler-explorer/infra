@@ -144,8 +144,7 @@ def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool):
 @workflows.command("status")
 @click.option(
     "--repo",
-    default="infra",
-    help="Repository to check (default: infra)",
+    help="Repository to check (default: show infra and compiler-explorer)",
 )
 @click.option("--limit", "-l", default=10, help="Maximum number of runs to show (default: 10)")
 @click.option("--workflow", "-w", help="Filter by workflow name (e.g., 'compiler-discovery.yml')")
@@ -155,27 +154,36 @@ def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool):
 def status(cfg: Config, repo: str, limit: int, workflow: str, status: str, branch: str):
     """Show recent workflow run status.
 
-    Shows recent workflow runs from the specified repository with their current status.
+    Shows recent workflow runs from repositories with their current status.
+    By default shows both infra and compiler-explorer repositories.
     """
-    cmd = ["gh", "run", "list", "-R", f"github.com/compiler-explorer/{repo}", "--limit", str(limit)]
+    # Default repositories to check if no specific repo is provided
+    repos_to_check = [repo] if repo else ["infra", "compiler-explorer"]
 
-    if workflow:
-        cmd.extend(["--workflow", workflow])
-    if status:
-        cmd.extend(["--status", status])
-    if branch:
-        cmd.extend(["--branch", branch])
+    for i, current_repo in enumerate(repos_to_check):
+        if i > 0:  # Add spacing between repositories
+            print()
 
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        if result.stdout.strip():
-            print(f"Recent workflow runs in {repo}:")
-            print(result.stdout)
-        else:
-            print(f"No workflow runs found in {repo} matching the criteria")
-    except subprocess.CalledProcessError as e:
-        print(f"Failed to get workflow status: {e.stderr}", file=sys.stderr)
-        sys.exit(1)
+        cmd = ["gh", "run", "list", "-R", f"github.com/compiler-explorer/{current_repo}", "--limit", str(limit)]
+
+        if workflow:
+            cmd.extend(["--workflow", workflow])
+        if status:
+            cmd.extend(["--status", status])
+        if branch:
+            cmd.extend(["--branch", branch])
+
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if result.stdout.strip():
+                print(f"Recent workflow runs in {current_repo}:")
+                print(result.stdout)
+            else:
+                print(f"No workflow runs found in {current_repo} matching the criteria")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to get workflow status for {current_repo}: {e.stderr}", file=sys.stderr)
+            # Don't exit immediately if one repo fails, continue with others
+            continue
 
 
 @workflows.command("watch")

@@ -180,12 +180,20 @@ class TestWorkflowsCommands(unittest.TestCase):
         self.assertIn("github.com/compiler-explorer/infra", result.output)
 
     @patch("subprocess.run")
-    def test_status_success(self, mock_run):
-        mock_run.return_value = MagicMock(
-            stdout="completed\tsuccess\tTest workflow\tmain\tpush\t123456\t1m\t2025-06-20T12:00:00Z\n",
-            stderr="",
-            returncode=0,
-        )
+    def test_status_success_multi_repo(self, mock_run):
+        # Mock responses for both repositories
+        mock_run.side_effect = [
+            MagicMock(
+                stdout="completed\tsuccess\tInfra workflow\tmain\tpush\t123456\t1m\t2025-06-20T12:00:00Z\n",
+                stderr="",
+                returncode=0,
+            ),
+            MagicMock(
+                stdout="completed\tsuccess\tCE workflow\tmain\tpush\t789012\t2m\t2025-06-20T12:01:00Z\n",
+                stderr="",
+                returncode=0,
+            ),
+        ]
 
         result = self.runner.invoke(
             status,
@@ -195,8 +203,43 @@ class TestWorkflowsCommands(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Recent workflow runs in infra:", result.output)
-        self.assertIn("Test workflow", result.output)
+        self.assertIn("Recent workflow runs in compiler-explorer:", result.output)
+        self.assertIn("Infra workflow", result.output)
+        self.assertIn("CE workflow", result.output)
 
+        # Should be called twice (once for each repo)
+        self.assertEqual(mock_run.call_count, 2)
+
+        # Check first call (infra)
+        first_call_args = mock_run.call_args_list[0][0][0]
+        self.assertIn("github.com/compiler-explorer/infra", first_call_args)
+
+        # Check second call (compiler-explorer)
+        second_call_args = mock_run.call_args_list[1][0][0]
+        self.assertIn("github.com/compiler-explorer/compiler-explorer", second_call_args)
+
+    @patch("subprocess.run")
+    def test_status_success_single_repo(self, mock_run):
+        mock_run.return_value = MagicMock(
+            stdout="completed\tsuccess\tTest workflow\tmain\tpush\t123456\t1m\t2025-06-20T12:00:00Z\n",
+            stderr="",
+            returncode=0,
+        )
+
+        result = self.runner.invoke(
+            status,
+            ["--repo", "infra", "--limit", "5"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Recent workflow runs in infra:", result.output)
+        self.assertIn("Test workflow", result.output)
+        # Should not show compiler-explorer when specific repo is requested
+        self.assertNotIn("Recent workflow runs in compiler-explorer:", result.output)
+
+        # Should be called only once
+        self.assertEqual(mock_run.call_count, 1)
         args = mock_run.call_args[0][0]
         self.assertIn("gh", args)
         self.assertIn("run", args)
@@ -235,13 +278,16 @@ class TestWorkflowsCommands(unittest.TestCase):
         self.assertIn("main", args)
 
     @patch("subprocess.run")
-    def test_status_no_results(self, mock_run):
+    def test_status_no_results_multi_repo(self, mock_run):
         mock_run.return_value = MagicMock(stdout="", stderr="", returncode=0)
 
         result = self.runner.invoke(status, obj=self.cfg)
 
         self.assertEqual(result.exit_code, 0)
-        self.assertIn("No workflow runs found", result.output)
+        self.assertIn("No workflow runs found in infra", result.output)
+        self.assertIn("No workflow runs found in compiler-explorer", result.output)
+        # Should be called twice (once for each repo)
+        self.assertEqual(mock_run.call_count, 2)
 
     @patch("subprocess.run")
     def test_watch_success(self, mock_run):
