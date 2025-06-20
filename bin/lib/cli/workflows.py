@@ -20,20 +20,20 @@ def workflows():
 @click.pass_obj
 def run_generic(cfg: Config, repo: str, workflow: str, field: tuple, dry_run: bool):
     """Trigger any workflow in any Compiler Explorer repository.
-    
+
     REPO: Repository name (e.g., 'compiler-explorer' or 'infra')
     WORKFLOW: Workflow file name (e.g., 'deploy-win.yml')
-    
+
     Example:
         ce workflows run compiler-explorer deploy-win.yml -f buildnumber=gh-12345 -f branch=main
     """
     cmd = ["gh", "workflow", "run", workflow]
-    
+
     for f in field:
         cmd.extend(["--field", f])
-    
+
     cmd.extend(["-R", f"github.com/compiler-explorer/{repo}"])
-    
+
     if dry_run:
         print(" ".join(cmd))
     else:
@@ -69,7 +69,7 @@ def run_discovery(
     dry_run: bool,
 ):
     """Trigger the compiler discovery workflow.
-    
+
     BUILDNUMBER: The build number for discovery (e.g., gh-12345)
     """
     cmd = [
@@ -111,7 +111,7 @@ def run_discovery(
 @click.pass_obj
 def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool):
     """Trigger Windows deployment in the main compiler-explorer repository.
-    
+
     BUILDNUMBER: The build number to deploy (e.g., gh-12345)
     """
     cmd = [
@@ -141,6 +141,74 @@ def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool):
             sys.exit(1)
 
 
+@workflows.command("status")
+@click.option(
+    "--repo",
+    default="infra",
+    help="Repository to check (default: infra)",
+)
+@click.option("--limit", "-l", default=10, help="Maximum number of runs to show (default: 10)")
+@click.option("--workflow", "-w", help="Filter by workflow name (e.g., 'compiler-discovery.yml')")
+@click.option("--status", "-s", help="Filter by status (e.g., 'in_progress', 'completed')")
+@click.option("--branch", "-b", help="Filter by branch")
+@click.pass_obj
+def status(cfg: Config, repo: str, limit: int, workflow: str, status: str, branch: str):
+    """Show recent workflow run status.
+
+    Shows recent workflow runs from the specified repository with their current status.
+    """
+    cmd = ["gh", "run", "list", "-R", f"github.com/compiler-explorer/{repo}", "--limit", str(limit)]
+
+    if workflow:
+        cmd.extend(["--workflow", workflow])
+    if status:
+        cmd.extend(["--status", status])
+    if branch:
+        cmd.extend(["--branch", branch])
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        if result.stdout.strip():
+            print(f"Recent workflow runs in {repo}:")
+            print(result.stdout)
+        else:
+            print(f"No workflow runs found in {repo} matching the criteria")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to get workflow status: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+
+@workflows.command("watch")
+@click.argument("run_id")
+@click.option(
+    "--repo",
+    default="infra",
+    help="Repository containing the run (default: infra)",
+)
+@click.option("--job", help="View specific job within the run")
+@click.option("--web", is_flag=True, help="Open run in browser")
+@click.pass_obj
+def watch(cfg: Config, run_id: str, repo: str, job: str, web: bool):
+    """View details of a specific workflow run.
+
+    RUN_ID: The workflow run ID to view
+    """
+    cmd = ["gh", "run", "view", run_id, "-R", f"github.com/compiler-explorer/{repo}"]
+
+    if job:
+        cmd.extend(["--job", job])
+    if web:
+        cmd.append("--web")
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        if result.stdout:
+            print(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to view workflow run: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+
+
 @workflows.command("list")
 @click.pass_obj
 def list_workflows(cfg: Config):
@@ -155,7 +223,7 @@ def list_workflows(cfg: Config):
     ]
     for workflow_file, description in infra_workflows:
         print(f"  {workflow_file}: {description}")
-    
+
     print("\nWorkflows in compiler-explorer/compiler-explorer:")
     ce_workflows = [
         ("deploy-win.yml", "Windows deployment"),

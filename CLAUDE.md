@@ -124,7 +124,18 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 - **`ce workflows list`** - List available workflows across repositories
 
-All commands support `--dry-run` to preview the `gh` command without executing it.
+- **`ce workflows status [OPTIONS]`** - Show recent workflow run status
+  - Filter by `--repo`, `--workflow`, `--status`, `--branch`
+  - Limit results with `--limit` (default: 10)
+  - Example: `ce workflows status --workflow compiler-discovery.yml --status in_progress`
+
+- **`ce workflows watch RUN_ID [OPTIONS]`** - View details of a specific workflow run
+  - Use `--repo` to specify repository (default: infra)
+  - Use `--job` to view specific job within the run
+  - Use `--web` to open run in browser
+  - Example: `ce workflows watch 15778532626 --web`
+
+All workflow trigger commands support `--dry-run` to preview the `gh` command without executing it.
 
 ## AWS Integration Pattern
 

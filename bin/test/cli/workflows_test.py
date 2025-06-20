@@ -3,8 +3,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-
-from lib.cli.workflows import deploy_win, list_workflows, run_discovery, run_generic
+from lib.cli.workflows import deploy_win, list_workflows, run_discovery, run_generic, status, watch
 from lib.env import Config, Environment
 
 
@@ -128,7 +127,7 @@ class TestWorkflowsCommands(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Triggering Windows deployment", result.output)
-        
+
         args = mock_run.call_args[0][0]
         self.assertIn("deploy-win.yml", args)
         self.assertIn("buildnumber=gh-12345", args)
@@ -160,7 +159,7 @@ class TestWorkflowsCommands(unittest.TestCase):
 
         self.assertEqual(result.exit_code, 0)
         self.assertIn("Triggering workflow deploy-win.yml", result.output)
-        
+
         args = mock_run.call_args[0][0]
         self.assertIn("deploy-win.yml", args)
         self.assertIn("buildnumber=gh-12345", args)
@@ -179,3 +178,108 @@ class TestWorkflowsCommands(unittest.TestCase):
         self.assertIn("param1=value1", result.output)
         self.assertIn("param2=value2", result.output)
         self.assertIn("github.com/compiler-explorer/infra", result.output)
+
+    @patch("subprocess.run")
+    def test_status_success(self, mock_run):
+        mock_run.return_value = MagicMock(
+            stdout="completed\tsuccess\tTest workflow\tmain\tpush\t123456\t1m\t2025-06-20T12:00:00Z\n",
+            stderr="",
+            returncode=0,
+        )
+
+        result = self.runner.invoke(
+            status,
+            ["--limit", "5"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Recent workflow runs in infra:", result.output)
+        self.assertIn("Test workflow", result.output)
+
+        args = mock_run.call_args[0][0]
+        self.assertIn("gh", args)
+        self.assertIn("run", args)
+        self.assertIn("list", args)
+        self.assertIn("--limit", args)
+        self.assertIn("5", args)
+        self.assertIn("github.com/compiler-explorer/infra", args)
+
+    @patch("subprocess.run")
+    def test_status_with_filters(self, mock_run):
+        mock_run.return_value = MagicMock(stdout="", stderr="", returncode=0)
+
+        result = self.runner.invoke(
+            status,
+            [
+                "--repo",
+                "compiler-explorer",
+                "--workflow",
+                "deploy-win.yml",
+                "--status",
+                "in_progress",
+                "--branch",
+                "main",
+            ],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        args = mock_run.call_args[0][0]
+        self.assertIn("github.com/compiler-explorer/compiler-explorer", args)
+        self.assertIn("--workflow", args)
+        self.assertIn("deploy-win.yml", args)
+        self.assertIn("--status", args)
+        self.assertIn("in_progress", args)
+        self.assertIn("--branch", args)
+        self.assertIn("main", args)
+
+    @patch("subprocess.run")
+    def test_status_no_results(self, mock_run):
+        mock_run.return_value = MagicMock(stdout="", stderr="", returncode=0)
+
+        result = self.runner.invoke(status, obj=self.cfg)
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("No workflow runs found", result.output)
+
+    @patch("subprocess.run")
+    def test_watch_success(self, mock_run):
+        mock_run.return_value = MagicMock(
+            stdout="* main Test workflow · 123456\nTriggered via push\n\nJOBS\n* test-job (ID 789)\n",
+            stderr="",
+            returncode=0,
+        )
+
+        result = self.runner.invoke(
+            watch,
+            ["123456"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Test workflow", result.output)
+        self.assertIn("test-job", result.output)
+
+        args = mock_run.call_args[0][0]
+        self.assertIn("gh", args)
+        self.assertIn("run", args)
+        self.assertIn("view", args)
+        self.assertIn("123456", args)
+        self.assertIn("github.com/compiler-explorer/infra", args)
+
+    @patch("subprocess.run")
+    def test_watch_with_options(self, mock_run):
+        mock_run.return_value = MagicMock(stdout="", stderr="", returncode=0)
+
+        result = self.runner.invoke(
+            watch,
+            ["123456", "--repo", "compiler-explorer", "--job", "456789"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        args = mock_run.call_args[0][0]
+        self.assertIn("github.com/compiler-explorer/compiler-explorer", args)
+        self.assertIn("--job", args)
+        self.assertIn("456789", args)
