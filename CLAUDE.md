@@ -102,6 +102,30 @@ The CLI system (`bin/ce`) uses Click framework with a modular command structure:
        """Subcommand description."""
    ```
 
+## GitHub Workflow Integration
+
+The `ce workflows` command group provides functionality to trigger GitHub Actions workflows:
+
+### Available Commands
+
+- **`ce workflows run-discovery BUILDNUMBER`** - Trigger compiler discovery workflow in infra repo
+  - Uses defaults: staging environment, main branch
+  - Override with `--environment`, `--branch`, `--skip-remote-checks`
+  - Example: `ce workflows run-discovery gh-12345 --environment prod`
+
+- **`ce workflows deploy-win BUILDNUMBER`** - Trigger Windows deployment in main compiler-explorer repo
+  - Uses defaults: main branch
+  - Override with `--branch`
+  - Example: `ce workflows deploy-win gh-12345 --branch release`
+
+- **`ce workflows run REPO WORKFLOW [OPTIONS]`** - Generic workflow trigger for any CE repository
+  - Pass parameters with `-f name=value` or `--field name=value`
+  - Example: `ce workflows run compiler-explorer deploy-win.yml -f buildnumber=gh-12345 -f branch=main`
+
+- **`ce workflows list`** - List available workflows across repositories
+
+All commands support `--dry-run` to preview the `gh` command without executing it.
+
 ## AWS Integration Pattern
 
 AWS clients are defined in `bin/lib/amazon.py` using lazy initialization:
