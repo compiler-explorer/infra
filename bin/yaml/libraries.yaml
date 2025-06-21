@@ -1291,14 +1291,6 @@ libraries:
         targets:
         - trunk
         type: gitlab
-      bronto:
-        build_type: none
-        check_file: include/bronto/bronto.hpp
-        method: nightlyclone
-        repo: brontosource/bronto
-        targets:
-        - main
-        type: github
       brigand:
         build_type: none
         check_file: README.md
@@ -1306,6 +1298,14 @@ libraries:
         repo: edouarda/brigand
         targets:
         - trunk
+        type: github
+      bronto:
+        build_type: none
+        check_file: include/bronto/bronto.hpp
+        method: nightlyclone
+        repo: brontosource/bronto
+        targets:
+        - main
         type: github
       catch2:
         after_stage_script:
