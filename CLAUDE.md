@@ -111,16 +111,19 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 - **`ce workflows run-discovery BUILDNUMBER`** - Trigger compiler discovery workflow in infra repo
   - Uses defaults: staging environment, main branch
   - Override with `--environment`, `--branch`, `--skip-remote-checks`
-  - Example: `ce workflows run-discovery gh-12345 --environment prod`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows run-discovery gh-12345 --environment prod --wait`
 
 - **`ce workflows deploy-win BUILDNUMBER`** - Trigger Windows deployment in main compiler-explorer repo
   - Uses defaults: main branch
   - Override with `--branch`
-  - Example: `ce workflows deploy-win gh-12345 --branch release`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows deploy-win gh-12345 --branch release --wait`
 
 - **`ce workflows run REPO WORKFLOW [OPTIONS]`** - Generic workflow trigger for any CE repository
   - Pass parameters with `-f name=value` or `--field name=value`
-  - Example: `ce workflows run compiler-explorer deploy-win.yml -f buildnumber=gh-12345 -f branch=main`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows run compiler-explorer deploy-win.yml -f buildnumber=gh-12345 -f branch=main --wait`
 
 - **`ce workflows list`** - List available workflows across repositories
 

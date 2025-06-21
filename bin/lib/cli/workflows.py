@@ -1,5 +1,7 @@
+import json
 import subprocess
 import sys
+import time
 
 import click
 
@@ -17,8 +19,9 @@ def workflows():
 @click.argument("workflow")
 @click.option("--field", "-f", multiple=True, help="Field to pass to workflow (format: name=value)")
 @click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
 @click.pass_obj
-def run_generic(cfg: Config, repo: str, workflow: str, field: tuple, dry_run: bool):
+def run_generic(cfg: Config, repo: str, workflow: str, field: tuple, dry_run: bool, wait: bool):
     """Trigger any workflow in any Compiler Explorer repository.
 
     REPO: Repository name (e.g., 'compiler-explorer' or 'infra')
@@ -43,6 +46,9 @@ def run_generic(cfg: Config, repo: str, workflow: str, field: tuple, dry_run: bo
             if result.stdout:
                 print(result.stdout)
             print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion(repo, workflow)
         except subprocess.CalledProcessError as e:
             print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
             sys.exit(1)
@@ -59,6 +65,7 @@ def run_generic(cfg: Config, repo: str, workflow: str, field: tuple, dry_run: bo
 @click.option("--branch", default="main", help="Branch to use for discovery (default: main)")
 @click.option("--skip-remote-checks", default="", help="Comma separated list of remote checks to skip")
 @click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
 @click.pass_obj
 def run_discovery(
     cfg: Config,
@@ -67,6 +74,7 @@ def run_discovery(
     branch: str,
     skip_remote_checks: str,
     dry_run: bool,
+    wait: bool,
 ):
     """Trigger the compiler discovery workflow.
 
@@ -99,6 +107,9 @@ def run_discovery(
             if result.stdout:
                 print(result.stdout)
             print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion("infra", "compiler-discovery.yml")
         except subprocess.CalledProcessError as e:
             print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
             sys.exit(1)
@@ -108,8 +119,9 @@ def run_discovery(
 @click.argument("buildnumber")
 @click.option("--branch", default="main", help="Branch to deploy (default: main)")
 @click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
 @click.pass_obj
-def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool):
+def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool, wait: bool):
     """Trigger Windows deployment in the main compiler-explorer repository.
 
     BUILDNUMBER: The build number to deploy (e.g., gh-12345)
@@ -136,6 +148,9 @@ def deploy_win(cfg: Config, buildnumber: str, branch: str, dry_run: bool):
             if result.stdout:
                 print(result.stdout)
             print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion("compiler-explorer", "deploy-win.yml")
         except subprocess.CalledProcessError as e:
             print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
             sys.exit(1)
@@ -238,3 +253,74 @@ def list_workflows(cfg: Config):
     ]
     for workflow_file, description in ce_workflows:
         print(f"  {workflow_file}: {description}")
+
+
+def wait_for_workflow_completion(repo: str, workflow: str):
+    """Wait for the most recent workflow run to complete."""
+    print(f"\nWaiting for {workflow} in {repo} to complete...")
+
+    # First, get the most recent run ID for this workflow
+    cmd = [
+        "gh",
+        "run",
+        "list",
+        "-R",
+        f"github.com/compiler-explorer/{repo}",
+        "--workflow",
+        workflow,
+        "--limit",
+        "1",
+        "--json",
+        "databaseId,status",
+    ]
+
+    # Give the workflow a moment to start
+    time.sleep(5)
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        runs = json.loads(result.stdout)
+        if not runs:
+            print("No workflow run found")
+            return
+
+        run_id = runs[0]["databaseId"]
+        print(f"Monitoring run {run_id}")
+
+        # Poll the status until completion
+        while True:
+            cmd = [
+                "gh",
+                "run",
+                "view",
+                str(run_id),
+                "-R",
+                f"github.com/compiler-explorer/{repo}",
+                "--json",
+                "status,conclusion",
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            run_info = json.loads(result.stdout)
+
+            status = run_info["status"]
+            conclusion = run_info.get("conclusion", "")
+
+            if status == "completed":
+                if conclusion == "success":
+                    print("\nWorkflow completed successfully!")
+                else:
+                    print(f"\nWorkflow completed with conclusion: {conclusion}")
+                    if conclusion == "failure":
+                        sys.exit(1)
+                break
+            else:
+                print(f"Status: {status}...", end="\r")
+                time.sleep(10)
+
+    except subprocess.CalledProcessError as e:
+        print(f"\nFailed to monitor workflow: {e.stderr}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"\nFailed to parse workflow status: {e}", file=sys.stderr)
+        sys.exit(1)

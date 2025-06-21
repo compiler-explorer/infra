@@ -1,9 +1,18 @@
+import json
 import subprocess
 import unittest
 from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
-from lib.cli.workflows import deploy_win, list_workflows, run_discovery, run_generic, status, watch
+from lib.cli.workflows import (
+    deploy_win,
+    list_workflows,
+    run_discovery,
+    run_generic,
+    status,
+    wait_for_workflow_completion,
+    watch,
+)
 from lib.env import Config, Environment
 
 
@@ -329,3 +338,95 @@ class TestWorkflowsCommands(unittest.TestCase):
         self.assertIn("github.com/compiler-explorer/compiler-explorer", args)
         self.assertIn("--job", args)
         self.assertIn("456789", args)
+
+    @patch("time.sleep")
+    @patch("subprocess.run")
+    def test_run_discovery_with_wait(self, mock_run, mock_sleep):
+        # First call triggers workflow, second gets the list, third+ check status
+        mock_run.side_effect = [
+            MagicMock(stdout="", stderr="", returncode=0),  # trigger workflow
+            MagicMock(stdout=json.dumps([{"databaseId": 12345, "status": "queued"}])),  # list runs
+            MagicMock(stdout=json.dumps({"status": "in_progress", "conclusion": None})),  # first status check
+            MagicMock(stdout=json.dumps({"status": "completed", "conclusion": "success"})),  # final status
+        ]
+
+        result = self.runner.invoke(
+            run_discovery,
+            ["gh-12345", "--wait"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Workflow triggered successfully", result.output)
+        self.assertIn("Waiting for compiler-discovery.yml", result.output)
+        self.assertIn("Monitoring run 12345", result.output)
+        self.assertIn("Workflow completed successfully!", result.output)
+
+    @patch("time.sleep")
+    @patch("subprocess.run")
+    def test_deploy_win_with_wait_failure(self, mock_run, mock_sleep):
+        # First call triggers workflow, second gets the list, third checks status (failed)
+        mock_run.side_effect = [
+            MagicMock(stdout="", stderr="", returncode=0),  # trigger workflow
+            MagicMock(stdout=json.dumps([{"databaseId": 67890, "status": "completed"}])),  # list runs
+            MagicMock(stdout=json.dumps({"status": "completed", "conclusion": "failure"})),  # status check
+        ]
+
+        result = self.runner.invoke(
+            deploy_win,
+            ["gh-12345", "--wait"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 1)
+        self.assertIn("Workflow triggered successfully", result.output)
+        self.assertIn("Waiting for deploy-win.yml", result.output)
+        self.assertIn("Workflow completed with conclusion: failure", result.output)
+
+    @patch("time.sleep")
+    @patch("subprocess.run")
+    def test_run_generic_with_wait(self, mock_run, mock_sleep):
+        # First call triggers workflow, second gets the list, third checks status
+        mock_run.side_effect = [
+            MagicMock(stdout="", stderr="", returncode=0),  # trigger workflow
+            MagicMock(stdout=json.dumps([{"databaseId": 11111, "status": "completed"}])),  # list runs
+            MagicMock(stdout=json.dumps({"status": "completed", "conclusion": "success"})),  # status check
+        ]
+
+        result = self.runner.invoke(
+            run_generic,
+            ["infra", "test.yml", "-f", "param=value", "--wait"],
+            obj=self.cfg,
+        )
+
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("Workflow triggered successfully", result.output)
+        self.assertIn("Waiting for test.yml", result.output)
+        self.assertIn("Workflow completed successfully!", result.output)
+
+    @patch("time.sleep")
+    @patch("subprocess.run")
+    def test_wait_for_workflow_completion_no_runs(self, mock_run, mock_sleep):
+        # Mock empty list of runs
+        mock_run.return_value = MagicMock(stdout=json.dumps([]))
+
+        # Call the function directly
+        wait_for_workflow_completion("test-repo", "test.yml")
+
+        # Should handle gracefully when no runs found
+        mock_run.assert_called_once()
+
+    @patch("time.sleep")
+    @patch("subprocess.run")
+    def test_wait_for_workflow_completion_cancelled(self, mock_run, mock_sleep):
+        # Test handling of cancelled workflow
+        mock_run.side_effect = [
+            MagicMock(stdout=json.dumps([{"databaseId": 99999, "status": "in_progress"}])),  # list runs
+            MagicMock(stdout=json.dumps({"status": "completed", "conclusion": "cancelled"})),  # status check
+        ]
+
+        # Call the function directly (doesn't exit for cancelled)
+        wait_for_workflow_completion("test-repo", "test.yml")
+
+        # Should complete without error for cancelled workflows
+        self.assertEqual(mock_run.call_count, 2)
