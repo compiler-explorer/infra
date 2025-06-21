@@ -49,6 +49,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Never use nested functions - always use class methods or module-level functions instead
 - **When making a change based on feedback, search for similar patterns in the codebase** - if someone suggests a change that makes sense, check for other locations where the same improvement should be applied
 
+## Terraform Guidelines
+
+- When changing terraform .tf files, always run `terraform fmt` and `terraform validate` before committing (from the terraform directory)
+
 ## Testing Guidelines
 
 - Tests are in `bin/test` and `lambda` directories with `_test.py` suffix
