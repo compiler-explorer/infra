@@ -26,6 +26,12 @@ def environment_status(cfg: Config):
 @click.pass_obj
 def environment_start(cfg: Config):
     """Starts up an environment by ensure its ASGs have capacity."""
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' uses blue-green deployment.")
+        print(f"Use 'ce --env {cfg.env.value} blue-green deploy' instead of 'environment start'.")
+        print("This command is deprecated for blue-green environments.")
+        return
+
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg["AutoScalingGroupName"]
         if asg["MinSize"] > 0:
@@ -68,6 +74,12 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
     This replaces all the instances in the ASGs associated with an environment with
     new instances (with the latest code), while ensuring there are some left to handle
     the traffic while we update."""
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' uses blue-green deployment.")
+        print(f"Use 'ce --env {cfg.env.value} blue-green deploy' instead of 'environment refresh'.")
+        print("This command is deprecated for blue-green environments.")
+        return
+
     set_update_message(cfg, motd)
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg["AutoScalingGroupName"]
@@ -137,6 +149,12 @@ def environment_invalidate_cloudfront(cfg: Config):
 @click.pass_obj
 def environment_stop(cfg: Config):
     """Stops an environment."""
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' uses blue-green deployment.")
+        print(f"Use 'ce --env {cfg.env.value} blue-green shutdown' instead of 'environment stop'.")
+        print("This command is deprecated for blue-green environments.")
+        return
+
     if cfg.env == Environment.PROD:
         print("Operation aborted. This would bring down the site")
         print("If you know what you are doing, edit the code in bin/lib/cli/environment.py, function environment_stop")

@@ -4,10 +4,10 @@ from typing import Optional
 
 import click
 
-from lib.amazon import as_client, ec2_client, elb_client
+from lib.amazon import as_client, ec2_client, elb_client, get_current_key, get_releases
 from lib.aws_utils import get_asg_info, scale_asg
 from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
-from lib.ce_utils import are_you_sure
+from lib.ce_utils import are_you_sure, display_releases
 from lib.cli import cli
 from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config
 
@@ -169,9 +169,17 @@ def blue_green_deploy(
 
     Optionally specify VERSION to set before deployment.
     If VERSION is "latest" then the latest version (optionally filtered by --branch) is set.
+    If VERSION is "list" then available versions are listed instead of deploying.
     """
     if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
         print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
+        return
+
+    if version == "list":
+        current = get_current_key(cfg) or ""
+        releases = get_releases(cfg)
+        branch_filter = set([branch]) if branch else set()
+        display_releases(current, branch_filter, releases)
         return
 
     deployment = BlueGreenDeployment(cfg)

@@ -107,7 +107,10 @@ For each environment using blue-green:
 ce --env {beta|prod|staging|gpu|wintest|winstaging|winprod|aarch64staging|aarch64prod} blue-green status
 
 # Deploy to inactive color
-ce --env <environment> blue-green deploy [--capacity N]
+ce --env <environment> blue-green deploy [--capacity N] [version]
+
+# List available versions for deployment
+ce --env <environment> blue-green deploy list [--branch branch_name]
 
 # Switch to specific color manually
 ce --env <environment> blue-green switch {blue|green}
