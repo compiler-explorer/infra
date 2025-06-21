@@ -54,9 +54,9 @@ sequenceDiagram
 │                    Traditional Environment (x86)                        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  [User Request] → [Compilation] → [Local Execution] → [Results]        │
-│                        │                │                              │
-│                        ↓                ↓                              │
+│  [User Request] → [Compilation] → [Local Execution] → [Results]         │
+│                        │                │                               │
+│                        ↓                ↓                               │
 │                   [Same Instance]   [Same Instance]                     │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -75,7 +75,7 @@ sequenceDiagram
 │ ├─────────────────────┤                    ├─────────────────────┤      │
 │ │ • User Interface    │                    │ • No Web Interface  │      │
 │ │ • Compilation       │                    │ • Pure Execution    │      │
-│ │ • Result Display    │◄────WebSocket────►│ • Queue Processing  │      │
+│ │ • Result Display    │◄────WebSocket─────►│ • Queue Processing  │      │
 │ │ • is_worker=false   │                    │ • is_worker=true    │      │
 │ └─────────────────────┘                    └─────────────────────┘      │
 │           │                                           ▲                 │
