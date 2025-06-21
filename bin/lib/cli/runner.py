@@ -1,11 +1,12 @@
+import sys
 import time
 from tempfile import NamedTemporaryFile
 from typing import Sequence, TextIO
 
 import boto3
-import botocore.exceptions
 import click
 
+from lib.discovery import copy_discovery_to_prod, discovery_exists, s3_key_for_discovery
 from lib.env import Environment
 from lib.instance import RunnerInstance
 from lib.ssh import exec_remote, exec_remote_to_stdout, get_remote_file, run_remote_shell
@@ -50,11 +51,8 @@ def runner_discovery():
 
 
 def _s3_key_for(environment, version):
-    if environment == "prod":
-        key = f"dist/discovery/release/{version}.json"
-    else:
-        key = f"dist/discovery/{environment}/{version}.json"
-    return key
+    """Legacy function - use lib.discovery.s3_key_for_discovery instead."""
+    return s3_key_for_discovery(environment, version)
 
 
 _S3_CONFIG = dict(ACL="public-read", StorageClass="REDUCED_REDUNDANCY")
@@ -81,19 +79,16 @@ def runner_uploaddiscovery(environment: str, version: str, skip_remote_checks: s
         temp_json_file.seek(0)
 
         boto3.client("s3").put_object(
-            Bucket="compiler-explorer", Key=_s3_key_for(environment, version), Body=temp_json_file, **_S3_CONFIG
+            Bucket="compiler-explorer",
+            Key=s3_key_for_discovery(environment, version),
+            Body=temp_json_file,
+            **_S3_CONFIG,
         )
 
 
 def runner_discoveryexists(environment: str, version: str):
     """Check if a discovery json file exists."""
-    try:
-        boto3.client("s3").head_object(Bucket="compiler-explorer", Key=_s3_key_for(environment, version))
-    except botocore.exceptions.ClientError as e:
-        if e.response["Error"]["Code"] == "404":
-            return False
-        raise
-    return True
+    return discovery_exists(environment, version)
 
 
 def runner_check_discovery_json_contents(contents: str, skip_remote_checks: str):
@@ -127,12 +122,9 @@ def runner_check_discovery_json(file: TextIO, skip_remote_checks: str):
 @click.argument("version", required=True)
 def runner_safeforprod(environment: str, version: str):
     """Mark discovery file as safe to use on production."""
-    boto3.client("s3").copy_object(
-        Bucket="compiler-explorer",
-        CopySource=dict(Bucket="compiler-explorer", Key=_s3_key_for(environment, version)),
-        Key=_s3_key_for("prod", version),
-        **_S3_CONFIG,
-    )
+    if not copy_discovery_to_prod(environment, version):
+        print(f"❌ Discovery file not found for {environment}/{version}")
+        sys.exit(1)
 
 
 @runner.command(name="start")

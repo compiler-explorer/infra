@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from botocore.exceptions import ClientError
 
-from lib.amazon import elb_client, ssm_client
+from lib.amazon import elb_client, get_current_key, ssm_client
 from lib.aws_utils import (
     get_asg_info,
     get_target_health_counts,
@@ -15,6 +15,11 @@ from lib.aws_utils import (
     restore_asg_capacity_protection,
     scale_asg,
 )
+from lib.builds_core import (
+    check_compiler_discovery,
+    get_release_without_discovery_check,
+    set_version_for_deployment,
+)
 from lib.ce_utils import is_running_on_admin_node
 from lib.deployment_utils import (
     check_instance_health,
@@ -22,6 +27,7 @@ from lib.deployment_utils import (
     wait_for_http_health,
     wait_for_instances_healthy,
 )
+from lib.discovery import copy_discovery_to_prod
 from lib.env import Config
 
 
@@ -305,13 +311,6 @@ class BlueGreenDeployment:
             # Step 0.5: Set version after ASG is protected but before scaling
             if version:
                 # Get current version first for potential rollback
-                from lib.amazon import get_current_key
-                from lib.builds_core import (
-                    check_compiler_discovery,
-                    get_release_without_discovery_check,
-                    set_version_for_deployment,
-                )
-
                 original_version_key = get_current_key(self.cfg)
 
                 print(f"\nStep 0.5: Setting build version to {version}")
@@ -323,8 +322,66 @@ class BlueGreenDeployment:
                     if not release:
                         raise RuntimeError(f"Version {version} not found")
                 except RuntimeError as e:
-                    # Discovery hasn't run - ask for confirmation unless skip_confirmation is True
-                    if skip_confirmation:
+                    # Discovery hasn't run - handle specially for prod deployments
+                    if self.cfg.env.value == "prod":
+                        if skip_confirmation:
+                            print(f"⚠️  WARNING: {e}")
+                            print(
+                                "❌ ERROR: --skip-confirmation cannot be used for production deployments without discovery."
+                            )
+                            print("Production deployments require either:")
+                            print("  1. Existing discovery file for the version")
+                            print("  2. Manual confirmation to copy discovery from staging")
+                            print("Deployment cancelled.")
+                            raise DeploymentCancelledException(
+                                "Production deployments require manual confirmation"
+                            ) from None
+                        print(f"⚠️  WARNING: {e}")
+                        print("For production deployments, we can copy discovery from staging if available.")
+                        print("Options:")
+                        print("  1. Copy discovery from staging (recommended)")
+                        print("  2. Continue without discovery (risky)")
+                        print("  3. Cancel deployment")
+
+                        while True:
+                            response = input("Choose option (1/2/3): ").strip()
+                            if response == "1":
+                                print(f"Attempting to copy discovery from staging for version {version}...")
+                                try:
+                                    if copy_discovery_to_prod("staging", version):
+                                        print("✓ Discovery copied from staging. Retrying discovery check...")
+                                        try:
+                                            release = check_compiler_discovery(self.cfg, version, branch)
+                                            if release:
+                                                break
+                                        except RuntimeError:
+                                            pass
+                                        print("⚠️  Discovery copy succeeded but check still failed. Continuing anyway.")
+                                    else:
+                                        print("❌ No discovery file found in staging for this version.")
+                                        print("Falling back to continuing without discovery.")
+
+                                    release = get_release_without_discovery_check(self.cfg, version, branch)
+                                    if not release:
+                                        raise RuntimeError(f"Version {version} not found") from None
+                                    break
+                                except Exception as copy_error:
+                                    print(f"❌ Failed to copy discovery file: {copy_error}")
+                                    print("Deployment cancelled due to discovery copy failure.")
+                                    raise DeploymentCancelledException("Discovery copy failed") from copy_error
+                            elif response == "2":
+                                print("Continuing without discovery...")
+                                release = get_release_without_discovery_check(self.cfg, version, branch)
+                                if not release:
+                                    raise RuntimeError(f"Version {version} not found") from None
+                                break
+                            elif response == "3":
+                                print("Deployment cancelled.")
+                                raise DeploymentCancelledException("Deployment cancelled by user") from None
+                            else:
+                                print("Invalid option. Please choose 1, 2, or 3.")
+                    elif skip_confirmation:
+                        # For non-prod environments, skip_confirmation is allowed
                         print(f"⚠️  WARNING: {e}")
                         print("Proceeding anyway due to --skip-confirmation")
                         release = get_release_without_discovery_check(self.cfg, version, branch)
