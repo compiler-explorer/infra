@@ -37,10 +37,14 @@ graph TB
         TGProdGreen[TG: Prod-Green<br/>Port 80]
         TGBetaBlue[TG: Beta-Blue<br/>Port 80]
         TGBetaGreen[TG: Beta-Green<br/>Port 80]
-        TGStaging[TG: Staging<br/>Port 80]
-        TGGpu[TG: GPU<br/>Port 80]
-        TGWin[TG: WinProd/Staging<br/>Port 80]
-        TGAArch[TG: AArch64Prod/Staging<br/>Port 80]
+        TGStagingBlue[TG: Staging-Blue<br/>Port 80]
+        TGStagingGreen[TG: Staging-Green<br/>Port 80]
+        TGGpuBlue[TG: GPU-Blue<br/>Port 80]
+        TGGpuGreen[TG: GPU-Green<br/>Port 80]
+        TGWinBlue[TG: Win-Blue<br/>Port 80]
+        TGWinGreen[TG: Win-Green<br/>Port 80]
+        TGAArchBlue[TG: AArch64-Blue<br/>Port 80]
+        TGAArchGreen[TG: AArch64-Green<br/>Port 80]
         TGConan[TG: Conan<br/>Port 1080]
     end
 
@@ -49,10 +53,14 @@ graph TB
         ASGProdGreen[ASG: prod-green<br/>Min: 0, Max: 40<br/>Spot Instances]
         ASGBetaBlue[ASG: beta-blue<br/>Min: 0, Max: 4]
         ASGBetaGreen[ASG: beta-green<br/>Min: 0, Max: 4]
-        ASGStaging[ASG: staging<br/>Min: 0, Max: 4]
-        ASGGpu[ASG: gpu<br/>Min: 0, Max: 8<br/>GPU Instances]
-        ASGWin[ASG: winprod-mixed<br/>Windows Instances]
-        ASGAArch[ASG: aarch64prod-mixed<br/>ARM Instances]
+        ASGStagingBlue[ASG: staging-blue<br/>Min: 0, Max: 4]
+        ASGStagingGreen[ASG: staging-green<br/>Min: 0, Max: 4]
+        ASGGpuBlue[ASG: gpu-blue<br/>Min: 0, Max: 8<br/>GPU Instances]
+        ASGGpuGreen[ASG: gpu-green<br/>Min: 0, Max: 8<br/>GPU Instances]
+        ASGWinBlue[ASG: win-blue<br/>Windows Instances]
+        ASGWinGreen[ASG: win-green<br/>Windows Instances]
+        ASGAArchBlue[ASG: aarch64-blue<br/>ARM Instances]
+        ASGAArchGreen[ASG: aarch64-green<br/>ARM Instances]
     end
 
     subgraph "EC2 Instances"
@@ -91,29 +99,41 @@ graph TB
     DefRule -.->|Switchable| TGProdGreen
     BetaRule -.->|Switchable| TGBetaBlue
     BetaRule -.->|Switchable| TGBetaGreen
-    StagingRule --> TGStaging
-    GPURule --> TGGpu
-    WinRule --> TGWin
-    AArch64Rule --> TGAArch
+    StagingRule -.->|Switchable| TGStagingBlue
+    StagingRule -.->|Switchable| TGStagingGreen
+    GPURule -.->|Switchable| TGGpuBlue
+    GPURule -.->|Switchable| TGGpuGreen
+    WinRule -.->|Switchable| TGWinBlue
+    WinRule -.->|Switchable| TGWinGreen
+    AArch64Rule -.->|Switchable| TGAArchBlue
+    AArch64Rule -.->|Switchable| TGAArchGreen
 
     TGProdBlue --> ASGProdBlue
     TGProdGreen --> ASGProdGreen
     TGBetaBlue --> ASGBetaBlue
     TGBetaGreen --> ASGBetaGreen
-    TGStaging --> ASGStaging
-    TGGpu --> ASGGpu
-    TGWin --> ASGWin
-    TGAArch --> ASGAArch
+    TGStagingBlue --> ASGStagingBlue
+    TGStagingGreen --> ASGStagingGreen
+    TGGpuBlue --> ASGGpuBlue
+    TGGpuGreen --> ASGGpuGreen
+    TGWinBlue --> ASGWinBlue
+    TGWinGreen --> ASGWinGreen
+    TGAArchBlue --> ASGAArchBlue
+    TGAArchGreen --> ASGAArchGreen
     TGConan --> ConanNode
 
     ASGProdBlue --> EC2Prod
     ASGProdGreen --> EC2Prod
     ASGBetaBlue --> EC2Beta
     ASGBetaGreen --> EC2Beta
-    ASGStaging --> EC2Staging
-    ASGGpu --> EC2Gpu
-    ASGWin --> EC2Win
-    ASGAArch --> EC2AArch
+    ASGStagingBlue --> EC2Staging
+    ASGStagingGreen --> EC2Staging
+    ASGGpuBlue --> EC2Gpu
+    ASGGpuGreen --> EC2Gpu
+    ASGWinBlue --> EC2Win
+    ASGWinGreen --> EC2Win
+    ASGAArchBlue --> EC2AArch
+    ASGAArchGreen --> EC2AArch
 
     EC2Prod --> EFS
     EC2Beta --> EFS
@@ -166,10 +186,12 @@ graph TB
 - **Target Groups**: Prod-Blue and Prod-Green (ALB switches between them)
 - **State Management**: SSM parameters track active color
 
-#### Specialized ASGs
-- **GPU**: g4dn.xlarge instances for CUDA compilers
-- **Windows**: Windows Server instances
-- **AArch64**: ARM/Graviton2 instances
+#### All Environment ASGs (Blue-Green Enabled)
+- **Beta**: beta-blue/green ASGs with blue-green deployment
+- **Staging**: staging-blue/green ASGs with blue-green deployment
+- **GPU**: gpu-blue/green ASGs with g4dn.xlarge instances for CUDA compilers
+- **Windows**: win-blue/green ASGs with Windows Server instances
+- **AArch64**: aarch64-blue/green ASGs with ARM/Graviton2 instances
 
 ### Target Group Health Checks
 - **Protocol**: HTTP
@@ -210,8 +232,9 @@ graph TB
 - **CloudFront Caching**: Reduces origin load
 - **Connection Draining**: 20-second graceful shutdown
 
-## Current Limitations
+## Current Implementation Status
 
-1. **Other Environments**: Rolling deployments still cause mixed versions in staging/gpu/win/aarch64
-2. **Legacy Dependencies**: Some monitoring/tooling may still reference old ASG names
-3. **Resource Overhead**: Blue-green requires brief 2x capacity during deployments
+1. **Blue-Green Deployment**: All major environments now support blue-green deployment for zero-downtime deployments
+2. **Environments Supported**: prod, beta, staging, gpu, wintest, winstaging, winprod, aarch64staging, aarch64prod
+3. **Legacy Compatibility**: Monitoring and tooling have been updated to work with blue-green ASG names
+4. **Resource Overhead**: Blue-green requires brief 2x capacity during deployments across all environments

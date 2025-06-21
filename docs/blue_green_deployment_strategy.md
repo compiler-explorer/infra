@@ -2,7 +2,7 @@
 
 ## Overview
 
-Compiler Explorer has implemented a blue-green deployment strategy for both beta and production environments, providing zero-downtime deployments with instant rollback capabilities. This implementation uses ALB listener rule switching (beta) or listener default action switching (production) with dual ASGs and target groups.
+Compiler Explorer has implemented a blue-green deployment strategy for all major environments, providing zero-downtime deployments with instant rollback capabilities. This implementation uses ALB listener rule switching with dual ASGs and target groups across all supported environments.
 
 ## Problem Solved
 
@@ -15,25 +15,18 @@ The previous deployment process caused version inconsistencies during rolling up
 
 ### Implementation Approach: ALB Listener Rule/Action Switching
 
-The implementation uses **dual target groups** with different switching mechanisms:
+The implementation uses **dual target groups** with listener rule switching for all environments:
 
-**Beta Environment** - Uses listener rule switching:
+**All Blue-Green Environments** - Uses listener rule switching:
 ```
 ALB (godbolt.org)
 ├── HTTPS Listener :443
-    ├── Default rule → prod target groups
+    ├── Default rule → Prod-Blue OR Prod-Green (switchable)
     ├── /beta* rule → Beta-Blue OR Beta-Green (switchable)
-    ├── /staging* rule → staging target group (unchanged)
-    └── /gpu* rule → gpu target group (unchanged)
-```
-
-**Production Environment** - Uses default action switching:
-```
-ALB (godbolt.org)
-├── HTTP Listener :80
-│   └── Default action → Prod-Blue OR Prod-Green (switchable)
-├── HTTPS Listener :443
-    └── Default action → Prod-Blue OR Prod-Green (switchable)
+    ├── /staging* rule → Staging-Blue OR Staging-Green (switchable)
+    ├── /gpu* rule → GPU-Blue OR GPU-Green (switchable)
+    ├── /win* rules → Win-Blue OR Win-Green (switchable)
+    └── /aarch64* rules → AArch64-Blue OR AArch64-Green (switchable)
 ```
 
 ### Terraform Module Structure
@@ -41,45 +34,61 @@ ALB (godbolt.org)
 The blue-green infrastructure is defined using a reusable Terraform module:
 
 ```hcl
-# Beta environment configuration
+# All environments use the same reusable blue-green module
+# Examples:
+
+# Beta environment
 module "beta_blue_green" {
   source = "./modules/blue_green"
-
-  environment               = "beta"
-  vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-beta.id
-  subnets                   = local.subnets
-  asg_max_size              = 4
-  initial_desired_capacity  = 0
-  initial_active_color      = "blue"
+  environment = "beta"
+  asg_max_size = 4
+  # ... environment-specific config
 }
 
-# Production environment configuration
+# Production environment
 module "prod_blue_green" {
   source = "./modules/blue_green"
-
-  environment               = "prod"
-  vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-prod.id
-  subnets                   = local.subnets
-  asg_max_size              = 40
-  initial_desired_capacity  = 0
-  initial_active_color      = "blue"
-
-  # Production uses mixed instances for cost optimization
+  environment = "prod"
+  asg_max_size = 40
   use_mixed_instances_policy = true
-  on_demand_base_capacity    = 0
-  on_demand_percentage_above_base_capacity = 0
-  spot_allocation_strategy   = "price-capacity-optimized"
-  mixed_instances_overrides = [
-    { instance_type = "m5zn.large" },
-    { instance_type = "m5.large" },
-    # ... additional instance types
-  ]
-
-  # Enable auto-scaling for production
   enable_autoscaling_policy = true
-  autoscaling_target_cpu    = 50.0
+  # ... production-specific config
+}
+
+# Staging environment
+module "staging_blue_green" {
+  source = "./modules/blue_green"
+  environment = "staging"
+  asg_max_size = 4
+  # ... staging-specific config
+}
+
+# GPU environment
+module "gpu_blue_green" {
+  source = "./modules/blue_green"
+  environment = "gpu"
+  asg_max_size = 8
+  use_mixed_instances_policy = true
+  enable_autoscaling_policy = true
+  # ... GPU-specific config with g4dn instances
+}
+
+# Windows environments (wintest, winstaging, winprod)
+module "winprod_blue_green" {
+  source = "./modules/blue_green"
+  environment = "winprod"
+  use_mixed_instances_policy = true
+  enable_autoscaling_policy = true
+  health_check_grace_period = 500
+  # ... Windows-specific config
+}
+
+# AArch64 environments (aarch64staging, aarch64prod)
+module "aarch64prod_blue_green" {
+  source = "./modules/blue_green"
+  environment = "aarch64prod"
+  enable_sqs_autoscaling = true
+  # ... AArch64-specific config with SQS scaling
 }
 ```
 
@@ -88,15 +97,13 @@ module "prod_blue_green" {
 For each environment using blue-green:
 
 1. **Two Target Groups**:
-   - Beta: `Beta-Blue` and `Beta-Green`
-   - Prod: `Prod-Blue` and `Prod-Green`
+   - Example: `Prod-Blue` and `Prod-Green`, `Beta-Blue` and `Beta-Green`, etc.
 2. **Two ASGs**:
-   - Beta: `beta-blue` and `beta-green`
-   - Prod: `prod-blue` and `prod-green`
+   - Example: `prod-blue` and `prod-green`, `staging-blue` and `staging-green`, etc.
 3. **SSM Parameters**: Track active color and target group ARN
    - `/compiler-explorer/{env}/active-color`
    - `/compiler-explorer/{env}/active-target-group-arn`
-4. **Auto-scaling Policies** (production only): CPU-based scaling
+4. **Auto-scaling Policies** (where applicable): CPU-based or SQS-based scaling
 
 ## Deployment Process
 
@@ -142,8 +149,9 @@ ce --env <environment> blue-green validate
 
 The system switches traffic differently based on environment:
 
-**Beta Environment** - Updates listener rule:
+**All Environments** - Updates listener rule or default action:
 ```python
+# For non-production environments (beta, staging, gpu, etc.)
 elb_client.modify_rule(
     RuleArn=rule_arn,
     Actions=[{
@@ -151,11 +159,8 @@ elb_client.modify_rule(
         "TargetGroupArn": new_tg_arn
     }]
 )
-```
 
-**Production Environment** - Updates listener default actions:
-```python
-# Updates both HTTP and HTTPS listeners
+# For production environment - Updates both HTTP and HTTPS listeners
 for listener in [http_listener, https_listener]:
     elb_client.modify_listener(
         ListenerArn=listener["ListenerArn"],
@@ -292,51 +297,48 @@ This ensures production deployments maintain safety standards while providing a 
 
 ## Current Implementation Scope
 
-- **Beta Environment**: Fully implemented and operational
-- **Production Environment**: Fully implemented and operational with mixed instances and auto-scaling
-- **Staging Environment**: Blue-green infrastructure implemented
-- **GPU Environment**: Blue-green infrastructure implemented with mixed instances and auto-scaling
-- **Windows Environments**: Blue-green infrastructure implemented for wintest, winstaging, and winprod
-- **AArch64 Environments**: Blue-green infrastructure implemented for aarch64staging and aarch64prod with SQS-based scaling
+Blue-green deployment is now **fully implemented and operational** for all major environments:
+
+- **Production Environment**: Mixed instances, auto-scaling, default action switching
+- **Beta Environment**: Standard configuration with listener rule switching
+- **Staging Environment**: Standard configuration with listener rule switching
+- **GPU Environment**: Mixed instances (g4dn.xlarge/2xlarge), CPU-based auto-scaling
+- **Windows Environments**: Extended health check periods, mixed instances for winprod
+  - wintest, winstaging, winprod
+- **AArch64 Environments**: Custom SQS queue-based auto-scaling
+  - aarch64staging, aarch64prod
 
 ## Migration Considerations
 
-### Production Migration (Completed)
+### All Environment Migration (Completed)
 
-Production has been successfully migrated to blue-green deployment. The migration process was:
+All major environments have been successfully migrated to blue-green deployment. The migration process for each environment followed a similar pattern:
 
-1. **Initial Setup**:
+1. **Infrastructure Deployment**:
    - Apply Terraform changes to create blue-green infrastructure
-   - The old `prod-mixed` ASG remains commented out for safety
-   - Initial active color is set to "blue" with 0 instances
+   - Initial active color set to "blue" with 0 instances
+   - Old single ASGs removed after successful migration
 
-2. **Migration Steps**:
+2. **Migration Steps** (example for any environment):
    ```bash
    # 1. Deploy initial instances to blue ASG
-   ce --env prod blue-green deploy --capacity 10
+   ce --env <environment> blue-green deploy --capacity <desired>
 
    # 2. Verify blue instances are healthy
-   ce --env prod blue-green status --detailed
+   ce --env <environment> blue-green status --detailed
 
-   # 3. Switch traffic to blue (this updates ALB default actions)
-   ce --env prod blue-green switch blue
+   # 3. Switch traffic to blue ASG
+   ce --env <environment> blue-green switch blue
 
    # 4. Monitor and verify traffic is being served correctly
 
-   # 5. Remove old prod-mixed ASG from Terraform after successful migration
+   # 5. Remove old single ASG from Terraform after successful migration
    ```
 
-3. **Post-Migration**:
-   - The old `prod-mixed` ASG has been removed from Terraform
-   - Production now operates fully on blue-green deployment
-   - Use standard blue-green commands for all production deployments
-
-### Special Considerations for Production
-
-1. **CloudFront Integration**: CloudFront automatically uses the ALB's default actions
-2. **Mixed Instances**: Production uses spot instances for cost optimization
-3. **Auto-scaling**: CPU-based scaling is enabled (target: 50%)
-4. **Capacity**: Production supports up to 40 instances vs beta's 4
+3. **Post-Migration Status**:
+   - All environments now operate fully on blue-green deployment
+   - Use standard blue-green commands for all deployments
+   - Legacy single ASG configurations have been removed
 
 ## Environment-Specific Implementations
 
@@ -364,12 +366,14 @@ New blue-green infrastructure files have been created:
 - Separate scaling policies for blue and green ASGs
 - Target: 3 messages per instance
 
-### Migration Strategy for New Environments
+### Migration Success
 
-1. **Phase 1**: Deploy blue-green infrastructure (no traffic impact)
-2. **Phase 2**: Test blue-green deployments on each environment
-3. **Phase 3**: Update ALB listener rules to use blue-green target groups
-4. **Phase 4**: Remove old single ASG resources
+All phases have been completed successfully:
+
+1. ✅ **Phase 1**: Blue-green infrastructure deployed for all environments
+2. ✅ **Phase 2**: Blue-green deployments tested and validated
+3. ✅ **Phase 3**: ALB listener rules updated to use blue-green target groups
+4. ✅ **Phase 4**: Legacy single ASG resources removed
 
 ## Future Enhancements
 
