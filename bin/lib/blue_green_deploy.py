@@ -403,6 +403,10 @@ class BlueGreenDeployment:
             print(f"\nStep 5: Resetting minimum size of {inactive_asg} to {env_min_size} (environment default)")
             reset_asg_min_size(inactive_asg, min_size=env_min_size)
 
+            # Step 5.5: Reset old active ASG minimum size to 0 (it's now inactive)
+            print(f"\nStep 5.5: Resetting minimum size of {active_asg} to 0 (now inactive)")
+            reset_asg_min_size(active_asg, min_size=0)
+
             print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
             print(f"Old {active_color} ASG remains running for rollback if needed")
 
