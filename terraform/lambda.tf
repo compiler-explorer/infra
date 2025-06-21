@@ -314,16 +314,24 @@ resource "aws_lambda_function" "status" {
 
   environment {
     variables = {
-      PROD_LB_BLUE_ARN   = module.prod_blue_green.target_group_arns["blue"]
-      PROD_LB_GREEN_ARN  = module.prod_blue_green.target_group_arns["green"]
-      STAGING_LB_ARN     = aws_alb_target_group.ce["staging"].arn
-      BETA_LB_BLUE_ARN   = module.beta_blue_green.target_group_arns["blue"]
-      BETA_LB_GREEN_ARN  = module.beta_blue_green.target_group_arns["green"]
-      GPU_LB_ARN         = aws_alb_target_group.ce["gpu"].arn
-      ARM_PROD_LB_ARN    = aws_alb_target_group.ce["aarch64prod"].arn
-      ARM_STAGING_LB_ARN = aws_alb_target_group.ce["aarch64staging"].arn
-      WIN_PROD_LB_ARN    = aws_alb_target_group.ce["winprod"].arn
-      WIN_STAGING_LB_ARN = aws_alb_target_group.ce["winstaging"].arn
+      PROD_LB_BLUE_ARN        = module.prod_blue_green.target_group_arns["blue"]
+      PROD_LB_GREEN_ARN       = module.prod_blue_green.target_group_arns["green"]
+      STAGING_LB_BLUE_ARN     = module.staging_blue_green.target_group_arns["blue"]
+      STAGING_LB_GREEN_ARN    = module.staging_blue_green.target_group_arns["green"]
+      BETA_LB_BLUE_ARN        = module.beta_blue_green.target_group_arns["blue"]
+      BETA_LB_GREEN_ARN       = module.beta_blue_green.target_group_arns["green"]
+      GPU_LB_BLUE_ARN         = module.gpu_blue_green.target_group_arns["blue"]
+      GPU_LB_GREEN_ARN        = module.gpu_blue_green.target_group_arns["green"]
+      ARM_PROD_LB_BLUE_ARN    = module.aarch64prod_blue_green.target_group_arns["blue"]
+      ARM_PROD_LB_GREEN_ARN   = module.aarch64prod_blue_green.target_group_arns["green"]
+      ARM_STAGING_LB_BLUE_ARN = module.aarch64staging_blue_green.target_group_arns["blue"]
+      ARM_STAGING_LB_GREEN_ARN = module.aarch64staging_blue_green.target_group_arns["green"]
+      WIN_PROD_LB_BLUE_ARN    = module.winprod_blue_green.target_group_arns["blue"]
+      WIN_PROD_LB_GREEN_ARN   = module.winprod_blue_green.target_group_arns["green"]
+      WIN_STAGING_LB_BLUE_ARN = module.winstaging_blue_green.target_group_arns["blue"]
+      WIN_STAGING_LB_GREEN_ARN = module.winstaging_blue_green.target_group_arns["green"]
+      WIN_TEST_LB_BLUE_ARN    = module.wintest_blue_green.target_group_arns["blue"]
+      WIN_TEST_LB_GREEN_ARN   = module.wintest_blue_green.target_group_arns["green"]
     }
   }
   depends_on = [aws_cloudwatch_log_group.status]
