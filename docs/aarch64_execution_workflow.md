@@ -91,57 +91,43 @@ sequenceDiagram
 ## Detailed Component Interactions
 
 ```mermaid
-graph TB
-    subgraph "Non-Worker Instance (x86)"
-        NW["Non-Worker<br/>is_worker=false"]
-        NWF["• Web UI<br/>• Handles requests<br/>• Cross-compiles<br/>• Waits for results"]
+flowchart LR
+    subgraph nw [Non-Worker x86]
+        NW[Web UI + Compiler]
     end
     
-    subgraph "Worker Instance (ARM64)"
-        W["Worker<br/>is_worker=true"]
-        WF["• No Web UI<br/>• Queue processor<br/>• Native execution<br/>• Sends results"]
+    subgraph w [Worker ARM64]
+        W[Queue Processor]
     end
     
-    subgraph "S3 Bucket"
-        S3["Executable Packages"]
-        S3D["Hash: abc123...<br/>Binary: ARM64 ELF<br/>Metadata: arch, OS"]
+    subgraph infra [Infrastructure]
+        S3[S3 Packages]
+        SQS[SQS Queue]
+        WS[WebSocket API]
+        DDB[DynamoDB]
+        LMB[Lambda Functions]
     end
     
-    subgraph "SQS FIFO Queue"
-        SQS["prod-execqueue-aarch64-<br/>linux-cpu.fifo"]
-        SQSM["Message:<br/>• guid: abc-def-123<br/>• hash: abc123...<br/>• params: {args, stdin}"]
-    end
+    NW -->|1. Upload binary| S3
+    NW -->|2. Subscribe GUID| WS
+    NW -->|3. Queue job| SQS
     
-    subgraph "WebSocket API"
-        WS["API Gateway + Lambda"]
-        subgraph "WebSocket Components"
-            CONN["Connections<br/>conn-123"]
-            DDB["DynamoDB Table<br/>conn-123: guid: abc-def"]
-            LAMBDA["Lambda Functions<br/>• events-onconnect<br/>• events-sendmessage<br/>• events-ondisconnect"]
-        end
-        WSF["Message Flow:<br/>Worker sends {guid: abc-def-123, results: {...}}<br/>Lambda looks up subscribers for guid<br/>Routes message to connection conn-123"]
-    end
+    W -->|4. Poll work| SQS
+    W -->|5. Download| S3
+    W -->|6. Send results| WS
     
-    NW -->|Upload package| S3
-    NW -->|Subscribe to GUID| WS
-    NW -->|Queue request| SQS
+    WS -->|7. Route to subscriber| NW
     
-    W -->|Poll queue| SQS
-    W -->|Download package| S3
-    W -->|Send results| WS
+    WS <--> DDB
+    WS <--> LMB
     
-    WS -->|Route results| NW
+    classDef nonWorker fill:#e1f5fe,stroke:#0277bd
+    classDef worker fill:#f3e5f5,stroke:#7b1fa2
+    classDef service fill:#e8f5e8,stroke:#388e3c
     
-    CONN --> DDB
-    DDB --> LAMBDA
-    
-    classDef nonWorker fill:#e1f5fe
-    classDef worker fill:#f3e5f5
-    classDef service fill:#e8f5e8
-    
-    class NW,NWF nonWorker
-    class W,WF worker
-    class S3,S3D,SQS,SQSM,WS,CONN,DDB,LAMBDA,WSF service
+    class NW nonWorker
+    class W worker
+    class S3,SQS,WS,DDB,LMB service
 ```
 
 ## Configuration Differences
