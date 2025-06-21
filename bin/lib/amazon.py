@@ -83,12 +83,26 @@ def get_autoscaling_group(group_name):
 
 
 def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
-    result = list(
-        filter(
-            lambda r: cfg.env.value.lower() == r["AutoScalingGroupName"],
-            as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
+    if cfg.env.supports_blue_green:
+        # For blue-green environments, get both blue and green ASGs
+        blue_asg_name = f"{cfg.env.value}-blue"
+        green_asg_name = f"{cfg.env.value}-green"
+
+        result = list(
+            filter(
+                lambda r: r["AutoScalingGroupName"] in [blue_asg_name, green_asg_name],
+                as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
+            )
         )
-    )
+    else:
+        # For legacy environments, use the old logic
+        result = list(
+            filter(
+                lambda r: cfg.env.value.lower() == r["AutoScalingGroupName"],
+                as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
+            )
+        )
+
     if not result:
         raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result
