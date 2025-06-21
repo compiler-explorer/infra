@@ -173,12 +173,12 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                          Step 1: User Request                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  User compiles C++ code targeting AArch64:                            │
-│  • Compiler: aarch64-linux-gnu-g++                                    │
-│  • Target: ARM64/AArch64 architecture                                 │
-│  • Execution requested: "Run" button clicked                           │
+│  User compiles C++ code targeting AArch64:                              │
+│  • Compiler: aarch64-linux-gnu-g++                                      │
+│  • Target: ARM64/AArch64 architecture                                   │
+│  • Execution requested: "Run" button clicked                            │
 │                                                                         │
-│  Request handled by: x86 main instance (prod)                         │
+│  Request handled by: x86 main instance (prod)                           │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -190,18 +190,18 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                     Step 2: Compilation on x86                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Main x86 instance:                                                   │
-│  1. Runs aarch64-linux-gnu-g++ (cross-compiler)                       │
-│  2. Produces ARM64 executable binary                                   │
-│  3. Analyzes binary metadata (arch, OS, instruction set)              │
-│  4. Creates execution package with binary + metadata                   │
-│  5. Uploads package to S3 with unique hash                            │
+│  Main x86 instance:                                                     │
+│  1. Runs aarch64-linux-gnu-g++ (cross-compiler)                         │
+│  2. Produces ARM64 executable binary                                    │
+│  3. Analyzes binary metadata (arch, OS, instruction set)                │
+│  4. Creates execution package with binary + metadata                    │
+│  5. Uploads package to S3 with unique hash                              │
 │                                                                         │
-│  Key Decision Point:                                                   │
-│  • Binary analysis reveals: architecture=aarch64, os=linux            │
-│  • matchesCurrentHost(execTriple) = false (x86 ≠ aarch64)            │
-│  • RemoteExecutionQuery.isPossible(execTriple) = true                 │
-│  → Triggers remote execution workflow                                  │
+│  Key Decision Point:                                                    │
+│  • Binary analysis reveals: architecture=aarch64, os=linux              │
+│  • matchesCurrentHost(execTriple) = false (x86 ≠ aarch64)               │
+│  • RemoteExecutionQuery.isPossible(execTriple) = true                   │
+│  → Triggers remote execution workflow                                   │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -213,24 +213,24 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                  Step 3: Remote Execution Setup                         │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Main instance creates RemoteExecutionEnvironment:                    │
+│  Main instance creates RemoteExecutionEnvironment:                      │
 │                                                                         │
-│  1. Generate unique GUID: "abc123def-456-789..."                      │
-│  2. Create SqsExecuteRequester with queue URL                         │
-│  3. Create EventsWsWaiter for result subscription                     │
-│  4. Connect to WebSocket: wss://events.compiler-explorer.com/prod     │
-│  5. Subscribe to GUID: "subscribe: abc123def-456-789..."              │
+│  1. Generate unique GUID: "abc123def-456-789..."                        │
+│  2. Create SqsExecuteRequester with queue URL                           │
+│  3. Create EventsWsWaiter for result subscription                       │
+│  4. Connect to WebSocket: wss://events.compiler-explorer.com/prod       │
+│  5. Subscribe to GUID: "subscribe: abc123def-456-789..."                │
 │                                                                         │
-│  Execution message prepared:                                           │
-│  {                                                                     │
-│    "guid": "abc123def-456-789...",                                     │
-│    "hash": "sha256:executable-package-hash",                          │
-│    "params": {                                                         │
-│      "args": ["--input", "user-provided-args"],                       │
-│      "stdin": "user-input-data",                                       │
-│      "timeout": 10000                                                  │
-│    }                                                                   │
-│  }                                                                     │
+│  Execution message prepared:                                            │
+│  {                                                                      │
+│    "guid": "abc123def-456-789...",                                      │
+│    "hash": "sha256:executable-package-hash",                            │
+│    "params": {                                                          │
+│      "args": ["--input", "user-provided-args"],                         │
+│      "stdin": "user-input-data",                                        │
+│      "timeout": 10000                                                   │
+│    }                                                                    │
+│  }                                                                      │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -242,20 +242,20 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                    Step 4: SQS Queue & Auto-Scaling                     │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Message sent to SQS FIFO queue:                                      │
-│  Queue: prod-execqueue-aarch64-linux-cpu.fifo                         │
-│  • MessageGroupId: "default"                                          │
-│  • MessageDeduplicationId: hash(message body)                         │
-│  • FIFO ensures ordered processing                                     │
+│  Message sent to SQS FIFO queue:                                        │
+│  Queue: prod-execqueue-aarch64-linux-cpu.fifo                           │
+│  • MessageGroupId: "default"                                            │
+│  • MessageDeduplicationId: hash(message body)                           │
+│  • FIFO ensures ordered processing                                      │
 │                                                                         │
-│  Auto-Scaling triggers:                                               │
-│  1. CloudWatch monitors queue depth                                    │
-│  2. Current state: 1 message, 0 instances                            │
-│  3. Backlog per instance: 1 ÷ 0 = ∞ (> target of 3)                 │
-│  4. ASG launches r7g.medium instance                                  │
-│  5. Instance warmup: ~3-4 minutes                                     │
+│  Auto-Scaling triggers:                                                 │
+│  1. CloudWatch monitors queue depth                                     │
+│  2. Current state: 1 message, 0 instances                               │
+│  3. Backlog per instance: 1 ÷ 0 = ∞ (> target of 3)                     │
+│  4. ASG launches r7g.medium instance                                    │
+│  5. Instance warmup: ~3-4 minutes                                       │
 │                                                                         │
-│  See: sqs_scaling_aarch64.md for detailed scaling mechanics           │
+│  See: sqs_scaling_aarch64.md for detailed scaling mechanics             │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -267,19 +267,19 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                   Step 5: AArch64 Worker Startup                        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  New r7g.medium instance boots with is_worker=true:                   │
+│  New r7g.medium instance boots with is_worker=true:                     │
 │                                                                         │
-│  1. Application starts in worker mode (no web interface)              │
-│  2. initHostSpecialties() - determines host capabilities               │
-│  3. startExecutionWorkerThread() launches 2 worker threads            │
-│  4. Each thread polls SQS queue every 100ms                           │
-│  5. Connects to WebSocket: wss://events.compiler-explorer.com/prod    │
+│  1. Application starts in worker mode (no web interface)                │
+│  2. initHostSpecialties() - determines host capabilities                │
+│  3. startExecutionWorkerThread() launches 2 worker threads              │
+│  4. Each thread polls SQS queue every 100ms                             │
+│  5. Connects to WebSocket: wss://events.compiler-explorer.com/prod      │
 │                                                                         │
-│  Worker Thread Loop (2 concurrent threads):                           │
-│  • Thread 1: doExecutionWork1() - starts after 1.5s                  │
-│  • Thread 2: doExecutionWork2() - starts after 1.53s                 │
-│  • Both poll queue: prod-execqueue-aarch64-linux-cpu.fifo             │
-│  • Process messages with 100ms interval between polls                  │
+│  Worker Thread Loop (2 concurrent threads):                             │
+│  • Thread 1: doExecutionWork1() - starts after 1.5s                     │
+│  • Thread 2: doExecutionWork2() - starts after 1.53s                    │
+│  • Both poll queue: prod-execqueue-aarch64-linux-cpu.fifo               │
+│  • Process messages with 100ms interval between polls                   │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -291,19 +291,19 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                     Step 6: Execution Processing                        │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Worker thread receives message:                                       │
+│  Worker thread receives message:                                        │
 │                                                                         │
-│  1. SQS.receiveMessage() - gets execution request                     │
-│  2. Parse JSON message body                                            │
-│  3. Extract: guid, executable hash, execution parameters              │
-│  4. SQS.deleteMessage() - remove from queue (prevents reprocessing)   │
+│  1. SQS.receiveMessage() - gets execution request                       │
+│  2. Parse JSON message body                                             │
+│  3. Extract: guid, executable hash, execution parameters                │
+│  4. SQS.deleteMessage() - remove from queue (prevents reprocessing)     │
 │                                                                         │
-│  LocalExecutionEnvironment executes:                                  │
-│  1. Downloads executable package from S3                              │
-│  2. Extracts binary and metadata                                      │
-│  3. Sets up ARM64 execution environment                               │
-│  4. Runs binary with user-provided parameters                         │
-│  5. Captures output and execution metrics                             │
+│  LocalExecutionEnvironment executes:                                    │
+│  1. Downloads executable package from S3                                │
+│  2. Extracts binary and metadata                                        │
+│  3. Sets up ARM64 execution environment                                 │
+│  4. Runs binary with user-provided parameters                           │
+│  5. Captures output and execution metrics                               │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -315,26 +315,26 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                    Step 7: Result Transmission                          │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Worker sends results via WebSocket:                                  │
+│  Worker sends results via WebSocket:                                    │
 │                                                                         │
-│  1. EventsWsSender.send(guid, result)                                 │
-│  2. Connect to: wss://events.compiler-explorer.com/prod               │
-│  3. Send JSON message:                                                 │
+│  1. EventsWsSender.send(guid, result)                                   │
+│  2. Connect to: wss://events.compiler-explorer.com/prod                 │
+│  3. Send JSON message:                                                  │
 │                                                                         │
-│     {                                                                  │
-│       "guid": "abc123def-456-789...",                                  │
-│       "code": 0,                                                       │
-│       "stdout": [{"text": "Hello, AArch64 World!"}],                  │
-│       "stderr": [],                                                    │
-│       "execTime": 245,                                                 │
-│       "timedOut": false,                                               │
-│       "okToCache": true                                                │
-│     }                                                                  │
+│     {                                                                   │
+│       "guid": "abc123def-456-789...",                                   │
+│       "code": 0,                                                        │
+│       "stdout": [{"text": "Hello, AArch64 World!"}],                    │
+│       "stderr": [],                                                     │
+│       "execTime": 245,                                                  │
+│       "timedOut": false,                                                │
+│       "okToCache": true                                                 │
+│     }                                                                   │
 │                                                                         │
-│  WebSocket relay (AWS API Gateway + Lambda):                          │
-│  • Lambda events-sendmessage.js receives message                      │
-│  • Looks up subscribers for GUID in DynamoDB                          │
-│  • Relays message to waiting main instance                            │
+│  WebSocket relay (AWS API Gateway + Lambda):                            │
+│  • Lambda events-sendmessage.js receives message                        │
+│  • Looks up subscribers for GUID in DynamoDB                            │
+│  • Relays message to waiting main instance                              │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -346,25 +346,25 @@ libSegFaultPath=/opt/compiler-explorer/glibc-tools-arm64
 │                      Step 8: Result Reception                           │
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
-│  Main x86 instance receives result:                                   │
+│  Main x86 instance receives result:                                     │
 │                                                                         │
-│  1. EventsWsWaiter.data() receives WebSocket message                  │
-│  2. Parse execution result JSON                                        │
-│  3. Calculate total time (includes network overhead)                   │
-│  4. Update result.processExecutionResultTime                          │
-│  5. Close WebSocket connection                                         │
+│  1. EventsWsWaiter.data() receives WebSocket message                    │
+│  2. Parse execution result JSON                                         │
+│  3. Calculate total time (includes network overhead)                    │
+│  4. Update result.processExecutionResultTime                            │
+│  5. Close WebSocket connection                                          │
 │                                                                         │
-│  Final result processing:                                              │
-│  • Combine compilation + execution results                             │
-│  • Apply any necessary transformations                                 │
-│  • Cache results if okToCache=true                                     │
-│  • Send HTTP response to user's browser                               │
+│  Final result processing:                                               │
+│  • Combine compilation + execution results                              │
+│  • Apply any necessary transformations                                  │
+│  • Cache results if okToCache=true                                      │
+│  • Send HTTP response to user's browser                                 │
 │                                                                         │
-│  User sees:                                                            │
-│  • Output: "Hello, AArch64 World!"                                     │
-│  • Execution time: 245ms + network overhead                           │
-│  • Exit code: 0 (success)                                             │
-│  • Architecture: ARM64 (executed remotely)                            │
+│  User sees:                                                             │
+│  • Output: "Hello, AArch64 World!"                                      │
+│  • Execution time: 245ms + network overhead                             │
+│  • Exit code: 0 (success)                                               │
+│  • Architecture: ARM64 (executed remotely)                              │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
