@@ -91,32 +91,32 @@ sequenceDiagram
 ## Detailed Component Interactions
 
 ```mermaid
-flowchart LR
-    subgraph nw ["Non-Worker (x86)"]
-        NW["Web UI<br/>Compiler"]
+graph LR
+    subgraph nw [Non-Worker x86]
+        NW[Web UI Compiler]
     end
 
-    subgraph w ["Worker (ARM64)"]
-        WK["Queue<br/>Processor"]
+    subgraph w [Worker ARM64]
+        WK[Queue Processor]
     end
 
-    subgraph infra ["Infrastructure"]
-        S3["S3<br/>Packages"]
-        SQS["SQS<br/>Queue"]
-        WS["WebSocket<br/>API"]
-        DDB["DynamoDB"]
-        LMB["Lambda<br/>Functions"]
+    subgraph infra [Infrastructure]
+        S3[S3 Packages]
+        SQS[SQS Queue]
+        WS[WebSocket API]
+        DDB[DynamoDB]
+        LMB[Lambda Functions]
     end
 
-    NW -->|"1. Upload binary"| S3
-    NW -->|"2. Subscribe GUID"| WS
-    NW -->|"3. Queue job"| SQS
+    NW -->|1 Upload binary| S3
+    NW -->|2 Subscribe GUID| WS
+    NW -->|3 Queue job| SQS
 
-    WK -->|"4. Poll work"| SQS
-    WK -->|"5. Download"| S3
-    WK -->|"6. Send results"| WS
+    WK -->|4 Poll work| SQS
+    WK -->|5 Download| S3
+    WK -->|6 Send results| WS
 
-    WS -->|"7. Route to subscriber"| NW
+    WS -->|7 Route to subscriber| NW
 
     WS <--> DDB
     WS <--> LMB
@@ -124,16 +124,10 @@ flowchart LR
     classDef nonWorker fill:#bbdefb,stroke:#0277bd,color:#000
     classDef worker fill:#e1bee7,stroke:#7b1fa2,color:#000
     classDef service fill:#c8e6c9,stroke:#388e3c,color:#000
-    classDef subgraphNonWorker fill:#bbdefb,stroke:#0277bd,color:#000
-    classDef subgraphWorker fill:#e1bee7,stroke:#7b1fa2,color:#000
-    classDef subgraphService fill:#c8e6c9,stroke:#388e3c,color:#000
 
     class NW nonWorker
     class WK worker
     class S3,SQS,WS,DDB,LMB service
-    class nw subgraphNonWorker
-    class w subgraphWorker
-    class infra subgraphService
 ```
 
 ## Configuration Differences
