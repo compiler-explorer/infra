@@ -481,6 +481,11 @@ class BlueGreenDeployment:
         inactive_asg = self.get_asg_name(inactive_color)
 
         print(f"\nScaling down inactive {inactive_color} ASG")
+        # First reset minimum size to 0 to allow scaling down
+        print(f"Resetting minimum size of {inactive_asg} to 0")
+        reset_asg_min_size(inactive_asg, min_size=0)
+        # Then scale down to 0 instances
+        print(f"Scaling {inactive_asg} to 0 instances")
         scale_asg(inactive_asg, 0)
         print(f"{inactive_asg} scaled to 0")
 
