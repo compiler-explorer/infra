@@ -511,7 +511,7 @@ The AArch64 execution workflow involves several phases, each contributing to the
 
 - **Cold Start Scenario**: First execution requires full instance launch and application startup
 - **Warm State**: Subsequent executions benefit from available worker instances
-- **Scale-to-Zero**: Cost optimization through automatic instance termination when idle
+- **Minimum Instance Maintenance**: At least one instance kept running to minimize user wait times
 - **Concurrent Processing**: Multiple worker threads per instance for improved throughput
 
 ### Error Handling and Resilience
@@ -543,7 +543,7 @@ The AArch64 execution workflow involves several phases, each contributing to the
 **Resource Efficiency:**
 
 - **Spot Instances**: r7g.medium spot instances for cost savings
-- **Scale-to-Zero**: No cost when no AArch64 executions pending
+- **Minimum Instance Count**: At least one instance maintained to avoid cold start delays
 - **Shared Infrastructure**: Same queue/WebSocket for prod/staging
 - **Concurrent Processing**: 2 executions per instance maximize utilization
 
@@ -590,18 +590,15 @@ For detailed blue-green deployment mechanics, see: [SQS Scaling Documentation](s
 
 ### Potential Enhancements
 
-1. **Multi-Architecture Support**: Extend model to other architectures (RISC-V, MIPS)
-2. **Geographic Distribution**: Regional worker pools for reduced latency
-3. **Execution Priorities**: Priority queues for different user tiers
-4. **Batch Processing**: Multiple executions per queue message
-5. **Result Caching**: Avoid duplicate executions for identical binaries
+1. **Multi-Architecture Support**: Extend model to other architectures (RISC-V, MIPS, etc.) either through native instances where available or emulation on existing worker types (since AWS only offers x86_64, ARM64, and GPU-enabled instances)
+2. **Execution Priorities**: Priority queues for different user tiers
+3. **Batch Processing**: Multiple executions per queue message
 
 ### Monitoring and Optimization Opportunities
 
 1. **Queue Depth Analysis**: Optimize target messages-per-instance
 2. **WebSocket Latency**: Monitor and optimize result delivery times
-3. **Package Size Optimization**: Compress executable packages
-4. **Worker Efficiency**: Tune concurrent execution limits
-5. **Cost Analysis**: Balance performance vs. cost for different instance types
+3. **Worker Efficiency**: Tune concurrent execution limits
+4. **Cost Analysis**: Balance performance vs. cost for different instance types
 
 This architecture provides a robust, scalable, and cost-effective solution for executing AArch64 binaries while maintaining the user experience of traditional single-instance compilation and execution.

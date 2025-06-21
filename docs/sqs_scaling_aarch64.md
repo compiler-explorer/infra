@@ -125,7 +125,7 @@ target_tracking_configuration {
 |-----------|---------|
 | `(Queue Size ÷ Instance Count) > 3` | **Scale OUT** (add instances) |
 | `(Queue Size ÷ Instance Count) < 3` | **Scale IN** (remove instances) |
-| `Queue Size = 0` | **Scale to 0** (cost optimization) |
+| `Queue Size = 0` | **Scale to minimum** (1 instance maintained) |
 
 ### Timing Configuration
 
@@ -167,7 +167,7 @@ During blue-green deployment:
 ### AArch64 Production
 
 - **Max Instances**: 6 (r7g.medium instances)
-- **Initial Capacity**: 0 (scales from zero)
+- **Initial Capacity**: 1 (minimum maintained)
 - **Instance Types**: Exclusively `r7g.medium` (ARM Graviton3)
 - **Spot Strategy**: `price-capacity-optimized`
 - **Queue**: `prod-execqueue-aarch64-linux-cpu.fifo`
@@ -175,7 +175,7 @@ During blue-green deployment:
 ### AArch64 Staging
 
 - **Max Instances**: 4 (r7g.medium instances)
-- **Initial Capacity**: 0 (scales from zero)
+- **Initial Capacity**: 0 (normally shutdown, scales from zero when active)
 - **Instance Types**: Exclusively `r7g.medium` (ARM Graviton3)
 - **Spot Strategy**: `price-capacity-optimized`
 - **Queue**: `staging-execqueue-aarch64-linux-cpu.fifo`
@@ -220,7 +220,7 @@ This policy is attached to the `CompilerExplorerRole` that AArch64 instances ass
 3. **Scaling Decision**:
    - If backlog > 3 messages per instance: Launch new r7g.medium instances
    - If backlog < 3 messages per instance: Terminate excess instances
-   - If no messages in queue: Scale to 0 instances
+   - If no messages in queue: Scale to minimum (1 for production, 0 for staging when inactive)
 
 4. **Instance Processing**:
    - New instances boot up (~3-4 minutes)
@@ -228,9 +228,9 @@ This policy is attached to the `CompilerExplorerRole` that AArch64 instances ass
    - Process compilation jobs and delete messages upon completion
 
 5. **Cost Optimization**:
-   - Instances automatically terminate when queue is empty
+   - Instances scale down to minimum when queue is empty
    - Spot instances provide cost savings
-   - No idle time charges when no compilation requests exist
+   - Minimal idle capacity maintained for responsiveness
 
 ### Scaling Examples
 
@@ -260,8 +260,8 @@ Time: 10:10 - All jobs completed
 Queue Size: 0 messages
 Current Instances: 2
 Backlog per Instance: 0 ÷ 2 = 0 messages per instance
-Action: Scale to 0
-Result: Terminate all instances
+Action: Scale to minimum
+Result: Terminate 1 instance (maintain 1 for responsiveness)
 ```
 
 ## Monitoring and Observability
@@ -303,7 +303,7 @@ Consider setting up CloudWatch alarms for:
 **Why Different?**
 - AArch64 workloads are batch-oriented rather than request-response
 - Queue depth is a more accurate indicator of required capacity than CPU usage
-- Enables true scale-to-zero when no compilation jobs are pending
+- Enables scale-to-minimum when no compilation jobs are pending
 - Better cost optimization for sporadic, bursty workloads
 
 ## Troubleshooting
