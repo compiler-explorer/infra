@@ -206,8 +206,9 @@ def blue_green_deploy(
 @blue_green.command(name="switch")
 @click.argument("color", type=click.Choice(["blue", "green"]))
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
+@click.option("--force", is_flag=True, help="Force switch even if already serving from the requested color")
 @click.pass_obj
-def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool):
+def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool, force: bool):
     """Manually switch to a specific color (blue or green)."""
     if cfg.env.value not in BLUE_GREEN_ENABLED_ENVIRONMENTS:
         print(f"Blue-green deployment is only available for {', '.join(BLUE_GREEN_ENABLED_ENVIRONMENTS)} environments")
@@ -216,9 +217,12 @@ def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool):
     deployment = BlueGreenDeployment(cfg)
     current = deployment.get_active_color()
 
-    if current == color:
+    if current == color and not force:
         print(f"Already serving from {color}")
         return
+
+    if current == color and force:
+        print(f"Forcing switch to {color} (currently active color)")
 
     if not skip_confirmation:
         if not are_you_sure(f"switch from {current} to {color}", cfg):
