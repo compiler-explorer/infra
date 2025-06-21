@@ -18,8 +18,32 @@ def environment():
 @click.pass_obj
 def environment_status(cfg: Config):
     """Gets the status of an environment."""
-    for asg in get_autoscaling_groups_for(cfg):
-        print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
+    if cfg.env.supports_blue_green:
+        # For blue-green environments, show which color is active
+        from lib.blue_green_deploy import BlueGreenDeployment
+
+        deployment = BlueGreenDeployment(cfg)
+        try:
+            active_color = deployment.get_active_color()
+            print(f"Blue-green environment - Active color: {active_color}")
+        except Exception:
+            print("Blue-green environment - Unable to determine active color")
+
+        for asg in get_autoscaling_groups_for(cfg):
+            asg_name = asg["AutoScalingGroupName"]
+            desired = asg["DesiredCapacity"]
+            # Determine if this ASG is the active one
+            color = asg_name.split("-")[-1]  # Extract 'blue' or 'green'
+            try:
+                is_active = color == active_color
+                status = " (ACTIVE)" if is_active else " (INACTIVE)"
+            except Exception:
+                status = ""
+            print(f"Found ASG {asg_name} with desired instances {desired}{status}")
+    else:
+        # Legacy environments
+        for asg in get_autoscaling_groups_for(cfg):
+            print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
 
 
 @environment.command(name="start")

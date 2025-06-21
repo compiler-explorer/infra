@@ -104,7 +104,8 @@ def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
         )
 
     if not result:
-        raise RuntimeError(f"Invalid environment {cfg.env.value}")
+        # Some environments (like runner) don't have ASGs, return empty list
+        return []
     return result
 
 
