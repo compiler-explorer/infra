@@ -61,6 +61,23 @@ class Environment(Enum):
     def supports_blue_green(self) -> bool:
         return self.value in BLUE_GREEN_ENABLED_ENVIRONMENTS
 
+    @property
+    def path_pattern(self) -> str:
+        """Get the ALB path pattern for this environment."""
+        if self == Environment.PROD:
+            # Production uses the default listener (no path pattern)
+            return ""
+        return f"/{self.value}*"
+
+    @property
+    def min_instances(self) -> int:
+        """Get the minimum number of instances for this environment."""
+        if self == Environment.GPU:
+            return 2
+        elif self in (Environment.PROD, Environment.WINPROD):
+            return 1
+        return 0
+
 
 @dataclass(frozen=True)
 class Config:

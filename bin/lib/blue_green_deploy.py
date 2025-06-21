@@ -147,31 +147,19 @@ class BlueGreenDeployment:
             return None
 
         # For production, we return the listener ARN itself (to modify default action)
-        if self.env == "prod":
+        if self.cfg.env.path_pattern == "":
             return https_listeners[0]["ListenerArn"]
 
         # For other environments, find the specific rule for their path pattern
-        path_patterns = {
-            "beta": "/beta*",
-            "staging": "/staging*",
-            "gpu": "/gpu*",
-            "wintest": "/wintest*",
-            "winstaging": "/winstaging*",
-            "winprod": "/winprod*",
-            "aarch64staging": "/aarch64staging*",
-            "aarch64prod": "/aarch64prod*",
-        }
-
-        if self.env in path_patterns:
-            target_pattern = path_patterns[self.env]
-            # Check rules for path pattern matching
-            for listener in https_listeners:
-                rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
-                for rule in rules["Rules"]:
-                    conditions = rule.get("Conditions", [])
-                    for condition in conditions:
-                        if condition.get("Field") == "path-pattern" and target_pattern in condition.get("Values", []):
-                            return rule["RuleArn"]
+        target_pattern = self.cfg.env.path_pattern
+        # Check rules for path pattern matching
+        for listener in https_listeners:
+            rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
+            for rule in rules["Rules"]:
+                conditions = rule.get("Conditions", [])
+                for condition in conditions:
+                    if condition.get("Field") == "path-pattern" and target_pattern in condition.get("Values", []):
+                        return rule["RuleArn"]
 
         return None
 
@@ -237,7 +225,7 @@ class BlueGreenDeployment:
         if target_capacity is None:
             target_capacity = self.get_current_capacity()
             if target_capacity == 0:
-                target_capacity = 1  # Default to 1 if nothing is running
+                target_capacity = max(1, self.cfg.env.min_instances)  # Use environment's minimum instances
 
         active_asg = self.get_asg_name(active_color)
         inactive_asg = self.get_asg_name(inactive_color)
