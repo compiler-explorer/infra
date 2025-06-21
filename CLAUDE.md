@@ -102,6 +102,48 @@ The CLI system (`bin/ce`) uses Click framework with a modular command structure:
        """Subcommand description."""
    ```
 
+## GitHub Workflow Integration
+
+The `ce workflows` command group provides functionality to trigger GitHub Actions workflows:
+
+### Available Commands
+
+- **`ce workflows run-discovery BUILDNUMBER`** - Trigger compiler discovery workflow in infra repo
+  - Uses defaults: staging environment, main branch
+  - Override with `--environment`, `--branch`, `--skip-remote-checks`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows run-discovery gh-12345 --environment prod --wait`
+
+- **`ce workflows deploy-win BUILDNUMBER`** - Trigger Windows deployment in main compiler-explorer repo
+  - Uses defaults: main branch
+  - Override with `--branch`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows deploy-win gh-12345 --branch release --wait`
+
+- **`ce workflows run REPO WORKFLOW [OPTIONS]`** - Generic workflow trigger for any CE repository
+  - Pass parameters with `-f name=value` or `--field name=value`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows run compiler-explorer deploy-win.yml -f buildnumber=gh-12345 -f branch=main --wait`
+
+- **`ce workflows list`** - List available workflows across repositories
+
+- **`ce workflows status [OPTIONS]`** - Show recent workflow run status
+  - By default shows both infra and compiler-explorer repositories
+  - Filter by `--repo` to show specific repository, `--workflow`, `--status`, `--branch`
+  - Limit results with `--limit` (default: 10)
+  - Examples:
+    - `ce workflows status` (shows both repos)
+    - `ce workflows status --repo infra --workflow compiler-discovery.yml`
+    - `ce workflows status --status in_progress`
+
+- **`ce workflows watch RUN_ID [OPTIONS]`** - View details of a specific workflow run
+  - Use `--repo` to specify repository (default: infra)
+  - Use `--job` to view specific job within the run
+  - Use `--web` to open run in browser
+  - Example: `ce workflows watch 15778532626 --web`
+
+All workflow trigger commands support `--dry-run` to preview the `gh` command without executing it.
+
 ## AWS Integration Pattern
 
 AWS clients are defined in `bin/lib/amazon.py` using lazy initialization:
