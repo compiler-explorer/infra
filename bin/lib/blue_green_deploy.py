@@ -74,9 +74,10 @@ class BlueGreenDeployment:
                 print(f"Warning: Failed to restore capacity settings for {active_asg}: {e}")
 
         if inactive_asg:
-            print(f"Resetting minimum size of {inactive_asg}")
+            env_min_size = self.cfg.env.min_instances
+            print(f"Resetting minimum size of {inactive_asg} to {env_min_size}")
             try:
-                reset_asg_min_size(inactive_asg, min_size=0)
+                reset_asg_min_size(inactive_asg, min_size=env_min_size)
             except Exception as e:
                 print(f"Warning: Failed to reset min size for {inactive_asg}: {e}")
 
@@ -397,9 +398,10 @@ class BlueGreenDeployment:
             print(f"\nStep 4: Switching traffic to {inactive_color}")
             self.switch_target_group(inactive_color)
 
-            # Step 5: Reset minimum size back to 0 now that deployment is complete
-            print(f"\nStep 5: Resetting minimum size of {inactive_asg} back to 0")
-            reset_asg_min_size(inactive_asg, min_size=0)
+            # Step 5: Reset minimum size to environment default now that deployment is complete
+            env_min_size = self.cfg.env.min_instances
+            print(f"\nStep 5: Resetting minimum size of {inactive_asg} to {env_min_size} (environment default)")
+            reset_asg_min_size(inactive_asg, min_size=env_min_size)
 
             print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
             print(f"Old {active_color} ASG remains running for rollback if needed")
@@ -414,8 +416,11 @@ class BlueGreenDeployment:
 
             # If deployment failed, also reset the inactive ASG min size
             if not deployment_succeeded:
-                print(f"\nCleaning up: Resetting minimum size of {inactive_asg} after failed deployment")
-                reset_asg_min_size(inactive_asg, min_size=0)
+                env_min_size = self.cfg.env.min_instances
+                print(
+                    f"\nCleaning up: Resetting minimum size of {inactive_asg} to {env_min_size} after failed deployment"
+                )
+                reset_asg_min_size(inactive_asg, min_size=env_min_size)
 
                 # Rollback version if it was changed
                 if version_was_changed and original_version_key:
