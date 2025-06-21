@@ -25,15 +25,3 @@ locals {
 resource "aws_sns_topic" "elb-instance-terminate" {
   name = "ElbInstanceTerminate"
 }
-
-resource "aws_autoscaling_notification" "notify" {
-  group_names = [
-    # Blue-green ASGs will be added via their respective modules
-    # This notification is now primarily handled by the blue-green modules
-  ]
-  notifications = [
-    "autoscaling:EC2_INSTANCE_TERMINATE"
-  ]
-
-  topic_arn = aws_sns_topic.elb-instance-terminate.arn
-}
