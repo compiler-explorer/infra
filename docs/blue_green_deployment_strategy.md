@@ -241,6 +241,46 @@ ASG Status:
     HTTP Health: 0/0 healthy ⚪
 ```
 
+## Production Discovery Management
+
+Production deployments require compiler discovery files for safety. The blue-green deployment system automatically handles discovery requirements:
+
+### Interactive Production Deployments
+
+When deploying to production without an existing discovery file, users are presented with options:
+
+```bash
+⚠️  WARNING: Compiler discovery has not run for prod/gh-123
+For production deployments, we can copy discovery from staging if available.
+Options:
+  1. Copy discovery from staging (recommended)
+  2. Continue without discovery (risky)
+  3. Cancel deployment
+Choose option (1/2/3):
+```
+
+### Skip Confirmation Restrictions
+
+Production deployments **cannot** use `--skip-confirmation` when discovery is missing:
+
+```bash
+❌ ERROR: --skip-confirmation cannot be used for production deployments without discovery.
+Production deployments require either:
+  1. Existing discovery file for the version
+  2. Manual confirmation to copy discovery from staging
+Deployment cancelled.
+```
+
+### Discovery Copy Process
+
+When option 1 is selected, the system:
+1. Attempts to copy discovery from `staging` to `prod` for the specified version
+2. Retries the discovery check after successful copy
+3. **Fails the deployment** if the copy operation encounters errors (permissions, network, etc.)
+4. Continues with deployment if copy succeeds
+
+This ensures production deployments maintain safety standards while providing a streamlined workflow when discovery files are available in staging.
+
 ## Advantages
 
 1. **Zero Downtime**: Atomic traffic switching between versions
