@@ -1,13 +1,8 @@
 variable "ce-target-groups" {
   description = "Target groups to create on port 80 for CE"
   default = {
-    "staging"        = 2
-    "gpu"            = 4
-    "wintest"        = 5
-    "winstaging"     = 6
-    "winprod"        = 7
-    "aarch64prod"    = 8
-    "aarch64staging" = 9
+    # All blue-green environments now use modules instead of single target groups
+    # Keeping this variable structure for any remaining single environments
   }
 }
 

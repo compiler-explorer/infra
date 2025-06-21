@@ -25,17 +25,3 @@ locals {
 resource "aws_sns_topic" "elb-instance-terminate" {
   name = "ElbInstanceTerminate"
 }
-
-resource "aws_autoscaling_notification" "notify" {
-  group_names = [
-    aws_autoscaling_group.gpu.name,
-    aws_autoscaling_group.staging.name,
-    aws_autoscaling_group.winprod-mixed.name,
-    aws_autoscaling_group.aarch64prod-mixed.name
-  ]
-  notifications = [
-    "autoscaling:EC2_INSTANCE_TERMINATE"
-  ]
-
-  topic_arn = aws_sns_topic.elb-instance-terminate.arn
-}

@@ -41,8 +41,8 @@ resource "aws_autoscaling_group" "color" {
 
   lifecycle {
     create_before_destroy = true
-    # Ignore changes to desired_capacity since it's managed by blue-green deployment
-    ignore_changes = [desired_capacity]
+    # Ignore changes to desired_capacity and min_size since they're managed by blue-green deployment
+    ignore_changes = [desired_capacity, min_size]
   }
 
   name                      = "${var.environment}-${each.value}"

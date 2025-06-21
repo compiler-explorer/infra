@@ -147,18 +147,19 @@ class BlueGreenDeployment:
             return None
 
         # For production, we return the listener ARN itself (to modify default action)
-        # For beta, we find the specific rule for /beta*
-        if self.env == "prod":
+        if self.cfg.env.path_pattern == "":
             return https_listeners[0]["ListenerArn"]
-        elif self.env == "beta":
-            # Check rules for path pattern matching /beta*
-            for listener in https_listeners:
-                rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
-                for rule in rules["Rules"]:
-                    conditions = rule.get("Conditions", [])
-                    for condition in conditions:
-                        if condition.get("Field") == "path-pattern" and "/beta*" in condition.get("Values", []):
-                            return rule["RuleArn"]
+
+        # For other environments, find the specific rule for their path pattern
+        target_pattern = self.cfg.env.path_pattern
+        # Check rules for path pattern matching
+        for listener in https_listeners:
+            rules = elb_client.describe_rules(ListenerArn=listener["ListenerArn"])
+            for rule in rules["Rules"]:
+                conditions = rule.get("Conditions", [])
+                for condition in conditions:
+                    if condition.get("Field") == "path-pattern" and target_pattern in condition.get("Values", []):
+                        return rule["RuleArn"]
 
         return None
 
@@ -224,7 +225,7 @@ class BlueGreenDeployment:
         if target_capacity is None:
             target_capacity = self.get_current_capacity()
             if target_capacity == 0:
-                target_capacity = 1  # Default to 1 if nothing is running
+                target_capacity = max(1, self.cfg.env.min_instances)  # Use environment's minimum instances
 
         active_asg = self.get_asg_name(active_color)
         inactive_asg = self.get_asg_name(inactive_color)
