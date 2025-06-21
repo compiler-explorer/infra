@@ -74,7 +74,7 @@ class Environment(Enum):
         """Get the minimum number of instances for this environment."""
         if self == Environment.GPU:
             return 2
-        elif self in (Environment.PROD, Environment.WINPROD):
+        elif self in (Environment.PROD, Environment.WINPROD, Environment.AARCH64PROD):
             return 1
         return 0
 
