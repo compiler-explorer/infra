@@ -494,26 +494,25 @@ This architecture discovery system allows operators to control which architectur
 
 ## Operational Characteristics
 
-### Performance Metrics
+### Performance Characteristics
 
-**Typical Execution Timeline:**
+**Execution Timeline Components:**
 
-| Phase | Time Range | Description |
-|-------|------------|-------------|
-| **Compilation** | 1-3 seconds | Cross-compilation on x86 |
-| **Queue Submission** | 50-100ms | SQS message creation |
-| **Worker Scaling** | 0-240s | If no instances available |
-| **Package Download** | 100-500ms | S3 download to worker |
-| **Execution** | 10ms-10s | Actual binary execution |
-| **Result Transmission** | 50-200ms | WebSocket delivery |
-| **Total Overhead** | 200ms-4min | Depends on scaling state |
+The AArch64 execution workflow involves several phases, each contributing to the total execution time:
+
+- **Compilation Phase**: Cross-compilation happens on x86 instances using standard compilation times
+- **Queue Operations**: Message submission and processing through SQS FIFO queues
+- **Auto-Scaling Impact**: Cold starts require instance launch and application warmup when no workers are available
+- **Package Transfer**: S3 upload/download operations for executable packages
+- **Actual Execution**: Native ARM64 binary execution on worker instances
+- **Result Communication**: WebSocket message routing back to requesting instances
 
 **Scaling Behavior:**
 
-- **Cold Start**: 3-4 minutes for first execution (instance launch + warmup)
-- **Warm State**: <1 second overhead when instances available
-- **Scale-to-Zero**: Instances terminate when queue is empty (cost optimization)
-- **Concurrent Executions**: 2 per instance (configurable)
+- **Cold Start Scenario**: First execution requires full instance launch and application startup
+- **Warm State**: Subsequent executions benefit from available worker instances
+- **Scale-to-Zero**: Cost optimization through automatic instance termination when idle
+- **Concurrent Processing**: Multiple worker threads per instance for improved throughput
 
 ### Error Handling and Resilience
 
