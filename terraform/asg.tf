@@ -28,10 +28,8 @@ resource "aws_sns_topic" "elb-instance-terminate" {
 
 resource "aws_autoscaling_notification" "notify" {
   group_names = [
-    aws_autoscaling_group.gpu.name,
-    aws_autoscaling_group.staging.name,
-    aws_autoscaling_group.winprod-mixed.name,
-    aws_autoscaling_group.aarch64prod-mixed.name
+    # Blue-green ASGs will be added via their respective modules
+    # This notification is now primarily handled by the blue-green modules
   ]
   notifications = [
     "autoscaling:EC2_INSTANCE_TERMINATE"

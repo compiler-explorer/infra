@@ -196,14 +196,14 @@ resource "aws_instance" "CESMBServer" {
 
 resource "aws_instance" "elfshaker" {
   ami                         = "ami-0b97d4bbd77733fc0"
-  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name  // TODO
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name // TODO
   instance_type               = "t4g.2xlarge"
   monitoring                  = false
-  key_name                    = "pwaller" // TODO
-  subnet_id                   = "subnet-1bed1d42" // TODO local.admin_subnet
+  key_name                    = "pwaller"                                                        // TODO
+  subnet_id                   = "subnet-1bed1d42"                                                // TODO local.admin_subnet
   vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id, "sg-0451c2db0fa8005ca"] // TODO
   associate_public_ip_address = true
-  user_data = <<EOF
+  user_data                   = <<EOF
 { pkgs, modulesPath, ... }: {
   imports = [ "$${modulesPath}/virtualisation/amazon-image.nix" ];
   ec2.efi = true;

@@ -11,7 +11,7 @@ module "wintest_blue_green" {
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0
-  health_check_grace_period = 300  # Override grace period for Windows test
+  health_check_grace_period = 300 # Override grace period for Windows test
   default_cooldown          = local.cooldown
   enabled_metrics           = local.common_enabled_metrics
   initial_active_color      = "blue"
@@ -27,7 +27,7 @@ module "winstaging_blue_green" {
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0
-  health_check_grace_period = 500  # Override grace period for Windows staging
+  health_check_grace_period = 500 # Override grace period for Windows staging
   default_cooldown          = local.cooldown
   enabled_metrics           = local.common_enabled_metrics
   initial_active_color      = "blue"
