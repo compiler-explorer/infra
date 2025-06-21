@@ -27,12 +27,12 @@
 │  │  ┌─────────────────────────────────────────────────────────────────┐   │  │
 │  │  │ HTTPS Listener (:443) with path-based routing rules:            │   │  │
 │  │  │                                                                  │   │  │
-│  │  │  /* (default)  ──────→ [Prod Target Group]                     │   │  │
-│  │  │  /beta*        ──────→ [Beta Target Group]                     │   │  │
-│  │  │  /staging*     ──────→ [Staging Target Group]                  │   │  │
-│  │  │  /gpu*         ──────→ [GPU Target Group]                      │   │  │
-│  │  │  /winprod*     ──────→ [WinProd Target Group]                  │   │  │
-│  │  │  /aarch64prod* ──────→ [AArch64Prod Target Group]              │   │  │
+│  │  │  /* (default)  ──────→ [Prod TGs] (switchable)                │   │  │
+│  │  │  /beta*        ──────→ [Beta TGs] (switchable)               │   │  │
+│  │  │  /staging*     ──────→ [Staging TGs] (switchable)            │   │  │
+│  │  │  /gpu*         ──────→ [GPU TGs] (switchable)                │   │  │
+│  │  │  /win*         ──────→ [Win TGs] (switchable)                │   │  │
+│  │  │  /aarch64*     ──────→ [AArch64 TGs] (switchable)            │   │  │
 │  │  └─────────────────────────────────────────────────────────────────┘   │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
@@ -41,16 +41,18 @@
 │                            TARGET GROUP LAYER                                   │
 │                                                                                 │
 │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐                  │
-│  │  Prod TG       │  │  Beta TG       │  │  Staging TG    │                  │
-│  │  Port: 80      │  │  Port: 80      │  │  Port: 80      │                  │
-│  │  Health: /hc   │  │  Health: /hc   │  │  Health: /hc   │                  │
+│  │ Prod TGs       │  │ Beta TGs       │  │ Staging TGs    │                  │
+│  │ Blue + Green   │  │ Blue + Green   │  │ Blue + Green   │                  │
+│  │ Port: 80       │  │ Port: 80       │  │ Port: 80       │                  │
+│  │ Health: /hc    │  │ Health: /hc    │  │ Health: /hc    │                  │
 │  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘                  │
 │          │                   │                   │                             │
 │          ↓                   ↓                   ↓                             │
 │  ┌────────────────┐  ┌────────────────┐  ┌────────────────┐                  │
-│  │  GPU TG        │  │  WinProd TG    │  │  AArch64 TG    │                  │
-│  │  Port: 80      │  │  Port: 80      │  │  Port: 80      │                  │
-│  │  Health: /hc   │  │  Health: /hc   │  │  Health: /hc   │                  │
+│  │ GPU TGs        │  │ Win TGs        │  │ AArch64 TGs    │                  │
+│  │ Blue + Green   │  │ Blue + Green   │  │ Blue + Green   │                  │
+│  │ Port: 80       │  │ Port: 80       │  │ Port: 80       │                  │
+│  │ Health: /hc    │  │ Health: /hc    │  │ Health: /hc    │                  │
 │  └───────┬────────┘  └───────┬────────┘  └───────┬────────┘                  │
 └──────────┼───────────────────┼───────────────────┼─────────────────────────────┘
            ↓                   ↓                   ↓
@@ -58,10 +60,11 @@
 │                          AUTO SCALING GROUP LAYER                               │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │ ASG: prod-blue/green     │ ASG: beta-blue/green│ ASG: staging           │  │
-│  │ Min: 0, Max: 40 each    │ Min: 0, Max: 4 each │ Min: 0, Max: 4        │  │
-│  │ Current: ~10-15 (1 ASG) │ Current: 0-1 (1 ASG)│ Current: 0-1          │  │
-│  │ Spot: 100%              │ On-Demand: 100%     │ On-Demand: 100%       │  │
+│  │ ASG: prod               │ ASG: beta           │ ASG: staging           │  │
+│  │ Blue + Green pairs     │ Blue + Green pairs  │ Blue + Green pairs     │  │
+│  │ Min: 0, Max: 40 each   │ Min: 0, Max: 4 each │ Min: 0, Max: 4 each   │  │
+│  │ Current: ~10-15 (1 ASG)│ Current: 0-1 (1 ASG)│ Current: 0-1 (1 ASG)  │  │
+│  │ Spot: 100%             │ On-Demand: 100%     │ On-Demand: 100%       │  │
 │  │ ┌─────┐ ┌─────┐ ┌─────┐│ ┌─────┐             │ ┌─────┐               │  │
 │  │ │ EC2 │ │ EC2 │ │ EC2 ││ │ EC2 │             │ │ EC2 │               │  │
 │  │ │ m5. │ │ m6. │ │ m5. ││ │ t3. │             │ │ t3. │               │  │
@@ -69,13 +72,14 @@
 │  └─────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
-│  │ ASG: gpu                 │ ASG: winprod-mixed  │ ASG: aarch64prod      │  │
-│  │ Min: 0, Max: 8          │ Min: 0, Max: 4      │ Min: 0, Max: 8        │  │
-│  │ GPU: g4dn.xlarge        │ Windows Server      │ ARM: t4g/m6g          │  │
-│  │ ┌─────┐                 │ ┌─────┐             │ ┌─────┐               │  │
-│  │ │ EC2 │                 │ │ EC2 │             │ │ EC2 │               │  │
-│  │ │ GPU │                 │ │ Win │             │ │ ARM │               │  │
-│  │ └─────┘                 │ └─────┘             │ └─────┘               │  │
+│  │ ASG: gpu               │ ASG: win             │ ASG: aarch64           │  │
+│  │ Blue + Green pairs     │ Blue + Green pairs   │ Blue + Green pairs     │  │
+│  │ Min: 0, Max: 8 each    │ Min: 0, Max: 4 each  │ Min: 0, Max: 8 each   │  │
+│  │ GPU: g4dn.xlarge       │ Windows Server       │ ARM: t4g/m6g          │  │
+│  │ ┌─────┐                │ ┌─────┐              │ ┌─────┐               │  │
+│  │ │ EC2 │                │ │ EC2 │              │ │ EC2 │               │  │
+│  │ │ GPU │                │ │ Win │              │ │ ARM │               │  │
+│  │ └─────┘                │ └─────┘              │ └─────┘               │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────────────────┘
                                        ↓
@@ -91,7 +95,7 @@
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Instance Refresh Process (Legacy Issue - Solved for Prod/Beta)
+## Instance Refresh Process (Legacy Issue - Solved for All Environments)
 
 ```
 Time →
@@ -114,29 +118,31 @@ T5: Final state (all instances version B)
     [B] [B] [B] [B] [B] [B] [B] [B]
 
 Problem Period: T2-T4 where both A and B serve traffic
-NOTE: This problem is now solved for production and beta via blue-green deployment!
+NOTE: This problem is now solved for ALL environments via blue-green deployment!
 ```
 
-## Blue-Green Deployment (Current for Prod/Beta)
+## Deployment Strategy (Current for All Environments)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                        ALB Path: /beta*                                 │
+│                    ALB Paths: ALL ENVIRONMENTS                          │
 │                              ↓                                          │
-│                   ┌─────────────────────┐                              │
-│                   │  Can switch between │                              │
-│                   │   Beta-Blue TG  ←───┼──→  Beta-Green TG           │
-│                   └─────────┬───────────┘                              │
-│                             ↓                                          │
-│              ┌──────────────┴──────────────┐                          │
-│              ↓                             ↓                          │
-│     ┌─────────────────┐          ┌─────────────────┐                 │
-│     │ ASG: beta-blue  │          │ ASG: beta-green │                 │
-│     │ Version: A      │          │ Version: B      │                 │
-│     │ State: Active   │          │ State: Standby  │                 │
-│     └─────────────────┘          └─────────────────┘                 │
+│     ┌─────────────────────────────────────────────────────────────────┐│
+│     │  /* → Prod TGs        │  /beta* → Beta TGs                     ││
+│     │  /staging* → Staging TGs  │  /gpu* → GPU TGs                   ││
+│     │  /win* → Win TGs      │  /aarch64* → AArch64 TGs               ││
+│     └─────────────────────┬───────────────────────────────────────────┘│
+│                           ↓                                            │
+│        ┌──────────────────┴──────────────────┐                       │
+│        ↓                                     ↓                       │
+│ ┌─────────────────┐                ┌─────────────────┐               │
+│ │ ASG: {env} A    │                │ ASG: {env} B    │               │
+│ │ Version: A      │                │ Version: B      │               │
+│ │ State: Active   │                │ State: Standby  │               │
+│ └─────────────────┘                └─────────────────┘               │
 │                                                                        │
-│     Deployment: Scale up green → Switch TG → Scale down blue          │
+│ Deployment: Scale up standby → Switch TG → Scale down old             │
+│ Available for: prod, beta, staging, gpu, win*, aarch64*               │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
