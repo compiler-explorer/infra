@@ -110,6 +110,13 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
     """
+    # Check if this environment supports blue-green deployment
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' supports blue-green deployment.")
+        print(f"   Consider using 'ce --env {cfg.env.value} blue-green deploy' instead of 'builds set_current'.")
+        print("   Blue-green deployment provides zero-downtime updates with automatic rollback capability.")
+        print()
+
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
         sys.exit(1)
