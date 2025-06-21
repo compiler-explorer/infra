@@ -72,7 +72,7 @@ The scaling policy uses a sophisticated "**backlog per instance**" calculation:
 ```hcl
 target_tracking_configuration {
   target_value = 3  # Target: 3 messages per instance
-  
+
   customized_metric_specification {
     # Metric 1: Queue Size (messages waiting to be processed)
     metrics {
@@ -90,7 +90,7 @@ target_tracking_configuration {
         stat = "Sum"
       }
     }
-    
+
     # Metric 2: Current Instance Count
     metrics {
       label = "Get the group size (the number of InService instances)"
@@ -107,7 +107,7 @@ target_tracking_configuration {
         stat = "Average"
       }
     }
-    
+
     # Final Calculation: Backlog per Instance
     metrics {
       label       = "Calculate the backlog per instance"
@@ -209,7 +209,7 @@ This policy is attached to the `CompilerExplorerRole` that AArch64 instances ass
 
 ### Normal Operation Flow
 
-1. **Job Submission**: 
+1. **Job Submission**:
    - User submits AArch64 compilation request
    - Application pushes job to appropriate environment queue (`prod-execqueue-aarch64-linux-cpu.fifo` or `staging-execqueue-aarch64-linux-cpu.fifo`)
 

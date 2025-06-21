@@ -22,7 +22,7 @@ sequenceDiagram
     NonWorker->>S3: 3. Upload package with hash
     NonWorker->>WS: 4. Subscribe to GUID
     NonWorker->>SQS: 5. Queue execution request<br/>{guid, hash, params}
-    
+
     Worker->>SQS: 6. Poll for work (continuous)
     SQS->>Worker: 7. Return execution message
     Worker->>S3: 8. Download package by hash
@@ -95,11 +95,11 @@ flowchart LR
     subgraph nw [Non-Worker x86]
         NW[Web UI + Compiler]
     end
-    
+
     subgraph w [Worker ARM64]
         W[Queue Processor]
     end
-    
+
     subgraph infra [Infrastructure]
         S3[S3 Packages]
         SQS[SQS Queue]
@@ -107,24 +107,24 @@ flowchart LR
         DDB[DynamoDB]
         LMB[Lambda Functions]
     end
-    
+
     NW -->|1. Upload binary| S3
     NW -->|2. Subscribe GUID| WS
     NW -->|3. Queue job| SQS
-    
+
     W -->|4. Poll work| SQS
     W -->|5. Download| S3
     W -->|6. Send results| WS
-    
+
     WS -->|7. Route to subscriber| NW
-    
+
     WS <--> DDB
     WS <--> LMB
-    
+
     classDef nonWorker fill:#e1f5fe,stroke:#0277bd
     classDef worker fill:#f3e5f5,stroke:#7b1fa2
     classDef service fill:#e8f5e8,stroke:#388e3c
-    
+
     class NW nonWorker
     class W worker
     class S3,SQS,WS,DDB,LMB service
