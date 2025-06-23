@@ -72,9 +72,9 @@ class Environment(Enum):
     @property
     def min_instances(self) -> int:
         """Get the minimum number of instances for this environment."""
-        if self == Environment.GPU:
+        if self in (Environment.GPU, Environment.WINPROD):
             return 2
-        elif self in (Environment.PROD, Environment.WINPROD, Environment.AARCH64PROD):
+        elif self in (Environment.PROD, Environment.AARCH64PROD):
             return 1
         return 0
 
