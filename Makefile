@@ -115,31 +115,6 @@ check-lambda-changed: lambda-package
 		echo "LAMBDA_CHANGED=0" > $(LAMBDA_PACKAGE_SHA).status; \
 	fi
 
-.PHONY: check-compilation-lambda-changed
-check-compilation-lambda-changed: compilation-lambda-package
-	@mkdir -p $(dir $(COMPILATION_LAMBDA_PACKAGE))
-	@echo "Checking if compilation lambda package has changed..."
-	@aws s3 cp s3://compiler-explorer/lambdas/compilation-lambda-package.zip.sha256 $(COMPILATION_LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote compilation lambda SHA doesn't exist yet" && touch $(COMPILATION_LAMBDA_PACKAGE_SHA).remote)
-	@if [ ! -f $(COMPILATION_LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(COMPILATION_LAMBDA_PACKAGE_SHA) $(COMPILATION_LAMBDA_PACKAGE_SHA).remote; then \
-		echo "Compilation lambda package has changed"; \
-		echo "COMPILATION_LAMBDA_CHANGED=1" > $(COMPILATION_LAMBDA_PACKAGE_SHA).status; \
-	else \
-		echo "Compilation lambda package has not changed"; \
-		echo "COMPILATION_LAMBDA_CHANGED=0" > $(COMPILATION_LAMBDA_PACKAGE_SHA).status; \
-	fi
-
-.PHONY: upload-compilation-lambda
-upload-compilation-lambda: check-compilation-lambda-changed
-	@. $(COMPILATION_LAMBDA_PACKAGE_SHA).status && \
-	if [ "$$COMPILATION_LAMBDA_CHANGED" = "1" ]; then \
-		echo "Uploading new compilation lambda package to S3..."; \
-		aws s3 cp $(COMPILATION_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/compilation-lambda-package.zip; \
-		aws s3 cp --content-type text/sha256 $(COMPILATION_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/compilation-lambda-package.zip.sha256; \
-		echo "Compilation lambda package uploaded successfully!"; \
-	else \
-		echo "Compilation lambda package hasn't changed. No upload needed."; \
-	fi
-
 .PHONY: upload-lambda
 upload-lambda: check-lambda-changed
 	@. $(LAMBDA_PACKAGE_SHA).status && \
@@ -170,18 +145,6 @@ $(EVENTS_LAMBDA_PACKAGE_SHA): $(EVENTS_LAMBDA_PACKAGE)
 .PHONY: events-lambda-package  ## builds events lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
-COMPILATION_LAMBDA_PACKAGE:=$(CURDIR)/.dist/compilation-lambda-package.zip
-COMPILATION_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/compilation-lambda-package.zip.sha256
-$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.py) compilation-lambda/pyproject.toml Makefile scripts/build_lambda_deterministic.py
-	$(UV_BIN) run python scripts/build_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
-
-.PHONY: compilation-lambda-package  ## builds compilation lambda
-compilation-lambda-package: $(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA)
-
-.PHONY: test-compilation-lambda  ## runs compilation lambda tests
-test-compilation-lambda: ce
-	cd compilation-lambda && $(UV_BIN) run --with websocket-client --with boto3 --with pytest python -m pytest test_lambda_function.py -v
-
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
@@ -191,11 +154,11 @@ upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
 	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
 
 .PHONY: terraform-apply
-terraform-apply:  upload-lambda upload-compilation-lambda ## Applies terraform
+terraform-apply:  upload-lambda ## Applies terraform
 	terraform -chdir=terraform apply
 
 .PHONY: terraform-plan
-terraform-plan:  upload-lambda upload-compilation-lambda ## Plans terraform changes
+terraform-plan:  upload-lambda ## Plans terraform changes
 	terraform -chdir=terraform plan
 
 .PHONY: pre-commit
