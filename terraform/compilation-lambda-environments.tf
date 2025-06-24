@@ -6,7 +6,7 @@ module "compilation_lambda_beta" {
   source = "./modules/compilation_lambda"
 
   environment         = "beta"
-  websocket_url       = "wss://events.godbolt.org/beta"
+  websocket_url       = "wss://events.compiler-explorer.com/beta"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = true
   alb_priority        = 10
@@ -27,7 +27,7 @@ module "compilation_lambda_staging" {
   source = "./modules/compilation_lambda"
 
   environment         = "staging"
-  websocket_url       = "wss://events.godbolt.org/staging"
+  websocket_url       = "wss://events.compiler-explorer.com/staging"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = false # Disabled initially
   alb_priority        = 12
@@ -48,7 +48,7 @@ module "compilation_lambda_prod" {
   source = "./modules/compilation_lambda"
 
   environment         = "prod"
-  websocket_url       = "wss://events.godbolt.org/"
+  websocket_url       = "wss://events.compiler-explorer.com/prod"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = false # Disabled initially
   alb_priority        = 4

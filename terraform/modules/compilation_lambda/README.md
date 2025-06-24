@@ -17,7 +17,7 @@ module "compilation_lambda_beta" {
   source = "./modules/compilation_lambda"
 
   environment         = "beta"
-  websocket_url       = "wss://events.godbolt.org/beta"
+  websocket_url       = "wss://events.compiler-explorer.com/beta"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = true
   alb_priority        = 10

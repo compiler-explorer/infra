@@ -4,7 +4,7 @@ module "compilation_lambda_example" {
   source = "../../"
 
   environment         = "test"
-  websocket_url       = "wss://events.test.com/test"
+  websocket_url       = "wss://events.compiler-explorer.com/test"
   alb_listener_arn    = "arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/app/test-alb/50dc6c495c0c9188/0467ef3c8400ae65"
   enable_alb_listener = true
   alb_priority        = 100
