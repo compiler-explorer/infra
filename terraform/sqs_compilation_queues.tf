@@ -8,8 +8,8 @@ resource "aws_sqs_queue" "compilation_queue_beta" {
   content_based_deduplication = false
   message_retention_seconds   = 1800  # 30 minutes
   visibility_timeout_seconds  = 120   # 2 minutes to process compilation
-  
-  
+
+
   tags = {
     Environment = "beta"
     Purpose     = "compilation-requests"
@@ -23,8 +23,8 @@ resource "aws_sqs_queue" "compilation_queue_staging" {
   content_based_deduplication = false
   message_retention_seconds   = 1800  # 30 minutes
   visibility_timeout_seconds  = 120   # 2 minutes
-  
-  
+
+
   tags = {
     Environment = "staging"
     Purpose     = "compilation-requests"
@@ -38,8 +38,8 @@ resource "aws_sqs_queue" "compilation_queue_prod" {
   content_based_deduplication = false
   message_retention_seconds   = 1800  # 30 minutes
   visibility_timeout_seconds  = 120   # 2 minutes
-  
-  
+
+
   tags = {
     Environment = "prod"
     Purpose     = "compilation-requests"
@@ -71,4 +71,3 @@ output "compilation_queue_staging_arn" {
 output "compilation_queue_prod_arn" {
   value = aws_sqs_queue.compilation_queue_prod.arn
 }
-

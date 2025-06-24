@@ -34,9 +34,9 @@ resource "aws_lambda_function" "compilation_beta" {
       TIMEOUT_SECONDS  = "90"
     }
   }
-  
+
   depends_on = [aws_cloudwatch_log_group.compilation_beta]
-  
+
   tags = {
     Environment = "beta"
     Purpose     = "compilation"
@@ -46,7 +46,7 @@ resource "aws_lambda_function" "compilation_beta" {
 resource "aws_cloudwatch_log_group" "compilation_beta" {
   name              = "/aws/lambda/compilation-beta"
   retention_in_days = 14
-  
+
   tags = {
     Environment = "beta"
     Purpose     = "compilation-logs"
@@ -75,9 +75,9 @@ resource "aws_lambda_function" "compilation_staging" {
       TIMEOUT_SECONDS  = "90"
     }
   }
-  
+
   depends_on = [aws_cloudwatch_log_group.compilation_staging]
-  
+
   tags = {
     Environment = "staging"
     Purpose     = "compilation"
@@ -87,7 +87,7 @@ resource "aws_lambda_function" "compilation_staging" {
 resource "aws_cloudwatch_log_group" "compilation_staging" {
   name              = "/aws/lambda/compilation-staging"
   retention_in_days = 14
-  
+
   tags = {
     Environment = "staging"
     Purpose     = "compilation-logs"
@@ -116,9 +116,9 @@ resource "aws_lambda_function" "compilation_prod" {
       TIMEOUT_SECONDS  = "90"
     }
   }
-  
+
   depends_on = [aws_cloudwatch_log_group.compilation_prod]
-  
+
   tags = {
     Environment = "prod"
     Purpose     = "compilation"
@@ -128,10 +128,9 @@ resource "aws_lambda_function" "compilation_prod" {
 resource "aws_cloudwatch_log_group" "compilation_prod" {
   name              = "/aws/lambda/compilation-prod"
   retention_in_days = 14
-  
+
   tags = {
     Environment = "prod"
     Purpose     = "compilation-logs"
   }
 }
-

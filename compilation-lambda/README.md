@@ -70,7 +70,7 @@ WebSocket subscription:
 WebSocket result:
 ```json
 {
-  "guid": "uuid-string", 
+  "guid": "uuid-string",
   "result": {
     "code": 0,
     "stdout": ["Hello World"],

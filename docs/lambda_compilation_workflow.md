@@ -151,7 +151,7 @@ TIMEOUT_SECONDS=90
 # Active for Beta Environment
 resource "aws_alb_listener_rule" "compilation_beta" {
   priority = 10
-  
+
   condition {
     path_pattern {
       values = [
@@ -160,7 +160,7 @@ resource "aws_alb_listener_rule" "compilation_beta" {
       ]
     }
   }
-  
+
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.compilation_lambda_beta.arn

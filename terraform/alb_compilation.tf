@@ -5,11 +5,11 @@
 resource "aws_alb_target_group" "compilation_lambda_beta" {
   name        = "compilation-lambda-beta"
   target_type = "lambda"
-  
+
   health_check {
     enabled = false
   }
-  
+
   tags = {
     Environment = "beta"
     Purpose     = "compilation-lambda"
@@ -19,11 +19,11 @@ resource "aws_alb_target_group" "compilation_lambda_beta" {
 resource "aws_alb_target_group" "compilation_lambda_staging" {
   name        = "compilation-lambda-staging"
   target_type = "lambda"
-  
+
   health_check {
     enabled = false
   }
-  
+
   tags = {
     Environment = "staging"
     Purpose     = "compilation-lambda"
@@ -33,11 +33,11 @@ resource "aws_alb_target_group" "compilation_lambda_staging" {
 resource "aws_alb_target_group" "compilation_lambda_prod" {
   name        = "compilation-lambda-prod"
   target_type = "lambda"
-  
+
   health_check {
     enabled = false
   }
-  
+
   tags = {
     Environment = "prod"
     Purpose     = "compilation-lambda"
@@ -48,21 +48,21 @@ resource "aws_alb_target_group" "compilation_lambda_prod" {
 resource "aws_alb_target_group_attachment" "compilation_lambda_beta" {
   target_group_arn = aws_alb_target_group.compilation_lambda_beta.arn
   target_id        = aws_lambda_function.compilation_beta.arn
-  
+
   depends_on = [aws_lambda_permission.compilation_beta_alb]
 }
 
 resource "aws_alb_target_group_attachment" "compilation_lambda_staging" {
   target_group_arn = aws_alb_target_group.compilation_lambda_staging.arn
   target_id        = aws_lambda_function.compilation_staging.arn
-  
+
   depends_on = [aws_lambda_permission.compilation_staging_alb]
 }
 
 resource "aws_alb_target_group_attachment" "compilation_lambda_prod" {
   target_group_arn = aws_alb_target_group.compilation_lambda_prod.arn
   target_id        = aws_lambda_function.compilation_prod.arn
-  
+
   depends_on = [aws_lambda_permission.compilation_prod_alb]
 }
 
@@ -86,7 +86,7 @@ resource "aws_alb_listener_rule" "compilation_beta" {
   }
 
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-  
+
   tags = {
     Environment = "beta"
     Purpose     = "compilation-routing"
@@ -113,7 +113,7 @@ resource "aws_alb_listener_rule" "compilation_beta" {
 #   }
 #
 #   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-#   
+#
 #   tags = {
 #     Environment = "staging"
 #     Purpose     = "compilation-routing"
@@ -140,7 +140,7 @@ resource "aws_alb_listener_rule" "compilation_beta" {
 #   }
 #
 #   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-#   
+#
 #   tags = {
 #     Environment = "prod"
 #     Purpose     = "compilation-routing"
