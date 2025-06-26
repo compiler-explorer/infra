@@ -53,13 +53,13 @@ variable "lambda_timeout_seconds" {
 variable "sqs_message_retention_seconds" {
   description = "SQS message retention period in seconds"
   type        = number
-  default     = 1800 # 30 minutes
+  default     = 60 # 1 minute
 }
 
 variable "sqs_visibility_timeout_seconds" {
   description = "SQS visibility timeout in seconds"
   type        = number
-  default     = 120 # 2 minutes
+  default     = 5 # 5 seconds
 }
 
 variable "cloudwatch_log_retention_days" {
