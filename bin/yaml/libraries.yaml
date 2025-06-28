@@ -438,6 +438,8 @@ libraries:
       - cpptrace
       target_prefix: v
       targets:
+      - 1.0.2
+      - 1.0.1
       - 1.0.0
       - 0.8.3
       - 0.8.2
@@ -969,7 +971,7 @@ libraries:
       build_type: cmake
       check_file: README.md
       depends:
-      - libraries/c++/cpptrace 0.8.2
+      - libraries/c++/cpptrace 1.0.2
       extra_cmake_arg:
       - -DCMAKE_BUILD_TYPE=Release
       - -DBUILD_SHARED_LIBS=on
@@ -988,6 +990,7 @@ libraries:
       - 2.0.1
       - 2.0.2
       - 2.1.0
+      - 2.2.0
       type: github
     libbpf:
       build_type: make
