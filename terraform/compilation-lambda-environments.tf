@@ -9,7 +9,7 @@ module "compilation_lambda_beta" {
   websocket_url       = "wss://events.compiler-explorer.com/beta"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = true
-  alb_priority        = 15
+  alb_priority        = 91
   alb_path_patterns = [
     "/beta/api/compiler/*/compile",
     "/beta/api/compiler/*/cmake"
@@ -30,7 +30,7 @@ module "compilation_lambda_beta" {
 #   websocket_url       = "wss://events.compiler-explorer.com/staging"
 #   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 #   enable_alb_listener = false # Disabled initially
-#   alb_priority        = 16
+#   alb_priority        = 81
 #   alb_path_patterns = [
 #     "/staging/api/compiler/*/compile",
 #     "/staging/api/compiler/*/cmake"
@@ -51,7 +51,7 @@ module "compilation_lambda_beta" {
 #   websocket_url       = "wss://events.compiler-explorer.com/prod"
 #   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
 #   enable_alb_listener = false # Disabled initially
-#   alb_priority        = 17
+#   alb_priority        = 71
 #   alb_path_patterns = [
 #     "/api/compiler/*/compile",
 #     "/api/compiler/*/cmake"

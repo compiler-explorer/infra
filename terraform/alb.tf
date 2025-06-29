@@ -55,7 +55,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
     ignore_changes = [action]
   }
 
-  priority = 1
+  priority = 101
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -78,7 +78,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
     ignore_changes = [action]
   }
 
-  priority = 2
+  priority = 111
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -101,7 +101,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
     ignore_changes = [action]
   }
 
-  priority = 3
+  priority = 121
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -124,7 +124,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
     ignore_changes = [action]
   }
 
-  priority = 6
+  priority = 151
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -147,7 +147,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winstaging"
     ignore_changes = [action]
   }
 
-  priority = 7
+  priority = 161
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -170,7 +170,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
     ignore_changes = [action]
   }
 
-  priority = 8
+  priority = 171
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -193,7 +193,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod
     ignore_changes = [action]
   }
 
-  priority = 9
+  priority = 181
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -216,7 +216,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64stag
     ignore_changes = [action]
   }
 
-  priority = 10
+  priority = 191
   action {
     type = "forward"
     # This target group ARN is managed by blue-green deployment process
@@ -268,7 +268,7 @@ resource "aws_alb_target_group_attachment" "lambda-stats-endpoint" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
-  priority = 4
+  priority = 131
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.lambda.arn
@@ -282,7 +282,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
-  priority = 5
+  priority = 141
   action {
     type = "redirect"
     redirect {
@@ -302,7 +302,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
 
 # Status API ALB listener rule
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-status" {
-  priority = 11
+  priority = 201
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.lambda_status.arn
