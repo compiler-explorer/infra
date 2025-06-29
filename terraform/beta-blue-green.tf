@@ -68,9 +68,9 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label       = "Calculate the backlog per instance (compilations per instance)"
+        label       = "Calculate the backlog per instance (compilations per instance), ensuring minimum scaling"
         id          = "e1"
-        expression  = "m1 / m2"
+        expression  = "(m1 + 1) / MAX(m2, 1)"
         return_data = true
       }
     }
@@ -123,9 +123,9 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label       = "Calculate the backlog per instance (compilations per instance)"
+        label       = "Calculate the backlog per instance (compilations per instance), ensuring minimum scaling"
         id          = "e1"
-        expression  = "m1 / m2"
+        expression  = "(m1 + 1) / MAX(m2, 1)"
         return_data = true
       }
     }
