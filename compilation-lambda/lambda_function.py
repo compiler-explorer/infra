@@ -229,6 +229,48 @@ class WebSocketClient:
         """Called when WebSocket connection closes."""
         logger.info(f"WebSocket closed for {self.guid}")
 
+    def connect_and_subscribe(self):
+        """Connect to WebSocket and subscribe to GUID (doesn't wait for result)."""
+        if not self.url:
+            raise CompilationError("WEBSOCKET_URL environment variable not set")
+
+        logger.info(f"Connecting to WebSocket URL: {self.url} for GUID: {self.guid}")
+        websocket.enableTrace(False)
+        self.ws = websocket.WebSocketApp(
+            self.url, on_open=self.on_open, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close
+        )
+
+        if self.ws is not None:
+            logger.info(f"Starting WebSocket connection for {self.guid}")
+            self.ws.run_forever()
+        else:
+            raise CompilationError("WebSocket client not initialized")
+
+    def wait_for_result(self, timeout: int) -> Dict[str, Any]:
+        """Wait for compilation result on already-connected WebSocket."""
+        start_time = time.time()
+        logger.info(f"Waiting for result for {self.guid}, timeout: {timeout}s, connected: {self.connected}")
+
+        while time.time() - start_time < timeout:
+            if self.result is not None:
+                logger.info(f"Received result for {self.guid} after {time.time() - start_time:.2f}s")
+                if self.ws:
+                    self.ws.close()
+                return self.result
+
+            # Log progress every 10 seconds
+            elapsed = time.time() - start_time
+            if elapsed > 0 and int(elapsed) % 10 == 0:
+                logger.info(f"Still waiting for {self.guid}, elapsed: {elapsed:.1f}s, connected: {self.connected}")
+
+            time.sleep(0.1)
+
+        # Timeout reached
+        logger.error(f"WebSocket timeout for {self.guid} after {timeout}s, connected: {self.connected}")
+        if self.ws:
+            self.ws.close()
+        raise WebSocketTimeoutError(f"No response received within {timeout} seconds")
+
     def connect_and_wait(self, timeout: int) -> Dict[str, Any]:
         """Connect to WebSocket and wait for result."""
         if not self.url:
@@ -375,16 +417,48 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         guid = generate_guid()
         logger.info(f"Generated GUID {guid} for compiler {compiler_id}")
 
-        # Send request to SQS queue with headers
+        # First, establish WebSocket connection and subscribe to the GUID
+        # This ensures we're ready to receive the result before sending to SQS
+        try:
+            logger.info(f"Setting up WebSocket subscription for {guid} before sending to SQS")
+            ws_client = WebSocketClient(WEBSOCKET_URL, guid)
+
+            # Start the WebSocket connection in a separate thread
+            import threading
+
+            ws_thread = threading.Thread(target=ws_client.connect_and_subscribe)
+            ws_thread.daemon = True
+            ws_thread.start()
+
+            # Wait a moment to ensure subscription is established
+            start_time = time.time()
+            while not ws_client.connected and time.time() - start_time < 5:
+                time.sleep(0.1)
+
+            if not ws_client.connected:
+                raise CompilationError("Failed to establish WebSocket connection within 5 seconds")
+
+            logger.info(f"WebSocket subscription ready for {guid}, now sending to SQS")
+
+        except Exception as e:
+            logger.error(f"Failed to setup WebSocket subscription: {e}")
+            return create_error_response(500, f"Failed to setup result subscription: {str(e)}")
+
+        # Now send request to SQS queue with headers
         try:
             send_to_sqs(guid, compiler_id, body, is_cmake, headers)
         except SQSError as e:
             logger.error(f"SQS error: {e}")
+            try:
+                if ws_client and ws_client.ws:
+                    ws_client.ws.close()
+            except Exception:
+                pass
             return create_error_response(500, f"Failed to queue compilation request: {str(e)}")
 
-        # Wait for compilation result via WebSocket
+        # Wait for compilation result via the already-connected WebSocket
         try:
-            result = wait_for_compilation_result(guid, TIMEOUT_SECONDS)
+            result = ws_client.wait_for_result(TIMEOUT_SECONDS)
             logger.info(f"Compilation {guid} completed successfully")
 
             # Get Accept header for response formatting
@@ -393,10 +467,20 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         except WebSocketTimeoutError as e:
             logger.error(f"Timeout waiting for compilation result: {e}")
+            try:
+                if ws_client and ws_client.ws:
+                    ws_client.ws.close()
+            except Exception:
+                pass
             return create_error_response(408, f"Compilation timeout: {str(e)}")
 
         except Exception as e:
             logger.error(f"WebSocket error: {e}")
+            try:
+                if ws_client and ws_client.ws:
+                    ws_client.ws.close()
+            except Exception:
+                pass
             return create_error_response(500, f"Failed to receive compilation result: {str(e)}")
 
     except Exception as e:

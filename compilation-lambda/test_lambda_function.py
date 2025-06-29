@@ -282,13 +282,18 @@ class TestCompilationLambda(unittest.TestCase):
 
         self.assertEqual(result, {"source": body})
 
-    @patch("lambda_function.wait_for_compilation_result")
+    @patch("lambda_function.WebSocketClient")
     @patch("lambda_function.send_to_sqs")
     @patch("lambda_function.generate_guid")
-    def test_lambda_handler_success(self, mock_generate_guid, mock_send_to_sqs, mock_wait_for_result):
+    def test_lambda_handler_success(self, mock_generate_guid, mock_send_to_sqs, mock_ws_client_class):
         """Test successful lambda handler execution."""
         mock_generate_guid.return_value = "test-guid-123"
-        mock_wait_for_result.return_value = {"code": 0, "stdout": ["Success"]}
+
+        # Mock WebSocket client
+        mock_ws_client = Mock()
+        mock_ws_client.connected = True
+        mock_ws_client.wait_for_result.return_value = {"code": 0, "stdout": ["Success"]}
+        mock_ws_client_class.return_value = mock_ws_client
 
         event = {
             "path": "/beta/api/compiler/gcc12/compile",
@@ -308,7 +313,7 @@ class TestCompilationLambda(unittest.TestCase):
             False,
             {"Content-Type": "application/json", "Accept": "application/json"},
         )
-        mock_wait_for_result.assert_called_once_with("test-guid-123", 60)
+        mock_ws_client.wait_for_result.assert_called_once_with(60)
 
     @patch("lambda_function.wait_for_compilation_result")
     @patch("lambda_function.send_to_sqs")
@@ -374,15 +379,20 @@ class TestCompilationLambda(unittest.TestCase):
         body = json.loads(response["body"])
         self.assertIn("Failed to queue compilation request", body["error"])
 
-    @patch("lambda_function.wait_for_compilation_result")
+    @patch("lambda_function.WebSocketClient")
     @patch("lambda_function.send_to_sqs")
     @patch("lambda_function.generate_guid")
-    def test_lambda_handler_timeout(self, mock_generate_guid, mock_send_to_sqs, mock_wait_for_result):
+    def test_lambda_handler_timeout(self, mock_generate_guid, mock_send_to_sqs, mock_ws_client_class):
         """Test lambda handler with WebSocket timeout."""
         mock_generate_guid.return_value = "test-guid-123"
-        mock_wait_for_result.side_effect = lambda_function.WebSocketTimeoutError(
+
+        # Mock WebSocket client that times out
+        mock_ws_client = Mock()
+        mock_ws_client.connected = True
+        mock_ws_client.wait_for_result.side_effect = lambda_function.WebSocketTimeoutError(
             "No response received within 30 seconds"
         )
+        mock_ws_client_class.return_value = mock_ws_client
 
         event = {"path": "/beta/api/compiler/gcc12/compile", "httpMethod": "POST", "body": "{}", "headers": {}}
 
