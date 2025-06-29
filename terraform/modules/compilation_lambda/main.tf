@@ -72,9 +72,8 @@ resource "aws_alb_target_group" "compilation_lambda" {
   name        = "compilation-lambda-${var.environment}"
   target_type = "lambda"
 
-  health_check {
-    enabled = false
-  }
+  # Health checks are not applicable for Lambda target groups
+  # Lambda functions are automatically considered healthy
 
   tags = merge({
     Environment = var.environment
