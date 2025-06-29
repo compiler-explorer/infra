@@ -19,7 +19,7 @@ sequenceDiagram
     participant WS as WebSocket API<br/>Events System
     participant Instance as Compiler Instance<br/>(Backend Worker)
 
-    User->>ALB: 1. POST /api/compilers/gcc/compile
+    User->>ALB: 1. POST /api/compiler/gcc/compile
     ALB->>Lambda: 2. Route to compilation endpoint
     Lambda->>Lambda: 3. Parse request & generate GUID
     Lambda->>WS: 4. Subscribe to GUID for results
@@ -38,7 +38,7 @@ sequenceDiagram
 
 1. **User → ALB**: User submits code for compilation via standard REST API
 2. **ALB → Lambda**: Load balancer routes compilation requests to Lambda function
-3. **Lambda → WebSocket**: Subscribes to unique GUID to receive compilation results
+3. **Lambda → WebSocket**: Subscribes to unique GUID to receive compilation results (BEFORE sending to SQS)
 4. **Lambda → SQS**: Queues compilation request with GUID and all necessary context
 5. **Instance → SQS**: Backend instances poll queue for compilation work
 6. **Instance → Local**: Executes compilation using existing compiler infrastructure
@@ -155,8 +155,8 @@ resource "aws_alb_listener_rule" "compilation_beta" {
   condition {
     path_pattern {
       values = [
-        "/beta/api/compilers/*/compile",
-        "/beta/api/compilers/*/cmake"
+        "/beta/api/compiler/*/compile",
+        "/beta/api/compiler/*/cmake"
       ]
     }
   }
@@ -191,7 +191,7 @@ compilation.concurrent_workers=2
 ├─────────────────────────────────────────────────────────────────────────┤
 │                                                                         │
 │  User compiles C++ code via standard API:                               │
-│  • POST /beta/api/compilers/gcc/compile                                 │
+│  • POST /beta/api/compiler/gcc/compile                                  │
 │  • Content-Type: application/json or text/plain                         │
 │  • Accept: application/json or text/plain                               │
 │  • Body: {"source": "int main(){}", "options": {...}}                   │
@@ -211,7 +211,7 @@ compilation.concurrent_workers=2
 │                                                                         │
 │  Lambda function execution:                                             │
 │  1. Parse ALB event to extract request details                          │
-│  2. Extract compiler ID from path: /api/compilers/{gcc}/compile         │
+│  2. Extract compiler ID from path: /api/compiler/{gcc}/compile          │
 │  3. Parse request body (JSON or plain text)                             │
 │  4. Store Accept header for response formatting                         │
 │  5. Generate unique GUID for request tracking                           │
@@ -240,10 +240,7 @@ compilation.concurrent_workers=2
 │                                                                         │
 │  1. Connect to: wss://events.godbolt.org/beta                           │
 │  2. Send subscription message:                                          │
-│     {                                                                   │
-│       "type": "subscribe",                                              │
-│       "guid": "abc123def-456-789..."                                    │
-│     }                                                                   │
+│     subscribe: abc123def-456-789...                                     │
 │  3. Configure timeout: 90 seconds (configurable)                        │
 │  4. Setup retry logic: 2 attempts (configurable)                        │
 │                                                                         │
@@ -268,21 +265,20 @@ compilation.concurrent_workers=2
 │  Message structure:                                                     │
 │  {                                                                      │
 │    "guid": "abc123def-456-789...",                                      │
-│    "compiler_id": "gcc",                                                │
-│    "endpoint": "compile",                                               │
-│    "request_body": {                                                    │
-│      "source": "int main() { return 0; }",                              │
-│      "options": {                                                       │
-│        "userArguments": "-O2",                                          │
-│        "compilerOptions": {},                                           │
-│        "filters": {...}                                                 │
-│      }                                                                  │
-│    },                                                                   │
+│    "compilerId": "gcc",                                                 │
+│    "isCMake": false,                                                    │
 │    "headers": {                                                         │
 │      "Accept": "application/json",                                      │
 │      "Content-Type": "application/json"                                 │
 │    },                                                                   │
-│    "timestamp": "2024-01-01T00:00:00Z"                                  │
+│    "source": "int main() { return 0; }",                               │
+│    "options": ["-O2"],                                                  │
+│    "filters": {},                                                       │
+│    "backendOptions": {},                                                │
+│    "tools": [],                                                         │
+│    "libraries": [],                                                     │
+│    "files": [],                                                         │
+│    "executeParameters": {}                                              │
 │  }                                                                      │
 │                                                                         │
 │  FIFO properties:                                                       │
@@ -305,7 +301,7 @@ compilation.concurrent_workers=2
 │                                                                         │
 │  1. Queue consumer polls SQS every 100ms                                │
 │  2. Receives compilation message from queue                             │
-│  3. Extract: guid, compiler_id, request_body, headers                   │
+│  3. Extract: guid, compilerId, source, options, headers                │
 │  4. Delete message from queue (prevents reprocessing)                   │
 │                                                                         │
 │  Compilation execution:                                                 │
@@ -469,11 +465,17 @@ All compilation messages follow a consistent schema:
 ```json
 {
   "guid": "unique-request-identifier",
-  "compiler_id": "extracted-from-url-path",
-  "endpoint": "compile|cmake",
-  "request_body": "original-request-body",
+  "compilerId": "extracted-from-url-path",
+  "isCMake": false,
   "headers": "preserved-request-headers",
-  "timestamp": "iso-8601-timestamp"
+  "source": "int main() { return 0; }",
+  "options": ["-O2"],
+  "filters": {},
+  "backendOptions": {},
+  "tools": [],
+  "libraries": [],
+  "files": [],
+  "executeParameters": {}
 }
 ```
 
@@ -551,9 +553,16 @@ All compilation messages follow a consistent schema:
 
 **Log Aggregation:**
 
-- **Lambda Logs**: Request processing, WebSocket communication, error details
+- **Lambda Logs**: Error details, warnings, and critical issues only (WARNING level for performance)
 - **Instance Logs**: Queue polling, compilation execution, result publishing
 - **WebSocket Logs**: Connection lifecycle, message routing, subscription management
+
+**Performance Logging:**
+
+The Lambda function uses WARNING level logging by default to optimize performance:
+- Only errors, warnings, and critical issues are logged to CloudWatch
+- Verbose request/response details are excluded for faster execution
+- Timeout and error conditions are still fully logged for debugging
 
 ## Error Handling and Edge Cases
 
