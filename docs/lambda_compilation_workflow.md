@@ -138,7 +138,7 @@ graph LR
 ### Lambda Function Environment Variables
 
 ```properties
-# Beta Environment Lambda
+# Beta Environment Lambda (Currently Active)
 SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/account/beta-compilation-queue.fifo
 WEBSOCKET_URL=wss://events.godbolt.org/beta
 RETRY_COUNT=2
@@ -148,7 +148,7 @@ TIMEOUT_SECONDS=90
 ### ALB Listener Rules
 
 ```terraform
-# Active for Beta Environment
+# Active for Beta Environment Only
 resource "aws_alb_listener_rule" "compilation_beta" {
   priority = 10
 
@@ -166,6 +166,9 @@ resource "aws_alb_listener_rule" "compilation_beta" {
     target_group_arn = aws_alb_target_group.compilation_lambda_beta.arn
   }
 }
+
+# Note: Staging and Production environments are currently disabled in Terraform
+# configuration for focused beta testing and validation.
 ```
 
 ### Instance Queue Consumer Configuration
@@ -443,11 +446,11 @@ The Lambda function implements a sophisticated request handling pipeline:
 
 **Environment-Specific Configuration:**
 
-| Environment | Lambda Function | SQS Queue | WebSocket URL |
-|-------------|-----------------|-----------|---------------|
-| **Beta** | `compilation-beta` | `beta-compilation-queue.fifo` | `wss://events.godbolt.org/beta` |
-| **Staging** | `compilation-staging` | `staging-compilation-queue.fifo` | `wss://events.godbolt.org/staging` |
-| **Production** | `compilation-prod` | `prod-compilation-queue.fifo` | `wss://events.godbolt.org/` |
+| Environment | Lambda Function | SQS Queue | WebSocket URL | Status |
+|-------------|-----------------|-----------|---------------|--------|
+| **Beta** | `compilation-beta` | `beta-compilation-queue.fifo` | `wss://events.godbolt.org/beta` | **Active** |
+| **Staging** | `compilation-staging` | `staging-compilation-queue.fifo` | `wss://events.godbolt.org/staging` | *Provisioned (Inactive)* |
+| **Production** | `compilation-prod` | `prod-compilation-queue.fifo` | `wss://events.godbolt.org/` | *Provisioned (Inactive)* |
 
 ### SQS Queue Architecture
 
@@ -528,9 +531,9 @@ All compilation messages follow a consistent schema:
 
 **Environment Rollout:**
 
-1. **Beta Environment**: Active deployment for testing and validation
-2. **Staging Environment**: Infrastructure ready, listener rules disabled
-3. **Production Environment**: Infrastructure provisioned, awaiting activation
+1. **Beta Environment**: Active deployment for testing and validation (ALB listener rules enabled)
+2. **Staging Environment**: Infrastructure commented out in Terraform, pending beta validation
+3. **Production Environment**: Infrastructure commented out in Terraform, pending beta validation
 
 **Gradual Migration Approach:**
 
