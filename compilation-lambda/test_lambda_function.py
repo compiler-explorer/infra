@@ -43,18 +43,25 @@ class TestCompilationLambda(unittest.TestCase):
     def test_extract_compiler_id(self):
         """Test compiler ID extraction from paths."""
         test_cases = [
+            # Production format: /api/compiler/{id}/compile
+            ("/api/compiler/gcc12/compile", "gcc12"),
+            ("/api/compiler/clang15/cmake", "clang15"),
+            ("api/compiler/rust-nightly/compile", "rust-nightly"),
+            ("/api/compiler/g++12.2/compile", "g++12.2"),
+            ("/api/compiler/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
+            
             # Environment-prefixed format: /{env}/api/compiler/{id}/compile
             ("/beta/api/compiler/gcc12/compile", "gcc12"),
             ("/staging/api/compiler/clang15/cmake", "clang15"),
-            ("/prod/api/compiler/rust-nightly/compile", "rust-nightly"),
             ("beta/api/compiler/g++12.2/compile", "g++12.2"),
             ("/beta/api/compiler/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
             
             # Invalid paths
             ("/invalid/path", None),
-            ("/api/compilers/gcc12/compile", None),  # Legacy format no longer supported
+            ("/api/compilers/gcc12/compile", None),  # Legacy plural format no longer supported
             ("/api/compilers/", None),
-            ("/beta/api/compiler/", None),
+            ("/api/compiler/", None),  # Missing compiler ID
+            ("/beta/api/compiler/", None),  # Missing compiler ID
             ("/beta/api/compilers/gcc12/compile", None),  # Wrong plural form
             ("", None),
         ]
@@ -67,12 +74,14 @@ class TestCompilationLambda(unittest.TestCase):
     def test_is_cmake_request(self):
         """Test cmake request detection."""
         test_cases = [
+            # Production format
+            ("/api/compiler/gcc12/cmake", True),
+            ("/api/compiler/clang15/compile", False),
             # Environment-prefixed format
             ("/beta/api/compiler/gcc12/cmake", True),
             ("/staging/api/compiler/clang15/compile", False),
-            ("/prod/api/compiler/gcc12/cmake", True),
-            # Invalid cases
-            ("/api/compilers/gcc12/cmake", False),  # Legacy format no longer supported
+            # Invalid cases  
+            ("/api/compilers/gcc12/cmake", True),  # Legacy plural format still detects /cmake ending
             ("cmake", False),  # Must end with /cmake
             ("", False),
         ]
@@ -215,6 +224,34 @@ class TestCompilationLambda(unittest.TestCase):
             {"Content-Type": "application/json", "Accept": "application/json"},
         )
         mock_wait_for_result.assert_called_once_with("test-guid-123", 60)
+
+    @patch("lambda_function.wait_for_compilation_result")
+    @patch("lambda_function.send_to_sqs")
+    @patch("lambda_function.generate_guid")
+    def test_lambda_handler_production_path(self, mock_generate_guid, mock_send_to_sqs, mock_wait_for_result):
+        """Test successful lambda handler execution with production path format."""
+        mock_generate_guid.return_value = "test-guid-456"
+        mock_wait_for_result.return_value = {"code": 0, "stdout": ["Success"]}
+
+        event = {
+            "path": "/api/compiler/gcc12/compile",
+            "httpMethod": "POST",
+            "body": '{"source": "int main() { return 0; }"}',
+            "headers": {"Content-Type": "application/json", "Accept": "application/json"},
+        }
+
+        response = lambda_function.lambda_handler(event, None)
+
+        self.assertEqual(response["statusCode"], 200)
+        mock_generate_guid.assert_called_once()
+        mock_send_to_sqs.assert_called_once_with(
+            "test-guid-456",
+            "gcc12",
+            '{"source": "int main() { return 0; }"}',
+            False,
+            {"Content-Type": "application/json", "Accept": "application/json"},
+        )
+        mock_wait_for_result.assert_called_once_with("test-guid-456", 60)
 
     def test_lambda_handler_invalid_method(self):
         """Test lambda handler with invalid HTTP method."""
