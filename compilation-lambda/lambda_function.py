@@ -101,10 +101,18 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
 
     # Parse body based on content type
     content_type = headers.get("content-type", headers.get("Content-Type", ""))
+    logger.info(f"Original body type: {type(body)}, length: {len(body) if body else 0}")
+    logger.debug(f"Original body preview: {body[:200] if body else 'EMPTY'}...")
+    logger.debug(f"Content-Type header: {content_type}")
+
     request_data = parse_request_body(body, content_type)
 
     logger.info(f"Parsed request data type: {type(request_data)}")
-    logger.debug(f"Request data keys: {list(request_data.keys()) if isinstance(request_data, dict) else 'Not a dict'}")
+    if isinstance(request_data, dict):
+        logger.debug(f"Request data keys: {list(request_data.keys())}")
+        logger.debug(f"Request data source: {request_data.get('source', 'NO_SOURCE')[:50]}...")
+    else:
+        logger.warning(f"Request data is not a dict: {str(request_data)[:100]}...")
 
     # Construct RemoteCompilationRequest object with all required fields
     message_body = {
@@ -133,6 +141,7 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
 
     logger.info(f"Constructed message with {len(message_body)} fields")
     logger.debug(f"Message body keys: {list(message_body.keys())}")
+    logger.debug(f"Message body type before JSON encoding: {type(message_body)}")
 
     try:
         # Ensure we're sending a proper JSON string (not double-encoded)
@@ -142,7 +151,16 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
         else:
             message_json = json.dumps(message_body, separators=(",", ":"))
 
-        logger.debug(f"Sending message length: {len(message_json)} chars")
+        logger.info(f"Final message length: {len(message_json)} chars")
+        logger.info(f"Final message preview: {message_json[:200]}...")
+
+        # Verify the message can be parsed back (sanity check)
+        try:
+            parsed_back = json.loads(message_json)
+            logger.info(f"Sanity check - parsed back type: {type(parsed_back)}")
+            logger.info(f"Sanity check - has guid: {'guid' in parsed_back}")
+        except Exception as sanity_error:
+            logger.error(f"SANITY CHECK FAILED - message cannot be parsed back: {sanity_error}")
 
         sqs.send_message(
             QueueUrl=SQS_QUEUE_URL,
