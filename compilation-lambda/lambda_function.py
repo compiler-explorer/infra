@@ -95,7 +95,7 @@ def parse_request_body(body: str, content_type: str) -> Dict[str, Any]:
 
 
 def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers: Dict[str, str]) -> None:
-    """Send compilation request to SQS queue with headers preserved."""
+    """Send compilation request to SQS queue as RemoteCompilationRequest."""
     if not SQS_QUEUE_URL:
         raise SQSError("SQS_QUEUE_URL environment variable not set")
 
@@ -103,22 +103,58 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
     content_type = headers.get("content-type", headers.get("Content-Type", ""))
     request_data = parse_request_body(body, content_type)
 
+    logger.info(f"Parsed request data type: {type(request_data)}")
+    logger.debug(f"Request data keys: {list(request_data.keys()) if isinstance(request_data, dict) else 'Not a dict'}")
+
+    # Construct RemoteCompilationRequest object with all required fields
     message_body = {
         "guid": guid,
         "compilerId": compiler_id,
         "isCMake": is_cmake,
-        "request": request_data,
         "headers": headers,  # Preserve original headers for response formatting
+        # RemoteCompilationRequest fields with defaults
+        "source": request_data.get("source", ""),
+        "options": request_data.get("options", []),
+        "backendOptions": request_data.get("backendOptions", {}),
+        "filters": request_data.get("filters", {}),
+        "bypassCache": request_data.get("bypassCache", False),
+        "tools": request_data.get("tools", []),
+        "executeParameters": request_data.get("executeParameters", {}),
+        "libraries": request_data.get("libraries", []),
+        "files": request_data.get("files", []),
+        "lang": request_data.get("lang"),
+        "allowStoreCodeDebug": request_data.get("allowStoreCodeDebug", False),
     }
 
+    # Add any additional fields from the original request that aren't covered above
+    for key, value in request_data.items():
+        if key not in message_body:
+            message_body[key] = value
+
+    logger.info(f"Constructed message with {len(message_body)} fields")
+    logger.debug(f"Message body keys: {list(message_body.keys())}")
+
     try:
+        # Ensure we're sending a proper JSON string (not double-encoded)
+        if isinstance(message_body, str):
+            logger.warning("Message body is already a string - this might cause double encoding")
+            message_json = message_body
+        else:
+            message_json = json.dumps(message_body, separators=(",", ":"))
+
+        logger.debug(f"Sending message length: {len(message_json)} chars")
+
         sqs.send_message(
             QueueUrl=SQS_QUEUE_URL,
-            MessageBody=json.dumps(message_body),
+            MessageBody=message_json,
             MessageGroupId="default",
             MessageDeduplicationId=guid,
         )
-        logger.info(f"Sent compilation request {guid} to SQS queue")
+        logger.info(f"Successfully sent compilation request {guid} to SQS queue")
+
+    except (TypeError, ValueError) as e:
+        logger.error(f"Failed to JSON encode message body: {e}")
+        raise SQSError(f"Failed to JSON encode message: {e}") from e
     except ClientError as e:
         logger.error(f"Failed to send message to SQS: {e}")
         raise SQSError(f"Failed to send message to SQS: {e}") from e

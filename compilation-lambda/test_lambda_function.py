@@ -110,7 +110,18 @@ class TestCompilationLambda(unittest.TestCase):
         self.assertEqual(message_body["guid"], "test-guid")
         self.assertEqual(message_body["compilerId"], "gcc12")
         self.assertEqual(message_body["isCMake"], False)
-        self.assertEqual(message_body["request"], {"source": "test"})
+        self.assertEqual(message_body["source"], "test")
+        self.assertEqual(message_body["options"], [])  # Default added since not in request
+        # Check RemoteCompilationRequest fields have defaults
+        self.assertEqual(message_body["backendOptions"], {})
+        self.assertEqual(message_body["filters"], {})
+        self.assertEqual(message_body["bypassCache"], False)
+        self.assertEqual(message_body["tools"], [])
+        self.assertEqual(message_body["executeParameters"], {})
+        self.assertEqual(message_body["libraries"], [])
+        self.assertEqual(message_body["files"], [])
+        self.assertIsNone(message_body["lang"])
+        self.assertEqual(message_body["allowStoreCodeDebug"], False)
 
     @patch("lambda_function.sqs")
     @patch("lambda_function.SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo")
@@ -127,8 +138,83 @@ class TestCompilationLambda(unittest.TestCase):
 
         # Check message body contains plain text as source
         message_body = json.loads(call_args[1]["MessageBody"])
-        self.assertEqual(message_body["request"]["source"], plain_text_source)
+        self.assertEqual(message_body["source"], plain_text_source)
+        self.assertEqual(message_body["options"], [])
         self.assertEqual(message_body["headers"]["Content-Type"], "text/plain")
+
+    @patch("lambda_function.sqs")
+    @patch("lambda_function.SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo")
+    def test_send_to_sqs_complete_request(self, mock_sqs):
+        """Test SQS message sending with complete compilation request."""
+        mock_sqs.send_message.return_value = {"MessageId": "test-message-id"}
+
+        complete_request = {
+            "source": "int main() { return 0; }",
+            "options": ["-O2", "-std=c++17"],
+            "backendOptions": {"produceBinaryObject": True},
+            "filters": {"binary": True, "execute": False},
+            "bypassCache": True,
+            "tools": [{"id": "tool1", "args": ["--flag"]}],
+            "executeParameters": {"args": ["arg1"], "stdin": "input"},
+            "libraries": [{"id": "lib1", "version": "1.0"}],
+            "files": [{"name": "file.h", "contents": "#pragma once"}],
+            "lang": "c++",
+            "allowStoreCodeDebug": True,
+            "customField": "should be preserved",
+        }
+
+        headers = {"Content-Type": "application/json"}
+        lambda_function.send_to_sqs("test-guid", "gcc12", json.dumps(complete_request), False, headers)
+
+        mock_sqs.send_message.assert_called_once()
+        call_args = mock_sqs.send_message.call_args
+
+        # Check that all fields from the original request are preserved
+        message_body = json.loads(call_args[1]["MessageBody"])
+        self.assertEqual(message_body["guid"], "test-guid")
+        self.assertEqual(message_body["compilerId"], "gcc12")
+        self.assertEqual(message_body["isCMake"], False)
+
+        # Check that all original request fields are preserved
+        self.assertEqual(message_body["source"], "int main() { return 0; }")
+        self.assertEqual(message_body["options"], ["-O2", "-std=c++17"])
+        self.assertEqual(message_body["backendOptions"], {"produceBinaryObject": True})
+        self.assertEqual(message_body["filters"], {"binary": True, "execute": False})
+        self.assertEqual(message_body["bypassCache"], True)
+        self.assertEqual(message_body["tools"], [{"id": "tool1", "args": ["--flag"]}])
+        self.assertEqual(message_body["executeParameters"], {"args": ["arg1"], "stdin": "input"})
+        self.assertEqual(message_body["libraries"], [{"id": "lib1", "version": "1.0"}])
+        self.assertEqual(message_body["files"], [{"name": "file.h", "contents": "#pragma once"}])
+        self.assertEqual(message_body["lang"], "c++")
+        self.assertEqual(message_body["allowStoreCodeDebug"], True)
+        self.assertEqual(message_body["customField"], "should be preserved")
+
+    @patch("lambda_function.sqs")
+    @patch("lambda_function.SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo")
+    def test_send_to_sqs_prevents_double_encoding(self, mock_sqs):
+        """Test that SQS message prevents double JSON encoding."""
+        mock_sqs.send_message.return_value = {"MessageId": "test-message-id"}
+
+        request_data = {"source": "test", "options": ["-O2"]}
+        headers = {"Content-Type": "application/json"}
+        lambda_function.send_to_sqs("test-guid", "gcc12", json.dumps(request_data), False, headers)
+
+        mock_sqs.send_message.assert_called_once()
+        call_args = mock_sqs.send_message.call_args
+
+        # The message body should be a valid JSON string, not double-encoded
+        message_body_str = call_args[1]["MessageBody"]
+        self.assertIsInstance(message_body_str, str)
+
+        # Should be able to parse as JSON (not indexed characters)
+        message_body = json.loads(message_body_str)
+        self.assertIsInstance(message_body, dict)
+        self.assertEqual(message_body["source"], "test")
+        self.assertEqual(message_body["options"], ["-O2"])
+
+        # Ensure it's not double-encoded (would cause indexed characters)
+        self.assertNotIn("0", message_body)  # Would exist if double-encoded
+        self.assertNotIn("1", message_body)  # Would exist if double-encoded
 
     @patch("lambda_function.sqs")
     @patch("lambda_function.SQS_QUEUE_URL", "")
