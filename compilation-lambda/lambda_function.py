@@ -114,30 +114,34 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
     else:
         logger.warning(f"Request data is not a dict: {str(request_data)[:100]}...")
 
-    # Construct RemoteCompilationRequest object with all required fields
+    # Start with Lambda-specific fields
     message_body = {
         "guid": guid,
         "compilerId": compiler_id,
         "isCMake": is_cmake,
         "headers": headers,  # Preserve original headers for response formatting
-        # RemoteCompilationRequest fields with defaults
-        "source": request_data.get("source", ""),
-        "options": request_data.get("options", []),
-        "backendOptions": request_data.get("backendOptions", {}),
-        "filters": request_data.get("filters", {}),
-        "bypassCache": request_data.get("bypassCache", False),
-        "tools": request_data.get("tools", []),
-        "executeParameters": request_data.get("executeParameters", {}),
-        "libraries": request_data.get("libraries", []),
-        "files": request_data.get("files", []),
-        "lang": request_data.get("lang"),
-        "allowStoreCodeDebug": request_data.get("allowStoreCodeDebug", False),
     }
 
-    # Add any additional fields from the original request that aren't covered above
-    for key, value in request_data.items():
-        if key not in message_body:
-            message_body[key] = value
+    # Merge all fields from the original request first (preserves original values)
+    message_body.update(request_data)
+
+    # Add defaults for fields that are required by the consumer but might be missing
+    if "source" not in message_body:
+        message_body["source"] = ""
+    if "options" not in message_body:
+        message_body["options"] = []
+    if "filters" not in message_body:
+        message_body["filters"] = {}
+    if "backendOptions" not in message_body:
+        message_body["backendOptions"] = {}
+    if "tools" not in message_body:
+        message_body["tools"] = []
+    if "libraries" not in message_body:
+        message_body["libraries"] = []
+    if "files" not in message_body:
+        message_body["files"] = []
+    if "executeParameters" not in message_body:
+        message_body["executeParameters"] = {}
 
     logger.info(f"Constructed message with {len(message_body)} fields")
     logger.debug(f"Message body keys: {list(message_body.keys())}")
@@ -193,19 +197,29 @@ class WebSocketClient:
         logger.info(f"WebSocket connected for {self.guid}")
         self.connected = True
         # Subscribe to messages for this GUID
-        subscribe_msg = json.dumps({"action": "subscribe", "guid": self.guid})
+        # The events WebSocket expects a text message: "subscribe: <guid>"
+        subscribe_msg = f"subscribe: {self.guid}"
+        logger.info(f"Sending WebSocket subscription: {subscribe_msg}")
         ws.send(subscribe_msg)
+        logger.info(f"WebSocket subscription sent for {self.guid}")
 
     def on_message(self, ws, message):
         """Called when WebSocket receives a message."""
+        logger.info(f"WebSocket received message for {self.guid}: {message[:200]}...")
         try:
             data = json.loads(message)
-            if data.get("guid") == self.guid:
-                logger.info(f"Received result for {self.guid}")
+            message_guid = data.get("guid")
+            logger.info(f"Parsed message - expected GUID: {self.guid}, received GUID: {message_guid}")
+
+            if message_guid == self.guid:
+                logger.info(f"GUID match! Received result for {self.guid}")
                 self.result = data.get("result")
+                logger.info(f"Result type: {type(self.result)}, has data: {bool(self.result)}")
                 ws.close()
-        except json.JSONDecodeError:
-            logger.warning(f"Received invalid JSON message: {message}")
+            else:
+                logger.info(f"GUID mismatch - ignoring message for {message_guid}")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Received invalid JSON message: {message[:100]}... Error: {e}")
 
     def on_error(self, ws, error):
         """Called when WebSocket encounters an error."""
@@ -220,6 +234,7 @@ class WebSocketClient:
         if not self.url:
             raise CompilationError("WEBSOCKET_URL environment variable not set")
 
+        logger.info(f"Connecting to WebSocket URL: {self.url} for GUID: {self.guid}")
         websocket.enableTrace(False)
         self.ws = websocket.WebSocketApp(
             self.url, on_open=self.on_open, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close
@@ -229,6 +244,7 @@ class WebSocketClient:
         import threading
 
         if self.ws is not None:
+            logger.info(f"Starting WebSocket thread for {self.guid}")
             ws_thread = threading.Thread(target=self.ws.run_forever)
             ws_thread.daemon = True
             ws_thread.start()
@@ -237,12 +253,22 @@ class WebSocketClient:
 
         # Wait for connection and result
         start_time = time.time()
+        logger.info(f"Waiting for result for {self.guid}, timeout: {timeout}s")
+
         while time.time() - start_time < timeout:
             if self.result is not None:
+                logger.info(f"Received result for {self.guid} after {time.time() - start_time:.2f}s")
                 return self.result
+
+            # Log progress every 10 seconds
+            elapsed = time.time() - start_time
+            if elapsed > 0 and int(elapsed) % 10 == 0:
+                logger.info(f"Still waiting for {self.guid}, elapsed: {elapsed:.1f}s, connected: {self.connected}")
+
             time.sleep(0.1)
 
         # Timeout reached
+        logger.error(f"WebSocket timeout for {self.guid} after {timeout}s, connected: {self.connected}")
         if self.ws:
             self.ws.close()
         raise WebSocketTimeoutError(f"No response received within {timeout} seconds")

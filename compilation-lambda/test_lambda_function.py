@@ -112,16 +112,17 @@ class TestCompilationLambda(unittest.TestCase):
         self.assertEqual(message_body["isCMake"], False)
         self.assertEqual(message_body["source"], "test")
         self.assertEqual(message_body["options"], [])  # Default added since not in request
-        # Check RemoteCompilationRequest fields have defaults
+        # Check that required defaults are added
         self.assertEqual(message_body["backendOptions"], {})
         self.assertEqual(message_body["filters"], {})
-        self.assertEqual(message_body["bypassCache"], False)
         self.assertEqual(message_body["tools"], [])
         self.assertEqual(message_body["executeParameters"], {})
         self.assertEqual(message_body["libraries"], [])
         self.assertEqual(message_body["files"], [])
-        self.assertIsNone(message_body["lang"])
-        self.assertEqual(message_body["allowStoreCodeDebug"], False)
+        # Optional fields not added if not in request
+        self.assertNotIn("bypassCache", message_body)
+        self.assertNotIn("lang", message_body)
+        self.assertNotIn("allowStoreCodeDebug", message_body)
 
     @patch("lambda_function.sqs")
     @patch("lambda_function.SQS_QUEUE_URL", "https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo")
