@@ -49,21 +49,21 @@ def generate_guid() -> str:
 def extract_compiler_id(path: str) -> Optional[str]:
     """
     Extract compiler ID from ALB request path.
-    Expected paths: 
+    Expected paths:
     - Production: /api/compiler/{compiler_id}/compile or /api/compiler/{compiler_id}/cmake
     - Other envs: /{env}/api/compiler/{compiler_id}/compile or /{env}/api/compiler/{compiler_id}/cmake
     """
     try:
         path_parts = path.strip("/").split("/")
-        
+
         # Production format: /api/compiler/{compiler_id}/compile
         if len(path_parts) >= 4 and path_parts[0] == "api" and path_parts[1] == "compiler":
             return path_parts[2]
-        
+
         # Other environments format: /{env}/api/compiler/{compiler_id}/compile
         if len(path_parts) >= 5 and path_parts[1] == "api" and path_parts[2] == "compiler":
             return path_parts[3]
-            
+
     except (IndexError, AttributeError):
         pass
     return None

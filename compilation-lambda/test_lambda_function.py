@@ -49,13 +49,11 @@ class TestCompilationLambda(unittest.TestCase):
             ("api/compiler/rust-nightly/compile", "rust-nightly"),
             ("/api/compiler/g++12.2/compile", "g++12.2"),
             ("/api/compiler/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
-            
             # Environment-prefixed format: /{env}/api/compiler/{id}/compile
             ("/beta/api/compiler/gcc12/compile", "gcc12"),
             ("/staging/api/compiler/clang15/cmake", "clang15"),
             ("beta/api/compiler/g++12.2/compile", "g++12.2"),
             ("/beta/api/compiler/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
-            
             # Invalid paths
             ("/invalid/path", None),
             ("/api/compilers/gcc12/compile", None),  # Legacy plural format no longer supported
@@ -80,7 +78,7 @@ class TestCompilationLambda(unittest.TestCase):
             # Environment-prefixed format
             ("/beta/api/compiler/gcc12/cmake", True),
             ("/staging/api/compiler/clang15/compile", False),
-            # Invalid cases  
+            # Invalid cases
             ("/api/compilers/gcc12/cmake", True),  # Legacy plural format still detects /cmake ending
             ("cmake", False),  # Must end with /cmake
             ("", False),
