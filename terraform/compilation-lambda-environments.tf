@@ -11,8 +11,8 @@ module "compilation_lambda_beta" {
   enable_alb_listener = true
   alb_priority        = 15
   alb_path_patterns = [
-    "/beta/api/compilers/*/compile",
-    "/beta/api/compilers/*/cmake"
+    "/beta/api/compiler/*/compile",
+    "/beta/api/compiler/*/cmake"
   ]
   s3_bucket    = aws_s3_bucket.compiler-explorer.bucket
   iam_role_arn = aws_iam_role.iam_for_lambda.arn
@@ -32,8 +32,8 @@ module "compilation_lambda_beta" {
 #   enable_alb_listener = false # Disabled initially
 #   alb_priority        = 16
 #   alb_path_patterns = [
-#     "/staging/api/compilers/*/compile",
-#     "/staging/api/compilers/*/cmake"
+#     "/staging/api/compiler/*/compile",
+#     "/staging/api/compiler/*/cmake"
 #   ]
 #   s3_bucket    = aws_s3_bucket.compiler-explorer.bucket
 #   iam_role_arn = aws_iam_role.iam_for_lambda.arn
@@ -53,8 +53,8 @@ module "compilation_lambda_beta" {
 #   enable_alb_listener = false # Disabled initially
 #   alb_priority        = 17
 #   alb_path_patterns = [
-#     "/api/compilers/*/compile",
-#     "/api/compilers/*/cmake"
+#     "/api/compiler/*/compile",
+#     "/api/compiler/*/cmake"
 #   ]
 #   s3_bucket    = aws_s3_bucket.compiler-explorer.bucket
 #   iam_role_arn = aws_iam_role.iam_for_lambda.arn
