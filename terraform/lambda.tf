@@ -100,6 +100,29 @@ resource "aws_iam_role_policy_attachment" "alert_on_elb_instance" {
   policy_arn = aws_iam_policy.alert_on_elb_instance.arn
 }
 
+# WebSocket API Gateway permissions for compilation Lambda
+data "aws_iam_policy_document" "compilation_lambda_websocket" {
+  statement {
+    sid       = "WebSocketAccess"
+    actions   = [
+      "execute-api:ManageConnections",
+      "execute-api:Invoke"
+    ]
+    resources = ["arn:aws:execute-api:*:*:*"]
+  }
+}
+
+resource "aws_iam_policy" "compilation_lambda_websocket" {
+  name        = "compilation_lambda_websocket"
+  description = "Allow compilation Lambda to connect to WebSocket API Gateway"
+  policy      = data.aws_iam_policy_document.compilation_lambda_websocket.json
+}
+
+resource "aws_iam_role_policy_attachment" "compilation_lambda_websocket" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.compilation_lambda_websocket.arn
+}
+
 data "aws_ssm_parameter" "discord_webhook_url" {
   name = "/admin/discord_webhook_url"
 }
