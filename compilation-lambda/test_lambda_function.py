@@ -43,14 +43,25 @@ class TestCompilationLambda(unittest.TestCase):
     def test_extract_compiler_id(self):
         """Test compiler ID extraction from paths."""
         test_cases = [
+            # Legacy format: /api/compilers/{id}/compile
             ("/api/compilers/gcc12/compile", "gcc12"),
             ("/api/compilers/clang15/cmake", "clang15"),
             ("api/compilers/rust-nightly/compile", "rust-nightly"),
             ("/api/compilers/g++12.2/compile", "g++12.2"),
+            ("/api/compilers/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
+            
+            # New format: /{env}/api/compiler/{id}/compile
+            ("/beta/api/compiler/gcc12/compile", "gcc12"),
+            ("/staging/api/compiler/clang15/cmake", "clang15"),
+            ("/prod/api/compiler/rust-nightly/compile", "rust-nightly"),
+            ("beta/api/compiler/g++12.2/compile", "g++12.2"),
+            ("/beta/api/compiler/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
+            
+            # Invalid paths
             ("/invalid/path", None),
             ("/api/compilers/", None),
+            ("/beta/api/compiler/", None),
             ("", None),
-            ("/api/compilers/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
         ]
 
         for path, expected in test_cases:
@@ -61,8 +72,13 @@ class TestCompilationLambda(unittest.TestCase):
     def test_is_cmake_request(self):
         """Test cmake request detection."""
         test_cases = [
+            # Legacy format
             ("/api/compilers/gcc12/cmake", True),
             ("/api/compilers/clang15/compile", False),
+            # New format
+            ("/beta/api/compiler/gcc12/cmake", True),
+            ("/staging/api/compiler/clang15/compile", False),
+            # Invalid cases
             ("cmake", False),  # Must end with /cmake
             ("", False),
         ]
@@ -187,7 +203,7 @@ class TestCompilationLambda(unittest.TestCase):
         mock_wait_for_result.return_value = {"code": 0, "stdout": ["Success"]}
 
         event = {
-            "path": "/api/compilers/gcc12/compile",
+            "path": "/beta/api/compiler/gcc12/compile",
             "httpMethod": "POST",
             "body": '{"source": "int main() { return 0; }"}',
             "headers": {"Content-Type": "application/json", "Accept": "application/json"},
