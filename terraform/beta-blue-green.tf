@@ -68,9 +68,25 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label       = "Calculate the backlog per instance (compilations per instance), ensuring minimum scaling"
+        label = "Get blue target group connection count (to check if this ASG is active)"
+        id    = "m3"
+        metric_stat {
+          metric {
+            namespace   = "AWS/ApplicationELB"
+            metric_name = "ActiveConnectionCount"
+            dimensions {
+              name  = "TargetGroup"
+              value = module.beta_blue_green.blue_target_group_arn
+            }
+          }
+          stat = "Average"
+        }
+        return_data = false
+      }
+      metrics {
+        label       = "Calculate backlog per instance, but only scale if this ASG is receiving traffic"
         id          = "e1"
-        expression  = "(m1 + 1) / MAX(m2, 1)"
+        expression  = "IF(m3 > 0 OR m2 > 0, (m1 + 1) / MAX(m2, 1), 0)"
         return_data = true
       }
     }
@@ -123,9 +139,25 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
         return_data = false
       }
       metrics {
-        label       = "Calculate the backlog per instance (compilations per instance), ensuring minimum scaling"
+        label = "Get green target group connection count (to check if this ASG is active)"
+        id    = "m3"
+        metric_stat {
+          metric {
+            namespace   = "AWS/ApplicationELB"
+            metric_name = "ActiveConnectionCount"
+            dimensions {
+              name  = "TargetGroup"
+              value = module.beta_blue_green.green_target_group_arn
+            }
+          }
+          stat = "Average"
+        }
+        return_data = false
+      }
+      metrics {
+        label       = "Calculate backlog per instance, but only scale if this ASG is receiving traffic"
         id          = "e1"
-        expression  = "(m1 + 1) / MAX(m2, 1)"
+        expression  = "IF(m3 > 0 OR m2 > 0, (m1 + 1) / MAX(m2, 1), 0)"
         return_data = true
       }
     }
