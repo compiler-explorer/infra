@@ -213,8 +213,12 @@ class WebSocketClient:
 
             if message_guid == self.guid:
                 logger.info(f"GUID match! Received result for {self.guid}")
-                self.result = data.get("result")
+                # The entire message IS the result (not data.get("result"))
+                self.result = data
                 logger.info(f"Result type: {type(self.result)}, has data: {bool(self.result)}")
+                logger.info(
+                    f"Result keys: {list(self.result.keys()) if isinstance(self.result, dict) else 'Not a dict'}"
+                )
                 ws.close()
             else:
                 logger.info(f"GUID mismatch - ignoring message for {message_guid}")
@@ -242,7 +246,8 @@ class WebSocketClient:
 
         if self.ws is not None:
             logger.info(f"Starting WebSocket connection for {self.guid}")
-            self.ws.run_forever()
+            # Don't use run_forever here - it blocks
+            # Instead, use the threading approach from connect_and_wait
         else:
             raise CompilationError("WebSocket client not initialized")
 
@@ -250,6 +255,8 @@ class WebSocketClient:
         """Wait for compilation result on already-connected WebSocket."""
         start_time = time.time()
         logger.info(f"Waiting for result for {self.guid}, timeout: {timeout}s, connected: {self.connected}")
+
+        last_log_time = 0
 
         while time.time() - start_time < timeout:
             if self.result is not None:
@@ -260,7 +267,8 @@ class WebSocketClient:
 
             # Log progress every 10 seconds
             elapsed = time.time() - start_time
-            if elapsed > 0 and int(elapsed) % 10 == 0:
+            if int(elapsed / 10) > last_log_time:
+                last_log_time = int(elapsed / 10)
                 logger.info(f"Still waiting for {self.guid}, elapsed: {elapsed:.1f}s, connected: {self.connected}")
 
             time.sleep(0.1)
@@ -423,12 +431,25 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info(f"Setting up WebSocket subscription for {guid} before sending to SQS")
             ws_client = WebSocketClient(WEBSOCKET_URL, guid)
 
-            # Start the WebSocket connection in a separate thread
+            # Initialize the WebSocket app
+            websocket.enableTrace(False)
+            ws_client.ws = websocket.WebSocketApp(
+                ws_client.url,
+                on_open=ws_client.on_open,
+                on_message=ws_client.on_message,
+                on_error=ws_client.on_error,
+                on_close=ws_client.on_close,
+            )
+
+            # Start the WebSocket connection in a separate thread using run_forever
             import threading
 
-            ws_thread = threading.Thread(target=ws_client.connect_and_subscribe)
-            ws_thread.daemon = True
-            ws_thread.start()
+            if ws_client.ws is not None:
+                ws_thread = threading.Thread(target=ws_client.ws.run_forever)
+                ws_thread.daemon = True
+                ws_thread.start()
+            else:
+                raise CompilationError("WebSocket client not initialized")
 
             # Wait a moment to ensure subscription is established
             start_time = time.time()

@@ -292,7 +292,7 @@ class TestCompilationLambda(unittest.TestCase):
         # Mock WebSocket client
         mock_ws_client = Mock()
         mock_ws_client.connected = True
-        mock_ws_client.wait_for_result.return_value = {"code": 0, "stdout": ["Success"]}
+        mock_ws_client.wait_for_result.return_value = {"guid": "test-guid-123", "code": 0, "stdout": ["Success"]}
         mock_ws_client_class.return_value = mock_ws_client
 
         event = {
@@ -466,11 +466,12 @@ class TestWebSocketClient(unittest.TestCase):
     def test_on_message_correct_guid(self):
         """Test WebSocket message handling with correct GUID."""
         mock_ws = Mock()
-        message = json.dumps({"guid": "test-guid", "result": {"code": 0, "stdout": ["Success"]}})
+        message_data = {"guid": "test-guid", "code": 0, "stdout": ["Success"], "stderr": []}
+        message = json.dumps(message_data)
 
         self.client.on_message(mock_ws, message)
 
-        self.assertEqual(self.client.result, {"code": 0, "stdout": ["Success"]})
+        self.assertEqual(self.client.result, message_data)
         mock_ws.close.assert_called_once()
 
     def test_on_message_wrong_guid(self):
