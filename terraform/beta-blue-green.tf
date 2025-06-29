@@ -86,7 +86,7 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
       metrics {
         label       = "Calculate backlog per instance, but only scale if this ASG is receiving traffic"
         id          = "e1"
-        expression  = "IF(m3 > 0 OR m2 > 0, (m1 + 1) / MAX(m2, 1), 0)"
+        expression  = "IF(m3 > 0 OR m2 > 0, IF(m2 > 0, (m1 + 1) / m2, m1 + 1), 0)"
         return_data = true
       }
     }
@@ -157,7 +157,7 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
       metrics {
         label       = "Calculate backlog per instance, but only scale if this ASG is receiving traffic"
         id          = "e1"
-        expression  = "IF(m3 > 0 OR m2 > 0, (m1 + 1) / MAX(m2, 1), 0)"
+        expression  = "IF(m3 > 0 OR m2 > 0, IF(m2 > 0, (m1 + 1) / m2, m1 + 1), 0)"
         return_data = true
       }
     }
