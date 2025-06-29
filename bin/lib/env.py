@@ -72,7 +72,7 @@ class Environment(Enum):
     @property
     def min_instances(self) -> int:
         """Get the minimum number of instances for this environment."""
-        if self.is_prod():
+        if self.is_prod:
             return 2
         return 0
 
