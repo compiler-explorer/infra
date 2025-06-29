@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 
 # Configure logging
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.WARNING)
 
 # Environment variables with defaults
 RETRY_COUNT = int(os.environ.get("RETRY_COUNT", "1"))
@@ -101,17 +101,9 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
 
     # Parse body based on content type
     content_type = headers.get("content-type", headers.get("Content-Type", ""))
-    logger.info(f"Original body type: {type(body)}, length: {len(body) if body else 0}")
-    logger.debug(f"Original body preview: {body[:200] if body else 'EMPTY'}...")
-    logger.debug(f"Content-Type header: {content_type}")
-
     request_data = parse_request_body(body, content_type)
 
-    logger.info(f"Parsed request data type: {type(request_data)}")
-    if isinstance(request_data, dict):
-        logger.debug(f"Request data keys: {list(request_data.keys())}")
-        logger.debug(f"Request data source: {request_data.get('source', 'NO_SOURCE')[:50]}...")
-    else:
+    if not isinstance(request_data, dict):
         logger.warning(f"Request data is not a dict: {str(request_data)[:100]}...")
 
     # Start with Lambda-specific fields
@@ -143,10 +135,6 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
     if "executeParameters" not in message_body:
         message_body["executeParameters"] = {}
 
-    logger.info(f"Constructed message with {len(message_body)} fields")
-    logger.debug(f"Message body keys: {list(message_body.keys())}")
-    logger.debug(f"Message body type before JSON encoding: {type(message_body)}")
-
     try:
         # Ensure we're sending a proper JSON string (not double-encoded)
         if isinstance(message_body, str):
@@ -155,24 +143,12 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
         else:
             message_json = json.dumps(message_body, separators=(",", ":"))
 
-        logger.info(f"Final message length: {len(message_json)} chars")
-        logger.info(f"Final message preview: {message_json[:200]}...")
-
-        # Verify the message can be parsed back (sanity check)
-        try:
-            parsed_back = json.loads(message_json)
-            logger.info(f"Sanity check - parsed back type: {type(parsed_back)}")
-            logger.info(f"Sanity check - has guid: {'guid' in parsed_back}")
-        except Exception as sanity_error:
-            logger.error(f"SANITY CHECK FAILED - message cannot be parsed back: {sanity_error}")
-
         sqs.send_message(
             QueueUrl=SQS_QUEUE_URL,
             MessageBody=message_json,
             MessageGroupId="default",
             MessageDeduplicationId=guid,
         )
-        logger.info(f"Successfully sent compilation request {guid} to SQS queue")
 
     except (TypeError, ValueError) as e:
         logger.error(f"Failed to JSON encode message body: {e}")
@@ -194,34 +170,21 @@ class WebSocketClient:
 
     def on_open(self, ws):
         """Called when WebSocket connection opens."""
-        logger.info(f"WebSocket connected for {self.guid}")
         self.connected = True
         # Subscribe to messages for this GUID
-        # The events WebSocket expects a text message: "subscribe: <guid>"
         subscribe_msg = f"subscribe: {self.guid}"
-        logger.info(f"Sending WebSocket subscription: {subscribe_msg}")
         ws.send(subscribe_msg)
-        logger.info(f"WebSocket subscription sent for {self.guid}")
 
     def on_message(self, ws, message):
         """Called when WebSocket receives a message."""
-        logger.info(f"WebSocket received message for {self.guid}: {message[:200]}...")
         try:
             data = json.loads(message)
             message_guid = data.get("guid")
-            logger.info(f"Parsed message - expected GUID: {self.guid}, received GUID: {message_guid}")
 
             if message_guid == self.guid:
-                logger.info(f"GUID match! Received result for {self.guid}")
-                # The entire message IS the result (not data.get("result"))
+                # The entire message IS the result
                 self.result = data
-                logger.info(f"Result type: {type(self.result)}, has data: {bool(self.result)}")
-                logger.info(
-                    f"Result keys: {list(self.result.keys()) if isinstance(self.result, dict) else 'Not a dict'}"
-                )
                 ws.close()
-            else:
-                logger.info(f"GUID mismatch - ignoring message for {message_guid}")
         except json.JSONDecodeError as e:
             logger.warning(f"Received invalid JSON message: {message[:100]}... Error: {e}")
 
@@ -231,50 +194,34 @@ class WebSocketClient:
 
     def on_close(self, ws, close_status_code, close_msg):
         """Called when WebSocket connection closes."""
-        logger.info(f"WebSocket closed for {self.guid}")
+        pass
 
     def connect_and_subscribe(self):
         """Connect to WebSocket and subscribe to GUID (doesn't wait for result)."""
         if not self.url:
             raise CompilationError("WEBSOCKET_URL environment variable not set")
 
-        logger.info(f"Connecting to WebSocket URL: {self.url} for GUID: {self.guid}")
         websocket.enableTrace(False)
         self.ws = websocket.WebSocketApp(
             self.url, on_open=self.on_open, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close
         )
 
-        if self.ws is not None:
-            logger.info(f"Starting WebSocket connection for {self.guid}")
-            # Don't use run_forever here - it blocks
-            # Instead, use the threading approach from connect_and_wait
-        else:
+        if self.ws is None:
             raise CompilationError("WebSocket client not initialized")
 
     def wait_for_result(self, timeout: int) -> Dict[str, Any]:
         """Wait for compilation result on already-connected WebSocket."""
         start_time = time.time()
-        logger.info(f"Waiting for result for {self.guid}, timeout: {timeout}s, connected: {self.connected}")
-
-        last_log_time = 0
 
         while time.time() - start_time < timeout:
             if self.result is not None:
-                logger.info(f"Received result for {self.guid} after {time.time() - start_time:.2f}s")
                 if self.ws:
                     self.ws.close()
                 return self.result
-
-            # Log progress every 10 seconds
-            elapsed = time.time() - start_time
-            if int(elapsed / 10) > last_log_time:
-                last_log_time = int(elapsed / 10)
-                logger.info(f"Still waiting for {self.guid}, elapsed: {elapsed:.1f}s, connected: {self.connected}")
-
             time.sleep(0.1)
 
         # Timeout reached
-        logger.error(f"WebSocket timeout for {self.guid} after {timeout}s, connected: {self.connected}")
+        logger.error(f"WebSocket timeout for {self.guid} after {timeout}s")
         if self.ws:
             self.ws.close()
         raise WebSocketTimeoutError(f"No response received within {timeout} seconds")
@@ -284,7 +231,6 @@ class WebSocketClient:
         if not self.url:
             raise CompilationError("WEBSOCKET_URL environment variable not set")
 
-        logger.info(f"Connecting to WebSocket URL: {self.url} for GUID: {self.guid}")
         websocket.enableTrace(False)
         self.ws = websocket.WebSocketApp(
             self.url, on_open=self.on_open, on_message=self.on_message, on_error=self.on_error, on_close=self.on_close
@@ -294,7 +240,6 @@ class WebSocketClient:
         import threading
 
         if self.ws is not None:
-            logger.info(f"Starting WebSocket thread for {self.guid}")
             ws_thread = threading.Thread(target=self.ws.run_forever)
             ws_thread.daemon = True
             ws_thread.start()
@@ -303,22 +248,14 @@ class WebSocketClient:
 
         # Wait for connection and result
         start_time = time.time()
-        logger.info(f"Waiting for result for {self.guid}, timeout: {timeout}s")
 
         while time.time() - start_time < timeout:
             if self.result is not None:
-                logger.info(f"Received result for {self.guid} after {time.time() - start_time:.2f}s")
                 return self.result
-
-            # Log progress every 10 seconds
-            elapsed = time.time() - start_time
-            if elapsed > 0 and int(elapsed) % 10 == 0:
-                logger.info(f"Still waiting for {self.guid}, elapsed: {elapsed:.1f}s, connected: {self.connected}")
-
             time.sleep(0.1)
 
         # Timeout reached
-        logger.error(f"WebSocket timeout for {self.guid} after {timeout}s, connected: {self.connected}")
+        logger.error(f"WebSocket timeout for {self.guid} after {timeout}s")
         if self.ws:
             self.ws.close()
         raise WebSocketTimeoutError(f"No response received within {timeout} seconds")
@@ -334,7 +271,6 @@ def wait_for_compilation_result(guid: str, timeout: int) -> Dict[str, Any]:
             return client.connect_and_wait(timeout)
         except Exception as e:
             last_error = e
-            logger.warning(f"WebSocket attempt {attempt + 1} failed: {e}")
             if attempt < RETRY_COUNT:
                 time.sleep(1)  # Brief delay before retry
 
@@ -407,8 +343,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         body = event.get("body", "")
         headers = event.get("headers", {})
 
-        logger.info(f"Processing {method} request to {path}")
-
         # Validate request method
         if method != "POST":
             return create_error_response(405, "Method not allowed")
@@ -423,12 +357,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         # Generate unique GUID for this request
         guid = generate_guid()
-        logger.info(f"Generated GUID {guid} for compiler {compiler_id}")
 
         # First, establish WebSocket connection and subscribe to the GUID
         # This ensures we're ready to receive the result before sending to SQS
         try:
-            logger.info(f"Setting up WebSocket subscription for {guid} before sending to SQS")
             ws_client = WebSocketClient(WEBSOCKET_URL, guid)
 
             # Initialize the WebSocket app
@@ -459,8 +391,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             if not ws_client.connected:
                 raise CompilationError("Failed to establish WebSocket connection within 5 seconds")
 
-            logger.info(f"WebSocket subscription ready for {guid}, now sending to SQS")
-
         except Exception as e:
             logger.error(f"Failed to setup WebSocket subscription: {e}")
             return create_error_response(500, f"Failed to setup result subscription: {str(e)}")
@@ -480,7 +410,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Wait for compilation result via the already-connected WebSocket
         try:
             result = ws_client.wait_for_result(TIMEOUT_SECONDS)
-            logger.info(f"Compilation {guid} completed successfully")
 
             # Get Accept header for response formatting
             accept_header = headers.get("accept", headers.get("Accept", ""))
