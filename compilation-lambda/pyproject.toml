@@ -28,3 +28,8 @@ select = [
 ignore = [
     "E501" # line length
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
