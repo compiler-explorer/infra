@@ -50,18 +50,13 @@ def extract_compiler_id(path: str) -> Optional[str]:
     """
     Extract compiler ID from ALB request path.
     Expected paths: /{env}/api/compiler/{compiler_id}/compile or /{env}/api/compiler/{compiler_id}/cmake
-    Also supports legacy format: /api/compilers/{compiler_id}/compile
     """
     try:
         path_parts = path.strip("/").split("/")
         
-        # Check for new format: /{env}/api/compiler/{compiler_id}/compile
+        # Format: /{env}/api/compiler/{compiler_id}/compile
         if len(path_parts) >= 5 and path_parts[1] == "api" and path_parts[2] == "compiler":
             return path_parts[3]
-        
-        # Check for legacy format: /api/compilers/{compiler_id}/compile
-        if len(path_parts) >= 4 and path_parts[0] == "api" and path_parts[1] == "compilers":
-            return path_parts[2]
             
     except (IndexError, AttributeError):
         pass

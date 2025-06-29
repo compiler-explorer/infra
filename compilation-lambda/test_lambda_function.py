@@ -43,14 +43,7 @@ class TestCompilationLambda(unittest.TestCase):
     def test_extract_compiler_id(self):
         """Test compiler ID extraction from paths."""
         test_cases = [
-            # Legacy format: /api/compilers/{id}/compile
-            ("/api/compilers/gcc12/compile", "gcc12"),
-            ("/api/compilers/clang15/cmake", "clang15"),
-            ("api/compilers/rust-nightly/compile", "rust-nightly"),
-            ("/api/compilers/g++12.2/compile", "g++12.2"),
-            ("/api/compilers/gcc12/invalid", "gcc12"),  # Still extracts valid compiler ID
-            
-            # New format: /{env}/api/compiler/{id}/compile
+            # Environment-prefixed format: /{env}/api/compiler/{id}/compile
             ("/beta/api/compiler/gcc12/compile", "gcc12"),
             ("/staging/api/compiler/clang15/cmake", "clang15"),
             ("/prod/api/compiler/rust-nightly/compile", "rust-nightly"),
@@ -59,8 +52,10 @@ class TestCompilationLambda(unittest.TestCase):
             
             # Invalid paths
             ("/invalid/path", None),
+            ("/api/compilers/gcc12/compile", None),  # Legacy format no longer supported
             ("/api/compilers/", None),
             ("/beta/api/compiler/", None),
+            ("/beta/api/compilers/gcc12/compile", None),  # Wrong plural form
             ("", None),
         ]
 
@@ -72,13 +67,12 @@ class TestCompilationLambda(unittest.TestCase):
     def test_is_cmake_request(self):
         """Test cmake request detection."""
         test_cases = [
-            # Legacy format
-            ("/api/compilers/gcc12/cmake", True),
-            ("/api/compilers/clang15/compile", False),
-            # New format
+            # Environment-prefixed format
             ("/beta/api/compiler/gcc12/cmake", True),
             ("/staging/api/compiler/clang15/compile", False),
+            ("/prod/api/compiler/gcc12/cmake", True),
             # Invalid cases
+            ("/api/compilers/gcc12/cmake", False),  # Legacy format no longer supported
             ("cmake", False),  # Must end with /cmake
             ("", False),
         ]
@@ -224,7 +218,7 @@ class TestCompilationLambda(unittest.TestCase):
 
     def test_lambda_handler_invalid_method(self):
         """Test lambda handler with invalid HTTP method."""
-        event = {"path": "/api/compilers/gcc12/compile", "httpMethod": "GET", "body": ""}
+        event = {"path": "/beta/api/compiler/gcc12/compile", "httpMethod": "GET", "body": ""}
 
         response = lambda_function.lambda_handler(event, None)
 
@@ -250,7 +244,7 @@ class TestCompilationLambda(unittest.TestCase):
         mock_generate_guid.return_value = "test-guid-123"
         mock_send_to_sqs.side_effect = lambda_function.SQSError("Queue not found")
 
-        event = {"path": "/api/compilers/gcc12/compile", "httpMethod": "POST", "body": "{}", "headers": {}}
+        event = {"path": "/beta/api/compiler/gcc12/compile", "httpMethod": "POST", "body": "{}", "headers": {}}
 
         response = lambda_function.lambda_handler(event, None)
 
@@ -268,7 +262,7 @@ class TestCompilationLambda(unittest.TestCase):
             "No response received within 30 seconds"
         )
 
-        event = {"path": "/api/compilers/gcc12/compile", "httpMethod": "POST", "body": "{}", "headers": {}}
+        event = {"path": "/beta/api/compiler/gcc12/compile", "httpMethod": "POST", "body": "{}", "headers": {}}
 
         response = lambda_function.lambda_handler(event, None)
 
@@ -286,7 +280,7 @@ class TestCompilationLambda(unittest.TestCase):
             mock_guid.return_value = "test-guid-123"
             mock_wait.return_value = {"code": 0}
 
-            event = {"path": "/api/compilers/gcc12/cmake", "httpMethod": "POST", "body": "{}", "headers": {}}
+            event = {"path": "/beta/api/compiler/gcc12/cmake", "httpMethod": "POST", "body": "{}", "headers": {}}
 
             lambda_function.lambda_handler(event, None)
 
@@ -305,7 +299,7 @@ class TestCompilationLambda(unittest.TestCase):
         }
 
         event = {
-            "path": "/api/compilers/gcc12/compile",
+            "path": "/beta/api/compiler/gcc12/compile",
             "httpMethod": "POST",
             "body": "int main() { return 0; }",
             "headers": {"Content-Type": "text/plain", "Accept": "text/plain"},
