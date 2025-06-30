@@ -50,5 +50,5 @@ module "prod_blue_green" {
 
   # Enable auto-scaling policy for production
   enable_autoscaling_policy = true
-  autoscaling_target_cpu    = 50.0
+  autoscaling_target_cpu    = 25.0
 }
