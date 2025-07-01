@@ -13,6 +13,7 @@ data "aws_acm_certificate" "static-ce-cdn-net" {
 }
 
 resource "aws_cloudfront_distribution" "ce-godbolt-org" {
+  comment = "CE on godbolt.org"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -173,6 +174,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 # TODO - the duplication is rubbish
 # Though note the differences: logging and aliases (at least).
 resource "aws_cloudfront_distribution" "compiler-explorer-com" {
+  comment = "CE on compiler-explorer.com"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -331,6 +333,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
 }
 
 resource "aws_cloudfront_distribution" "godbo-lt" {
+  comment = "CE on godbo.lt"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -490,6 +493,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
 }
 
 resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
+  comment = "CE CDN"
   origin {
     domain_name = "ce-cdn.net.s3.amazonaws.com"
     origin_id   = "S3-ce-cdn.net"
