@@ -2722,7 +2722,9 @@ libraries:
       - 1.16.0
       - 1.17.0
       type: github
-  kokkos:
+  gpu:
+    kokkos:
+      subdir: gpu/kokkos
       build_type: cmake
       lib_type: static
       make_targets:
