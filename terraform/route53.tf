@@ -73,6 +73,14 @@ resource "aws_route53_record" "atproto-matt-godbolt-org" {
   records = ["did=did:plc:vbbhrlxqrokfgnvuppfyeir5"]
 }
 
+// Test for auth - dev only do not use
+resource "aws_route53_record" "auth-godbolt-org" {
+  name = "auth"
+  zone_id = module.godbolt-org.zone_id
+  ttl = 3600
+  type = "CNAME"
+  records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
+}
 
 ////////////////////////////////////////////////////
 
