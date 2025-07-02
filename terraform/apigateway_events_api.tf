@@ -110,6 +110,39 @@ resource "aws_apigatewayv2_stage" "events_api_stage_staging" {
   }
 }
 
+resource "aws_apigatewayv2_stage" "events_api_stage_beta" {
+  api_id = aws_apigatewayv2_api.events_api.id
+
+  name        = "beta"
+  auto_deploy = true
+
+  default_route_settings {
+    logging_level            = "INFO"
+    detailed_metrics_enabled = true
+    data_trace_enabled       = true
+    throttling_rate_limit    = 1000
+    throttling_burst_limit   = 1000
+  }
+
+  access_log_settings {
+    destination_arn = aws_cloudwatch_log_group.events_api_log.arn
+
+    format = jsonencode({
+      requestId               = "$context.requestId"
+      sourceIp                = "$context.identity.sourceIp"
+      requestTime             = "$context.requestTime"
+      protocol                = "$context.protocol"
+      httpMethod              = "$context.httpMethod"
+      resourcePath            = "$context.resourcePath"
+      routeKey                = "$context.routeKey"
+      status                  = "$context.status"
+      responseLength          = "$context.responseLength"
+      integrationErrorMessage = "$context.integrationErrorMessage"
+      }
+    )
+  }
+}
+
 /* logging policy */
 
 data "aws_iam_policy_document" "events_api_logging" {
@@ -155,4 +188,11 @@ resource "aws_apigatewayv2_api_mapping" "events-api-compiler-explorer-mapping-st
   domain_name     = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.id
   stage           = aws_apigatewayv2_stage.events_api_stage_staging.id
   api_mapping_key = "staging"
+}
+
+resource "aws_apigatewayv2_api_mapping" "events-api-compiler-explorer-mapping-beta" {
+  api_id          = aws_apigatewayv2_api.events_api.id
+  domain_name     = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.id
+  stage           = aws_apigatewayv2_stage.events_api_stage_beta.id
+  api_mapping_key = "beta"
 }

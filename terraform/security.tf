@@ -342,11 +342,22 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
       aws_sqs_queue.staging-execqueue-aarch64-linux-cpu.arn,
     ]
   }
+  statement {
+    sid = "CompilationQueueAccess"
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    resources = [
+      module.compilation_lambda_beta.sqs_queue_arn,
+    ]
+  }
 }
 
 resource "aws_iam_policy" "CeSqsPushPop" {
   name        = "CeSqsPushPop"
-  description = "Can push/pop Sqs"
+  description = "Can push/pop SQS execution queues and receive compilation queue messages"
   policy      = data.aws_iam_policy_document.CeSqsPushPop.json
 }
 
