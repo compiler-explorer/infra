@@ -34,11 +34,8 @@ mount_opt() {
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
     if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # don't be tempted to background this, it just causes everything to wedge
-        # during startup (startup time I/O etc goes through the roof).
-        ./mount-all-img.sh
-
-        echo "Done mounting squash images"
+        # backgrounded but mounts in most recent order, serially
+        ./mount-all-img.sh &
     fi
 }
 
