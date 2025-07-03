@@ -28,6 +28,7 @@ ce_install cpp-library add <github_url> <version> [--type <library_type>] [--tar
 - `--use-compiler`: Specific compiler to use for building (default: `g105` for cshared libraries)
 - `--static-lib-link`: Comma-separated list of static library targets to link (optional, for static/cshared types)
 - `--shared-lib-link`: Comma-separated list of shared library targets to link (optional, for shared/cshared types)
+- `--package-install`: Library requires CMake package installation for headers (optional, boolean flag)
 
 **Library Types:**
 - `header-only`: Header-only library (default)
@@ -55,6 +56,12 @@ ce_install cpp-library add https://github.com/abseil/abseil-cpp v20230802.1 --ty
 
 # Add a shared library with linking targets
 ce_install cpp-library add https://github.com/example/sharedlib 2.0.0 --type shared --shared-lib-link "myshared,utils"
+
+# Add a static library that requires CMake package installation
+ce_install cpp-library add https://github.com/fmtlib/fmt 10.0.0 --type static --package-install
+
+# Add a header-only library that needs CMake header processing
+ce_install cpp-library add https://github.com/example/configlib 1.5.0 --type header-only --package-install
 ```
 
 ### `cpp-library generate-linux-props`
@@ -149,6 +156,7 @@ ce_install cpp-library generate-linux-props --output-file cpp_libraries.properti
 - Library paths and linking information are automatically configured based on library type
 - The `--use-compiler` option only applies to `cshared` library types; other library types do not include compiler-specific configuration
 - The `--static-lib-link` and `--shared-lib-link` options specify library targets to link and are only valid for static/shared/cshared library types
-- Link target options are only applied when creating new libraries; they are ignored when adding versions to existing libraries
+- The `--package-install` flag indicates that the library requires CMake package installation for headers; `packaged-headers` library type has this enabled by default
+- Link target and package install options are only applied when creating new libraries; they are ignored when adding versions to existing libraries
 - When generating properties for a specific library version, the command automatically includes the required `.name`, `.url`, and `.versions` properties
 - New library properties are inserted before the tools section in the properties file, maintaining proper file structure
