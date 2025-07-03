@@ -687,6 +687,7 @@ libraries:
       - 1.9.8
       - 2.0.3
       - 5.0.0
+      - v5.5.2
       type: github
     glm:
       check_file: readme.md
