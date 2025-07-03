@@ -34,7 +34,7 @@ def cpp_library():
 @click.argument("version")
 @click.option(
     "--type",
-    type=click.Choice(["header-only", "packaged-headers", "static", "shared"]),
+    type=click.Choice(["header-only", "packaged-headers", "static", "shared", "cshared"]),
     default="header-only",
     help="Library type (default: header-only)",
 )
@@ -43,8 +43,15 @@ def cpp_library():
     default="",
     help="Prefix for version tags (e.g., 'v' for tags like v3.11.3)",
 )
-def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str):
+@click.option(
+    "--use-compiler",
+    default="g105",
+    help="Specific compiler to use for building (default: g105 for cshared libraries)",
+)
+def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str, use_compiler: str):
     """Add or update a C++ library entry in libraries.yaml."""
+    # No validation needed since use_compiler has a default value
+
     # Load libraries.yaml and get C++ section
     library_yaml, cpp_libraries = load_library_yaml_section("c++")
 
@@ -99,6 +106,15 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
         elif type == "shared":
             library_entry["build_type"] = "cmake"
             library_entry["lib_type"] = "shared"
+        elif type == "cshared":
+            library_entry["build_type"] = "cmake"
+            library_entry["lib_type"] = "cshared"
+            library_entry["use_compiler"] = use_compiler
+            library_entry["package_install"] = True
+
+        # Add use_compiler to existing library types if specified
+        if use_compiler and type != "cshared":
+            library_entry["use_compiler"] = use_compiler
 
         cpp_libraries[lib_id] = library_entry
         click.echo(f"Added new library {lib_id} with version {version}")
