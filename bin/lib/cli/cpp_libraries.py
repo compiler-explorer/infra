@@ -12,7 +12,6 @@ from lib.library_props import (
     generate_all_libraries_properties,
     generate_single_library_properties,
     generate_standalone_library_properties,
-    load_library_yaml_section,
     merge_properties,
     output_properties,
     process_all_libraries_properties,
@@ -53,7 +52,7 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
     # No validation needed since use_compiler has a default value
 
     # Load libraries.yaml and get C++ section
-    library_yaml, cpp_libraries = load_library_yaml_section("c++")
+    library_yaml, cpp_libraries = LibraryYaml.load_library_yaml_section("c++")
 
     # Search for existing library by GitHub URL
     existing_lib_id = find_existing_library_by_github_url(cpp_libraries, github_url)

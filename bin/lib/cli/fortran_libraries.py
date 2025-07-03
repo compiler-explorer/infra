@@ -11,7 +11,6 @@ from lib.library_props import (
     generate_library_property_key,
     generate_version_property_key,
     generate_version_property_suffix,
-    load_library_yaml_section,
     output_properties,
     process_all_libraries_properties,
     process_library_specific_properties,
@@ -19,6 +18,7 @@ from lib.library_props import (
     validate_library_version_args,
     version_to_id,
 )
+from lib.library_yaml import LibraryYaml
 
 from ..ce_install import cli
 
@@ -44,7 +44,7 @@ def add_fortran_library(github_url, version, target_prefix):
     All Fortran libraries use FPM (Fortran Package Manager) for building.
     """
     # Load libraries.yaml and get Fortran section
-    library_yaml, fortran_libraries = load_library_yaml_section("fortran")
+    library_yaml, fortran_libraries = LibraryYaml.load_library_yaml_section("fortran")
 
     # Search for existing library by GitHub URL
     existing_lib_id = find_existing_library_by_github_url(fortran_libraries, github_url)
@@ -112,7 +112,7 @@ def generate_fortran_props(input_file, output_file, library, version):
         sys.exit(1)
 
     # Load libraries.yaml and get Fortran section
-    library_yaml, fortran_libraries = load_library_yaml_section("fortran")
+    library_yaml, fortran_libraries = LibraryYaml.load_library_yaml_section("fortran")
 
     # Check if there are any Fortran libraries
     if not fortran_libraries:
