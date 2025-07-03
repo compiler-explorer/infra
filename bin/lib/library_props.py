@@ -293,6 +293,17 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
     lib_props = {}
 
     if "targets" in lib_info and lib_info["targets"]:
+        # Generate version_ids list for all targets (used by both specific and all version cases)
+        version_ids = []
+        for target_version in lib_info["targets"]:
+            if isinstance(target_version, dict):
+                ver_name = target_version.get("name", target_version)
+                ver_id = version_to_id(ver_name)
+            else:
+                ver_name = target_version
+                ver_id = version_to_id(target_version)
+            version_ids.append(ver_id)
+
         if specific_version:
             found_version = None
             for target_version in lib_info["targets"]:
@@ -307,6 +318,8 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
 
             if not found_version:
                 raise ValueError(f"Version '{specific_version}' not found for library '{library_name}'")
+
+            lib_props["versions"] = ":".join(version_ids)
 
             ver_id = version_to_id(specific_version)
             version_suffix = generate_version_property_suffix(ver_id, "version")
@@ -331,7 +344,7 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
             if "staticliblink" in lib_info and lib_info["staticliblink"]:
                 lib_props["staticliblink"] = ":".join(lib_info["staticliblink"])
 
-            version_ids = []
+            # Generate properties for each version (reusing the version_ids already computed)
             for target_version in lib_info["targets"]:
                 if isinstance(target_version, dict):
                     ver_name = target_version.get("name", target_version)
@@ -339,7 +352,6 @@ def generate_single_library_properties(library_name, lib_info, specific_version=
                 else:
                     ver_name = target_version
                     ver_id = version_to_id(target_version)
-                version_ids.append(ver_id)
 
                 version_suffix = generate_version_property_suffix(ver_id, "version")
                 lib_props[version_suffix] = ver_name
