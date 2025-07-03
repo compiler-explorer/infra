@@ -47,9 +47,34 @@ def cpp_library():
     default="g105",
     help="Specific compiler to use for building (default: g105 for cshared libraries)",
 )
-def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str, use_compiler: str):
+@click.option(
+    "--static-lib-link",
+    default="",
+    help="Comma-separated list of static library targets to link (without lib prefix or .a suffix)",
+)
+@click.option(
+    "--shared-lib-link",
+    default="",
+    help="Comma-separated list of shared library targets to link (without lib prefix or .so suffix)",
+)
+def add_cpp_library(
+    github_url: str,
+    version: str,
+    type: str,
+    target_prefix: str,
+    use_compiler: str,
+    static_lib_link: str,
+    shared_lib_link: str,
+):
     """Add or update a C++ library entry in libraries.yaml."""
-    # No validation needed since use_compiler has a default value
+    # Validate linking options are only used with appropriate library types
+    if static_lib_link and type not in ["static", "cshared"]:
+        click.echo("Error: --static-lib-link can only be used with --type static or cshared", err=True)
+        sys.exit(1)
+
+    if shared_lib_link and type not in ["shared", "cshared"]:
+        click.echo("Error: --shared-lib-link can only be used with --type shared or cshared", err=True)
+        sys.exit(1)
 
     # Load libraries.yaml and get C++ section
     library_yaml, cpp_libraries = LibraryYaml.load_library_yaml_section("c++")
@@ -76,6 +101,13 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
         if existing_lib_id:
             click.echo(f"Found existing library '{lib_id}' for {github_url}")
 
+        # Warn if linking information is provided for existing library
+        if static_lib_link or shared_lib_link:
+            click.echo(
+                "Warning: --static-lib-link and --shared-lib-link are ignored when adding to existing libraries",
+                err=True,
+            )
+
         message = add_version_to_library(cpp_libraries, lib_id, version, target_prefix)
         click.echo(message)
     else:
@@ -83,7 +115,7 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
         library_entry = {
             "type": "github",
             "repo": repo_field,
-            "check_file": "README.md",  # Default check file
+            "check_file": "README.md",
             "targets": [version],
         }
 
@@ -91,13 +123,19 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
         if target_prefix:
             library_entry["target_prefix"] = target_prefix
 
+        # Add linking information if specified
+        if static_lib_link:
+            library_entry["staticliblink"] = [lib.strip() for lib in static_lib_link.split(",") if lib.strip()]
+
+        if shared_lib_link:
+            library_entry["sharedliblink"] = [lib.strip() for lib in shared_lib_link.split(",") if lib.strip()]
+
         # Set properties based on library type
         if type == "packaged-headers":
             library_entry["build_type"] = "cmake"
             library_entry["lib_type"] = "headeronly"
             library_entry["package_install"] = True
         elif type == "header-only":
-            # Header-only libraries typically don't need build_type
             pass
         elif type == "static":
             library_entry["build_type"] = "cmake"
