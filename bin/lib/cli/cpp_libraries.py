@@ -227,9 +227,8 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
-        # When generating standalone (no input file), include all properties
-        if not input_file and version and "name" not in lib_props:
-            # Add library-level properties for standalone generation
+        # Always include name and url properties when generating for a specific version
+        if version and "name" not in lib_props:
             lib_props["name"] = library
             if lib_info.get("type") == "github" and "repo" in lib_info:
                 lib_props["url"] = f"https://github.com/{lib_info['repo']}"

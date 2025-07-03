@@ -6,7 +6,10 @@ from libraries.yaml configurations. These functions are designed to be reusable
 across different parts of the system.
 """
 
+from pathlib import Path
 from urllib.parse import urlparse
+
+from lib.library_yaml import LibraryYaml
 
 
 def generate_library_path(library_name, version, target_prefix=""):
@@ -102,6 +105,19 @@ def update_library_in_properties(existing_content, library_name, library_propert
     inside_library_block = False
     last_library_line_idx = -1
     existing_versions = []
+    tools_section_start = -1
+
+    # Find where the tools section starts
+    for i, line in enumerate(lines):
+        if line.strip().startswith("tools=") or (
+            line.strip().startswith("#") and "tools" in line.lower() and i > 0 and lines[i - 1].strip() == ""
+        ):
+            tools_section_start = i
+            # Look backwards to find a good insertion point before any comment block
+            while i > 0 and (lines[i - 1].strip() == "" or lines[i - 1].strip().startswith("#")):
+                i -= 1
+            tools_section_start = i
+            break
 
     for _i, line in enumerate(lines):
         stripped = line.strip()
@@ -161,14 +177,34 @@ def update_library_in_properties(existing_content, library_name, library_propert
                 full_key = generate_library_property_key(library_name, prop_name)
                 result_lines.insert(insert_idx, f"{full_key}={value}")
         else:
-            if result_lines and result_lines[-1].strip() != "":
-                result_lines.append("")
+            # If we found a tools section, insert before it
+            if tools_section_start > 0:
+                insert_idx = tools_section_start
+                # Add empty line before our properties if needed
+                if insert_idx > 0 and result_lines[insert_idx - 1].strip() != "":
+                    result_lines.insert(insert_idx, "")
+                    insert_idx += 1
 
-            props_to_add.sort(key=sort_key)
+                props_to_add.sort(key=sort_key)
 
-            for prop_name, value in props_to_add:
-                full_key = generate_library_property_key(library_name, prop_name)
-                result_lines.append(f"{full_key}={value}")
+                for prop_name, value in props_to_add:
+                    full_key = generate_library_property_key(library_name, prop_name)
+                    result_lines.insert(insert_idx, f"{full_key}={value}")
+                    insert_idx += 1
+
+                # Add empty line after our properties if needed
+                if insert_idx < len(result_lines) and result_lines[insert_idx].strip() != "":
+                    result_lines.insert(insert_idx, "")
+            else:
+                # Fallback to appending at the end
+                if result_lines and result_lines[-1].strip() != "":
+                    result_lines.append("")
+
+                props_to_add.sort(key=sort_key)
+
+                for prop_name, value in props_to_add:
+                    full_key = generate_library_property_key(library_name, prop_name)
+                    result_lines.append(f"{full_key}={value}")
 
     result = "\n".join(result_lines)
     # Preserve original final newline behavior
@@ -505,10 +541,6 @@ def find_existing_library_by_github_url(cpp_libraries, github_url):
 
 def load_library_yaml_section(language):
     """Load libraries.yaml and return the specified language section."""
-    from pathlib import Path
-
-    from lib.library_yaml import LibraryYaml
-
     yaml_dir = Path(__file__).parent.parent / "yaml"
     library_yaml = LibraryYaml(str(yaml_dir))
 
