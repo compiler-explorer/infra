@@ -25,12 +25,14 @@ ce_install cpp-library add <github_url> <version> [--type <library_type>] [--tar
 - `version`: Version to add (e.g., `10.2.1`)
 - `--type`: Library type (optional, default: `header-only`)
 - `--target-prefix`: Prefix for version tags (optional, e.g., 'v' for tags like v3.11.3)
+- `--use-compiler`: Specific compiler to use for building (default: `g105` for cshared libraries)
 
 **Library Types:**
 - `header-only`: Header-only library (default)
 - `packaged-headers`: Headers provided by package manager
 - `static`: Static library requiring compilation
 - `shared`: Shared library requiring compilation
+- `cshared`: Shared library with specific compiler requirements
 
 **Examples:**
 ```bash
@@ -42,6 +44,9 @@ ce_install cpp-library add https://github.com/nlohmann/json 3.11.3
 
 # Add a library with 'v' prefixed version tags
 ce_install cpp-library add https://github.com/nlohmann/json 3.11.3 --target-prefix v
+
+# Add a cshared library with specific compiler
+ce_install cpp-library add https://github.com/example/mylib 1.0.0 --type cshared --use-compiler g105
 ```
 
 ### `cpp-library generate-linux-props`
@@ -134,5 +139,6 @@ ce_install cpp-library generate-linux-props --output-file cpp_libraries.properti
 - Properties generation can be done for all libraries or filtered to specific libraries/versions
 - Windows and Linux properties may include different libraries based on build compatibility
 - Library paths and linking information are automatically configured based on library type
+- The `--use-compiler` option only applies to `cshared` library types; other library types do not include compiler-specific configuration
 - When generating properties for a specific library version, the command automatically includes the required `.name`, `.url`, and `.versions` properties
 - New library properties are inserted before the tools section in the properties file, maintaining proper file structure
