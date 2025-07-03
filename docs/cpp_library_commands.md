@@ -26,6 +26,8 @@ ce_install cpp-library add <github_url> <version> [--type <library_type>] [--tar
 - `--type`: Library type (optional, default: `header-only`)
 - `--target-prefix`: Prefix for version tags (optional, e.g., 'v' for tags like v3.11.3)
 - `--use-compiler`: Specific compiler to use for building (default: `g105` for cshared libraries)
+- `--static-lib-link`: Comma-separated list of static library targets to link (optional, for static/cshared types)
+- `--shared-lib-link`: Comma-separated list of shared library targets to link (optional, for shared/cshared types)
 
 **Library Types:**
 - `header-only`: Header-only library (default)
@@ -47,6 +49,12 @@ ce_install cpp-library add https://github.com/nlohmann/json 3.11.3 --target-pref
 
 # Add a cshared library with specific compiler
 ce_install cpp-library add https://github.com/example/mylib 1.0.0 --type cshared --use-compiler g105
+
+# Add a static library with linking targets
+ce_install cpp-library add https://github.com/abseil/abseil-cpp v20230802.1 --type static --static-lib-link "absl_base,absl_strings,absl_time"
+
+# Add a shared library with linking targets
+ce_install cpp-library add https://github.com/example/sharedlib 2.0.0 --type shared --shared-lib-link "myshared,utils"
 ```
 
 ### `cpp-library generate-linux-props`
@@ -140,5 +148,7 @@ ce_install cpp-library generate-linux-props --output-file cpp_libraries.properti
 - Windows and Linux properties may include different libraries based on build compatibility
 - Library paths and linking information are automatically configured based on library type
 - The `--use-compiler` option only applies to `cshared` library types; other library types do not include compiler-specific configuration
+- The `--static-lib-link` and `--shared-lib-link` options specify library targets to link and are only valid for static/shared/cshared library types
+- Link target options are only applied when creating new libraries; they are ignored when adding versions to existing libraries
 - When generating properties for a specific library version, the command automatically includes the required `.name`, `.url`, and `.versions` properties
 - New library properties are inserted before the tools section in the properties file, maintaining proper file structure
