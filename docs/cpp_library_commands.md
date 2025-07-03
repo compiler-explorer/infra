@@ -134,5 +134,5 @@ ce_install cpp-library generate-linux-props --output-file cpp_libraries.properti
 - Properties generation can be done for all libraries or filtered to specific libraries/versions
 - Windows and Linux properties may include different libraries based on build compatibility
 - Library paths and linking information are automatically configured based on library type
-- When generating properties for a specific library version, the command automatically includes the required `.name` and `.url` properties
+- When generating properties for a specific library version, the command automatically includes the required `.name`, `.url`, and `.versions` properties
 - New library properties are inserted before the tools section in the properties file, maintaining proper file structure
