@@ -111,10 +111,6 @@ def add_cpp_library(github_url: str, version: str, type: str, target_prefix: str
             library_entry["use_compiler"] = use_compiler
             library_entry["package_install"] = True
 
-        # Add use_compiler to existing library types if specified
-        if use_compiler and type != "cshared":
-            library_entry["use_compiler"] = use_compiler
-
         cpp_libraries[lib_id] = library_entry
         click.echo(f"Added new library {lib_id} with version {version}")
 
