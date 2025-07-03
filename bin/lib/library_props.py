@@ -6,10 +6,7 @@ from libraries.yaml configurations. These functions are designed to be reusable
 across different parts of the system.
 """
 
-from pathlib import Path
 from urllib.parse import urlparse
-
-from lib.library_yaml import LibraryYaml
 
 
 def generate_library_path(library_name, version, target_prefix=""):
@@ -537,18 +534,6 @@ def find_existing_library_by_github_url(cpp_libraries, github_url):
                 return lib_id
 
     return None
-
-
-def load_library_yaml_section(language):
-    """Load libraries.yaml and return the specified language section."""
-    yaml_dir = Path(__file__).parent.parent / "yaml"
-    library_yaml = LibraryYaml(str(yaml_dir))
-
-    # Ensure language section exists
-    if language not in library_yaml.yaml_doc["libraries"]:
-        library_yaml.yaml_doc["libraries"][language] = {}
-
-    return library_yaml, library_yaml.yaml_doc["libraries"][language]
 
 
 def add_version_to_library(libraries_dict, lib_id, version, target_prefix=None):

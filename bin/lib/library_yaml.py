@@ -272,3 +272,15 @@ class LibraryYaml:
         header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
 
         return header_properties_txt + properties_txt
+
+    @classmethod
+    def load_library_yaml_section(cls, language):
+        """Load libraries.yaml and return the specified language section."""
+        yaml_dir = Path(__file__).parent.parent / "yaml"
+        library_yaml = cls(str(yaml_dir))
+
+        # Ensure language section exists
+        if language not in library_yaml.yaml_doc["libraries"]:
+            library_yaml.yaml_doc["libraries"][language] = {}
+
+        return library_yaml, library_yaml.yaml_doc["libraries"][language]
