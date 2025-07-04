@@ -27,3 +27,11 @@ compilers:
       - 0.35.1
       - 0.34.1
       - 0.33.2
+    nightly:
+      if: nightly
+      type: restQueryTarballs
+      install_always: true
+      url: https://api.cloudsmith.io/packages/ponylang/nightlies/?query=x86-64-unknown-linux-ubuntu22.04
+      query: document[0]['cdn_url']
+      targets:
+        - nightly
