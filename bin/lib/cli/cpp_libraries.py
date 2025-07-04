@@ -242,9 +242,10 @@ def generate_cpp_linux_props(input_file, output_file, library, version):
             click.echo(f"Error: {e}", err=True)
             sys.exit(1)
 
-        if version and "name" not in lib_props:
-            lib_props["name"] = library
-            if lib_info.get("type") == "github" and "repo" in lib_info:
+        if version:
+            if "name" not in lib_props:
+                lib_props["name"] = library
+            if "url" not in lib_props and lib_info.get("type") == "github" and "repo" in lib_info:
                 lib_props["url"] = f"https://github.com/{lib_info['repo']}"
 
         result = process_library_specific_properties(
