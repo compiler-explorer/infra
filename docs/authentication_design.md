@@ -123,28 +123,23 @@ This hybrid approach (localStorage for access tokens, httpOnly cookies for refre
 
 ### Backend integration
 
-The backend changes are pretty minimal, which is exactly what I wanted. We're adding a single middleware function that checks for auth tokens and validates them if present. No tokens? You're anonymous and everything works exactly like before.
+The backend changes should be pretty minimal: We're adding a single middleware function that checks for auth tokens and validates them if present. If not present: you're anonymous and everything works exactly like before.
 
 #### Express.js middleware for the CE server
 
-Here's the core middleware code. The nice thing about this approach is that it's completely opt-in - if auth isn't configured, it just marks everyone as anonymous:
+Something like:
 
 ```typescript
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
 import { PropertyGetter } from '../properties.interfaces.js';
 
 // Create auth middleware factory function
-export function createAuthMiddleware(awsProps: PropertyGetter) {
-    // Config from CE properties system (no secrets in code)
+export function maybeCreateAuthMiddleware(awsProps: PropertyGetter) {
     const cognitoUserPoolId = awsProps('cognitoUserPoolId', '');
     const cognitoClientId = awsProps('cognitoClientId', '');
 
     if (!cognitoUserPoolId || !cognitoClientId) {
-        // Auth disabled - return middleware that only handles anonymous users
-        return (req, res, next) => {
-            // req.user remains undefined for anonymous users
-            next();
-        };
+        return undefined;
     }
 
     const verifier = CognitoJwtVerifier.create({
@@ -188,8 +183,9 @@ Using it in the main application is straightforward:
 
 ```typescript
 // Usage in main application setup:
-const authMiddleware = createAuthMiddleware(awsProps);
-app.use('/api/*', authMiddleware);
+const authMiddleware = maybeCreateAuthMiddleware(awsProps);
+if (authMiddleware)
+    app.use('/api/*', authMiddleware);
 
 // Example: Enhanced compilation endpoint
 app.post('/api/compile', async (req, res) => {
@@ -212,8 +208,7 @@ app.post('/api/compile', async (req, res) => {
 });
 ```
 
-Notice that the compilation logic itself doesn't change at all - we can just add optional extras for authenticated users. The WAF handles the actual rate limiting, so by the time a request reaches the web server, it's already been through the rate limit checks.
-```
+The compilation logic itself doesn't change at all - we can just add optional extras for authenticated users. The WAF handles the actual rate limiting, so by the time a request reaches the web server, it's already been through the rate limit checks.
 
 #### Token refresh: keeping users logged in
 
@@ -236,9 +231,9 @@ The Lambda service handles refresh token validation and rotation automatically.
 
 #### Adding auth to the navigation bar
 
-The UI changes are pretty straightforward - we're adding a sign-in dropdown and a user menu. When you're not logged in, you see the sign-in options. When you are logged in, you see your username and some basic account options.
+The UI changes are pretty straightforward - we're adding a sign-in dropdown and a user menu. When you're not logged in, you see the sign-in options. When you are logged in, you see your username and some basic account options. We'll have to add some configuration in the settings to enable this, and make this conditional on that. We don't want the default to have sign in enabled.
 
-Here's the Pug template code for the navbar:
+Here's a sketch of the Pug template code for the navbar:
 
 ```pug
 // views/index.pug - Add to navbar
@@ -246,47 +241,48 @@ ul.navbar-nav.ms-auto.mb-2.mb-md-0
   // ... existing items ...
 
   // Authentication section
-  li.nav-item.dropdown#auth-dropdown.d-none
-    button.btn.btn-light.nav-link.dropdown-toggle#auth-user(role="button" data-bs-toggle="dropdown" aria-expanded="false")
-      span.dropdown-icon.fas.fa-user
-      span#auth-username Loading...
-    div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-user")
-      div.dropdown-header
-        span#auth-user-email
-      div.dropdown-divider
-      a.dropdown-item#auth-preferences(href="#")
-        span.dropdown-icon.fas.fa-cog
-        | Preferences
-      a.dropdown-item#auth-history(href="#")
-        span.dropdown-icon.fas.fa-history
-        | History
-      div.dropdown-divider
-      button.dropdown-item#auth-sign-out
-        span.dropdown-icon.fas.fa-sign-out-alt
-        | Sign Out
+  if authEnabled:
+    li.nav-item.dropdown#auth-dropdown.d-none
+        button.btn.btn-light.nav-link.dropdown-toggle#auth-user(role="button" data-bs-toggle="dropdown" aria-expanded="false")
+        span.dropdown-icon.fas.fa-user
+        span#auth-username Loading...
+        div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-user")
+        div.dropdown-header
+            span#auth-user-email
+        div.dropdown-divider
+        a.dropdown-item#auth-preferences(href="#")
+            span.dropdown-icon.fas.fa-cog
+            | Preferences
+        a.dropdown-item#auth-history(href="#")
+            span.dropdown-icon.fas.fa-history
+            | History
+        div.dropdown-divider
+        button.dropdown-item#auth-sign-out
+            span.dropdown-icon.fas.fa-sign-out-alt
+            | Sign Out
 
-  li.nav-item.dropdown#auth-sign-in
-    button.btn.btn-light.nav-link.dropdown-toggle#auth-sign-in-btn(role="button" data-bs-toggle="dropdown" aria-expanded="false")
-      span.dropdown-icon.fas.fa-sign-in-alt
-      | Sign In
-    div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-sign-in-btn")
-      div.dropdown-header Sign in for higher rate limits
-      button.dropdown-item.auth-provider(data-provider="GitHub")
-        span.dropdown-icon.fab.fa-github
-        | GitHub
-      button.dropdown-item.auth-provider(data-provider="Google")
-        span.dropdown-icon.fab.fa-google
-        | Google
-      button.dropdown-item.auth-provider(data-provider="SignInWithApple")
-        span.dropdown-icon.fab.fa-apple
-        | Apple
+    li.nav-item.dropdown#auth-sign-in
+        button.btn.btn-light.nav-link.dropdown-toggle#auth-sign-in-btn(role="button" data-bs-toggle="dropdown" aria-expanded="false")
+        span.dropdown-icon.fas.fa-sign-in-alt
+        | Sign In
+        div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-sign-in-btn")
+        div.dropdown-header Sign in for higher rate limits
+        button.dropdown-item.auth-provider(data-provider="GitHub")
+            span.dropdown-icon.fab.fa-github
+            | GitHub
+        button.dropdown-item.auth-provider(data-provider="Google")
+            span.dropdown-icon.fab.fa-google
+            | Google
+        button.dropdown-item.auth-provider(data-provider="SignInWithApple")
+            span.dropdown-icon.fab.fa-apple
+            | Apple
 ```
 
 Nothing too fancy here - just standard Bootstrap dropdown components. The user dropdown starts hidden and shows up when you're authenticated, while the sign-in dropdown does the opposite.
 
-#### The TypeScript client: handling auth in the browser
+#### Auth in the browser
 
-This is where most of the client-side logic lives. The `AuthClient` class handles OAuth redirects, token storage, and automatic refresh. It's designed to be pretty bulletproof - if something goes wrong, it just falls back to anonymous mode.
+The `AuthClient` class handles OAuth redirects, token storage, and automatic refresh.
 
 Here's the core of the client-side auth handling:
 
@@ -327,8 +323,9 @@ export class AuthClient {
     }
 ```
 
-The initialization logic handles both cases - when someone is coming back from an OAuth redirect (tokens in the URL fragment) and when they're loading the page normally (check localStorage for existing tokens).
+The initialisation logic handles both cases - when someone is coming back from an OAuth redirect (tokens in the URL fragment) and when they're loading the page normally (check localStorage for existing tokens).
 
+```typescript
     async signIn(provider: string): Promise<void> {
         const returnTo = encodeURIComponent(window.location.href);
         const authUrl = `https://api.compiler-explorer.com/auth/login?provider=${provider}&return_to=${returnTo}`;
@@ -356,6 +353,7 @@ The initialization logic handles both cases - when someone is coming back from a
 
 Sign-in is just a redirect to the auth service with the current page URL so we can come back to the right place. Sign-out is even simpler - just clear everything and update the UI.
 
+```typescript
     async getValidToken(): Promise<string | null> {
         if (this.accessToken && Date.now() < this.tokenExpiry) {
             return this.accessToken;
@@ -367,6 +365,7 @@ Sign-in is just a redirect to the auth service with the current page URL so we c
 
 This is the method that other parts of the app call when they need a token. It automatically handles refresh if the current token is expired.
 
+```typescript
     private async loadFromStorage(): Promise<void> {
         const accessToken = localStorage.getItem('ce_access_token');
         const tokenExpiry = localStorage.getItem('ce_token_expiry');
@@ -451,8 +450,9 @@ This is the method that other parts of the app call when they need a token. It a
     }
 ```
 
-The refresh logic now actively notifies users when their session expires instead of silently logging them out.
+The refresh logic notifies users when their session expires (instead of silently logging them out).
 
+```typescript
     private async updateAuthUI(state?: 'session_expired'): Promise<void> {
         const signInDropdown = document.getElementById('auth-sign-in');
         const userDropdown = document.getElementById('auth-dropdown');
@@ -491,57 +491,116 @@ The refresh logic now actively notifies users when their session expires instead
 
 The UI update logic just toggles between showing the sign-in dropdown and the user dropdown, and populates the user info from the JWT payload. Since JWTs are just base64-encoded JSON, we can decode them client-side without any special libraries.
 
-#### Plugging auth into the compilation API
+#### Authenticated API calls
 
-The compilation service changes are minimal - we just need to include the auth token in requests when we have one. The service gracefully handles both authenticated and anonymous requests.
+Since the auth middleware applies to all `/api/*` endpoints, we need a consistent way to handle authentication across all API calls. Rather than duplicating the auth logic everywhere, we should create a reusable wrapper around fetch.
 
-Here's how we modify the compiler service to include auth tokens:
+First, we need a way to access the AuthClient instance throughout the application:
 
 ```typescript
-// static/compiler-service.ts - Enhanced API calls
-export class CompilerService {
-    constructor(private authClient: AuthClient) {}
+// Global AuthClient instance - initialize once on page load
+let globalAuthClient: AuthClient | null = null;
 
-    async compile(code: string, language: string, options: any): Promise<any> {
-        const token = await this.authClient.getValidToken();
-
-        const headers: Record<string, string> = {
-            'Content-Type': 'application/json'
-        };
-
-        if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        const response = await fetch('/api/compile', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({ code, language, options })
-        });
-
-        if (response.status === 401) {
-            // Token expired, try refresh
-            const newToken = await this.authClient.getValidToken();
-            if (newToken) {
-                headers['Authorization'] = `Bearer ${newToken}`;
-                return fetch('/api/compile', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ code, language, options })
-                }).then(r => r.json());
-            }
-        }
-
-        if (response.status === 429) {
-            throw new Error('Rate limit exceeded. Please sign in for higher limits.');
-        }
-
-        return response.json();
+export function initializeAuth(): void {
+    if (!globalAuthClient) {
+        globalAuthClient = new AuthClient();
+        globalAuthClient.initialize();
     }
+}
+
+export function getAuthClient(): AuthClient | null {
+    return globalAuthClient;
 }
 ```
 
-This handles the common scenarios: include the token if we have one, retry with a fresh token if we get a 401, and give a helpful error message if we hit rate limits. The important thing is that compilation still works fine even if all the auth stuff fails.
+Then create the authenticated fetch wrapper:
+
+```typescript
+// Central authenticated fetch wrapper - use this instead of raw fetch for /api/ calls
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    const authClient = getAuthClient();
+    const token = authClient ? await authClient.getValidToken() : null;
+
+    // Add auth header if we have a token
+    const headers = {
+        ...options.headers,
+        ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+
+    const response = await fetch(url, { ...options, headers });
+
+    // Handle 401 with single retry
+    if (response.status === 401 && token && authClient) {
+        const newToken = await authClient.getValidToken(); // Will attempt refresh
+        if (newToken && newToken !== token) {
+            // Got a fresh token, retry once
+            const retryHeaders = {
+                ...options.headers,
+                'Authorization': `Bearer ${newToken}`
+            };
+            return fetch(url, { ...options, headers: retryHeaders });
+        }
+    }
+
+    return response;
+}
+```
+
+This function should be used throughout CE for all `/api/` calls instead of raw fetch. It automatically handles token inclusion and refresh retry logic.
+
+The auth system would be initialized once when the page loads:
+
+```typescript
+// In main application startup code
+initializeAuth();
+```
+
+#### Using authenticated fetch
+
+For example, the compilation API becomes much simpler:
+
+Here's how compilation API calls work with the authenticated fetch wrapper:
+
+```typescript
+// Compilation using authenticatedFetch - much simpler!
+async function compileCode(code: string, language: string, options: any): Promise<any> {
+    const response = await authenticatedFetch('/api/compile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language, options })
+    });
+
+    if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please sign in for higher limits.');
+    }
+
+    if (!response.ok) {
+        throw new Error(`Compilation failed: ${response.statusText}`);
+    }
+
+    return response.json();
+}
+```
+
+The `authenticatedFetch` wrapper handles all the auth complexity - token inclusion, refresh retry, and graceful fallback. Any existing `/api/` fetch calls throughout CE should be updated to use this pattern.
+
+Other API endpoints would follow the same pattern:
+
+```typescript
+// Short link creation
+const response = await authenticatedFetch('/api/shortlinks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, title })
+});
+
+// User preferences
+const response = await authenticatedFetch('/api/user/preferences', {
+    method: 'GET'
+});
+```
+
+The key benefit is that authentication complexity is centralized, and all API calls get consistent auth behavior without duplicating retry logic everywhere.
 
 ### Auth Lambda service
 
