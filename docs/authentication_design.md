@@ -113,11 +113,11 @@ if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
 For XSS protection, we need to be more specific than "just good hygiene". Here's what we're actually doing:
 
 - **Content Security Policy (CSP) headers**: These tell the browser exactly which scripts can run and where they can come from. We'll be strict about this.
-- **Input sanitization and output encoding**: Every piece of user input gets cleaned before we display it anywhere.
+- **Prevent code execution**: Ensure user-provided data (like usernames) cannot be executed as code in the browser context.
 - **X-XSS-Protection and X-Content-Type-Options headers**: These are the standard browser security headers that help prevent common XSS vectors.
 - **Regular security audits and dependency updates**: We'll keep our JavaScript dependencies current and run security scans.
 
-The localStorage approach still makes some security folks nervous, but the alternatives (httpOnly cookies, server-side sessions) would complicate the stateless nature of CE significantly. The short token lifetime and automatic cleanup help mitigate the risk.
+This hybrid approach (localStorage for access tokens, httpOnly cookies for refresh tokens) provides the security benefits of protecting long-lived tokens while maintaining the functionality needed for API calls. The short access token lifetime and automatic cleanup help mitigate any localStorage risks.
 
 ## Implementation details
 
@@ -142,7 +142,7 @@ export function createAuthMiddleware(awsProps: PropertyGetter) {
     if (!cognitoUserPoolId || !cognitoClientId) {
         // Auth disabled - return middleware that only handles anonymous users
         return (req, res, next) => {
-            req.user = { tier: 'anonymous' };
+            // req.user remains undefined for anonymous users
             next();
         };
     }
@@ -156,19 +156,14 @@ export function createAuthMiddleware(awsProps: PropertyGetter) {
     // Return the actual auth middleware
     return async (req, res, next) => {
         const authHeader = req.headers.authorization;
-        let userId: string | null = null;
-        let userTier: string = 'anonymous';
-
         if (authHeader?.startsWith('Bearer ')) {
             try {
                 const token = authHeader.split(' ')[1];
                 const payload = await verifier.verify(token);
-                userId = payload.sub;
-                userTier = 'authenticated';
-
+                // payload could contain other things like whether user is a patron/github sponsor
+                // or an admin, or basically anything else that might be useful.
                 req.user = {
-                    id: userId,
-                    tier: userTier,
+                    id: payload.sub,
                     email: payload.email,
                     username: payload.username
                 };
@@ -180,8 +175,6 @@ export function createAuthMiddleware(awsProps: PropertyGetter) {
                 });
                 return;
             }
-        } else {
-            req.user = { tier: 'anonymous' };
         }
 
         next();
@@ -211,16 +204,15 @@ app.post('/api/compile', async (req, res) => {
 
     // Optional authenticated features
     if (req.user?.id) {
-        // Higher rate limits already enforced by WAF
-        result.user_tier = 'authenticated';
-        result.rate_limit_tier = 'high';
+        // Higher rate limits already enforced by WAF...
+        // todo something here... maybe update stats per user? or whatever
     }
 
     res.json(result);
 });
 ```
 
-Notice that the compilation logic itself doesn't change at all - we just add some optional metadata for authenticated users. The WAF handles the actual rate limiting, so by the time a request reaches the web server, it's already been through the rate limit checks.
+Notice that the compilation logic itself doesn't change at all - we can just add optional extras for authenticated users. The WAF handles the actual rate limiting, so by the time a request reaches the web server, it's already been through the rate limit checks.
 ```
 
 #### Token refresh: keeping users logged in
@@ -238,42 +230,7 @@ const response = await fetch('/auth/refresh', {
 });
 ```
 
-The Lambda service handles refresh token validation and rotation:
-
-**Option 2: Proxy through the main server** (if needed for routing)
-If you want all API calls to go through the main CE server:
-
-```typescript
-export function createTokenRefreshEndpoint(awsProps: PropertyGetter) {
-    const authServiceUrl = awsProps('authServiceUrl', 'https://api.compiler-explorer.com');
-
-    return async (req, res) => {
-        try {
-            // Proxy to Lambda auth service with cookies forwarded
-            const response = await fetch(`${authServiceUrl}/auth/refresh`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cookie': req.headers.cookie || '' // Forward cookies
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Token refresh failed');
-            }
-
-            const tokens = await response.json();
-            res.json(tokens);
-
-        } catch (error) {
-            res.status(401).json({
-                error: 'Invalid refresh token',
-                message: 'Please sign in again'
-            });
-        }
-    };
-}
-```
+The Lambda service handles refresh token validation and rotation automatically.
 
 ### Frontend integration
 
@@ -1543,7 +1500,7 @@ describe('Authentication Middleware', () => {
 
         await authMiddleware(req, res, next);
 
-        expect(req.user).toEqual({ tier: 'anonymous' });
+        expect(req.user).toBeUndefined();
         expect(next).toHaveBeenCalled();
     });
 
@@ -1557,7 +1514,8 @@ describe('Authentication Middleware', () => {
 
         await authMiddleware(req, res, next);
 
-        expect(req.user.tier).toBe('authenticated');
+        expect(req.user.id).toBeTruthy();
+        expect(req.user.email).toBeTruthy();
         expect(req.user.id).toBeTruthy();
         expect(next).toHaveBeenCalled();
     });
@@ -1837,7 +1795,7 @@ const authMetrics = {
     'CE/Auth/SignOut': { success: boolean },
 
     // Rate limiting
-    'CE/Auth/RateLimitHit': { tier: 'anonymous' | 'authenticated' },
+    'CE/Auth/RateLimitHit': { authenticated: boolean },
     'CE/Auth/RequestsWithAuth': { count: number },
     'CE/Auth/RequestsWithoutAuth': { count: number },
 
@@ -2043,7 +2001,7 @@ Once we have authentication working, there are lots of interesting features we c
 
 **Link ownership** - Associate short links with user accounts so you can manage and analyze your shared code snippets.
 
-**Advanced rate limiting** - Per-user limits, supporter tier benefits, usage analytics. Could be interesting for understanding how CE is being used.
+**Advanced rate limiting** - Per-user limits, supporter benefits, usage analytics. Could be interesting for understanding how CE is being used.
 
 ### Technical improvements
 
