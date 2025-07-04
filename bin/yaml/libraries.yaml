@@ -827,7 +827,7 @@ libraries:
       - hpx_wrap
       target_prefix: v
       targets:
-      - name: 1.10.0
+      - name: 1.11.0
       type: github
     jsoncons:
       check_file: README.md
