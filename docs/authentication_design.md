@@ -1,18 +1,17 @@
 # Compiler Explorer Authentication Design
 
-## What we're building and why
+Compiler Explorer has been happily anonymous for years. Some users have been asking for features that would be much easier to build if we knew who they were, like the ability to see and administrate their own short links. Additionally we can consider reducing our default WAF per-ip limits for anonymous users, and then allow the higher limit for our authenticated users, on the basis that we could at least contact serial abusers rather than tar everyone with the same brush.
 
-So here's the thing: Compiler Explorer has been happily anonymous for years, and that's worked great. But we're starting to hit some interesting scaling challenges, and frankly, some users have been asking for features that would be much easier to build if we knew who they were.
+This would all be optional: If people want to keep using CE exactly as they do today, nothing changes (unless they were relying on our super high rate limits). But if you want to sign in (likely with their GitHub account), they'll get some nice perks like higher rate limits and eventually things like saved preferences.
 
-The core idea is simple: let's add *optional* authentication. I can't stress the "optional" part enough - if you want to keep using CE exactly as you do today, nothing changes. But if you want to sign in (probably with your GitHub account, let's be honest), you'll get some nice perks like higher rate limits and eventually things like saved preferences.
+Here's what I'm aiming for, to start with at least:
 
-Here's what I'm aiming for:
-
-- **Keep it simple**: Anonymous users see zero change in behavior
-- **Minimal moving parts**: I don't want to build an identity provider from scratch (AWS Cognito it is)
-- **Security without paranoia**: No auth secrets in the web server, proper token validation, but let's not go overboard
-- **Developer-first**: GitHub login is the main event, with Google and Apple as nice-to-haves
-- **Immediate value**: Higher rate limits for authenticated users via WAF rules
+- Anonymous users see zero change in behavior
+- Simple design: I don't want to build an identity provider from scratch (so: AWS Cognito)
+- No auth secrets in the web server, proper token validation, but let's not go overboard
+- GitHub, Google and Apple logins as well as Cognito-stored username/password
+- Higher rate limits for authenticated users via WAF rules
+- Opening the door for more things down the road; probably short link attribution to start with.
 
 ## How it all fits together
 
@@ -59,54 +58,55 @@ graph TB
 
 When someone wants to sign in, they click a button and get redirected to GitHub (or Google/Apple). The OAuth dance happens with AWS Cognito handling the heavy lifting, and we get back some JWT tokens. The important bit is that all the OAuth secrets live in a separate Lambda function - the main CE web server never sees them.
 
-For API requests, if you're authenticated, you send a Bearer token. The WAF looks at whether you have a token and applies different rate limits accordingly. The web server validates the token (using public keys, no secrets needed) and either processes your request as an authenticated user or falls back to anonymous mode.
+For API requests, if you're authenticated, you send a Bearer token. The WAF looks at whether you have a token and applies different rate limits accordingly (NB it does not and cannot validate it). The web server validates the token (using public keys, no secrets needed) and either processes your request as an authenticated user (erroring if the token is invalid), or treats it normally if unauthenticated. There isn't currently any need to treat the request differently in the main code: other than checking the validity.
 
-The beauty of this setup is that it's additive - if something breaks with auth, anonymous users keep working exactly as before.
+The beauty of this setup is that it's additive - anonymous users keep working exactly as before.
 
-## Security: what could go wrong?
+## Security considerations
 
-Let's be realistic about what we're protecting against. I'm not trying to build Fort Knox here, but there are some obvious things that could go badly:
+If someone compromises the main CE web server, I don't want them getting access to OAuth secrets. That's why all the secrets live in a separate Lambda function that the web server never talks to directly.
 
-**The stuff that keeps me up at night:**
+XSS attacks are always a concern when storing access tokens in localStorage. We mitigate this by:
 
-If someone compromises the main CE web server, I don't want them getting access to OAuth secrets. That's why all the secret sauce lives in a separate Lambda function that the web server never talks to directly.
+- Using httpOnly cookies for refresh tokens (XSS can't steal these)
+- Short 30-minute access token lifetime (limits damage from localStorage theft)
+- Strong CSP headers and input sanitization
+- Refresh tokens can only be used by server-side code, not JavaScript
 
-XSS attacks are always a concern when you're storing tokens in localStorage. We'll use strong CSP headers and be careful about input sanitization. The 30-minute token lifetime helps limit the damage if someone does manage to steal a token.
+This hybrid approach gives us the security benefits of httpOnly cookies while still allowing JavaScript access to short-lived access tokens for Bearer headers.
 
-Rate limit bypass is probably the most likely attack vector - someone trying to use fake or stolen tokens to get higher limits. The WAF checks for the presence of a Bearer token first, then the web server validates it properly. If validation fails, you get kicked back to anonymous limits.
+Rate limit bypass is probably the most likely attack vector - someone trying to use fake or stolen tokens to get higher limits. The WAF checks for the presence of a Bearer token first, then the web server validates it properly. If validation fails, it will pass the WAF filter, but the server will send back an error.
 
 Account takeover via OAuth provider compromise is mostly out of our hands, but we can limit the damage by not storing sensitive data and making it easy for users to sign out everywhere.
 
-**How we're handling it:**
+OAuth secrets never leave the Lambda auth service. The main web server only knows how to validate JWTs using public keys. WAF rules handle rate limiting at the CloudFront level. We'll be strict about CORS and input validation.
 
-Secret isolation is the big one - OAuth secrets never leave the Lambda auth service. The main web server only knows how to validate JWTs using public keys.
+## Token handling
 
-WAF rules handle rate limiting at the CloudFront level, so even if someone bypasses the web server somehow, they still hit the rate limits.
+JWT tokens are pretty straightforward - they're just signed JSON that tells us who you are. We use a two-token approach for better security:
 
-We'll be strict about CORS and input validation, though honestly, most of this is just good practice we should be doing anyway.
+**Access tokens** (30 minutes): Stored in localStorage so JavaScript can include them in Bearer headers for API calls. Short lifetime limits damage if stolen.
 
-## Token handling: keeping it simple but secure
+**Refresh tokens** (30 days): Stored in httpOnly cookies that JavaScript can't access. This protects against XSS attacks stealing long-lived tokens. The browser automatically sends these cookies to our refresh endpoint.
 
-JWT tokens are pretty straightforward - they're just signed JSON that tells us who you are. I'm going with 30-minute access tokens because it's long enough that you won't get randomly logged out, but short enough that if someone steals your token, the damage is limited.
+We track access token expiry client-side to avoid unnecessary server round-trips, but the server is authoritative on token validity.
 
-Refresh tokens last 30 days, which seems reasonable for "stay logged in" functionality. They're only used to get new access tokens, never for API calls directly.
-
-All tokens live in localStorage, which I know makes some security folks nervous. But honestly, if someone can run arbitrary JavaScript in your browser, you have bigger problems than stolen auth tokens. We'll use CSP headers to make XSS harder, and the tokens expire automatically.
-
-Here's the basic token storage approach:
+Here's the token storage approach:
 
 ```typescript
-// Token storage in localStorage
+// Access token storage in localStorage (needed for Bearer headers)
 localStorage.setItem('ce_access_token', accessToken);
-localStorage.setItem('ce_refresh_token', refreshToken);
 localStorage.setItem('ce_token_expiry', (Date.now() + expiresIn * 1000).toString());
+
+// Refresh tokens are set as httpOnly cookies by the server
+// No client-side storage or management needed
 
 // Automatic cleanup on page load
 const tokenExpiry = localStorage.getItem('ce_token_expiry');
 if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
     localStorage.removeItem('ce_access_token');
-    localStorage.removeItem('ce_refresh_token');
     localStorage.removeItem('ce_token_expiry');
+    // Refresh token cleanup handled by server cookie expiry
 }
 ```
 
@@ -225,40 +225,37 @@ Notice that the compilation logic itself doesn't change at all - we just add som
 
 #### Token refresh: keeping users logged in
 
-Token refresh is a bit tricky because we need to keep the OAuth client secret in the Lambda service, not the main web server. I see two reasonable approaches:
+Token refresh is handled securely using httpOnly cookies. The refresh token is stored as an httpOnly cookie that gets sent automatically with requests to the `/auth/refresh` endpoint. This prevents XSS attacks from stealing long-lived refresh tokens.
 
-**Option 1: Direct frontend calls** (this is what I'd recommend)
-The frontend calls the Lambda auth service directly when it needs new tokens:
+The frontend calls the auth service directly for refresh:
 
 ```typescript
-// Frontend calls Lambda directly for refresh
-const response = await fetch('https://api.compiler-explorer.com/auth/refresh', {
+// Frontend calls auth service with httpOnly cookie automatically included
+const response = await fetch('/auth/refresh', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refresh_token: refreshToken })
+    credentials: 'include', // Include httpOnly cookies
+    headers: { 'Content-Type': 'application/json' }
 });
 ```
 
-**Option 2: Proxy through the main server** (if you really want to)
-If for some reason you want all API calls to go through the main CE server:
+The Lambda service handles refresh token validation and rotation:
+
+**Option 2: Proxy through the main server** (if needed for routing)
+If you want all API calls to go through the main CE server:
 
 ```typescript
 export function createTokenRefreshEndpoint(awsProps: PropertyGetter) {
     const authServiceUrl = awsProps('authServiceUrl', 'https://api.compiler-explorer.com');
 
     return async (req, res) => {
-        const { refresh_token } = req.body;
-
-        if (!refresh_token) {
-            return res.status(401).json({ error: 'No refresh token provided' });
-        }
-
         try {
-            // Proxy to Lambda auth service (no secrets in this server)
+            // Proxy to Lambda auth service with cookies forwarded
             const response = await fetch(`${authServiceUrl}/auth/refresh`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cookie': req.headers.cookie || '' // Forward cookies
+                }
             });
 
             if (!response.ok) {
@@ -349,16 +346,17 @@ export class AuthClient {
 
         if (params.has('access_token')) {
             this.accessToken = params.get('access_token');
-            const refreshToken = params.get('refresh_token');
             const expiresIn = parseInt(params.get('expires_in') || '1800');
 
-            // Store tokens in localStorage
+            // Store access token in localStorage
             localStorage.setItem('ce_access_token', this.accessToken);
-            localStorage.setItem('ce_refresh_token', refreshToken);
 
             // Set expiry
             this.tokenExpiry = Date.now() + (expiresIn * 1000);
             localStorage.setItem('ce_token_expiry', this.tokenExpiry.toString());
+
+            // Refresh token is automatically set as httpOnly cookie by server
+            // No client-side storage needed
 
             // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
@@ -387,8 +385,12 @@ The initialization logic handles both cases - when someone is coming back from a
 
         // Clear localStorage
         localStorage.removeItem('ce_access_token');
-        localStorage.removeItem('ce_refresh_token');
         localStorage.removeItem('ce_token_expiry');
+
+        // Clear refresh token cookie by calling logout endpoint
+        fetch('/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {
+            // Ignore errors - user is logging out anyway
+        });
 
         // Update UI
         this.updateAuthUI();
@@ -426,34 +428,27 @@ This is the method that other parts of the app call when they need a token. It a
     }
 
     private async refreshTokenIfNeeded(): Promise<string | null> {
-        const refreshToken = localStorage.getItem('ce_refresh_token');
-
-        if (!refreshToken) {
-            return null;
-        }
-
         try {
-            const response = await fetch('https://api.compiler-explorer.com/auth/refresh', {
+            const response = await fetch('/auth/refresh', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refresh_token: refreshToken })
+                credentials: 'include', // Send httpOnly refresh token cookie
+                headers: { 'Content-Type': 'application/json' }
             });
 
             if (!response.ok) {
-                // Clear invalid tokens
-                this.signOut();
+                // Session expired or invalid - notify user and sign out
+                this.handleRefreshFailure();
                 return null;
             }
 
             const tokens = await response.json();
 
-            // Update tokens
+            // Update access token and expiry
             this.accessToken = tokens.access_token;
             this.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
 
-            // Store new tokens
+            // Store new access token (refresh token updated via httpOnly cookie)
             localStorage.setItem('ce_access_token', this.accessToken);
-            localStorage.setItem('ce_refresh_token', tokens.refresh_token);
             localStorage.setItem('ce_token_expiry', this.tokenExpiry.toString());
 
             await this.updateAuthUI();
@@ -461,17 +456,50 @@ This is the method that other parts of the app call when they need a token. It a
 
         } catch (error) {
             console.error('Token refresh failed:', error);
-            this.signOut();
+            this.handleRefreshFailure();
             return null;
         }
     }
+
+    private handleRefreshFailure(): void {
+        // Clear local auth state
+        this.accessToken = null;
+        this.tokenExpiry = 0;
+        localStorage.removeItem('ce_access_token');
+        localStorage.removeItem('ce_token_expiry');
+
+        // Show notification to user
+        this.showNotification('Your session has expired. Please sign in again.', 'warning');
+
+        // Update UI to show session expired state
+        this.updateAuthUI('session_expired');
+
+        // Clear refresh token cookie
+        fetch('/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    }
+
+    private showNotification(message: string, type: 'info' | 'warning' | 'error'): void {
+        // Implementation depends on your notification system
+        // Could be a toast, banner, or modal
+        console.warn(message); // Fallback for now
+
+        // Example with a simple banner:
+        const banner = document.createElement('div');
+        banner.className = `auth-notification auth-notification--${type}`;
+        banner.textContent = message;
+        document.body.insertBefore(banner, document.body.firstChild);
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => banner.remove(), 5000);
+    }
 ```
 
-The refresh logic is pretty defensive - if anything goes wrong, we just sign the user out completely rather than leaving them in a weird half-authenticated state.
+The refresh logic now actively notifies users when their session expires instead of silently logging them out.
 
-    private async updateAuthUI(): Promise<void> {
+    private async updateAuthUI(state?: 'session_expired'): Promise<void> {
         const signInDropdown = document.getElementById('auth-sign-in');
         const userDropdown = document.getElementById('auth-dropdown');
+        const signInButton = document.getElementById('auth-sign-in-btn');
 
         if (this.accessToken) {
             // Get user info from token
@@ -481,13 +509,24 @@ The refresh logic is pretty defensive - if anything goes wrong, we just sign the
             document.getElementById('auth-username').textContent = payload.username || 'User';
             document.getElementById('auth-user-email').textContent = payload.email || '';
 
-            // Show/hide dropdowns
+            // Show user dropdown, hide sign in
             signInDropdown?.classList.add('d-none');
             userDropdown?.classList.remove('d-none');
         } else {
-            // Show sign in, hide user dropdown
+            // Show sign in dropdown, hide user dropdown
             signInDropdown?.classList.remove('d-none');
             userDropdown?.classList.add('d-none');
+
+            // Update sign in button text based on state
+            if (state === 'session_expired' && signInButton) {
+                signInButton.textContent = 'Session Expired - Sign In Again';
+                signInButton.classList.add('btn-warning');
+                signInButton.classList.remove('btn-light');
+            } else if (signInButton) {
+                signInButton.textContent = 'Sign In';
+                signInButton.classList.add('btn-light');
+                signInButton.classList.remove('btn-warning');
+            }
         }
     }
 }
@@ -577,6 +616,10 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return handle_auth_login(event, context)
     elif path == '/auth/callback':
         return handle_auth_callback(event, context)
+    elif path == '/auth/refresh':
+        return handle_auth_refresh(event, context)
+    elif path == '/auth/logout':
+        return handle_auth_logout(event, context)
     else:
         return {
             'statusCode': 404,
@@ -655,13 +698,17 @@ def handle_auth_callback(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Exchange code for tokens
         tokens = exchange_code_for_tokens(code)
 
-        # Redirect back with tokens as URL fragments
-        redirect_url = f"{return_to}#access_token={tokens['access_token']}&refresh_token={tokens['refresh_token']}&expires_in={tokens['expires_in']}"
+        # Set refresh token as httpOnly cookie
+        refresh_cookie = f"ce_refresh_token={tokens['refresh_token']}; HttpOnly; Secure; SameSite=Strict; Max-Age={30 * 24 * 60 * 60}; Path=/auth"
+
+        # Redirect back with access token only in URL fragment
+        redirect_url = f"{return_to}#access_token={tokens['access_token']}&expires_in={tokens['expires_in']}"
 
         return {
             'statusCode': 302,
             'headers': {
                 'Location': redirect_url,
+                'Set-Cookie': refresh_cookie,
                 'Cache-Control': 'no-cache, no-store, must-revalidate'
             }
         }
@@ -703,6 +750,91 @@ def exchange_code_for_tokens(code: str) -> Dict[str, Any]:
         raise Exception(f"Token exchange failed: {response.text}")
 
     return response.json()
+
+def handle_auth_refresh(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Handle refresh token requests"""
+    try:
+        # Get refresh token from httpOnly cookie
+        cookies = event.get('headers', {}).get('cookie', '')
+        refresh_token = None
+
+        for cookie in cookies.split(';'):
+            cookie = cookie.strip()
+            if cookie.startswith('ce_refresh_token='):
+                refresh_token = cookie.split('=', 1)[1]
+                break
+
+        if not refresh_token:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({'error': 'No refresh token provided'})
+            }
+
+        # Exchange refresh token for new access token
+        token_url = f"https://{COGNITO_DOMAIN}/oauth2/token"
+        client_credentials = f"{CLIENT_ID}:{CLIENT_SECRET}"
+        auth_header = base64.b64encode(client_credentials.encode()).decode()
+
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': f'Basic {auth_header}'
+        }
+
+        data = {
+            'grant_type': 'refresh_token',
+            'client_id': CLIENT_ID,
+            'refresh_token': refresh_token
+        }
+
+        response = requests.post(
+            token_url,
+            headers=headers,
+            data=urllib.parse.urlencode(data),
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            return {
+                'statusCode': 401,
+                'body': json.dumps({'error': 'Refresh token invalid or expired'})
+            }
+
+        tokens = response.json()
+
+        # Set new refresh token as httpOnly cookie (token rotation)
+        new_refresh_cookie = f"ce_refresh_token={tokens['refresh_token']}; HttpOnly; Secure; SameSite=Strict; Max-Age={30 * 24 * 60 * 60}; Path=/auth"
+
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Set-Cookie': new_refresh_cookie,
+                'Content-Type': 'application/json'
+            },
+            'body': json.dumps({
+                'access_token': tokens['access_token'],
+                'expires_in': tokens['expires_in']
+            })
+        }
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'body': json.dumps({'error': f'Refresh failed: {str(e)}'})
+        }
+
+def handle_auth_logout(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
+    """Handle logout requests - clear refresh token cookie"""
+    # Clear refresh token cookie
+    clear_cookie = "ce_refresh_token=; HttpOnly; Secure; SameSite=Strict; Max-Age=0; Path=/auth"
+
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Set-Cookie': clear_cookie,
+            'Content-Type': 'application/json'
+        },
+        'body': json.dumps({'message': 'Logged out successfully'})
+    }
 
 def is_valid_ce_domain(url: str) -> bool:
     """Validate return URL is a CE domain"""
@@ -1238,6 +1370,18 @@ resource "aws_apigatewayv2_route" "auth_callback" {
   target    = "integrations/${aws_apigatewayv2_integration.auth_service.id}"
 }
 
+resource "aws_apigatewayv2_route" "auth_refresh" {
+  api_id    = aws_apigatewayv2_api.auth_service.id
+  route_key = "POST /auth/refresh"
+  target    = "integrations/${aws_apigatewayv2_integration.auth_service.id}"
+}
+
+resource "aws_apigatewayv2_route" "auth_logout" {
+  api_id    = aws_apigatewayv2_api.auth_service.id
+  route_key = "POST /auth/logout"
+  target    = "integrations/${aws_apigatewayv2_integration.auth_service.id}"
+}
+
 # Lambda permission for API Gateway
 resource "aws_lambda_permission" "auth_service_apigw" {
   statement_id  = "AllowExecutionFromAPIGateway"
@@ -1256,7 +1400,7 @@ Deploying auth is always a bit nerve-wracking because if you mess it up, you can
 
 First, we need to set up all the OAuth applications and AWS resources. This can be done without affecting the running system at all.
 
-**Create the OAuth applications**
+#### Create the OAuth applications
 
 You'll need to create OAuth apps with each provider:
 
@@ -1266,7 +1410,7 @@ You'll need to create OAuth apps with each provider:
 
 Make sure the callback URLs point to your Cognito domain (you'll get this after deploying the infrastructure).
 
-**Deploy the infrastructure**
+#### Deploy the infrastructure
 
 ```bash
 cd terraform/
@@ -1283,13 +1427,13 @@ terraform plan
 terraform apply
 ```
 
-**Set up DNS**
+#### Set up DNS
 
 Add a CNAME record pointing auth.compiler-explorer.com to your API Gateway URL (Terraform will output this).
 
 ### Wire up the backend
 
-**Update the environment variables**
+#### Update the environment variables
 
 Add the Cognito details to your server environment:
 
@@ -1299,13 +1443,13 @@ export COGNITO_CLIENT_ID="your_client_id"
 export COGNITO_DOMAIN="auth-ce-12345678.auth.us-east-1.amazoncognito.com"
 ```
 
-**Install the JWT verification library**
+#### Install the JWT verification library
 
 ```bash
 npm install aws-jwt-verify
 ```
 
-**Deploy and test the backend changes**
+#### Deploy and test the backend changes
 
 ```bash
 # Test everything locally first
@@ -1319,17 +1463,17 @@ npm run lint
 curl -X POST https://staging.godbolt.org/api/auth/refresh
 ```
 
-### Hook up the frontend
+### Frontend integration
 
-**Add the TypeScript auth client**
+#### Add the TypeScript auth client
 
 Copy the `AuthClient` code into `static/auth/auth-client.ts` and update your main application JavaScript to initialize it on page load.
 
-**Update the Pug templates**
+#### Update the Pug templates
 
 Add the authentication dropdown menus to `views/index.pug`. Test that everything renders properly before moving on.
 
-**Test the whole flow**
+#### Test the whole flow
 
 ```bash
 npm run dev
@@ -1345,14 +1489,14 @@ Then manually test the authentication flow:
 
 ### Enable the WAF rules
 
-**Deploy the rate limiting rules**
+#### Deploy the rate limiting rules
 
 ```bash
 cd terraform/
 terraform apply -target=aws_wafv2_web_acl.compiler_explorer_enhanced
 ```
 
-**Test that rate limiting works**
+#### Test that rate limiting works
 
 ```bash
 # Test anonymous rate limiting (should get blocked after 100 requests)
@@ -1362,9 +1506,9 @@ for i in {1..110}; do curl -s https://godbolt.org/api/compile; done
 for i in {1..1010}; do curl -s -H "Authorization: Bearer $TOKEN" https://godbolt.org/api/compile; done
 ```
 
-### Go live (carefully)
+### Production deployment
 
-**Deploy to beta first**
+#### Deploy to beta first
 
 ```bash
 # Deploy to beta environment
@@ -1378,7 +1522,7 @@ for i in {1..1010}; do curl -s -H "Authorization: Bearer $TOKEN" https://godbolt
 ./deploy.sh production
 ```
 
-**Verify everything works in production**
+#### Verify everything works in production
 
 Once it's live, test all the auth flows manually, check that rate limiting is working as expected, and keep an eye on the CloudWatch dashboards. Have a rollback plan ready just in case.
 
@@ -1741,7 +1885,7 @@ These metrics will help us understand how auth is being used and spot any proble
 }
 ```
 
-### Alerts for when things go wrong
+### Alerts
 
 A couple of key alerts to set up:
 
@@ -1781,21 +1925,21 @@ resource "aws_cloudwatch_metric_alarm" "waf_block_rate" {
 
 Let's be clear about what data we collect and what we don't:
 
-**What we collect:**
+#### What we collect
 - Email address (for linking accounts across providers)
 - Username (from your OAuth provider)
 - When you sign in and out
 - Which provider you used (GitHub, Google, Apple)
 - Auth tokens (stored in your browser's localStorage)
 
-**What we DON'T collect:**
+#### What we DON'T collect
 - Your compilation code (that stays anonymous)
 - IP addresses (beyond AWS's standard logging)
 - Browsing history or tracking data
 - Personal preferences (unless you explicitly save them later)
 
-**About localStorage:**
-Auth tokens live in your browser's localStorage, which means you have full control. You can clear them anytime by clearing your browser data, and they automatically expire and get cleaned up.
+#### About token storage
+Short-lived access tokens (30 minutes) are stored in localStorage for use in API calls. Long-lived refresh tokens (30 days) are stored as secure httpOnly cookies that JavaScript cannot access, protecting them from XSS attacks. You can clear all authentication data by clearing your browser data or signing out.
 
 ### User Rights Implementation
 
@@ -1860,20 +2004,21 @@ app.delete('/api/user/account', requireAuth, async (req, res) => {
 
 ### Privacy Policy Updates
 
-**Required additions:**
+#### Required additions
 1. **Optional Authentication**: Clearly state that authentication is optional and anonymous usage continues unchanged
 2. **Data Collection**: Describe what data is collected for authenticated users (email, username, auth timestamps)
 3. **Data Usage**: Explain how data is used (account linking, rate limiting, user identification)
-4. **localStorage Usage**: Mention that authentication tokens are stored in browser localStorage under user control
-5. **Data Retention**: 30-day refresh token lifetime, automatic cleanup of expired tokens
-6. **User Rights**: Data export and account deletion capabilities
-7. **Third-party Providers**: OAuth integration with GitHub, Google, and Apple
-8. **No Tracking**: Emphasize that compilation code remains anonymous and no additional tracking is introduced
+4. **Token Storage**: Mention that short-lived access tokens are stored in browser localStorage, and long-lived refresh tokens are stored as secure httpOnly cookies
+5. **Cookie Usage**: Update cookie policy to include authentication cookies - these are essential for login functionality and cannot be disabled
+6. **Data Retention**: 30-day refresh token lifetime, automatic cleanup of expired tokens
+7. **User Rights**: Data export and account deletion capabilities
+8. **Third-party Providers**: OAuth integration with GitHub, Google, and Apple
+9. **No Tracking**: Emphasize that compilation code remains anonymous and no additional tracking is introduced
 
 
 ## Performance considerations
 
-### Will this make things slower?
+### Latency impact
 
 JWT verification happens on every authenticated request, but the `aws-jwt-verify` library caches the public keys and updates them every 5 minutes, so the overhead should be minimal. We'll need to measure the actual impact in the CE environment, but I don't expect it to be noticeable.
 
