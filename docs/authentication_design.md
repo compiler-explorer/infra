@@ -1,17 +1,22 @@
 # Compiler Explorer Authentication Design
 
-## Overview
+## What we're building and why
 
-This document outlines the design for adding optional authentication to Compiler Explorer using AWS Cognito. The system will support GitHub, Google, and Apple login while maintaining full anonymous functionality.
+So here's the thing: Compiler Explorer has been happily anonymous for years, and that's worked great. But we're starting to hit some interesting scaling challenges, and frankly, some users have been asking for features that would be much easier to build if we knew who they were.
 
-### Goals
-- **Optional authentication**: Anonymous users continue to work exactly as before
-- **Minimal complexity**: Few moving parts, leveraging AWS native services
-- **Security first**: No secrets in web server code, proper token validation
-- **Developer-focused**: GitHub as primary provider, with Google and Apple support
-- **Higher rate limits**: Authenticated users get improved rate limits via WAF
+The core idea is simple: let's add *optional* authentication. I can't stress the "optional" part enough - if you want to keep using CE exactly as you do today, nothing changes. But if you want to sign in (probably with your GitHub account, let's be honest), you'll get some nice perks like higher rate limits and eventually things like saved preferences.
 
-### Architecture Overview
+Here's what I'm aiming for:
+
+- **Keep it simple**: Anonymous users see zero change in behavior
+- **Minimal moving parts**: I don't want to build an identity provider from scratch (AWS Cognito it is)
+- **Security without paranoia**: No auth secrets in the web server, proper token validation, but let's not go overboard
+- **Developer-first**: GitHub login is the main event, with Google and Apple as nice-to-haves
+- **Immediate value**: Higher rate limits for authenticated users via WAF rules
+
+## How it all fits together
+
+The architecture is pretty straightforward - I've tried to keep it as simple as possible while still being secure. Here's the basic flow:
 
 ```mermaid
 graph TB
@@ -52,42 +57,46 @@ graph TB
     class Browser userService
 ```
 
-## Security Requirements
+When someone wants to sign in, they click a button and get redirected to GitHub (or Google/Apple). The OAuth dance happens with AWS Cognito handling the heavy lifting, and we get back some JWT tokens. The important bit is that all the OAuth secrets live in a separate Lambda function - the main CE web server never sees them.
 
-### Threat Model
+For API requests, if you're authenticated, you send a Bearer token. The WAF looks at whether you have a token and applies different rate limits accordingly. The web server validates the token (using public keys, no secrets needed) and either processes your request as an authenticated user or falls back to anonymous mode.
 
-**Primary Threats:**
-1. **Secrets exposure**: Web server compromise must not expose auth secrets
-2. **Token theft**: XSS/CSRF attacks stealing user tokens
-3. **Rate limit bypass**: Malicious users circumventing rate limits
-4. **Account takeover**: Unauthorized access to user accounts
-5. **Data leakage**: Unauthorized access to user data
+The beauty of this setup is that it's additive - if something breaks with auth, anonymous users keep working exactly as before.
 
-**Security Controls:**
-1. **Secret isolation**: All auth secrets confined to Lambda auth service
-2. **Token validation**: JWT verification without storing secrets
-3. **WAF enforcement**: Rate limiting at CloudFront level
-4. **XSS protection**: Strong CSP headers and input sanitization
-5. **CORS restrictions**: Strict origin validation
-6. **Input validation**: All user inputs validated and sanitized
+## Security: what could go wrong?
 
-### Token Security Strategy
+Let's be realistic about what we're protecting against. I'm not trying to build Fort Knox here, but there are some obvious things that could go badly:
 
-**Access Tokens:**
-- 30-minute lifetime (balance security vs usability)
-- JWT format with standard claims (sub, exp, iat)
-- Validated using public keys from Cognito JWKS endpoint
-- Transmitted via Authorization header: `Bearer <token>`
+**The stuff that keeps me up at night:**
 
-**Refresh Tokens:**
-- 30-day lifetime for session persistence
-- Stored in localStorage with automatic cleanup
-- Used only for token refresh, never for API access
-- Automatically rotated on refresh
+If someone compromises the main CE web server, I don't want them getting access to OAuth secrets. That's why all the secret sauce lives in a separate Lambda function that the web server never talks to directly.
 
-**localStorage Security Strategy:**
+XSS attacks are always a concern when you're storing tokens in localStorage. We'll use strong CSP headers and be careful about input sanitization. The 30-minute token lifetime helps limit the damage if someone does manage to steal a token.
+
+Rate limit bypass is probably the most likely attack vector - someone trying to use fake or stolen tokens to get higher limits. The WAF checks for the presence of a Bearer token first, then the web server validates it properly. If validation fails, you get kicked back to anonymous limits.
+
+Account takeover via OAuth provider compromise is mostly out of our hands, but we can limit the damage by not storing sensitive data and making it easy for users to sign out everywhere.
+
+**How we're handling it:**
+
+Secret isolation is the big one - OAuth secrets never leave the Lambda auth service. The main web server only knows how to validate JWTs using public keys.
+
+WAF rules handle rate limiting at the CloudFront level, so even if someone bypasses the web server somehow, they still hit the rate limits.
+
+We'll be strict about CORS and input validation, though honestly, most of this is just good practice we should be doing anyway.
+
+## Token handling: keeping it simple but secure
+
+JWT tokens are pretty straightforward - they're just signed JSON that tells us who you are. I'm going with 30-minute access tokens because it's long enough that you won't get randomly logged out, but short enough that if someone steals your token, the damage is limited.
+
+Refresh tokens last 30 days, which seems reasonable for "stay logged in" functionality. They're only used to get new access tokens, never for API calls directly.
+
+All tokens live in localStorage, which I know makes some security folks nervous. But honestly, if someone can run arbitrary JavaScript in your browser, you have bigger problems than stolen auth tokens. We'll use CSP headers to make XSS harder, and the tokens expire automatically.
+
+Here's the basic token storage approach:
+
 ```typescript
-// Token storage in localStorage with security considerations
+// Token storage in localStorage
 localStorage.setItem('ce_access_token', accessToken);
 localStorage.setItem('ce_refresh_token', refreshToken);
 localStorage.setItem('ce_token_expiry', (Date.now() + expiresIn * 1000).toString());
@@ -101,17 +110,24 @@ if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
 }
 ```
 
-**XSS Protection Measures:**
-- Strong Content Security Policy (CSP) headers
-- Input sanitization and output encoding
-- X-XSS-Protection and X-Content-Type-Options headers
-- Regular security audits and dependency updates
+For XSS protection, we need to be more specific than "just good hygiene". Here's what we're actually doing:
 
-## Implementation Details
+- **Content Security Policy (CSP) headers**: These tell the browser exactly which scripts can run and where they can come from. We'll be strict about this.
+- **Input sanitization and output encoding**: Every piece of user input gets cleaned before we display it anywhere.
+- **X-XSS-Protection and X-Content-Type-Options headers**: These are the standard browser security headers that help prevent common XSS vectors.
+- **Regular security audits and dependency updates**: We'll keep our JavaScript dependencies current and run security scans.
 
-### Backend Integration
+The localStorage approach still makes some security folks nervous, but the alternatives (httpOnly cookies, server-side sessions) would complicate the stateless nature of CE significantly. The short token lifetime and automatic cleanup help mitigate the risk.
 
-#### Express.js Middleware (Compiler Explorer Server)
+## Implementation details
+
+### Backend integration
+
+The backend changes are pretty minimal, which is exactly what I wanted. We're adding a single middleware function that checks for auth tokens and validates them if present. No tokens? You're anonymous and everything works exactly like before.
+
+#### Express.js middleware for the CE server
+
+Here's the core middleware code. The nice thing about this approach is that it's completely opt-in - if auth isn't configured, it just marks everyone as anonymous:
 
 ```typescript
 import { CognitoJwtVerifier } from 'aws-jwt-verify';
@@ -119,7 +135,7 @@ import { PropertyGetter } from '../properties.interfaces.js';
 
 // Create auth middleware factory function
 export function createAuthMiddleware(awsProps: PropertyGetter) {
-    // Configuration from CE properties system (no secrets in code)
+    // Config from CE properties system (no secrets in code)
     const cognitoUserPoolId = awsProps('cognitoUserPoolId', '');
     const cognitoClientId = awsProps('cognitoClientId', '');
 
@@ -171,10 +187,16 @@ export function createAuthMiddleware(awsProps: PropertyGetter) {
         next();
     };
 }
+```
 
+The important thing here is that we're using AWS's `aws-jwt-verify` library, which handles all the JWT validation complexity for us. It automatically fetches and caches the public keys from Cognito, so we don't need to store any secrets in the main application.
+
+Using it in the main application is straightforward:
+
+```typescript
 // Usage in main application setup:
-// const authMiddleware = createAuthMiddleware(awsProps);
-// app.use('/api/*', authMiddleware);
+const authMiddleware = createAuthMiddleware(awsProps);
+app.use('/api/*', authMiddleware);
 
 // Example: Enhanced compilation endpoint
 app.post('/api/compile', async (req, res) => {
@@ -198,12 +220,15 @@ app.post('/api/compile', async (req, res) => {
 });
 ```
 
-#### Token Refresh Strategy
+Notice that the compilation logic itself doesn't change at all - we just add some optional metadata for authenticated users. The WAF handles the actual rate limiting, so by the time a request reaches the web server, it's already been through the rate limit checks.
+```
 
-Since client secrets must remain in the Lambda auth service, token refresh can be handled in two ways:
+#### Token refresh: keeping users logged in
 
-**Option 1: Frontend-direct refresh** (Recommended)
-The frontend calls the Lambda auth service directly for token refresh:
+Token refresh is a bit tricky because we need to keep the OAuth client secret in the Lambda service, not the main web server. I see two reasonable approaches:
+
+**Option 1: Direct frontend calls** (this is what I'd recommend)
+The frontend calls the Lambda auth service directly when it needs new tokens:
 
 ```typescript
 // Frontend calls Lambda directly for refresh
@@ -214,8 +239,8 @@ const response = await fetch('https://api.compiler-explorer.com/auth/refresh', {
 });
 ```
 
-**Option 2: Proxy endpoint** (If needed)
-If routing through the main server is preferred:
+**Option 2: Proxy through the main server** (if you really want to)
+If for some reason you want all API calls to go through the main CE server:
 
 ```typescript
 export function createTokenRefreshEndpoint(awsProps: PropertyGetter) {
@@ -253,9 +278,13 @@ export function createTokenRefreshEndpoint(awsProps: PropertyGetter) {
 }
 ```
 
-### Frontend Integration (Pug Templates)
+### Frontend integration
 
-#### Navigation Bar Enhancement
+#### Adding auth to the navigation bar
+
+The UI changes are pretty straightforward - we're adding a sign-in dropdown and a user menu. When you're not logged in, you see the sign-in options. When you are logged in, you see your username and some basic account options.
+
+Here's the Pug template code for the navbar:
 
 ```pug
 // views/index.pug - Add to navbar
@@ -299,7 +328,13 @@ ul.navbar-nav.ms-auto.mb-2.mb-md-0
         | Apple
 ```
 
-#### TypeScript Client Implementation
+Nothing too fancy here - just standard Bootstrap dropdown components. The user dropdown starts hidden and shows up when you're authenticated, while the sign-in dropdown does the opposite.
+
+#### The TypeScript client: handling auth in the browser
+
+This is where most of the client-side logic lives. The `AuthClient` class handles OAuth redirects, token storage, and automatic refresh. It's designed to be pretty bulletproof - if something goes wrong, it just falls back to anonymous mode.
+
+Here's the core of the client-side auth handling:
 
 ```typescript
 // static/auth/auth-client.ts
@@ -335,6 +370,9 @@ export class AuthClient {
             await this.loadFromStorage();
         }
     }
+```
+
+The initialization logic handles both cases - when someone is coming back from an OAuth redirect (tokens in the URL fragment) and when they're loading the page normally (check localStorage for existing tokens).
 
     async signIn(provider: string): Promise<void> {
         const returnTo = encodeURIComponent(window.location.href);
@@ -355,6 +393,9 @@ export class AuthClient {
         // Update UI
         this.updateAuthUI();
     }
+```
+
+Sign-in is just a redirect to the auth service with the current page URL so we can come back to the right place. Sign-out is even simpler - just clear everything and update the UI.
 
     async getValidToken(): Promise<string | null> {
         if (this.accessToken && Date.now() < this.tokenExpiry) {
@@ -363,6 +404,9 @@ export class AuthClient {
 
         return await this.refreshTokenIfNeeded();
     }
+```
+
+This is the method that other parts of the app call when they need a token. It automatically handles refresh if the current token is expired.
 
     private async loadFromStorage(): Promise<void> {
         const accessToken = localStorage.getItem('ce_access_token');
@@ -421,6 +465,9 @@ export class AuthClient {
             return null;
         }
     }
+```
+
+The refresh logic is pretty defensive - if anything goes wrong, we just sign the user out completely rather than leaving them in a weird half-authenticated state.
 
     private async updateAuthUI(): Promise<void> {
         const signInDropdown = document.getElementById('auth-sign-in');
@@ -446,7 +493,13 @@ export class AuthClient {
 }
 ```
 
-#### Integration with Compilation API
+The UI update logic just toggles between showing the sign-in dropdown and the user dropdown, and populates the user info from the JWT payload. Since JWTs are just base64-encoded JSON, we can decode them client-side without any special libraries.
+
+#### Plugging auth into the compilation API
+
+The compilation service changes are minimal - we just need to include the auth token in requests when we have one. The service gracefully handles both authenticated and anonymous requests.
+
+Here's how we modify the compiler service to include auth tokens:
 
 ```typescript
 // static/compiler-service.ts - Enhanced API calls
@@ -492,9 +545,15 @@ export class CompilerService {
 }
 ```
 
-### Auth Lambda Service
+This handles the common scenarios: include the token if we have one, retry with a fresh token if we get a 401, and give a helpful error message if we hit rate limits. The important thing is that compilation still works fine even if all the auth stuff fails.
 
-#### Lambda Function Implementation
+### Auth Lambda service
+
+This is the one place in the system that knows about OAuth client secrets. It handles the OAuth dance with GitHub/Google/Apple and exchanges authorization codes for tokens. It's intentionally simple - just login, callback, and refresh endpoints.
+
+#### Lambda function code
+
+Here's the Lambda function that handles OAuth:
 
 ```python
 import json
@@ -523,6 +582,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 404,
             'body': json.dumps({'error': 'Not found'})
         }
+```
+
+Pretty straightforward - it's just a router that delegates to specific handlers based on the path.
 
 def handle_auth_login(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Initiate OAuth flow"""
@@ -664,9 +726,13 @@ def is_valid_ce_domain(url: str) -> bool:
         return False
 ```
 
-### WAF Configuration
+### WAF configuration
 
-#### Enhanced Rate Limiting Rules
+This is where the rate limiting actually happens. The WAF sits in front of CloudFront and looks at incoming requests. If you have a Bearer token in your Authorization header, you get the high rate limit. If not, you get the standard anonymous limit.
+
+#### The WAF rules
+
+The rule order matters here - we check for authenticated users first (higher limits), then fall back to anonymous limits for everyone else:
 
 ```terraform
 # WAF rules for authenticated vs anonymous users
@@ -836,7 +902,11 @@ resource "aws_wafv2_web_acl_association" "compiler_explorer_cloudfront" {
 
 ## AWS Infrastructure
 
-### Cognito User Pool Configuration
+### Setting up Cognito
+
+Cognito is AWS's identity service, and while it's not the most exciting thing in the world, it handles all the OAuth complexity for us. We need a user pool (where user accounts live) and identity providers for GitHub, Google, and Apple.
+
+Here's the Terraform for the Cognito user pool:
 
 ```terraform
 # Main User Pool
@@ -855,6 +925,9 @@ resource "aws_cognito_user_pool" "compiler_explorer" {
     require_numbers   = true
     require_symbols   = true
   }
+```
+
+The important bit here is the email-based account linking - this means if you sign in with GitHub using the same email address as your Google account, Cognito will treat them as the same user. Pretty neat.
 
   # Required attributes
   schema {
@@ -905,7 +978,7 @@ resource "aws_cognito_user_pool_client" "compiler_explorer_client" {
     "http://localhost:10240/"
   ]
 
-  # OAuth configuration
+  # OAuth setup
   supported_identity_providers = ["GitHub", "Google", "SignInWithApple"]
   oauth_flows                 = ["code"]
   oauth_scopes               = ["email", "openid", "profile"]
@@ -941,7 +1014,7 @@ resource "random_string" "domain_suffix" {
 }
 ```
 
-### Identity Provider Configuration
+### Setting up the identity providers
 
 #### GitHub Provider (via OIDC Wrapper)
 
@@ -1175,152 +1248,147 @@ resource "aws_lambda_permission" "auth_service_apigw" {
 }
 ```
 
-## Deployment Guide
+## Rolling this out: a step-by-step deployment plan
 
-### Phase 1: Infrastructure Setup
+Deploying auth is always a bit nerve-wracking because if you mess it up, you can break things for everyone. Here's how I'd approach it - cautiously, with lots of testing, and with easy rollback options.
 
-1. **Create OAuth Applications**
-   ```bash
-   # GitHub OAuth App
-   # - Go to https://github.com/settings/applications/new
-   # - Application name: "Compiler Explorer"
-   # - Homepage URL: https://godbolt.org
-   # - Authorization callback URL: https://[cognito-domain]/oauth2/idpresponse
+### Get the infrastructure ready
 
-   # Google OAuth App
-   # - Go to https://console.developers.google.com/
-   # - Create new project or select existing
-   # - Enable Google+ API
-   # - Create OAuth 2.0 client ID
-   # - Authorized redirect URIs: https://[cognito-domain]/oauth2/idpresponse
+First, we need to set up all the OAuth applications and AWS resources. This can be done without affecting the running system at all.
 
-   # Apple Sign-In
-   # - Go to https://developer.apple.com/account/resources/identifiers/list/serviceId
-   # - Create new Services ID
-   # - Configure return URLs: https://[cognito-domain]/oauth2/idpresponse
-   ```
+**Create the OAuth applications**
 
-2. **Deploy Infrastructure**
-   ```bash
-   cd terraform/
+You'll need to create OAuth apps with each provider:
 
-   # Set variables
-   export TF_VAR_github_oauth_client_id="your_github_client_id"
-   export TF_VAR_github_oauth_client_secret="your_github_client_secret"
-   export TF_VAR_google_oauth_client_id="your_google_client_id"
-   export TF_VAR_google_oauth_client_secret="your_google_client_secret"
+- GitHub: Go to https://github.com/settings/applications/new and create a new app
+- Google: Head to https://console.developers.google.com/ and set up OAuth 2.0 credentials
+- Apple: Use https://developer.apple.com/account/resources/identifiers/list/serviceId for Sign in with Apple
 
-   # Deploy
-   terraform init
-   terraform plan
-   terraform apply
-   ```
+Make sure the callback URLs point to your Cognito domain (you'll get this after deploying the infrastructure).
 
-3. **Configure DNS**
-   ```bash
-   # Add CNAME record for auth service
-   # auth.compiler-explorer.com -> [api-gateway-url]
-   ```
+**Deploy the infrastructure**
 
-### Phase 2: Backend Integration
+```bash
+cd terraform/
 
-1. **Update Environment Variables**
-   ```bash
-   # Add to compiler-explorer server environment
-   export COGNITO_USER_POOL_ID="us-east-1_XXXXXXXXX"
-   export COGNITO_CLIENT_ID="your_client_id"
-   export COGNITO_DOMAIN="auth-ce-12345678.auth.us-east-1.amazoncognito.com"
-   ```
+# Set your OAuth credentials
+export TF_VAR_github_oauth_client_id="your_github_client_id"
+export TF_VAR_github_oauth_client_secret="your_github_client_secret"
+export TF_VAR_google_oauth_client_id="your_google_client_id"
+export TF_VAR_google_oauth_client_secret="your_google_client_secret"
 
-2. **Install Dependencies**
-   ```bash
-   npm install aws-jwt-verify
-   ```
+# Deploy everything
+terraform init
+terraform plan
+terraform apply
+```
 
-3. **Deploy Backend Changes**
-   ```bash
-   # Test locally first
-   npm run test
-   npm run lint
+**Set up DNS**
 
-   # Deploy to staging
-   ./deploy.sh staging
+Add a CNAME record pointing auth.compiler-explorer.com to your API Gateway URL (Terraform will output this).
 
-   # Verify auth endpoints work
-   curl -X POST https://staging.godbolt.org/api/auth/refresh
-   ```
+### Wire up the backend
 
-### Phase 3: Frontend Integration
+**Update the environment variables**
 
-1. **Add TypeScript Auth Client**
-   ```bash
-   # Copy auth-client.ts to static/auth/
-   # Update main.ts to initialize auth client
-   ```
+Add the Cognito details to your server environment:
 
-2. **Update Pug Templates**
-   ```bash
-   # Update views/index.pug with auth navigation
-   # Test templates render correctly
-   ```
+```bash
+export COGNITO_USER_POOL_ID="us-east-1_XXXXXXXXX"
+export COGNITO_CLIENT_ID="your_client_id"
+export COGNITO_DOMAIN="auth-ce-12345678.auth.us-east-1.amazoncognito.com"
+```
 
-3. **Test Frontend Flow**
-   ```bash
-   npm run dev
-   # Manual testing:
-   # 1. Click "Sign In with GitHub"
-   # 2. Complete OAuth flow
-   # 3. Verify token storage
-   # 4. Test API calls with token
-   # 5. Test token refresh
-   # 6. Test sign out
-   ```
+**Install the JWT verification library**
 
-### Phase 4: WAF Configuration
+```bash
+npm install aws-jwt-verify
+```
 
-1. **Deploy WAF Rules**
-   ```bash
-   cd terraform/
-   terraform apply -target=aws_wafv2_web_acl.compiler_explorer_enhanced
-   ```
+**Deploy and test the backend changes**
 
-2. **Test Rate Limiting**
-   ```bash
-   # Test anonymous rate limiting
-   for i in {1..110}; do curl -s https://godbolt.org/api/compile; done
+```bash
+# Test everything locally first
+npm run test
+npm run lint
 
-   # Test authenticated rate limiting
-   for i in {1..1010}; do curl -s -H "Authorization: Bearer $TOKEN" https://godbolt.org/api/compile; done
-   ```
+# Deploy to staging
+./deploy.sh staging
 
-### Phase 5: Production Deployment
+# Make sure the auth endpoints respond
+curl -X POST https://staging.godbolt.org/api/auth/refresh
+```
 
-1. **Gradual Rollout**
-   ```bash
-   # Deploy to beta environment first
-   ./deploy.sh beta
+### Hook up the frontend
 
-   # Monitor for 24 hours
-   # Check CloudWatch metrics
-   # Verify no increase in error rates
+**Add the TypeScript auth client**
 
-   # Deploy to production
-   ./deploy.sh production
-   ```
+Copy the `AuthClient` code into `static/auth/auth-client.ts` and update your main application JavaScript to initialize it on page load.
 
-2. **Post-Deployment Verification**
-   ```bash
-   # Verify all auth flows work
-   # Check rate limiting is working
-   # Monitor CloudWatch dashboards
-   # Test rollback procedures
-   ```
+**Update the Pug templates**
 
-## Testing Strategy
+Add the authentication dropdown menus to `views/index.pug`. Test that everything renders properly before moving on.
 
-### Unit Tests
+**Test the whole flow**
 
-#### Backend Tests
+```bash
+npm run dev
+```
+
+Then manually test the authentication flow:
+- Click "Sign In with GitHub"
+- Complete the OAuth dance
+- Verify tokens are stored in localStorage
+- Make API calls and confirm the Bearer token is included
+- Test token refresh by waiting for expiration
+- Test sign out clears everything
+
+### Enable the WAF rules
+
+**Deploy the rate limiting rules**
+
+```bash
+cd terraform/
+terraform apply -target=aws_wafv2_web_acl.compiler_explorer_enhanced
+```
+
+**Test that rate limiting works**
+
+```bash
+# Test anonymous rate limiting (should get blocked after 100 requests)
+for i in {1..110}; do curl -s https://godbolt.org/api/compile; done
+
+# Test authenticated rate limiting (should allow 1000+ requests)
+for i in {1..1010}; do curl -s -H "Authorization: Bearer $TOKEN" https://godbolt.org/api/compile; done
+```
+
+### Go live (carefully)
+
+**Deploy to beta first**
+
+```bash
+# Deploy to beta environment
+./deploy.sh beta
+
+# Monitor for 24 hours
+# Check CloudWatch metrics
+# Verify no increase in error rates
+
+# If everything looks good, deploy to production
+./deploy.sh production
+```
+
+**Verify everything works in production**
+
+Once it's live, test all the auth flows manually, check that rate limiting is working as expected, and keep an eye on the CloudWatch dashboards. Have a rollback plan ready just in case.
+
+## Testing strategy
+
+### Unit tests for the backend
+
+We need to test the auth middleware thoroughly since it's the core piece that decides whether requests are authenticated or not.
+Here are the key tests for the auth middleware:
+
 ```typescript
 // test/auth.test.ts
 describe('Authentication Middleware', () => {
@@ -1366,7 +1434,11 @@ describe('Authentication Middleware', () => {
 });
 ```
 
-#### Frontend Tests
+The important thing here is testing all three scenarios: no token (anonymous), valid token (authenticated), and invalid token (rejected).
+
+### Frontend tests
+The frontend auth client needs testing too, especially the token handling logic:
+
 ```typescript
 // test/auth-client.test.ts
 describe('AuthClient', () => {
@@ -1400,9 +1472,11 @@ describe('AuthClient', () => {
 });
 ```
 
-### Integration Tests
+Testing frontend auth is a bit tricky because you need to mock localStorage and fetch, but it's worth doing to catch bugs in the token refresh logic.
 
-#### Auth Flow Tests
+### Integration tests
+
+These are the tests that actually exercise the whole auth flow from start to finish.
 ```typescript
 // test/integration/auth-flow.test.ts
 describe('End-to-End Auth Flow', () => {
@@ -1431,7 +1505,9 @@ describe('End-to-End Auth Flow', () => {
 });
 ```
 
-#### Rate Limiting Tests
+### Rate limiting tests
+
+We definitely need to verify that the WAF rules work as expected:
 ```typescript
 // test/integration/rate-limiting.test.ts
 describe('Rate Limiting', () => {
@@ -1466,7 +1542,9 @@ describe('Rate Limiting', () => {
 });
 ```
 
-### Load Testing
+### Load testing
+
+Once everything is working, we should load test the auth endpoints to make sure they can handle realistic traffic:
 
 ```bash
 # Load test auth endpoints
@@ -1476,17 +1554,19 @@ artillery run auth-load-test.yml
 artillery run compile-auth-load-test.yml
 ```
 
-## Security Considerations
+## Security considerations
 
-### Token Security
+### A few things to remember about tokens
 
-1. **Access Token Lifetime**: 30 minutes balances security vs usability
-2. **localStorage Security**: Protected by strong CSP headers and XSS prevention
-3. **Token Validation**: JWT signature verification without storing secrets
-4. **Token Rotation**: Refresh tokens rotated on each use
-5. **Automatic Cleanup**: Expired tokens automatically removed from localStorage
+A few things to remember about how we're handling tokens:
 
-### XSS Protection Strategy
+- **30-minute access token lifetime** strikes a good balance between security and usability
+- **localStorage protection** relies on CSP headers and XSS prevention - if someone can run arbitrary JS in your browser, you have bigger problems
+- **JWT validation** happens using public keys, so no secrets needed in the main app
+- **Token rotation** - refresh tokens get rotated on each use for better security
+- **Automatic cleanup** - expired tokens are automatically removed from localStorage
+
+### Protecting against XSS attacks
 
 ```typescript
 // Security headers for localStorage protection
@@ -1524,10 +1604,10 @@ export function createSecurityHeaders(awsProps: PropertyGetter) {
 }
 ```
 
-### CORS Configuration
+### CORS setup
 
 ```typescript
-// Enhanced CORS configuration
+// CORS setup for the main app
 const corsOptions = {
     origin: function (origin, callback) {
         const allowedOrigins = [
@@ -1596,9 +1676,13 @@ const validateAuthRequest = (req: Request, res: Response, next: NextFunction) =>
 };
 ```
 
-## Monitoring and Alerting
+## Monitoring and alerts
 
-### CloudWatch Metrics
+### CloudWatch metrics to track
+
+We'll want to keep track of authentication events and spot any suspicious activity:
+
+Here are the metrics I'd track:
 
 ```typescript
 // Custom metrics for auth system
@@ -1619,6 +1703,8 @@ const authMetrics = {
     'CE/Auth/SuspiciousActivity': { ip: string, reason: string }
 };
 ```
+
+These metrics will help us understand how auth is being used and spot any problems early.
 
 ### CloudWatch Dashboard
 
@@ -1655,7 +1741,9 @@ const authMetrics = {
 }
 ```
 
-### Alerts
+### Alerts for when things go wrong
+
+A couple of key alerts to set up:
 
 ```terraform
 # High rate of auth failures
@@ -1687,28 +1775,27 @@ resource "aws_cloudwatch_metric_alarm" "waf_block_rate" {
 }
 ```
 
-## GDPR Compliance
+## GDPR and privacy: what data we collect
 
-### Data Processing Overview
+### What we're actually collecting
 
-**Data Collected:**
-- Email address (for account linking)
-- Username (from OAuth provider)
-- Authentication timestamps
-- Provider information (GitHub, Google, Apple)
-- Tokens stored in browser localStorage (user-controlled)
+Let's be clear about what data we collect and what we don't:
 
-**Data NOT Collected:**
-- Compilation code (remains anonymous)
-- IP addresses (beyond AWS standard logs)
-- Browsing history
-- Personal preferences (unless user explicitly saves)
+**What we collect:**
+- Email address (for linking accounts across providers)
+- Username (from your OAuth provider)
+- When you sign in and out
+- Which provider you used (GitHub, Google, Apple)
+- Auth tokens (stored in your browser's localStorage)
 
-**localStorage Considerations:**
-- Tokens stored locally in user's browser
-- User has full control (can clear browser data)
-- No server-side session tracking
-- Automatic cleanup of expired tokens
+**What we DON'T collect:**
+- Your compilation code (that stays anonymous)
+- IP addresses (beyond AWS's standard logging)
+- Browsing history or tracking data
+- Personal preferences (unless you explicitly save them later)
+
+**About localStorage:**
+Auth tokens live in your browser's localStorage, which means you have full control. You can clear them anytime by clearing your browser data, and they automatically expire and get cleaned up.
 
 ### User Rights Implementation
 
@@ -1784,88 +1871,57 @@ app.delete('/api/user/account', requireAuth, async (req, res) => {
 8. **No Tracking**: Emphasize that compilation code remains anonymous and no additional tracking is introduced
 
 
-## Performance Considerations
+## Performance considerations
 
-### Latency Impact
+### Will this make things slower?
 
-**Token Validation:**
-- JWT verification is performed for each authenticated request
-- JWKS cache: Updated every 5 minutes by aws-jwt-verify library
-- Measure actual performance impact in the CE environment
+JWT verification happens on every authenticated request, but the `aws-jwt-verify` library caches the public keys and updates them every 5 minutes, so the overhead should be minimal. We'll need to measure the actual impact in the CE environment, but I don't expect it to be noticeable.
 
-**Rate Limiting:**
-- WAF evaluation: <1ms per request
-- No impact on compilation performance
+WAF evaluation adds less than 1ms per request and doesn't affect compilation performance at all.
 
-### Throughput Impact
+### Throughput impact
 
-**Anonymous Users:**
-- No change in throughput
-- Same compilation limits
+For anonymous users, nothing changes - same limits, same performance.
 
-**Authenticated Users:**
-- 10x higher rate limits
-- Improved user experience
-- No additional server load
+For authenticated users, they get 10x higher rate limits with no additional server load (since the WAF handles the limiting).
 
 
-## Future Enhancements
+## Future enhancements
 
-### Planned Features
+### Potential features
 
-1. **User Preferences Storage**
-   - Theme preferences
-   - Compiler defaults
-   - Layout preferences
+Once we have authentication working, there are lots of interesting features we could add:
 
-2. **Compilation History**
-   - Optional compilation history
-   - Search and filter capabilities
-   - Export functionality
+**User preferences storage** - Save your favorite theme, compiler defaults, and layout preferences across devices.
 
-3. **Link Ownership**
-   - Associate short links with users
-   - Manage user-created links
-   - Link analytics
+**Compilation history** - Optionally keep a history of your compilations with search and filtering. Could be really useful for tracking down that one example you wrote last month.
 
-4. **Advanced Rate Limiting**
-   - Per-user rate limits
-   - Supporter tier benefits
-   - Usage analytics
+**Link ownership** - Associate short links with user accounts so you can manage and analyze your shared code snippets.
 
-### Technical Improvements
+**Advanced rate limiting** - Per-user limits, supporter tier benefits, usage analytics. Could be interesting for understanding how CE is being used.
 
-1. **Enhanced Security**
-   - Rotate JWT signing keys
-   - Implement PKCE for OAuth
-   - Add 2FA support
+### Technical improvements
 
-2. **Performance Optimizations**
-   - **JWT Token Caching**: Only consider if performance monitoring shows high CPU usage from token validation. Requires Redis for multi-server deployment and adds complexity around cache invalidation vs JWT expiration.
-   - CDN for auth assets
+**Security enhancements** - We could rotate JWT signing keys periodically, implement PKCE for OAuth (more secure than the basic flow), or add 2FA support for power users.
 
-3. **Operational Improvements**
-   - Automated testing
-   - Enhanced monitoring
+**Performance optimizations** - JWT token caching could help if we see high CPU usage from token validation, but it would require Redis and adds complexity around cache invalidation. CDN for auth assets might also help.
 
-## Conclusion
+**Operational stuff** - More automated testing, enhanced monitoring, maybe some chaos engineering to test failure scenarios.
 
-This authentication system provides:
+## Wrapping up
 
-✅ **Simple Integration**: Minimal changes to existing codebase
-✅ **Security First**: No secrets in web application code
-✅ **Optional Usage**: Full anonymous functionality preserved
-✅ **Developer Focus**: GitHub, Google, Apple OAuth providers
-✅ **Scalable Rate Limiting**: WAF-based enforcement
-✅ **Account Linking**: Unified user experience across providers
-✅ **GDPR Compliant**: User data export and deletion
-✅ **Monitoring Ready**: Comprehensive metrics and alerts
-✅ **Implementation Ready**: Clear technical guidance for both repositories
+This authentication system gives us what we need:
 
-The implementation can be done incrementally:
-- Infrastructure setup (Cognito, Lambda, WAF)
-- Backend integration (auth middleware, token validation)
-- Frontend integration (Pug templates, TypeScript client)
-- Security hardening and testing
+- **Simple integration** with minimal changes to existing code
+- **Security without secrets** in the main web application
+- **Optional usage** - anonymous users keep working exactly as before
+- **Developer-focused** providers (GitHub, Google, Apple)
+- **Scalable rate limiting** handled by WAF
+- **Account linking** across providers via email
+- **GDPR compliance** with data export and deletion
+- **Good monitoring** with metrics and alerts
+- **Clear path forward** for both repositories
 
-This design enables both repositories to work with clear guidance and minimal complexity while maintaining the security and scalability requirements of Compiler Explorer.
+We can roll this out incrementally - set up the infrastructure, integrate the backend, add the frontend pieces, then harden and test everything. The design keeps things as simple as possible while meeting CE's security and scalability needs.
+
+Most importantly, if something goes wrong with auth, anonymous users keep working. That's the safety net that makes this whole thing viable.
