@@ -16,6 +16,7 @@ from typing import List, Optional, TextIO, Tuple
 
 import click
 import yaml
+from click.core import ParameterSource
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
@@ -117,7 +118,7 @@ def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> No
 )
 @click.option(
     "--staging-dir",
-    default=Path("/opt/compiler-explorer/staging"),
+    default=Path("{dest}/staging"),
     metavar="STAGEDIR",
     type=click.Path(file_okay=False, path_type=Path),
     help="Install to a unique subdirectory of STAGEDIR then rename in-place. Must be on the same drive as "
@@ -224,6 +225,11 @@ def cli(
     platform = LibraryPlatform.Linux
     if "windows" in enable:
         platform = LibraryPlatform.Windows
+
+    """ keep staging relative to dest if not set by the user """
+    staging_source = click.get_current_context().get_parameter_source("staging_dir")
+    if staging_source == ParameterSource.DEFAULT:
+        staging_dir = Path(f"{dest}/staging")
 
     context = InstallationContext(
         destination=dest,
