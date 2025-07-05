@@ -1,6 +1,6 @@
 # Compiler Explorer Authentication Design
 
-Compiler Explorer has been happily anonymous for years. Some users have been asking for features that would be much easier to build if we knew who they were, like the ability to see and administrate their own short links. Additionally we can consider reducing our default WAF per-ip limits for anonymous users, and then allow the higher limit for our authenticated users, on the basis that we could at least contact serial abusers rather than tar everyone with the same brush.
+Compiler Explorer has been happily operating anonymously for years. Some users have been asking for features that would be much easier to build if we knew who they were, like the ability to see and administrate their own short links. Additionally we can consider reducing our default WAF per-ip limits for anonymous users, and then allow the higher limit for our authenticated users, on the basis that we could at least contact serial abusers rather than tar everyone with the same brush.
 
 This would all be optional: If people want to keep using CE exactly as they do today, nothing changes (unless they were relying on our super high rate limits). But if you want to sign in (likely with their GitHub account), they'll get some nice perks like higher rate limits and eventually things like saved preferences.
 
@@ -58,7 +58,7 @@ graph TB
 
 When someone wants to sign in, they click a button and get redirected to GitHub (or Google/Apple). The OAuth dance happens with AWS Cognito handling the heavy lifting, and we get back some JWT tokens. The important bit is that all the OAuth secrets live in a separate Lambda function - the main CE web server never sees them.
 
-For API requests, if you're authenticated, you send a Bearer token. The WAF looks at whether you have a token and applies different rate limits accordingly (NB it does not and cannot validate it). The web server validates the token (using public keys, no secrets needed) and either processes your request as an authenticated user (erroring if the token is invalid), or treats it normally if unauthenticated. There isn't currently any need to treat the request differently in the main code: other than checking the validity.
+For API requests, if you're authenticated, you send a Bearer token. The WAF looks at whether you have a token and applies different rate limits accordingly (N.B. it does not and cannot validate it). The web server validates the token (using public keys, no secrets needed) and either processes your request as an authenticated user (erroring if the token is invalid), or treats it normally if unauthenticated. There isn't currently any need to treat the request differently in the main code: other than checking the validity.
 
 The beauty of this setup is that it's additive - anonymous users keep working exactly as before.
 
@@ -673,6 +673,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
 Pretty straightforward - it's just a router that delegates to specific handlers based on the path.
 
+```python
 def handle_auth_login(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     """Initiate OAuth flow"""
     try:
@@ -1105,6 +1106,7 @@ resource "aws_cognito_user_pool" "compiler_explorer" {
 
 The important bit here is the email-based account linking - this means if you sign in with GitHub using the same email address as your Google account, Cognito will treat them as the same user. Pretty neat.
 
+```terraform
   # Required attributes
   schema {
     attribute_data_type = "String"
@@ -1603,7 +1605,7 @@ describe('Authentication Middleware', () => {
 
         expect(req.user.id).toBeTruthy();
         expect(req.user.email).toBeTruthy();
-        expect(req.user.id).toBeTruthy();
+        expect(req.user.username).toBeTruthy();
         expect(next).toHaveBeenCalled();
     });
 
@@ -2084,7 +2086,7 @@ Once we have authentication working, there are lots of interesting features we c
 
 **User preferences storage** - Save your favorite theme, compiler defaults, and layout preferences across devices.
 
-**Compilation history** - Optionally keep a history of your compilations with search and filtering. Could be really useful for tracking down that one example you wrote last month.
+**Compilation history** - Optionally keep a history of your compilations with search and filtering. This could be really useful for tracking down that one example you wrote last month.
 
 **Link ownership** - Associate short links with user accounts so you can manage and analyze your shared code snippets.
 
