@@ -94,18 +94,20 @@ We track access token expiry client-side to avoid unnecessary server round-trips
 Here's the token storage approach:
 
 ```typescript
-// Access token storage in localStorage (needed for Bearer headers)
-localStorage.setItem('ce_access_token', accessToken);
-localStorage.setItem('ce_token_expiry', (Date.now() + expiresIn * 1000).toString());
+// Access token storage using CE's Storage interface (needed for Bearer headers)
+import { localStorage } from './local.js';
+
+localStorage.set('ce_access_token', accessToken);
+localStorage.set('ce_token_expiry', (Date.now() + expiresIn * 1000).toString());
 
 // Refresh tokens are set as httpOnly cookies by the server
 // No client-side storage or management needed
 
 // Automatic cleanup on page load
-const tokenExpiry = localStorage.getItem('ce_token_expiry');
+const tokenExpiry = localStorage.get('ce_token_expiry', null);
 if (tokenExpiry && Date.now() > parseInt(tokenExpiry)) {
-    localStorage.removeItem('ce_access_token');
-    localStorage.removeItem('ce_token_expiry');
+    localStorage.remove('ce_access_token');
+    localStorage.remove('ce_token_expiry');
     // Refresh token cleanup handled by server cookie expiry
 }
 ```
@@ -218,7 +220,7 @@ The frontend calls the auth service directly for refresh:
 
 ```typescript
 // Frontend calls auth service with httpOnly cookie automatically included
-const response = await fetch('/auth/refresh', {
+const response = await fetch('https://api.compiler-explorer.com/auth/refresh', {
     method: 'POST',
     credentials: 'include', // Include httpOnly cookies
     headers: { 'Content-Type': 'application/json' }
@@ -241,41 +243,42 @@ ul.navbar-nav.ms-auto.mb-2.mb-md-0
   // ... existing items ...
 
   // Authentication section
-  if authEnabled:
+  if authEnabled
     li.nav-item.dropdown#auth-dropdown.d-none
-        button.btn.btn-light.nav-link.dropdown-toggle#auth-user(role="button" data-bs-toggle="dropdown" aria-expanded="false")
+      button.btn.btn-light.nav-link.dropdown-toggle#auth-user(role="button" data-bs-toggle="dropdown" aria-expanded="false")
         span.dropdown-icon.fas.fa-user
+        |
         span#auth-username Loading...
-        div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-user")
+      div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-user")
         div.dropdown-header
-            span#auth-user-email
+          span#auth-user-email
         div.dropdown-divider
         a.dropdown-item#auth-preferences(href="#")
-            span.dropdown-icon.fas.fa-cog
-            | Preferences
+          span.dropdown-icon.fas.fa-cog
+          | Preferences
         a.dropdown-item#auth-history(href="#")
-            span.dropdown-icon.fas.fa-history
-            | History
+          span.dropdown-icon.fas.fa-history
+          | History
         div.dropdown-divider
         button.dropdown-item#auth-sign-out
-            span.dropdown-icon.fas.fa-sign-out-alt
-            | Sign Out
+          span.dropdown-icon.fas.fa-sign-out-alt
+          | Sign Out
 
     li.nav-item.dropdown#auth-sign-in
-        button.btn.btn-light.nav-link.dropdown-toggle#auth-sign-in-btn(role="button" data-bs-toggle="dropdown" aria-expanded="false")
+      button.btn.btn-light.nav-link.dropdown-toggle#auth-sign-in-btn(role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false")
         span.dropdown-icon.fas.fa-sign-in-alt
         | Sign In
-        div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-sign-in-btn")
+      div.dropdown-menu.dropdown-menu-end(aria-labelledby="auth-sign-in-btn")
         div.dropdown-header Sign in for higher rate limits
         button.dropdown-item.auth-provider(data-provider="GitHub")
-            span.dropdown-icon.fab.fa-github
-            | GitHub
+          span.dropdown-icon.fab.fa-github
+          | GitHub
         button.dropdown-item.auth-provider(data-provider="Google")
-            span.dropdown-icon.fab.fa-google
-            | Google
+          span.dropdown-icon.fab.fa-google
+          | Google
         button.dropdown-item.auth-provider(data-provider="SignInWithApple")
-            span.dropdown-icon.fab.fa-apple
-            | Apple
+          span.dropdown-icon.fab.fa-apple
+          | Apple
 ```
 
 Nothing too fancy here - just standard Bootstrap dropdown components. The user dropdown starts hidden and shows up when you're authenticated, while the sign-in dropdown does the opposite.
@@ -288,6 +291,8 @@ Here's the core of the client-side auth handling:
 
 ```typescript
 // static/auth/auth-client.ts
+import { localStorage } from './local.js';
+
 export class AuthClient {
     private accessToken: string | null = null;
     private tokenExpiry: number = 0;
@@ -301,12 +306,12 @@ export class AuthClient {
             this.accessToken = params.get('access_token');
             const expiresIn = parseInt(params.get('expires_in') || '1800');
 
-            // Store access token in localStorage
-            localStorage.setItem('ce_access_token', this.accessToken);
+            // Store access token using CE's Storage interface
+            localStorage.set('ce_access_token', this.accessToken);
 
             // Set expiry
             this.tokenExpiry = Date.now() + (expiresIn * 1000);
-            localStorage.setItem('ce_token_expiry', this.tokenExpiry.toString());
+            localStorage.set('ce_token_expiry', this.tokenExpiry.toString());
 
             // Refresh token is automatically set as httpOnly cookie by server
             // No client-side storage needed
@@ -337,12 +342,12 @@ The initialisation logic handles both cases - when someone is coming back from a
         this.accessToken = null;
         this.tokenExpiry = 0;
 
-        // Clear localStorage
-        localStorage.removeItem('ce_access_token');
-        localStorage.removeItem('ce_token_expiry');
+        // Clear stored tokens using CE's Storage interface
+        localStorage.remove('ce_access_token');
+        localStorage.remove('ce_token_expiry');
 
         // Clear refresh token cookie by calling logout endpoint
-        fetch('/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {
+        fetch('https://api.compiler-explorer.com/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {
             // Ignore errors - user is logging out anyway
         });
 
@@ -367,8 +372,8 @@ This is the method that other parts of the app call when they need a token. It a
 
 ```typescript
     private async loadFromStorage(): Promise<void> {
-        const accessToken = localStorage.getItem('ce_access_token');
-        const tokenExpiry = localStorage.getItem('ce_token_expiry');
+        const accessToken = localStorage.get('ce_access_token', null);
+        const tokenExpiry = localStorage.get('ce_token_expiry', null);
 
         if (accessToken && tokenExpiry) {
             this.accessToken = accessToken;
@@ -385,7 +390,7 @@ This is the method that other parts of the app call when they need a token. It a
 
     private async refreshTokenIfNeeded(): Promise<string | null> {
         try {
-            const response = await fetch('/auth/refresh', {
+            const response = await fetch('https://api.compiler-explorer.com/auth/refresh', {
                 method: 'POST',
                 credentials: 'include', // Send httpOnly refresh token cookie
                 headers: { 'Content-Type': 'application/json' }
@@ -404,8 +409,8 @@ This is the method that other parts of the app call when they need a token. It a
             this.tokenExpiry = Date.now() + (tokens.expires_in * 1000);
 
             // Store new access token (refresh token updated via httpOnly cookie)
-            localStorage.setItem('ce_access_token', this.accessToken);
-            localStorage.setItem('ce_token_expiry', this.tokenExpiry.toString());
+            localStorage.set('ce_access_token', this.accessToken);
+            localStorage.set('ce_token_expiry', this.tokenExpiry.toString());
 
             await this.updateAuthUI();
             return this.accessToken;
@@ -421,8 +426,8 @@ This is the method that other parts of the app call when they need a token. It a
         // Clear local auth state
         this.accessToken = null;
         this.tokenExpiry = 0;
-        localStorage.removeItem('ce_access_token');
-        localStorage.removeItem('ce_token_expiry');
+        localStorage.remove('ce_access_token');
+        localStorage.remove('ce_token_expiry');
 
         // Show notification to user
         this.showNotification('Your session has expired. Please sign in again.', 'warning');
@@ -431,7 +436,7 @@ This is the method that other parts of the app call when they need a token. It a
         this.updateAuthUI('session_expired');
 
         // Clear refresh token cookie
-        fetch('/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+        fetch('https://api.compiler-explorer.com/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     }
 
     private showNotification(message: string, type: 'info' | 'warning' | 'error'): void {
@@ -498,13 +503,20 @@ Since the auth middleware applies to all `/api/*` endpoints, we need a consisten
 First, we need a way to access the AuthClient instance throughout the application:
 
 ```typescript
-// Global AuthClient instance - initialize once on page load
+// Global AuthClient instance - follows CE's service patterns
 let globalAuthClient: AuthClient | null = null;
 
-export function initializeAuth(): void {
+export function initializeAuth(eventHub?: EventEmitter): void {
     if (!globalAuthClient) {
         globalAuthClient = new AuthClient();
         globalAuthClient.initialize();
+
+        // Optional: Wire up to CE's event system if needed
+        if (eventHub) {
+            eventHub.on('settingsChange', (newSettings: SiteSettings) => {
+                // Handle any auth-related settings changes
+            });
+        }
     }
 }
 
@@ -516,18 +528,32 @@ export function getAuthClient(): AuthClient | null {
 Then create the authenticated fetch wrapper:
 
 ```typescript
+/** Type wrapper allowing .json() to resolve to a concrete type */
+interface TypedResponse<T> extends Response {
+    json(): Promise<T>;
+}
+
 // Central authenticated fetch wrapper - use this instead of raw fetch for /api/ calls
-async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+// Follows CE's existing API pattern from api/api.ts
+async function authenticatedFetch<R>(uri: string, options?: RequestInit): Promise<TypedResponse<R>> {
     const authClient = getAuthClient();
     const token = authClient ? await authClient.getValidToken() : null;
 
+    // Build full URL using CE's pattern
+    const url = `${window.location.origin}${window.httpRoot}${uri}`;
+
     // Add auth header if we have a token
     const headers = {
-        ...options.headers,
+        ...options?.headers,
+        Accept: 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
     };
 
-    const response = await fetch(url, { ...options, headers });
+    const response = await fetch(url, {
+        ...options,
+        credentials: 'include',
+        headers
+    }) as TypedResponse<R>;
 
     // Handle 401 with single retry
     if (response.status === 401 && token && authClient) {
@@ -535,10 +561,11 @@ async function authenticatedFetch(url: string, options: RequestInit = {}): Promi
         if (newToken && newToken !== token) {
             // Got a fresh token, retry once
             const retryHeaders = {
-                ...options.headers,
+                ...options?.headers,
+                Accept: 'application/json',
                 'Authorization': `Bearer ${newToken}`
             };
-            return fetch(url, { ...options, headers: retryHeaders });
+            return fetch(url, { ...options, credentials: 'include', headers: retryHeaders }) as TypedResponse<R>;
         }
     }
 
@@ -551,8 +578,9 @@ This function should be used throughout CE for all `/api/` calls instead of raw 
 The auth system would be initialized once when the page loads:
 
 ```typescript
-// In main application startup code
-initializeAuth();
+// In main application startup code (main.ts)
+// Initialize auth with optional event hub integration
+initializeAuth(hub?.layout?.eventHub);
 ```
 
 #### Using authenticated fetch
@@ -562,9 +590,9 @@ For example, the compilation API becomes much simpler:
 Here's how compilation API calls work with the authenticated fetch wrapper:
 
 ```typescript
-// Compilation using authenticatedFetch - much simpler!
-async function compileCode(code: string, language: string, options: any): Promise<any> {
-    const response = await authenticatedFetch('/api/compile', {
+// Compilation using authenticatedFetch - follows CE's API patterns
+async function compileCode(code: string, language: string, options: any): Promise<CompilationResult> {
+    const response = await authenticatedFetch<CompilationResult>('api/compile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, language, options })
@@ -588,14 +616,14 @@ Other API endpoints would follow the same pattern:
 
 ```typescript
 // Short link creation
-const response = await authenticatedFetch('/api/shortlinks', {
+const response = await authenticatedFetch<ShortLinkResponse>('api/shortlinks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url, title })
 });
 
 // User preferences
-const response = await authenticatedFetch('/api/user/preferences', {
+const response = await authenticatedFetch<UserPreferences>('api/user/preferences', {
     method: 'GET'
 });
 ```
