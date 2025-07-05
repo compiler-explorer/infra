@@ -13,6 +13,7 @@ from functools import partial
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
 from typing import List, Optional, TextIO, Tuple
+from click.core import ParameterSource
 
 import click
 import yaml
@@ -224,6 +225,13 @@ def cli(
     platform = LibraryPlatform.Linux
     if "windows" in enable:
         platform = LibraryPlatform.Windows
+
+    """ keep staging relative to dest if not set by the user """
+    staging_source = click.get_current_context().get_parameter_source('staging_dir')
+    if staging_source == ParameterSource.DEFAULT:
+        staging_dir=Path(f'{dest}/staging')
+
+    print(f'dest: {dest}; staging-dir: {staging_dir}; staging_source: {staging_source}')
 
     context = InstallationContext(
         destination=dest,
