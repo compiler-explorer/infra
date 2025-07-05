@@ -2923,6 +2923,14 @@ libraries:
         targets:
         - stdlib-fpm
         type: github
+    roots_fortran:
+      build_type: fpm
+      check_file: fpm.toml
+      repo: jacobwilliams/roots-fortran
+      requires_tree_copy: true
+      targets:
+      - 1.5.0
+      type: github
   rust:
     ahash:
       build_type: cargo
