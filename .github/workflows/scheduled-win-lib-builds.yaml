@@ -2,8 +2,8 @@ name: Scheduled Windows Library Builds
 
 on:
   schedule:
-    # Run at 14:05 UTC for testing, then change back to nightly
-    - cron: '5 14 * * *'
+    # Run at 14:52 UTC for testing, then change back to nightly
+    - cron: '52 14 * * *'
   workflow_dispatch:
     inputs:
       library_filter:
@@ -28,16 +28,16 @@ jobs:
         id: get-libs
         run: |
           FILTER="${{ github.event.inputs.library_filter || 'libraries/c++' }}"
-          
+
           # Get the library names, with --per-lib for deduplication
           LIBS=$(bin/ce_install list-gh-build-commands --per-lib "$FILTER" | \
                  grep -o 'library=[^"]*' | \
                  cut -d= -f2 | \
                  sort -u)
-          
+
           # Convert to JSON array for matrix strategy
           LIBS_JSON=$(echo "$LIBS" | jq -R -s -c 'split("\n")[:-1]')
-          
+
           echo "libraries=$LIBS_JSON" >> $GITHUB_OUTPUT
           echo "Found libraries to build:"
           echo "$LIBS" | sed 's/^/  - /'
