@@ -11,6 +11,18 @@ on:
                 description: 'Compiler'
                 default: 'popular-compilers-only'
                 required: true
+    workflow_call:
+        inputs:
+            library:
+                description: 'Library'
+                default: 'all'
+                required: true
+                type: string
+            compiler:
+                description: 'Compiler'
+                default: 'popular-compilers-only'
+                required: true
+                type: string
 
 jobs:
     librarybuild:
