@@ -715,6 +715,13 @@ libraries:
       - release-1.12.0
       - release-1.12.1
       type: github
+    graaf:
+      check_file: README.md
+      repo: bobluppes/graaf
+      target_prefix: v
+      targets:
+      - 1.1.0
+      type: github
     gsl:
       check_file: README.md
       repo: Microsoft/GSL
