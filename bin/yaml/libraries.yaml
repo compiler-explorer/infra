@@ -3718,6 +3718,7 @@ libraries:
       target_prefix: v
       targets:
       - 0.66.7
+      - 0.68.9
       type: github
   zig:
     nightly:
