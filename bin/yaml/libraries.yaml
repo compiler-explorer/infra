@@ -2211,6 +2211,7 @@ libraries:
       repo: microsoft/proxy
       targets:
       - 3.3.0
+      - 3.4.0
       type: github
     pugixml:
       build_type: cmake
