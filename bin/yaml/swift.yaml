@@ -38,7 +38,7 @@ compilers:
           - '6.0.3'
           - '6.1'
     # post-6-2:
-    #   url: https://download.swift.org/{{build}}/ubuntu2404/{{toolchain}}/{{toolchain}}-ubuntu24.04.tar.gz
+    #   url: https://download.swift.org/{{build}}/ubuntu2204/{{toolchain}}/{{toolchain}}-ubuntu22.04.tar.gz
     #   targets:
     #       - '6.2'
     #   TODO: use this for 6.2+ releases since ubuntu 20.04 urls will no longer work
@@ -57,9 +57,9 @@ compilers:
       type: restQueryTarballs
       install_always: true
       toolchain: development
-      url: https://download.swift.org/{{toolchain}}/ubuntu2404/latest-build.yml
+      url: https://download.swift.org/{{toolchain}}/ubuntu2204/latest-build.yml
       query: |
-        'https://download.swift.org/{{toolchain}}/ubuntu2404' \
+        'https://download.swift.org/{{toolchain}}/ubuntu2204' \
         + '/' + document['dir'] \
         + '/' + document['download']
       targets:
