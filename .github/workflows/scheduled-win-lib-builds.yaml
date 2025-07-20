@@ -14,7 +14,7 @@ on:
 
 jobs:
   discover-libraries:
-    if: github.repository == "compiler-explorer/infra"
+    if: github.repository == 'compiler-explorer/infra'
     runs-on: ubuntu-latest
     outputs:
       libraries: ${{ steps.get-libs.outputs.libraries }}
