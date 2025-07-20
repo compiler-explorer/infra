@@ -7,7 +7,7 @@ on:
 
 jobs:
   install:
-    if: github.repository == "compiler-explorer/infra"
+    if: github.repository == 'compiler-explorer/infra'
     timeout-minutes: 720
     runs-on: ['admin']
     steps:
