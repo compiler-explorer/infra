@@ -1,0 +1,91 @@
+<svg width="1100" height="800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="800" fill="transparent"/>
+
+  <!-- Title -->
+  <text x="75" y="45" font-family="Consolas, Monaco, monospace" font-size="50"
+        font-weight="bold" fill="#000000">x86-64 System V ABI</text>
+
+  <!-- Code examples -->
+  <text x="75" y="90" font-family="Consolas, Monaco, monospace" font-size="28"
+        fill="#000000">free_func(<tspan font-weight="bold" fill="#67c52a">RDI</tspan>, <tspan font-weight="bold" fill="#67c52a">RSI</tspan>, <tspan font-weight="bold" fill="#67c52a">RDX</tspan>, <tspan font-weight="bold" fill="#67c52a">RCX</tspan>, <tspan font-weight="bold" fill="#67c52a">R8</tspan>, <tspan font-weight="bold" fill="#67c52a">R9</tspan>);</text>
+  <text x="75" y="120" font-family="Consolas, Monaco, monospace" font-size="28"
+        fill="#000000"><tspan font-weight="bold" fill="#67c52a">RDI</tspan>.member_func(<tspan font-weight="bold" fill="#67c52a">RSI</tspan>, <tspan font-weight="bold" fill="#67c52a">RDX</tspan>, <tspan font-weight="bold" fill="#67c52a">RCX</tspan>, <tspan font-weight="bold" fill="#67c52a">R8</tspan>, <tspan font-weight="bold" fill="#67c52a">R9</tspan>);</text>
+
+  <!-- Table header background -->
+  <rect x="75" y="150" width="950" height="60"
+        fill="#f0f0f0" stroke="#333333" stroke-width="1"/>
+
+  <!-- Table headers -->
+  <text x="100" y="188" font-family="Consolas, Monaco, monospace"
+        font-size="28" font-weight="bold" fill="#000000">Register</text>
+  <text x="300" y="188" font-family="Consolas, Monaco, monospace"
+        font-size="28" font-weight="bold" fill="#000000">Free Function</text>
+  <text x="675" y="188" font-family="Consolas, Monaco, monospace"
+        font-size="28" font-weight="bold" fill="#000000">Member Function</text>
+  <rect x="75" y="210" width="950" height="60"
+        fill="#ffffff" stroke="#333333" stroke-width="1"/>
+  <text x="100" y="248" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">RDI</text>
+  <text x="300" y="248" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">1st parameter</text>
+  <text x="675" y="248" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">this pointer</text>
+  <rect x="75" y="270" width="950" height="60"
+        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
+  <text x="100" y="308" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">RSI</text>
+  <text x="300" y="308" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">2nd parameter</text>
+  <text x="675" y="308" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">1st parameter</text>
+  <rect x="75" y="330" width="950" height="60"
+        fill="#ffffff" stroke="#333333" stroke-width="1"/>
+  <text x="100" y="368" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">RDX</text>
+  <text x="300" y="368" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">3rd parameter</text>
+  <text x="675" y="368" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">2nd parameter</text>
+  <rect x="75" y="390" width="950" height="60"
+        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
+  <text x="100" y="428" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">RCX</text>
+  <text x="300" y="428" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">4th parameter</text>
+  <text x="675" y="428" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">3rd parameter</text>
+  <rect x="75" y="450" width="950" height="60"
+        fill="#ffffff" stroke="#333333" stroke-width="1"/>
+  <text x="100" y="488" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">R8</text>
+  <text x="300" y="488" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">5th parameter</text>
+  <text x="675" y="488" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">4th parameter</text>
+  <rect x="75" y="510" width="950" height="60"
+        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
+  <text x="100" y="548" font-family="Consolas, Monaco, monospace"
+        font-size="30" font-weight="bold" fill="#67c52a">R9</text>
+  <text x="300" y="548" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">6th parameter</text>
+  <text x="675" y="548" font-family="Consolas, Monaco, monospace"
+        font-size="30" fill="#000000">5th parameter</text>
+  <text x="75" y="610" font-family="Consolas, Monaco, monospace" font-size="30">
+    <tspan font-weight="bold" fill="#000000">Return values:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">RAX</tspan><tspan fill="#000000"> (</tspan><tspan font-weight="bold" fill="#67c52a">RDX</tspan><tspan fill="#000000"> for 128-bit values)</tspan>
+  </text>
+  <text x="75" y="638" font-family="Consolas, Monaco, monospace" font-size="30">
+    <tspan font-weight="bold" fill="#000000">Floating point args:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">XMM0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">XMM7</tspan><tspan fill="#000000"> (in order)</tspan>
+  </text>
+  <text x="75" y="666" font-family="Consolas, Monaco, monospace" font-size="30">
+    <tspan font-weight="bold" fill="#000000">FP return values:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">XMM0</tspan><tspan fill="#000000"> (</tspan><tspan font-weight="bold" fill="#67c52a">XMM1</tspan><tspan fill="#000000"> for complex)</tspan>
+  </text>
+  <text x="75" y="694" font-family="Consolas, Monaco, monospace" font-size="30">
+    <tspan font-weight="bold" fill="#000000">Stack parameters:</tspan><tspan fill="#000000" dx="8">16-byte aligned</tspan>
+  </text>
+
+  <!-- Stack note -->
+  <text x="75" y="737" font-family="Consolas, Monaco, monospace" font-size="22"
+        fill="#000000" opacity="0.6" font-style="italic">
+    Parameters beyond 6 integer or 8 FP args are passed on the stack
+  </text>
+</svg>
