@@ -28,6 +28,24 @@ windows:
         url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{name}}/clang+llvm-{{name}}-x86_64-pc-windows-msvc.tar.xz
         targets:
           - 18.1.0
+  hlsl:
+    rga:
+      type: ziparchive
+      dir: amd-rga-{{name}}
+      folder: "rga"
+      extract_into_folder: true
+      check_file: "rga.exe"
+      targets:
+        - name: "2.13"
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.13/rga-windows-x64-2.13.zip
+        - name: "2.12"
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.12/rga-windows-x64-2.12.zip
+        - name: "2.11"
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.11/rga-windows-x64-2.11.zip
+        - name: "2.10"
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.10/rga-windows-x64-2.10.zip
+        - name: "2.9.1"
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.9.1/rga-windows-x64-2.9.1.zip 
   tools:
     cmake:
       type: ziparchive
