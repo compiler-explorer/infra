@@ -42,7 +42,7 @@ def respond_with_version(version: Dict, jsonp: str):
     if "modified" in version:
         timestamp = float(version["modified"]["N"])
         modified_iso = datetime.fromtimestamp(timestamp).isoformat()
-    
+
     if jsonp:
         return dict(
             statusCode=200,
