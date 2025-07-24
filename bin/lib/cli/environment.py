@@ -2,7 +2,10 @@ import time
 
 import click
 
-from lib.amazon import as_client, get_autoscaling_groups_for
+from lib.amazon import (
+    as_client,
+    get_autoscaling_groups_for,
+)
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.cloudfront_utils import invalidate_cloudfront_distributions
@@ -85,6 +88,7 @@ def environment_start(cfg: Config):
     help="Set the message of the day used during refresh",
     show_default=True,
 )
+@click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs", default=True)
 @click.option(
     "--skip-cloudfront",
     is_flag=True,
@@ -92,7 +96,7 @@ def environment_start(cfg: Config):
     default=False,
 )
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_cloudfront: bool):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_cloudfront: bool, notify: bool):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
@@ -105,6 +109,7 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
         return
 
     set_update_message(cfg, motd)
+
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg["AutoScalingGroupName"]
         if asg["DesiredCapacity"] == 0:
@@ -148,6 +153,8 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
                 last_log = log
             if status in ("Successful", "Failed", "Cancelled"):
                 break
+    # Note: Notifications are now handled by blue-green deployment system
+    # For environments using blue-green deployment, use: ce blue-green deploy
     set_update_message(cfg, "")
 
     if not skip_cloudfront:

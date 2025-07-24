@@ -252,6 +252,11 @@ def release_for(releases: List[Release], s3_key: str) -> Optional[Release]:
     return None
 
 
+def get_current_release(cfg: Config) -> Optional[Release]:
+    current = get_current_key(cfg)
+    return release_for(get_releases(cfg), current) if current else None
+
+
 def get_events_file(cfg: Config) -> str:
     try:
         o = s3_client.get_object(Bucket="compiler-explorer", Key=events_file_for(cfg))
@@ -267,6 +272,7 @@ def save_event_file(cfg: Config, contents: str):
         Body=contents,
         ACL="public-read",
         CacheControl="public, max-age=60",
+        ContentType="application/json",
     )
 
 
@@ -408,6 +414,7 @@ def put_bouncelock_file(cfg: Config):
         Body="",
         ACL="public-read",
         CacheControl="public, max-age=60",
+        ContentType="text/plain",
     )
 
 
@@ -421,3 +428,6 @@ def has_bouncelock_file(cfg: Config):
         return True
     except s3_client.exceptions.NoSuchKey:
         return False
+
+
+# Legacy notification functions removed - notifications now handled by blue-green deployment system
