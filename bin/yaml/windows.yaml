@@ -45,7 +45,7 @@ windows:
         - name: "2.10"
           url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.10/rga-windows-x64-2.10.zip
         - name: "2.9.1"
-          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.9.1/rga-windows-x64-2.9.1.zip 
+          url: https://github.com/GPUOpen-Tools/radeon_gpu_analyzer/releases/download/2.9.1/rga-windows-x64-2.9.1.zip
   tools:
     cmake:
       type: ziparchive
