@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from lib.ce_install import filter_match, filter_aggregate
+from lib.ce_install import filter_aggregate, filter_match
 
 
 def fake(context, target_name):

@@ -1,4 +1,4 @@
-module ce-cdn-net {
+module "ce-cdn-net" {
   source                  = "./modules/ce_dns"
   domain_name             = "ce-cdn.net"
   top_level_name          = "static"
@@ -10,7 +10,7 @@ module ce-cdn-net {
 
 ////////////////////////////////////////////////////
 
-module godbolt-org {
+module "godbolt-org" {
   source                  = "./modules/ce_dns"
   domain_name             = "godbolt.org"
   cloudfront_distribution = aws_cloudfront_distribution.ce-godbolt-org
@@ -30,38 +30,19 @@ resource "aws_route53_record" "google-hosted-stuff-godbolt-org" {
   records = ["ghs.googlehosted.com"]
 }
 
-data "aws_cloudfront_distribution" "jsbeeb" {
-  id = "E3Q2PHED6QSZGS"
-}
-
-resource "aws_route53_record" "jsbeeb-godbolt-org" {
+// Concessions for Matt's old non-Compiler Explorer websites.
+module "route53-domain-redirect" {
   for_each = {
-    bbc    = "bbc"
-    master = "master"
+    bbc     = "bbc"
+    master  = "master"
+    beebide = "beebide"
   }
-  name    = each.value
-  zone_id = module.godbolt-org.zone_id
-  type    = "A"
-  alias {
-    name                   = data.aws_cloudfront_distribution.jsbeeb.domain_name
-    zone_id                = data.aws_cloudfront_distribution.jsbeeb.hosted_zone_id
-    evaluate_target_health = false
-  }
-}
-
-data "aws_cloudfront_distribution" "beebide" {
-  id = "E15BCA1IWKH152"
-}
-
-resource "aws_route53_record" "beebide-godbolt-org" {
-  name    = "beebide"
-  zone_id = module.godbolt-org.zone_id
-  type    = "A"
-  alias {
-    name                   = data.aws_cloudfront_distribution.beebide.domain_name
-    zone_id                = data.aws_cloudfront_distribution.beebide.hosted_zone_id
-    evaluate_target_health = false
-  }
+  source                          = "trebidav/route53-domain-redirect/module"
+  version                         = "0.4.0"
+  zone                            = "godbolt.org"
+  subdomain                       = format("%s.", each.value)
+  target_url                      = format("%s.xania.org", each.value)
+  cloudfront_forward_query_string = true
 }
 
 resource "aws_route53_record" "gh-godbolt-org" {
@@ -83,10 +64,27 @@ resource "aws_route53_record" "dkim-godbolt-org" {
   ]
 }
 
+// Bluesky for the Matt
+resource "aws_route53_record" "atproto-matt-godbolt-org" {
+  name    = "_atproto.matt"
+  zone_id = module.godbolt-org.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["did=did:plc:vbbhrlxqrokfgnvuppfyeir5"]
+}
+
+// Test for auth - dev only do not use
+resource "aws_route53_record" "auth-godbolt-org" {
+  name    = "auth"
+  zone_id = module.godbolt-org.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
+}
 
 ////////////////////////////////////////////////////
 
-module compiler-explorer-com {
+module "compiler-explorer-com" {
   source                  = "./modules/ce_dns"
   domain_name             = "compiler-explorer.com"
   cloudfront_distribution = aws_cloudfront_distribution.compiler-explorer-com
@@ -101,6 +99,15 @@ resource "aws_route53_record" "gh-compiler-explorer-com" {
   records = ["a5417612c3"]
 }
 
+// Bluesky for the CE account
+resource "aws_route53_record" "atproto-compiler-explorer-com" {
+  name    = "_atproto"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["did=did:plc:pz3zlp6rmegaiifji2scmyi2"]
+}
+
 resource "aws_ses_domain_identity" "compiler-explorer-com" {
   domain = "compiler-explorer.com"
 }
@@ -113,10 +120,162 @@ resource "aws_route53_record" "ses-compiler-explorer-com" {
   records = [aws_ses_domain_identity.compiler-explorer-com.verification_token]
 }
 
+resource "aws_route53_record" "api-compiler-explorer-com" {
+  name    = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name
+  type    = "A"
+  zone_id = module.compiler-explorer-com.zone_id
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "events-compiler-explorer-com" {
+  name    = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name
+  type    = "A"
+  zone_id = module.compiler-explorer-com.zone_id
+
+  alias {
+    name                   = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name_configuration[0].target_domain_name
+    zone_id                = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name_configuration[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+// Shop DNS records for fourthwall.com integration
+resource "aws_route53_record" "shop-compiler-explorer-com" {
+  name    = "shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "A"
+  records = ["34.117.223.165"]
+}
+
+resource "aws_route53_record" "www-shop-compiler-explorer-com" {
+  name    = "www.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["shop.compiler-explorer.com."]
+}
+
+// SendGrid CNAME records for support.shop
+resource "aws_route53_record" "em-fw-support-shop-compiler-explorer-com" {
+  name    = "em-fw.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["u45139959.wl210.sendgrid.net."]
+}
+
+resource "aws_route53_record" "s1-domainkey-support-shop-compiler-explorer-com" {
+  name    = "s1._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["s1.domainkey.u45139959.wl210.sendgrid.net."]
+}
+
+resource "aws_route53_record" "s2-domainkey-support-shop-compiler-explorer-com" {
+  name    = "s2._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["s2.domainkey.u45139959.wl210.sendgrid.net."]
+}
+
+// Zendesk CNAME records for support.shop
+resource "aws_route53_record" "zendesk1-domainkey-support-shop-compiler-explorer-com" {
+  name    = "zendesk1._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["zendesk1._domainkey.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk2-domainkey-support-shop-compiler-explorer-com" {
+  name    = "zendesk2._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["zendesk2._domainkey.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk1-support-shop-compiler-explorer-com" {
+  name    = "zendesk1.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail1.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk2-support-shop-compiler-explorer-com" {
+  name    = "zendesk2.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail2.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk3-support-shop-compiler-explorer-com" {
+  name    = "zendesk3.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail3.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk4-support-shop-compiler-explorer-com" {
+  name    = "zendesk4.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail4.zendesk.com."]
+}
+
+// TXT records for support.shop email verification and policies
+resource "aws_route53_record" "zendeskverification-support-shop-compiler-explorer-com" {
+  name    = "zendeskverification.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["7e2a8a956b617a3b"]
+}
+
+resource "aws_route53_record" "dmarc-support-shop-compiler-explorer-com" {
+  name    = "_dmarc.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["v=DMARC1; p=reject; pct=100; rua=mailto:dmarc@fourthwall.com"]
+}
+
+resource "aws_route53_record" "spf-support-shop-compiler-explorer-com" {
+  name    = "support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["v=spf1 include:_spf.google.com include:mail.zendesk.com include:spf.improvmx.com include:sendgrid.net ~all"]
+}
+
+// MX records for support.shop email handling via ImprovMX
+resource "aws_route53_record" "mx-support-shop-compiler-explorer-com" {
+  name    = "support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "MX"
+  records = [
+    "10 mx1.improvmx.com.",
+    "20 mx2.improvmx.com."
+  ]
+}
+
 
 ////////////////////////////////////////////////////
 
-module godbo-lt {
+module "godbo-lt" {
   source                  = "./modules/ce_dns"
   domain_name             = "godbo.lt"
   cloudfront_distribution = aws_cloudfront_distribution.godbo-lt

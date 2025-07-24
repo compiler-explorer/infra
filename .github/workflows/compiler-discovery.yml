@@ -1,4 +1,5 @@
 name: Compiler discovery
+run-name: Discovery for ${{ inputs.environment }} ${{ inputs.branch }} build ${{ inputs.buildnumber }}
 
 on:
   workflow_dispatch:
@@ -20,6 +21,10 @@ on:
         description: 'Build number'
         default: ''
         required: true
+      skip_remote_checks:
+        description: 'Comma separated list of remote checks to skip'
+        default: ''
+        type: string
 
 jobs:
   compilerdiscovery:
@@ -27,7 +32,7 @@ jobs:
 
     steps:
     - name: Update infra
-      run: cd /home/ubuntu/infra && git pull
+      run: cd /home/ubuntu/infra && git pull && make ce
     - name: Set build number ${{ github.event.inputs.buildnumber }}
       run: ce --env runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
     - name: Start runner
@@ -37,6 +42,6 @@ jobs:
     - name: Do Compiler discovery
       run: ce runner discovery
     - name: Upload discovered compilers
-      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} ${{ github.event.inputs.buildnumber }}
+      run: ce runner uploaddiscovery ${{ github.event.inputs.environment }} --skip-remote-checks='${{ github.event.inputs.skip_remote_checks }}' ${{ github.event.inputs.buildnumber }}
     - name: Shut down runner
       run: ce runner stop

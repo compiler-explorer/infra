@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
@@ -14,12 +14,9 @@ class ScriptInstallable(Installable):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         self.install_path_symlink = self.config_get("symlink", False)
-        self.fetch = self.config_get("fetch")
+        self.fetch = self.config_get("fetch", [])
         self.script = self.config_get("script")
         self.strip = self.config_get("strip", False)
-        self._setup_check_exe(self.install_path)
-        if self.install_path_symlink:
-            self._setup_check_link(self.install_path, self.install_path_symlink)
 
     def stage(self, staging: StagingDir) -> None:
         for url in self.fetch:

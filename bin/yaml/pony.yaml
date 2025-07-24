@@ -2,9 +2,9 @@ compilers:
   pony:
     type: tarballs
     compression: gz
-    url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{name}/ponyc-x86-64-unknown-linux-gnu.tar.gz
+    url: https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/{{name}}/ponyc-x86-64-unknown-linux-gnu.tar.gz
     check_exe: bin/ponyc -v
-    dir: ponyc-{name}
+    dir: ponyc-{{name}}
     strip_components: 1
     create_untar_dir: true
     targets:
@@ -31,7 +31,7 @@ compilers:
       if: nightly
       type: restQueryTarballs
       install_always: true
-      url: https://api.cloudsmith.io/packages/ponylang/nightlies/?query=unknown-linux-gnu
+      url: https://api.cloudsmith.io/packages/ponylang/nightlies/?query=x86-64-unknown-linux-ubuntu22.04
       query: document[0]['cdn_url']
       targets:
         - nightly

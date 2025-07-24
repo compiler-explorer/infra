@@ -13,7 +13,7 @@ class Hash:
 
 
 class VersionSource(Enum):
-    value: Tuple[int, str]
+    value: Tuple[int, str]  # type: ignore[assignment]
     TRAVIS = (0, "tr")
     GITHUB = (1, "gh")
 

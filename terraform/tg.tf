@@ -1,9 +1,8 @@
 variable "ce-target-groups" {
   description = "Target groups to create on port 80 for CE"
-  default     = {
-    "prod"    = 1
-    "staging" = 2
-    "beta"    = 3
+  default = {
+    # All blue-green environments now use modules instead of single target groups
+    # Keeping this variable structure for any remaining single environments
   }
 }
 
@@ -14,10 +13,10 @@ resource "aws_alb_target_group" "ce" {
     create_before_destroy = true
   }
 
-  name                          = title(each.key)
-  port                          = 80
-  protocol                      = "HTTP"
-  vpc_id                        = module.ce_network.vpc.id
+  name     = title(each.key)
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = module.ce_network.vpc.id
   // some time to kick off old connections
   deregistration_delay          = 20
   load_balancing_algorithm_type = "least_outstanding_requests"
@@ -48,6 +47,10 @@ resource "aws_alb_target_group" "conan" {
     interval            = 5
     protocol            = "HTTP"
   }
+  stickiness {
+    type    = "lb_cookie"
+    enabled = false
+  }
 }
 
 resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
@@ -56,27 +59,15 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   port             = 1080
 }
 
-resource "aws_alb_target_group" "gpu" {
-  lifecycle {
-    create_before_destroy = true
-  }
-  name                 = "GPUGroup"
-  port                 = 1081
-  protocol             = "HTTP"
-  vpc_id               = module.ce_network.vpc.id
-  deregistration_delay = 15
-  health_check {
-    path                = "/healthcheck"
-    timeout             = 3
-    unhealthy_threshold = 3
-    healthy_threshold   = 2
-    interval            = 5
-    protocol            = "HTTP"
-  }
+# Target group for the status Lambda
+resource "aws_alb_target_group" "lambda_status" {
+  name        = "StatusApiTargetGroup"
+  target_type = "lambda"
 }
 
-resource "aws_alb_target_group_attachment" "CEGPUServerTargetInstance" {
-  target_group_arn = aws_alb_target_group.gpu.id
-  target_id        = aws_instance.GPUNode.id
-  port             = 1081
+# Attach the Lambda function to the target group
+resource "aws_alb_target_group_attachment" "lambda-status-endpoint" {
+  target_group_arn = aws_alb_target_group.lambda_status.arn
+  target_id        = aws_lambda_function.status.arn
+  depends_on       = [aws_lambda_permission.from_alb_status]
 }

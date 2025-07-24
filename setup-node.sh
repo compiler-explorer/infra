@@ -10,8 +10,8 @@ apt-get -y update
 apt-get -y install software-properties-common
 dpkg --add-architecture i386
 curl -s https://dl.winehq.org/wine-builds/winehq.key | apt-key add -
-# TODO at some point see if we can upgrade wine
-apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ bionic main'
+apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main'
+add-apt-repository ppa:deadsnakes/ppa
 apt-get install -y \
     binutils-multiarch \
     bison \
@@ -31,8 +31,8 @@ apt-get install -y \
     libdatetime-perl \
     libelf-dev \
     libgmp3-dev \
-    libprotobuf-dev \
     libnl-route-3-dev \
+    libprotobuf-dev \
     libwww-perl \
     linux-libc-dev \
     make \
@@ -41,17 +41,19 @@ apt-get install -y \
     patch \
     pkg-config \
     protobuf-compiler \
+    python-is-python3 \
     python3-pip \
-    python3.8-venv \
+    python3-venv \
+    python3.8 \
     s3cmd \
     subversion \
     texinfo \
     unzip \
     wget \
-    winehq-stable=4.0.3~bionic \
-    wine-stable=4.0.3~bionic \
-    wine-stable-amd64=4.0.3~bionic \
-    wine-stable-i386=4.0.3~bionic \
+    winehq-stable \
+    wine-stable \
+    wine-stable-amd64 \
+    wine-stable-i386 \
     xz-utils
 
 pushd /tmp
@@ -75,7 +77,7 @@ make install
 popd
 
 pushd /tmp
-git clone --recursive --branch 3.0 https://github.com/google/nsjail.git
+git clone --recursive --branch ce https://github.com/compiler-explorer/nsjail.git
 cd nsjail
 make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
@@ -84,7 +86,7 @@ popd
 
 pushd /opt
 # node.js
-TARGET_NODE_VERSION=v16.17.1
+TARGET_NODE_VERSION=v22.13.1
 echo "Installing node ${TARGET_NODE_VERSION}"
 curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-x64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-x64 node
 popd

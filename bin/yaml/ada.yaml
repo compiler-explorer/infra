@@ -2,13 +2,13 @@ compilers:
   ada:
     gnat:
       type: tarballs
-      untar_dir: "gnat-{target}-linux64-{name}"
-      dir: "{subdir}/gnat-{target}-linux64-{name}"
-      url: https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnat-{version}/gnat-{target}-linux64-{version}.tar.gz
+      untar_dir: "gnat-{{target}}-linux64-{{name}}"
+      dir: "{{subdir}}/gnat-{{target}}-linux64-{{name}}"
+      url: https://github.com/alire-project/GNAT-FSF-builds/releases/download/gnat-{{version}}/gnat-{{target}}-linux64-{{version}}.tar.gz
       compression: gz
-      check_exe: bin/{toolprefix}gcc -v
+      check_exe: bin/{{toolprefix}}gcc -v
       check_stderr_on_stdout: true
-      name: "{version}"
+      name: "{{version}}"
 
       arm:
         subdir: arm

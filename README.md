@@ -12,10 +12,34 @@ $ ./bin/ce_install install compilers
 ```
 
 This will grab all the open source compilers and put them in `/opt/compiler-explorer` (which must be writable by
-the current user).  To get the beta and nightly-built latest compilers, add the parameter `--enable nightly` to the command.
+the current user). To get the beta and nightly-built latest compilers, add the parameter `--enable nightly` to the
+command.
 
 To list installation candidates, use `./bin/ce_install list`. A single installation can be installed by name.
+
+More info can be found [here](https://github.com/compiler-explorer/infra/blob/main/docs/installing_compilers.md)
 
 # Built compilers
 
 Status page to our daily built compilers https://compiler-explorer.github.io/compiler-workflows/build-status
+
+# Cleaning up old AMIs
+
+Something like:
+
+```bash
+$ npx aws-amicleaner --region 'us-east-1' \
+    --exclude-in-use --verbose \
+    --exclude-newest=2 --exclude-days 7 \
+    --include-name 'compiler-explorer*'
+```
+
+# Deploying the admin site and associated lambda
+
+- If you had to change the Python lambda code:
+- `make terraform-apply` - will build and update the python bundle and updates the endpoints/balancer config to point at
+  the new lambda zip
+- `make update-admin` - deploys the admin site HTML and CSS etc
+
+Note that the events lambda is `npm`-based and doesn't work in quite the same way, see `make upload-events-lambda` then
+manually `make terraform-apply` after.

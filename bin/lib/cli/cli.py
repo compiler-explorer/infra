@@ -2,7 +2,7 @@ import logging
 
 import click
 
-from lib.env import Environment, Config
+from lib.env import Config, Environment
 
 
 @click.group()

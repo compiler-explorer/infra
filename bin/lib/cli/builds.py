@@ -1,40 +1,45 @@
 import datetime
-import json
 import os
-import subprocess
 import sys
 import tempfile
 from collections import defaultdict
-from typing import Optional, Dict, Sequence
+from typing import Dict, Optional, Sequence
 
 import click
-import requests
-from lib.cli.runner import runner_discoveryexists
 
 from lib.amazon import (
-    download_release_file,
+    delete_bouncelock_file,
     download_release_fileobj,
     find_latest_release,
     find_release,
-    log_new_build,
-    set_current_key,
-    get_ssm_param,
     get_all_current,
-    get_releases,
-    remove_release,
+    get_all_releases,
     get_current_key,
+    get_key_counterpart,
+    get_releases,
+    has_bouncelock_file,
     list_all_build_logs,
     list_period_build_logs,
+    log_new_build,
     put_bouncelock_file,
     delete_bouncelock_file,
     has_bouncelock_file,
     set_current_notify,
+    remove_release,
+    set_current_key,
+)
+from lib.builds_core import (
+    deploy_staticfiles,
+    deploy_staticfiles_windows,
+    notify_sentry_deployment,
+    old_deploy_staticfiles,
 )
 from lib.cdn import DeploymentJob
-from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
+from lib.ce_utils import are_you_sure, confirm_action, confirm_branch, describe_current_release, display_releases
 from lib.cli import cli
-from lib.env import Config
-from lib.releases import Version
+from lib.cli.runner import runner_discoveryexists
+from lib.env import Config, Environment
+from lib.releases import Release, Version, VersionSource
 
 
 @cli.group()
@@ -49,28 +54,52 @@ def builds_current(cfg: Config):
     print(describe_current_release(cfg))
 
 
-def old_deploy_staticfiles(branch, versionfile):
-    print("Deploying static files")
-    downloadfile = versionfile
-    filename = "deploy.tar.xz"
-    remotefile = branch + "/" + downloadfile
-    download_release_file(remotefile[1:], filename)
-    os.mkdir("deploy")
-    subprocess.call(["tar", "-C", "deploy", "-Jxf", filename])
-    os.remove(filename)
-    subprocess.call(["aws", "s3", "sync", "deploy/out/dist/dist", "s3://compiler-explorer/dist/cdn"])
-    subprocess.call(["rm", "-Rf", "deploy"])
-
-
-def deploy_staticfiles(release) -> bool:
-    print("Deploying static files to cdn")
+def check_staticfiles_for_deployment(release) -> bool:
+    print("Checking static files for cdn deployment")
     cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
 
     with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
         download_release_fileobj(release.static_key, f)
         f.flush()
         with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
-            return job.run()
+            if job.check_hashes():
+                print("No problems found")
+                return True
+            else:
+                print("New webpackJsHack version number required to deploy static files to cdn")
+                return False
+
+
+@builds.command(name="check_hashes")
+@click.pass_obj
+@click.option("--branch", help="if version == latest, branch to get latest version from")
+@click.option("--raw/--no-raw", help="Set a raw path for a version")
+@click.argument("version")
+def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
+    """Checks the static files for this version."""
+    to_set: Optional[str] = None
+    release: Optional[Release] = None
+    if raw:
+        to_set = version
+    else:
+        setting_latest = version == "latest"
+        release = (
+            find_latest_release(cfg, branch or "")
+            if setting_latest
+            else find_release(cfg, Version.from_string(version))
+        )
+        if not release:
+            print("Unable to find version " + version)
+            if setting_latest and branch != "":
+                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+            sys.exit(1)
+        else:
+            to_set = release.key
+
+    if to_set is not None and release is not None:
+        if release and release.static_key:
+            if not check_staticfiles_for_deployment(release):
+                sys.exit(1)
 
 
 @builds.command(name="set_current")
@@ -84,16 +113,27 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
     """
+    # Check if this environment supports blue-green deployment
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' supports blue-green deployment.")
+        print(f"   Consider using 'ce --env {cfg.env.value} blue-green deploy' instead of 'builds set_current'.")
+        print("   Blue-green deployment provides zero-downtime updates with automatic rollback capability.")
+        print()
+
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
         sys.exit(1)
-    to_set = None
-    release = None
+    to_set: Optional[str] = None
+    release: Optional[Release] = None
     if raw:
         to_set = version
     else:
         setting_latest = version == "latest"
-        release = find_latest_release(branch) if setting_latest else find_release(Version.from_string(version))
+        release = (
+            find_latest_release(cfg, branch or "")
+            if setting_latest
+            else find_release(cfg, Version.from_string(version))
+        )
         if not release:
             print("Unable to find version " + version)
             if setting_latest and branch != "":
@@ -106,7 +146,11 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             print(f"Found release {release}")
             to_set = release.key
     if to_set is not None and release is not None:
-        if (cfg.env.value != "runner") and not runner_discoveryexists(cfg.env.value, release.version):
+        if (
+            (cfg.env.value != "runner")
+            and not cfg.env.is_windows
+            and not runner_discoveryexists(cfg.env.value, str(release.version))
+        ):
             if not confirm_action(
                 f"Compiler discovery has not run for {cfg.env.value}/{release.version}, are you sure you want to continue?"
             ):
@@ -114,27 +158,19 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 
         log_new_build(cfg, to_set)
         if release and release.static_key:
-            if not deploy_staticfiles(release):
-                print("...aborted due to deployment failure!")
-                sys.exit(1)
+            if cfg.env.is_windows:
+                if not deploy_staticfiles_windows(release):
+                    print("...aborted due to deployment failure!")
+                    sys.exit(1)
+            else:
+                if not deploy_staticfiles(release):
+                    print("...aborted due to deployment failure!")
+                    sys.exit(1)
         else:
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
         if release:
-            if cfg.env.value == cfg.env.PROD:
-                print("Logging for notifications")
-                set_current_notify(release.hash.hash)
-            print("Marking as a release in sentry...")
-            token = get_ssm_param("/compiler-explorer/sentryAuthToken")
-            result = requests.post(
-                f"https://sentry.io/api/0/organizations/compiler-explorer/releases/{release.version}/deploys/",
-                data=dict(environment=cfg.env.value),
-                headers=dict(Authorization=f"Bearer {token}"),
-                timeout=30,
-            )
-            if not result.ok:
-                raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
-            print("...done", json.loads(result.content.decode()))
+           notify_sentry_deployment(cfg, release)
 
 
 @builds.command(name="rm_old")
@@ -143,22 +179,26 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 def builds_rm_old(dry_run: bool, max_age: int):
     """Remove all but the last MAX_AGE builds."""
     current = get_all_current()
-    max_builds: Dict[str, int] = defaultdict(int)
-    for release in get_releases():
+    max_builds: Dict[VersionSource, int] = defaultdict(int)
+    for release in get_all_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
-    for release in get_releases():
-        if release.key in current:
-            print("Skipping {} as it is a current version".format(release))
+    for release in get_all_releases():
+        counterpart = get_key_counterpart(release.key)
+        if release.key in current or counterpart in current:
+            print(f"Skipping {release} as it is a current version")
+            if dry_run:
+                if counterpart in current:
+                    print(f"Skipping because of counterpart {counterpart}")
         else:
             age = max_builds[release.version.source] - release.version.number
             if age > max_age:
                 if dry_run:
-                    print("Would remove build {}".format(release))
+                    print(f"Would remove build {release} (age {age})")
                 else:
-                    print("Removing build {}".format(release))
+                    print(f"Removing build {release} (age {age})")
                     remove_release(release)
             else:
-                print("Keeping build {}".format(release))
+                print(f"Keeping build {release} (age {age})")
 
 
 @builds.command(name="list")
@@ -176,7 +216,7 @@ def builds_list(cfg: Config, branch: Sequence[str]):
 
     The --> indicates the build currently deployed in this environment."""
     current = get_current_key(cfg) or ""
-    releases = get_releases()
+    releases = get_releases(cfg)
     display_releases(current, set(branch), releases)
 
 
@@ -217,3 +257,16 @@ def builds_lock(cfg: Config):
 def builds_unlock(cfg: Config):
     """Unlock version bounce for the specified env."""
     delete_bouncelock_file(cfg)
+
+
+@builds.command(name="diff")
+@click.option("--dest-env", help="env to compare with", default=Environment.PROD.value)
+@click.pass_obj
+def builds_diff(cfg: Config, dest_env: str):
+    """Opens a URL that diffs changes from this environment and another."""
+    releases = get_releases(cfg)
+    (current,) = [x for x in releases if x.key == get_current_key(cfg)]
+    (dest,) = [x for x in releases if x.key == get_current_key(Config(env=Environment(dest_env)))]
+    url = f"https://github.com/compiler-explorer/compiler-explorer/compare/{dest.version}...{current.version}"
+    print(f"Opening {url}")
+    os.system(f"open {url}")

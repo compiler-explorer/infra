@@ -151,6 +151,11 @@
       },
       "cppcoro": null,
       "ctbignum": null,
+      "cthash": {
+        "url": "https://github.com/hanickadot/cthash",
+        "description": "Compile Time Hash",
+        "pretty_name": "CTHASH"
+      },
       "ctre": {
         "url": "https://github.com/hanickadot/compile-time-regular-expressions",
         "description": "Compile Time Regular Expressions",
@@ -234,6 +239,11 @@
         "description": "Parsing Expression Grammar Template Library",
         "pretty_name": "PEGTL"
       },
+      "proxy": {
+        "url": "https://github.com/microsoft/proxy",
+        "description": "C++20 Polymorphism Library",
+        "pretty_name": "Proxy"
+      },
       "pugixml": {
         "url": "https://github.com/zeux/pugixml",
         "description": "pugixml is a C++ XML processing library",
@@ -242,6 +252,11 @@
       "range-v3": {
         "url": "https://github.com/ericniebler/range-v3",
         "pretty_name": "range-v3"
+      },
+      "rapidjson": {
+        "url": "https://github.com/Tencent/rapidjson",
+        "description": "A fast JSON parser/generator for C++ with both SAX/DOM style API",
+        "pretty_name": "RapidJSON"
       },
       "scylladb-seastar": null,
       "agner-fog-vcl": null,

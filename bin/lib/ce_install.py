@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # coding=utf-8
+import json
 import logging
 import logging.config
 import multiprocessing
@@ -9,17 +10,20 @@ import sys
 import traceback
 from dataclasses import dataclass
 from functools import partial
+from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, TextIO, Tuple
 
 import click
 import yaml
+from click.core import ParameterSource
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config_safe_loader import ConfigSafeLoader
-from lib.installation import installers_for
-from lib.installation_context import InstallationContext
 from lib.installable.installable import Installable
+from lib.installation import installers_for
+from lib.installation_context import FetchFailure, InstallationContext
+from lib.library_platform import LibraryPlatform
 from lib.library_yaml import LibraryYaml
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,22 +38,20 @@ class CliContext:
 
     def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
         # https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
-        _LOGGER.info("Creating multiprocessing pool with %s workers", self.parallel)
+        _LOGGER.info("Creating thread pool with %s workers", self.parallel)
         original_sigint_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        pool = multiprocessing.Pool(processes=self.parallel)
+        pool = ThreadPool(processes=self.parallel)
         signal.signal(signal.SIGINT, original_sigint_handler)
         return pool
 
     def get_installables(self, args_filter: List[str]) -> List[Installable]:
         installables = []
         for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
-            with yaml_path.open() as yaml_file:
+            with yaml_path.open(encoding="utf-8") as yaml_file:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
             for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
                 installables.append(installer)
-        installables_by_name = {installable.name: installable for installable in installables}
-        for installable in installables:
-            installable.link(installables_by_name)
+        Installable.resolve(installables)
         installables = sorted(
             filter(lambda installable: filter_aggregate(args_filter, installable, self.filter_match_all), installables),
             key=lambda x: x.sort_key,
@@ -92,10 +94,10 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
 
-def squash_mount_check(rootfolder, subdir, context):
-    for filename in os.listdir(os.path.join(rootfolder, subdir)):
+def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> None:
+    for filename in os.listdir(rootfolder / subdir):
         if filename.endswith(".img"):
-            checkdir = Path(os.path.join("/opt/compiler-explorer/", subdir, filename[:-4]))
+            checkdir = Path("/opt/compiler-explorer/") / subdir / filename[:-4]
             if not checkdir.exists():
                 _LOGGER.error("Missing mount point %s", checkdir)
         else:
@@ -116,12 +118,19 @@ def squash_mount_check(rootfolder, subdir, context):
 )
 @click.option(
     "--staging-dir",
-    default=Path("/opt/compiler-explorer/staging"),
+    default=Path("{dest}/staging"),
     metavar="STAGEDIR",
     type=click.Path(file_okay=False, path_type=Path),
     help="Install to a unique subdirectory of STAGEDIR then rename in-place. Must be on the same drive as "
     "DEST for atomic rename/replace. Directory will be removed during install",
     show_default=True,
+)
+@click.option(
+    "--check-user",
+    default="",
+    metavar="CHECKUSER",
+    type=str,
+    help="Executes --version checks under a different user",
 )
 @click.option("--debug/--no-debug", help="Turn on debugging")
 @click.option("--dry-run/--for-real", help="Dry run only")
@@ -142,6 +151,7 @@ def squash_mount_check(rootfolder, subdir, context):
     show_default=True,
 )
 @click.option("--enable", metavar="TYPE", multiple=True, help='Enable targets of type TYPE (e.g. "nightly")')
+@click.option("--only-nightly", is_flag=True, help="Only install the nightly targets")
 @click.option(
     "--cache",
     metavar="DIR",
@@ -189,6 +199,7 @@ def cli(
     s3_dir: str,
     dry_run: bool,
     enable: List[str],
+    only_nightly: bool,
     cache: Optional[Path],
     yaml_dir: Path,
     allow_unsafe_ssl: bool,
@@ -196,6 +207,7 @@ def cli(
     keep_staging: bool,
     filter_match_all: bool,
     parallel: int,
+    check_user: str,
 ):
     """Install binaries, libraries and compilers for Compiler Explorer."""
     formatter = logging.Formatter(fmt="%(asctime)s %(name)-15s %(levelname)-8s %(message)s")
@@ -206,34 +218,57 @@ def cli(
         file_handler.setFormatter(formatter)
         root_logger.addHandler(file_handler)
     if not log or log_to_console:
-        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler = logging.StreamHandler(sys.stderr)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
+
+    platform = LibraryPlatform.Linux
+    if "windows" in enable:
+        platform = LibraryPlatform.Windows
+
+    """ keep staging relative to dest if not set by the user """
+    staging_source = click.get_current_context().get_parameter_source("staging_dir")
+    if staging_source == ParameterSource.DEFAULT:
+        staging_dir = Path(f"{dest}/staging")
+
     context = InstallationContext(
         destination=dest,
         staging_root=staging_dir,
         s3_url=f"https://s3.amazonaws.com/{s3_bucket}/{s3_dir}",
         dry_run=dry_run,
         is_nightly_enabled="nightly" in enable,
+        only_nightly=only_nightly,
         cache=cache,
         yaml_dir=yaml_dir,
         allow_unsafe_ssl=allow_unsafe_ssl,
         resource_dir=resource_dir,
         keep_staging=keep_staging,
+        check_user=check_user,
+        platform=platform,
     )
     ctx.obj = CliContext(
-        installation_context=context, enabled=enable, filter_match_all=filter_match_all, parallel=parallel
+        installation_context=context,
+        enabled=enable,
+        filter_match_all=filter_match_all,
+        parallel=parallel,
     )
+
+
+# Import CLI modules to register commands
+from lib.cli import cpp_libraries, fortran_libraries  # noqa: F401, E402
 
 
 @cli.command(name="list")
 @click.pass_obj
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
+@click.option("--installed-only", is_flag=True, help="Only output installed targets")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: List[str]):
+def list_cmd(context: CliContext, filter_: List[str], as_json: bool, installed_only: bool):
     """List installation targets matching FILTER."""
-    print("Installation candidates:")
     for installable in context.get_installables(filter_):
-        print(installable.name)
+        if installed_only and not installable.is_installed():
+            continue
+        print(installable.to_json() if as_json else installable.name)
         _LOGGER.debug(installable)
 
 
@@ -259,6 +294,33 @@ def verify(context: CliContext, filter_: List[str]):
         sys.exit(1)
 
 
+@cli.command(name="list-paths")
+@click.pass_obj
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
+@click.option("--absolute", is_flag=True, help="Show absolute paths")
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def list_paths(context: CliContext, filter_: List[str], as_json: bool, absolute: bool):
+    """List installation paths for targets matching FILTER without installing."""
+    paths = {}
+    for installable in context.get_installables(filter_):
+        if absolute:
+            # Combine with destination to get absolute path
+            path = str(context.installation_context.destination / installable.install_path)
+        else:
+            # Relative path within the installation directory
+            path = installable.install_path
+
+        if as_json:
+            paths[installable.name] = path
+        else:
+            print(f"{installable.name}: {path}")
+
+    if as_json:
+        import json
+
+        print(json.dumps(paths, indent=2))
+
+
 @cli.command()
 @click.pass_obj
 @click.argument("filter_", metavar="FILTER", nargs=-1)
@@ -272,13 +334,25 @@ def check_installed(context: CliContext, filter_: List[str]):
 
 
 @cli.command()
+@click.pass_obj
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def check_should_install(context: CliContext, filter_: List[str]):
+    """Check whether targets matching FILTER Should be installed."""
+    for installable in context.get_installables(filter_):
+        if installable.should_install():
+            print(f"{installable.name}: yes")
+        else:
+            print(f"{installable.name}: no")
+
+
+@cli.command()
 def amazon_check():
     _LOGGER.debug("Starting Amazon Check")
     languages = ["c", "c++", "d", "cuda"]
 
     for language in languages:
         _LOGGER.info("Checking %s libraries", language)
-        [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER)
+        [_, libraries] = get_properties_compilers_and_libraries(language, _LOGGER, LibraryPlatform.Linux, True)
 
         for libraryid in libraries:
             _LOGGER.debug("Checking %s", libraryid)
@@ -359,7 +433,7 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
         exit(1)
 
     for installable in context.get_installables(filter_):
-        destination = Path(image_dir / f"{installable.install_path}.img")
+        destination = image_dir / f"{installable.install_path}.img"
         if installable.nightly_like:
             if destination.exists():
                 _LOGGER.error("Found squash: %s for nightly", installable.name)
@@ -370,7 +444,10 @@ def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
 
 
 def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
-    return installable, force or installable.should_install()
+    try:
+        return installable, force or installable.should_install()
+    except Exception as ex:
+        raise RuntimeError(f"Unable to install {installable}") from ex
 
 
 @cli.command()
@@ -401,7 +478,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
                     else:
                         _LOGGER.info("%s installed OK", installable.name)
                         num_installed += 1
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:
                 _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
                 failed.append(installable.name)
         else:
@@ -409,7 +486,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
             num_skipped += 1
     print(
         f"{num_installed} packages installed "
-        f'{"(apparently; this was a dry-run) " if context.installation_context.dry_run else ""}OK, '
+        f"{'(apparently; this was a dry-run) ' if context.installation_context.dry_run else ''}OK, "
         f"{num_skipped} skipped, and {len(failed)} failed installation"
     )
     if len(failed):
@@ -426,40 +503,73 @@ def install(context: CliContext, filter_: List[str], force: bool):
     "--buildfor",
     default="",
     metavar="BUILDFOR",
-    help="Filter to only build for given compiler (should be a CE compiler identifier), "
-    "leave empty to build for all",
+    help="Filter to only build for given compiler (should be a CE compiler identifier), leave empty to build for all",
 )
+@click.option("--popular-compilers-only", is_flag=True, help="Only build with popular (enough) compilers")
+@click.option("--temp-install", is_flag=True, help="Temporary install target if it's not installed yet")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def build(context: CliContext, filter_: List[str], force: bool, buildfor: str):
+def build(
+    context: CliContext,
+    filter_: List[str],
+    force: bool,
+    buildfor: str,
+    popular_compilers_only: bool,
+    temp_install: bool,
+):
     """Build library targets matching FILTER."""
     num_installed = 0
     num_skipped = 0
     num_failed = 0
+
+    platform = LibraryPlatform.Linux
+
+    if "windows" in context.enabled:
+        platform = LibraryPlatform.Windows
+
     for installable in context.get_installables(filter_):
         if buildfor:
-            print(f"Building {installable.name} just for {buildfor}")
+            print(f"Building {installable.name} ({platform.value}) just for {buildfor}")
         else:
-            print(f"Building {installable.name} for all")
+            print(f"Building {installable.name} ({platform.value}) for all")
 
-        if force or installable.should_build():
+        if force or installable.should_build(platform):
+            was_temp_installed = False
+
+            if not installable.is_installed() and temp_install:
+                _LOGGER.info("Temporarily installing %s", installable.name)
+                try:
+                    installable.install()
+                    was_temp_installed = True
+                except FetchFailure:
+                    num_failed += 1
+                    continue
+
             if not installable.is_installed():
                 _LOGGER.info("%s is not installed, unable to build", installable.name)
                 num_skipped += 1
             else:
                 try:
-                    [num_installed, num_skipped, num_failed] = installable.build(buildfor)
+                    [num_installed, num_skipped, num_failed] = installable.build(
+                        buildfor, popular_compilers_only, platform
+                    )
                     if num_installed > 0:
                         _LOGGER.info("%s built OK", installable.name)
                     elif num_failed:
                         _LOGGER.info("%s failed to build", installable.name)
+                    elif num_skipped == 0:
+                        _LOGGER.info("%s hit a BUG", installable.name)
                 except RuntimeError as e:
                     if buildfor:
                         raise e
                     else:
                         _LOGGER.info("%s failed to build: %s", installable.name, e)
                         num_failed += 1
+
+            if was_temp_installed:
+                _LOGGER.info("Uninstalling temporary %s", installable.name)
+                installable.uninstall()
         else:
-            _LOGGER.info("%s is already built, skipping", installable.name)
+            _LOGGER.info("%s does not have to build, skipping", installable.name)
             num_skipped += 1
     print(f"{num_installed} packages built OK, {num_skipped} skipped, and {num_failed} failed build")
     if num_failed:
@@ -505,8 +615,68 @@ def add_crate(context: CliContext, libid: str, libversion: str):
     libyaml.save()
 
 
+@cli.command()
+@click.pass_obj
+def generate_cpp_windows_props(context: CliContext):
+    """Generate Cpp for Windows property files for libraries."""
+    propfile = Path(os.path.join(os.curdir, "props"))
+    with propfile.open(mode="w", encoding="utf-8") as file:
+        libyaml = LibraryYaml(context.installation_context.yaml_dir)
+        props = libyaml.get_ce_properties_for_cpp_windows_libraries(logging.getLogger())
+        file.write(props)
+
+
+@cli.command(name="list-gh-build-commands")
+@click.pass_obj
+@click.option("--per-lib", is_flag=True, help="Group by library instead of version")
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def list_gh_build_commands(context: CliContext, per_lib: bool, filter_: List[str]):
+    """List gh workflow commands matching FILTER."""
+    grouped = set()
+
+    if per_lib:
+        for installable in context.get_installables(filter_):
+            if not installable.should_build(LibraryPlatform.Windows):
+                continue
+            shorter_name = installable.name.replace("libraries/c++/", "").split(" ")[0]
+            grouped.add(shorter_name)
+
+        for group in grouped:
+            print(f'gh workflow run win-lib-build.yaml --field "library={group}" -R github.com/compiler-explorer/infra')
+    else:
+        for installable in context.get_installables(filter_):
+            if not installable.should_build(LibraryPlatform.Windows):
+                continue
+            shorter_name = installable.name.replace("libraries/c++/", "")
+            print(
+                f'gh workflow run win-lib-build.yaml --field "library={shorter_name}" -R github.com/compiler-explorer/infra'
+            )
+
+
+@cli.command()
+@click.argument("output", type=click.File("w", encoding="utf-8"), default="-")
+@click.pass_obj
+def config_dump(context: CliContext, output: TextIO):
+    """Dumps all config, expanded."""
+    for yaml_path in sorted(Path(context.installation_context.yaml_dir).glob("*.yaml")):
+        with yaml_path.open(encoding="utf-8") as yaml_file:
+            yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+        for installer in sorted(installers_for(context.installation_context, yaml_doc, True), key=str):
+            # Read all public strings fields from installer
+            as_dict = {
+                "name": installer.name,
+                "type": str(installer),
+                "config": {
+                    field: getattr(installer, field)
+                    for field in dir(installer)
+                    if not field.startswith("_") and isinstance(getattr(installer, field), str)
+                },
+            }
+            output.write(json.dumps(as_dict) + "\n")
+
+
 def main():
-    cli(prog_name="ce_install")  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+    cli(prog_name="ce_install")
 
 
 if __name__ == "__main__":

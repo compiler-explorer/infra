@@ -16,13 +16,28 @@ ce_install tools
 ce_squash tools
 
 ##################################
+# EDG compilers
+ce_install edg
+ce_squash edg
+
+##################################
+# QNX compilers
+ce_install qnx
+ce_squash qnx
+
+##################################
+# ORCA/C compilers
+ce_install orca-c
+ce_squash orca-c
+
+##################################
 # Intel compilers
 for compiler in \
     intel.tar.gz; do
     DIR=${compiler%.tar.*}
     if [[ ! -d ${DIR} ]]; then
         s3fetch ${S3URL}/$compiler | tar zxf -
-        do_strip ${DIR}
+        do_strip "${DIR}"
     fi
 done
 
@@ -30,6 +45,9 @@ for license in COM_L__CPPFOR_HFGW-87P5C9BZ.lic NCOM_L__CPPFOR_ND83-JL4ZKB6T.lic;
     mkdir -p /opt/intel/licenses
     s3get ${S3URL}/$license /opt/intel/licenses/$license # NB not ${OPT} as we need this actually at this absolute path
 done
+
+mkdir -p /opt/qnx
+s3get ${S3URL}/qnx-licenses /opt/qnx/licenses
 
 for version in 2016.3.210 2018.0.033; do
     if [[ ! -d intel-${version} ]]; then
@@ -116,3 +134,7 @@ install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installer
 install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run 10.1.168
 install_cuda https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run 10.1.243
 install_cuda https://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run 10.2.89
+
+##################################
+# Sonar Analyzer
+s3fetch ${S3URL}/sonar/sonar.txz | tar Jxf -

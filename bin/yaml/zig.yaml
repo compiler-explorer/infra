@@ -2,9 +2,9 @@ compilers:
   zig:
     type: tarballs
     compression: xz
-    url: https://ziglang.org/download/{name}/zig-linux-x86_64-{name}.tar.xz
+    url: https://ziglang.org/download/{{name}}/zig-linux-x86_64-{{name}}.tar.xz
     check_exe: zig version
-    dir: zig-{name}
+    dir: zig-{{name}}
     strip_components: 1
     create_untar_dir: true
     strip: true
@@ -18,6 +18,16 @@ compilers:
       - 0.7.1
       - 0.8.0
       - 0.9.0
+      - 0.10.0
+      - 0.11.0
+      - 0.12.0
+      - 0.12.1
+      - 0.13.0
+      - 0.14.0
+    new_naming:
+      url: https://ziglang.org/download/{{name}}/zig-x86_64-linux-{{name}}.tar.xz
+      targets:
+        - 0.14.1
     nightly:
       if: nightly
       type: restQueryTarballs

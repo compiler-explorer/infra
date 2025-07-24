@@ -4,7 +4,8 @@ from typing import Sequence
 import click
 
 from lib.instance import BuilderInstance
-from lib.ssh import run_remote_shell, exec_remote, exec_remote_to_stdout
+from lib.ssh import exec_remote, exec_remote_to_stdout, run_remote_shell
+
 from .cli import cli
 
 
@@ -46,7 +47,7 @@ def builder_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:
             print("Still waiting for SSH: got: {}".format(e))
         time.sleep(5)
     else:

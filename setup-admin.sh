@@ -12,9 +12,25 @@ if [[ "$1" != "--updated" ]]; then
   exit 0
 fi
 
-env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
+env EXTRA_NFS_ARGS="" INSTALL_TYPE="admin" "${DIR}/setup-common.sh"
 
-apt -y install mosh fish jq cronic subversion upx gdb autojump zlib1g-dev m4 python3 python3-venv python3.8 python3.8-venv libc6-dev-i386
+apt -y install \
+  autojump \
+  cronic \
+  fish \
+  gdb \
+  jq \
+  libc6-dev-i386 \
+  m4 \
+  mosh \
+  python3 \
+  python3-venv \
+  python3.8 \
+  python3.8-venv \
+  squashfs-tools-ng \
+  subversion \
+  upx \
+  zlib1g-dev
 chsh ubuntu -s /usr/bin/fish
 
 cd /home/ubuntu/infra
@@ -27,6 +43,13 @@ aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/ho
 
 chmod 600 /home/ubuntu/.ssh/id_rsa
 aws s3 cp s3://compiler-explorer/authorized_keys/admin.key /home/ubuntu/.ssh/id_rsa.pub
+mkdir /home/ubuntu/.ssh/controlmasters
+cat > /home/ubuntu/.ssh/config <<EOF
+Host *
+  ControlMaster auto
+  ControlPath ~/.ssh/controlmasters/%r@%h:%p
+  ControlPersist 10
+EOF
 chown -R ubuntu:ubuntu /home/ubuntu/.ssh
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 

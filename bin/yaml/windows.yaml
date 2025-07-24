@@ -1,0 +1,53 @@
+windows:
+  if: windows
+  c++:
+    x86:
+      mingw-w64:
+        type: ziparchive
+        dir: "mingw-w64-{{name}}"
+        folder: "mingw64"
+        check_file: "bin/g++.exe"
+        # check_exe: "bin/g++.exe --version"
+        targets:
+          - name: "13.1.0-16.0.2-11.0.0-ucrt-r1"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-mcf-seh-gcc-13.1.0-llvm-16.0.2-mingw-w64ucrt-11.0.0-r1.zip
+          - name: "12.2.0-16.0.0-10.0.0-ucrt-r5"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-posix-seh-gcc-12.2.0-llvm-16.0.0-mingw-w64ucrt-10.0.0-r5.zip
+          - name: "12.2.0-15.0.7-10.0.0-ucrt-r4"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-posix-seh-gcc-12.2.0-llvm-15.0.7-mingw-w64ucrt-10.0.0-r4.zip
+          - name: "12.1.0-14.0.6-10.0.0-ucrt-r3"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-posix-seh-gcc-12.1.0-llvm-14.0.6-mingw-w64ucrt-10.0.0-r3.zip
+          - name: "11.3.0-14.0.3-10.0.0-ucrt-r3"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-posix-seh-gcc-11.3.0-llvm-14.0.3-mingw-w64ucrt-10.0.0-r3.zip
+      clang-cl:
+        type: tarballs
+        compression: xz
+        dir: clang-cl-{{name}}
+        untar_dir: clang+llvm-{{name}}-x86_64-pc-windows-msvc
+        check_file: bin/clang-cl.exe
+        url: https://github.com/llvm/llvm-project/releases/download/llvmorg-{{name}}/clang+llvm-{{name}}-x86_64-pc-windows-msvc.tar.xz
+        targets:
+          - 18.1.0
+  tools:
+    cmake:
+      type: ziparchive
+      url: https://github.com/Kitware/CMake/releases/download/v{{name}}/cmake-{{name}}-windows-x86_64.zip
+      dir: cmake-v{{name}}
+      check_file: "bin/cmake.exe"
+      folder: "cmake-{{name}}-windows-x86_64"
+      targets:
+        - 3.27.6
+        - 3.27.9
+        - 3.28.4
+        - 3.29.2
+        - 3.30.7
+        - 3.31.5
+    ninja:
+      type: ziparchive
+      url: https://github.com/compiler-explorer/ninja/releases/download/v{{name}}/ninja-win.zip
+      dir: ninja-v{{name}}
+      folder: "bin"
+      extract_into_folder: true
+      check_file: "ninja.exe"
+      targets:
+        - 1.12.1

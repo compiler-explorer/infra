@@ -1,4 +1,4 @@
-module ce_network {
+module "ce_network" {
   source        = "./modules/ce_network"
   cidr_b_prefix = "172.30"
   subnets       = local.subnet_mappings

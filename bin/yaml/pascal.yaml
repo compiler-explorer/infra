@@ -3,21 +3,21 @@ compilers:
     fpc:
       type: tarballs
       compression: tar
-      dir: fpc-{name}.x86_64-linux
-      url: https://downloads.sourceforge.net/project/freepascal/Linux/{name}/{dir}.tar
+      dir: fpc-{{name}}.x86_64-linux
+      url: https://downloads.sourceforge.net/project/freepascal/Linux/{{name}}/{{dir}}.tar
       check_exe: bin/fpc -iV
       after_stage_script:
-        - cd {dir}
+        - cd {{dir}}
         - rm demo.tar.gz
         - rm doc-pdf.tar.gz
         - rm install.sh
-        - cp {yaml_dir}/pascal/install_fpc.sh .
-        - . install_fpc.sh {name} $CE_STAGING_DIR/install
+        - cp {{yaml_dir}}/pascal/install_fpc.sh .
+        - . install_fpc.sh {{name}} $CE_STAGING_DIR/install
         - cd ..
-        - rm -rf {dir}
-        - mv install {dir}
-        - mkdir -p {destination}/fpc
-        - cp {yaml_dir}/pascal/fpc.cfg {destination}/fpc/fpc.cfg
+        - rm -rf {{dir}}
+        - mv install {{dir}}
+        - mkdir -p {{destination}}/fpc
+        - cp {{yaml_dir}}/pascal/fpc.cfg {{destination}}/fpc/fpc.cfg
       targets:
         - 2.6.0
         - 2.6.2
@@ -25,5 +25,36 @@ compilers:
         - 3.0.2
         - 3.0.4
         - name: 3.2.0
-          dir: fpc-{name}-x86_64-linux
+          dir: fpc-{{name}}-x86_64-linux
         - 3.2.2
+    nightly:
+      if: nightly
+      madpas-compiler:
+        type: nightly
+        check_file: bin/mp
+        targets:
+          - trunk
+      fpc:
+        type: nightlytarballs
+        compression: gz
+        url: https://gitlab.com/api/v4/projects/28370987/jobs/artifacts/main/download?job=build-job
+        dir: fpc-trunk.x86_64-linux
+        strip_components: 1
+        create_untar_dir: true
+        untar_dir: fpc-trunk.x86_64-linux
+        check_exe: bin/fpc -iV
+        after_stage_script:
+          - rm demo.tar.gz
+          - rm doc-pdf.tar.gz
+          - rm install.sh
+          - cp {{yaml_dir}}/pascal/install_fpc.sh .
+          - . install_fpc.sh {{name}} $CE_STAGING_DIR/install
+          - cd ..
+          - mv {{dir}} old
+          - cp old/ce_script.sh install
+          - mv install/lib/fpc/3.3.1 install/lib/fpc/trunk
+          - mv install {{dir}}
+          - mkdir -p {{destination}}/fpc
+          - cp {{yaml_dir}}/pascal/fpc-trunk.cfg {{destination}}/fpc/fpc-trunk.cfg
+        targets:
+          - trunk

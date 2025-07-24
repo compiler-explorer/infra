@@ -9,8 +9,9 @@ from concurrent import futures
 from datetime import datetime
 from pathlib import Path
 from tempfile import mkdtemp
+from zipfile import ZipFile
 
-from lib.amazon import botocore, s3_client, force_lazy_init
+from lib.amazon import botocore, force_lazy_init, s3_client
 
 logger = logging.getLogger("ce-cdn")
 
@@ -82,6 +83,33 @@ class DeploymentJob:
     def __exit__(self, exc_type, exc_value, traceback):
         self.__cleanup_tempdir()
 
+    def __unpack_zip(self):
+        if not self.tmpdir:
+            self.tmpdir = mkdtemp()
+
+        logger.debug('unpacking "%s" into "%s"', self.tar_file_path, self.tmpdir)
+        with ZipFile(self.tar_file_path) as zipfile:
+
+            def is_within_directory(directory, target):
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+
+                return prefix == abs_directory
+
+            def safe_extract(zipfile, path=".", members=None):
+                for member in zipfile.infolist():
+                    member_path = os.path.join(path, member.filename)
+                    if not is_within_directory(path, member_path):
+                        raise RuntimeError("Attempted Path Traversal in Tar File")
+
+                zipfile.extractall(path, members)
+
+            safe_extract(zipfile, self.tmpdir)
+
+        return list(get_directory_contents(self.tmpdir))
+
     def __unpack_tar(self):
         # ensure temp dir exists
         if not self.tmpdir:
@@ -90,7 +118,24 @@ class DeploymentJob:
         # unpack tar contents
         logger.debug('unpacking "%s" into "%s"', self.tar_file_path, self.tmpdir)
         with tarfile.open(self.tar_file_path) as tar:
-            tar.extractall(self.tmpdir)
+
+            def is_within_directory(directory, target):
+                abs_directory = os.path.abspath(directory)
+                abs_target = os.path.abspath(target)
+
+                prefix = os.path.commonprefix([abs_directory, abs_target])
+
+                return prefix == abs_directory
+
+            def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
+                for member in tar.getmembers():
+                    member_path = os.path.join(path, member.name)
+                    if not is_within_directory(path, member_path):
+                        raise RuntimeError("Attempted Path Traversal in Tar File")
+
+                tar.extractall(path, members, numeric_owner=numeric_owner)
+
+            safe_extract(tar, self.tmpdir)
 
         return list(get_directory_contents(self.tmpdir))
 
@@ -185,13 +230,41 @@ class DeploymentJob:
         self.__s3_put_object_tagging(file["name"], tags)
         return file
 
+    def check_hashes(self):
+        force_lazy_init(s3_client)
+
+        if ".zip" in self.tar_file_path:
+            files = self.__unpack_zip()
+        else:
+            files = self.__unpack_tar()
+
+        with futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            files = list(executor.map(hash_file_for_s3, files))
+
+            files_with_mismatch = []
+            for f in executor.map(self._check_s3_hash, files):
+                if f["exists"]:
+                    if f["mismatch"]:
+                        files_with_mismatch.append(f)
+
+            if files_with_mismatch:
+                logger.error("%d files have mismatching hashes", len(files_with_mismatch))
+                for f in files_with_mismatch:
+                    logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+
+                return False
+            return True
+
     def run(self):
         logger.debug("running with %d workers", self.max_workers)
 
         # work around race condition with parallel lazy init of boto3
         force_lazy_init(s3_client)
 
-        files = self.__unpack_tar()
+        if ".zip" in self.tar_file_path:
+            files = self.__unpack_zip()
+        else:
+            files = self.__unpack_tar()
 
         with futures.ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # calculate hashes for all the files

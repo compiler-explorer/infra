@@ -1,7 +1,9 @@
 import logging
+
 import pytest
 import requests
 from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
+from lib.library_platform import LibraryPlatform
 
 logger = logging.getLogger(__name__)
 logger.level = 9
@@ -14,7 +16,7 @@ logger.level = 9
 
 def test_should_have_staticliblink():
     try:
-        [_compilers, _libraries] = get_properties_compilers_and_libraries("c++", logger)
+        [_compilers, _libraries] = get_properties_compilers_and_libraries("c++", logger, LibraryPlatform.Linux, True)
         assert "googletest" in _libraries
         assert len(_libraries["googletest"]["versionprops"]["trunk"]["staticliblink"]) > 0
         assert _libraries["googletest"]["versionprops"]["trunk"]["staticliblink"][0] == "gtest"
@@ -25,17 +27,17 @@ def test_should_have_staticliblink():
 
 def test_googletest_should_have_versions():
     try:
-        [_compilers, _libraries] = get_properties_compilers_and_libraries("c++", logger)
+        [_compilers, _libraries] = get_properties_compilers_and_libraries("c++", logger, LibraryPlatform.Linux, True)
         assert "googletest" in _libraries
         assert len(_libraries["googletest"]["versionprops"]) > 0
         assert _libraries["googletest"]["versionprops"]["110"]["lookupversion"] == "release-1.10.0"
         assert _libraries["googletest"]["versionprops"]["110"]["version"] == "1.10.0"
 
         details = get_specific_library_version_details(_libraries, "googletest", "1.10.0")
-        assert details != False
+        assert details
 
         details = get_specific_library_version_details(_libraries, "googletest", "release-1.10.0")
-        assert details != False
+        assert details
     except requests.exceptions.ConnectionError:
         pytest.skip("Connection error in test_googletest_should_have_versions, which needs internet access")
 
@@ -59,3 +61,17 @@ def test_googletest_should_have_versions():
 # def test_should_contain_optionsforclang800():
 #     [_compilers, _libraries] = get_properties_compilers_and_libraries('c++', logger)
 #     assert '--gcc-toolchain=/opt/compiler-explorer/gcc-8.3.0' in _compilers['clang800']['options']
+
+# def test_should_contain_mrustc():
+#     [_compilers, _libraries] = get_properties_compilers_and_libraries('rust', logger, False)
+#     assert 'mrustc-master' in _compilers
+
+# def test_should_contain_objcgsnapshot():
+#     [_compilers, _libraries] = get_properties_compilers_and_libraries('objc', logger, False)
+#     assert 'objcgsnapshot' in _compilers
+#     assert 'exe' in _compilers['objcgsnapshot']
+
+# def test_should_contain_objcppgsnapshot():
+#     [_compilers, _libraries] = get_properties_compilers_and_libraries('objc++', logger, False)
+#     assert 'objcppgsnapshot' in _compilers
+#     assert 'exe' in _compilers['objcppgsnapshot']

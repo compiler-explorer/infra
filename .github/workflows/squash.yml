@@ -11,11 +11,11 @@ on:
         required: false
 jobs:
   squash:
-    runs-on: [ 'self-hosted', 'ce', 'ubuntu' ]
+    runs-on: [ 'self-hosted', 'ce', 'linux', 'x64' ]
     steps:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up environment
         run: make ce
         # relies on this being empty on cron

@@ -13,6 +13,7 @@ data "aws_acm_certificate" "static-ce-cdn-net" {
 }
 
 resource "aws_cloudfront_distribution" "ce-godbolt-org" {
+  comment = "CE on godbolt.org"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -26,7 +27,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -37,7 +38,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "godbolt.org",
     "*.godbolt.org"
   ]
@@ -59,7 +60,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -111,6 +112,26 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
+  ordered_cache_behavior {
+    allowed_methods = [
+      "GET",
+      "HEAD"
+    ]
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
+      "GET",
+      "HEAD"
+    ]
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
+  }
+
   default_cache_behavior {
     allowed_methods = [
       "HEAD",
@@ -130,7 +151,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
         forward = "none"
       }
       query_string = true
-      headers      = [
+      headers = [
         "Accept",
         "Host",
         "CloudFront-Is-Mobile-Viewer"
@@ -153,6 +174,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 # TODO - the duplication is rubbish
 # Though note the differences: logging and aliases (at least).
 resource "aws_cloudfront_distribution" "compiler-explorer-com" {
+  comment = "CE on compiler-explorer.com"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -166,7 +188,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -177,7 +199,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "compiler-explorer.com",
     "*.compiler-explorer.com"
   ]
@@ -199,7 +221,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -251,6 +273,26 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
+  ordered_cache_behavior {
+    allowed_methods = [
+      "GET",
+      "HEAD"
+    ]
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
+      "GET",
+      "HEAD"
+    ]
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
+  }
+
   default_cache_behavior {
     allowed_methods = [
       "HEAD",
@@ -270,7 +312,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
         forward = "none"
       }
       query_string = true
-      headers      = [
+      headers = [
         "Accept",
         "Host",
         "CloudFront-Is-Mobile-Viewer"
@@ -291,6 +333,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
 }
 
 resource "aws_cloudfront_distribution" "godbo-lt" {
+  comment = "CE on godbo.lt"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -304,7 +347,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
       origin_protocol_policy   = "https-only"
-      origin_ssl_protocols     = [
+      origin_ssl_protocols = [
         "TLSv1",
         "TLSv1.2",
         "TLSv1.1"
@@ -315,7 +358,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "godbo.lt",
     "*.godbo.lt"
   ]
@@ -337,7 +380,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -389,6 +432,26 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
     viewer_protocol_policy = "redirect-to-https"
   }
 
+  ordered_cache_behavior {
+    allowed_methods = [
+      "GET",
+      "HEAD"
+    ]
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
+      "GET",
+      "HEAD"
+    ]
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
+  }
+
   default_cache_behavior {
     allowed_methods = [
       "HEAD",
@@ -408,7 +471,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
         forward = "none"
       }
       query_string = true
-      headers      = [
+      headers = [
         "Accept",
         "Host",
         "CloudFront-Is-Mobile-Viewer"
@@ -430,6 +493,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
 }
 
 resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
+  comment = "CE CDN"
   origin {
     domain_name = "ce-cdn.net.s3.amazonaws.com"
     origin_id   = "S3-ce-cdn.net"
@@ -438,7 +502,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
   enabled          = true
   is_ipv6_enabled  = true
   retain_on_delete = true
-  aliases          = [
+  aliases = [
     "static.ce-cdn.net"
   ]
 
@@ -459,7 +523,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
   restrictions {
     geo_restriction {
       restriction_type = "blacklist"
-      locations        = [
+      locations = [
         "CU",
         "IR",
         "KP",
@@ -490,7 +554,7 @@ resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
         "Access-Control-Request-Headers",
         "Access-Control-Request-Method"
       ]
-      query_string            = true
+      query_string = true
       query_string_cache_keys = [
         "v"
       ]
@@ -562,7 +626,7 @@ resource "aws_wafv2_web_acl" "compiler-explorer" {
     statement {
       rate_based_statement {
         // Limit to this many per 5 minutes (300 seconds)
-        limit              = 1200
+        limit              = 12000
         aggregate_key_type = "IP"
         scope_down_statement {
           byte_match_statement {
@@ -612,5 +676,7 @@ resource "aws_wafv2_ip_set" "banned-ipv6" {
   description        = "Banned ipv6"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV6"
-  addresses          = []
+  addresses = [
+    "2001:b011:d006:13f8:0000:0000:0000:0000/64" // Anomolous behaviour; large number of requests on 2025/01/05
+  ]
 }

@@ -1,12 +1,13 @@
 import itertools
 import json
 import logging
+import socket
 import time
-from typing import Optional, Union, Set, List
+from typing import List, Optional, Set, Union
 
 import click
 
-from lib.amazon import get_current_key, release_for, get_releases, get_events_file, save_event_file
+from lib.amazon import get_current_key, get_events_file, get_releases, release_for, save_event_file
 from lib.env import Config
 from lib.instance import Instance
 from lib.releases import Hash, Release
@@ -22,11 +23,21 @@ def sizeof_fmt(num: Union[int, float], suffix="B") -> str:
     return "%.1f%s%s" % (num, "Yi", suffix)
 
 
+def is_running_on_admin_node() -> bool:
+    """Check if the current script is running on the admin node.
+
+    Returns True if running on the admin node, False otherwise.
+    This is used to determine which features require admin node access
+    (SSH to instances, HTTP health checks, etc.).
+    """
+    return socket.gethostname() == "admin-node"
+
+
 def describe_current_release(cfg: Config) -> str:
     current = get_current_key(cfg)
     if not current:
         return "none"
-    r = release_for(get_releases(), current)
+    r = release_for(get_releases(cfg), current)
     if r:
         return str(r)
     else:
@@ -115,3 +126,19 @@ def confirm_branch(branch: str) -> bool:
 def confirm_action(description: str) -> bool:
     typed = input("{}: [Y/N]\n".format(description))
     return typed.upper() == "Y"
+
+
+def print_elapsed_time(message: str, start_time: float, **kwargs) -> None:
+    """Print a message with elapsed time in minutes and seconds format."""
+    elapsed_total_secs = int(time.time() - start_time)
+    elapsed_mins = elapsed_total_secs // 60
+    elapsed_secs = elapsed_total_secs % 60
+    formatted_msg = message.format(**kwargs) if kwargs else message
+    print(f"{formatted_msg} after {elapsed_mins}m {elapsed_secs}s")
+
+
+def print_elapsed_minutes(message: str, start_time: float, **kwargs) -> None:
+    """Print a message with elapsed time in minutes only."""
+    elapsed_mins = int((time.time() - start_time) / 60)
+    formatted_msg = message.format(**kwargs) if kwargs else message
+    print(f"[{elapsed_mins}m] {formatted_msg}")

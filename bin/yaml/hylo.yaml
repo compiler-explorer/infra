@@ -1,0 +1,12 @@
+compilers:
+  hylo:
+    type: s3tarballs
+    check_exe: hc --help
+    # this is where non-nightly builds would go
+    # targets: ...etc
+    nightly:
+      if: nightly
+      type: nightly
+      compiler_name: hylo-trunk
+      targets:
+        - trunk

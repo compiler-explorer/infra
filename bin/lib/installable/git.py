@@ -6,12 +6,12 @@ import re
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 from lib.installable.installable import Installable
 from lib.staging import StagingDir
 
-_CLONE_METHODS = {"clone_branch", "nightlyclone"}
+_CLONE_METHODS = {"clone_branch", "nightlyclone", "nightlybranch"}
 _ARCHIVE_METHOD = "archive"
 _VALID_METHODS = _CLONE_METHODS | {_ARCHIVE_METHOD}
 _LOGGER = logging.getLogger(__name__)
@@ -70,20 +70,19 @@ class GitHubInstallable(Installable):
         default_untar_dir = f"{self.reponame}-{self.target_name}"
         self.untar_dir = self.config_get("untar_dir", default_untar_dir)
 
-        check_file = self.config_get("check_file", "")
-        if check_file == "":
+        if not self.check_file:
             if self.build_config.build_type == "cmake":
-                self.check_file = os.path.join(self.install_path, "CMakeLists.txt")
+                self.check_file = "CMakeLists.txt"
             elif self.build_config.build_type == "make":
-                self.check_file = os.path.join(self.install_path, "Makefile")
+                self.check_file = "Makefile"
             elif self.build_config.build_type == "cake":
-                self.check_file = os.path.join(self.install_path, "config.cake")
+                self.check_file = "config.cake"
             elif self.build_config.build_type == "cargo":
                 self.check_file = None
             else:
                 raise RuntimeError(f"Requires check_file ({last_context})")
-        else:
-            self.check_file = f"{self.install_path}/{check_file}"
+
+        self.install_always = self.install_always or self.nightly_like
 
     def _update_args(self):
         if self.recursive:
@@ -109,6 +108,10 @@ class GitHubInstallable(Installable):
 
         def _git(*git_args: Union[str, Path]) -> str:
             return self._git(staging, "-C", dest, *git_args)
+
+        # Ensure we're not configured to do any detached background work which will get upset when we start moving
+        # things around. See https://github.com/compiler-explorer/compiler-explorer/issues/4813
+        _git("config", "gc.autodetach", "false")
 
         # Ensure we are pulling from the correct URL, and fetch latest.
         _git("remote", "set-url", "origin", remote_url)
@@ -145,6 +148,9 @@ class GitHubInstallable(Installable):
         self._logger.info("Detected remote default branch as '%s'", branch)
         return branch
 
+    def uses_explicit_branch(self) -> bool:
+        return self.method == "clone_branch" or self.method == "nightlybranch"
+
     def should_install(self) -> bool:
         if not super().should_install():
             return False
@@ -152,7 +158,7 @@ class GitHubInstallable(Installable):
             prior_installation = self.install_context.prior_installation / self.install_path
             if prior_installation.exists():
                 branch = (
-                    self.branch_name if self.method == "clone_branch" else self._find_remote_branch(prior_installation)
+                    self.branch_name if self.uses_explicit_branch() else self._find_remote_branch(prior_installation)
                 )
                 remote_hash = _remote_get_current_hash(self._logger, prior_installation, branch)
                 local_hash = _git_current_hash(self._logger, prior_installation)
@@ -174,7 +180,7 @@ class GitHubInstallable(Installable):
 
     @property
     def nightly_like(self) -> bool:
-        return self.method == "nightlyclone"
+        return self.method == "nightlyclone" or self.method == "nightlybranch"
 
     def stage(self, staging: StagingDir):
         if self.method == _ARCHIVE_METHOD:
@@ -184,7 +190,7 @@ class GitHubInstallable(Installable):
             staged_dest = self.clone(
                 staging,
                 remote_url=f"{self.domainurl}/{self.repo}.git",
-                branch=self.branch_name if self.method == "clone_branch" else None,
+                branch=self.branch_name if self.uses_explicit_branch() else None,
             )
         else:
             raise RuntimeError(f"Unknown Github method {self.method}")

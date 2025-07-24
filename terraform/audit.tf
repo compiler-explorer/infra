@@ -43,11 +43,6 @@ resource "aws_s3_bucket" "cloudtrail" {
   bucket        = "cloudtrail.godbolt.org"
   force_destroy = true
 
-  // TODO one day
-  //  versioning {
-  //    mfa_delete = true
-  //  }
-
   tags = {
     S3-Bucket-Name = "cloudtrail.godbolt.org"
   }
@@ -63,6 +58,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
     }
     noncurrent_version_expiration {
       noncurrent_days = 1
+    }
+    filter {
+      prefix = ""
     }
   }
 }

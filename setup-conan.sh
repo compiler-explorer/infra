@@ -3,7 +3,7 @@
 set -ex
 
 CE_USER=ce
-NODE_VERSION="v12.18.0"
+NODE_VERSION="v22.11.0"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${DIR}"
 
@@ -30,7 +30,7 @@ wait_for_apt
 
 apt-get -y update
 apt-get -y upgrade --force-yes
-apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv
+apt-get -y install unzip wget mosh fish jq ssmtp cronic upx autojump python3-pip python3.8 python3.8-venv sqlite3
 apt-get -y autoremove
 pip3 install --upgrade pip
 hash -r pip3
@@ -61,6 +61,9 @@ wget https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.
 tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
 mv node-${NODE_VERSION}-linux-x64 node
 chown -Rf root:root node
+
+# quick smoke test of this node version
+node/bin/node --version
 
 # setup daemon
 cp /home/ubuntu/infra/init/ce-conan.service /lib/systemd/system/ce-conan.service

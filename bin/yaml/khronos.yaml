@@ -1,0 +1,34 @@
+compilers:
+  opencl-c:
+    nightly:
+      if: nightly
+      SPIRV-Tools:
+        type: nightly
+        check_exe: "build/tools/spirv-dis --version"
+        targets:
+          - name: main
+            symlink: SPIRV-Tools-master
+        llvm-spirv:
+          type: nightly
+          check_exe: "bin/llvm-spirv --version"
+          targets:
+            - trunk
+      clspv:
+        type: nightly
+        check_exe: "bin/clspv --version"
+        targets:
+          - main
+  vulkan-sdk:
+    type: tarballs
+    dir: vulkan-sdk/v{{name}}
+    strip_components: 1
+    create_untar_dir: true
+    url: https://sdk.lunarg.com/sdk/download/{{name}}/linux/vulkansdk-linux-x86_64-{{name}}.tar.xz
+    compression: xz
+    check_exe: ./x86_64/bin/spirv-cross --help
+    targets:
+      - 1.3.296.0
+      - 1.4.304.0
+      - 1.4.309.0
+      - 1.4.313.0
+      - 1.4.321.0

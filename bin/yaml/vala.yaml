@@ -1,0 +1,6 @@
+compilers:
+ vala:
+   type: s3tarballs
+   check_exe: bin/valac --version
+   targets:
+     - 0.56.6

@@ -5,8 +5,8 @@ compilers:
     check_exe: circle --version
     create_untar_dir: true
     strip: true
-    url: https://circle-lang.org/linux/build_{name}.tgz
-    dir: circle-{name}
+    url: https://circle-lang.org/linux/build_{{name}}.tgz
+    dir: circle-{{name}}
     targets:
       - '128'
       - '129'

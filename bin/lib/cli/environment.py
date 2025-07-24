@@ -12,6 +12,7 @@ from lib.amazon import (
 )
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
+from lib.cloudfront_utils import invalidate_cloudfront_distributions
 from lib.env import Config, Environment
 
 from lib.notify import handle_notify
@@ -26,14 +27,44 @@ def environment():
 @click.pass_obj
 def environment_status(cfg: Config):
     """Gets the status of an environment."""
-    for asg in get_autoscaling_groups_for(cfg):
-        print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
+    if cfg.env.supports_blue_green:
+        # For blue-green environments, show which color is active
+        from lib.blue_green_deploy import BlueGreenDeployment
+
+        deployment = BlueGreenDeployment(cfg)
+        try:
+            active_color = deployment.get_active_color()
+            print(f"Blue-green environment - Active color: {active_color}")
+        except Exception:
+            print("Blue-green environment - Unable to determine active color")
+
+        for asg in get_autoscaling_groups_for(cfg):
+            asg_name = asg["AutoScalingGroupName"]
+            desired = asg["DesiredCapacity"]
+            # Determine if this ASG is the active one
+            color = asg_name.split("-")[-1]  # Extract 'blue' or 'green'
+            try:
+                is_active = color == active_color
+                status = " (ACTIVE)" if is_active else " (INACTIVE)"
+            except Exception:
+                status = ""
+            print(f"Found ASG {asg_name} with desired instances {desired}{status}")
+    else:
+        # Legacy environments
+        for asg in get_autoscaling_groups_for(cfg):
+            print(f"Found ASG {asg['AutoScalingGroupName']} with desired instances {asg['DesiredCapacity']}")
 
 
 @environment.command(name="start")
 @click.pass_obj
 def environment_start(cfg: Config):
     """Starts up an environment by ensure its ASGs have capacity."""
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' uses blue-green deployment.")
+        print(f"Use 'ce --env {cfg.env.value} blue-green deploy' instead of 'environment start'.")
+        print("This command is deprecated for blue-green environments.")
+        return
+
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg["AutoScalingGroupName"]
         if asg["MinSize"] > 0:
@@ -64,13 +95,25 @@ def environment_start(cfg: Config):
     show_default=True,
 )
 @click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs", default=True)
+@click.option(
+    "--skip-cloudfront",
+    is_flag=True,
+    help="Skip CloudFront invalidation after refresh",
+    default=False,
+)
 @click.pass_obj
-def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, notify: bool):
+def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_cloudfront: bool, notify: bool):
     """Refreshes an environment.
 
     This replaces all the instances in the ASGs associated with an environment with
     new instances (with the latest code), while ensuring there are some left to handle
     the traffic while we update."""
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' uses blue-green deployment.")
+        print(f"Use 'ce --env {cfg.env.value} blue-green deploy' instead of 'environment refresh'.")
+        print("This command is deprecated for blue-green environments.")
+        return
+
     set_update_message(cfg, motd)
     current_release = get_current_release(cfg)
 
@@ -125,11 +168,35 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, notify
             delete_notify_file()
     set_update_message(cfg, "")
 
+    if not skip_cloudfront:
+        invalidate_cloudfront_distributions(cfg)
+
+
+@environment.command(name="clearmsg")
+@click.pass_obj
+def update_clearmsg(cfg: Config):
+    """Clears the 'Site is being updated' message."""
+    set_update_message(cfg, "")
+
+
+@environment.command(name="invalidate-cloudfront")
+@click.pass_obj
+def environment_invalidate_cloudfront(cfg: Config):
+    """Manually trigger CloudFront invalidations for an environment."""
+    if are_you_sure(f"create CloudFront invalidations for {cfg.env.value}", cfg):
+        invalidate_cloudfront_distributions(cfg)
+
 
 @environment.command(name="stop")
 @click.pass_obj
 def environment_stop(cfg: Config):
     """Stops an environment."""
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' uses blue-green deployment.")
+        print(f"Use 'ce --env {cfg.env.value} blue-green shutdown' instead of 'environment stop'.")
+        print("This command is deprecated for blue-green environments.")
+        return
+
     if cfg.env == Environment.PROD:
         print("Operation aborted. This would bring down the site")
         print("If you know what you are doing, edit the code in bin/lib/cli/environment.py, function environment_stop")

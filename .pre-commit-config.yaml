@@ -12,10 +12,12 @@ repos:
       - id: mixed-line-ending
       - id: check-toml
       - id: detect-private-key
-  - repo: https://github.com/psf/black
-    rev: 22.6.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.7
     hooks:
-      - id: black
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v0.971
     hooks:
@@ -32,13 +34,13 @@ repos:
     rev: 3.0.0
     hooks:
       - id: shellcheck
+  # - repo: https://github.com/antonbabenko/pre-commit-terraform
+  #   rev: v1.92.0
+  #   hooks:
+  #     - id: terraform_fmt
+  #     - id: terraform_validate
   - repo: local
     hooks:
-      - id: pylint
-        name: pylint
-        entry: .poetry/bin/poetry run pylint
-        language: system
-        types: [python]
       - id: test
         name: Run tests
         entry: make test

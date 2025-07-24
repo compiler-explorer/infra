@@ -1,0 +1,28 @@
+compilers:
+  spice:
+    type: tarballs
+    compression: gz
+    url: https://github.com/spicelang/spice/releases/download/{{name}}/spice_linux_amd64.tar.gz
+    check_env:
+      - SPICE_STD_DIR=%PATH%/std
+    check_exe: spice --version
+    dir: spice-{{name}}
+    create_untar_dir: true
+    targets:
+      - 0.19.2
+      - 0.19.3
+      - 0.19.4
+      - 0.19.5
+      - 0.19.6
+      - 0.20.0
+      - 0.20.1
+      - 0.20.2
+      - 0.20.3
+      - 0.20.4
+      - 0.20.5
+      - 0.20.6
+      - 0.21.0
+      - 0.21.1
+      - 0.22.0
+      - 0.22.1
+      - 0.22.2

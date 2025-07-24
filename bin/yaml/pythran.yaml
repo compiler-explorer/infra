@@ -1,0 +1,8 @@
+compilers:
+  pythran:
+    type: s3tarballs
+    subdir: pythran
+    s3_path_prefix: "pythran-{{name}}"
+    check_exe: "bin/pythran --version"
+    targets:
+      - "0.15"

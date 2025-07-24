@@ -3,10 +3,10 @@ compilers:
     type: tarballs
     compression: xz
     check_exe: bin/nim --version
-    url: https://nim-lang.org/download/nim-{name}-linux_x64.tar.xz
+    url: https://nim-lang.org/download/nim-{{name}}-linux_x64.tar.xz
     strip:
-      - nim-{name}/bin
-    dir: nim-{name}
+      - nim-{{name}}/bin
+    dir: nim-{{name}}
     targets:
       - 1.0.4
       - 1.0.6
@@ -16,11 +16,13 @@ compilers:
       - 1.4.6
       - 1.4.8
       - 1.6.0
+      - 1.6.16
+      - 2.0.0
     nightly:
       install_always: true
       if: nightly
-      url: https://github.com/nim-lang/nightlies/releases/download/latest-{name}/linux_x64.tar.xz
-      untar_dir: nim-{name}
+      url: https://github.com/nim-lang/nightlies/releases/download/latest-{{name}}/linux_x64.tar.xz
+      untar_dir: nim-{{name}}
       create_untar_dir: true
       strip_components: 1
       targets:

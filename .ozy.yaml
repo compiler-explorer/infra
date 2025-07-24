@@ -1,0 +1,6 @@
+apps:
+    terraform:
+        version: 1.11.4
+    packer:
+        version: 1.12.0
+        type: zip

@@ -1,0 +1,15 @@
+name: Install Nightly compilers
+
+on:
+  schedule:
+    - cron: '30 05 * * *'
+  workflow_dispatch:
+
+jobs:
+  install:
+    if: github.repository == 'compiler-explorer/infra'
+    timeout-minutes: 720
+    runs-on: ['admin']
+    steps:
+      - name: Install nightly compilers
+        run: sudo /home/ubuntu/infra/update_compilers/install_compilers.sh nightly

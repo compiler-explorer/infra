@@ -37,6 +37,9 @@ mount_opt() {
   mkdir -p /opt/arm
   mountpoint /opt/arm || mount --bind /efs/arm /opt/arm
 
+  mkdir -p /opt/qnx
+  mountpoint /opt/qnx || mount --bind /efs/qnx /opt/qnx
+
   [ -f /opt/.health ] || touch /opt/.health
   mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 

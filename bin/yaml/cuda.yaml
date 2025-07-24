@@ -1,17 +1,17 @@
 compilers:
   cuda:
     type: script
-    dir: cuda/{name}
+    dir: cuda/{{name}}
     check_exe: bin/nvcc --version && bin/nvrtc_cli --version
     depends:
-      - compilers/c++/x86/gcc 10.2.0
+      - compilers/c++/x86/gcc 13.4.0
     fetch:
-      - https://developer.download.nvidia.com/compute/cuda/{name}/local_installers/cuda_{name}_{build}_linux.run combined.sh
+      - https://developer.download.nvidia.com/compute/cuda/{{name}}/local_installers/cuda_{{name}}_{{build}}_linux.run combined.sh
       - https://raw.githubusercontent.com/NVIDIA/jitify/6bc6e25e13300a8bc7520ed3bf977865201183b7/nvrtc_cli.cpp nvrtc_cli.cpp
     script: |
-      mkdir -p cuda/{name}
-      sh combined.sh --silent --toolkit --toolkitpath=$(pwd)/cuda/{name}
-      /opt/compiler-explorer/gcc-10.2.0/bin/g++ nvrtc_cli.cpp -o cuda/{name}/bin/nvrtc_cli -O3 -Wall -Wextra -std=c++11 -Icuda/{name}/include -Lcuda/{name}/lib64 -lnvrtc -Wl,--disable-new-dtags,-rpath,'$ORIGIN/../lib64'
+      mkdir -p cuda/{{name}}
+      sh combined.sh --silent --toolkit --toolkitpath=$(pwd)/cuda/{{name}}
+      /opt/compiler-explorer/gcc-13.4.0/bin/g++ nvrtc_cli.cpp -o cuda/{{name}}/bin/nvrtc_cli -O3 -Wall -Wextra -std=c++11 -Icuda/{{name}}/include -Lcuda/{{name}}/lib64 -lnvrtc -Wl,--disable-new-dtags,-rpath,'$ORIGIN/../lib64'
     targets:
       - name: 11.0.2
         build: 450.51.05
@@ -55,3 +55,33 @@ compilers:
         build: 510.47.03
       - name: 11.7.0
         build: 515.43.04
+      - name: 11.7.1
+        build: 515.65.01
+      - name: 11.8.0
+        build: 520.61.05
+      - name: 12.0.0
+        build: 525.60.13
+      - name: 12.0.1
+        build: 525.85.12
+      - name: 12.1.0
+        build: 530.30.02
+      - name: 12.2.1
+        build: 535.86.10
+      - name: 12.3.1
+        build: 545.23.08
+      - name: 12.4.1
+        build: 550.54.15
+      - name: 12.5.0
+        build: 555.42.02
+      - name: 12.5.1
+        build: 555.42.06
+      - name: 12.6.1
+        build: 560.35.03
+      - name: 12.6.2
+        build: 560.35.03
+      - name: 12.8.1
+        build: 570.124.06
+      - name: 12.9.0
+        build: 575.51.03
+      - name: 12.9.1
+        build: 575.57.08

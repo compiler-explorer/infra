@@ -2,10 +2,10 @@ compilers:
   clean:
     type: tarballs
     compression: gz
-    url: https://ftp.cs.ru.nl/Clean/Clean{name_no_dots}/linux/clean{name}{suffix}.tar.gz
+    url: https://ftp.cs.ru.nl/Clean/Clean{{name_no_dots}}/linux/clean{{name}}{{suffix}}.tar.gz
     check_exe: bin/patch_bin /dev/null installation_test
     check_stderr_on_stdout: true
-    dir: clean32-{name}
+    dir: clean32-{{name}}
     strip_components: 1
     create_untar_dir: true
     clean32_old:
@@ -19,7 +19,7 @@ compilers:
       targets:
         - '3.0'
     clean64:
-      dir: clean64-{name}
+      dir: clean64-{{name}}
       suffix: _64
       targets:
         - name: '2.4'

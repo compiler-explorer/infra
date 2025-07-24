@@ -3,7 +3,7 @@ import json
 import click
 
 from lib.amazon import save_event_file
-from lib.ce_utils import get_events, are_you_sure, save_events
+from lib.ce_utils import are_you_sure, get_events, save_events
 from lib.cli import cli
 from lib.env import Config
 

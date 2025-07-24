@@ -1,9 +1,10 @@
 locals {
-  runner_image_id  = "ami-0cc6fd5f52bd05b88"
-  conan_image_id   = "ami-0b41dc7a318b530bd"
-  builder_image_id = "ami-0ef4921e9d82c03fb"
-  gpu_image_id     = "ami-01d05f46623827076"
-  admin_subnet     = module.ce_network.subnet["1a"].id
+  runner_image_id        = "ami-0a1472d1b7c289619"
+  conan_image_id         = "ami-0b41dc7a318b530bd"
+  builder_image_id       = "ami-0ef4921e9d82c03fb"
+  smbserver_image_id     = "ami-01e7c7963a9c4755d"
+  smbtestserver_image_id = "ami-0284c821376912369"
+  admin_subnet           = module.ce_network.subnet["1a"].id
 }
 
 resource "aws_instance" "AdminNode" {
@@ -20,7 +21,7 @@ resource "aws_instance" "AdminNode" {
 
   root_block_device {
     volume_type           = "gp2"
-    volume_size           = 24
+    volume_size           = 40
     delete_on_termination = false
   }
 
@@ -38,7 +39,7 @@ resource "aws_instance" "ConanNode" {
   ami                         = local.conan_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "t2.micro"
+  instance_type               = "t3.micro"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
@@ -104,7 +105,7 @@ resource "aws_instance" "CERunner" {
   ami                         = local.runner_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "c5.large"
+  instance_type               = "c5.xlarge"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
@@ -131,18 +132,24 @@ resource "aws_instance" "CERunner" {
   }
 }
 
-resource "aws_instance" "GPUNode" {
-  ami                         = local.gpu_image_id
+resource "aws_instance" "CESMBServer" {
+  ami                         = local.smbserver_image_id
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
   ebs_optimized               = false
-  instance_type               = "g4dn.xlarge"
+  instance_type               = "t4g.micro"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
   vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
   associate_public_ip_address = true
   source_dest_check           = false
-  user_data                   = "gpu"
+  user_data                   = "smbserver"
+
+  root_block_device {
+    volume_type           = "gp2"
+    volume_size           = 150
+    delete_on_termination = true
+  }
 
   lifecycle {
     ignore_changes = [
@@ -151,14 +158,88 @@ resource "aws_instance" "GPUNode" {
     ]
   }
 
+  tags = {
+    Name = "CESMBServer"
+  }
+}
+
+//resource "aws_instance" "CESMBTestServer" {
+//  ami                         = local.smbtestserver_image_id
+//  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name
+//  ebs_optimized               = false
+//  instance_type               = "t4g.micro"
+//  monitoring                  = false
+//  key_name                    = "mattgodbolt"
+//  subnet_id                   = local.admin_subnet
+//  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
+//  associate_public_ip_address = true
+//  source_dest_check           = false
+//  user_data                   = "smbserver"
+//
+//  root_block_device {
+//    volume_type           = "gp2"
+//    volume_size           = 100
+//    delete_on_termination = true
+//  }
+//
+//  lifecycle {
+//    ignore_changes = [
+//      // Seemingly needed to not replace stopped instances
+//      associate_public_ip_address
+//    ]
+//  }
+//
+//  tags = {
+//    Name = "CESMBTestServer"
+//  }
+//}
+
+resource "aws_instance" "elfshaker" {
+  ami                         = "ami-0b97d4bbd77733fc0"
+  iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerRole.name // TODO
+  instance_type               = "t4g.2xlarge"
+  monitoring                  = false
+  key_name                    = "pwaller"                                                        // TODO
+  subnet_id                   = "subnet-1bed1d42"                                                // TODO local.admin_subnet
+  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id, "sg-0451c2db0fa8005ca"] // TODO
+  associate_public_ip_address = true
+  user_data                   = <<EOF
+{ pkgs, modulesPath, ... }: {
+  imports = [ "$${modulesPath}/virtualisation/amazon-image.nix" ];
+  ec2.efi = true;
+
+  environment.systemPackages = with pkgs; [ vim nfs-utils htop tmux dool nix-output-monitor git patchelf bintools ];
+  nix.settings.extra-experimental-features = "flakes nix-command";
+
+  users.users.root.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFBzJtdBiXHs5qV2k9IaIDlOZiIHss4aeOW7bGGAu7Us pwaller"
+  ];
+
+  fileSystems."/mnt/manyclangs" = {
+    fsType = "nfs4";
+    device = "fs-db4c8192.efs.us-east-1.amazonaws.com:/manyclangs";
+    options = [ "noresvport" "rsize=1048576" "wsize=1048576" "hard" "timeo=600" "retrans=2" "_netdev" "nofail" ];
+  };
+
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+    stdenv.cc.cc
+  ];
+}
+EOF
+
   root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 24
+    volume_type           = "gp3"
+    volume_size           = 100
     delete_on_termination = false
   }
 
   tags = {
-    Site        = "CompilerExplorer"
-    Name        = "GPUNode"
+    Name = "ElfShaker"
+  }
+
+  volume_tags = {
+    Name = "ElfShaker"
+    Site = "CompilerExplorer"
   }
 }

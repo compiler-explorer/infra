@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Dict, Any
+from typing import Any, Dict
 
 from lib.installable.installable import SingleFileInstallable
 from lib.installation_context import InstallationContext
@@ -23,7 +23,6 @@ class SolidityInstallable(SingleFileInstallable):
             raise RuntimeError(f"Unable to find solidity {self.target_name}")
         self.url = f"{self.url}/{release_path}"
         self.filename = self.config_get("filename")
-        self._setup_check_exe(self.install_path)
 
     def __repr__(self) -> str:
         return f"SolidityInstallable({self.name}, {self.install_path})"

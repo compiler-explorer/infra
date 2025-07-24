@@ -1,13 +1,10 @@
 import functools
 import logging
-import socket
 from multiprocessing.pool import ThreadPool
 from typing import Dict, Optional
 
-import paramiko.ssh_exception
-
-from lib.amazon import ec2, ec2_client, as_client, elb_client, get_releases, release_for
-from lib.ssh import exec_remote, can_ssh_to
+from lib.amazon import as_client, ec2, ec2_client, elb_client, get_all_releases, release_for
+from lib.ssh import can_ssh_to, exec_remote
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
 logger = logging.getLogger("instance")
@@ -63,18 +60,17 @@ class Instance:
         self.elb_health = health["TargetHealth"]["State"]
         if can_ssh_to(self):
             try:
-                self.service_status = {
-                    key: value
-                    for key, value in (
-                        s.split("=", 1)
-                        for s in exec_remote(self, ["sudo", "systemctl", "show", "compiler-explorer"]).split("\n")
-                        if "=" in s
-                    )
-                }
                 self.running_version = exec_remote(
                     self, ["bash", "-c", "if [[ -f /infra/.deploy/s3_key ]]; then cat /infra/.deploy/s3_key; fi"]
                 ).strip()
-            except (socket.error, paramiko.ssh_exception.SSHException) as e:
+                service_status = exec_remote(
+                    self,
+                    ["sudo", "systemctl", "show", "compiler-explorer"],
+                )
+                self.service_status = {
+                    key: value for key, value in (s.split("=", 1) for s in service_status.split("\n") if "=" in s)
+                }
+            except RuntimeError as e:
                 logger.warning("Failed to execute on remote host: %s", e)
 
     @staticmethod
@@ -112,6 +108,30 @@ class ConanInstance:
     @staticmethod
     def instance():
         return ConanInstance(_singleton_instance("ConanNode"))
+
+
+class SMBInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "smbserver"
+
+    @staticmethod
+    def instance():
+        return SMBInstance(_singleton_instance("CESMBServer"))
+
+
+class SMBTestInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "smbtestserver"
+
+    @staticmethod
+    def instance():
+        return SMBTestInstance(_singleton_instance("CESMBTestServer"))
 
 
 class BuilderInstance:
@@ -158,10 +178,54 @@ class RunnerInstance:
         return self.instance.state["Name"]
 
 
+class SMBServerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "runner"
+
+    @staticmethod
+    def instance():
+        return SMBServerInstance(_singleton_instance("CESMBServer"))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state["Name"]
+
+
+class SMBTestServerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "runner"
+
+    @staticmethod
+    def instance():
+        return SMBTestServerInstance(_singleton_instance("CESMBTestServer"))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state["Name"]
+
+
 def print_instances(instances, number=False):
     if number:
         print("   ", end="")
-    releases = get_releases()
+    releases = get_all_releases()
     print(STATUS_FORMAT.format("Address", "Instance Id", "State", "Type", "ELB", "Service", "Version"))
     count = 0
     for inst in instances:

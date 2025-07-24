@@ -1,14 +1,25 @@
 compilers:
   dart:
     type: ziparchive
-    dir: dart-{name}
+    dir: dart-{{name}}
     folder: dart-sdk
     check_exe: bin/dart --version
     after_stage_script:
       - chmod -R og+r .
       - find -executable -print0 | xargs -0 chmod og+x
-    url: https://storage.googleapis.com/dart-archive/channels/stable/release/{name}/sdk/dartsdk-linux-x64-release.zip
+    url: https://storage.googleapis.com/dart-archive/channels/stable/release/{{name}}/sdk/dartsdk-linux-x64-release.zip
     targets:
+      - 3.7.3
+      - 3.6.2
+      - 3.5.4
+      - 3.5.3
+      - 3.4.4
+      - 3.3.4
+      - 3.2.2
+      - 3.1.3
+      - 3.0.2
+      - 2.19.6
+      - 2.18.5
       - 2.17.1
       - 2.16.1
       - 2.15.1
@@ -19,3 +30,9 @@ compilers:
       - 2.10.5
       - 2.9.3
       - 2.8.4
+    nightly:
+      if: nightly
+      install_always: true
+      url: https://storage.googleapis.com/dart-archive/channels/{{name}}/release/latest/sdk/dartsdk-linux-x64-release.zip
+      targets:
+        - dev

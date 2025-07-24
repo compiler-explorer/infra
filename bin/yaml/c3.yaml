@@ -1,0 +1,40 @@
+compilers:
+  c3:
+    type: tarballs
+    compression: gz
+    dir: c3-{{name}}
+    folder: linux
+    strip_components: 1
+    create_untar_dir: true
+    check_exe: c3c --version
+    targets:
+      - name: 0.4
+        url: https://github.com/c3lang/c3c/releases/download/0.4godbolt-v2/c3-ubuntu-20.tar.gz
+      - name: 0.5
+        url: https://github.com/c3lang/c3c/releases/download/release_0.5/c3-ubuntu-20.tar.gz
+      - name: 0.5.5
+        url: https://github.com/c3lang/c3c/releases/download/v0.5.5/c3-ubuntu-20-0.5.5.tar.gz
+      - name: 0.6.0
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.0/c3-ubuntu-20.tar.gz
+      - name: 0.6.1
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.1/c3-ubuntu-20.tar.gz
+      - name: 0.6.2
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.2/c3-ubuntu-20.tar.gz
+      - name: 0.6.3
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.3/c3-ubuntu-20.tar.gz
+      - name: 0.6.4
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.4/c3-ubuntu-20.tar.gz
+      - name: 0.6.5
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.5/c3-ubuntu-20.tar.gz
+      - name: 0.6.6
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.6/c3-ubuntu-20.tar.gz
+      - name: 0.6.7
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.7/c3-ubuntu-20.tar.gz
+      - name: 0.6.8
+        url: https://github.com/c3lang/c3c/releases/download/v0.6.8/c3-ubuntu-20.tar.gz
+      - name: 0.7.0
+        url: https://github.com/c3lang/c3c/releases/download/v0.7.0/c3-ubuntu-20.tar.gz
+      - name: 0.7.1
+        url: https://github.com/c3lang/c3c/releases/download/v0.7.1/c3-ubuntu-22.tar.gz
+      - name: 0.7.2
+        url: https://github.com/c3lang/c3c/releases/download/v0.7.2/c3-ubuntu-22.tar.gz

@@ -11,22 +11,20 @@ import tempfile
 from collections import defaultdict
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Generator, TextIO
-from urllib3.exceptions import ProtocolError
+from typing import Any, Dict, Generator, List, Optional, TextIO
 
-# from packaging import version
 import requests
-from lib.staging import StagingDir
-from lib.installation_context import InstallationContext
-
-from lib.rust_crates import RustCrate
+from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.installation_context import FetchFailure, InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_platform import LibraryPlatform
+from lib.rust_crates import RustCrate, get_builder_user_agent_id
+from lib.staging import StagingDir
 
 _TIMEOUT = 600
-# min_compiler_version = version.parse('1.56.0')
 skip_compilers = ["nightly", "beta", "gccrs-snapshot", "mrustc-master", "rustccggcc-master"]
 
 build_supported_os = ["Linux"]
@@ -89,7 +87,9 @@ class RustLibraryBuilder:
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
         else:
-            [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(self.language, self.logger)
+            [self.compilerprops, self.libraryprops] = get_properties_compilers_and_libraries(
+                self.language, self.logger, LibraryPlatform.Linux, True
+            )
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 
         self.cached_source_folders: List[str] = []
@@ -104,7 +104,6 @@ class RustLibraryBuilder:
         if "url" in self.libraryprops[self.libid]:
             self.buildconfig.url = self.libraryprops[self.libid]["url"]
 
-    # pylint: disable=unused-argument
     def writebuildscript(
         self,
         buildfolder,
@@ -122,6 +121,7 @@ class RustLibraryBuilder:
         flagscombination,
         ldPath,
         build_method,
+        logfolder,
     ):
         rustbinpath = os.path.dirname(compilerexe)
         rustpath = os.path.dirname(rustbinpath)
@@ -144,7 +144,7 @@ class RustLibraryBuilder:
                 f.write(f"{line}\n")
 
             if self.buildconfig.build_type == "cargo":
-                cargoline = f"$CARGO build {methodflags} --target-dir {buildfolder} >> buildlog.txt 2>&1\n"
+                cargoline = f"$CARGO build {methodflags} --target-dir {buildfolder} > {logfolder}/buildlog.txt 2>&1\n"
                 f.write(cargoline)
             else:
                 raise RuntimeError("Unknown build_type {self.buildconfig.build_type}")
@@ -269,7 +269,7 @@ class RustLibraryBuilder:
         last_error = ""
         while retries > 0:
             try:
-                if headers != None:
+                if headers is not None:
                     request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
                     request = requests.post(
@@ -281,7 +281,7 @@ class RustLibraryBuilder:
                 last_error = e
                 retries = retries - 1
 
-        if request == None:
+        if request is None:
             request = {"ok": False, "text": last_error}
 
         return request
@@ -302,7 +302,7 @@ class RustLibraryBuilder:
             response = json.loads(request.content)
             self.conanserverproxy_token = response["token"]
 
-    def save_build_logging(self, builtok, build_folder, source_folder):
+    def save_build_logging(self, builtok, logfolder, source_folder, build_method):
         if builtok == BuildStatus.Failed:
             url = f"{conanserver_url}/buildfailed"
         elif builtok == BuildStatus.Ok:
@@ -313,7 +313,7 @@ class RustLibraryBuilder:
             return
 
         loggingfiles = []
-        loggingfiles += glob.glob(source_folder + "/buildlog.txt")
+        loggingfiles += glob.glob(logfolder + "/buildlog.txt")
 
         logging_data = ""
         for logfile in loggingfiles:
@@ -324,13 +324,17 @@ class RustLibraryBuilder:
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy["logging"] = logging_data
+        buildparameters_copy["commithash"] = self.get_commit_hash()
+
+        if builtok != BuildStatus.Ok:
+            buildparameters_copy["flagcollection"] = build_method["build_method"]
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         req_data = json.dumps(buildparameters_copy)
         request = self.resil_post(url, req_data, headers)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
 
     def get_build_annotations(self, buildfolder):
         conanhash = self.get_conan_hash(buildfolder)
@@ -341,7 +345,7 @@ class RustLibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = requests.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
@@ -352,13 +356,17 @@ class RustLibraryBuilder:
     def get_commit_hash(self) -> str:
         return self.target_name
 
-    def has_failed_before(self):
+    def has_failed_before(self, build_method):
         url = f"{conanserver_url}/hasfailedbefore"
-        req_data = json.dumps(self.current_buildparameters_obj)
+
+        data = self.current_buildparameters_obj.copy()
+        data["flagcollection"] = build_method["build_method"]
+
+        req_data = json.dumps(data)
 
         request = self.resil_post(url, req_data)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             return response["response"]
@@ -412,15 +420,17 @@ class RustLibraryBuilder:
             if self.buildconfig.repo:
                 self.clone_branch(source_folder, staging)
             else:
-                crate = RustCrate(self.libname, self.target_name)
+                crate = RustCrate(self.libname, self.target_name, get_builder_user_agent_id())
                 url = crate.GetDownloadUrl()
                 tar_cmd = ["tar", "zxf", "-"]
                 tar_cmd += ["--strip-components", "1"]
-                self.install_context.fetch_url_and_pipe_to(staging, f"{url}", tar_cmd, source_folder)
+                self.install_context.fetch_url_and_pipe_to(
+                    staging, url, command=tar_cmd, subdir=source_folder, agent=get_builder_user_agent_id()
+                )
 
-    def get_source_folder(self, staging: StagingDir):
-        source_folder = os.path.join(staging.path, f"source_{self.libname}_{self.target_name}")
-        if not source_folder in self.cached_source_folders:
+    def get_source_folder(self, source_staging: StagingDir):
+        source_folder = os.path.join(source_staging.path, f"crate_{self.libname}_{self.target_name}")
+        if source_folder not in self.cached_source_folders:
             if not os.path.exists(source_folder):
                 os.mkdir(source_folder)
             self.cached_source_folders.append(source_folder)
@@ -440,6 +450,7 @@ class RustLibraryBuilder:
         stdlib,
         flagscombination,
         ld_path,
+        source_staging,
     ):
         with self.install_context.new_staging_dir() as staging:
             build_method = dict({"build_method": "--all-features", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
@@ -458,8 +469,9 @@ class RustLibraryBuilder:
                 ld_path,
                 build_method,
                 staging,
+                source_staging,
             )
-            if build_status == BuildStatus.Failed:
+            if build_status == BuildStatus.Failed or build_status == BuildStatus.Skipped:
                 build_method = dict({"build_method": "", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
                 build_status = self.makebuildfor_by_method(
                     compiler,
@@ -476,6 +488,7 @@ class RustLibraryBuilder:
                     ld_path,
                     build_method,
                     staging,
+                    source_staging,
                 )
 
         return build_status
@@ -496,6 +509,7 @@ class RustLibraryBuilder:
         ld_path,
         build_method,
         staging: StagingDir,
+        source_staging: StagingDir,
     ):
         combined_hash = self.makebuildhash(
             compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
@@ -509,8 +523,10 @@ class RustLibraryBuilder:
         self.logger.debug(f"Buildfolder: {build_folder}")
 
         real_build_folder = os.path.join(build_folder, "build")
+        log_folder = os.path.join(build_folder, "log")
+        os.makedirs(log_folder, exist_ok=True)
 
-        source_folder = self.get_source_folder(staging)
+        source_folder = self.get_source_folder(source_staging)
 
         self.writeconanfile(build_folder)
 
@@ -530,9 +546,10 @@ class RustLibraryBuilder:
             flagscombination,
             ld_path,
             build_method,
+            log_folder,
         )
 
-        if not self.forcebuild and self.has_failed_before():
+        if not self.forcebuild and self.has_failed_before(build_method):
             self.logger.info("Build has failed before, not re-attempting")
             return BuildStatus.Skipped
 
@@ -559,7 +576,7 @@ class RustLibraryBuilder:
                 self.logger.debug(f"Number of valid library binaries {filesfound}")
 
         if not self.install_context.dry_run:
-            self.save_build_logging(build_status, build_folder, source_folder)
+            self.save_build_logging(build_status, log_folder, source_folder, build_method)
 
         if build_status == BuildStatus.Ok:
             self.build_cleanup(build_folder)
@@ -581,6 +598,8 @@ class RustLibraryBuilder:
         if not self.install_context.dry_run:
             for folder in self.cached_source_folders:
                 shutil.rmtree(folder, ignore_errors=True)
+        else:
+            self.logger.info("Would clean crate cache, but in dry-run mode")
 
     def upload_builds(self):
         if self.needs_uploading > 0:
@@ -609,51 +628,59 @@ class RustLibraryBuilder:
             if checkcompiler not in self.compilerprops:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
 
-        for compiler in self.compilerprops:
-            if checkcompiler != "" and compiler != checkcompiler:
-                continue
+        with self.install_context.new_staging_dir() as source_staging:
+            for compiler in self.compilerprops:
+                if checkcompiler != "" and compiler != checkcompiler:
+                    continue
 
-            if compiler in self.buildconfig.skip_compilers:
-                self.logger.debug(f"Skipping {compiler}")
-                continue
+                if compiler in self.buildconfig.skip_compilers:
+                    self.logger.debug(f"Skipping {compiler}")
+                    continue
 
-            if compiler in skip_compilers:
-                self.logger.debug(f"Skipping {compiler}")
-                continue
+                if compiler in skip_compilers:
+                    self.logger.debug(f"Skipping {compiler}")
+                    continue
 
-            # compiler_semver = version.parse(self.compilerprops[compiler]['semver'])
-            # if compiler_semver < min_compiler_version:
-            #     self.logger.debug(f'Skipping {compiler} (too old)')
-            #     continue
+                # compiler_semver = version.parse(self.compilerprops[compiler]['semver'])
+                # if compiler_semver < min_compiler_version:
+                #     self.logger.debug(f'Skipping {compiler} (too old)')
+                #     continue
 
-            if "compilerType" in self.compilerprops[compiler]:
-                compilerType = self.compilerprops[compiler]["compilerType"]
-            else:
-                raise RuntimeError(f"Something is wrong with {compiler}")
-
-            exe = self.compilerprops[compiler]["exe"]
-            options = self.compilerprops[compiler]["options"]
-            toolchain = ""
-
-            stdlibs = [""]
-            archs = build_supported_arch
-            stdvers = build_supported_stdver
-            ldPath = ""
-
-            for args in itertools.product(
-                build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
-            ):
-                buildstatus = self.makebuildfor(compiler, options, exe, compilerType, toolchain, *args, ldPath)
-                if buildstatus == BuildStatus.Ok:
-                    builds_succeeded = builds_succeeded + 1
-                elif buildstatus == BuildStatus.Skipped:
-                    builds_skipped = builds_skipped + 1
+                if "compilerType" in self.compilerprops[compiler]:
+                    compilerType = self.compilerprops[compiler]["compilerType"]
                 else:
-                    builds_failed = builds_failed + 1
+                    raise RuntimeError(f"Something is wrong with {compiler}")
 
-            if builds_succeeded > 0:
-                self.upload_builds()
+                exe = self.compilerprops[compiler]["exe"]
+                options = self.compilerprops[compiler]["options"]
+                toolchain = ""
 
-        self.cache_cleanup()
+                stdlibs = [""]
+                archs = build_supported_arch
+                stdvers = build_supported_stdver
+                ldPath = ""
+
+                for args in itertools.product(
+                    build_supported_os,
+                    build_supported_buildtype,
+                    archs,
+                    stdvers,
+                    stdlibs,
+                    build_supported_flagscollection,
+                ):
+                    buildstatus = self.makebuildfor(
+                        compiler, options, exe, compilerType, toolchain, *args, ldPath, source_staging
+                    )
+                    if buildstatus == BuildStatus.Ok:
+                        builds_succeeded = builds_succeeded + 1
+                    elif buildstatus == BuildStatus.Skipped:
+                        builds_skipped = builds_skipped + 1
+                    else:
+                        builds_failed = builds_failed + 1
+
+                if builds_succeeded > 0:
+                    self.upload_builds()
+
+            self.cache_cleanup()
 
         return [builds_succeeded, builds_skipped, builds_failed]

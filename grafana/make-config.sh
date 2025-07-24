@@ -2,7 +2,7 @@
 
 set -ex
 
-ENV=$(curl -sf http://169.254.169.254/latest/user-data || true)
+ENV=$(cloud-init query userdata)
 ENV=${ENV:-prod}
 HOSTNAME=$(hostname)
 sed "s/@HOSTNAME@/${HOSTNAME}/g;s/@ENV@/${ENV}/g" /etc/grafana/agent.yaml.tpl > /etc/grafana/agent.yaml

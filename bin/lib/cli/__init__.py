@@ -1,7 +1,7 @@
 import importlib
 from pathlib import Path
 
-from .cli import cli
+from .cli import cli  # noqa: F401
 
 THIS_FILE = Path(__file__)
 for file in THIS_FILE.parent.glob("*.py"):

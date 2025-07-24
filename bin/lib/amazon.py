@@ -1,10 +1,13 @@
+import json
+import logging
 from datetime import datetime
 from operator import attrgetter
 from typing import List, Optional
-import logging
 
 from lib.env import Config, Environment
-from lib.releases import Version, Release, Hash, VersionSource
+from lib.releases import Hash, Release, Version, VersionSource
+
+S3_STORAGE_BUCKET = "storage.godbolt.org"
 
 
 class LazyObjectWrapper:
@@ -26,7 +29,6 @@ class LazyObjectWrapper:
 # this is a free function to avoid potentially shadowing any underlying members
 # which could happen if this was itself placed as a member of LazyObjectWrapper
 def force_lazy_init(lazy):
-    # pylint: disable=W0212
     lazy._LazyObjectWrapper__ensure_setup()
 
 
@@ -46,7 +48,6 @@ boto3 = LazyObjectWrapper(_import_boto)
 def _create_anon_s3_client():
     # https://github.com/boto/botocore/issues/1395
     obj = boto3.client("s3", aws_access_key_id="", aws_secret_access_key="")
-    # pylint: disable=W0212
     obj._request_signer.sign = lambda *args, **kwargs: None
     return obj
 
@@ -60,12 +61,13 @@ s3_client = LazyObjectWrapper(lambda: boto3.client("s3"))
 anon_s3_client = LazyObjectWrapper(_create_anon_s3_client)
 dynamodb_client = LazyObjectWrapper(lambda: boto3.client("dynamodb"))
 ssm_client = LazyObjectWrapper(lambda: boto3.client("ssm"))
+cloudfront_client = LazyObjectWrapper(lambda: boto3.client("cloudfront"))
 LINKS_TABLE = "links"
 VERSIONS_LOGGING_TABLE = "versionslog"
 
 
 def target_group_for(cfg: Config) -> dict:
-    result = elb_client.describe_target_groups(Names=[cfg.env.value.title()])
+    result = elb_client.describe_target_groups(Names=[cfg.env.value.capitalize()])
     if len(result["TargetGroups"]) != 1:
         raise RuntimeError(f"Invalid environment {cfg.env.value}")
     return result["TargetGroups"][0]
@@ -81,25 +83,68 @@ def get_autoscaling_group(group_name):
 
 
 def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
-    result = list(
-        filter(
-            lambda r: cfg.env.value.lower() in r["AutoScalingGroupName"],
-            as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
+    if cfg.env.supports_blue_green:
+        # For blue-green environments, get both blue and green ASGs
+        blue_asg_name = f"{cfg.env.value}-blue"
+        green_asg_name = f"{cfg.env.value}-green"
+
+        result = list(
+            filter(
+                lambda r: r["AutoScalingGroupName"] in [blue_asg_name, green_asg_name],
+                as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
+            )
         )
-    )
+    else:
+        # For legacy environments, use the old logic
+        result = list(
+            filter(
+                lambda r: cfg.env.value.lower() == r["AutoScalingGroupName"],
+                as_client.describe_auto_scaling_groups()["AutoScalingGroups"],
+            )
+        )
+
     if not result:
-        raise RuntimeError(f"Invalid environment {cfg.env.value}")
+        # Some environments (like runner) don't have ASGs, return empty list
+        return []
     return result
 
 
-def remove_release(release):
+def s3_file_exists(key: str) -> bool:
+    try:
+        s3_client.head_object(Bucket="compiler-explorer", Key=key)
+        return True
+    except s3_client.exceptions.ClientError:
+        return False
+
+
+def get_key_counterpart(key: str) -> str:
+    if key.endswith(".tar.xz"):
+        return key.replace(".tar.xz", ".zip")
+    elif key.endswith(".zip"):
+        return key.replace(".zip", ".tar.xz")
+
+    return key
+
+
+def remove_release(release: Release) -> None:
+    files_to_delete = [release.key, release.static_key, release.info_key]
+
+    counterpart = get_key_counterpart(release.key)
+    if s3_file_exists(counterpart):
+        files_to_delete += counterpart
+
+    if release.static_key is not None:
+        counterpart_static = get_key_counterpart(release.static_key)
+        if s3_file_exists(counterpart_static):
+            files_to_delete += counterpart_static
+
     s3_client.delete_objects(
         Bucket="compiler-explorer",
-        Delete={"Objects": [{"Key": release.key}, {"Key": release.static_key}, {"Key": release.info_key}]},
+        Delete=dict(Objects=[dict(Key=key) for key in files_to_delete if key is not None]),
     )
 
 
-def _get_releases(source: VersionSource, prefix: str):
+def _get_releases(source: VersionSource, prefix: str, archive_extension: str = ".tar.xz") -> List[Release]:
     paginator = s3_client.get_paginator("list_objects_v2")
     result_iterator = paginator.paginate(Bucket="compiler-explorer", Prefix=prefix)
 
@@ -107,14 +152,14 @@ def _get_releases(source: VersionSource, prefix: str):
     releases = {}
     for result in result_iterator.search("[Contents][]"):
         key = result["Key"]
-        if not key.endswith(".tar.xz"):
+        if not key.endswith(archive_extension):
             continue
         split_key = key.split("/")
         branch = "/".join(split_key[2:-1])
         version_str = split_key[-1].split(".")[0]
         version = Version.from_string(version_str, source)
 
-        if key.endswith(".static.tar.xz"):
+        if key.endswith(".static" + archive_extension):
             staticfiles[version] = key
             continue
 
@@ -136,11 +181,22 @@ def _get_releases(source: VersionSource, prefix: str):
     return list(releases.values())
 
 
-def get_releases():
-    return _get_releases(VersionSource.TRAVIS, "dist/travis") + _get_releases(VersionSource.GITHUB, "dist/gh")
+def get_releases(cfg: Config) -> List[Release]:
+    if cfg.env.is_windows:
+        return _get_releases(VersionSource.GITHUB, "dist/gh", ".zip")
+    else:
+        return _get_releases(VersionSource.TRAVIS, "dist/travis") + _get_releases(VersionSource.GITHUB, "dist/gh")
 
 
-def get_tools_releases():
+def get_all_releases() -> List[Release]:
+    return (
+        _get_releases(VersionSource.TRAVIS, "dist/travis")
+        + _get_releases(VersionSource.GITHUB, "dist/gh")
+        + _get_releases(VersionSource.GITHUB, "dist/gh", ".zip")
+    )
+
+
+def get_tools_releases() -> List[Release]:
     return _get_releases(VersionSource.TRAVIS, "dist/tools")
 
 
@@ -152,31 +208,21 @@ def download_release_fileobj(key, fobj):
     s3_client.download_fileobj("compiler-explorer", key, fobj)
 
 
-def find_release(version):
-    for r in get_releases():
+def find_release(cfg: Config, version: Version) -> Optional[Release]:
+    for r in get_releases(cfg):
         if r.version == version:
             return r
     return None
 
 
-def find_latest_release(branch):
-    releases = [release for release in get_releases() if branch == "" or release.branch == branch]
+def find_latest_release(cfg: Config, branch: str) -> Optional[Release]:
+    releases = [release for release in get_releases(cfg) if branch == "" or release.branch == branch]
     return max(releases, key=attrgetter("version")) if len(releases) > 0 else None
-
-
-def branch_for_env(cfg: Config):
-    if cfg.env == Environment.PROD:
-        return "release"
-    return cfg.env.value
-
-
-def version_key_for_env(env):
-    return "version/{}".format(branch_for_env(env))
 
 
 def get_current_key(cfg: Config) -> Optional[str]:
     try:
-        o = s3_client.get_object(Bucket="compiler-explorer", Key=version_key_for_env(cfg))
+        o = s3_client.get_object(Bucket="compiler-explorer", Key=cfg.env.version_key)
         return o["Body"].read().decode("utf-8").strip()
     except s3_client.exceptions.NoSuchKey:
         return None
@@ -184,9 +230,9 @@ def get_current_key(cfg: Config) -> Optional[str]:
 
 def get_all_current() -> List[str]:
     versions = []
-    for branch in ["release", "beta", "staging"]:
+    for env in [env for env in Environment if env.keep_builds]:
         try:
-            o = s3_client.get_object(Bucket="compiler-explorer", Key="version/{}".format(branch))
+            o = s3_client.get_object(Bucket="compiler-explorer", Key=env.version_key)
             versions.append(o["Body"].read().decode("utf-8").strip())
         except s3_client.exceptions.NoSuchKey:
             pass
@@ -194,12 +240,12 @@ def get_all_current() -> List[str]:
 
 
 def set_current_key(cfg: Config, key: str):
-    s3_key = version_key_for_env(cfg)
+    s3_key = cfg.env.version_key
     print("Setting {} to {}".format(s3_key, key))
     s3_client.put_object(Bucket="compiler-explorer", Key=s3_key, Body=key, ACL="public-read")
 
 
-def release_for(releases, s3_key):
+def release_for(releases: List[Release], s3_key: str) -> Optional[Release]:
     for r in releases:
         if r.key == s3_key:
             return r
@@ -235,13 +281,20 @@ def events_file_for(cfg: Config):
     return events_file
 
 
-def get_short_link(short_id):
+def get_short_link(short_id: str) -> dict:
     result = dynamodb_client.get_item(
         TableName=LINKS_TABLE,
         Key={"prefix": {"S": short_id[:6]}, "unique_subhash": {"S": short_id}},
         ConsistentRead=True,
     )
     return result.get("Item")
+
+
+def expand_short_link(short_id: str) -> dict:
+    item = get_short_link(short_id)
+    key = "state/" + item["full_hash"]["S"]
+    result = s3_client.get_object(Bucket=S3_STORAGE_BUCKET, Key=key)
+    return json.loads(result["Body"].read().decode("utf-8"))
 
 
 def put_short_link(item):
@@ -310,14 +363,14 @@ def list_period_build_logs(cfg: Config, from_time: Optional[str], until_time: Op
 
 
 def delete_s3_links(items):
-    s3_client.delete_objects(Bucket="storage.godbolt.org", Delete={"Objects": [{"Key": item} for item in items]})
+    s3_client.delete_objects(Bucket=S3_STORAGE_BUCKET, Delete={"Objects": [{"Key": item} for item in items]})
 
 
 def list_short_links():
     s3_paginator = s3_client.get_paginator("list_objects_v2")
     db_paginator = dynamodb_client.get_paginator("scan")
     return (
-        s3_paginator.paginate(Bucket="storage.godbolt.org", Prefix="state/"),
+        s3_paginator.paginate(Bucket=S3_STORAGE_BUCKET, Prefix="state/"),
         db_paginator.paginate(TableName=LINKS_TABLE, ProjectionExpression="unique_subhash, full_hash, creation_ip"),
     )
 

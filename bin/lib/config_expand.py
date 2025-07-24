@@ -1,10 +1,11 @@
-from typing import Any, MutableMapping
+import logging
+from typing import Any, Mapping, MutableMapping
 
 import jinja2
 
-MAX_ITERS = 5
-
-JINJA_ENV = jinja2.Environment()
+_MAX_ITERS = 5
+_LOGGER = logging.getLogger(__name__)
+_JINJA_ENV = jinja2.Environment()
 
 
 def is_list_of_strings(value: Any) -> bool:
@@ -27,28 +28,36 @@ def is_value_type(value: Any) -> bool:
     )
 
 
-def needs_expansion(target):
+def string_needs_expansion(value: str) -> bool:
+    return "{%" in value or "{{" in value or "{#" in value
+
+
+def needs_expansion(target: MutableMapping[str, Any]) -> bool:
     for value in target.values():
         if is_list_of_strings(value):
-            for v in value:
-                if "{" in v:
-                    return True
+            if any(string_needs_expansion(v) for v in value):
+                return True
         elif isinstance(value, str):
-            if "{" in value:
+            if string_needs_expansion(value):
                 return True
     return False
 
 
-def expand_one(template_string, configuration):
-    jinjad = JINJA_ENV.from_string(template_string).render(**configuration)
-    return jinjad.format(**configuration)
+def expand_one(template_string: str, configuration: Mapping[str, Any]) -> str:
+    try:
+        return _JINJA_ENV.from_string(template_string).render(**configuration)
+    except jinja2.exceptions.TemplateError:
+        # in python 3.11 we would...
+        # e.add_note(f"Template '{template_string}'")
+        _LOGGER.warning("Failed to expand '%s'", template_string)
+        raise
 
 
-def expand_target(target: MutableMapping[str, Any], context):
+def expand_target(target: MutableMapping[str, Any], context: list[str]) -> MutableMapping[str, str]:
     iterations = 0
     while needs_expansion(target):
         iterations += 1
-        if iterations > MAX_ITERS:
+        if iterations > _MAX_ITERS:
             raise RuntimeError(f"Too many mutual references (in {'/'.join(context)})")
         for key, value in target.items():
             try:

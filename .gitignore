@@ -11,4 +11,10 @@ node_modules
 /.mypy_cache
 /.dist
 /.poetry
-/poetry.toml
+/.venv
+.pytest_cache
+# uv
+/.uv
+/uv.lock
+/lambda/.build_site_packages
+*.egg-info

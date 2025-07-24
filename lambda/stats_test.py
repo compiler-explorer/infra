@@ -1,4 +1,3 @@
-# pylint: disable=redefined-outer-name
 import datetime
 import json
 import os
@@ -8,11 +7,11 @@ from unittest import mock
 import boto3
 import botocore.client
 import botocore.session
-import pytest as pytest
+import pytest
 from aws_embedded_metrics.logger.metrics_logger import MetricsLogger
-from botocore.stub import Stubber, ANY
+from botocore.stub import ANY, Stubber
 
-from stats import handle_sqs, handle_pageload, handle_compiler_stats
+from stats import handle_compiler_stats, handle_pageload, handle_sqs
 
 SOME_DATE = datetime.datetime(2020, 1, 2, 3, 4, 5, 12312)
 

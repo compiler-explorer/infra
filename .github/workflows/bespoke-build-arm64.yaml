@@ -1,0 +1,56 @@
+name: Custom compiler build arm64
+run-name: Build arm64 ${{ inputs.image }} version ${{ inputs.version }} via ${{ inputs.command }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        type: choice
+        description: Which docker image to use
+        default: gcc
+        required: true
+        options:
+        - heaptrack
+      version:
+        description: The version to build (or architecture and version for cross)
+        required: true
+      command:
+        description: Build command
+        default: build.sh
+        required: true
+jobs:
+  bespoke-build-arm64:
+    runs-on: [ 'self-hosted', 'ce', 'linux', 'arm64' ]
+    steps:
+      - name: Start from a clean directory
+        uses: AutoModality/action-clean@v1.1.0
+      - uses: actions/checkout@v4
+      - name: Build ${{ github.event.inputs.image }} ${{ github.event.inputs.version }} using ${{ github.event.inputs.command }}
+        shell: bash
+        id: build
+        run: |
+          mkdir dist
+          chmod og+w dist # some builds don't run as root, so let anyone write here
+          echo ::group::Docker build
+          docker run -v$(pwd)/dist:/dist --rm compilerexplorer/${{ github.event.inputs.image }}-builder:latest-arm64 \
+            bash ${{ github.event.inputs.command }} ${{ github.event.inputs.version }} \
+            /dist | tee output.log
+          echo ::endgroup::
+          echo ::group::Translate docker output into GH variables
+          gawk -e 'match($0, /^ce-build-(\w+):(.*)/, m) { print m[1] "=" m[2]; }' output.log >> "${GITHUB_OUTPUT}"
+          echo ::endgroup::
+      - name: Get output filename and s3 dest
+        shell: bash
+        if: ${{ steps.build.outputs.status == 'OK' }}
+        id: filenames
+        run: |
+          echo source=$(pwd)/dist/$(basename ${{ steps.build.outputs.output }}) >> "${GITHUB_OUTPUT}"
+          echo s3dest=s3://compiler-explorer/opt/$(basename ${{ steps.build.outputs.output }}) >> "${GITHUB_OUTPUT}"
+      - name: Copy output to S3
+        if: ${{ steps.build.outputs.status == 'OK' }}
+        uses: prewk/s3-cp-action@v2
+        with:
+          source: ${{ steps.filenames.outputs.source }}
+          dest: ${{ steps.filenames.outputs.s3dest }}
+          aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

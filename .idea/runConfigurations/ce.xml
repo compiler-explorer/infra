@@ -6,14 +6,15 @@
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
     </envs>
-    <option name="SDK_HOME" value="$PROJECT_DIR$/.env/bin/python3" />
+    <option name="SDK_HOME" value="$PROJECT_DIR$/.venv/bin/python3" />
+    <option name="SDK_NAME" value="Python 3.10 (infra)" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/" />
     <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/bin/lib/ce.py" />
-    <option name="PARAMETERS" value="admin gotty" />
+    <option name="PARAMETERS" value="builds rm_old --dry-run 7" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />

@@ -3,19 +3,21 @@ from __future__ import annotations
 from collections import ChainMap
 from datetime import datetime
 
-from lib.config_expand import is_value_type, expand_target
+from lib.config_expand import expand_target, is_value_type
 from lib.installable.archives import (
-    S3TarballInstallable,
     NightlyInstallable,
-    TarballInstallable,
     NightlyTarballInstallable,
-    ZipArchiveInstallable,
+    NonFreeS3TarballInstallable,
     RestQueryTarballInstallable,
+    S3TarballInstallable,
+    TarballInstallable,
+    ZipArchiveInstallable,
 )
-from lib.installable.git import GitHubInstallable, GitLabInstallable, BitbucketInstallable
+from lib.installable.edg import EdgCompilerInstallable
+from lib.installable.git import BitbucketInstallable, GitHubInstallable, GitLabInstallable
 from lib.installable.installable import SingleFileInstallable
 from lib.installable.python import PipInstallable
-from lib.installable.rust import RustInstallable, CratesIOInstallable
+from lib.installable.rust import CratesIOInstallable, RustInstallable
 from lib.installable.script import ScriptInstallable
 from lib.installable.solidity import SolidityInstallable
 
@@ -24,6 +26,16 @@ def targets_from(node, enabled, base_config=None):
     if base_config is None:
         base_config = {}
     return _targets_from(node, enabled, [], "", base_config)
+
+
+def _check_if(enabled, node) -> bool:
+    if "if" not in node or enabled is True:
+        return True
+    if isinstance(node["if"], list):
+        condition = set(node["if"])
+    else:
+        condition = {node["if"]}
+    return set(enabled).intersection(condition) == condition
 
 
 def _targets_from(node, enabled, context, name, base_config):
@@ -39,13 +51,8 @@ def _targets_from(node, enabled, context, name, base_config):
     if not isinstance(node, dict):
         return
 
-    if "if" in node:
-        if isinstance(node["if"], list):
-            condition = set(node["if"])
-        else:
-            condition = {node["if"]}
-        if set(enabled).intersection(condition) != condition:
-            return
+    if not _check_if(enabled, node):
+        return
 
     context = context[:]
     if name:
@@ -66,6 +73,8 @@ def _targets_from(node, enabled, context, name, base_config):
                 raise RuntimeError(f"Target {target} was parsed as a float. Enclose in quotes")
             if isinstance(target, str):
                 target = {"name": target, "underscore_name": target.replace(".", "_")}
+            elif not _check_if(enabled, target):
+                continue
             yield expand_target(ChainMap(target, base_config), context)
 
 
@@ -85,6 +94,8 @@ _INSTALLER_TYPES = {
     "pip": PipInstallable,
     "ziparchive": ZipArchiveInstallable,
     "cratesio": CratesIOInstallable,
+    "non-free-s3tarballs": NonFreeS3TarballInstallable,
+    "edg": EdgCompilerInstallable,
 }
 
 
