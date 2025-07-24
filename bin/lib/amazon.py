@@ -430,36 +430,4 @@ def has_bouncelock_file(cfg: Config):
         return False
 
 
-def notify_file_name():
-    return "ce-notify-file"
-
-
-def has_notify_file():
-    try:
-        s3_client.head_object(Bucket="compiler-explorer", Key=notify_file_name())
-        return True
-    except (s3_client.exceptions.NoSuchKey, botocore.exceptions.ClientError):
-        return False
-
-
-def put_notify_file(body: str):
-    s3_client.put_object(
-        Bucket="compiler-explorer", Key=notify_file_name(), Body=body, ACL="public-read", ContentType="text/plain"
-    )
-
-
-def delete_notify_file():
-    s3_client.delete_object(Bucket="compiler-explorer", Key=notify_file_name())
-
-
-def set_current_notify(sha: str):
-    if not has_notify_file():
-        put_notify_file(sha)
-
-
-def get_current_notify():
-    try:
-        o = s3_client.get_object(Bucket="compiler-explorer", Key=notify_file_name())
-        return o["Body"].read().decode("utf-8")
-    except s3_client.exceptions.NoSuchKey:
-        return None
+# Legacy notification functions removed - notifications now handled by blue-green deployment system

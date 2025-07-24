@@ -252,15 +252,15 @@ The blue-green deployment system includes GitHub notification functionality that
 
 ### Configuration
 
-1. **Set GitHub Token**: Store GitHub API token in SSM Parameter Store:
-   ```bash
-   aws ssm put-parameter \
-     --name "/compiler-explorer/githubAuthToken" \
-     --value "ghp_your_token_here" \
-     --type "SecureString"
-   ```
+**Set GitHub Token**: Store GitHub API token in SSM Parameter Store:
+```bash
+aws ssm put-parameter \
+  --name "/compiler-explorer/githubAuthToken" \
+  --value "ghp_your_token_here" \
+  --type "SecureString"
+```
 
-2. **Token Permissions**: GitHub token needs `repo`, `issues`, and `pull_requests` scopes
+**Token Permissions**: GitHub token needs `repo`, `issues`, and `pull_requests` scopes
 
 ### Usage Examples
 

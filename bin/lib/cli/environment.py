@@ -4,17 +4,12 @@ import click
 
 from lib.amazon import (
     as_client,
-    delete_notify_file,
     get_autoscaling_groups_for,
-    get_current_notify,
-    get_current_release,
-    get_ssm_param,
 )
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.cloudfront_utils import invalidate_cloudfront_distributions
 from lib.env import Config, Environment
-from lib.notify import handle_notify
 
 
 @cli.group()
@@ -114,7 +109,6 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
         return
 
     set_update_message(cfg, motd)
-    current_release = get_current_release(cfg)
 
     for asg in get_autoscaling_groups_for(cfg):
         group_name = asg["AutoScalingGroupName"]
@@ -159,12 +153,8 @@ def environment_refresh(cfg: Config, min_healthy_percent: int, motd: str, skip_c
                 last_log = log
             if status in ("Successful", "Failed", "Cancelled"):
                 break
-    if cfg.env.value == cfg.env.PROD and notify:
-        current_notify = get_current_notify()
-        if current_notify is not None and current_release is not None:
-            gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
-            handle_notify(current_notify, current_release.hash.hash, gh_token)
-            delete_notify_file()
+    # Note: Notifications are now handled by blue-green deployment system
+    # For environments using blue-green deployment, use: ce blue-green deploy
     set_update_message(cfg, "")
 
     if not skip_cloudfront:
