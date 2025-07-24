@@ -10,12 +10,15 @@ NOW_LIVE_LABEL = "live"
 NOW_LIVE_MESSAGE = "This is now live"
 
 
-def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
+def post(entity: str, token: str, query: dict = None, dry_run=False) -> dict:
     try:
         if query is None:
             query = {}
         path = entity
         querystring = json.dumps(query).encode()
+        if dry_run:
+            print(f"[DRY RUN] Would post to {path} with data: {query}")
+            return {}
         print(f"Posting {path}")
         req = urllib.request.Request(
             f"https://api.github.com/{path}",
@@ -26,8 +29,6 @@ def post(entity: str, token: str, query: dict = None, dry=False) -> dict:
                 "Accept": "application/vnd.github.v3+json",
             },
         )
-        if dry:
-            return {}
         result = urllib.request.urlopen(req)
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
@@ -88,7 +89,7 @@ def get_linked_pr(commit: str, token: str) -> dict:
     return pr[0] if len(pr) == 1 else {}
 
 
-def get_linked_issues(pr: str, token: str):
+def get_linked_issues(pr: str, token: str, dry_run=False):
     query = (
         """
 query {
@@ -114,20 +115,20 @@ query {
     """
         % pr
     )
-    return post("graphql", token, {"query": query})
+    return post("graphql", token, {"query": query}, dry_run=dry_run)
 
 
 def get_issue_comments(issue: str, token: str) -> List[dict]:
     return paginated_get(f"repos/{OWNER_REPO}/issues/{issue}/comments", token)
 
 
-def comment_on_issue(issue: str, msg: str, token: str):
-    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", token, {"body": msg})
+def comment_on_issue(issue: str, msg: str, token: str, dry_run=False):
+    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", token, {"body": msg}, dry_run=dry_run)
     return result
 
 
-def set_issue_labels(issue: str, labels: List[str], token: str):
-    post(f"repos/{OWNER_REPO}/issues/{issue}/labels", token, {"labels": labels})
+def set_issue_labels(issue: str, labels: List[str], token: str, dry_run=False):
+    post(f"repos/{OWNER_REPO}/issues/{issue}/labels", token, {"labels": labels}, dry_run=dry_run)
 
 
 def should_send_comment_to_issue(issue: str, token: str):
@@ -136,10 +137,17 @@ def should_send_comment_to_issue(issue: str, token: str):
     return all([NOW_LIVE_MESSAGE not in comment["body"] for comment in comments])
 
 
-def send_live_message(issue: str, token: str):
-    set_issue_labels(issue, [NOW_LIVE_LABEL], token)
-    if should_send_comment_to_issue(issue, token):
-        comment_on_issue(issue, NOW_LIVE_MESSAGE, token)
+def send_live_message(issue: str, token: str, dry_run=False):
+    if dry_run:
+        print(f"[DRY RUN] Would add '{NOW_LIVE_LABEL}' label to issue #{issue}")
+        if should_send_comment_to_issue(issue, token):
+            print(f"[DRY RUN] Would comment '{NOW_LIVE_MESSAGE}' on issue #{issue}")
+        else:
+            print(f"[DRY RUN] Would skip commenting on issue #{issue} (already has live message)")
+    else:
+        set_issue_labels(issue, [NOW_LIVE_LABEL], token, dry_run=dry_run)
+        if should_send_comment_to_issue(issue, token):
+            comment_on_issue(issue, NOW_LIVE_MESSAGE, token, dry_run=dry_run)
 
 
 def get_edges(issue: dict) -> List[dict]:
@@ -162,28 +170,45 @@ def should_notify_issue(edge) -> bool:
     )
 
 
-def handle_notify(base, new, token):
+def handle_notify(base, new, token, dry_run=False):
     print(f"Checking for live notifications from {base} to {new}")
 
     commits = list_inbetween_commits(base, new, token)
     prs = [get_linked_pr(commit["sha"], token) for commit in commits]
 
     for pr_data in prs:
+        if not pr_data:
+            continue
         pr_id = pr_data["number"]
         if should_process_pr(pr_data["labels"]):
-            print(f"Notifying PR {pr_id}")
-            send_live_message(pr_id, token)
+            if dry_run:
+                print(f"[DRY RUN] Would notify PR #{pr_id}")
+            else:
+                print(f"Notifying PR {pr_id}")
+            send_live_message(pr_id, token, dry_run=dry_run)
 
-            linked_issues = get_linked_issues(pr_id, token)
+            linked_issues = get_linked_issues(pr_id, token, dry_run=False)
             issues_edges = get_edges(linked_issues)
             if len(issues_edges) == 1 and "node" in issues_edges[0]:
                 edge = issues_edges[0]["node"]
                 if should_notify_issue(edge):
-                    print(f"Notifying issue {edge['number']}")
-                    send_live_message(edge["number"], token)
+                    if dry_run:
+                        print(f"[DRY RUN] Would notify issue #{edge['number']}")
+                    else:
+                        print(f"Notifying issue {edge['number']}")
+                    send_live_message(edge["number"], token, dry_run=dry_run)
                 else:
-                    print(f"Skipping notifying issue {edge['number']}")
+                    if dry_run:
+                        print(f"[DRY RUN] Would skip notifying issue #{edge['number']} (already has live label)")
+                    else:
+                        print(f"Skipping notifying issue {edge['number']}")
             else:
-                print(f"No issues in which to notify for PR {pr_id}")
+                if dry_run:
+                    print(f"[DRY RUN] No issues to notify for PR #{pr_id}")
+                else:
+                    print(f"No issues in which to notify for PR {pr_id}")
         else:
-            print(f"Skipping notifying PR {pr_id}")
+            if dry_run:
+                print(f"[DRY RUN] Would skip notifying PR #{pr_id} (already has live label)")
+            else:
+                print(f"Skipping notifying PR {pr_id}")

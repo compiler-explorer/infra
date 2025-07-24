@@ -238,6 +238,63 @@ The codebase supports multiple environments defined in `lib/env.py`:
 
 Each environment has properties like `keep_builds`, `is_windows`, `is_prod`, etc.
 
+## Blue-Green Deployment Notifications
+
+The blue-green deployment system includes GitHub notification functionality that automatically notifies PRs and issues when they go live in production.
+
+### How It Works
+
+- **Production Only**: Notifications are only sent when deploying to production environment
+- **Version Change Detection**: Only notifies when there's an actual version change between deployments
+- **Commit Range**: Checks commits between the current deployed version and the target version
+- **GitHub Integration**: Uses GitHub API to find PRs linked to commits and issues linked to PRs
+- **Automatic Labeling**: Adds 'live' label and "This is now live" comment to relevant PRs/issues
+
+### Configuration
+
+1. **Set GitHub Token**: Store GitHub API token in SSM Parameter Store:
+   ```bash
+   aws ssm put-parameter \
+     --name "/compiler-explorer/githubAuthToken" \
+     --value "ghp_your_token_here" \
+     --type "SecureString"
+   ```
+
+2. **Token Permissions**: GitHub token needs `repo`, `issues`, and `pull_requests` scopes
+
+### Usage Examples
+
+```bash
+# Deploy with default notification behavior (interactive prompt on prod)
+ce --env prod blue-green deploy gh-15725
+
+# Force notifications on
+ce --env prod blue-green deploy gh-15725 --notify
+
+# Force notifications off
+ce --env prod blue-green deploy gh-15725 --no-notify
+
+# Dry-run mode - see what would be notified without sending
+ce --env prod blue-green deploy gh-15725 --dry-run-notify
+
+# Check what notifications would be sent without deploying
+ce --env prod blue-green deploy gh-15725 --check-notifications
+
+# Skip confirmation prompts
+ce --env prod blue-green deploy gh-15725 --skip-confirmation
+```
+
+### Interactive Prompts
+
+When deploying to production, the system prompts:
+```
+Send 'now live' notifications to GitHub issues/PRs? [yes/dry-run/no] (yes):
+```
+
+- **yes**: Sends actual notifications
+- **dry-run**: Shows what would be notified without sending
+- **no**: Skips notifications entirely
+
 ## Terraform Integration
 
 - Infrastructure defined in `terraform/` directory

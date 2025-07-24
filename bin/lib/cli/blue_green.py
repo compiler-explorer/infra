@@ -4,12 +4,49 @@ from typing import Optional
 
 import click
 
-from lib.amazon import as_client, ec2_client, elb_client, get_current_key, get_releases
+from lib.amazon import (
+    as_client,
+    ec2_client,
+    elb_client,
+    get_current_key,
+    get_releases,
+    get_ssm_param,
+    release_for,
+)
 from lib.aws_utils import get_asg_info, scale_asg
 from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
+from lib.builds_core import get_release_without_discovery_check
 from lib.ce_utils import are_you_sure, display_releases
 from lib.cli import cli
-from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config
+from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config, Environment
+from lib.notify import handle_notify
+
+
+def _get_commit_hash_for_version(cfg: Config, version_key: Optional[str]) -> Optional[str]:
+    """Convert a version key to its commit hash."""
+    if not version_key:
+        return None
+
+    try:
+        releases = get_releases(cfg)
+        release = release_for(releases, version_key)
+        return release.hash.hash if release else None
+    except Exception:
+        return None
+
+
+def _get_commit_hash_for_version_param(
+    cfg: Config, version: Optional[str], branch: Optional[str] = None
+) -> Optional[str]:
+    """Convert a version parameter (from CLI) to its commit hash."""
+    if not version:
+        return None
+
+    try:
+        release = get_release_without_discovery_check(cfg, version, branch)
+        return release.hash.hash if release else None
+    except Exception:
+        return None
 
 
 @cli.group(name="blue-green")
@@ -160,10 +197,20 @@ def blue_green_status(cfg: Config, detailed: bool):
 @click.option("--capacity", type=int, help="Target capacity for deployment (default: match current)")
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
 @click.option("--branch", help="If version == 'latest', branch to get latest version from")
+@click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs (prod only)", default=None)
+@click.option("--dry-run-notify", is_flag=True, help="Show what notifications would be sent without sending them")
+@click.option("--check-notifications", is_flag=True, help="Only check what notifications would be sent, don't deploy")
 @click.argument("version", required=False)
 @click.pass_obj
 def blue_green_deploy(
-    cfg: Config, capacity: int, skip_confirmation: bool, branch: Optional[str], version: Optional[str]
+    cfg: Config,
+    capacity: int,
+    skip_confirmation: bool,
+    branch: Optional[str],
+    notify: Optional[bool],
+    dry_run_notify: bool,
+    check_notifications: bool,
+    version: Optional[str],
 ):
     """Deploy to the inactive color using blue-green strategy.
 
@@ -187,21 +234,133 @@ def blue_green_deploy(
     active = deployment.get_active_color()
     inactive = deployment.get_inactive_color()
 
+    # Track commit hashes for notifications (before deployment starts)
+    original_commit_hash: Optional[str] = None
+    target_commit_hash: Optional[str] = None
+
+    if cfg.env == Environment.PROD:
+        # Get original commit hash (what's currently deployed)
+        original_version_key = get_current_key(cfg)
+        original_commit_hash = _get_commit_hash_for_version(cfg, original_version_key)
+
+        # Get target commit hash (what we're deploying to)
+        if version:
+            target_commit_hash = _get_commit_hash_for_version_param(cfg, version, branch)
+        else:
+            # No version specified means no change, use current
+            target_commit_hash = original_commit_hash
+
+    # Handle notification settings
+    should_notify = notify
+    if should_notify is None:
+        # Default: notify on prod when there's actually a version change, don't notify on other environments
+        should_notify = (
+            cfg.env == Environment.PROD
+            and original_commit_hash is not None
+            and target_commit_hash is not None
+            and original_commit_hash != target_commit_hash
+        )
+
+    # If dry-run-notify is specified, override to use dry-run mode
+    if dry_run_notify:
+        should_notify = True
+
+    # Handle notification checking (if requested, show notifications and exit)
+    if check_notifications:
+        print(f"\n=== Notification Check for {cfg.env.value} ===")
+
+        if cfg.env != Environment.PROD:
+            print("❌ Notifications are only sent for production deployments")
+            return
+
+        if not version:
+            print("❌ No version specified - no deployment would occur, no notifications sent")
+            return
+
+        print(f"Checking what notifications would be sent for deploying to version: {version}")
+
+        if original_commit_hash and target_commit_hash:
+            if original_commit_hash == target_commit_hash:
+                print("❌ No version change detected - no notifications would be sent")
+                print(f"   Current and target both point to: {original_commit_hash[:8]}...{original_commit_hash[-8:]}")
+                return
+            else:
+                print("✅ Version change detected:")
+                print(f"   From: {original_commit_hash[:8]}...{original_commit_hash[-8:]}")
+                print(f"   To:   {target_commit_hash[:8]}...{target_commit_hash[-8:]}")
+        else:
+            print("❌ Could not determine commit hashes - notifications would be skipped")
+            return
+
+        print("✅ Will check commits between current deployment and target:")
+        print(f"   From: {original_commit_hash[:8]}...{original_commit_hash[-8:]} (current deployment)")
+        print(f"   To:   {target_commit_hash[:8]}...{target_commit_hash[-8:]} (target deployment)")
+
+        # Show what would be notified
+        print("\n🔍 Checking what would be notified...")
+        try:
+            gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
+            handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=True)
+        except Exception as e:
+            print(f"⚠️  Could not retrieve GitHub token ({e})")
+            print("🔍 Showing commit range that would be checked:")
+            print("   GitHub API would be queried for commits between:")
+            print(f"   {original_commit_hash} (current deployment)")
+            print(f"   {target_commit_hash} (target deployment)")
+            print(
+                f"   URL: https://github.com/compiler-explorer/compiler-explorer/compare/{original_commit_hash[:8]}...{target_commit_hash[:8]}"
+            )
+            print("   Each commit's linked PRs and issues would be notified with 'This is now live' messages")
+
+        return
+
     # Show what version will be deployed if specified
     if version:
         print(f"\nWill set version to: {version}")
 
-    if not skip_confirmation:
+    if not skip_confirmation and not check_notifications:
         confirm_msg = f"deploy to {inactive} (currently active: {active})"
         if version:
             confirm_msg += f" with version {version}"
         if not are_you_sure(confirm_msg, cfg):
             return
 
+    # Handle interactive confirmation for notifications if we're going to notify
+    if should_notify and cfg.env == Environment.PROD and not skip_confirmation and not dry_run_notify:
+        notify_choice = click.prompt(
+            "Send 'now live' notifications to GitHub issues/PRs?",
+            type=click.Choice(["yes", "dry-run", "no"]),
+            default="yes",
+        )
+        if notify_choice == "no":
+            should_notify = False
+        elif notify_choice == "dry-run":
+            dry_run_notify = True
+
     try:
         deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation, version=version, branch=branch)
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
+
+        # Send notifications after successful deployment (prod only)
+        if should_notify and cfg.env == Environment.PROD:
+            if original_commit_hash is not None and target_commit_hash is not None:
+                try:
+                    gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
+                    print(f"\n{'[DRY RUN] ' if dry_run_notify else ''}Checking for notifications...")
+                    print(
+                        f"Checking commits from {original_commit_hash[:8]}...{original_commit_hash[-8:]} to {target_commit_hash[:8]}...{target_commit_hash[-8:]}"
+                    )
+                    handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=dry_run_notify)
+                    print("Notification check completed.")
+                except Exception as e:
+                    print(f"Warning: Failed to send notifications: {e}")
+            else:
+                if original_commit_hash is None:
+                    print("No original commit hash available - skipping notifications.")
+                if target_commit_hash is None:
+                    print("No target commit hash available - skipping notifications.")
+
     except DeploymentCancelledException:
         # Deployment was cancelled - don't show success message or raise
         return
