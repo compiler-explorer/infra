@@ -22,9 +22,6 @@ from lib.amazon import (
     list_period_build_logs,
     log_new_build,
     put_bouncelock_file,
-    delete_bouncelock_file,
-    has_bouncelock_file,
-    set_current_notify,
     remove_release,
     set_current_key,
 )
@@ -170,7 +167,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
         if release:
-           notify_sentry_deployment(cfg, release)
+            notify_sentry_deployment(cfg, release)
 
 
 @builds.command(name="rm_old")

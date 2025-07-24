@@ -1,6 +1,6 @@
 import click
 
-from lib.amazon import has_notify_file, delete_notify_file, set_current_notify
+from lib.amazon import delete_notify_file, has_notify_file, set_current_notify
 from lib.cli import cli
 
 

@@ -1,6 +1,6 @@
-import urllib.request
-import urllib.parse
 import json
+import urllib.parse
+import urllib.request
 from typing import List
 
 OWNER_REPO = "compiler-explorer/compiler-explorer"

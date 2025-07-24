@@ -254,7 +254,7 @@ def release_for(releases: List[Release], s3_key: str) -> Optional[Release]:
 
 def get_current_release(cfg: Config) -> Optional[Release]:
     current = get_current_key(cfg)
-    return release_for(get_releases(), current) if current else None
+    return release_for(get_releases(cfg), current) if current else None
 
 
 def get_events_file(cfg: Config) -> str:
