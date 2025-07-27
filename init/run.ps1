@@ -41,7 +41,8 @@ $nodeargs = (
     "--env", "amazonwin",
     "--env", $CeEnv,
     "--language", "c",
-    "--language", "c++"
+    "--language", "c++",
+    "--language", "hlsl"
 )
 
 Set-Location -Path "C:\compilerexplorer"
