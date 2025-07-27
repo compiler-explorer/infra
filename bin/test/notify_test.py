@@ -1,6 +1,5 @@
 """Tests for the notify module."""
 
-import logging
 import unittest
 from unittest.mock import patch
 
@@ -18,7 +17,10 @@ class TestNotify(unittest.TestCase):
 
     def test_send_live_message_dry_run(self):
         """Test that send_live_message logs in dry-run mode."""
-        with self.assertLogs("lib.notify", level="INFO") as log, patch("lib.notify.should_send_comment_to_issue", return_value=True):
+        with (
+            self.assertLogs("lib.notify", level="INFO") as log,
+            patch("lib.notify.should_send_comment_to_issue", return_value=True),
+        ):
             send_live_message("123", "fake_token", dry_run=True)
 
             log_messages = "\n".join(log.output)
