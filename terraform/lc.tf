@@ -5,7 +5,7 @@ locals {
   gpu_image_id             = "ami-07ae9e39256e3ede7"
   aarch64prod_image_id     = "ami-079d9b1e36db465bb"
   aarch64staging_image_id  = "ami-079d9b1e36db465bb"
-  winprod_image_id         = "ami-083a8408a0402e96d"
+  winprod_image_id         = "ami-0807541f025aad832"
   winstaging_image_id      = "ami-0807541f025aad832"
   wintest_image_id         = "ami-0807541f025aad832"
   staging_user_data        = base64encode("staging")
