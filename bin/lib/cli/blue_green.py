@@ -326,21 +326,37 @@ def blue_green_deploy(
             return
 
     # Handle interactive confirmation for notifications if we're going to notify
+    delay_notification_prompt = False
     if should_notify and cfg.env == Environment.PROD and not skip_confirmation and not dry_run_notify:
         notify_choice = click.prompt(
             "Send 'now live' notifications to GitHub issues/PRs?",
-            type=click.Choice(["yes", "dry-run", "no"]),
+            type=click.Choice(["yes", "dry-run", "no", "delay"]),
             default="yes",
         )
         if notify_choice == "no":
             should_notify = False
         elif notify_choice == "dry-run":
             dry_run_notify = True
+        elif notify_choice == "delay":
+            delay_notification_prompt = True
+            should_notify = False  # Don't notify immediately
 
     try:
         deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation, version=version, branch=branch)
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
+
+        # Handle delayed notification prompt if requested
+        if delay_notification_prompt and cfg.env == Environment.PROD:
+            print("\n" + "=" * 60)
+            delayed_notify_choice = click.prompt(
+                "Deployment completed. Send 'now live' notifications to GitHub issues/PRs?",
+                type=click.Choice(["yes", "dry-run", "no"]),
+                default="yes",
+            )
+            if delayed_notify_choice in ["yes", "dry-run"]:
+                should_notify = True
+                dry_run_notify = delayed_notify_choice == "dry-run"
 
         # Send notifications after successful deployment (prod only)
         if should_notify and cfg.env == Environment.PROD:
