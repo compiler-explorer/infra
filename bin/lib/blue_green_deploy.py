@@ -65,7 +65,7 @@ class BlueGreenDeployment:
             # Not in a deployment, just exit
             sys.exit(1)
 
-        LOGGER.warning("\n\nDeployment interrupted by signal %s!", signum)
+        LOGGER.warning(f"\n\nDeployment interrupted by signal {signum}!")
         print("Performing cleanup...")
 
         active_asg = self._deployment_state["active_asg"]
@@ -80,7 +80,7 @@ class BlueGreenDeployment:
             try:
                 restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
             except Exception as e:
-                LOGGER.warning("Failed to restore capacity settings for %s: %s", active_asg, e)
+                LOGGER.warning(f"Failed to restore capacity settings for {active_asg}: {e}")
 
         if inactive_asg:
             env_min_size = self.cfg.env.min_instances
@@ -88,7 +88,7 @@ class BlueGreenDeployment:
             try:
                 reset_asg_min_size(inactive_asg, min_size=env_min_size)
             except Exception as e:
-                LOGGER.warning("Failed to reset min size for %s: %s", inactive_asg, e)
+                LOGGER.warning(f"Failed to reset min size for {inactive_asg}: {e}")
 
         # Rollback version if it was changed
         if version_was_changed and original_version_key:
@@ -99,8 +99,8 @@ class BlueGreenDeployment:
                 set_current_key(self.cfg, original_version_key)
                 print("✓ Version rolled back successfully")
             except Exception as e:
-                LOGGER.error("Failed to rollback version: %s", e)
-                LOGGER.error("You may need to manually set version back to %s", original_version_key)
+                LOGGER.error(f"Failed to rollback version: {e}")
+                LOGGER.error(f"You may need to manually set version back to {original_version_key}")
 
         print("Cleanup complete. Exiting.")
         sys.exit(1)
@@ -120,7 +120,7 @@ class BlueGreenDeployment:
             return response["Parameter"]["Value"]
         except ClientError as e:
             if e.response["Error"]["Code"] == "ParameterNotFound":
-                LOGGER.warning("No active color parameter found for %s, defaulting to 'blue'", self.env)
+                LOGGER.warning(f"No active color parameter found for {self.env}, defaulting to 'blue'")
                 return "blue"
             raise
 
@@ -195,7 +195,7 @@ class BlueGreenDeployment:
 
             for listener in listeners["Listeners"]:
                 if listener["Port"] in [80, 443]:
-                    LOGGER.debug("  Updating %s listener on port %s", listener["Protocol"], listener["Port"])
+                    LOGGER.debug(f"  Updating {listener['Protocol']} listener on port {listener['Port']}")
                     elb_client.modify_listener(
                         ListenerArn=listener["ListenerArn"],
                         DefaultActions=[{"Type": "forward", "TargetGroupArn": new_tg_arn}],
@@ -244,7 +244,7 @@ class BlueGreenDeployment:
         inactive_asg_info = get_asg_info(inactive_asg)
         if inactive_asg_info and inactive_asg_info["DesiredCapacity"] > 0:
             LOGGER.warning(
-                "\nThe %s ASG already has %s instance(s) running!", inactive_color, inactive_asg_info["DesiredCapacity"]
+                f"\nThe {inactive_color} ASG already has {inactive_asg_info['DesiredCapacity']} instance(s) running!"
             )
             LOGGER.warning("This means you'll be switching to existing instances rather than deploying fresh ones.")
             print("\nIf you want to:")
@@ -328,7 +328,7 @@ class BlueGreenDeployment:
                     # Discovery hasn't run - handle specially for prod deployments
                     if self.cfg.env.value == "prod":
                         if skip_confirmation:
-                            LOGGER.warning("%s", e)
+                            LOGGER.warning(f"{e}")
                             LOGGER.error(
                                 "--skip-confirmation cannot be used for production deployments without discovery."
                             )
@@ -371,7 +371,7 @@ class BlueGreenDeployment:
                                         raise RuntimeError(f"Version {version} not found") from None
                                     break
                                 except Exception as copy_error:
-                                    LOGGER.error("Failed to copy discovery file: %s", copy_error)
+                                    LOGGER.error(f"Failed to copy discovery file: {copy_error}")
                                     LOGGER.error("Deployment cancelled due to discovery copy failure.")
                                     raise DeploymentCancelledException("Discovery copy failed") from copy_error
                             elif response == "2":
@@ -446,10 +446,10 @@ class BlueGreenDeployment:
 
             # Additional confirmation when not on admin node
             if not self.running_on_admin_node and not skip_confirmation:
-                LOGGER.warning("\nAbout to switch traffic to %s without HTTP health verification!", inactive_color)
+                LOGGER.warning(f"\nAbout to switch traffic to {inactive_color} without HTTP health verification!")
                 LOGGER.warning("Since you're not running on the admin node, HTTP health checks were skipped.")
                 LOGGER.warning(
-                    "Please ensure the %s instances are responding properly before continuing.", inactive_color
+                    f"Please ensure the {inactive_color} instances are responding properly before continuing."
                 )
 
                 response = input("\nDo you want to proceed with the traffic switch? (yes/no): ").strip().lower()
@@ -499,8 +499,8 @@ class BlueGreenDeployment:
                         set_current_key(self.cfg, original_version_key)
                         print("✓ Version rolled back successfully")
                     except Exception as e:
-                        LOGGER.error("Failed to rollback version: %s", e)
-                        LOGGER.error("You may need to manually set version back to %s", original_version_key)
+                        LOGGER.error(f"Failed to rollback version: {e}")
+                        LOGGER.error(f"You may need to manually set version back to {original_version_key}")
 
             # Restore original signal handlers
             if cleanup_handler_installed:

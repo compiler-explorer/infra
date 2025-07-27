@@ -8,24 +8,24 @@ from lib.notify import handle_notify, post, send_live_message
 
 class TestNotify(unittest.TestCase):
     def test_post_dry_run_mode(self):
-        """Test that post function logs in dry-run mode without making actual requests."""
-        with self.assertLogs("lib.notify", level="INFO") as log:
+        """Test that post function prints in dry-run mode without making actual requests."""
+        with patch("builtins.print") as mock_print:
             result = post("test/path", "fake_token", {"test": "data"}, dry_run=True)
 
             self.assertEqual(result, {})
-            self.assertIn("[DRY RUN] Would post to test/path with data: {'test': 'data'}", log.output[0])
+            mock_print.assert_called_once_with("[DRY RUN] Would post to test/path with data: {'test': 'data'}")
 
     def test_send_live_message_dry_run(self):
-        """Test that send_live_message logs in dry-run mode."""
+        """Test that send_live_message prints in dry-run mode."""
         with (
-            self.assertLogs("lib.notify", level="INFO") as log,
+            patch("builtins.print") as mock_print,
             patch("lib.notify.should_send_comment_to_issue", return_value=True),
         ):
             send_live_message("123", "fake_token", dry_run=True)
 
-            log_messages = "\n".join(log.output)
-            self.assertIn("[DRY RUN] Would add 'live' label to issue #123", log_messages)
-            self.assertIn("[DRY RUN] Would comment 'This is now live' on issue #123", log_messages)
+            print_calls = [call[0][0] for call in mock_print.call_args_list]
+            self.assertIn("[DRY RUN] Would add 'live' label to issue #123", print_calls)
+            self.assertIn("[DRY RUN] Would comment 'This is now live' on issue #123", print_calls)
 
     def test_handle_notify_dry_run(self):
         """Test that handle_notify processes correctly in dry-run mode."""
@@ -40,13 +40,13 @@ class TestNotify(unittest.TestCase):
                 "lib.notify.get_linked_issues",
                 return_value={"data": {"repository": {"pullRequest": {"closingIssuesReferences": {"edges": []}}}}},
             ),
-            self.assertLogs("lib.notify", level="INFO") as log,
+            patch("builtins.print") as mock_print,
         ):
             handle_notify("old_commit", "new_commit", "fake_token", dry_run=True)
 
             mock_send.assert_called_once_with(456, "fake_token", dry_run=True)
-            log_messages = "\n".join(log.output)
-            self.assertIn("[DRY RUN] Would notify PR #456", log_messages)
+            print_calls = [call[0][0] for call in mock_print.call_args_list]
+            self.assertTrue(any("[DRY RUN] Would notify PR #456" in call for call in print_calls))
 
     def test_handle_notify_skips_empty_pr(self):
         """Test that handle_notify skips empty PR data."""

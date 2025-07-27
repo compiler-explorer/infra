@@ -20,9 +20,9 @@ def post(entity: str, token: str, query: dict = None, dry_run=False) -> dict:
         path = entity
         querystring = json.dumps(query).encode()
         if dry_run:
-            LOGGER.info("[DRY RUN] Would post to %s with data: %s", path, query)
+            print(f"[DRY RUN] Would post to {path} with data: {query}")
             return {}
-        LOGGER.debug("Posting %s", path)
+        LOGGER.debug(f"Posting {path}")
         req = urllib.request.Request(
             f"https://api.github.com/{path}",
             data=querystring,
@@ -47,7 +47,7 @@ def get(entity: str, token: str, query: dict = None) -> dict:
         if query:
             querystring = urllib.parse.urlencode(query)
             path += f"?{querystring}"
-        LOGGER.debug("Getting %s", path)
+        LOGGER.debug(f"Getting {path}")
         req = urllib.request.Request(
             f"https://api.github.com/{path}",
             None,
@@ -142,11 +142,11 @@ def should_send_comment_to_issue(issue: str, token: str):
 
 def send_live_message(issue: str, token: str, dry_run=False):
     if dry_run:
-        LOGGER.info("[DRY RUN] Would add '%s' label to issue #%s", NOW_LIVE_LABEL, issue)
+        print(f"[DRY RUN] Would add '{NOW_LIVE_LABEL}' label to issue #{issue}")
         if should_send_comment_to_issue(issue, token):
-            LOGGER.info("[DRY RUN] Would comment '%s' on issue #%s", NOW_LIVE_MESSAGE, issue)
+            print(f"[DRY RUN] Would comment '{NOW_LIVE_MESSAGE}' on issue #{issue}")
         else:
-            LOGGER.debug("[DRY RUN] Would skip commenting on issue #%s (already has live message)", issue)
+            LOGGER.debug(f"[DRY RUN] Would skip commenting on issue #{issue} (already has live message)")
     else:
         set_issue_labels(issue, [NOW_LIVE_LABEL], token, dry_run=dry_run)
         if should_send_comment_to_issue(issue, token):
@@ -174,7 +174,7 @@ def should_notify_issue(edge) -> bool:
 
 
 def handle_notify(base, new, token, dry_run=False):
-    LOGGER.info("Checking for live notifications from %s to %s", base, new)
+    print(f"Checking for live notifications from {base} to {new}")
 
     commits = list_inbetween_commits(base, new, token)
     prs = [get_linked_pr(commit["sha"], token) for commit in commits]
@@ -185,9 +185,9 @@ def handle_notify(base, new, token, dry_run=False):
         pr_id = pr_data["number"]
         if should_process_pr(pr_data["labels"]):
             if dry_run:
-                LOGGER.info("[DRY RUN] Would notify PR #%s", pr_id)
+                print(f"[DRY RUN] Would notify PR #{pr_id}")
             else:
-                LOGGER.info("Notifying PR %s", pr_id)
+                print(f"Notifying PR {pr_id}")
             send_live_message(pr_id, token, dry_run=dry_run)
 
             linked_issues = get_linked_issues(pr_id, token, dry_run=False)
@@ -196,24 +196,22 @@ def handle_notify(base, new, token, dry_run=False):
                 edge = issues_edges[0]["node"]
                 if should_notify_issue(edge):
                     if dry_run:
-                        LOGGER.info("[DRY RUN] Would notify issue #%s", edge["number"])
+                        print(f"[DRY RUN] Would notify issue #{edge['number']}")
                     else:
-                        LOGGER.info("Notifying issue %s", edge["number"])
+                        print(f"Notifying issue {edge['number']}")
                     send_live_message(edge["number"], token, dry_run=dry_run)
                 else:
                     if dry_run:
-                        LOGGER.debug(
-                            "[DRY RUN] Would skip notifying issue #%s (already has live label)", edge["number"]
-                        )
+                        LOGGER.debug(f"[DRY RUN] Would skip notifying issue #{edge['number']} (already has live label)")
                     else:
-                        LOGGER.debug("Skipping notifying issue %s", edge["number"])
+                        LOGGER.debug(f"Skipping notifying issue {edge['number']}")
             else:
                 if dry_run:
-                    LOGGER.debug("[DRY RUN] No issues to notify for PR #%s", pr_id)
+                    LOGGER.debug(f"[DRY RUN] No issues to notify for PR #{pr_id}")
                 else:
-                    LOGGER.debug("No issues in which to notify for PR %s", pr_id)
+                    LOGGER.debug(f"No issues in which to notify for PR {pr_id}")
         else:
             if dry_run:
-                LOGGER.debug("[DRY RUN] Would skip notifying PR #%s (already has live label)", pr_id)
+                LOGGER.debug(f"[DRY RUN] Would skip notifying PR #{pr_id} (already has live label)")
             else:
-                LOGGER.debug("Skipping notifying PR %s", pr_id)
+                LOGGER.debug(f"Skipping notifying PR {pr_id}")
