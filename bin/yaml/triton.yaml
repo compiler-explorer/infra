@@ -1,0 +1,21 @@
+compilers:
+  triton:
+    depends:
+      - compilers/python 3.12.1
+    type: pip
+    dir: triton/v{{name}}
+    python: "%DEP0%/bin/python3.12"
+    package:
+      - triton=={{name}}
+      - torch
+      - numpy
+      - setuptools # Unfortunately, Triton 2.x requires this
+    check_exe: [ "bin/python3.12", "-c", "import triton; import torch; print(triton.__version__, torch.__version__)" ]
+    targets:
+      - 3.3.1
+      - 3.3.0
+      - 3.2.0
+      - 3.1.0
+      - 3.0.0
+      - 2.3.1
+      - 2.3.0
