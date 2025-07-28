@@ -161,7 +161,7 @@ class PipInstallable(Installable):
         packages = self.package
         if isinstance(packages, str):
             packages = [packages]
-        self.install_context.check_output([str(venv / "bin" / "pip"), "install", *packages])
+        self.install_context.check_output([str(venv / "bin" / "pip"), "--no-cache-dir", "install", *packages])
 
     def verify(self) -> bool:
         if not super().verify():
