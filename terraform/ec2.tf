@@ -11,7 +11,7 @@ resource "aws_instance" "AdminNode" {
   ami                         = "ami-0e76b49ef537405f1"
   iam_instance_profile        = aws_iam_instance_profile.CompilerExplorerAdminNode.name
   ebs_optimized               = false
-  instance_type               = "t3a.small"
+  instance_type               = "m6a.large"
   monitoring                  = false
   key_name                    = "mattgodbolt"
   subnet_id                   = local.admin_subnet
