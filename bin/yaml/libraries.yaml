@@ -2229,7 +2229,7 @@ libraries:
       type: github
     re2:
       build_type: cmake
-      check_file: README.md
+      check_file: README
       lib_type: static
       make_targets:
       - all
@@ -2241,6 +2241,18 @@ libraries:
         staticliblink:
         - re2
       type: github
+      prebuild_script:
+      - mkdir -p /tmp/abseil-cpp
+      - curl -sL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx% -o abseil-cpp-20250127.0.tar.gz
+      - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
+      prebuild_script_pwsh:
+      - echo "prebuild not using abseil"
+      postbuild_script:
+      - rm -Rf /tmp/abseil-cpp
+      postbuild_script_pwsh:
+      - echo "postbuild not using abseil"
+      extra_cmake_arg:
+      - -Dabsl_DIR=/tmp/abseil-cpp/lib/cmake/absl
     scnlib:
       build_type: cmake
       extra_cmake_arg:
