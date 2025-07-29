@@ -103,8 +103,8 @@ resource "aws_iam_role_policy_attachment" "alert_on_elb_instance" {
 # WebSocket API Gateway permissions for compilation Lambda
 data "aws_iam_policy_document" "compilation_lambda_websocket" {
   statement {
-    sid       = "WebSocketAccess"
-    actions   = [
+    sid = "WebSocketAccess"
+    actions = [
       "execute-api:ManageConnections",
       "execute-api:Invoke"
     ]

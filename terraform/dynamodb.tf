@@ -231,3 +231,27 @@ resource "aws_dynamodb_table" "goo_gl_links" {
     prevent_destroy = true
   }
 }
+
+resource "aws_dynamodb_table" "compiler_routing" {
+  name         = "CompilerRouting"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "compilerId"
+
+  attribute {
+    name = "compilerId"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  tags = {
+    Purpose = "Compiler to queue routing mappings"
+    Project = "compiler-explorer"
+  }
+}

@@ -148,6 +148,55 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 All workflow trigger commands support `--dry-run` to preview the `gh` command without executing it.
 
+## Compiler Routing Management
+
+The `ce compiler-routing` command group provides functionality to manage compiler-to-queue routing mappings in DynamoDB:
+
+### Available Commands
+
+- **`ce compiler-routing update [--env ENVIRONMENT]`** - Update compiler routing table for specified environment using live API data
+  - Uses current environment if not specified
+  - Use `--dry-run` to preview changes without making them
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce --env prod compiler-routing update --dry-run`
+
+- **`ce compiler-routing status`** - Show current compiler routing table statistics
+  - Displays total compilers, environments, routing types, and queue distribution
+  - Example output shows prod (queue routing) vs winprod (URL routing)
+
+- **`ce compiler-routing lookup COMPILER_ID`** - Look up routing assignment for a specific compiler
+  - Shows environment, routing type (queue/url), and target (queue name or URL)
+  - Uses current environment context
+  - Example: `ce --env prod compiler-routing lookup gcc-trunk`
+
+- **`ce compiler-routing validate [--env ENVIRONMENT]`** - Validate routing table consistency against live API data
+  - Compares current table with live API data to identify needed changes
+  - Validates specific environment or all environments
+  - Example: `ce compiler-routing validate --env winprod`
+
+- **`ce compiler-routing clear --env ENVIRONMENT`** - Clear routing entries for a specific environment
+  - Removes all routing entries for the specified environment
+  - Affected compilers fall back to default queue routing
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce compiler-routing clear --env staging --skip-confirmation`
+
+- **`ce compiler-routing migrate`** - Migrate legacy routing entries to environment-prefixed composite keys
+  - Converts old format entries to new composite key structure
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce compiler-routing migrate`
+
+### Architecture Features
+
+- **Environment Isolation**: Uses composite keys (e.g., `prod#gcc-trunk`) to prevent cross-environment conflicts
+- **Hybrid Routing**: Supports both SQS queue routing and direct URL forwarding based on environment configuration
+- **Backward Compatibility**: Legacy entries are supported during transition period
+- **Multi-Environment Support**: Single DynamoDB table serves all environments (prod, staging, beta, winprod, etc.)
+
+### Routing Strategies by Environment
+
+- **Queue Environments**: prod, staging, beta, gpu, aarch64prod, aarch64staging, runner → Route to SQS queues
+- **URL Environments**: winprod, winstaging, wintest → Forward directly to environment URLs
+
 ## AWS Integration Pattern
 
 AWS clients are defined in `bin/lib/amazon.py` using lazy initialization:

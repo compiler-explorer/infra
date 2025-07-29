@@ -91,6 +91,35 @@ resource "aws_iam_role_policy_attachment" "compilation_lambda_sqs" {
   policy_arn = aws_iam_policy.compilation_lambda_sqs.arn
 }
 
+# IAM policy for compilation Lambda to access compiler routing table
+data "aws_iam_policy_document" "compilation_lambda_routing" {
+  statement {
+    sid = "DynamoDBRouting"
+    actions = [
+      "dynamodb:GetItem"
+    ]
+    resources = [aws_dynamodb_table.compiler_routing.arn]
+  }
+  statement {
+    sid = "STSAccess"
+    actions = [
+      "sts:GetCallerIdentity"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "compilation_lambda_routing" {
+  name        = "compilation_lambda_routing"
+  description = "Allow compilation Lambda to access compiler routing table"
+  policy      = data.aws_iam_policy_document.compilation_lambda_routing.json
+}
+
+resource "aws_iam_role_policy_attachment" "compilation_lambda_routing" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.compilation_lambda_routing.arn
+}
+
 # Outputs for backward compatibility and ASG integration
 output "compilation_queue_beta_id" {
   description = "Beta compilation queue ID"
