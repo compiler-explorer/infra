@@ -5,8 +5,8 @@
 Compiler Explorer has implemented a **Lambda-based compilation endpoint system** with **hybrid routing architecture** that intelligently routes compilation requests based on environment-specific strategies. This system replaces direct ALB-to-instance routing for compilation endpoints, enabling better scalability, reliability, and workload distribution.
 
 The new architecture supports two routing strategies:
-- **Queue-based routing**: For most environments (prod, staging, beta, gpu) using SQS queues with WebSocket result delivery
-- **Direct URL forwarding**: For Windows environments (winprod, winstaging, wintest) that forward requests directly to environment URLs
+- **Queue-based routing**: For standard environments (prod, staging, beta) using SQS queues with WebSocket result delivery
+- **Direct URL forwarding**: For specialized environments (gpu, winprod, winstaging, wintest, aarch64prod, aarch64staging, runner) that forward requests directly to environment URLs
 
 Unlike the traditional model where compilation requests hit instances directly, the Lambda system creates a **smart routing layer** that uses a DynamoDB routing table with environment-isolated composite keys to make routing decisions, preventing cross-environment conflicts while supporting diverse deployment architectures.
 
@@ -111,7 +111,7 @@ The Lambda function uses a DynamoDB table to determine how to route each compila
 |------------|-----------|-------------|-------------|-----------|
 | `prod#gcc-trunk` | `prod-compilation-queue` | `prod` | `queue` | `` |
 | `winprod#msvc-19` | `` | `winprod` | `url` | `https://godbolt.org/winprod/api/compiler/msvc-19/compile` |
-| `gpu#nvcc-12` | `gpu-compilation-queue` | `gpu` | `queue` | `` |
+| `gpu#nvcc-12` | `` | `gpu` | `url` | `https://godbolt.org/gpu/api/compiler/nvcc-12/compile` |
 
 ### Environment Routing Strategies
 
@@ -119,11 +119,12 @@ The system supports different routing strategies based on environment characteri
 
 **Queue Environments** (SQS + WebSocket):
 - `prod`, `staging`, `beta` → Standard compilation queue routing
-- `gpu`, `aarch64prod`, `aarch64staging` → Specialized hardware queue routing  
-- `runner` → CI/testing queue routing
 
 **URL Environments** (Direct HTTP forwarding):
 - `winprod`, `winstaging`, `wintest` → Windows-specific direct forwarding
+- `gpu` → GPU compilation environment forwarding
+- `aarch64prod`, `aarch64staging` → ARM64-specific direct forwarding  
+- `runner` → CI/testing environment forwarding
 
 **Routing Decision Logic:**
 ```
@@ -395,7 +396,7 @@ Current production deployment (as of documentation update):
 - **Total Compilers**: 5,156 entries across 3 environments
 - **prod**: 4,915 compilers → queue routing (`prod-compilation-queue`)
 - **winprod**: 180 compilers → URL routing (`https://godbolt.org/winprod/api/compiler/{id}/compile`)
-- **gpu**: 61 compilers → queue routing (`gpu-compilation-queue`)
+- **gpu**: 61 compilers → URL routing (`https://godbolt.org/gpu/api/compiler/{id}/compile`)
 
 ## Hybrid Routing Decision Visualization
 

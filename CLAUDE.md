@@ -194,8 +194,8 @@ The `ce compiler-routing` command group provides functionality to manage compile
 
 ### Routing Strategies by Environment
 
-- **Queue Environments**: prod, staging, beta, gpu, aarch64prod, aarch64staging, runner → Route to SQS queues
-- **URL Environments**: winprod, winstaging, wintest → Forward directly to environment URLs
+- **Queue Environments**: prod, staging, beta → Route to SQS queues
+- **URL Environments**: winprod, winstaging, wintest, gpu, aarch64prod, aarch64staging, runner → Forward directly to environment URLs
 
 ## AWS Integration Pattern
 
