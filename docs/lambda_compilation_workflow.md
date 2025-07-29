@@ -421,10 +421,10 @@ flowchart TD
     
     Default --> Queue
     
-    classDef decision fill:#fff3e0,stroke:#ff8f00
-    classDef queue fill:#e8f5e8,stroke:#2e7d32
-    classDef url fill:#e3f2fd,stroke:#1565c0
-    classDef start fill:#f3e5f5,stroke:#7b1fa2
+    classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef queue fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef url fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef start fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
     
     class Found,CheckType decision
     class Queue,WebSocket,SQS,Wait,QueueResponse,Default queue
