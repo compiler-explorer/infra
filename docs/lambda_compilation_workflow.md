@@ -70,7 +70,7 @@ sequenceDiagram
 
 #### Queue-Based Routing Flow:
 1. **User → ALB**: User submits code for compilation via standard REST API
-2. **ALB → Lambda**: Load balancer routes compilation requests to Lambda function  
+2. **ALB → Lambda**: Load balancer routes compilation requests to Lambda function
 3. **Lambda → DynamoDB**: Looks up routing strategy using environment-prefixed composite key (e.g., `prod#gcc`)
 4. **DynamoDB → Lambda**: Returns routing decision: `{type: "queue", target: "prod-compilation-queue"}`
 5. **Lambda → WebSocket**: Subscribes to unique GUID to receive compilation results (BEFORE sending to SQS)
@@ -123,7 +123,7 @@ The system supports different routing strategies based on environment characteri
 **URL Environments** (Direct HTTP forwarding):
 - `winprod`, `winstaging`, `wintest` → Windows-specific direct forwarding
 - `gpu` → GPU compilation environment forwarding
-- `aarch64prod`, `aarch64staging` → ARM64-specific direct forwarding  
+- `aarch64prod`, `aarch64staging` → ARM64-specific direct forwarding
 - `runner` → CI/testing environment forwarding
 
 **Routing Decision Logic:**
@@ -239,7 +239,7 @@ graph TB
     ALB -->|1. Route request| LF
     LF -->|2. Lookup routing| RT
     RT -->|3. Return strategy| LF
-    
+
     %% Queue routing path
     LF -->|4a. Queue route| WS
     LF -->|5a. Send message| SQS
@@ -247,11 +247,11 @@ graph TB
     CI -->|7a. Execute| CI
     CI -->|8a. Send results| WS
     WS -->|9a. Route to subscriber| LF
-    
-    %% URL routing path  
+
+    %% URL routing path
     LF -->|4b. URL route| ENV
     ENV -->|5b. Return response| LF
-    
+
     %% Response
     LF -->|6. Return response| ALB
 
@@ -287,7 +287,7 @@ ENVIRONMENT_NAME=prod
 RETRY_COUNT=2
 TIMEOUT_SECONDS=90
 
-# Windows Production Environment Lambda  
+# Windows Production Environment Lambda
 SQS_QUEUE_URL=https://sqs.us-east-1.amazonaws.com/account/winprod-compilation-queue.fifo
 WEBSOCKET_URL=wss://events.godbolt.org/winprod
 ENVIRONMENT_NAME=winprod
@@ -404,29 +404,29 @@ Current production deployment (as of documentation update):
 flowchart TD
     Start([Compilation Request]) --> Parse[Parse Request<br/>Extract compiler_id]
     Parse --> Lookup[DynamoDB Lookup<br/>env#compiler_id]
-    
+
     Lookup --> Found{Entry Found?}
     Found -->|No| Default[Use Default<br/>SQS Queue]
     Found -->|Yes| CheckType{routingType?}
-    
+
     CheckType -->|queue| Queue[Queue-Based Routing]
     CheckType -->|url| URL[URL-Based Routing]
-    
+
     Queue --> WebSocket[Setup WebSocket<br/>Subscription]
     WebSocket --> SQS[Send to SQS<br/>Queue]
     SQS --> Wait[Wait for WebSocket<br/>Result]
     Wait --> QueueResponse[Return Queue<br/>Response]
-    
+
     URL --> Forward[Forward to<br/>Environment URL]
     Forward --> URLResponse[Return Direct<br/>Response]
-    
+
     Default --> Queue
-    
+
     classDef decision fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
     classDef queue fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
     classDef url fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
     classDef start fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px,color:#000
-    
+
     class Found,CheckType decision
     class Queue,WebSocket,SQS,Wait,QueueResponse,Default queue
     class URL,Forward,URLResponse url
