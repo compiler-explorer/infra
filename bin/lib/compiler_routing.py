@@ -17,16 +17,16 @@ COMPILER_ROUTING_TABLE = "CompilerRouting"
 # Environment routing configuration
 # Determines whether each environment uses SQS queues or direct URL forwarding
 ENVIRONMENT_ROUTING_CONFIG = {
-    "prod": "queue",          # Use SQS queues
-    "staging": "queue",       # Use SQS queues  
-    "beta": "queue",          # Use SQS queues (can be changed to "url" for testing)
-    "gpu": "queue",           # Use SQS queues
-    "winprod": "url",         # Forward to environment URL
-    "winstaging": "url",      # Forward to environment URL
-    "wintest": "url",         # Forward to environment URL
-    "aarch64prod": "queue",   # Use SQS queues
-    "aarch64staging": "queue", # Use SQS queues
-    "runner": "queue",        # Use SQS queues
+    "prod": "queue",
+    "staging": "queue",
+    "beta": "queue",
+    "gpu": "url",
+    "winprod": "url",
+    "winstaging": "url",
+    "wintest": "url",
+    "aarch64prod": "url",
+    "aarch64staging": "url",
+    "runner": "url",
 }
 
 
