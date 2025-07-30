@@ -101,6 +101,12 @@ query {
       closingIssuesReferences(first: 10) {
         edges {
           node {
+            repository {
+              owner {
+                login
+              }
+              name
+            }
             labels(first: 10) {
               edges {
                 node {
@@ -121,36 +127,36 @@ query {
     return post("graphql", token, {"query": query}, dry_run=dry_run)
 
 
-def get_issue_comments(issue: str, token: str) -> List[dict]:
-    return paginated_get(f"repos/{OWNER_REPO}/issues/{issue}/comments", token)
+def get_issue_comments(issue: str, repo: str, token: str) -> List[dict]:
+    return paginated_get(f"repos/{repo}/issues/{issue}/comments", token)
 
 
-def comment_on_issue(issue: str, msg: str, token: str, dry_run=False):
-    result = post(f"repos/{OWNER_REPO}/issues/{issue}/comments", token, {"body": msg}, dry_run=dry_run)
+def comment_on_issue(issue: str, repo: str, msg: str, token: str, dry_run=False):
+    result = post(f"repos/{repo}/issues/{issue}/comments", token, {"body": msg}, dry_run=dry_run)
     return result
 
 
-def set_issue_labels(issue: str, labels: List[str], token: str, dry_run=False):
-    post(f"repos/{OWNER_REPO}/issues/{issue}/labels", token, {"labels": labels}, dry_run=dry_run)
+def set_issue_labels(issue: str, repo: str, labels: List[str], token: str, dry_run=False):
+    post(f"repos/{repo}/issues/{issue}/labels", token, {"labels": labels}, dry_run=dry_run)
 
 
-def should_send_comment_to_issue(issue: str, token: str):
+def should_send_comment_to_issue(issue: str, repo: str, token: str):
     """Only send a comment to the issue if nothing like the live message is there already"""
-    comments = get_issue_comments(issue, token)
+    comments = get_issue_comments(issue, repo, token)
     return all([NOW_LIVE_MESSAGE not in comment["body"] for comment in comments])
 
 
-def send_live_message(issue: str, token: str, dry_run=False):
+def send_live_message(issue: str, repo: str, token: str, dry_run=False):
     if dry_run:
-        print(f"[DRY RUN] Would add '{NOW_LIVE_LABEL}' label to issue #{issue}")
-        if should_send_comment_to_issue(issue, token):
-            print(f"[DRY RUN] Would comment '{NOW_LIVE_MESSAGE}' on issue #{issue}")
+        print(f"[DRY RUN] Would add '{NOW_LIVE_LABEL}' label to {repo}#{issue}")
+        if should_send_comment_to_issue(issue, repo, token):
+            print(f"[DRY RUN] Would comment '{NOW_LIVE_MESSAGE}' on {repo}#{issue}")
         else:
-            LOGGER.debug(f"[DRY RUN] Would skip commenting on issue #{issue} (already has live message)")
+            LOGGER.debug(f"[DRY RUN] Would skip commenting on {repo}#{issue} (already has live message)")
     else:
-        set_issue_labels(issue, [NOW_LIVE_LABEL], token, dry_run=dry_run)
-        if should_send_comment_to_issue(issue, token):
-            comment_on_issue(issue, NOW_LIVE_MESSAGE, token, dry_run=dry_run)
+        set_issue_labels(issue, repo, [NOW_LIVE_LABEL], token, dry_run=dry_run)
+        if should_send_comment_to_issue(issue, repo, token):
+            comment_on_issue(issue, repo, NOW_LIVE_MESSAGE, token, dry_run=dry_run)
 
 
 def get_edges(issue: dict) -> List[dict]:
@@ -165,12 +171,21 @@ def should_process_pr(pr_labels):
 def should_notify_issue(edge) -> bool:
     """We want to notify the issue if:
     - there's one linked ("number" in edge) AND
+    - it's in a compiler-explorer repository AND
     - either:
-      - the linked issue has no labels ("labels" not in edge["node"]) OR
+      - the linked issue has no labels ("labels" not in edge) OR
       - the NOW_LIVE_LABEL label is not among its labels"""
-    return "number" in edge and (
-        ("labels" not in edge) or all([label["node"]["name"] != NOW_LIVE_LABEL for label in edge["labels"]["edges"]])
-    )
+    if "number" not in edge:
+        return False
+
+    # Only notify for compiler-explorer repositories
+    repo_info = edge.get("repository", {})
+    owner = repo_info.get("owner", {}).get("login", "")
+    if owner != "compiler-explorer":
+        return False
+
+    # Check if issue already has live label
+    return ("labels" not in edge) or all([label["node"]["name"] != NOW_LIVE_LABEL for label in edge["labels"]["edges"]])
 
 
 def handle_notify(base, new, token, dry_run=False):
@@ -188,24 +203,36 @@ def handle_notify(base, new, token, dry_run=False):
                 print(f"[DRY RUN] Would notify PR #{pr_id}")
             else:
                 print(f"Notifying PR {pr_id}")
-            send_live_message(pr_id, token, dry_run=dry_run)
+            send_live_message(pr_id, OWNER_REPO, token, dry_run=dry_run)
 
             linked_issues = get_linked_issues(pr_id, token, dry_run=False)
             issues_edges = get_edges(linked_issues)
-            if len(issues_edges) == 1 and "node" in issues_edges[0]:
-                edge = issues_edges[0]["node"]
-                if should_notify_issue(edge):
-                    if dry_run:
-                        print(f"[DRY RUN] Would notify issue #{edge['number']}")
+            for edge_wrapper in issues_edges:
+                if "node" in edge_wrapper:
+                    edge = edge_wrapper["node"]
+                    if should_notify_issue(edge):
+                        repo_info = edge.get("repository", {})
+                        owner = repo_info.get("owner", {}).get("login", "")
+                        repo_name = repo_info.get("name", "")
+                        full_repo = f"{owner}/{repo_name}"
+
+                        if dry_run:
+                            print(f"[DRY RUN] Would notify issue {full_repo}#{edge['number']}")
+                        else:
+                            print(f"Notifying issue {edge['number']}")
+                        send_live_message(edge["number"], full_repo, token, dry_run=dry_run)
                     else:
-                        print(f"Notifying issue {edge['number']}")
-                    send_live_message(edge["number"], token, dry_run=dry_run)
-                else:
-                    if dry_run:
-                        LOGGER.debug(f"[DRY RUN] Would skip notifying issue #{edge['number']} (already has live label)")
-                    else:
-                        LOGGER.debug(f"Skipping notifying issue {edge['number']}")
-            else:
+                        repo_info = edge.get("repository", {})
+                        owner = repo_info.get("owner", {}).get("login", "unknown")
+                        repo_name = repo_info.get("name", "unknown")
+
+                        if dry_run:
+                            LOGGER.debug(
+                                f"[DRY RUN] Would skip notifying issue {owner}/{repo_name}#{edge['number']} (already has live label or external repo)"
+                            )
+                        else:
+                            LOGGER.debug(f"Skipping notifying issue {edge['number']}")
+            if not issues_edges:
                 if dry_run:
                     LOGGER.debug(f"[DRY RUN] No issues to notify for PR #{pr_id}")
                 else:
