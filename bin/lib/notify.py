@@ -219,7 +219,7 @@ def handle_notify(base, new, token, dry_run=False):
                         if dry_run:
                             print(f"[DRY RUN] Would notify issue {full_repo}#{edge['number']}")
                         else:
-                            print(f"Notifying issue {edge['number']}")
+                            print(f"Notifying issue {full_repo}#{edge['number']}")
                         send_live_message(edge["number"], full_repo, token, dry_run=dry_run)
                     else:
                         repo_info = edge.get("repository", {})
