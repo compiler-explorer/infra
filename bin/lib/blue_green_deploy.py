@@ -471,6 +471,20 @@ class BlueGreenDeployment:
             print(f"\nStep 5.5: Resetting minimum size of {active_asg} to 0 (now inactive)")
             reset_asg_min_size(active_asg, min_size=0)
 
+            # Step 6: Update compiler routing table
+            print(f"\nStep 6: Updating compiler routing table for {self.env}")
+            try:
+                from lib.compiler_routing import update_compiler_routing_table
+
+                result = update_compiler_routing_table(self.env)
+                print(
+                    f"  Compiler routing updated: {result['added']} added, {result['updated']} updated, {result['deleted']} deleted"
+                )
+            except Exception as e:
+                LOGGER.warning(f"Failed to update compiler routing table: {e}")
+                LOGGER.warning("Deployment will continue, but compiler routing may be out of date")
+                print(f"  ⚠️  Warning: Compiler routing update failed: {e}")
+
             print(f"\n✅ Blue-green deployment complete! Now serving from {inactive_color}")
             print(f"Old {active_color} ASG remains running for rollback if needed")
 
@@ -479,7 +493,7 @@ class BlueGreenDeployment:
         finally:
             # Always restore active ASG capacity settings, regardless of success or failure
             if active_original_min is not None and active_original_max is not None:
-                print(f"\nStep 6: Restoring original capacity settings for {active_asg}")
+                print(f"\nStep 7: Restoring original capacity settings for {active_asg}")
                 restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
 
             # If deployment failed, also reset the inactive ASG min size

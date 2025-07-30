@@ -1,11 +1,13 @@
 import json
 import logging
 import os
+import threading
 import time
 import uuid
 from typing import Any, Dict, Optional
 
 import boto3
+import requests
 import websocket
 from botocore.exceptions import ClientError
 
@@ -18,9 +20,14 @@ RETRY_COUNT = int(os.environ.get("RETRY_COUNT", "1"))
 TIMEOUT_SECONDS = int(os.environ.get("TIMEOUT_SECONDS", "60"))
 SQS_QUEUE_URL = os.environ.get("SQS_QUEUE_URL", "")
 WEBSOCKET_URL = os.environ.get("WEBSOCKET_URL", "")
+ENVIRONMENT_NAME = os.environ.get("ENVIRONMENT_NAME", "unknown")
 
 # Initialize AWS clients
 sqs = boto3.client("sqs")
+dynamodb = boto3.client("dynamodb")
+
+# DynamoDB table for compiler routing
+COMPILER_ROUTING_TABLE = "CompilerRouting"
 
 
 class CompilationError(Exception):
@@ -37,6 +44,12 @@ class WebSocketTimeoutError(CompilationError):
 
 class SQSError(CompilationError):
     """Raised when SQS operations fail."""
+
+    pass
+
+
+class URLForwardingError(CompilationError):
+    """Raised when URL forwarding fails."""
 
     pass
 
@@ -94,10 +107,87 @@ def parse_request_body(body: str, content_type: str) -> Dict[str, Any]:
         return {"source": body}
 
 
-def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers: Dict[str, str]) -> None:
+def lookup_compiler_routing(compiler_id: str) -> Dict[str, Any]:
+    """
+    Look up routing information for a specific compiler using DynamoDB.
+    Returns routing decision with type and target information.
+    Uses environment-prefixed composite key for isolation.
+    """
+    try:
+        # Create composite key with environment prefix for isolation
+        composite_key = f"{ENVIRONMENT_NAME}#{compiler_id}"
+
+        # Look up compiler in DynamoDB routing table using composite key
+        response = dynamodb.get_item(TableName=COMPILER_ROUTING_TABLE, Key={"compilerId": {"S": composite_key}})
+
+        item = response.get("Item")
+        if not item:
+            # Fallback: try old format (without environment prefix) for backward compatibility
+            logger.info(f"Composite key not found for {composite_key}, trying legacy format")
+            fallback_response = dynamodb.get_item(
+                TableName=COMPILER_ROUTING_TABLE, Key={"compilerId": {"S": compiler_id}}
+            )
+            item = fallback_response.get("Item")
+            if item:
+                logger.warning(f"Using legacy routing entry for {compiler_id} - consider migration")
+
+        if item:
+            routing_type = item.get("routingType", {}).get("S", "queue")
+
+            if routing_type == "url":
+                target_url = item.get("targetUrl", {}).get("S", "")
+                if target_url:
+                    logger.info(f"Compiler {compiler_id} routed to URL: {target_url}")
+                    return {
+                        "type": "url",
+                        "target": target_url,
+                        "environment": item.get("environment", {}).get("S", ""),
+                    }
+            else:
+                # Queue routing
+                queue_name = item.get("queueName", {}).get("S")
+                if queue_name:
+                    # Convert queue name to queue URL
+                    account_id = boto3.client("sts").get_caller_identity()["Account"]
+                    region = boto3.Session().region_name or "us-east-1"
+
+                    # Handle both FIFO and standard queues
+                    if queue_name.endswith(".fifo"):
+                        queue_url = f"https://sqs.{region}.amazonaws.com/{account_id}/{queue_name}"
+                    else:
+                        queue_url = f"https://sqs.{region}.amazonaws.com/{account_id}/{queue_name}"
+
+                    logger.info(f"Compiler {compiler_id} routed to queue: {queue_name}")
+                    return {
+                        "type": "queue",
+                        "target": queue_url,
+                        "environment": item.get("environment", {}).get("S", ""),
+                    }
+
+        # No routing found, use default queue
+        logger.info(f"No routing found for compiler {compiler_id}, using default queue")
+        return {
+            "type": "queue",
+            "target": SQS_QUEUE_URL,
+            "environment": "unknown",
+        }
+
+    except Exception as e:
+        # On any error, fall back to default queue
+        logger.warning(f"Failed to lookup routing for compiler {compiler_id}: {e}")
+        return {
+            "type": "queue",
+            "target": SQS_QUEUE_URL,
+            "environment": "unknown",
+        }
+
+
+def send_to_sqs(
+    guid: str, compiler_id: str, body: str, is_cmake: bool, headers: Dict[str, str], queue_url: str
+) -> None:
     """Send compilation request to SQS queue as RemoteCompilationRequest."""
-    if not SQS_QUEUE_URL:
-        raise SQSError("SQS_QUEUE_URL environment variable not set")
+    if not queue_url:
+        raise SQSError("No queue URL available (neither DynamoDB lookup nor SQS_QUEUE_URL env var set)")
 
     # Parse body based on content type
     content_type = headers.get("content-type", headers.get("Content-Type", ""))
@@ -144,7 +234,7 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
             message_json = json.dumps(message_body, separators=(",", ":"))
 
         sqs.send_message(
-            QueueUrl=SQS_QUEUE_URL,
+            QueueUrl=queue_url,
             MessageBody=message_json,
             MessageGroupId="default",
             MessageDeduplicationId=guid,
@@ -156,6 +246,92 @@ def send_to_sqs(guid: str, compiler_id: str, body: str, is_cmake: bool, headers:
     except ClientError as e:
         logger.error(f"Failed to send message to SQS: {e}")
         raise SQSError(f"Failed to send message to SQS: {e}") from e
+
+
+def forward_to_environment_url(
+    compiler_id: str, url: str, body: str, is_cmake: bool, headers: Dict[str, str]
+) -> Dict[str, Any]:
+    """Forward compilation request directly to environment URL.
+
+    Args:
+        compiler_id: Compiler identifier
+        url: Target URL for forwarding
+        body: Request body
+        is_cmake: Whether this is a cmake request
+        headers: Original request headers
+
+    Returns:
+        Response from the target environment
+
+    Raises:
+        URLForwardingError: If forwarding fails
+    """
+    try:
+        # Adjust URL for cmake vs compile endpoint
+        if is_cmake and not url.endswith("/cmake"):
+            if url.endswith("/compile"):
+                url = url.replace("/compile", "/cmake")
+            else:
+                url = f"{url}/cmake" if not url.endswith("/") else f"{url}cmake"
+        elif not is_cmake and not url.endswith("/compile"):
+            if url.endswith("/cmake"):
+                url = url.replace("/cmake", "/compile")
+            else:
+                url = f"{url}/compile" if not url.endswith("/") else f"{url}compile"
+
+        # Prepare headers for forwarding (filter out ALB-specific headers)
+        forward_headers = {}
+        for key, value in headers.items():
+            if key.lower() not in ["host", "x-forwarded-for", "x-forwarded-proto", "x-forwarded-port"]:
+                forward_headers[key] = value
+
+        # Set appropriate content type if not already set
+        if "content-type" not in forward_headers and "Content-Type" not in forward_headers:
+            try:
+                # Try to parse as JSON first
+                json.loads(body)
+                forward_headers["Content-Type"] = "application/json"
+            except (json.JSONDecodeError, TypeError):
+                # Fallback to plain text
+                forward_headers["Content-Type"] = "text/plain"
+
+        logger.info(f"Forwarding request to {url}")
+
+        # Make the HTTP request to the target environment
+        response = requests.post(
+            url,
+            data=body,
+            headers=forward_headers,
+            timeout=60,  # 60 second timeout
+        )
+
+        # Check if the request was successful
+        response.raise_for_status()
+
+        # Return the response content and headers
+        return {
+            "statusCode": response.status_code,
+            "headers": dict(response.headers),
+            "body": response.text,
+        }
+
+    except requests.exceptions.Timeout as e:
+        logger.error(f"Timeout forwarding to {url}: {e}")
+        raise URLForwardingError(f"Request timeout: {e}") from e
+    except requests.exceptions.HTTPError as e:
+        logger.error(f"HTTP error forwarding to {url}: {e}")
+        # For HTTP errors, still return the response to preserve error details
+        return {
+            "statusCode": e.response.status_code if e.response else 500,
+            "headers": dict(e.response.headers) if e.response else {},
+            "body": e.response.text if e.response else str(e),
+        }
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error forwarding to {url}: {e}")
+        raise URLForwardingError(f"Request failed: {e}") from e
+    except Exception as e:
+        logger.error(f"Unexpected error forwarding to {url}: {e}")
+        raise URLForwardingError(f"Unexpected error: {e}") from e
 
 
 class WebSocketClient:
@@ -237,8 +413,6 @@ class WebSocketClient:
         )
 
         # Start WebSocket in a separate thread and wait for result
-        import threading
-
         if self.ws is not None:
             ws_thread = threading.Thread(target=self.ws.run_forever)
             ws_thread.daemon = True
@@ -358,6 +532,38 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Generate unique GUID for this request
         guid = generate_guid()
 
+        # Determine routing strategy for this compiler
+        routing_info = lookup_compiler_routing(compiler_id)
+
+        if routing_info["type"] == "url":
+            # Direct URL forwarding - no WebSocket needed
+            try:
+                response = forward_to_environment_url(compiler_id, routing_info["target"], body, is_cmake, headers)
+
+                # Create ALB-compatible response
+                response_headers = response.get("headers", {})
+                # Ensure CORS headers are present
+                response_headers.update(
+                    {
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Methods": "POST",
+                        "Access-Control-Allow-Headers": "Content-Type, Accept",
+                    }
+                )
+
+                return {
+                    "statusCode": response.get("statusCode", 200),
+                    "headers": response_headers,
+                    "body": response.get("body", ""),
+                }
+
+            except URLForwardingError as e:
+                logger.error(f"URL forwarding error: {e}")
+                return create_error_response(500, f"Failed to forward request: {str(e)}")
+
+        # Queue-based routing - continue with existing WebSocket flow
+        queue_url = routing_info["target"]
+
         # First, establish WebSocket connection and subscribe to the GUID
         # This ensures we're ready to receive the result before sending to SQS
         try:
@@ -374,8 +580,6 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             )
 
             # Start the WebSocket connection in a separate thread using run_forever
-            import threading
-
             if ws_client.ws is not None:
                 ws_thread = threading.Thread(target=ws_client.ws.run_forever)
                 ws_thread.daemon = True
@@ -397,7 +601,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
 
         # Now send request to SQS queue with headers
         try:
-            send_to_sqs(guid, compiler_id, body, is_cmake, headers)
+            send_to_sqs(guid, compiler_id, body, is_cmake, headers, queue_url)
         except SQSError as e:
             logger.error(f"SQS error: {e}")
             try:
