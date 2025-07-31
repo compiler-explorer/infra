@@ -295,21 +295,16 @@ class DeploymentJob:
                     files_to_upload.append(f)
 
             if files_with_mismatch:
+                log_level = logging.WARNING if self.ignore_hash_mismatch else logging.ERROR
+                logger.log(log_level, "%d files have mismatching hashes", len(files_with_mismatch))
+                for f in files_with_mismatch:
+                    logger.log(log_level, "%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+
                 if self.ignore_hash_mismatch:
-                    logger.warning(
-                        "%d files have mismatching hashes (ignoring due to --ignore-hash-mismatch)",
-                        len(files_with_mismatch),
-                    )
-                    for f in files_with_mismatch:
-                        logger.warning("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
                     logger.warning("continuing deployment despite hash mismatches")
                     # Treat mismatched files as files to upload
                     files_to_upload.extend(files_with_mismatch)
                 else:
-                    logger.error("%d files have mismatching hashes", len(files_with_mismatch))
-                    for f in files_with_mismatch:
-                        logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
-
                     logger.error("aborting cdn deployment due to errors")
                     return False
 
