@@ -200,6 +200,9 @@ def blue_green_status(cfg: Config, detailed: bool):
 @click.option("--notify/--no-notify", help="Send GitHub notifications for newly released PRs (prod only)", default=None)
 @click.option("--dry-run-notify", is_flag=True, help="Show what notifications would be sent without sending them")
 @click.option("--check-notifications", is_flag=True, help="Only check what notifications would be sent, don't deploy")
+@click.option(
+    "--ignore-hash-mismatch", help="Continue deployment even if files have unexpected hash values", is_flag=True
+)
 @click.argument("version", required=False)
 @click.pass_obj
 def blue_green_deploy(
@@ -210,6 +213,7 @@ def blue_green_deploy(
     notify: Optional[bool],
     dry_run_notify: bool,
     check_notifications: bool,
+    ignore_hash_mismatch: bool,
     version: Optional[str],
 ):
     """Deploy to the inactive color using blue-green strategy.
@@ -342,7 +346,13 @@ def blue_green_deploy(
             should_notify = False  # Don't notify immediately
 
     try:
-        deployment.deploy(target_capacity=capacity, skip_confirmation=skip_confirmation, version=version, branch=branch)
+        deployment.deploy(
+            target_capacity=capacity,
+            skip_confirmation=skip_confirmation,
+            version=version,
+            branch=branch,
+            ignore_hash_mismatch=ignore_hash_mismatch,
+        )
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
 
