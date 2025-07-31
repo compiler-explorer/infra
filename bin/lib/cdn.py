@@ -68,13 +68,23 @@ def guess_content_type(filename):
 class DeploymentJob:
     tmpdir = None
 
-    def __init__(self, tar_file_path, bucket_name, bucket_path="", version=None, max_workers=None, cache_control=None):
+    def __init__(
+        self,
+        tar_file_path,
+        bucket_name,
+        bucket_path="",
+        version=None,
+        max_workers=None,
+        cache_control=None,
+        ignore_hash_mismatch=False,
+    ):
         self.tar_file_path = tar_file_path
         self.bucket_name = bucket_name
         self.bucket_path = Path(bucket_path)
         self.version = version
         self.max_workers = max_workers or os.cpu_count() or 1
         self.cache_control = cache_control
+        self.ignore_hash_mismatch = ignore_hash_mismatch
         self.deploydate = datetime.utcnow().isoformat(timespec="seconds")
 
     def __enter__(self):
@@ -285,12 +295,23 @@ class DeploymentJob:
                     files_to_upload.append(f)
 
             if files_with_mismatch:
-                logger.error("%d files have mismatching hashes", len(files_with_mismatch))
-                for f in files_with_mismatch:
-                    logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+                if self.ignore_hash_mismatch:
+                    logger.warning(
+                        "%d files have mismatching hashes (ignoring due to --ignore-hash-mismatch)",
+                        len(files_with_mismatch),
+                    )
+                    for f in files_with_mismatch:
+                        logger.warning("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+                    logger.warning("continuing deployment despite hash mismatches")
+                    # Treat mismatched files as files to upload
+                    files_to_upload.extend(files_with_mismatch)
+                else:
+                    logger.error("%d files have mismatching hashes", len(files_with_mismatch))
+                    for f in files_with_mismatch:
+                        logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
 
-                logger.error("aborting cdn deployment due to errors")
-                return False
+                    logger.error("aborting cdn deployment due to errors")
+                    return False
 
             logger.info("will update %d file tag%s", len(files_to_update), "s" if len(files_to_update) != 1 else "")
             logger.info("will upload %d file tag%s", len(files_to_upload), "s" if len(files_to_upload) != 1 else "")
