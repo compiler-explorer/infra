@@ -1158,6 +1158,7 @@ compilers:
           - 1.8-clang-18.1.0
           - 1.9-clang-19.1.0
           - 1.10-clang-20.1.0
+          - 2.0-clang-20.1.0
         nightly:
           if: nightly
           subdir: clang-plugins
