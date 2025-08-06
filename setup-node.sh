@@ -81,6 +81,15 @@ git clone --recursive --branch ce https://github.com/compiler-explorer/nsjail.gi
 cd nsjail
 make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
+# New ubuntus need help to run unprivileged
+cat > /etc/apparmor.d/usr.local.bin.nsjail <<EOF
+#include <tunables/global>
+
+/usr/local/bin/nsjail flags=(unconfined) {
+  userns,
+}
+EOF
+apparmor_parser -r /etc/apparmor.d/usr.local.bin.nsjail
 popd
 
 
