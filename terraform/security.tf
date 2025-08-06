@@ -446,6 +446,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadGooGl
   policy_arn = aws_iam_policy.ReadGooGlLinks.arn
 }
 
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 // CompilerExplorerRole but for Windows machines
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
