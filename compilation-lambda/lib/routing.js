@@ -14,6 +14,25 @@ function getSqsQueueUrl() {
 // DynamoDB table for compiler routing
 const COMPILER_ROUTING_TABLE = 'CompilerRouting';
 
+// In-memory cache for routing lookups (TTL: 5 minutes)
+const routingCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Cache cleanup interval (every 2 minutes)
+const cleanupInterval = setInterval(() => {
+    const now = Date.now();
+    for (const [key, entry] of routingCache.entries()) {
+        if (now > entry.expires) {
+            routingCache.delete(key);
+        }
+    }
+}, 2 * 60 * 1000);
+
+// Allow cleanup interval to be cleared (for testing)
+if (process.env.NODE_ENV === 'test') {
+    cleanupInterval.unref();
+}
+
 /**
  * Parse request body based on content type
  * Supports both JSON and plain text (for source code)
@@ -46,6 +65,15 @@ async function lookupCompilerRouting(compilerId) {
         // Create composite key with environment prefix for isolation
         const environmentName = getEnvironmentName();
         const compositeKey = `${environmentName}#${compilerId}`;
+
+        // Check cache first
+        const cacheKey = compositeKey;
+        const cachedEntry = routingCache.get(cacheKey);
+        if (cachedEntry && Date.now() < cachedEntry.expires) {
+            const cacheHitDuration = Date.now() - lookupStart;
+            console.info(`Cache hit for ${compilerId} in ${cacheHitDuration}ms`);
+            return cachedEntry.data;
+        }
 
         // Look up compiler in DynamoDB routing table using composite key
         const primaryLookupStart = Date.now();
@@ -91,36 +119,54 @@ async function lookupCompilerRouting(compilerId) {
             if (routingType === 'url') {
                 const targetUrl = item.targetUrl?.S || '';
                 if (targetUrl) {
-                    console.info(`Compiler ${compilerId} routed to URL: ${targetUrl}`);
-                    console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
-                    return {
+                    const result = {
                         type: 'url',
                         target: targetUrl,
                         environment: item.environment?.S || ''
                     };
+                    // Cache the result
+                    routingCache.set(cacheKey, {
+                        data: result,
+                        expires: Date.now() + CACHE_TTL_MS
+                    });
+                    console.info(`Compiler ${compilerId} routed to URL: ${targetUrl}`);
+                    console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
+                    return result;
                 }
             } else {
                 // Queue routing - use environment's SQS_QUEUE_URL directly
                 const queueName = item.queueName?.S || 'default queue';
-                console.info(`Compiler ${compilerId} routed to queue: ${queueName}`);
-                console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
-                return {
+                const result = {
                     type: 'queue',
                     target: getSqsQueueUrl(),
                     environment: item.environment?.S || ''
                 };
+                // Cache the result
+                routingCache.set(cacheKey, {
+                    data: result,
+                    expires: Date.now() + CACHE_TTL_MS
+                });
+                console.info(`Compiler ${compilerId} routed to queue: ${queueName}`);
+                console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
+                return result;
             }
         }
 
         // No routing found, use default queue
         console.info(`No routing found for compiler ${compilerId}, using default queue`);
         const totalLookupDuration = Date.now() - lookupStart;
-        console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
-        return {
+        const result = {
             type: 'queue',
             target: getSqsQueueUrl(),
             environment: 'unknown'
         };
+        // Cache the default result (shorter TTL for non-existent entries)
+        routingCache.set(cacheKey, {
+            data: result,
+            expires: Date.now() + (CACHE_TTL_MS / 5) // 1 minute for missing entries
+        });
+        console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
+        return result;
 
     } catch (error) {
         // On any error, fall back to default queue
