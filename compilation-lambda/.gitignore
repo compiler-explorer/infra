@@ -1,0 +1,15 @@
+# Coverage reports
+coverage/
+*.lcov
+
+# Node modules
+node_modules/
+
+# npm log files
+npm-debug.log*
+
+# Environment variables
+.env
+
+# Test artifacts
+.nyc_output
