@@ -22,6 +22,7 @@ from lib.builds_core import (
     set_version_for_deployment,
 )
 from lib.ce_utils import is_running_on_admin_node
+from lib.compiler_routing import update_compiler_routing_table
 from lib.deployment_utils import (
     check_instance_health,
     print_target_group_diagnostics,
@@ -475,8 +476,6 @@ class BlueGreenDeployment:
             # Step 6: Update compiler routing table
             print(f"\nStep 6: Updating compiler routing table for {self.env}")
             try:
-                from lib.compiler_routing import update_compiler_routing_table
-
                 result = update_compiler_routing_table(self.env)
                 print(
                     f"  Compiler routing updated: {result['added']} added, {result['updated']} updated, {result['deleted']} deleted"

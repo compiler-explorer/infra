@@ -1,0 +1,178 @@
+const { dynamodb, sqs, AWS_ACCOUNT_ID, GetItemCommand, SendMessageCommand } = require('./aws-clients');
+
+// Environment variables - read dynamically to support environment switching in tests
+const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+
+function getEnvironmentName() {
+    return process.env.ENVIRONMENT_NAME || 'unknown';
+}
+
+function getSqsQueueUrl() {
+    return process.env.SQS_QUEUE_URL || '';
+}
+
+// DynamoDB table for compiler routing
+const COMPILER_ROUTING_TABLE = 'CompilerRouting';
+
+/**
+ * Parse request body based on content type
+ * Supports both JSON and plain text (for source code)
+ */
+function parseRequestBody(body, contentType) {
+    if (!body) return {};
+    
+    // Check if content type indicates JSON
+    if (contentType && contentType.toLowerCase().includes('application/json')) {
+        try {
+            return JSON.parse(body);
+        } catch (error) {
+            console.warn('Failed to parse JSON body, treating as plain text');
+            return { source: body };
+        }
+    } else {
+        // Plain text body - treat as source code
+        return { source: body };
+    }
+}
+
+/**
+ * Look up routing information for a specific compiler using DynamoDB
+ * Returns routing decision with type and target information
+ * Uses environment-prefixed composite key for isolation
+ */
+async function lookupCompilerRouting(compilerId) {
+    try {
+        // Create composite key with environment prefix for isolation
+        const environmentName = getEnvironmentName();
+        const compositeKey = `${environmentName}#${compilerId}`;
+        
+        // Look up compiler in DynamoDB routing table using composite key
+        const response = await dynamodb.send(new GetItemCommand({
+            TableName: COMPILER_ROUTING_TABLE,
+            Key: {
+                compilerId: { S: compositeKey }
+            }
+        }));
+        
+        let item = response.Item;
+        
+        if (!item) {
+            // Fallback: try old format (without environment prefix) for backward compatibility
+            console.info(`Composite key not found for ${compositeKey}, trying legacy format`);
+            const fallbackResponse = await dynamodb.send(new GetItemCommand({
+                TableName: COMPILER_ROUTING_TABLE,
+                Key: {
+                    compilerId: { S: compilerId }
+                }
+            }));
+            item = fallbackResponse.Item;
+            if (item) {
+                console.warn(`Using legacy routing entry for ${compilerId} - consider migration`);
+            }
+        }
+        
+        if (item) {
+            const routingType = item.routingType?.S || 'queue';
+            
+            if (routingType === 'url') {
+                const targetUrl = item.targetUrl?.S || '';
+                if (targetUrl) {
+                    console.info(`Compiler ${compilerId} routed to URL: ${targetUrl}`);
+                    return {
+                        type: 'url',
+                        target: targetUrl,
+                        environment: item.environment?.S || ''
+                    };
+                }
+            } else {
+                // Queue routing
+                const queueName = item.queueName?.S;
+                if (queueName) {
+                    // Convert queue name to queue URL
+                    const queueUrl = `https://sqs.${AWS_REGION}.amazonaws.com/${AWS_ACCOUNT_ID}/${queueName}`;
+                    
+                    console.info(`Compiler ${compilerId} routed to queue: ${queueName}`);
+                    return {
+                        type: 'queue',
+                        target: queueUrl,
+                        environment: item.environment?.S || ''
+                    };
+                }
+            }
+        }
+        
+        // No routing found, use default queue
+        console.info(`No routing found for compiler ${compilerId}, using default queue`);
+        return {
+            type: 'queue',
+            target: getSqsQueueUrl(),
+            environment: 'unknown'
+        };
+        
+    } catch (error) {
+        // On any error, fall back to default queue
+        console.warn(`Failed to lookup routing for compiler ${compilerId}:`, error);
+        return {
+            type: 'queue',
+            target: getSqsQueueUrl(),
+            environment: 'unknown'
+        };
+    }
+}
+
+/**
+ * Send compilation request to SQS queue as RemoteCompilationRequest
+ */
+async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
+    if (!queueUrl) {
+        throw new Error('No queue URL available (neither DynamoDB lookup nor SQS_QUEUE_URL env var set)');
+    }
+    
+    // Parse body based on content type
+    const contentType = headers['content-type'] || headers['Content-Type'] || '';
+    const requestData = parseRequestBody(body, contentType);
+    
+    if (typeof requestData !== 'object') {
+        console.warn(`Request data is not an object: ${JSON.stringify(requestData).substring(0, 100)}...`);
+    }
+    
+    // Start with Lambda-specific fields
+    const messageBody = {
+        guid,
+        compilerId,
+        isCMake: isCmake,
+        headers, // Preserve original headers for response formatting
+        ...requestData // Merge all fields from the original request first (preserves original values)
+    };
+    
+    // Add defaults for fields that are required by the consumer but might be missing
+    messageBody.source = messageBody.source || '';
+    messageBody.options = messageBody.options || [];
+    messageBody.filters = messageBody.filters || {};
+    messageBody.backendOptions = messageBody.backendOptions || {};
+    messageBody.tools = messageBody.tools || [];
+    messageBody.libraries = messageBody.libraries || [];
+    messageBody.files = messageBody.files || [];
+    messageBody.executeParameters = messageBody.executeParameters || {};
+    
+    try {
+        const messageJson = JSON.stringify(messageBody);
+        
+        await sqs.send(new SendMessageCommand({
+            QueueUrl: queueUrl,
+            MessageBody: messageJson,
+            MessageGroupId: 'default',
+            MessageDeduplicationId: guid
+        }));
+        
+    } catch (error) {
+        console.error('Failed to send message to SQS:', error);
+        throw new Error(`Failed to send message to SQS: ${error.message}`);
+    }
+}
+
+module.exports = {
+    lookupCompilerRouting,
+    sendToSqs,
+    parseRequestBody
+};

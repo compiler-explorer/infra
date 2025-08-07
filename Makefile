@@ -178,15 +178,15 @@ events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
 COMPILATION_LAMBDA_PACKAGE:=$(CURDIR)/.dist/compilation-lambda-package.zip
 COMPILATION_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/compilation-lambda-package.zip.sha256
-$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.py) compilation-lambda/pyproject.toml Makefile scripts/build_lambda_deterministic.py
-	$(UV_BIN) run python scripts/build_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
+$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.js) compilation-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_nodejs_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
 
 .PHONY: compilation-lambda-package  ## builds compilation lambda
 compilation-lambda-package: $(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA)
 
 .PHONY: test-compilation-lambda  ## runs compilation lambda tests
-test-compilation-lambda: ce
-	cd compilation-lambda && $(UV_BIN) run --with websocket-client --with boto3 --with pytest python -m pytest test_lambda_function.py -v
+test-compilation-lambda:
+	cd compilation-lambda && npm test
 
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)

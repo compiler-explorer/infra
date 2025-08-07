@@ -45,10 +45,12 @@ resource "aws_lambda_function" "compilation" {
   source_code_hash  = chomp(data.aws_s3_object.compilation_lambda_zip_sha.body)
   function_name     = "compilation-${var.environment}"
   role              = var.iam_role_arn
-  handler           = "lambda_function.lambda_handler"
+  handler           = "index.handler"
   timeout           = var.lambda_timeout
 
-  runtime = "python3.12"
+  runtime = "nodejs22.x"
+
+  architectures = ["arm64"]
 
   environment {
     variables = {

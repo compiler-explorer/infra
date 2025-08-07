@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Check code style/linting: `make pre-commit`
 - Install pre-commit hooks: `make install-pre-commit`
 - Build lambda package: `make lambda-package`
+- Build compilation lambda package (Node.js): `make compilation-lambda-package`
 - Build events lambda package: `make events-lambda-package`
 
 ## Important Workflow Requirements
@@ -283,11 +284,34 @@ The codebase supports multiple environments defined in `lib/env.py`:
 
 Each environment has properties like `keep_builds`, `is_windows`, `is_prod`, etc.
 
-## Blue-Green Deployment Notifications
+## Blue-Green Deployment Process
 
-The blue-green deployment system includes GitHub notification functionality that automatically notifies PRs and issues when they go live in production.
+The blue-green deployment system includes automatic post-deployment steps that ensure the environment is fully configured.
 
-### How It Works
+### Deployment Steps
+
+1. **Version Setting**: Updates the deployed version (if specified)
+2. **Scale Up**: Scales the inactive ASG to target capacity
+3. **Health Checks**: Waits for instances to be healthy
+4. **Traffic Switch**: Switches load balancer traffic to new instances
+5. **Scale Down Protection**: Resets ASG minimum sizes
+6. **Compiler Routing Update**: Automatically updates the compiler routing table for the environment
+7. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
+
+### Compiler Routing Integration
+
+After successful deployment, the system automatically runs `compiler-routing update` for the deployed environment:
+
+- **Automatic**: No manual intervention required
+- **Environment-specific**: Only updates routing for the deployed environment
+- **Safe**: Deployment continues even if routing update fails (with warning)
+- **Informative**: Shows count of added/updated/deleted routing entries
+
+### GitHub Notification System
+
+The deployment system includes GitHub notification functionality that automatically notifies PRs and issues when they go live in production.
+
+#### How It Works
 
 - **Production Only**: Notifications are only sent when deploying to production environment
 - **Version Change Detection**: Only notifies when there's an actual version change between deployments
