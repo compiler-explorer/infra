@@ -34,8 +34,8 @@ mount_opt() {
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
     if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # background mounts - serially mounts in the background, in MRU
-        ./mount-all-img.sh &
+        # TODO yeah
+        ./mount-all-img.sh
 
         echo "Done mounting squash images"
     fi
