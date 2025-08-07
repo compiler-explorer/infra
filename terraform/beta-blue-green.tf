@@ -8,10 +8,10 @@ module "beta_blue_green" {
   vpc_id                    = module.ce_network.vpc.id
   launch_template_id        = aws_launch_template.CompilerExplorer-beta.id
   subnets                   = local.subnets
-  asg_max_size              = 4
+  asg_max_size              = 10    # Increased to 10 for high load scenarios
   initial_desired_capacity  = 0
-  health_check_grace_period = local.grace_period
-  default_cooldown          = local.cooldown
+  health_check_grace_period = 120   # Reduced from 4min to 2min
+  default_cooldown          = 90    # Reduced from 3min to 1.5min
   enabled_metrics           = local.common_enabled_metrics
   initial_active_color      = "blue"
 
@@ -30,10 +30,10 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
   autoscaling_group_name    = module.beta_blue_green.blue_asg_name
   name                      = "beta-compilation-queue-tracker-blue"
   policy_type               = "TargetTrackingScaling"
-  estimated_instance_warmup = local.cooldown
+  estimated_instance_warmup = 90  # Reduced from 3min to 1.5min
 
   target_tracking_configuration {
-    target_value = 3
+    target_value = 2  # Reduced to 2 messages per instance for aggressive scaling
     customized_metric_specification {
       metrics {
         label = "Get the queue size (the number of compilation messages waiting to be processed)"
@@ -101,10 +101,10 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
   autoscaling_group_name    = module.beta_blue_green.green_asg_name
   name                      = "beta-compilation-queue-tracker-green"
   policy_type               = "TargetTrackingScaling"
-  estimated_instance_warmup = local.cooldown
+  estimated_instance_warmup = 90  # Reduced from 3min to 1.5min
 
   target_tracking_configuration {
-    target_value = 3
+    target_value = 2  # Reduced to 2 messages per instance for aggressive scaling
     customized_metric_specification {
       metrics {
         label = "Get the queue size (the number of compilation messages waiting to be processed)"
