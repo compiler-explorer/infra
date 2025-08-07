@@ -36,10 +36,27 @@ exports.handler = async (event, context) => {
         // Generate unique GUID for this request
         const guid = generateGuid();
 
-        // Determine routing strategy for this compiler
-        const routingInfo = await lookupCompilerRouting(compilerId);
+        // Start WebSocket connection and routing lookup in parallel for queue-based routing
+        // This saves time by overlapping the network operations
+        const routingPromise = lookupCompilerRouting(compilerId);
+        const wsConnectionPromise = (async () => {
+            try {
+                const wsClient = new WebSocketClient(WEBSOCKET_URL, guid);
+                await wsClient.connect();
+                return wsClient;
+            } catch (error) {
+                // Don't throw here - let routing decision determine if we need WebSocket
+                console.warn('WebSocket connection failed during parallel setup:', error);
+                return null;
+            }
+        })();
+
+        // Wait for routing decision
+        const routingInfo = await routingPromise;
 
         if (routingInfo.type === 'url') {
+            // Direct URL forwarding - cancel WebSocket if it's still connecting
+            wsConnectionPromise.then(ws => ws && ws.close()).catch(() => {});
             // Direct URL forwarding - no WebSocket needed
             try {
                 const response = await forwardToEnvironmentUrl(
@@ -69,15 +86,18 @@ exports.handler = async (event, context) => {
             }
         }
 
-        // Queue-based routing - continue with existing WebSocket flow
+        // Queue-based routing - use the WebSocket connection we started in parallel
         const queueUrl = routingInfo.target;
 
-        // First, establish WebSocket connection and subscribe to the GUID
-        // This ensures we're ready to receive the result before sending to SQS
+        // Wait for the WebSocket connection we started in parallel
         let wsClient;
         try {
-            wsClient = new WebSocketClient(WEBSOCKET_URL, guid);
-            await wsClient.connect();
+            wsClient = await wsConnectionPromise;
+            if (!wsClient) {
+                // WebSocket connection failed, try once more synchronously
+                wsClient = new WebSocketClient(WEBSOCKET_URL, guid);
+                await wsClient.connect();
+            }
 
             // Small delay to ensure subscription is processed
             await new Promise(resolve => setTimeout(resolve, 100));

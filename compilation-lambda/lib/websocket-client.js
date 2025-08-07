@@ -15,18 +15,26 @@ function calculateBackoffDelay(attempt, baseDelay = 500) {
 
 // WebSocket connection options for performance
 const WS_OPTIONS = {
-    perMessageDeflate: {
-        // Enable compression for large compilation results
-        zlibDeflateOptions: {
-            level: 1, // Fast compression
-        },
-        threshold: 1024, // Only compress messages > 1KB
-    },
-    // Optimize for low latency
-    handshakeTimeout: 2000, // Reduced from default 5000ms
-    // Enable TCP keepalive
+    // Disable compression for faster connection - result data isn't that large
+    perMessageDeflate: false,
+    
+    // Optimize for low latency connection
+    handshakeTimeout: 1500, // Aggressive timeout - fail fast if slow
+    
+    // Optimize TCP settings
     keepAlive: true,
     keepAliveInitialDelay: 300000, // 5 minutes
+    
+    // Reduce TLS overhead if possible
+    rejectUnauthorized: true, // Keep security but optimize handshake
+    
+    // HTTP options for WebSocket upgrade
+    headers: {
+        'Connection': 'Upgrade',
+        'Upgrade': 'websocket',
+        // Reduce header overhead
+        'User-Agent': 'CE-Lambda/1.0'
+    }
 };
 
 /**
@@ -109,7 +117,7 @@ class WebSocketClient {
                 this.connected = false;
             });
 
-            // Optimized connection timeout - fail fast for better retry behavior
+            // Aggressive connection timeout for fast failure detection
             const connectionTimeout = setTimeout(() => {
                 if (!this.connected) {
                     const timeoutDuration = Date.now() - connectStart;
@@ -117,7 +125,7 @@ class WebSocketClient {
                     this.ws.close();
                     reject(new Error('WebSocket connection timeout'));
                 }
-            }, 3000); // Reduced from 5000ms to 3000ms
+            }, 2000); // Reduced to 2000ms for faster retry cycles
 
             // Clear timeout when connection succeeds
             this.ws.on('open', () => {
