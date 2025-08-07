@@ -43,12 +43,19 @@ export class EventsConnections {
         return await ddbClient.send(updateCommand);
     }
 
-    static async unsubscribe(id) {
+    static async unsubscribe(id, subscription) {
+        // Only unsubscribe if the connection is currently subscribed to this specific subscription
         const updateCommand = new UpdateItemCommand({
             TableName: config.connections_table,
             Key: {connectionId: {S: id}},
             UpdateExpression: 'remove #subscription',
             ExpressionAttributeNames: {'#subscription': 'subscription'},
+            ConditionExpression: '#subscription = :subscription',
+            ExpressionAttributeValues: {
+                ':subscription': {
+                    S: subscription,
+                },
+            },
             ReturnValues: 'ALL_NEW',
         });
         return await ddbClient.send(updateCommand);
