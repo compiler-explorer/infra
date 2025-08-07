@@ -22,9 +22,16 @@ if [ -z "${!mounts[*]}" ]; then
   exit
 fi
 
-# If we try and do this in the loop, the mountpoint and mount commands effectively
-# serialise and we end up blocking until the whole thing's done.
-for img_file in "${!mounts[@]}"; do
+# Sort image files by modification time (most recent first)
+sorted_files=$(printf '%s\0' "${!mounts[@]}" | xargs -0 ls -1t)
+
+echo "Mounting $(echo "$sorted_files" | wc -l) squashfs images sequentially..."
+
+# Mount one at a time, most recent first
+while IFS= read -r img_file; do
   dst_path="${mounts[$img_file]}"
-  echo mount -v -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime
-done | xargs -d'\n' -n1 -P16 sh -c
+  echo "Mounting: $img_file -> $dst_path"
+  mount -v -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime
+done <<< "$sorted_files"
+
+echo "All mounts completed"

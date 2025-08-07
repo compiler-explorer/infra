@@ -107,5 +107,4 @@ cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.s
 systemctl daemon-reload
 systemctl enable compiler-explorer
 
-# Home is needed for WINE
-adduser --system --group --home /home/ce ce
+adduser --system --group ce
