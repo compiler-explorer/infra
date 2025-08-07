@@ -26,33 +26,33 @@ describe('Compilation Lambda Handler', () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
-    
+
     describe('Request Validation', () => {
         test('should reject non-POST methods', async () => {
             const event = {
                 httpMethod: 'GET',
                 path: '/api/compiler/gcc/compile'
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(405);
             expect(JSON.parse(response.body).error).toBe('Method not allowed');
         });
-        
+
         test('should reject invalid paths', async () => {
             const event = {
                 httpMethod: 'POST',
                 path: '/invalid/path'
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(400);
             expect(JSON.parse(response.body).error).toBe('Invalid path: compiler ID not found');
         });
     });
-    
+
     describe('URL Forwarding', () => {
         test('should use URL forwarding when routing returns URL config', async () => {
             // Mock routing to return URL config
@@ -61,23 +61,23 @@ describe('Compilation Lambda Handler', () => {
                 target: 'https://example.com/api/compiler/gcc/compile',
                 environment: 'test'
             });
-            
+
             // Mock HTTP forwarding
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: { 'content-type': 'application/json' },
                 body: { asm: [{ text: 'mov eax, 0' }] }
             });
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
                 headers: { 'content-type': 'application/json' }
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(200);
             expect(lookupCompilerRouting).toHaveBeenCalledWith('gcc');
             expect(forwardToEnvironmentUrl).toHaveBeenCalledWith(
@@ -89,30 +89,30 @@ describe('Compilation Lambda Handler', () => {
             );
             expect(sendToSqs).not.toHaveBeenCalled();
         });
-        
+
         test('should handle URL forwarding failure', async () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/gcc/compile',
                 environment: 'test'
             });
-            
+
             forwardToEnvironmentUrl.mockRejectedValue(new Error('Network error'));
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
                 headers: { 'content-type': 'application/json' }
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(500);
             expect(JSON.parse(response.body).error).toContain('Failed to forward request');
         });
     });
-    
+
     describe('Queue Routing', () => {
         test('should handle WebSocket connection failure gracefully', async () => {
             // Mock routing to return queue config
@@ -121,27 +121,27 @@ describe('Compilation Lambda Handler', () => {
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo',
                 environment: 'test'
             });
-            
+
             // Mock WebSocket client to fail connection
             const mockWsClient = {
                 connect: jest.fn().mockRejectedValue(new Error('Connection failed')),
                 close: jest.fn()
             };
             WebSocketClient.mockImplementation(() => mockWsClient);
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
                 headers: { 'content-type': 'application/json' }
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(500);
             expect(JSON.parse(response.body).error).toContain('Failed to setup result subscription');
         });
-        
+
         test('should handle successful queue routing', async () => {
             // Mock routing to return queue config
             lookupCompilerRouting.mockResolvedValue({
@@ -149,10 +149,10 @@ describe('Compilation Lambda Handler', () => {
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/custom-queue.fifo',
                 environment: 'test'
             });
-            
+
             // Mock SQS sending
             sendToSqs.mockResolvedValue();
-            
+
             // Mock WebSocket client with successful result
             const mockWsClient = {
                 connect: jest.fn().mockResolvedValue(),
@@ -164,16 +164,16 @@ describe('Compilation Lambda Handler', () => {
                 close: jest.fn()
             };
             WebSocketClient.mockImplementation(() => mockWsClient);
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
                 headers: { 'content-type': 'application/json' }
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(200);
             expect(lookupCompilerRouting).toHaveBeenCalledWith('gcc');
             expect(sendToSqs).toHaveBeenCalledWith(
@@ -187,7 +187,7 @@ describe('Compilation Lambda Handler', () => {
             expect(mockWsClient.waitForResult).toHaveBeenCalledWith(1); // TIMEOUT_SECONDS
         });
     });
-    
+
     describe('Path Parsing', () => {
         test('should extract compiler ID from production path', async () => {
             lookupCompilerRouting.mockResolvedValue({
@@ -195,22 +195,22 @@ describe('Compilation Lambda Handler', () => {
                 target: 'https://example.com/api/compiler/gcc-12/compile',
                 environment: 'test'
             });
-            
+
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: {},
                 body: 'success'
             });
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc-12/compile',
                 body: 'int main() {}',
                 headers: {}
             };
-            
+
             await handler(event, {});
-            
+
             expect(lookupCompilerRouting).toHaveBeenCalledWith('gcc-12');
             expect(forwardToEnvironmentUrl).toHaveBeenCalledWith(
                 'gcc-12',
@@ -220,54 +220,54 @@ describe('Compilation Lambda Handler', () => {
                 {}
             );
         });
-        
+
         test('should extract compiler ID from environment-specific path', async () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/clang-trunk/compile',
                 environment: 'test'
             });
-            
+
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: {},
                 body: 'success'
             });
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/beta/api/compiler/clang-trunk/compile',
                 body: 'int main() {}',
                 headers: {}
             };
-            
+
             await handler(event, {});
-            
+
             expect(lookupCompilerRouting).toHaveBeenCalledWith('clang-trunk');
         });
-        
+
         test('should detect cmake requests', async () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/gcc/compile',
                 environment: 'test'
             });
-            
+
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: {},
                 body: 'success'
             });
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/cmake',
                 body: 'project(test)',
                 headers: {}
             };
-            
+
             await handler(event, {});
-            
+
             // Should pass isCmake=true to forwardToEnvironmentUrl
             expect(forwardToEnvironmentUrl).toHaveBeenCalledWith(
                 'gcc',
@@ -278,80 +278,80 @@ describe('Compilation Lambda Handler', () => {
             );
         });
     });
-    
+
     describe('Error Handling', () => {
         test('should handle routing lookup errors gracefully', async () => {
             lookupCompilerRouting.mockRejectedValue(new Error('DynamoDB error'));
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/unknown/compile',
                 body: 'int main() {}',
                 headers: {}
             };
-            
+
             const response = await handler(event, {});
-            
+
             // Should still try to handle the request, but the routing lookup failed
             // The lookupCompilerRouting function should handle errors internally
             // and return a default fallback, but if it throws, we get a 500
             expect(response.statusCode).toBe(500);
         });
-        
+
         test('should handle SQS send failure', async () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'queue',
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo',
                 environment: 'test'
             });
-            
+
             const mockWsClient = {
                 connect: jest.fn().mockResolvedValue(),
                 close: jest.fn()
             };
             WebSocketClient.mockImplementation(() => mockWsClient);
-            
+
             sendToSqs.mockRejectedValue(new Error('SQS error'));
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
                 headers: { 'content-type': 'application/json' }
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(500);
             expect(JSON.parse(response.body).error).toContain('Failed to queue compilation request');
             expect(mockWsClient.close).toHaveBeenCalled();
         });
-        
+
         test('should handle compilation timeout', async () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'queue',
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo',
                 environment: 'test'
             });
-            
+
             sendToSqs.mockResolvedValue();
-            
+
             const mockWsClient = {
                 connect: jest.fn().mockResolvedValue(),
                 waitForResult: jest.fn().mockRejectedValue(new Error('No response received within 1 seconds')),
                 close: jest.fn()
             };
             WebSocketClient.mockImplementation(() => mockWsClient);
-            
+
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
                 headers: { 'content-type': 'application/json' }
             };
-            
+
             const response = await handler(event, {});
-            
+
             expect(response.statusCode).toBe(408);
             expect(JSON.parse(response.body).error).toContain('Compilation timeout');
             expect(mockWsClient.close).toHaveBeenCalled();

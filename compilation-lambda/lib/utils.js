@@ -19,12 +19,12 @@ function generateGuid() {
 function extractCompilerId(path) {
     try {
         const pathParts = path.replace(TRIM_SLASHES_REGEX, '').split('/');
-        
+
         // Production format: /api/compiler/{compiler_id}/compile
         if (pathParts.length >= 4 && pathParts[0] === 'api' && pathParts[1] === 'compiler') {
             return pathParts[2];
         }
-        
+
         // Other environments format: /{env}/api/compiler/{compiler_id}/compile
         if (pathParts.length >= 5 && pathParts[1] === 'api' && pathParts[2] === 'compiler') {
             return pathParts[3];
@@ -74,7 +74,7 @@ function createSuccessResponse(result, acceptHeader) {
             // Fallback to stdout if no asm
             body = result.stdout.join('\n');
         }
-        
+
         return {
             statusCode: 200,
             headers: {

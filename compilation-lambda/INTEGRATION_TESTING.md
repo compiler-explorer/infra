@@ -35,13 +35,13 @@ Verifies the hardcoded AWS account ID constant is correct.
 expect(AWS_ACCOUNT_ID).toBe('052730242331');
 ```
 
-### 🗄️ DynamoDB Compiler Routing  
+### 🗄️ DynamoDB Compiler Routing
 Tests real DynamoDB `CompilerRouting` table with actual routing data.
 
 **Test Scenarios:**
 - **Composite Key Lookup** - Tests environment-prefixed keys (`prod#gcc-trunk`)
 - **URL Routing** - Tests GPU environment with direct URL forwarding
-- **Queue Routing** - Tests production environment with SQS queue routing  
+- **Queue Routing** - Tests production environment with SQS queue routing
 - **Fallback Logic** - Tests legacy key format and default queue fallback
 - **Non-existent Compilers** - Verifies graceful handling of missing entries
 
@@ -58,7 +58,7 @@ expect(result.target).toBe('https://godbolt.org/gpu/api/compiler/nvcc129u1/compi
 Tests SQS message construction without actually sending messages to avoid queue pollution.
 
 **Features Tested:**
-- Message body formatting and validation  
+- Message body formatting and validation
 - Request parsing (JSON vs plain text)
 - Required field defaults (source, options, filters, etc.)
 - Queue URL validation
@@ -82,7 +82,7 @@ Comprehensive tests that combine multiple components:
 
 ### DynamoDB Table: `CompilerRouting`
 - **Account**: `052730242331`
-- **Region**: `us-east-1`  
+- **Region**: `us-east-1`
 - **Records**: ~5,156 compiler routing entries
 - **Key Structure**: `compilerId` (String) - supports both legacy (`gcc-trunk`) and composite (`prod#gcc-trunk`) formats
 
@@ -90,7 +90,7 @@ Comprehensive tests that combine multiple components:
 ```json
 {
     "compilerId": "prod#gimpleesp32g20230208",
-    "environment": "prod", 
+    "environment": "prod",
     "routingType": "queue",
     "queueName": "prod-compilation-queue",
     "lastUpdated": "2025-07-29T12:54:16.069297+00:00"
@@ -102,7 +102,7 @@ Comprehensive tests that combine multiple components:
 {
     "compilerId": "gpu#nvcc129u1",
     "environment": "gpu",
-    "routingType": "url", 
+    "routingType": "url",
     "targetUrl": "https://godbolt.org/gpu/api/compiler/nvcc129u1/compile",
     "lastUpdated": "2025-07-29T14:11:07.170513+00:00"
 }
@@ -117,7 +117,7 @@ Integration tests use these environment variables:
 
 ```bash
 ENVIRONMENT_NAME=test                    # Environment context for routing
-AWS_REGION=us-east-1                    # AWS region for all services  
+AWS_REGION=us-east-1                    # AWS region for all services
 SQS_QUEUE_URL=https://sqs.us-east-1...  # Default fallback queue
 WEBSOCKET_URL=wss://test.example.com... # WebSocket endpoint (not used in integration tests)
 ```
@@ -140,10 +140,10 @@ process.env.ENVIRONMENT_NAME = originalEnv;  // Restore
 Uses actual compiler IDs and routing data from the production system:
 
 - `gimpleesp32g20230208` - Production compiler with queue routing
-- `nvcc129u1` - GPU compiler with URL routing  
+- `nvcc129u1` - GPU compiler with URL routing
 - Non-existent compiler IDs for fallback testing
 
-### ✅ Error Handling Verification  
+### ✅ Error Handling Verification
 Tests graceful degradation when AWS services are unavailable or return errors.
 
 ### ✅ Performance Measurement
@@ -158,7 +158,7 @@ Integration tests include timeouts (10-15 seconds) to ensure reasonable response
 
 ### 🔍 Environment-Specific Logic
 - Tests composite key routing (environment isolation)
-- Verifies fallback logic with legacy routing entries  
+- Verifies fallback logic with legacy routing entries
 - Validates queue URL construction with real account IDs
 
 ### 🐛 Early Issue Detection
@@ -190,7 +190,7 @@ npm run test:integration
 Integration Tests - Real AWS Services
   AWS Account Identity
     ✓ should get real AWS account ID from STS (457 ms)
-  DynamoDB Compiler Routing  
+  DynamoDB Compiler Routing
     ✓ should lookup prod compiler with queue routing (430 ms)
     ✓ should lookup GPU compiler with URL routing (100 ms)
     ✓ should handle non-existent compiler gracefully (201 ms)
@@ -201,7 +201,7 @@ Integration Tests - Real AWS Services
 ✓ Compiler gimpleesp32g20230208 routed to: https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue
 ✓ Compiler nvcc129u1 routed to: https://godbolt.org/gpu/api/compiler/nvcc129u1/compile
 
-Test Suites: 1 passed, 1 total  
+Test Suites: 1 passed, 1 total
 Tests: 20 passed, 20 total
 ```
 
@@ -234,7 +234,7 @@ console.log('DynamoDB response:', JSON.stringify(result, null, 2));
 ## Best Practices
 
 1. **Run integration tests before deployments** to catch AWS configuration issues
-2. **Keep test data current** by periodically reviewing compiler routing entries  
+2. **Keep test data current** by periodically reviewing compiler routing entries
 3. **Monitor test performance** - slow tests may indicate AWS service issues
 4. **Use separate test environment** when possible to avoid production data dependencies
 5. **Document expected test compiler IDs** if routing data changes frequently

@@ -19,7 +19,7 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
                 url = url.endsWith('/') ? `${url}compile` : `${url}/compile`;
             }
         }
-        
+
         // Prepare headers for forwarding (filter out ALB-specific headers)
         const forwardHeaders = {};
         for (const [key, value] of Object.entries(headers)) {
@@ -28,7 +28,7 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
                 forwardHeaders[key] = value;
             }
         }
-        
+
         // Set appropriate content type if not already set
         if (!forwardHeaders['content-type'] && !forwardHeaders['Content-Type']) {
             try {
@@ -40,23 +40,23 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
                 forwardHeaders['Content-Type'] = 'text/plain';
             }
         }
-        
+
         console.info(`Forwarding request to ${url}`);
-        
+
         // Make the HTTP request to the target environment
         const response = await axios.post(url, body, {
             headers: forwardHeaders,
             timeout: 60000, // 60 second timeout
             validateStatus: null // Don't throw on HTTP error status
         });
-        
+
         // Return the response content and headers
         return {
             statusCode: response.status,
             headers: response.headers,
             body: response.data
         };
-        
+
     } catch (error) {
         if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
             console.error(`Timeout forwarding to ${url}:`, error);

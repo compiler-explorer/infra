@@ -10,7 +10,7 @@ This directory contains the modular components of the compilation lambda, organi
 - Provides cached account ID lookup
 - Exports AWS SDK command classes for dependency injection
 
-### `routing.js` 
+### `routing.js`
 **Compiler Routing Logic**
 - DynamoDB lookup for compiler-to-queue/URL routing
 - Request body parsing (JSON/plain text)

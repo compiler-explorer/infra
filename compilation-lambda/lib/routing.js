@@ -1,4 +1,4 @@
-const { dynamodb, sqs, AWS_ACCOUNT_ID, GetItemCommand, SendMessageCommand } = require('./aws-clients');
+const { dynamodb, sqs, GetItemCommand, SendMessageCommand } = require('./aws-clients');
 
 // Environment variables - read dynamically to support environment switching in tests
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
@@ -20,7 +20,7 @@ const COMPILER_ROUTING_TABLE = 'CompilerRouting';
  */
 function parseRequestBody(body, contentType) {
     if (!body) return {};
-    
+
     // Check if content type indicates JSON
     if (contentType && contentType.toLowerCase().includes('application/json')) {
         try {
@@ -45,7 +45,7 @@ async function lookupCompilerRouting(compilerId) {
         // Create composite key with environment prefix for isolation
         const environmentName = getEnvironmentName();
         const compositeKey = `${environmentName}#${compilerId}`;
-        
+
         // Look up compiler in DynamoDB routing table using composite key
         const response = await dynamodb.send(new GetItemCommand({
             TableName: COMPILER_ROUTING_TABLE,
@@ -53,9 +53,9 @@ async function lookupCompilerRouting(compilerId) {
                 compilerId: { S: compositeKey }
             }
         }));
-        
+
         let item = response.Item;
-        
+
         if (!item) {
             // Fallback: try old format (without environment prefix) for backward compatibility
             console.info(`Composite key not found for ${compositeKey}, trying legacy format`);
@@ -70,10 +70,10 @@ async function lookupCompilerRouting(compilerId) {
                 console.warn(`Using legacy routing entry for ${compilerId} - consider migration`);
             }
         }
-        
+
         if (item) {
             const routingType = item.routingType?.S || 'queue';
-            
+
             if (routingType === 'url') {
                 const targetUrl = item.targetUrl?.S || '';
                 if (targetUrl) {
@@ -85,22 +85,17 @@ async function lookupCompilerRouting(compilerId) {
                     };
                 }
             } else {
-                // Queue routing
-                const queueName = item.queueName?.S;
-                if (queueName) {
-                    // Convert queue name to queue URL
-                    const queueUrl = `https://sqs.${AWS_REGION}.amazonaws.com/${AWS_ACCOUNT_ID}/${queueName}`;
-                    
-                    console.info(`Compiler ${compilerId} routed to queue: ${queueName}`);
-                    return {
-                        type: 'queue',
-                        target: queueUrl,
-                        environment: item.environment?.S || ''
-                    };
-                }
+                // Queue routing - use environment's SQS_QUEUE_URL directly
+                const queueName = item.queueName?.S || 'default queue';
+                console.info(`Compiler ${compilerId} routed to queue: ${queueName}`);
+                return {
+                    type: 'queue',
+                    target: getSqsQueueUrl(),
+                    environment: item.environment?.S || ''
+                };
             }
         }
-        
+
         // No routing found, use default queue
         console.info(`No routing found for compiler ${compilerId}, using default queue`);
         return {
@@ -108,7 +103,7 @@ async function lookupCompilerRouting(compilerId) {
             target: getSqsQueueUrl(),
             environment: 'unknown'
         };
-        
+
     } catch (error) {
         // On any error, fall back to default queue
         console.warn(`Failed to lookup routing for compiler ${compilerId}:`, error);
@@ -127,15 +122,15 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
     if (!queueUrl) {
         throw new Error('No queue URL available (neither DynamoDB lookup nor SQS_QUEUE_URL env var set)');
     }
-    
+
     // Parse body based on content type
     const contentType = headers['content-type'] || headers['Content-Type'] || '';
     const requestData = parseRequestBody(body, contentType);
-    
+
     if (typeof requestData !== 'object') {
         console.warn(`Request data is not an object: ${JSON.stringify(requestData).substring(0, 100)}...`);
     }
-    
+
     // Start with Lambda-specific fields
     const messageBody = {
         guid,
@@ -144,7 +139,7 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
         headers, // Preserve original headers for response formatting
         ...requestData // Merge all fields from the original request first (preserves original values)
     };
-    
+
     // Add defaults for fields that are required by the consumer but might be missing
     messageBody.source = messageBody.source || '';
     messageBody.options = messageBody.options || [];
@@ -154,17 +149,17 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
     messageBody.libraries = messageBody.libraries || [];
     messageBody.files = messageBody.files || [];
     messageBody.executeParameters = messageBody.executeParameters || {};
-    
+
     try {
         const messageJson = JSON.stringify(messageBody);
-        
+
         await sqs.send(new SendMessageCommand({
             QueueUrl: queueUrl,
             MessageBody: messageJson,
             MessageGroupId: 'default',
             MessageDeduplicationId: guid
         }));
-        
+
     } catch (error) {
         console.error('Failed to send message to SQS:', error);
         throw new Error(`Failed to send message to SQS: ${error.message}`);
