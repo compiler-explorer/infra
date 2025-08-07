@@ -29,6 +29,7 @@ apt-get -y install \
   python3-pip \
   python3-venv \
   qemu-user-static \
+  rsyslog \
   ssmtp \
   unzip \
   wget
