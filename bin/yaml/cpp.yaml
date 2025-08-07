@@ -1048,6 +1048,10 @@ compilers:
             check_exe: bin/clang --version
           - name: assertions-2.7.0
             check_exe: bin/clang --version
+            after_stage_script:
+            - cd clang-assertions-2.7.0/bin
+            - rm -rf clang++
+            - ln -s clang clang++
           - assertions-2.8.0
           - assertions-2.9.0
           - assertions-3.0.0
