@@ -162,7 +162,7 @@ EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
 EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
 EVENTS_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/events-lambda-package.zip.sha256
 EVENTS_LAMBDA_DIR:=$(CURDIR)/events-lambda
-$(EVENTS_LAMBDA_PACKAGE):
+$(EVENTS_LAMBDA_PACKAGE): $(wildcard events-lambda/*.js) events-lambda/package.json Makefile
 	rm -rf $(EVENTS_LAMBDA_PACKAGE_DIR)
 	mkdir -p $(EVENTS_LAMBDA_PACKAGE_DIR)
 	cd $(EVENTS_LAMBDA_DIR) && npm i && npm run lint && npm install --no-audit --ignore-scripts --production && npm install --no-audit --ignore-scripts --production --cpu arm64 && cd ..
