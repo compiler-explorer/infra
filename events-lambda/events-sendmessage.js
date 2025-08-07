@@ -38,6 +38,11 @@ async function handle_text_message(apiGwClient, connectionId, message) {
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
         await EventsConnections.update(connectionId, subscription);
+    } else if (message.startsWith('unsubscribe: ')) {
+        const subscription = message.substring(13);
+        await EventsConnections.unsubscribe(connectionId);
+        // eslint-disable-next-line no-console
+        console.log(`Connection ${connectionId} unsubscribed from ${subscription}`);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }

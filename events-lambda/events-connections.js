@@ -43,6 +43,17 @@ export class EventsConnections {
         return await ddbClient.send(updateCommand);
     }
 
+    static async unsubscribe(id) {
+        const updateCommand = new UpdateItemCommand({
+            TableName: config.connections_table,
+            Key: {connectionId: {S: id}},
+            UpdateExpression: 'remove #subscription',
+            ExpressionAttributeNames: {'#subscription': 'subscription'},
+            ReturnValues: 'ALL_NEW',
+        });
+        return await ddbClient.send(updateCommand);
+    }
+
     static async add(id) {
         const putCommand = new PutItemCommand({
             TableName: config.connections_table,

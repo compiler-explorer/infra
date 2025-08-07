@@ -1,11 +1,28 @@
 const { lookupCompilerRouting, sendToSqs } = require('./lib/routing');
-const { WebSocketClient } = require('./lib/websocket-client');
+const { waitForCompilationResultPersistent, getPersistentWebSocket } = require('./lib/websocket-client');
 const { forwardToEnvironmentUrl } = require('./lib/http-forwarder');
 const { generateGuid, extractCompilerId, isCmakeRequest, createErrorResponse, createSuccessResponse } = require('./lib/utils');
 
 // Environment variables
 const TIMEOUT_SECONDS = parseInt(process.env.TIMEOUT_SECONDS || '60', 10);
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL || '';
+
+// Graceful shutdown handler for persistent WebSocket
+process.on('SIGTERM', () => {
+    console.info('SIGTERM received, closing persistent WebSocket...');
+    const wsManager = getPersistentWebSocket();
+    if (wsManager) {
+        wsManager.close();
+    }
+});
+
+process.on('SIGINT', () => {
+    console.info('SIGINT received, closing persistent WebSocket...');
+    const wsManager = getPersistentWebSocket();
+    if (wsManager) {
+        wsManager.close();
+    }
+});
 
 /**
  * Main Lambda handler for compilation requests
@@ -36,27 +53,10 @@ exports.handler = async (event, context) => {
         // Generate unique GUID for this request
         const guid = generateGuid();
 
-        // Start WebSocket connection and routing lookup in parallel for queue-based routing
-        // This saves time by overlapping the network operations
-        const routingPromise = lookupCompilerRouting(compilerId);
-        const wsConnectionPromise = (async () => {
-            try {
-                const wsClient = new WebSocketClient(WEBSOCKET_URL, guid);
-                await wsClient.connect();
-                return wsClient;
-            } catch (error) {
-                // Don't throw here - let routing decision determine if we need WebSocket
-                console.warn('WebSocket connection failed during parallel setup:', error);
-                return null;
-            }
-        })();
-
-        // Wait for routing decision
-        const routingInfo = await routingPromise;
+        // Determine routing strategy for this compiler
+        const routingInfo = await lookupCompilerRouting(compilerId);
 
         if (routingInfo.type === 'url') {
-            // Direct URL forwarding - cancel WebSocket if it's still connecting
-            wsConnectionPromise.then(ws => ws && ws.close()).catch(() => {});
             // Direct URL forwarding - no WebSocket needed
             try {
                 const response = await forwardToEnvironmentUrl(
@@ -86,26 +86,8 @@ exports.handler = async (event, context) => {
             }
         }
 
-        // Queue-based routing - use the WebSocket connection we started in parallel
+        // Queue-based routing - use persistent WebSocket
         const queueUrl = routingInfo.target;
-
-        // Wait for the WebSocket connection we started in parallel
-        let wsClient;
-        try {
-            wsClient = await wsConnectionPromise;
-            if (!wsClient) {
-                // WebSocket connection failed, try once more synchronously
-                wsClient = new WebSocketClient(WEBSOCKET_URL, guid);
-                await wsClient.connect();
-            }
-
-            // Small delay to ensure subscription is processed
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-        } catch (error) {
-            console.error('Failed to setup WebSocket subscription:', error);
-            return createErrorResponse(500, `Failed to setup result subscription: ${error.message}`);
-        }
 
         // Now send request to SQS queue with headers
         const sqsStart = Date.now();
@@ -115,14 +97,13 @@ exports.handler = async (event, context) => {
             console.info(`Lambda timing: SQS queuing completed in ${sqsTime}ms`);
         } catch (error) {
             console.error('SQS error:', error);
-            wsClient.close();
             return createErrorResponse(500, `Failed to queue compilation request: ${error.message}`);
         }
 
-        // Wait for compilation result via the already-connected WebSocket
+        // Wait for compilation result via persistent WebSocket
         const resultStart = Date.now();
         try {
-            const result = await wsClient.waitForResult(TIMEOUT_SECONDS);
+            const result = await waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
             const resultTime = Date.now() - resultStart;
             console.info(`Lambda timing: result received in ${resultTime}ms`);
 
@@ -135,7 +116,6 @@ exports.handler = async (event, context) => {
 
         } catch (error) {
             console.error('Timeout or error waiting for compilation result:', error);
-            wsClient.close();
 
             if (error.message.includes('No response received')) {
                 return createErrorResponse(408, `Compilation timeout: ${error.message}`);
