@@ -130,9 +130,5 @@ resource "aws_alb_listener_rule" "compilation" {
 resource "aws_lambda_provisioned_concurrency_config" "compilation" {
   function_name                     = aws_lambda_function.compilation.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = aws_lambda_function.compilation.version
-
-  lifecycle {
-    ignore_changes = [qualifier]
-  }
+  qualifier                         = "$LATEST"
 }

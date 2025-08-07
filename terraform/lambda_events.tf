@@ -204,29 +204,17 @@ resource "aws_lambda_permission" "events_sendmessage" {
 resource "aws_lambda_provisioned_concurrency_config" "events_sendmessage" {
   function_name                     = aws_lambda_function.events_sendmessage.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = aws_lambda_function.events_sendmessage.version
-
-  lifecycle {
-    ignore_changes = [qualifier]
-  }
+  qualifier                         = "$LATEST"
 }
 
 resource "aws_lambda_provisioned_concurrency_config" "events_onconnect" {
   function_name                     = aws_lambda_function.events_onconnect.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = aws_lambda_function.events_onconnect.version
-
-  lifecycle {
-    ignore_changes = [qualifier]
-  }
+  qualifier                         = "$LATEST"
 }
 
 resource "aws_lambda_provisioned_concurrency_config" "events_ondisconnect" {
   function_name                     = aws_lambda_function.events_ondisconnect.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = aws_lambda_function.events_ondisconnect.version
-
-  lifecycle {
-    ignore_changes = [qualifier]
-  }
+  qualifier                         = "$LATEST"
 }
