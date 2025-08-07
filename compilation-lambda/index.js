@@ -108,8 +108,11 @@ exports.handler = async (event, context) => {
         }
 
         // Now send request to SQS queue with headers
+        const sqsStart = Date.now();
         try {
             await sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl);
+            const sqsTime = Date.now() - sqsStart;
+            console.info(`Lambda timing: SQS queuing completed in ${sqsTime}ms`);
         } catch (error) {
             console.error('SQS error:', error);
             wsClient.close();
@@ -117,12 +120,18 @@ exports.handler = async (event, context) => {
         }
 
         // Wait for compilation result via the already-connected WebSocket
+        const resultStart = Date.now();
         try {
             const result = await wsClient.waitForResult(TIMEOUT_SECONDS);
+            const resultTime = Date.now() - resultStart;
+            console.info(`Lambda timing: result received in ${resultTime}ms`);
 
             // Get Accept header for response formatting
-            const acceptHeader = headers.accept || headers.Accept || '';
-            return createSuccessResponse(result, acceptHeader);
+            const responseStart = Date.now();
+            const response = createSuccessResponse(result, headers.accept || headers.Accept || '');
+            const responseTime = Date.now() - responseStart;
+            console.info(`Lambda timing: response formatted in ${responseTime}ms`);
+            return response;
 
         } catch (error) {
             console.error('Timeout or error waiting for compilation result:', error);

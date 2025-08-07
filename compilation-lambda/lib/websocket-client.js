@@ -65,37 +65,36 @@ class WebSocketClient {
 
 
             this.ws.on('message', (data) => {
-                // Use setImmediate for non-blocking JSON parsing of large messages
-                setImmediate(() => {
-                    try {
-                        const message = JSON.parse(data.toString());
-                        const messageGuid = message.guid;
+                // Synchronous JSON parsing for minimal latency
+                try {
+                    const dataString = data.toString();
+                    const message = JSON.parse(dataString);
+                    const messageGuid = message.guid;
 
-                        if (messageGuid === this.guid) {
-                            const totalTime = Date.now() - connectStart;
-                            console.info(`WebSocket timing: received result for ${this.guid} after ${totalTime}ms`);
-                            // The entire message IS the result
-                            this.result = message;
+                    if (messageGuid === this.guid) {
+                        const totalTime = Date.now() - connectStart;
+                        console.info(`WebSocket timing: received result for ${this.guid} after ${totalTime}ms`);
+                        // The entire message IS the result
+                        this.result = message;
 
-                            // Immediately resolve any waiting promises
-                            if (this.resultResolver) {
-                                this.resultResolver(message);
-                                this.resultResolver = null;
-                                this.resultRejecter = null;
-                            }
-
-                            this.ws.close();
-                        }
-                    } catch (error) {
-                        console.warn(`Received invalid JSON message: ${data.toString().substring(0, 100)}... Error:`, error);
-                        // Reject waiting promise on JSON parse error
-                        if (this.resultRejecter) {
-                            this.resultRejecter(error);
+                        // Immediately resolve any waiting promises
+                        if (this.resultResolver) {
+                            this.resultResolver(message);
                             this.resultResolver = null;
                             this.resultRejecter = null;
                         }
+
+                        this.ws.close();
                     }
-                });
+                } catch (error) {
+                    console.warn(`Received invalid JSON message: ${data.toString().substring(0, 100)}... Error:`, error);
+                    // Reject waiting promise on JSON parse error
+                    if (this.resultRejecter) {
+                        this.resultRejecter(error);
+                        this.resultResolver = null;
+                        this.resultRejecter = null;
+                    }
+                }
             });
 
             this.ws.on('error', (error) => {
