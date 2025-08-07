@@ -109,8 +109,8 @@ resource "aws_lambda_function" "events_onconnect" {
 
   runtime       = "nodejs22.x"
   architectures = ["arm64"]
-  
-  publish = true  # Required for provisioned concurrency
+
+  publish = true # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_onconnect]
 }
@@ -127,8 +127,8 @@ resource "aws_lambda_function" "events_ondisconnect" {
 
   runtime       = "nodejs22.x"
   architectures = ["arm64"]
-  
-  publish = true  # Required for provisioned concurrency
+
+  publish = true # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_ondisconnect]
 }
@@ -145,8 +145,8 @@ resource "aws_lambda_function" "events_sendmessage" {
 
   runtime       = "nodejs22.x"
   architectures = ["arm64"]
-  
-  publish = true  # Required for provisioned concurrency
+
+  publish = true # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_sendmessage]
 }

@@ -15,24 +15,14 @@ function calculateBackoffDelay(attempt, baseDelay = 500) {
 
 // WebSocket connection options for performance
 const WS_OPTIONS = {
-    // Disable compression for faster connection - result data isn't that large
-    perMessageDeflate: false,
-    
-    // Optimize for low latency connection  
-    handshakeTimeout: 1000, // Very aggressive timeout - fail fast on slow connections
-    
-    // Optimize TCP settings
+    perMessageDeflate: false,  // Disable compression for faster connection
+    handshakeTimeout: 1000,    // Very aggressive timeout - fail fast on slow connections
     keepAlive: true,
     keepAliveInitialDelay: 300000, // 5 minutes
-    
-    // Reduce TLS overhead if possible
-    rejectUnauthorized: true, // Keep security but optimize handshake
-    
-    // HTTP options for WebSocket upgrade
+    rejectUnauthorized: true,
     headers: {
         'Connection': 'Upgrade',
         'Upgrade': 'websocket',
-        // Reduce header overhead
         'User-Agent': 'CE-Lambda/1.0'
     }
 };
@@ -261,7 +251,7 @@ class PersistentWebSocketManager {
 
     async connect() {
         const connectStart = Date.now();
-        
+
         return new Promise((resolve, reject) => {
             if (!this.url) {
                 reject(new Error('WEBSOCKET_URL not configured'));
@@ -280,7 +270,7 @@ class PersistentWebSocketManager {
                         clearTimeout(subscription.timeout);
                         subscription.resolver(message);
                         this.subscriptions.delete(messageGuid);
-                        
+
                         // Send unsubscribe command to free server resources
                         if (this.ws.readyState === WebSocket.OPEN) {
                             this.ws.send(`unsubscribe: ${messageGuid}`);
@@ -295,14 +285,14 @@ class PersistentWebSocketManager {
                 const errorTime = Date.now() - connectStart;
                 console.error(`Persistent WebSocket error after ${errorTime}ms:`, error);
                 this.connected = false;
-                
+
                 // Reject all pending subscriptions
                 for (const [guid, subscription] of this.subscriptions) {
                     clearTimeout(subscription.timeout);
                     subscription.rejecter(error);
                 }
                 this.subscriptions.clear();
-                
+
                 reject(error);
             });
 
@@ -310,7 +300,7 @@ class PersistentWebSocketManager {
                 const closeTime = Date.now() - connectStart;
                 console.warn(`Persistent WebSocket closed after ${closeTime}ms`);
                 this.connected = false;
-                
+
                 // Reject all pending subscriptions with close error
                 for (const [guid, subscription] of this.subscriptions) {
                     clearTimeout(subscription.timeout);
@@ -379,7 +369,7 @@ class PersistentWebSocketManager {
     close() {
         this.connected = false;
         this.connecting = false;
-        
+
         // Clear all subscriptions
         for (const [guid, subscription] of this.subscriptions) {
             clearTimeout(subscription.timeout);
@@ -412,7 +402,7 @@ function getPersistentWebSocket() {
 async function waitForCompilationResultPersistent(guid, timeout = 60) {
     const wsManager = getPersistentWebSocket();
     const overallStart = Date.now();
-    
+
     try {
         const result = await wsManager.subscribeForResult(guid, timeout);
         const totalDuration = Date.now() - overallStart;

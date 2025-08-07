@@ -64,7 +64,7 @@ resource "aws_lambda_function" "compilation" {
 
   depends_on = [aws_cloudwatch_log_group.compilation]
 
-  publish = true  # Required for provisioned concurrency
+  publish = true # Required for provisioned concurrency
 
   tags = merge({
     Environment = var.environment

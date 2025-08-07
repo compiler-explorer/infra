@@ -252,13 +252,13 @@ resource "aws_dynamodb_table" "compiler_routing" {
   point_in_time_recovery {
     enabled = true
   }
-  
+
   # Disable DynamoDB Streams - not needed and reduces write latency
   stream_enabled   = false
   stream_view_type = null
-  
+
   # Table class optimized for frequent access patterns
-  table_class = "STANDARD"  # Default, optimized for frequent reads/writes
+  table_class = "STANDARD" # Default, optimized for frequent reads/writes
 
   lifecycle {
     prevent_destroy = true
@@ -316,6 +316,6 @@ resource "aws_cloudwatch_metric_alarm" "compiler_routing_write_throttles" {
   }
 }
 
-# Note: DynamoDB Accelerator (DAX) configuration 
+# Note: DynamoDB Accelerator (DAX) configuration
 # DAX would provide microsecond latency but requires VPC setup
 # For now, focusing on DynamoDB table optimizations that can be applied immediately
