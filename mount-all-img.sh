@@ -32,6 +32,7 @@ while IFS= read -r img_file; do
   dst_path="${mounts[$img_file]}"
   echo "Mounting: $img_file -> $dst_path"
   mount -v -t squashfs "${img_file}" "${dst_path}" -o ro,nodev,relatime
+  sleep 0.5
 done <<< "$sorted_files"
 
 echo "All mounts completed"
