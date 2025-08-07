@@ -108,11 +108,3 @@ systemctl daemon-reload
 systemctl enable compiler-explorer
 
 adduser --system --group ce
-
-# Test Wine functionality for Windows compiler support
-# Wine must work headlessly without X11 display server for CE compilation tasks
-echo "Testing Wine functionality..."
-DISPLAY='' wine --version || {
-    echo "ERROR: Wine cannot run headlessly - this will break Windows compiler support"
-    exit 1
-}

@@ -39,16 +39,6 @@ apt-get -y install \
 systemctl disable cloud-init cloud-init-local cloud-config cloud-final
 touch /etc/cloud/cloud-init.disabled
 
-# Disable unnecessary services for headless server
-systemctl disable polkit acpid
-
-# Remove avahi packages (network discovery not needed on headless)
-apt-get remove --purge -y \
-    libavahi-client3 \
-    libavahi-common-data \
-    libavahi-common3  \
-    python3-xkit
-
 # This returns amd64 or arm64
 ARCH=$(dpkg --print-architecture)
 
