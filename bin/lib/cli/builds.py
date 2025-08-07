@@ -104,8 +104,13 @@ def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
 @click.option("--branch", help="if version == latest, branch to get latest version from")
 @click.option("--raw/--no-raw", help="Set a raw path for a version")
 @click.option("--confirm", help="Skip confirmation questions", is_flag=True)
+@click.option(
+    "--ignore-hash-mismatch", help="Continue deployment even if files have unexpected hash values", is_flag=True
+)
 @click.argument("version")
-def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
+def builds_set_current(
+    cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool, ignore_hash_mismatch: bool
+):
     """Set the current version to VERSION for this environment.
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
@@ -156,11 +161,11 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
         log_new_build(cfg, to_set)
         if release and release.static_key:
             if cfg.env.is_windows:
-                if not deploy_staticfiles_windows(release):
+                if not deploy_staticfiles_windows(release, ignore_hash_mismatch=ignore_hash_mismatch):
                     print("...aborted due to deployment failure!")
                     sys.exit(1)
             else:
-                if not deploy_staticfiles(release):
+                if not deploy_staticfiles(release, ignore_hash_mismatch=ignore_hash_mismatch):
                     print("...aborted due to deployment failure!")
                     sys.exit(1)
         else:

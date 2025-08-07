@@ -223,6 +223,7 @@ class BlueGreenDeployment:
         skip_confirmation: bool = False,
         version: Optional[str] = None,
         branch: Optional[str] = None,
+        ignore_hash_mismatch: bool = False,
     ) -> None:
         """Perform a blue-green deployment with optional version setting."""
         active_color = self.get_active_color()
@@ -402,7 +403,7 @@ class BlueGreenDeployment:
                         if not release:
                             raise RuntimeError(f"Version {version} not found") from None
 
-                if not set_version_for_deployment(self.cfg, release):
+                if not set_version_for_deployment(self.cfg, release, ignore_hash_mismatch=ignore_hash_mismatch):
                     raise RuntimeError(f"Failed to set version {version}")
 
                 version_was_changed = True
