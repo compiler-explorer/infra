@@ -4,6 +4,31 @@ const WebSocket = require('ws');
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL || '';
 const RETRY_COUNT = parseInt(process.env.RETRY_COUNT || '1', 10);
 
+// Exponential backoff for retry strategy
+function calculateBackoffDelay(attempt, baseDelay = 500) {
+    // Exponential backoff with jitter: 500ms, 1000ms, 2000ms, etc.
+    const exponentialDelay = baseDelay * Math.pow(2, attempt);
+    // Add random jitter (±20%) to prevent thundering herd
+    const jitter = exponentialDelay * 0.2 * (Math.random() - 0.5);
+    return Math.min(exponentialDelay + jitter, 5000); // Cap at 5 seconds
+}
+
+// WebSocket connection options for performance
+const WS_OPTIONS = {
+    perMessageDeflate: {
+        // Enable compression for large compilation results
+        zlibDeflateOptions: {
+            level: 1, // Fast compression
+        },
+        threshold: 1024, // Only compress messages > 1KB
+    },
+    // Optimize for low latency
+    handshakeTimeout: 2000, // Reduced from default 5000ms
+    // Enable TCP keepalive
+    keepAlive: true,
+    keepAliveInitialDelay: 300000, // 5 minutes
+};
+
 /**
  * WebSocket client for receiving compilation results
  */
@@ -15,6 +40,9 @@ class WebSocketClient {
         this.result = null;
         this.connected = false;
         this.error = null;
+        this.resultPromise = null;
+        this.resultResolver = null;
+        this.resultRejecter = null;
     }
 
     connect() {
@@ -25,9 +53,75 @@ class WebSocketClient {
                 return;
             }
 
-            this.ws = new WebSocket(this.url);
+            this.ws = new WebSocket(this.url, [], WS_OPTIONS);
 
+
+            this.ws.on('message', (data) => {
+                // Use setImmediate for non-blocking JSON parsing of large messages
+                setImmediate(() => {
+                    try {
+                        const message = JSON.parse(data.toString());
+                        const messageGuid = message.guid;
+
+                        if (messageGuid === this.guid) {
+                            const totalTime = Date.now() - connectStart;
+                            console.info(`WebSocket timing: received result for ${this.guid} after ${totalTime}ms`);
+                            // The entire message IS the result
+                            this.result = message;
+
+                            // Immediately resolve any waiting promises
+                            if (this.resultResolver) {
+                                this.resultResolver(message);
+                                this.resultResolver = null;
+                                this.resultRejecter = null;
+                            }
+
+                            this.ws.close();
+                        }
+                    } catch (error) {
+                        console.warn(`Received invalid JSON message: ${data.toString().substring(0, 100)}... Error:`, error);
+                        // Reject waiting promise on JSON parse error
+                        if (this.resultRejecter) {
+                            this.resultRejecter(error);
+                            this.resultResolver = null;
+                            this.resultRejecter = null;
+                        }
+                    }
+                });
+            });
+
+            this.ws.on('error', (error) => {
+                const errorTime = Date.now() - connectStart;
+                console.error(`WebSocket error for ${this.guid} after ${errorTime}ms:`, error);
+                this.error = error;
+
+                // Reject any waiting result promises
+                if (this.resultRejecter) {
+                    this.resultRejecter(error);
+                    this.resultResolver = null;
+                    this.resultRejecter = null;
+                }
+
+                reject(error);
+            });
+
+            this.ws.on('close', () => {
+                this.connected = false;
+            });
+
+            // Optimized connection timeout - fail fast for better retry behavior
+            const connectionTimeout = setTimeout(() => {
+                if (!this.connected) {
+                    const timeoutDuration = Date.now() - connectStart;
+                    console.warn(`WebSocket connection timeout after ${timeoutDuration}ms`);
+                    this.ws.close();
+                    reject(new Error('WebSocket connection timeout'));
+                }
+            }, 3000); // Reduced from 5000ms to 3000ms
+
+            // Clear timeout when connection succeeds
             this.ws.on('open', () => {
+                clearTimeout(connectionTimeout);
                 const connectDuration = Date.now() - connectStart;
                 console.info(`WebSocket timing: connection established in ${connectDuration}ms`);
                 this.connected = true;
@@ -36,72 +130,48 @@ class WebSocketClient {
                 this.ws.send(subscribeMsg);
                 resolve();
             });
-
-            this.ws.on('message', (data) => {
-                try {
-                    const message = JSON.parse(data.toString());
-                    const messageGuid = message.guid;
-
-                    if (messageGuid === this.guid) {
-                        const totalTime = Date.now() - connectStart;
-                        console.info(`WebSocket timing: received result for ${this.guid} after ${totalTime}ms`);
-                        // The entire message IS the result
-                        this.result = message;
-                        this.ws.close();
-                    }
-                } catch (error) {
-                    console.warn(`Received invalid JSON message: ${data.toString().substring(0, 100)}... Error:`, error);
-                }
-            });
-
-            this.ws.on('error', (error) => {
-                const errorTime = Date.now() - connectStart;
-                console.error(`WebSocket error for ${this.guid} after ${errorTime}ms:`, error);
-                this.error = error;
-                reject(error);
-            });
-
-            this.ws.on('close', () => {
-                this.connected = false;
-            });
-
-            // Connection timeout
-            setTimeout(() => {
-                if (!this.connected) {
-                    const timeoutDuration = Date.now() - connectStart;
-                    console.warn(`WebSocket connection timeout after ${timeoutDuration}ms`);
-                    this.ws.close();
-                    reject(new Error('WebSocket connection timeout'));
-                }
-            }, 5000);
         });
     }
 
     waitForResult(timeout) {
+        // If we already have the result, return immediately
+        if (this.result !== null) {
+            return Promise.resolve(this.result);
+        }
+
+        // If there was an error, reject immediately
+        if (this.error) {
+            return Promise.reject(this.error);
+        }
+
+        // Create a promise that will be resolved by the message handler
         return new Promise((resolve, reject) => {
-            const startTime = Date.now();
+            this.resultResolver = resolve;
+            this.resultRejecter = reject;
 
-            const checkResult = () => {
-                if (this.result !== null) {
-                    resolve(this.result);
-                    return;
-                }
-
-                if (this.error) {
-                    reject(this.error);
-                    return;
-                }
-
-                if (Date.now() - startTime > timeout * 1000) {
+            // Set up timeout
+            const timeoutId = setTimeout(() => {
+                if (this.resultRejecter) {
+                    this.resultRejecter(new Error(`No response received within ${timeout} seconds`));
+                    this.resultResolver = null;
+                    this.resultRejecter = null;
                     this.ws.close();
-                    reject(new Error(`No response received within ${timeout} seconds`));
-                    return;
                 }
+            }, timeout * 1000);
 
-                setTimeout(checkResult, 100);
+            // Clear timeout when promise resolves/rejects
+            const originalResolver = this.resultResolver;
+            const originalRejecter = this.resultRejecter;
+
+            this.resultResolver = (result) => {
+                clearTimeout(timeoutId);
+                originalResolver(result);
             };
 
-            checkResult();
+            this.resultRejecter = (error) => {
+                clearTimeout(timeoutId);
+                originalRejecter(error);
+            };
         });
     }
 
@@ -134,8 +204,9 @@ async function waitForCompilationResult(guid, timeout) {
             console.warn(`WebSocket timing: attempt ${attempt + 1} failed after ${attemptDuration}ms:`, error.message);
             lastError = error;
             if (attempt < RETRY_COUNT) {
-                console.info(`WebSocket timing: retrying in 1000ms...`);
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Brief delay before retry
+                const backoffDelay = calculateBackoffDelay(attempt);
+                console.info(`WebSocket timing: retrying in ${Math.round(backoffDelay)}ms... (exponential backoff)`);
+                await new Promise(resolve => setTimeout(resolve, backoffDelay));
             }
         }
     }
