@@ -197,11 +197,11 @@ upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
 	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
 
 .PHONY: terraform-apply
-terraform-apply:  upload-lambda upload-compilation-lambda ## Applies terraform
+terraform-apply:  upload-lambda upload-compilation-lambda upload-events-lambda ## Applies terraform
 	terraform -chdir=terraform apply
 
 .PHONY: terraform-plan
-terraform-plan:  upload-lambda upload-compilation-lambda ## Plans terraform changes
+terraform-plan:  upload-lambda upload-compilation-lambda upload-events-lambda ## Plans terraform changes
 	terraform -chdir=terraform plan
 
 .PHONY: pre-commit
