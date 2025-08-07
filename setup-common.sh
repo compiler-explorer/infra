@@ -4,19 +4,12 @@ set -exuo pipefail
 
 INSTALL_TYPE=${1:-non-ci}
 
-# https://askubuntu.com/questions/132059/how-to-make-a-package-manager-wait-if-another-instance-of-apt-is-running
-wait_for_apt() {
-  while fuser /var/lib/dpkg/lock >/dev/null 2>&1; do
-    echo "Waiting for other software managers to finish..."
-    sleep 5
-  done
-}
+# Disable automatic updates
+systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service
+systemctl disable apt-daily.service apt-daily-upgrade.service unattended-upgrades.service
 
-# Sometimes it seems auto apt takes a while to kick in...
-sleep 5
-wait_for_apt
-sleep 5
-wait_for_apt
+# Disable installing recommended packages by default
+echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99-no-install-recommends
 
 # Disable unattended upgrades
 apt purge -y --auto-remove unattended-upgrades
