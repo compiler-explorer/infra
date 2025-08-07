@@ -338,10 +338,40 @@ class PersistentWebSocketManager {
         });
     }
 
-    async subscribeForResult(guid, timeoutSeconds = 60) {
+    async subscribe(guid) {
         await this.ensureConnected();
-
+        
+        if (this.ws.readyState !== WebSocket.OPEN) {
+            throw new Error('WebSocket not connected');
+        }
+        
+        // Send subscribe command and wait for it to be sent
         return new Promise((resolve, reject) => {
+            try {
+                this.ws.send(`subscribe: ${guid}`, (err) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        console.info(`Subscribed to GUID: ${guid}`);
+                        resolve();
+                    }
+                });
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+    
+    waitForResult(guid, timeoutSeconds = 60) {
+        // This sets up the listener but doesn't send subscribe
+        return new Promise((resolve, reject) => {
+            // Check if already have result
+            if (this.subscriptions.has(guid) && this.subscriptions.get(guid).result) {
+                resolve(this.subscriptions.get(guid).result);
+                this.subscriptions.delete(guid);
+                return;
+            }
+            
             // Set up timeout
             const timeout = setTimeout(() => {
                 this.subscriptions.delete(guid);
@@ -354,15 +384,6 @@ class PersistentWebSocketManager {
 
             // Store subscription
             this.subscriptions.set(guid, { resolver: resolve, rejecter: reject, timeout });
-
-            // Send subscribe command
-            if (this.ws.readyState === WebSocket.OPEN) {
-                this.ws.send(`subscribe: ${guid}`);
-            } else {
-                clearTimeout(timeout);
-                this.subscriptions.delete(guid);
-                reject(new Error('WebSocket not connected'));
-            }
         });
     }
 
@@ -397,6 +418,14 @@ function getPersistentWebSocket() {
 }
 
 /**
+ * Subscribe to a GUID on the persistent WebSocket
+ */
+async function subscribePersistent(guid) {
+    const wsManager = getPersistentWebSocket();
+    return wsManager.subscribe(guid);
+}
+
+/**
  * Wait for compilation result using persistent WebSocket connection
  */
 async function waitForCompilationResultPersistent(guid, timeout = 60) {
@@ -404,7 +433,7 @@ async function waitForCompilationResultPersistent(guid, timeout = 60) {
     const overallStart = Date.now();
 
     try {
-        const result = await wsManager.subscribeForResult(guid, timeout);
+        const result = await wsManager.waitForResult(guid, timeout);
         const totalDuration = Date.now() - overallStart;
         console.info(`Persistent WebSocket timing: result received in ${totalDuration}ms`);
         return result;
@@ -420,5 +449,6 @@ module.exports = {
     waitForCompilationResult,
     PersistentWebSocketManager,
     getPersistentWebSocket,
+    subscribePersistent,
     waitForCompilationResultPersistent
 };

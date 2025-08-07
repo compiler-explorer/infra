@@ -87,6 +87,8 @@ function createSuccessResponse(result, acceptHeader) {
         };
     } else {
         // Default to JSON response
+        // Remove internal guid from response
+        delete result.guid;
         return {
             statusCode: 200,
             headers: {

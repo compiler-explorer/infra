@@ -1,5 +1,5 @@
 const { lookupCompilerRouting, sendToSqs } = require('./lib/routing');
-const { waitForCompilationResultPersistent, getPersistentWebSocket } = require('./lib/websocket-client');
+const { subscribePersistent, waitForCompilationResultPersistent, getPersistentWebSocket } = require('./lib/websocket-client');
 const { forwardToEnvironmentUrl } = require('./lib/http-forwarder');
 const { generateGuid, extractCompilerId, isCmakeRequest, createErrorResponse, createSuccessResponse } = require('./lib/utils');
 
@@ -89,6 +89,20 @@ exports.handler = async (event, context) => {
         // Queue-based routing - use persistent WebSocket
         const queueUrl = routingInfo.target;
 
+        // First, ensure WebSocket is connected and subscribe to the GUID
+        // This must happen BEFORE sending to SQS to avoid race conditions
+        const subscribeStart = Date.now();
+        try {
+            await subscribePersistent(guid);
+            console.info(`Lambda timing: WebSocket subscribed in ${Date.now() - subscribeStart}ms`);
+        } catch (error) {
+            console.error('Failed to subscribe to WebSocket:', error);
+            return createErrorResponse(500, `Failed to setup result subscription: ${error.message}`);
+        }
+
+        // Create result waiting promise (but don't await it yet)
+        const resultPromise = waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
+
         // Now send request to SQS queue with headers
         const sqsStart = Date.now();
         try {
@@ -100,10 +114,10 @@ exports.handler = async (event, context) => {
             return createErrorResponse(500, `Failed to queue compilation request: ${error.message}`);
         }
 
-        // Wait for compilation result via persistent WebSocket
+        // Wait for compilation result via the already-subscribed WebSocket
         const resultStart = Date.now();
         try {
-            const result = await waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
+            const result = await resultPromise;
             const resultTime = Date.now() - resultStart;
             console.info(`Lambda timing: result received in ${resultTime}ms`);
 
