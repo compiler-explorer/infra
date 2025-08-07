@@ -35,10 +35,38 @@ apt-get -y install \
   unzip \
   wget
 
-apt-get -y autoremove
+
+# Disable cloud-init after first boot (not needed once AMI is configured)
+systemctl disable cloud-init cloud-init-local cloud-config cloud-final
+touch /etc/cloud/cloud-init.disabled
+
+# Disable unnecessary services for headless server
+systemctl disable polkit acpid
+
+# Remove avahi packages (network discovery not needed on headless)
+apt-get remove --purge -y \
+    libavahi-client3:amd64 \
+    libavahi-common-data:amd64 \
+    libavahi-common3:amd64 \
+    python3-xkit
 
 # This returns amd64 or arm64
 ARCH=$(dpkg --print-architecture)
+
+# Replace snap SSM agent with .deb version (eliminates snapd service overhead)
+pushd /tmp
+if [ "$ARCH" == 'amd64' ]; then
+    curl -sL "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb" -o amazon-ssm-agent.deb
+else
+    curl -sL "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_arm64/amazon-ssm-agent.deb" -o amazon-ssm-agent.deb
+fi
+dpkg -i amazon-ssm-agent.deb
+systemctl enable amazon-ssm-agent
+snap remove amazon-ssm-agent
+apt-get remove --purge -y snapd
+popd
+
+apt-get autoremove --purge -y
 
 if [ "$INSTALL_TYPE" != 'ci' ]; then
   mkdir /tmp/aws-install
