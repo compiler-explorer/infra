@@ -25,7 +25,7 @@ variable "MY_SECRET_KEY" {
 data "amazon-ami" "noble" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-noble-24.04-amd64-server-*"
+    name                = "ubuntu/images/*ubuntu-noble-24.04-amd64-minimal-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }

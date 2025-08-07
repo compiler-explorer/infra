@@ -4,9 +4,9 @@ set -exuo pipefail
 
 INSTALL_TYPE=${1:-non-ci}
 
-# Disable automatic updates
-systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service
-systemctl disable apt-daily.service apt-daily-upgrade.service unattended-upgrades.service
+# Disable automatic updates etc
+sudo systemctl stop apt-daily{,-upgrade}.{service,timer} unattended-upgrades.service
+sudo systemctl disable apt-daily{,-upgrade}.{service,timer} unattended-upgrades.service
 
 # Disable installing recommended packages by default
 echo 'APT::Install-Recommends "false";' > /etc/apt/apt.conf.d/99-no-install-recommends
