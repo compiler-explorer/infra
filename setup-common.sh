@@ -35,7 +35,6 @@ apt-get -y install \
   unzip \
   wget
 
-
 # Disable cloud-init after first boot (not needed once AMI is configured)
 systemctl disable cloud-init cloud-init-local cloud-config cloud-final
 touch /etc/cloud/cloud-init.disabled
@@ -45,9 +44,9 @@ systemctl disable polkit acpid
 
 # Remove avahi packages (network discovery not needed on headless)
 apt-get remove --purge -y \
-    libavahi-client3:amd64 \
-    libavahi-common-data:amd64 \
-    libavahi-common3:amd64 \
+    libavahi-client3 \
+    libavahi-common-data \
+    libavahi-common3  \
     python3-xkit
 
 # This returns amd64 or arm64
