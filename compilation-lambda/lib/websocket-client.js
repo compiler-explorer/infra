@@ -18,8 +18,8 @@ const WS_OPTIONS = {
     // Disable compression for faster connection - result data isn't that large
     perMessageDeflate: false,
     
-    // Optimize for low latency connection
-    handshakeTimeout: 1500, // Aggressive timeout - fail fast if slow
+    // Optimize for low latency connection  
+    handshakeTimeout: 1000, // Very aggressive timeout - fail fast on slow connections
     
     // Optimize TCP settings
     keepAlive: true,
@@ -125,7 +125,7 @@ class WebSocketClient {
                     this.ws.close();
                     reject(new Error('WebSocket connection timeout'));
                 }
-            }, 2000); // Reduced to 2000ms for faster retry cycles
+            }, 1500); // Aggressive timeout - if connection takes >1.5s, retry immediately
 
             // Clear timeout when connection succeeds
             this.ws.on('open', () => {
