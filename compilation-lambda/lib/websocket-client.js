@@ -16,7 +16,7 @@ function calculateBackoffDelay(attempt, baseDelay = 500) {
 // WebSocket connection options for performance
 const WS_OPTIONS = {
     perMessageDeflate: false,  // Disable compression for faster connection
-    handshakeTimeout: 1000,    // Very aggressive timeout - fail fast on slow connections
+    handshakeTimeout: 2000,    // 2 seconds - balanced for cold starts
     keepAlive: true,
     keepAliveInitialDelay: 300000, // 5 minutes
     rejectUnauthorized: true,
