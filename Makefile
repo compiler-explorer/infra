@@ -178,7 +178,7 @@ events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
 COMPILATION_LAMBDA_PACKAGE:=$(CURDIR)/.dist/compilation-lambda-package.zip
 COMPILATION_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/compilation-lambda-package.zip.sha256
-$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.js) compilation-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
+$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.js) $(wildcard compilation-lambda/lib/*.js) compilation-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
 	$(UV_BIN) run python scripts/build_nodejs_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
 
 .PHONY: compilation-lambda-package  ## builds compilation lambda
