@@ -180,10 +180,6 @@ The `ce compiler-routing` command group provides functionality to manage compile
   - Use `--skip-confirmation` to skip confirmation prompt
   - Example: `ce compiler-routing clear --env staging --skip-confirmation`
 
-- **`ce compiler-routing migrate`** - Migrate legacy routing entries to environment-prefixed composite keys
-  - Converts old format entries to new composite key structure
-  - Use `--skip-confirmation` to skip confirmation prompt
-  - Example: `ce compiler-routing migrate`
 
 ### Architecture Features
 

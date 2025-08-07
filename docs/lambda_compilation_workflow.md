@@ -368,9 +368,6 @@ ce compiler-routing validate  # validates all environments
 
 # Clear routing entries for specific environment
 ce compiler-routing clear --env staging --skip-confirmation
-
-# Migrate legacy entries to composite key format
-ce compiler-routing migrate
 ```
 
 ### Management Workflow
@@ -385,10 +382,6 @@ ce compiler-routing migrate
 2. **Populate Fresh**: `ce --env staging compiler-routing update`
 3. **Verify Setup**: `ce compiler-routing validate --env staging`
 
-**Migration Support:**
-1. **Check Legacy**: `ce compiler-routing status` (shows composite vs legacy entries)
-2. **Migrate Data**: `ce compiler-routing migrate` (converts old format to new)
-3. **Verify Migration**: `ce compiler-routing validate` (ensures consistency)
 
 ### Routing Table Statistics
 

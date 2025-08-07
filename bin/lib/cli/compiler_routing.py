@@ -14,7 +14,6 @@ from lib.compiler_routing import (
     get_current_routing_table,
     get_routing_table_stats,
     lookup_compiler_routing,
-    migrate_legacy_entries,
     update_compiler_routing_table,
 )
 from lib.env import Config, Environment
@@ -254,42 +253,3 @@ def clear_routing(cfg: Config, environment: str, skip_confirmation: bool):
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
         LOGGER.error(f"Error clearing routing: {e}", exc_info=True)
-
-
-@compiler_routing.command(name="migrate")
-@click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
-@click.pass_obj
-def migrate_legacy_data(cfg: Config, skip_confirmation: bool):
-    """Migrate legacy routing entries to environment-prefixed composite keys."""
-    try:
-        print("Compiler Routing Migration\n" + "=" * 26)
-        print("This will migrate legacy routing entries to use environment-prefixed composite keys.")
-        print("Legacy entries will be converted from 'compiler-id' to 'environment#compiler-id' format.")
-
-        if not skip_confirmation:
-            print("\n⚠️  WARNING: This operation will modify the DynamoDB table structure.")
-            print("Make sure you have a backup of the table before proceeding.")
-            if not are_you_sure("migrate legacy routing entries", cfg):
-                return
-
-        print("Starting migration of legacy entries...")
-
-        result = migrate_legacy_entries()
-
-        print("\nMigration Results:")
-        print(f"  Migrated: {result['migrated']} entries")
-        print(f"  Skipped: {result['skipped']} entries (unknown environments)")
-        print(f"  Errors: {result['errors']} entries")
-
-        if result["errors"] > 0:
-            print(f"\n⚠️  {result['errors']} entries failed to migrate - check logs for details")
-        elif result["migrated"] == 0:
-            print("\n✅ No legacy entries found - table is already using composite keys")
-        else:
-            print(f"\n✅ Successfully migrated {result['migrated']} legacy entries to composite key format")
-
-    except CompilerRoutingError as e:
-        print(f"❌ Compiler routing error: {e}")
-    except Exception as e:
-        print(f"❌ Unexpected error: {e}")
-        LOGGER.error(f"Error migrating legacy data: {e}", exc_info=True)
