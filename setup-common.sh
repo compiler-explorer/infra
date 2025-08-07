@@ -44,6 +44,7 @@ ARCH=$(dpkg --print-architecture)
 
 # Replace snap SSM agent with .deb version (eliminates snapd service overhead)
 pushd /tmp
+snap remove amazon-ssm-agent
 if [ "$ARCH" == 'amd64' ]; then
     curl -sL "https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/debian_amd64/amazon-ssm-agent.deb" -o amazon-ssm-agent.deb
 else
@@ -51,7 +52,6 @@ else
 fi
 dpkg -i amazon-ssm-agent.deb
 systemctl enable amazon-ssm-agent
-snap remove amazon-ssm-agent
 apt-get remove --purge -y snapd
 popd
 
