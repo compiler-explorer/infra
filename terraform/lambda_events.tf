@@ -107,8 +107,10 @@ resource "aws_lambda_function" "events_onconnect" {
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-onconnect.handler"
 
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
+  
+  publish = true  # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_onconnect]
 }
@@ -123,8 +125,10 @@ resource "aws_lambda_function" "events_ondisconnect" {
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-ondisconnect.handler"
 
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
+  
+  publish = true  # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_ondisconnect]
 }
@@ -139,8 +143,10 @@ resource "aws_lambda_function" "events_sendmessage" {
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-sendmessage.handler"
 
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
+  
+  publish = true  # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_sendmessage]
 }
@@ -204,17 +210,17 @@ resource "aws_lambda_permission" "events_sendmessage" {
 resource "aws_lambda_provisioned_concurrency_config" "events_sendmessage" {
   function_name                     = aws_lambda_function.events_sendmessage.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = "$LATEST"
+  qualifier                         = aws_lambda_function.events_sendmessage.version
 }
 
 resource "aws_lambda_provisioned_concurrency_config" "events_onconnect" {
   function_name                     = aws_lambda_function.events_onconnect.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = "$LATEST"
+  qualifier                         = aws_lambda_function.events_onconnect.version
 }
 
 resource "aws_lambda_provisioned_concurrency_config" "events_ondisconnect" {
   function_name                     = aws_lambda_function.events_ondisconnect.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = "$LATEST"
+  qualifier                         = aws_lambda_function.events_ondisconnect.version
 }

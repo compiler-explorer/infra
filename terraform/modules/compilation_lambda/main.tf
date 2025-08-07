@@ -64,6 +64,8 @@ resource "aws_lambda_function" "compilation" {
 
   depends_on = [aws_cloudwatch_log_group.compilation]
 
+  publish = true  # Required for provisioned concurrency
+
   tags = merge({
     Environment = var.environment
     Purpose     = "compilation"
@@ -130,5 +132,5 @@ resource "aws_alb_listener_rule" "compilation" {
 resource "aws_lambda_provisioned_concurrency_config" "compilation" {
   function_name                     = aws_lambda_function.compilation.function_name
   provisioned_concurrent_executions = 1
-  qualifier                         = "$LATEST"
+  qualifier                         = aws_lambda_function.compilation.version
 }
