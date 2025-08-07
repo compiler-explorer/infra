@@ -46,7 +46,7 @@ source "amazon-ebs" "noble" {
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
-    volume_size           = 20
+    volume_size           = 8
     volume_type           = "gp2"
   }
   region = "us-east-1"
