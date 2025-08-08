@@ -7,7 +7,6 @@ squashfs images on-demand to improve boot performance.
 """
 
 import argparse
-import fcntl
 import logging
 import logging.handlers
 import os
@@ -36,9 +35,14 @@ class LazyMountDaemon:
         self.image_dir = image_dir
         self.daemon = daemon
         self.verbose = verbose
+
+        # Internal state tracking (sufficient for single-threaded design)
+        # NOTE: If this daemon is ever made multi-process, external file
+        # locking would be required to coordinate between processes.
+        # However, since mounting is expensive (~50-200ms), sequential
+        # mounting is likely optimal anyway.
         self.mounted_prefixes: Set[str] = set()
-        self.lock_dir = Path("/tmp/lazy-mount-locks")
-        self.lock_dir.mkdir(exist_ok=True)
+
         self.process: Optional[subprocess.Popen] = None
         self.shutdown = threading.Event()
 
@@ -135,41 +139,33 @@ class LazyMountDaemon:
 
     def mount_image(self, image_file: str, mount_prefix: str) -> bool:
         """Mount a squashfs image at the specified mount prefix"""
+        # Simple check - no external locks needed in single-threaded design
         if mount_prefix in self.mounted_prefixes:
             return True
 
         mount_point = Path(self.mount_base) / mount_prefix
 
+        # Check if already mounted by another process (defensive)
         if self.is_mounted_at(mount_point):
             self.mounted_prefixes.add(mount_prefix)
             return True
 
-        lock_file = self.lock_dir / f"{mount_prefix.replace('/', '_')}.lock"
+        self.logger.info(f"Mounting {mount_prefix} from {image_file} to {mount_point}")
 
         try:
-            with open(lock_file, "w") as lock:
-                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+            result = subprocess.run(
+                ["mount", "-t", "squashfs", image_file, str(mount_point), "-o", "ro,nodev,relatime"],
+                capture_output=True,
+                text=True,
+            )
 
-                # Double-check after acquiring lock
-                if self.is_mounted_at(mount_point):
-                    self.mounted_prefixes.add(mount_prefix)
-                    return True
-
-                self.logger.info(f"Mounting {mount_prefix} from {image_file} to {mount_point}")
-
-                result = subprocess.run(
-                    ["mount", "-t", "squashfs", image_file, str(mount_point), "-o", "ro,nodev,relatime"],
-                    capture_output=True,
-                    text=True,
-                )
-
-                if result.returncode == 0:
-                    self.mounted_prefixes.add(mount_prefix)
-                    self.logger.info(f"Successfully mounted {mount_prefix}")
-                    return True
-                else:
-                    self.logger.error(f"Failed to mount {mount_prefix}: {result.stderr}")
-                    return False
+            if result.returncode == 0:
+                self.mounted_prefixes.add(mount_prefix)
+                self.logger.info(f"Successfully mounted {mount_prefix}")
+                return True
+            else:
+                self.logger.error(f"Failed to mount {mount_prefix}: {result.stderr}")
+                return False
 
         except Exception as e:
             self.logger.error(f"Exception while mounting {mount_prefix}: {e}")

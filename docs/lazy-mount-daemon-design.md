@@ -39,13 +39,23 @@ def handle_access(path):
         if "/" in remainder:
             compiler = remainder.split("/")[0]
 
-            with file_lock(f"/tmp/mount-{compiler}.lock"):
+            # Single-threaded design: simple internal state tracking sufficient
+            if compiler not in mounted_compilers:
                 if not is_already_mounted(compiler):
                     mount_squashfs(f"/efs/squash-images/{compiler}.img",
                                  f"/opt/compiler-explorer/{compiler}")
+                    mounted_compilers.add(compiler)
 ```
 
 Error handling: log failures, underlying NFS content remains accessible
+
+## Architecture Notes
+
+**Single-threaded Design**: The daemon uses a single-threaded event loop to process bpftrace output sequentially. This eliminates the need for external file locking since events are handled one at a time.
+
+**Internal State Tracking**: The daemon maintains a simple `Set[str]` of mounted prefixes in memory. This is sufficient for tracking mount status in the single-threaded design.
+
+**Future Multi-process Considerations**: If the daemon is ever redesigned to use multiple processes (e.g., separate processes for different syscalls), external file locking would be required to coordinate mount operations between processes. However, since mounting squashfs images takes 50-200ms each, sequential mounting is likely optimal anyway to avoid stressing the filesystem.
 
 ## Benefits
 
