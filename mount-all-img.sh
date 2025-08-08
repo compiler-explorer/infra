@@ -12,6 +12,10 @@
 #
 # This temporarily freezes the user systemd process during mounting, reducing
 # boot time significantly while keeping the system stable.
-kill -STOP "$(pidof systemd | head -1)"
+
+set -euo pipefail
+
+SYSTEMD=$(pidof systemd)
+kill -STOP "$SYSTEMD"
 python3 "$(dirname "$0")/mount-all-img.py" "$@"
-kill -CONT  "$(pidof systemd | head -1)"
+kill -CONT  "$SYSTEMD"
