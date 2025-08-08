@@ -94,7 +94,12 @@ exports.handler = async (event, context) => {
         const subscribeStart = Date.now();
         try {
             await subscribePersistent(guid);
-            console.info(`Lambda timing: WebSocket subscribed in ${Date.now() - subscribeStart}ms`);
+            const subscribeTime = Date.now() - subscribeStart;
+            console.info(`Lambda timing: WebSocket subscribed in ${subscribeTime}ms`);
+
+            // Add small delay to ensure subscription is processed before sending to SQS
+            await new Promise(resolve => setTimeout(resolve, 100));
+            console.info('Lambda timing: fixed delay completed (100ms)');
         } catch (error) {
             console.error('Failed to subscribe to WebSocket:', error);
             return createErrorResponse(500, `Failed to setup result subscription: ${error.message}`);

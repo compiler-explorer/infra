@@ -44,7 +44,6 @@ async function relay_request(apiGwClient, guid, data) {
 }
 
 async function handle_text_message(apiGwClient, connectionId, message) {
-    const start = Date.now();
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
         // eslint-disable-next-line no-console
@@ -54,20 +53,10 @@ async function handle_text_message(apiGwClient, connectionId, message) {
         await EventsConnections.update(connectionId, subscription);
         const updateTime = Date.now() - updateStart;
         // eslint-disable-next-line no-console
-        console.info(`Cache update for ${subscription} took ${updateTime}ms`);
-
-        // Send acknowledgment that subscription was processed and cached
-        const ackStart = Date.now();
-        await send_message(apiGwClient, connectionId, `subscribed: ${subscription}`);
-        const ackTime = Date.now() - ackStart;
-        const totalTime = Date.now() - start;
-        // eslint-disable-next-line no-console
-        console.info(`Acknowledgment send for ${subscription} took ${ackTime}ms, total: ${totalTime}ms`);
+        console.info(`Cache update for ${subscription} completed in ${updateTime}ms`);
     } else if (message.startsWith('unsubscribe: ')) {
         const subscription = message.substring(13);
         await EventsConnections.unsubscribe(connectionId, subscription);
-        // Send acknowledgment that unsubscription was processed
-        await send_message(apiGwClient, connectionId, `unsubscribed: ${subscription}`);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }

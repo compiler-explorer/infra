@@ -263,12 +263,6 @@ class PersistentWebSocketManager {
             this.ws.on('message', (data) => {
                 const messageText = data.toString();
 
-                // Check if it's an acknowledgment message (plain text)
-                if (messageText.startsWith('subscribed: ') || messageText.startsWith('unsubscribed: ')) {
-                    // Acknowledgment messages are handled by the subscribe() method's ackHandler
-                    return;
-                }
-
                 // Try to parse as JSON for result messages
                 try {
                     const message = JSON.parse(messageText);
@@ -354,43 +348,9 @@ class PersistentWebSocketManager {
             throw new Error('WebSocket not connected');
         }
 
-        // Send subscribe command and wait for acknowledgment
-        return new Promise((resolve, reject) => {
-            const expectedAck = `subscribed: ${guid}`;
-
-            // Set up acknowledgment listener
-            const ackHandler = (data) => {
-                const message = data.toString();
-                if (message === expectedAck) {
-                    this.ws.removeListener('message', ackHandler);
-                    clearTimeout(ackTimeout);
-                    console.info(`Subscription confirmed for GUID: ${guid}`);
-                    resolve();
-                }
-            };
-
-            // Set up timeout for acknowledgment
-            const ackTimeout = setTimeout(() => {
-                this.ws.removeListener('message', ackHandler);
-                reject(new Error(`Subscription acknowledgment timeout for ${guid}`));
-            }, 5000); // 5 second timeout
-
-            this.ws.on('message', ackHandler);
-
-            try {
-                this.ws.send(`subscribe: ${guid}`, (err) => {
-                    if (err) {
-                        this.ws.removeListener('message', ackHandler);
-                        clearTimeout(ackTimeout);
-                        reject(err);
-                    }
-                });
-            } catch (error) {
-                this.ws.removeListener('message', ackHandler);
-                clearTimeout(ackTimeout);
-                reject(error);
-            }
-        });
+        // Send subscribe command without waiting for acknowledgment
+        this.ws.send(`subscribe: ${guid}`);
+        console.info(`Subscription sent for GUID: ${guid}`);
     }
 
     waitForResult(guid, timeoutSeconds = 60) {
