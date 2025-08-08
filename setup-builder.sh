@@ -29,4 +29,9 @@ mv /infra /home/ubuntu/infra
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 sudo -u ubuntu make -C /home/ubuntu/infra ce
 
+# Install lazy mount daemon service
+cp /home/ubuntu/infra/init/lazy-mount-daemon.service /lib/systemd/system/lazy-mount-daemon.service
+systemctl daemon-reload
+systemctl enable lazy-mount-daemon
+
 ln -s /efs/squash-images /opt/squash-images

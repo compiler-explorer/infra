@@ -26,6 +26,7 @@ apt-get -y dist-upgrade --force-yes
 
 apt-get -y install \
   autofs \
+  bpftrace \
   jq \
   libc6-arm64-cross \
   libdatetime-perl \

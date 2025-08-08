@@ -104,7 +104,9 @@ cp nginx/nginx.conf /etc/nginx/nginx.conf
 systemctl restart nginx
 
 cp /infra/init/compiler-explorer.service /lib/systemd/system/compiler-explorer.service
+cp /infra/init/lazy-mount-daemon.service /lib/systemd/system/lazy-mount-daemon.service
 systemctl daemon-reload
 systemctl enable compiler-explorer
+systemctl enable lazy-mount-daemon
 
 adduser --system --group ce
