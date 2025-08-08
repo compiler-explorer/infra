@@ -67,6 +67,8 @@ class LazyMountDaemon:
 
     def discover_images(self):
         """Scan image directory and build path prefix to image mapping"""
+        self.logger.info(f"Scanning for squashfs images in {self.image_dir}...")
+
         try:
             image_dir_path = Path(self.image_dir)
             if not image_dir_path.exists():
@@ -391,8 +393,8 @@ def main():
 
     # Check if bpftrace is available
     try:
-        result = subprocess.run(["which", "bpftrace"], check=True, capture_output=True, text=True)
-        print(f"Found bpftrace at: {result.stdout.strip()}")
+        subprocess.run(["which", "bpftrace"], check=True, capture_output=True, text=True)
+        # No print needed - daemon will log properly once started
     except subprocess.CalledProcessError:
         print("Error: bpftrace is not installed or not in PATH")
         sys.exit(1)
