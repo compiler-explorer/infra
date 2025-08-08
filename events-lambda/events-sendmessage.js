@@ -47,9 +47,13 @@ async function handle_text_message(apiGwClient, connectionId, message) {
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
         await EventsConnections.update(connectionId, subscription);
+        // Send acknowledgment that subscription was processed and cached
+        await send_message(apiGwClient, connectionId, `subscribed: ${subscription}`);
     } else if (message.startsWith('unsubscribe: ')) {
         const subscription = message.substring(13);
         await EventsConnections.unsubscribe(connectionId, subscription);
+        // Send acknowledgment that unsubscription was processed
+        await send_message(apiGwClient, connectionId, `unsubscribed: ${subscription}`);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }

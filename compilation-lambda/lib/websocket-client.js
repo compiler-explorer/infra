@@ -345,18 +345,40 @@ class PersistentWebSocketManager {
             throw new Error('WebSocket not connected');
         }
 
-        // Send subscribe command and wait for it to be sent
+        // Send subscribe command and wait for acknowledgment
         return new Promise((resolve, reject) => {
+            const expectedAck = `subscribed: ${guid}`;
+
+            // Set up acknowledgment listener
+            const ackHandler = (data) => {
+                const message = data.toString();
+                if (message === expectedAck) {
+                    this.ws.removeListener('message', ackHandler);
+                    clearTimeout(ackTimeout);
+                    console.info(`Subscription confirmed for GUID: ${guid}`);
+                    resolve();
+                }
+            };
+
+            // Set up timeout for acknowledgment
+            const ackTimeout = setTimeout(() => {
+                this.ws.removeListener('message', ackHandler);
+                reject(new Error(`Subscription acknowledgment timeout for ${guid}`));
+            }, 5000); // 5 second timeout
+
+            this.ws.on('message', ackHandler);
+
             try {
                 this.ws.send(`subscribe: ${guid}`, (err) => {
                     if (err) {
+                        this.ws.removeListener('message', ackHandler);
+                        clearTimeout(ackTimeout);
                         reject(err);
-                    } else {
-                        console.info(`Subscribed to GUID: ${guid}`);
-                        resolve();
                     }
                 });
             } catch (error) {
+                this.ws.removeListener('message', ackHandler);
+                clearTimeout(ackTimeout);
                 reject(error);
             }
         });
