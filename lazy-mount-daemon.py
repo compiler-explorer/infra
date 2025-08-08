@@ -19,9 +19,9 @@ import time
 from pathlib import Path
 from typing import Optional, Set
 
-# BPF string length limit - needs to be increased to 100+ for full compiler paths
-# Currently limited by BPF stack size (512 bytes)
-BPFTRACE_STRING_LENGTH = 50
+# BPF string length limit - increased since we skip 23-char prefix in kernel
+# Can be higher now due to efficient kernel-space filtering
+BPFTRACE_STRING_LENGTH = 100
 
 
 class LazyMountDaemon:
@@ -212,16 +212,32 @@ class LazyMountDaemon:
 
     def start_bpftrace(self):
         """Start the bpftrace subprocess to monitor file access"""
-        # Monitor both exec and file open syscalls to catch direct execution and auxiliary files
+        # Ensure mount_base ends with '/' for consistent matching
+        mount_base_with_slash = self.mount_base.rstrip("/") + "/"
+        mount_base_len = len(mount_base_with_slash)
+
+        # Generate character-by-character comparison for mount_base
+        char_comparisons = []
+        for i, char in enumerate(mount_base_with_slash):
+            # Use ASCII decimal values for all characters to avoid bpftrace quote/syntax issues
+            ascii_value = ord(char)
+            char_comparisons.append(f"args->filename[{i}] == {ascii_value}")
+
+        is_ce_path_condition = " && ".join(char_comparisons)
+
+        # Monitor both exec and file open syscalls with kernel-space filtering
+        # Note: Inline filtering logic since bpftrace doesn't support user-defined functions
         bpftrace_script = f"""
-            tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()}/ {{
-                printf("%s\\n", str(args->filename, {BPFTRACE_STRING_LENGTH}));
+            tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
+                printf("%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
             }}
-            tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()}/ {{
-                printf("%s\\n", str(args->filename, {BPFTRACE_STRING_LENGTH}));
+
+            tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
+                printf("%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
             }}
-            tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()}/ {{
-                printf("%s\\n", str(args->filename, {BPFTRACE_STRING_LENGTH}));
+
+            tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
+                printf("%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
             }}
         """
 
@@ -238,7 +254,7 @@ class LazyMountDaemon:
                 bpftrace_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True,
+                text=False,  # Use binary mode to handle UTF-8 decode errors
                 bufsize=0,
                 env=env,
             )
@@ -252,19 +268,22 @@ class LazyMountDaemon:
             if self.process.poll() is not None:
                 # Process has already exited
                 stdout, stderr = self.process.communicate()
+                stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
+                stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
                 self.logger.error(f"bpftrace exited immediately with code {self.process.returncode}")
-                self.logger.error(f"bpftrace stdout: {stdout}")
-                self.logger.error(f"bpftrace stderr: {stderr}")
-                raise RuntimeError(f"bpftrace failed to start: {stderr}")
+                self.logger.error(f"bpftrace stdout: {stdout_str}")
+                self.logger.error(f"bpftrace stderr: {stderr_str}")
+                raise RuntimeError(f"bpftrace failed to start: {stderr_str}")
 
             self.logger.info("bpftrace appears to be running successfully")
 
             # Monitor stderr in a separate thread
             def log_stderr():
                 try:
-                    for line in self.process.stderr:
-                        if line.strip():
-                            self.logger.error(f"bpftrace stderr: {line.strip()}")
+                    for line_bytes in self.process.stderr:
+                        line = line_bytes.decode("utf-8", errors="replace").strip()
+                        if line:
+                            self.logger.error(f"bpftrace stderr: {line}")
                 except Exception as e:
                     self.logger.debug(f"Error reading bpftrace stderr (likely process ended): {e}")
 
@@ -273,14 +292,23 @@ class LazyMountDaemon:
 
             # Process stdout (the actual events)
             try:
-                for line in self.process.stdout:
+                for line_bytes in self.process.stdout:
                     if self.shutdown.is_set():
                         break
 
-                    line = line.strip()
-                    # Filter in userspace to avoid BPF stack limit issues
-                    if line and line.startswith(self.mount_base + "/"):
-                        self.handle_access(line)
+                    # Decode with error handling for corrupted/binary data
+                    try:
+                        line = line_bytes.decode("utf-8").strip()
+                    except UnicodeDecodeError:
+                        # Skip lines that can't be decoded - they're likely binary data
+                        self.logger.debug(f"Skipping line with invalid UTF-8: {line_bytes[:50]}...")
+                        continue
+
+                    # All filtering now done in kernel space - process all output
+                    if line:
+                        # Reconstruct full path from suffix (bpftrace outputs path after prefix)
+                        full_path = f"{self.mount_base}/{line}"
+                        self.handle_access(full_path)
             except Exception as e:
                 self.logger.error(f"Error processing bpftrace output: {e}")
                 raise
@@ -288,9 +316,11 @@ class LazyMountDaemon:
             # If we get here, the monitoring loop ended
             if self.process.poll() is not None:
                 stdout, stderr = self.process.communicate()
+                stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
+                stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
                 self.logger.warning(f"bpftrace process ended with code {self.process.returncode}")
-                if stderr:
-                    self.logger.error(f"bpftrace final stderr: {stderr}")
+                if stderr_str:
+                    self.logger.error(f"bpftrace final stderr: {stderr_str}")
 
         except Exception as e:
             self.logger.error(f"bpftrace error: {e}")
