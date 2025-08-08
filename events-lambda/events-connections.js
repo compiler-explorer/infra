@@ -3,6 +3,7 @@ import {
     DynamoDBClient,
     PutItemCommand,
     QueryCommand,
+    ScanCommand,
     UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import {config} from './config.js';
@@ -19,27 +20,73 @@ const ddbClient = new DynamoDBClient({
 
 export class EventsConnections {
     static async subscribers(subscription) {
-        // Use GSI for efficient subscription lookups instead of expensive table scans
+        // Try GSI query with timeout, fallback to scan if GSI is cold/slow
         const queryStart = Date.now();
-        const queryCommand = new QueryCommand({
-            TableName: config.connections_table,
-            IndexName: 'SubscriptionIndex',
-            KeyConditionExpression: '#subscription = :subscription',
-            ProjectionExpression: 'connectionId',
-            ExpressionAttributeNames: {
-                '#subscription': 'subscription',
-            },
-            ExpressionAttributeValues: {
-                ':subscription': {
-                    S: subscription,
+
+        try {
+            // GSI query with shorter timeout to detect cold starts
+            const queryCommand = new QueryCommand({
+                TableName: config.connections_table,
+                IndexName: 'SubscriptionIndex',
+                KeyConditionExpression: '#subscription = :subscription',
+                ProjectionExpression: 'connectionId',
+                ExpressionAttributeNames: {
+                    '#subscription': 'subscription',
                 },
-            },
-        });
-        const result = await ddbClient.send(queryCommand);
-        const queryTime = Date.now() - queryStart;
-        // eslint-disable-next-line no-console
-        console.info(`DynamoDB GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items`);
-        return result;
+                ExpressionAttributeValues: {
+                    ':subscription': {
+                        S: subscription,
+                    },
+                },
+            });
+
+            // Race the GSI query against a timeout
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('GSI_TIMEOUT')), 200)
+            );
+
+            const result = await Promise.race([
+                ddbClient.send(queryCommand),
+                timeoutPromise
+            ]);
+
+            const queryTime = Date.now() - queryStart;
+            // eslint-disable-next-line no-console
+            console.info(`DynamoDB GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items`);
+            return result;
+
+        } catch (error) {
+            const failTime = Date.now() - queryStart;
+
+            if (error.message === 'GSI_TIMEOUT') {
+                // eslint-disable-next-line no-console
+                console.warn(`GSI query timed out after ${failTime}ms, falling back to table scan`);
+            } else {
+                // eslint-disable-next-line no-console
+                console.warn(`GSI query failed after ${failTime}ms:`, error.message, '- falling back to table scan');
+            }
+
+            // Fallback to table scan (original approach)
+            const scanStart = Date.now();
+            const scanCommand = new ScanCommand({
+                TableName: config.connections_table,
+                ProjectionExpression: 'connectionId',
+                FilterExpression: '#subscription=:subscription',
+                ExpressionAttributeNames: {
+                    '#subscription': 'subscription',
+                },
+                ExpressionAttributeValues: {
+                    ':subscription': {
+                        S: subscription,
+                    },
+                },
+            });
+            const scanResult = await ddbClient.send(scanCommand);
+            const scanTime = Date.now() - scanStart;
+            // eslint-disable-next-line no-console
+            console.info(`Fallback table scan for ${subscription} took ${scanTime}ms, found ${scanResult.Count} items`);
+            return scanResult;
+        }
     }
 
     static async update(id, subscription) {
