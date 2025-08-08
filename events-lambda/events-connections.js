@@ -47,7 +47,7 @@ export class EventsConnections {
             }, 200); // 200ms timeout
 
             const result = await ddbClient.send(queryCommand, {
-                abortSignal: abortController.signal
+                abortSignal: abortController.signal,
             });
 
             clearTimeout(timeoutId);
