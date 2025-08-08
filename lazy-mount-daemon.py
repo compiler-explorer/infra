@@ -18,8 +18,7 @@ import time
 from pathlib import Path
 from typing import Optional, Set
 
-# BPF string length limit - increased since we skip 23-char prefix in kernel
-# Can be higher now due to efficient kernel-space filtering
+# BPF string length limit - we skip prefix in kernel
 BPFTRACE_STRING_LENGTH = 100
 
 
@@ -124,32 +123,13 @@ class LazyMountDaemon:
             os.dup2(f.fileno(), sys.stdout.fileno())
             os.dup2(f.fileno(), sys.stderr.fileno())
 
-    def is_mounted_at(self, mount_point: Path) -> bool:
-        """Check if something is already mounted at the given mount point"""
-        try:
-            with open("/proc/mounts", "r") as f:
-                for line in f:
-                    parts = line.split()
-                    if len(parts) >= 2 and parts[1] == str(mount_point):
-                        return True
-        except Exception as e:
-            self.logger.error(f"Error checking mount status for {mount_point}: {e}")
-
-        return False
-
     def mount_image(self, image_file: str, mount_prefix: str) -> bool:
         """Mount a squashfs image at the specified mount prefix"""
-        # Simple check - no external locks needed in single-threaded design
+        # Trust internal state - we're the only thing mounting squashfs images
         if mount_prefix in self.mounted_prefixes:
             return True
 
         mount_point = Path(self.mount_base) / mount_prefix
-
-        # Check if already mounted by another process (defensive)
-        if self.is_mounted_at(mount_point):
-            self.mounted_prefixes.add(mount_prefix)
-            return True
-
         self.logger.info(f"Mounting {mount_prefix} from {image_file} to {mount_point}")
 
         try:
@@ -164,8 +144,15 @@ class LazyMountDaemon:
                 self.logger.info(f"Successfully mounted {mount_prefix}")
                 return True
             else:
-                self.logger.error(f"Failed to mount {mount_prefix}: {result.stderr}")
-                return False
+                # Check if failure indicates already mounted
+                stderr_lower = result.stderr.lower()
+                if "already mounted" in stderr_lower or "busy" in stderr_lower:
+                    self.logger.debug(f"Mount exists, updating state: {mount_prefix}")
+                    self.mounted_prefixes.add(mount_prefix)
+                    return True
+                else:
+                    self.logger.error(f"Mount failed: {result.stderr}")
+                    return False
 
         except Exception as e:
             self.logger.error(f"Exception while mounting {mount_prefix}: {e}")
@@ -353,23 +340,8 @@ class LazyMountDaemon:
         self.logger.info(f"Monitoring: {self.mount_base}")
         self.logger.info(f"Image directory: {self.image_dir}")
 
-        # Check for existing mounts at startup
-        self.logger.info("Checking for existing mounts...")
-        mount_count = 0
-        try:
-            with open("/proc/mounts", "r") as f:
-                for line in f:
-                    parts = line.split()
-                    if len(parts) >= 2 and parts[1].startswith(self.mount_base + "/"):
-                        mount_path = parts[1][len(self.mount_base) + 1 :]
-                        # Check if this mount path corresponds to one of our known prefixes
-                        if mount_path in self.image_map:
-                            self.mounted_prefixes.add(mount_path)
-                            mount_count += 1
-        except Exception as e:
-            self.logger.error(f"Error checking existing mounts: {e}")
-
-        self.logger.info(f"Found {mount_count} existing mounts")
+        # Detect existing mounts at startup (one-time /proc/mounts read)
+        self.detect_existing_mounts()
 
         try:
             self.start_bpftrace()
@@ -380,6 +352,24 @@ class LazyMountDaemon:
             sys.exit(1)
 
         self.logger.info("Lazy mount daemon stopped")
+
+    def detect_existing_mounts(self):
+        """Read /proc/mounts once at startup to populate initial state"""
+        mount_count = 0
+        try:
+            with open("/proc/mounts", "r") as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 2 and parts[1].startswith(self.mount_base + "/"):
+                        mount_path = parts[1][len(self.mount_base) + 1 :]
+                        if mount_path in self.image_map:
+                            self.mounted_prefixes.add(mount_path)
+                            mount_count += 1
+                            self.logger.debug(f"Found existing mount: {mount_path}")
+        except Exception as e:
+            self.logger.error(f"Error detecting existing mounts: {e}")
+
+        self.logger.info(f"Found {mount_count} existing mounts")
 
 
 def main():
