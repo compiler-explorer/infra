@@ -35,7 +35,7 @@ export class EventsConnections {
             console.info(`Cache hit for ${subscription}, found ${cachedConnections.length} items`);
             return {
                 Items: cachedConnections,
-                Count: cachedConnections.length
+                Count: cachedConnections.length,
             };
         }
 
@@ -67,7 +67,10 @@ export class EventsConnections {
         }
 
         // eslint-disable-next-line no-console
-        console.info(`GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items, cached ${result.Count} entries`);
+        console.info(
+            `GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items, ` +
+            `cached ${result.Count} entries`,
+        );
         return result;
     }
 
