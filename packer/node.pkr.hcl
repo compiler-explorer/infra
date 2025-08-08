@@ -22,10 +22,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "noble" {
+data "amazon-ami" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu-minimal/images/*ubuntu-noble-24.04-amd64-minimal-*"
+    name                = "ubuntu-minimal/images/*ubuntu-*-22.04-amd64-minimal-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -37,9 +37,9 @@ data "amazon-ami" "noble" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "noble" {
+source "amazon-ebs" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_name                    = "compiler-explorer packer 24.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer packer @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
   instance_type               = "c5.xlarge"
@@ -55,7 +55,7 @@ source "amazon-ebs" "noble" {
   }
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.noble.id}"
+  source_ami        = "${data.amazon-ami.ubuntu.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -65,7 +65,7 @@ source "amazon-ebs" "noble" {
 }
 
 build {
-  sources = ["source.amazon-ebs.noble"]
+  sources = ["source.amazon-ebs.ubuntu"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
