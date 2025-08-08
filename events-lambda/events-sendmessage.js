@@ -44,11 +44,25 @@ async function relay_request(apiGwClient, guid, data) {
 }
 
 async function handle_text_message(apiGwClient, connectionId, message) {
+    const start = Date.now();
     if (message.startsWith('subscribe: ')) {
         const subscription = message.substring(11);
+        // eslint-disable-next-line no-console
+        console.info(`Processing subscription for ${subscription} on connection ${connectionId}`);
+
+        const updateStart = Date.now();
         await EventsConnections.update(connectionId, subscription);
+        const updateTime = Date.now() - updateStart;
+        // eslint-disable-next-line no-console
+        console.info(`Cache update for ${subscription} took ${updateTime}ms`);
+
         // Send acknowledgment that subscription was processed and cached
+        const ackStart = Date.now();
         await send_message(apiGwClient, connectionId, `subscribed: ${subscription}`);
+        const ackTime = Date.now() - ackStart;
+        const totalTime = Date.now() - start;
+        // eslint-disable-next-line no-console
+        console.info(`Acknowledgment send for ${subscription} took ${ackTime}ms, total: ${totalTime}ms`);
     } else if (message.startsWith('unsubscribe: ')) {
         const subscription = message.substring(13);
         await EventsConnections.unsubscribe(connectionId, subscription);
