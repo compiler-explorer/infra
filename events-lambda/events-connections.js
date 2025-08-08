@@ -41,20 +41,14 @@ export class EventsConnections {
             });
 
             // Race the GSI query against a timeout
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('GSI_TIMEOUT')), 200)
-            );
+            const timeoutPromise = new Promise((_resolve, reject) => setTimeout(() => reject(new Error('GSI_TIMEOUT')), 200));
 
-            const result = await Promise.race([
-                ddbClient.send(queryCommand),
-                timeoutPromise
-            ]);
+            const result = await Promise.race([ddbClient.send(queryCommand), timeoutPromise]);
 
             const queryTime = Date.now() - queryStart;
             // eslint-disable-next-line no-console
             console.info(`DynamoDB GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items`);
             return result;
-
         } catch (error) {
             const failTime = Date.now() - queryStart;
 
