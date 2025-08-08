@@ -20,74 +20,29 @@ const ddbClient = new DynamoDBClient({
 
 export class EventsConnections {
     static async subscribers(subscription) {
-        // Try GSI query with timeout, fallback to scan if GSI is cold/slow
-        const queryStart = Date.now();
+        // Use table scan for consistent performance (~300ms)
+        // GSI has unpredictable cold start issues (800ms+) that timeout doesn't reliably prevent
+        const scanStart = Date.now();
 
-        try {
-            // GSI query with shorter timeout to detect cold starts
-            const queryCommand = new QueryCommand({
-                TableName: config.connections_table,
-                IndexName: 'SubscriptionIndex',
-                KeyConditionExpression: '#subscription = :subscription',
-                ProjectionExpression: 'connectionId',
-                ExpressionAttributeNames: {
-                    '#subscription': 'subscription',
+        const scanCommand = new ScanCommand({
+            TableName: config.connections_table,
+            ProjectionExpression: 'connectionId',
+            FilterExpression: '#subscription=:subscription',
+            ExpressionAttributeNames: {
+                '#subscription': 'subscription',
+            },
+            ExpressionAttributeValues: {
+                ':subscription': {
+                    S: subscription,
                 },
-                ExpressionAttributeValues: {
-                    ':subscription': {
-                        S: subscription,
-                    },
-                },
-            });
+            },
+        });
 
-            // Use AbortController for proper request cancellation
-            const abortController = new AbortController();
-            const timeoutId = setTimeout(() => {
-                abortController.abort();
-            }, 200); // 200ms timeout
-
-            const result = await ddbClient.send(queryCommand, {
-                abortSignal: abortController.signal,
-            });
-
-            clearTimeout(timeoutId);
-
-            const queryTime = Date.now() - queryStart;
-            // eslint-disable-next-line no-console
-            console.info(`DynamoDB GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items`);
-            return result;
-        } catch (error) {
-            const failTime = Date.now() - queryStart;
-
-            if (error.name === 'AbortError') {
-                // eslint-disable-next-line no-console
-                console.warn(`GSI query aborted after ${failTime}ms (timeout), falling back to table scan`);
-            } else {
-                // eslint-disable-next-line no-console
-                console.warn(`GSI query failed after ${failTime}ms:`, error.message, '- falling back to table scan');
-            }
-
-            // Fallback to table scan (original approach)
-            const scanStart = Date.now();
-            const scanCommand = new ScanCommand({
-                TableName: config.connections_table,
-                ProjectionExpression: 'connectionId',
-                FilterExpression: '#subscription=:subscription',
-                ExpressionAttributeNames: {
-                    '#subscription': 'subscription',
-                },
-                ExpressionAttributeValues: {
-                    ':subscription': {
-                        S: subscription,
-                    },
-                },
-            });
-            const scanResult = await ddbClient.send(scanCommand);
-            const scanTime = Date.now() - scanStart;
-            // eslint-disable-next-line no-console
-            console.info(`Fallback table scan for ${subscription} took ${scanTime}ms, found ${scanResult.Count} items`);
-            return scanResult;
-        }
+        const result = await ddbClient.send(scanCommand);
+        const scanTime = Date.now() - scanStart;
+        // eslint-disable-next-line no-console
+        console.info(`Table scan for ${subscription} took ${scanTime}ms, found ${result.Count} items`);
+        return result;
     }
 
     static async update(id, subscription) {
