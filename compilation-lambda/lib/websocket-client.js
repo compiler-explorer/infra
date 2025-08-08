@@ -261,8 +261,17 @@ class PersistentWebSocketManager {
             this.ws = new WebSocket(this.url, [], WS_OPTIONS);
 
             this.ws.on('message', (data) => {
+                const messageText = data.toString();
+
+                // Check if it's an acknowledgment message (plain text)
+                if (messageText.startsWith('subscribed: ') || messageText.startsWith('unsubscribed: ')) {
+                    // Acknowledgment messages are handled by the subscribe() method's ackHandler
+                    return;
+                }
+
+                // Try to parse as JSON for result messages
                 try {
-                    const message = JSON.parse(data.toString());
+                    const message = JSON.parse(messageText);
                     const messageGuid = message.guid;
 
                     if (messageGuid && this.subscriptions.has(messageGuid)) {
@@ -277,7 +286,7 @@ class PersistentWebSocketManager {
                         }
                     }
                 } catch (error) {
-                    console.warn('Failed to parse WebSocket message:', error);
+                    console.warn('Failed to parse WebSocket message:', messageText.substring(0, 100), '...', error.message);
                 }
             });
 
