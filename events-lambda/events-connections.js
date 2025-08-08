@@ -17,12 +17,30 @@ const ddbClient = new DynamoDBClient({
     },
 });
 
+// Simple in-memory cache: connectionId -> subscription
+const subscriptionCache = new Map();
+
 export class EventsConnections {
     static async subscribers(subscription) {
-        // Use GSI for optimal performance: ~180ms when warm, ~800ms when cold
-        // Provides excellent user experience for active users after initial cold start
-        const queryStart = Date.now();
+        // Check cache first - find all connectionIds with this subscription
+        const cachedConnections = [];
+        for (const [connectionId, cachedSubscription] of subscriptionCache) {
+            if (cachedSubscription === subscription) {
+                cachedConnections.push({connectionId: {S: connectionId}});
+            }
+        }
 
+        if (cachedConnections.length > 0) {
+            // eslint-disable-next-line no-console
+            console.info(`Cache hit for ${subscription}, found ${cachedConnections.length} items`);
+            return {
+                Items: cachedConnections,
+                Count: cachedConnections.length
+            };
+        }
+
+        // Cache miss - query DynamoDB GSI
+        const queryStart = Date.now();
         const queryCommand = new QueryCommand({
             TableName: config.connections_table,
             IndexName: 'SubscriptionIndex',
@@ -40,8 +58,16 @@ export class EventsConnections {
 
         const result = await ddbClient.send(queryCommand);
         const queryTime = Date.now() - queryStart;
+
+        // Update cache with results
+        if (result.Items) {
+            for (const item of result.Items) {
+                subscriptionCache.set(item.connectionId.S, subscription);
+            }
+        }
+
         // eslint-disable-next-line no-console
-        console.info(`GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items`);
+        console.info(`GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items, cached ${result.Count} entries`);
         return result;
     }
 
@@ -58,7 +84,12 @@ export class EventsConnections {
             },
             ReturnValues: 'ALL_NEW',
         });
-        return await ddbClient.send(updateCommand);
+        const result = await ddbClient.send(updateCommand);
+
+        // Update cache
+        subscriptionCache.set(id, subscription);
+
+        return result;
     }
 
     static async unsubscribe(id, subscription) {
@@ -76,7 +107,12 @@ export class EventsConnections {
             },
             ReturnValues: 'ALL_NEW',
         });
-        return await ddbClient.send(updateCommand);
+        const result = await ddbClient.send(updateCommand);
+
+        // Remove from cache
+        subscriptionCache.delete(id);
+
+        return result;
     }
 
     static async add(id) {
@@ -97,5 +133,8 @@ export class EventsConnections {
             Key: {connectionId: {S: id}},
         });
         await ddbClient.send(deleteCommand);
+
+        // Remove from cache
+        subscriptionCache.delete(id);
     }
 }
