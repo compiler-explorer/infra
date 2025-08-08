@@ -1,0 +1,397 @@
+#!/usr/bin/env python3
+"""
+Lazy Mount Daemon for Compiler Explorer
+
+Monitors file access to /opt/compiler-explorer/ and mounts corresponding
+squashfs images on-demand to improve boot performance.
+"""
+
+import argparse
+import fcntl
+import logging
+import logging.handlers
+import os
+import signal
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+from typing import Optional, Set
+
+# BPF string length limit - needs to be increased to 100+ for full compiler paths
+# Currently limited by BPF stack size (512 bytes)
+BPFTRACE_STRING_LENGTH = 50
+
+
+class LazyMountDaemon:
+    def __init__(
+        self,
+        mount_base: str = "/opt/compiler-explorer",
+        image_dir: str = "/efs/squash-images",
+        daemon: bool = False,
+        verbose: bool = False,
+    ):
+        self.mount_base = mount_base
+        self.image_dir = image_dir
+        self.daemon = daemon
+        self.verbose = verbose
+        self.mounted_prefixes: Set[str] = set()
+        self.lock_dir = Path("/tmp/lazy-mount-locks")
+        self.lock_dir.mkdir(exist_ok=True)
+        self.process: Optional[subprocess.Popen] = None
+        self.shutdown = threading.Event()
+
+        # Image mapping: path_prefix -> image_file_path
+        self.image_map: dict[str, str] = {}
+
+        self.setup_logging()
+        self.discover_images()
+
+    def setup_logging(self):
+        """Configure logging to syslog or console"""
+        self.logger = logging.getLogger("lazy-mount-daemon")
+
+        if self.daemon:
+            handler = logging.handlers.SysLogHandler(address="/dev/log")
+            handler.setFormatter(logging.Formatter("lazy-mount-daemon[%(process)d]: %(levelname)s: %(message)s"))
+        else:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG if self.verbose else logging.INFO)
+
+    def discover_images(self):
+        """Scan image directory and build path prefix to image mapping"""
+        try:
+            image_dir_path = Path(self.image_dir)
+            if not image_dir_path.exists():
+                self.logger.error(f"Image directory does not exist: {self.image_dir}")
+                return
+
+            # Recursively find all .img files
+            img_files = list(image_dir_path.rglob("*.img"))
+
+            for img_file in img_files:
+                # Get relative path from image_dir and remove .img extension
+                rel_path = img_file.relative_to(image_dir_path)
+                path_prefix = str(rel_path.with_suffix(""))  # Remove .img extension
+
+                self.image_map[path_prefix] = str(img_file)
+
+            self.logger.info(f"Discovered {len(self.image_map)} image files in {self.image_dir}")
+            if self.verbose:
+                for prefix, img_path in sorted(self.image_map.items()):
+                    self.logger.debug(f"  {prefix} -> {img_path}")
+
+        except Exception as e:
+            self.logger.error(f"Failed to discover images: {e}")
+            self.image_map = {}
+
+    def daemonize(self):
+        """Fork and detach from terminal"""
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError as e:
+            self.logger.error(f"First fork failed: {e}")
+            sys.exit(1)
+
+        os.chdir("/")
+        os.setsid()
+        os.umask(0)
+
+        try:
+            pid = os.fork()
+            if pid > 0:
+                sys.exit(0)
+        except OSError as e:
+            self.logger.error(f"Second fork failed: {e}")
+            sys.exit(1)
+
+        # Redirect standard file descriptors
+        sys.stdout.flush()
+        sys.stderr.flush()
+        with open("/dev/null", "r") as f:
+            os.dup2(f.fileno(), sys.stdin.fileno())
+        with open("/dev/null", "a+") as f:
+            os.dup2(f.fileno(), sys.stdout.fileno())
+            os.dup2(f.fileno(), sys.stderr.fileno())
+
+    def is_mounted_at(self, mount_point: Path) -> bool:
+        """Check if something is already mounted at the given mount point"""
+        try:
+            with open("/proc/mounts", "r") as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 2 and parts[1] == str(mount_point):
+                        return True
+        except Exception as e:
+            self.logger.error(f"Error checking mount status for {mount_point}: {e}")
+
+        return False
+
+    def mount_image(self, image_file: str, mount_prefix: str) -> bool:
+        """Mount a squashfs image at the specified mount prefix"""
+        if mount_prefix in self.mounted_prefixes:
+            return True
+
+        mount_point = Path(self.mount_base) / mount_prefix
+
+        if self.is_mounted_at(mount_point):
+            self.mounted_prefixes.add(mount_prefix)
+            return True
+
+        lock_file = self.lock_dir / f"{mount_prefix.replace('/', '_')}.lock"
+
+        try:
+            with open(lock_file, "w") as lock:
+                fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+
+                # Double-check after acquiring lock
+                if self.is_mounted_at(mount_point):
+                    self.mounted_prefixes.add(mount_prefix)
+                    return True
+
+                self.logger.info(f"Mounting {mount_prefix} from {image_file} to {mount_point}")
+
+                result = subprocess.run(
+                    ["mount", "-t", "squashfs", image_file, str(mount_point), "-o", "ro,nodev,relatime"],
+                    capture_output=True,
+                    text=True,
+                )
+
+                if result.returncode == 0:
+                    self.mounted_prefixes.add(mount_prefix)
+                    self.logger.info(f"Successfully mounted {mount_prefix}")
+                    return True
+                else:
+                    self.logger.error(f"Failed to mount {mount_prefix}: {result.stderr}")
+                    return False
+
+        except Exception as e:
+            self.logger.error(f"Exception while mounting {mount_prefix}: {e}")
+            return False
+
+    def find_matching_image(self, path: str) -> tuple[Optional[str], Optional[str]]:
+        """Find the best matching image for a given path.
+
+        TODO: For better performance with many images, consider using binary search
+        on a sorted list of prefixes for O(log n) instead of O(path_depth).
+
+        Returns: (image_file_path, mount_prefix) or (None, None)
+        """
+        if not path.startswith(self.mount_base + "/"):
+            return None, None
+
+        # Strip the mount base to get relative path
+        remainder = path[len(self.mount_base) + 1 :]
+        if not remainder:
+            return None, None
+
+        # Split path into components for longest-to-shortest matching
+        parts = remainder.split("/")
+
+        # Try from longest to shortest prefix: "a/b/c", "a/b", "a"
+        for i in range(len(parts), 0, -1):
+            prefix = "/".join(parts[:i])
+            if prefix in self.image_map:
+                return self.image_map[prefix], prefix
+
+        return None, None
+
+    def handle_access(self, path: str):
+        """Handle a file access event"""
+        image_file, mount_prefix = self.find_matching_image(path)
+
+        if image_file and mount_prefix and mount_prefix not in self.mounted_prefixes:
+            self.logger.debug(f"Access detected for unmounted prefix: {mount_prefix}")
+            self.mount_image(image_file, mount_prefix)
+
+    def start_bpftrace(self):
+        """Start the bpftrace subprocess to monitor file access"""
+        # Monitor both exec and file open syscalls to catch direct execution and auxiliary files
+        bpftrace_script = f"""
+            tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()}/ {{
+                printf("%s\\n", str(args->filename, {BPFTRACE_STRING_LENGTH}));
+            }}
+            tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()}/ {{
+                printf("%s\\n", str(args->filename, {BPFTRACE_STRING_LENGTH}));
+            }}
+            tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()}/ {{
+                printf("%s\\n", str(args->filename, {BPFTRACE_STRING_LENGTH}));
+            }}
+        """
+
+        env = os.environ.copy()
+        env["BPFTRACE_STRLEN"] = str(BPFTRACE_STRING_LENGTH)
+        env["BPFTRACE_MAX_STRLEN"] = str(BPFTRACE_STRING_LENGTH)
+
+        bpftrace_cmd = ["bpftrace", "-e", bpftrace_script]
+        self.logger.info(f"Starting bpftrace monitoring with command: {' '.join(bpftrace_cmd)}")
+        self.logger.info(f"bpftrace script: {bpftrace_script.strip()}")
+
+        try:
+            self.process = subprocess.Popen(
+                bpftrace_cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=0,
+                env=env,
+            )
+
+            self.logger.info(f"bpftrace subprocess started with PID: {self.process.pid}")
+
+            # Give bpftrace a moment to initialize
+            time.sleep(1)
+
+            # Check if process is still alive
+            if self.process.poll() is not None:
+                # Process has already exited
+                stdout, stderr = self.process.communicate()
+                self.logger.error(f"bpftrace exited immediately with code {self.process.returncode}")
+                self.logger.error(f"bpftrace stdout: {stdout}")
+                self.logger.error(f"bpftrace stderr: {stderr}")
+                raise RuntimeError(f"bpftrace failed to start: {stderr}")
+
+            self.logger.info("bpftrace appears to be running successfully")
+
+            # Monitor stderr in a separate thread
+            def log_stderr():
+                try:
+                    for line in self.process.stderr:
+                        if line.strip():
+                            self.logger.error(f"bpftrace stderr: {line.strip()}")
+                except Exception as e:
+                    self.logger.debug(f"Error reading bpftrace stderr (likely process ended): {e}")
+
+            stderr_thread = threading.Thread(target=log_stderr, daemon=True)
+            stderr_thread.start()
+
+            # Process stdout (the actual events)
+            try:
+                for line in self.process.stdout:
+                    if self.shutdown.is_set():
+                        break
+
+                    line = line.strip()
+                    # Filter in userspace to avoid BPF stack limit issues
+                    if line and line.startswith(self.mount_base + "/"):
+                        self.handle_access(line)
+            except Exception as e:
+                self.logger.error(f"Error processing bpftrace output: {e}")
+                raise
+
+            # If we get here, the monitoring loop ended
+            if self.process.poll() is not None:
+                stdout, stderr = self.process.communicate()
+                self.logger.warning(f"bpftrace process ended with code {self.process.returncode}")
+                if stderr:
+                    self.logger.error(f"bpftrace final stderr: {stderr}")
+
+        except Exception as e:
+            self.logger.error(f"bpftrace error: {e}")
+            if hasattr(self, "process") and self.process:
+                try:
+                    self.process.terminate()
+                except Exception:
+                    pass
+            raise
+
+    def signal_handler(self, signum, frame):
+        """Handle shutdown signals"""
+        self.logger.info(f"Received signal {signum}, shutting down")
+        self.shutdown.set()
+
+        if self.process:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+
+        sys.exit(0)
+
+    def run(self):
+        """Main daemon loop"""
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+        if self.daemon:
+            self.daemonize()
+
+        self.logger.info(f"Lazy mount daemon starting (PID: {os.getpid()})")
+        self.logger.info(f"Monitoring: {self.mount_base}")
+        self.logger.info(f"Image directory: {self.image_dir}")
+
+        # Check for existing mounts at startup
+        self.logger.info("Checking for existing mounts...")
+        mount_count = 0
+        try:
+            with open("/proc/mounts", "r") as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 2 and parts[1].startswith(self.mount_base + "/"):
+                        mount_path = parts[1][len(self.mount_base) + 1 :]
+                        # Check if this mount path corresponds to one of our known prefixes
+                        if mount_path in self.image_map:
+                            self.mounted_prefixes.add(mount_path)
+                            mount_count += 1
+        except Exception as e:
+            self.logger.error(f"Error checking existing mounts: {e}")
+
+        self.logger.info(f"Found {mount_count} existing mounts")
+
+        try:
+            self.start_bpftrace()
+        except KeyboardInterrupt:
+            self.logger.info("Interrupted by user")
+        except Exception as e:
+            self.logger.error(f"Fatal error: {e}")
+            sys.exit(1)
+
+        self.logger.info("Lazy mount daemon stopped")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Lazy Mount Daemon for Compiler Explorer")
+    parser.add_argument("--daemon", "-d", action="store_true", help="Run as a daemon in the background")
+    parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
+    parser.add_argument(
+        "--mount-base",
+        default="/opt/compiler-explorer",
+        help="Base directory for compiler mounts (default: /opt/compiler-explorer)",
+    )
+    parser.add_argument(
+        "--image-dir",
+        default="/efs/squash-images",
+        help="Directory containing squashfs images (default: /efs/squash-images)",
+    )
+
+    args = parser.parse_args()
+
+    # Check if bpftrace is available
+    try:
+        result = subprocess.run(["which", "bpftrace"], check=True, capture_output=True, text=True)
+        print(f"Found bpftrace at: {result.stdout.strip()}")
+    except subprocess.CalledProcessError:
+        print("Error: bpftrace is not installed or not in PATH")
+        sys.exit(1)
+
+    # Check if running as root (only required for actual daemon mode)
+    if os.geteuid() != 0:
+        print("Error: This daemon must be run as root (required for bpftrace and mounting)")
+        sys.exit(1)
+
+    daemon = LazyMountDaemon(
+        mount_base=args.mount_base, image_dir=args.image_dir, daemon=args.daemon, verbose=args.verbose
+    )
+
+    daemon.run()
+
+
+if __name__ == "__main__":
+    main()
