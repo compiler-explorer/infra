@@ -30,16 +30,8 @@ export class EventsConnections {
             }
         }
 
-        if (cachedConnections.length > 0) {
-            // eslint-disable-next-line no-console
-            console.info(`Cache hit for ${subscription}, found ${cachedConnections.length} items`);
-            return {
-                Items: cachedConnections,
-                Count: cachedConnections.length,
-            };
-        }
-
-        // Cache miss - query DynamoDB GSI
+        // Always query DynamoDB to ensure cross-container consistency
+        // Cache is used as optimization but not relied upon for correctness
         const queryStart = Date.now();
         const queryCommand = new QueryCommand({
             TableName: config.connections_table,
@@ -59,7 +51,7 @@ export class EventsConnections {
         const result = await ddbClient.send(queryCommand);
         const queryTime = Date.now() - queryStart;
 
-        // Update cache with results
+        // Update cache with results from DynamoDB
         if (result.Items) {
             for (const item of result.Items) {
                 subscriptionCache.set(item.connectionId.S, subscription);
@@ -67,10 +59,18 @@ export class EventsConnections {
         }
 
         // eslint-disable-next-line no-console
-        console.info(
-            `GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items, ` +
-                `cached ${result.Count} entries`,
-        );
+        if (cachedConnections.length > 0) {
+            console.info(
+                `Cache had ${cachedConnections.length} items, DynamoDB query for ${subscription} ` +
+                    `took ${queryTime}ms and found ${result.Count} items`,
+            );
+        } else {
+            console.info(
+                `Cache miss for ${subscription}, DynamoDB query took ${queryTime}ms, ` +
+                    `found ${result.Count} items`,
+            );
+        }
+
         return result;
     }
 
@@ -78,7 +78,7 @@ export class EventsConnections {
         // Update cache first for instant response
         subscriptionCache.set(id, subscription);
 
-        // Update DynamoDB asynchronously - don't await
+        // Update DynamoDB synchronously to ensure cross-container consistency
         const updateCommand = new UpdateItemCommand({
             TableName: config.connections_table,
             Key: {connectionId: {S: id}},
@@ -92,15 +92,16 @@ export class EventsConnections {
             ReturnValues: 'ALL_NEW',
         });
 
-        // Fire and forget - don't await DynamoDB update
-        ddbClient.send(updateCommand).catch(error => {
+        try {
+            const result = await ddbClient.send(updateCommand);
+            return result;
+        } catch (error) {
             // eslint-disable-next-line no-console
             console.error(`Failed to update subscription in DynamoDB for ${id}:`, error);
-            // Don't remove from cache - prioritize fast response over consistency
-        });
-
-        // Return immediately - cache is already updated
-        return {Attributes: {connectionId: {S: id}, subscription: {S: subscription}}};
+            // Remove from cache on DynamoDB failure to maintain consistency
+            subscriptionCache.delete(id);
+            throw error;
+        }
     }
 
     static async unsubscribe(id, subscription) {
