@@ -69,7 +69,7 @@ export class EventsConnections {
         // eslint-disable-next-line no-console
         console.info(
             `GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items, ` +
-            `cached ${result.Count} entries`,
+                `cached ${result.Count} entries`,
         );
         return result;
     }
