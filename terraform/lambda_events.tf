@@ -61,9 +61,12 @@ resource "aws_iam_policy" "lambda_events_logging" {
 
 data "aws_iam_policy_document" "aws_dynamodb_events" {
   statement {
-    sid       = "Allow"
-    resources = [aws_dynamodb_table.events-connections.arn]
-    actions   = ["dynamodb:*"]
+    sid = "Allow"
+    resources = [
+      aws_dynamodb_table.events-connections.arn,
+      "${aws_dynamodb_table.events-connections.arn}/index/*"
+    ]
+    actions = ["dynamodb:*"]
   }
 }
 
