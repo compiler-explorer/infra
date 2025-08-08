@@ -122,7 +122,7 @@ def admin_mount_efs(local_path: str, use_sudo: bool):
         sshfs_options = (
             f"ro,"
             f"reconnect,ServerAliveInterval=120,ServerAliveCountMax=3,"
-            f"StrictHostKeyChecking=accept-new,UserKnownHostsFile={known_hosts}"
+            f"StrictHostKeyChecking=accept-new,UserKnownHostsFile={known_hosts},allow_other"
         )
     else:
         sshfs_options = "ro,reconnect,ServerAliveInterval=120,ServerAliveCountMax=3"
