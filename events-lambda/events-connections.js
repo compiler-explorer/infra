@@ -60,14 +60,15 @@ export class EventsConnections {
 
         // eslint-disable-next-line no-console
         if (cachedConnections.length > 0) {
+            // eslint-disable-next-line no-console
             console.info(
                 `Cache had ${cachedConnections.length} items, DynamoDB query for ${subscription} ` +
                     `took ${queryTime}ms and found ${result.Count} items`,
             );
         } else {
+            // eslint-disable-next-line no-console
             console.info(
-                `Cache miss for ${subscription}, DynamoDB query took ${queryTime}ms, ` +
-                    `found ${result.Count} items`,
+                `Cache miss for ${subscription}, DynamoDB query took ${queryTime}ms, found ${result.Count} items`,
             );
         }
 
@@ -93,8 +94,7 @@ export class EventsConnections {
         });
 
         try {
-            const result = await ddbClient.send(updateCommand);
-            return result;
+            return await ddbClient.send(updateCommand);
         } catch (error) {
             // eslint-disable-next-line no-console
             console.error(`Failed to update subscription in DynamoDB for ${id}:`, error);
