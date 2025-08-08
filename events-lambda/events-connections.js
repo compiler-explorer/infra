@@ -40,10 +40,17 @@ export class EventsConnections {
                 },
             });
 
-            // Race the GSI query against a timeout
-            const timeoutPromise = new Promise((_resolve, reject) => setTimeout(() => reject(new Error('GSI_TIMEOUT')), 200));
+            // Use AbortController for proper request cancellation
+            const abortController = new AbortController();
+            const timeoutId = setTimeout(() => {
+                abortController.abort();
+            }, 200); // 200ms timeout
 
-            const result = await Promise.race([ddbClient.send(queryCommand), timeoutPromise]);
+            const result = await ddbClient.send(queryCommand, {
+                abortSignal: abortController.signal
+            });
+
+            clearTimeout(timeoutId);
 
             const queryTime = Date.now() - queryStart;
             // eslint-disable-next-line no-console
@@ -52,9 +59,9 @@ export class EventsConnections {
         } catch (error) {
             const failTime = Date.now() - queryStart;
 
-            if (error.message === 'GSI_TIMEOUT') {
+            if (error.name === 'AbortError') {
                 // eslint-disable-next-line no-console
-                console.warn(`GSI query timed out after ${failTime}ms, falling back to table scan`);
+                console.warn(`GSI query aborted after ${failTime}ms (timeout), falling back to table scan`);
             } else {
                 // eslint-disable-next-line no-console
                 console.warn(`GSI query failed after ${failTime}ms:`, error.message, '- falling back to table scan');
