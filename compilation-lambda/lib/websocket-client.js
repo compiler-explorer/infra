@@ -340,11 +340,11 @@ class PersistentWebSocketManager {
 
     async subscribe(guid) {
         await this.ensureConnected();
-        
+
         if (this.ws.readyState !== WebSocket.OPEN) {
             throw new Error('WebSocket not connected');
         }
-        
+
         // Send subscribe command and wait for it to be sent
         return new Promise((resolve, reject) => {
             try {
@@ -361,7 +361,7 @@ class PersistentWebSocketManager {
             }
         });
     }
-    
+
     waitForResult(guid, timeoutSeconds = 60) {
         // This sets up the listener but doesn't send subscribe
         return new Promise((resolve, reject) => {
@@ -371,7 +371,7 @@ class PersistentWebSocketManager {
                 this.subscriptions.delete(guid);
                 return;
             }
-            
+
             // Set up timeout
             const timeout = setTimeout(() => {
                 this.subscriptions.delete(guid);
