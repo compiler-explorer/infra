@@ -30,6 +30,24 @@ process.on('SIGINT', () => {
  */
 exports.handler = async (event, context) => {
     try {
+        // Generate unique GUID for this request immediately
+        const guid = generateGuid();
+
+        // Start WebSocket subscription as early as possible to minimize race conditions
+        const subscribeStart = Date.now();
+        try {
+            await subscribePersistent(guid);
+            const subscribeTime = Date.now() - subscribeStart;
+            console.info(`Lambda timing: WebSocket subscribed in ${subscribeTime}ms`);
+
+            // Add small delay to ensure subscription is processed before sending to SQS
+            await new Promise(resolve => setTimeout(resolve, 50));
+            console.info('Lambda timing: fixed delay completed (50ms)');
+        } catch (error) {
+            console.error('Failed to subscribe to WebSocket:', error);
+            return createErrorResponse(500, `Failed to setup result subscription: ${error.message}`);
+        }
+
         // Parse ALB request
         const path = event.path || '';
         const method = event.httpMethod || '';
@@ -50,14 +68,16 @@ exports.handler = async (event, context) => {
         // Check if this is a cmake request
         const isCmake = isCmakeRequest(path);
 
-        // Generate unique GUID for this request
-        const guid = generateGuid();
-
         // Determine routing strategy for this compiler
         const routingInfo = await lookupCompilerRouting(compilerId);
 
         if (routingInfo.type === 'url') {
-            // Direct URL forwarding - no WebSocket needed
+            // Direct URL forwarding - WebSocket subscription not needed, send unsubscribe
+            const wsManager = getPersistentWebSocket();
+            if (wsManager && wsManager.ws && wsManager.ws.readyState === 1) { // WebSocket.OPEN = 1
+                wsManager.ws.send(`unsubscribe: ${guid}`);
+            }
+
             try {
                 const response = await forwardToEnvironmentUrl(
                     compilerId,
@@ -86,24 +106,8 @@ exports.handler = async (event, context) => {
             }
         }
 
-        // Queue-based routing - use persistent WebSocket
+        // Queue-based routing - WebSocket subscription already completed at start
         const queueUrl = routingInfo.target;
-
-        // First, ensure WebSocket is connected and subscribe to the GUID
-        // This must happen BEFORE sending to SQS to avoid race conditions
-        const subscribeStart = Date.now();
-        try {
-            await subscribePersistent(guid);
-            const subscribeTime = Date.now() - subscribeStart;
-            console.info(`Lambda timing: WebSocket subscribed in ${subscribeTime}ms`);
-
-            // Add small delay to ensure subscription is processed before sending to SQS
-            await new Promise(resolve => setTimeout(resolve, 100));
-            console.info('Lambda timing: fixed delay completed (100ms)');
-        } catch (error) {
-            console.error('Failed to subscribe to WebSocket:', error);
-            return createErrorResponse(500, `Failed to setup result subscription: ${error.message}`);
-        }
 
         // Create result waiting promise (but don't await it yet)
         const resultPromise = waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
