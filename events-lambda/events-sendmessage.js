@@ -27,6 +27,7 @@ async function relay_request(apiGwClient, guid, data) {
     const lookupStart = Date.now();
     const subscribers = await EventsConnections.subscribers(guid);
     const lookupTime = Date.now() - lookupStart;
+    // eslint-disable-next-line no-console
     console.info(`Events timing: subscriber lookup for ${guid} took ${lookupTime}ms`);
 
     if (subscribers.Count === 0) throw new Error('No listeners for ' + guid);
@@ -38,6 +39,7 @@ async function relay_request(apiGwClient, guid, data) {
         await send_message(apiGwClient, sub.connectionId.S, JSON.stringify(data));
     }
     const relayTime = Date.now() - relayStart;
+    // eslint-disable-next-line no-console
     console.info(`Events timing: message relay for ${guid} took ${relayTime}ms (${subscribers.Count} subscribers)`);
 }
 

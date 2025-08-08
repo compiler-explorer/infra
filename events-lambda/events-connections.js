@@ -3,7 +3,6 @@ import {
     DynamoDBClient,
     PutItemCommand,
     QueryCommand,
-    ScanCommand,
     UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import {config} from './config.js';
