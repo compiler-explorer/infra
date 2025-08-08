@@ -2,6 +2,7 @@ import {
     DeleteItemCommand,
     DynamoDBClient,
     PutItemCommand,
+    QueryCommand,
     ScanCommand,
     UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
@@ -11,10 +12,12 @@ const ddbClient = new DynamoDBClient({region: config.region});
 
 export class EventsConnections {
     static async subscribers(subscription) {
-        const scanCommand = new ScanCommand({
+        // Use GSI for efficient subscription lookups instead of expensive table scans
+        const queryCommand = new QueryCommand({
             TableName: config.connections_table,
+            IndexName: 'SubscriptionIndex',
+            KeyConditionExpression: '#subscription = :subscription',
             ProjectionExpression: 'connectionId',
-            FilterExpression: '#subscription=:subscription',
             ExpressionAttributeNames: {
                 '#subscription': 'subscription',
             },
@@ -24,7 +27,7 @@ export class EventsConnections {
                 },
             },
         });
-        return await ddbClient.send(scanCommand);
+        return await ddbClient.send(queryCommand);
     }
 
     static async update(id, subscription) {

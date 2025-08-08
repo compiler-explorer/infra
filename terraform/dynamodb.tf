@@ -146,6 +146,18 @@ resource "aws_dynamodb_table" "events-connections" {
     type = "S"
   }
 
+  attribute {
+    name = "subscription"
+    type = "S"
+  }
+
+  # Global Secondary Index for efficient subscription lookups
+  global_secondary_index {
+    name            = "SubscriptionIndex"
+    hash_key        = "subscription"
+    projection_type = "KEYS_ONLY" # Only project connectionId and subscription for minimal data transfer
+  }
+
   point_in_time_recovery {
     enabled = false
   }

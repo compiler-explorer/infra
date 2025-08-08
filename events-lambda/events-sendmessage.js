@@ -24,14 +24,21 @@ async function send_message(apiGwClient, connectionId, postData) {
 }
 
 async function relay_request(apiGwClient, guid, data) {
+    const lookupStart = Date.now();
     const subscribers = await EventsConnections.subscribers(guid);
+    const lookupTime = Date.now() - lookupStart;
+    console.info(`Events timing: subscriber lookup for ${guid} took ${lookupTime}ms`);
+
     if (subscribers.Count === 0) throw new Error('No listeners for ' + guid);
 
+    const relayStart = Date.now();
     for (let idx = 0; idx < subscribers.Count; idx++) {
         const sub = subscribers.Items[idx];
 
         await send_message(apiGwClient, sub.connectionId.S, JSON.stringify(data));
     }
+    const relayTime = Date.now() - relayStart;
+    console.info(`Events timing: message relay for ${guid} took ${relayTime}ms (${subscribers.Count} subscribers)`);
 }
 
 async function handle_text_message(apiGwClient, connectionId, message) {
