@@ -34,10 +34,9 @@ mount_opt() {
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
     if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # TODO yeah
-        ./mount-all-img.sh
+        ./mount-all-img.sh &
 
-        echo "Done mounting squash images"
+        echo "Squash images mounting as we go"
     fi
 }
 

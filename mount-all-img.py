@@ -11,8 +11,9 @@ from multiprocessing import Pool
 IMG_DIR = "/efs/squash-images"
 MOUNT_DIR = "/opt/compiler-explorer"
 LOG_FILE = f"/tmp/mount-all-img-{datetime.now().strftime('%Y%m%d-%H%M%S')}.log"
-# This seems about the sweet spot. Any more and we overwhelm systemd
-PARALLEL_WORKERS = 6
+# let's not overwhelm
+PARALLEL_WORKERS = 1
+SLEEP_AFTER_MOUNT = 0.25
 
 
 def log_message(message):
@@ -62,9 +63,11 @@ def mount_image(args):
         if result.returncode != 0:
             return {"success": False, "image": img_name, "time": mount_time, "error": result.stderr}
 
+        time.sleep(SLEEP_AFTER_MOUNT)
+
         return {"success": True, "image": img_name, "time": mount_time}
 
-    except Exception as e:
+    except RuntimeError as e:
         end_time = time.time()
         mount_time = end_time - start_time
         return {"success": False, "image": img_name, "time": mount_time, "error": str(e)}
@@ -107,6 +110,10 @@ def main():
             already_mounted += 1
         else:
             to_mount.append((img_file, dst_path))
+
+    # Sort by creation time (newest first) so recent compilers get mounted first
+    log_message("Sorting images by creation time...")
+    to_mount.sort(key=lambda x: os.path.getctime(x[0]), reverse=True)
 
     scan_time = time.time() - scan_start
     log_message(f"Scan completed in {scan_time:.2f}s")
