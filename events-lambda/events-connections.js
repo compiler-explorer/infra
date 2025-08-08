@@ -101,7 +101,10 @@ export class EventsConnections {
     }
 
     static async unsubscribe(id, subscription) {
-        // Only unsubscribe if the connection is currently subscribed to this specific subscription
+        // Remove from cache first for instant response
+        subscriptionCache.delete(id);
+
+        // Update DynamoDB asynchronously - don't await
         const updateCommand = new UpdateItemCommand({
             TableName: config.connections_table,
             Key: {connectionId: {S: id}},
@@ -115,12 +118,16 @@ export class EventsConnections {
             },
             ReturnValues: 'ALL_NEW',
         });
-        const result = await ddbClient.send(updateCommand);
 
-        // Remove from cache
-        subscriptionCache.delete(id);
+        // Fire and forget - don't await DynamoDB update
+        ddbClient.send(updateCommand).catch(error => {
+            // eslint-disable-next-line no-console
+            console.error(`Failed to unsubscribe ${id} from DynamoDB:`, error);
+            // Don't re-add to cache - prioritize fast response over consistency
+        });
 
-        return result;
+        // Return immediately - cache is already updated
+        return {Attributes: {connectionId: {S: id}}};
     }
 
     static async add(id) {
