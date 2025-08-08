@@ -7,11 +7,20 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {config} from './config.js';
 
-const ddbClient = new DynamoDBClient({region: config.region});
+// Optimized DynamoDB client configuration for better performance
+const ddbClient = new DynamoDBClient({
+    region: config.region,
+    maxAttempts: 2,
+    requestHandler: {
+        connectionTimeout: 1000,
+        socketTimeout: 2000,
+    },
+});
 
 export class EventsConnections {
     static async subscribers(subscription) {
         // Use GSI for efficient subscription lookups instead of expensive table scans
+        const queryStart = Date.now();
         const queryCommand = new QueryCommand({
             TableName: config.connections_table,
             IndexName: 'SubscriptionIndex',
@@ -26,7 +35,11 @@ export class EventsConnections {
                 },
             },
         });
-        return await ddbClient.send(queryCommand);
+        const result = await ddbClient.send(queryCommand);
+        const queryTime = Date.now() - queryStart;
+        // eslint-disable-next-line no-console
+        console.info(`DynamoDB GSI query for ${subscription} took ${queryTime}ms, found ${result.Count} items`);
+        return result;
     }
 
     static async update(id, subscription) {
