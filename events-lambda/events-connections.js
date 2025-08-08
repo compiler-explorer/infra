@@ -72,6 +72,10 @@ export class EventsConnections {
     }
 
     static async update(id, subscription) {
+        // Update cache first for instant response
+        subscriptionCache.set(id, subscription);
+
+        // Update DynamoDB asynchronously - don't await
         const updateCommand = new UpdateItemCommand({
             TableName: config.connections_table,
             Key: {connectionId: {S: id}},
@@ -84,12 +88,16 @@ export class EventsConnections {
             },
             ReturnValues: 'ALL_NEW',
         });
-        const result = await ddbClient.send(updateCommand);
 
-        // Update cache
-        subscriptionCache.set(id, subscription);
+        // Fire and forget - don't await DynamoDB update
+        ddbClient.send(updateCommand).catch(error => {
+            // eslint-disable-next-line no-console
+            console.error(`Failed to update subscription in DynamoDB for ${id}:`, error);
+            // Don't remove from cache - prioritize fast response over consistency
+        });
 
-        return result;
+        // Return immediately - cache is already updated
+        return {Attributes: {connectionId: {S: id}, subscription: {S: subscription}}};
     }
 
     static async unsubscribe(id, subscription) {
