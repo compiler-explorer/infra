@@ -24,3 +24,13 @@ compilers:
       - 3.11-v7.3.18
       - 3.10-v7.3.14
       - 3.9-v7.3.14
+  codon:
+    type: tarballs
+    compression: gz
+    url: https://github.com/exaloop/codon/releases/download/v{{name}}/codon-linux-x86_64.tar.gz
+    check_exe: bin/codon --version
+    dir: codon-{{name}}
+    strip_components: 1
+    create_untar_dir: true
+    targets:
+      - 0.19.2

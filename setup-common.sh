@@ -22,6 +22,7 @@ apt-get -y install \
   bpftrace \
   gpg-agent \
   jq \
+  locales \
   libc6-arm64-cross \
   libdatetime-perl \
   libtinfo\* \
@@ -35,6 +36,8 @@ apt-get -y install \
   ssmtp \
   unzip \
   wget
+
+locale-gen en_US.UTF-8
 
 apt-get autoremove --purge -y
 
