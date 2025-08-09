@@ -25,16 +25,7 @@ variable "MY_SECRET_KEY" {
 data "amazon-ami" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    // needs non-minimal for now annoyingly else nvidia drivers fail to install:
-    // Building module(s)....................(bad exit status: 2)
-    // Failed command:
-    // 'make' -j4 KERNEL_UNAME=6.8.0-1033-aws IGNORE_CC_MISMATCH=1 SYSSRC=/lib/modules/6.8.0-1033-aws/build LD=/u
-    // Error! Bad return status for module build on kernel: 6.8.0-1033-aws (x86_64)
-    // Consult /var/lib/dkms/nvidia/570.172.08/build/make.log for more information.
-    // dpkg: error processing package nvidia-dkms-570-open (--configure):
-    // installed nvidia-dkms-570-open package post-installation script subprocess returned error exit status 10
-
-    name                = "ubuntu/images/*ubuntu-*-22.04-amd64-*"
+    name                = "ubuntu-minimal/images/*ubuntu-*-22.04-amd64-minimal-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
