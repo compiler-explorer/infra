@@ -71,6 +71,7 @@ class PersistentWebSocketManager {
                     const messageGuid = message.guid;
 
                     if (messageGuid && this.subscriptions.has(messageGuid)) {
+                        console.info(`Received result for GUID: ${messageGuid}`);
                         const subscription = this.subscriptions.get(messageGuid);
                         clearTimeout(subscription.timeout);
                         subscription.resolver(message);
