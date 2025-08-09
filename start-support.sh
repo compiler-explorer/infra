@@ -34,11 +34,13 @@ mount_opt() {
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
     if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # don't be tempted to background this, it just causes everything to wedge
-        # during startup (startup time I/O etc goes through the roof).
-        ./mount-all-img.sh
-
-        echo "Done mounting squash images"
+        echo "Starting lazy mount daemon for on-demand compiler mounting"
+        if ! systemctl is-active --quiet lazy-mount-daemon; then
+            systemctl start lazy-mount-daemon || {
+                echo "ERROR: Failed to start lazy mount daemon"
+                exit 1
+            }
+        fi
     fi
 }
 

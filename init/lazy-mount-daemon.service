@@ -1,0 +1,18 @@
+[Unit]
+Description=Lazy Mount Daemon for Compiler Explorer
+Before=compiler-explorer.service
+After=remote-fs.target network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/bin/python3 /infra/lazy-mount-daemon.py --daemon --verbose
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=10
+User=root
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=lazy-mount-daemon
+
+[Install]
+WantedBy=multi-user.target

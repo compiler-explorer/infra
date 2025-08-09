@@ -43,7 +43,13 @@ mount_opt() {
   [ -f /opt/.health ] || touch /opt/.health
   mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
 
-  ./mount-all-img.sh
+  echo "Starting lazy mount daemon for on-demand compiler mounting"
+  if ! systemctl is-active --quiet lazy-mount-daemon; then
+    systemctl start lazy-mount-daemon || {
+      echo "ERROR: Failed to start lazy mount daemon"
+      exit 1
+    }
+  fi
 }
 
 mount_opt
