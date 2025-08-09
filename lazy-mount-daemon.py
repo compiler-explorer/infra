@@ -18,7 +18,10 @@ import time
 from pathlib import Path
 from typing import Optional, Set
 
-# BPF string length limit - we skip prefix in kernel
+# BPF character matching limit - verifier restricts complex character access chains
+BPF_MATCH_LENGTH = 15
+
+# BPF string length limit - for path remainder output after prefix matching
 BPFTRACE_STRING_LENGTH = 100
 
 
@@ -199,11 +202,12 @@ class LazyMountDaemon:
         """Start the bpftrace subprocess to monitor file access"""
         # Ensure mount_base ends with '/' for consistent matching
         mount_base_with_slash = self.mount_base.rstrip("/") + "/"
-        mount_base_len = len(mount_base_with_slash)
 
-        # Generate character-by-character comparison for mount_base
+        # Generate character-by-character comparison for mount_base (limited by BPF verifier)
+        # Only check first BPF_MATCH_LENGTH characters to avoid verifier "modified ctx ptr" errors
+        match_prefix = mount_base_with_slash[:BPF_MATCH_LENGTH]
         char_comparisons = []
-        for i, char in enumerate(mount_base_with_slash):
+        for i, char in enumerate(match_prefix):
             # Use ASCII decimal values for all characters to avoid bpftrace quote/syntax issues
             ascii_value = ord(char)
             char_comparisons.append(f"args->filename[{i}] == {ascii_value}")
@@ -214,15 +218,15 @@ class LazyMountDaemon:
         # Note: Inline filtering logic since bpftrace doesn't support user-defined functions
         bpftrace_script = f"""
             tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
+                printf("%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
             }}
 
             tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
+                printf("%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
             }}
 
             tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
+                printf("%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
             }}
         """
 
@@ -291,9 +295,18 @@ class LazyMountDaemon:
 
                     # All filtering now done in kernel space - process all output
                     if line:
-                        # Reconstruct full path from suffix (bpftrace outputs path after prefix)
-                        full_path = f"{self.mount_base}/{line}"
-                        self.handle_access(full_path)
+                        # Validate that the remainder starts with the expected suffix
+                        # BPF matched first BPF_MATCH_LENGTH chars, we need to validate the rest
+                        mount_base_with_slash = self.mount_base.rstrip("/") + "/"
+                        expected_remainder = mount_base_with_slash[BPF_MATCH_LENGTH:]
+
+                        if line.startswith(expected_remainder):
+                            # Reconstruct full path from remainder (bpftrace outputs path after BPF_MATCH_LENGTH chars)
+                            full_path = f"{mount_base_with_slash[:BPF_MATCH_LENGTH]}{line}"
+                            self.handle_access(full_path)
+                        else:
+                            # False positive - path doesn't actually match our full prefix
+                            self.logger.debug(f"Ignoring false positive: {line[:50]}...")
             except Exception as e:
                 self.logger.error(f"Error processing bpftrace output: {e}")
                 raise
