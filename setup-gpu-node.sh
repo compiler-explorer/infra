@@ -9,7 +9,7 @@ bash "${DIR}/setup-node.sh"
 # On Ubuntu 22 the older system GCC won't compile the driver
 . /etc/os-release
 if [[ "$ID" == "ubuntu" ]] && [[ "${VERSION_ID%%.*}" -eq 22 ]]; then
-    apt-get install gcc-12
+    apt-get install -y gcc-12
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12
 fi
 
