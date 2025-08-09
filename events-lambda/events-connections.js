@@ -7,13 +7,19 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import {config} from './config.js';
 
-// Optimized DynamoDB client configuration for better performance
+// Optimized DynamoDB client configuration for production performance
 const ddbClient = new DynamoDBClient({
     region: config.region,
-    maxAttempts: 2,
+    maxAttempts: 3, // Increased retries for better reliability
     requestHandler: {
-        connectionTimeout: 1000,
-        socketTimeout: 2000,
+        connectionTimeout: 500, // Faster connection setup
+        socketTimeout: 1500, // Reduced socket timeout for faster failures
+        connectionPoolSize: 10, // Pool connections for better performance
+    },
+    // Enable keep-alive for connection reuse
+    httpOptions: {
+        keepAlive: true,
+        keepAliveMsecs: 30000, // 30 seconds keep-alive
     },
 });
 

@@ -16,15 +16,16 @@ const httpsAgent = new https.Agent({
     freeSocketTimeout: 30000
 });
 
-// Optimized AWS client configuration for Lambda performance
+// Optimized AWS client configuration for production Lambda performance
 const clientConfig = {
     region: AWS_REGION,
     requestHandler: new NodeHttpHandler({
         httpsAgent,
-        connectionTimeout: 2000,
-        socketTimeout: 5000
+        connectionTimeout: 1000,  // Faster connection setup
+        socketTimeout: 3000       // Reduced timeout for faster failures
     }),
-    maxAttempts: 2
+    maxAttempts: 3,  // Increased retries for better reliability
+    retryMode: 'adaptive'  // Intelligent retry strategy
 };
 
 // Initialize AWS clients with optimized configuration
