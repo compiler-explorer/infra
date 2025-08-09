@@ -24,23 +24,23 @@ async function send_message(apiGwClient, connectionId, postData) {
 }
 
 async function relay_request(apiGwClient, guid, data) {
-    const lookupStart = Date.now();
-    const subscribers = await EventsConnections.subscribers(guid);
-    const lookupTime = Date.now() - lookupStart;
     // eslint-disable-next-line no-console
-    console.info(`Events timing: subscriber lookup for ${guid} took ${lookupTime}ms`);
+    console.info(`Subscriber lookup start for GUID: ${guid}`);
+    const subscribers = await EventsConnections.subscribers(guid);
+    // eslint-disable-next-line no-console
+    console.info(`Subscriber lookup end for GUID: ${guid}, found ${subscribers.Count} subscribers`);
 
     if (subscribers.Count === 0) throw new Error('No listeners for ' + guid);
 
-    const relayStart = Date.now();
+    // eslint-disable-next-line no-console
+    console.info(`Message relay start for GUID: ${guid} to ${subscribers.Count} subscribers`);
     for (let idx = 0; idx < subscribers.Count; idx++) {
         const sub = subscribers.Items[idx];
 
         await send_message(apiGwClient, sub.connectionId.S, JSON.stringify(data));
     }
-    const relayTime = Date.now() - relayStart;
     // eslint-disable-next-line no-console
-    console.info(`Events timing: message relay for ${guid} took ${relayTime}ms (${subscribers.Count} subscribers)`);
+    console.info(`Message relay end for GUID: ${guid}`);
 }
 
 async function handle_text_message(apiGwClient, connectionId, message) {
@@ -49,11 +49,7 @@ async function handle_text_message(apiGwClient, connectionId, message) {
         // eslint-disable-next-line no-console
         console.info(`Processing subscription for ${subscription} on connection ${connectionId}`);
 
-        const updateStart = Date.now();
         await EventsConnections.update(connectionId, subscription);
-        const updateTime = Date.now() - updateStart;
-        // eslint-disable-next-line no-console
-        console.info(`Cache update for ${subscription} completed in ${updateTime}ms`);
     } else if (message.startsWith('unsubscribe: ')) {
         const subscription = message.substring(13);
         await EventsConnections.unsubscribe(connectionId, subscription);

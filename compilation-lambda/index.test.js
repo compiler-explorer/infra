@@ -19,12 +19,27 @@ const { handler } = require('./index');
 
 // Import the mocked modules to set up expectations
 const { lookupCompilerRouting, sendToSqs } = require('./lib/routing');
-const { WebSocketClient } = require('./lib/websocket-client');
+const { subscribePersistent, waitForCompilationResultPersistent, getPersistentWebSocket } = require('./lib/websocket-client');
 const { forwardToEnvironmentUrl } = require('./lib/http-forwarder');
 
 describe('Compilation Lambda Handler', () => {
+    let originalConsoleError;
+    
+    beforeAll(() => {
+        // Suppress console.error during tests since we're testing error conditions
+        originalConsoleError = console.error;
+        console.error = jest.fn();
+    });
+    
+    afterAll(() => {
+        // Restore original console.error
+        console.error = originalConsoleError;
+    });
+    
     beforeEach(() => {
         jest.clearAllMocks();
+        // Clear the console.error mock for each test
+        console.error.mockClear();
     });
 
     describe('Request Validation', () => {
@@ -122,12 +137,8 @@ describe('Compilation Lambda Handler', () => {
                 environment: 'test'
             });
 
-            // Mock WebSocket client to fail connection
-            const mockWsClient = {
-                connect: jest.fn().mockRejectedValue(new Error('Connection failed')),
-                close: jest.fn()
-            };
-            WebSocketClient.mockImplementation(() => mockWsClient);
+            // Mock WebSocket subscription to fail
+            subscribePersistent.mockRejectedValue(new Error('Connection failed'));
 
             const event = {
                 httpMethod: 'POST',
@@ -153,17 +164,13 @@ describe('Compilation Lambda Handler', () => {
             // Mock SQS sending
             sendToSqs.mockResolvedValue();
 
-            // Mock WebSocket client with successful result
-            const mockWsClient = {
-                connect: jest.fn().mockResolvedValue(),
-                waitForResult: jest.fn().mockResolvedValue({
-                    guid: 'test-uuid-1234',
-                    asm: [{ text: 'mov eax, 0' }],
-                    code: 0
-                }),
-                close: jest.fn()
-            };
-            WebSocketClient.mockImplementation(() => mockWsClient);
+            // Mock WebSocket with successful result
+            subscribePersistent.mockResolvedValue();
+            waitForCompilationResultPersistent.mockResolvedValue({
+                guid: 'test-uuid-1234',
+                asm: [{ text: 'mov eax, 0' }],
+                code: 0
+            });
 
             const event = {
                 httpMethod: 'POST',
@@ -184,7 +191,7 @@ describe('Compilation Lambda Handler', () => {
                 { 'content-type': 'application/json' },
                 'https://sqs.us-east-1.amazonaws.com/123456789/custom-queue.fifo'
             );
-            expect(mockWsClient.waitForResult).toHaveBeenCalledWith(1); // TIMEOUT_SECONDS
+            expect(waitForCompilationResultPersistent).toHaveBeenCalledWith('test-uuid-1234', 1); // TIMEOUT_SECONDS
         });
     });
 
@@ -305,11 +312,7 @@ describe('Compilation Lambda Handler', () => {
                 environment: 'test'
             });
 
-            const mockWsClient = {
-                connect: jest.fn().mockResolvedValue(),
-                close: jest.fn()
-            };
-            WebSocketClient.mockImplementation(() => mockWsClient);
+            subscribePersistent.mockResolvedValue();
 
             sendToSqs.mockRejectedValue(new Error('SQS error'));
 
@@ -324,7 +327,6 @@ describe('Compilation Lambda Handler', () => {
 
             expect(response.statusCode).toBe(500);
             expect(JSON.parse(response.body).error).toContain('Failed to queue compilation request');
-            expect(mockWsClient.close).toHaveBeenCalled();
         });
 
         test('should handle compilation timeout', async () => {
@@ -336,12 +338,8 @@ describe('Compilation Lambda Handler', () => {
 
             sendToSqs.mockResolvedValue();
 
-            const mockWsClient = {
-                connect: jest.fn().mockResolvedValue(),
-                waitForResult: jest.fn().mockRejectedValue(new Error('No response received within 1 seconds')),
-                close: jest.fn()
-            };
-            WebSocketClient.mockImplementation(() => mockWsClient);
+            subscribePersistent.mockResolvedValue();
+            waitForCompilationResultPersistent.mockRejectedValue(new Error('No response received within 1 seconds'));
 
             const event = {
                 httpMethod: 'POST',
@@ -354,7 +352,6 @@ describe('Compilation Lambda Handler', () => {
 
             expect(response.statusCode).toBe(408);
             expect(JSON.parse(response.body).error).toContain('Compilation timeout');
-            expect(mockWsClient.close).toHaveBeenCalled();
         });
     });
 });

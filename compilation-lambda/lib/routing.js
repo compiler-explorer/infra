@@ -11,27 +11,32 @@ function getSqsQueueUrl() {
     return process.env.SQS_QUEUE_URL || '';
 }
 
+/**
+ * Build a queue URL from the template SQS_QUEUE_URL and a specific queue name
+ * @param {string} queueName - Name of the queue to route to
+ * @returns {string} Full SQS queue URL
+ */
+function buildQueueUrl(queueName) {
+    const templateUrl = getSqsQueueUrl();
+    if (!templateUrl) {
+        throw new Error('SQS_QUEUE_URL environment variable not set');
+    }
+    
+    // Extract the base URL (everything before the last slash)
+    const lastSlashIndex = templateUrl.lastIndexOf('/');
+    if (lastSlashIndex === -1) {
+        throw new Error('Invalid SQS_QUEUE_URL format');
+    }
+    
+    const baseUrl = templateUrl.substring(0, lastSlashIndex + 1);
+    return baseUrl + queueName;
+}
+
 // DynamoDB table for compiler routing
 const COMPILER_ROUTING_TABLE = 'CompilerRouting';
 
-// In-memory cache for routing lookups (TTL: 5 minutes)
+// In-memory cache for routing lookups (persists until Lambda restart)
 const routingCache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
-// Cache cleanup interval (every 2 minutes)
-const cleanupInterval = setInterval(() => {
-    const now = Date.now();
-    for (const [key, entry] of routingCache.entries()) {
-        if (now > entry.expires) {
-            routingCache.delete(key);
-        }
-    }
-}, 2 * 60 * 1000);
-
-// Allow cleanup interval to be cleared (for testing)
-if (process.env.NODE_ENV === 'test') {
-    cleanupInterval.unref();
-}
 
 /**
  * Parse request body based on content type
@@ -69,52 +74,45 @@ async function lookupCompilerRouting(compilerId) {
         // Check cache first
         const cacheKey = compositeKey;
         const cachedEntry = routingCache.get(cacheKey);
-        if (cachedEntry && Date.now() < cachedEntry.expires) {
-            const cacheHitDuration = Date.now() - lookupStart;
-            console.info(`Cache hit for ${compilerId} in ${cacheHitDuration}ms`);
-            return cachedEntry.data;
+        if (cachedEntry) {
+            console.info(`Routing cache hit for compiler: ${compilerId}`);
+            return cachedEntry;
         }
 
         // Look up compiler in DynamoDB routing table using composite key
-        const primaryLookupStart = Date.now();
+        console.info(`DynamoDB routing lookup start for compiler: ${compilerId}`);
         const response = await dynamodb.send(new GetItemCommand({
             TableName: COMPILER_ROUTING_TABLE,
             Key: {
                 compilerId: { S: compositeKey }
             }
         }));
-        const primaryLookupDuration = Date.now() - primaryLookupStart;
 
         let item = response.Item;
-        let totalDynamodbTime = primaryLookupDuration;
 
         if (!item) {
             // Fallback: try old format (without environment prefix) for backward compatibility
             console.info(`Composite key not found for ${compositeKey}, trying legacy format`);
-            const fallbackLookupStart = Date.now();
             const fallbackResponse = await dynamodb.send(new GetItemCommand({
                 TableName: COMPILER_ROUTING_TABLE,
                 Key: {
                     compilerId: { S: compilerId }
                 }
             }));
-            const fallbackLookupDuration = Date.now() - fallbackLookupStart;
-            totalDynamodbTime += fallbackLookupDuration;
 
             item = fallbackResponse.Item;
             if (item) {
                 console.warn(`Using legacy routing entry for ${compilerId} - consider migration`);
-                console.info(`DynamoDB timing: primary lookup ${primaryLookupDuration}ms, fallback lookup ${fallbackLookupDuration}ms (total: ${totalDynamodbTime}ms)`);
+                console.info(`DynamoDB routing lookup end for compiler: ${compilerId}, using fallback: found`);
             } else {
-                console.info(`DynamoDB timing: primary lookup ${primaryLookupDuration}ms, fallback lookup ${fallbackLookupDuration}ms (total: ${totalDynamodbTime}ms) - no routing found`);
+                console.info(`DynamoDB routing lookup end for compiler: ${compilerId}, using fallback: not found`);
             }
         } else {
-            console.info(`DynamoDB timing: primary lookup ${primaryLookupDuration}ms - composite key found`);
+            console.info(`DynamoDB routing lookup end for compiler: ${compilerId}, using composite key`);
         }
 
         if (item) {
             const routingType = item.routingType?.S || 'queue';
-            const totalLookupDuration = Date.now() - lookupStart;
 
             if (routingType === 'url') {
                 const targetUrl = item.targetUrl?.S || '';
@@ -125,53 +123,57 @@ async function lookupCompilerRouting(compilerId) {
                         environment: item.environment?.S || ''
                     };
                     // Cache the result
-                    routingCache.set(cacheKey, {
-                        data: result,
-                        expires: Date.now() + CACHE_TTL_MS
-                    });
+                    routingCache.set(cacheKey, result);
                     console.info(`Compiler ${compilerId} routed to URL: ${targetUrl}`);
-                    console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
+                    console.info(`Routing lookup complete for compiler: ${compilerId}`);
                     return result;
                 }
             } else {
-                // Queue routing - use environment's SQS_QUEUE_URL directly
-                const queueName = item.queueName?.S || 'default queue';
-                const result = {
-                    type: 'queue',
-                    target: getSqsQueueUrl(),
-                    environment: item.environment?.S || ''
-                };
-                // Cache the result
-                routingCache.set(cacheKey, {
-                    data: result,
-                    expires: Date.now() + CACHE_TTL_MS
-                });
-                console.info(`Compiler ${compilerId} routed to queue: ${queueName}`);
-                console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
-                return result;
+                // Queue routing - use queueName from DynamoDB to build full queue URL
+                const queueName = item.queueName?.S;
+                if (queueName) {
+                    const queueUrl = buildQueueUrl(queueName);
+                    const result = {
+                        type: 'queue',
+                        target: queueUrl,
+                        environment: item.environment?.S || ''
+                    };
+                    // Cache the result
+                    routingCache.set(cacheKey, result);
+                    console.info(`Compiler ${compilerId} routed to queue: ${queueName} (${queueUrl})`);
+                    console.info(`Routing lookup complete for compiler: ${compilerId}`);
+                    return result;
+                } else {
+                    // Fallback to default queue if no queueName specified
+                    const result = {
+                        type: 'queue',
+                        target: getSqsQueueUrl(),
+                        environment: item.environment?.S || ''
+                    };
+                    // Cache the result
+                    routingCache.set(cacheKey, result);
+                    console.info(`Compiler ${compilerId} routed to default queue (no queueName in DynamoDB)`);
+                    console.info(`Routing lookup complete for compiler: ${compilerId}`);
+                    return result;
+                }
             }
         }
 
         // No routing found, use default queue
         console.info(`No routing found for compiler ${compilerId}, using default queue`);
-        const totalLookupDuration = Date.now() - lookupStart;
         const result = {
             type: 'queue',
             target: getSqsQueueUrl(),
             environment: 'unknown'
         };
-        // Cache the default result (shorter TTL for non-existent entries)
-        routingCache.set(cacheKey, {
-            data: result,
-            expires: Date.now() + (CACHE_TTL_MS / 5) // 1 minute for missing entries
-        });
-        console.info(`Total routing lookup time: ${totalLookupDuration}ms`);
+        // Cache the default result
+        routingCache.set(cacheKey, result);
+        console.info(`Routing lookup complete for compiler: ${compilerId}, using default queue`);
         return result;
 
     } catch (error) {
         // On any error, fall back to default queue
-        const totalLookupDuration = Date.now() - lookupStart;
-        console.warn(`Failed to lookup routing for compiler ${compilerId} after ${totalLookupDuration}ms:`, error);
+        console.warn(`Failed to lookup routing for compiler ${compilerId}:`, error);
         return {
             type: 'queue',
             target: getSqsQueueUrl(),
@@ -215,23 +217,20 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
     messageBody.files = messageBody.files || [];
     messageBody.executeParameters = messageBody.executeParameters || {};
 
-    const sqsStart = Date.now();
     try {
         const messageJson = JSON.stringify(messageBody);
 
+        console.info(`SQS send start for GUID: ${guid} to queue`);
         await sqs.send(new SendMessageCommand({
             QueueUrl: queueUrl,
             MessageBody: messageJson,
             MessageGroupId: 'default',
             MessageDeduplicationId: guid
         }));
-
-        const sqsDuration = Date.now() - sqsStart;
-        console.info(`SQS timing: message sent in ${sqsDuration}ms`);
+        console.info(`SQS send end for GUID: ${guid}`);
 
     } catch (error) {
-        const sqsDuration = Date.now() - sqsStart;
-        console.error(`Failed to send message to SQS after ${sqsDuration}ms:`, error);
+        console.error(`Failed to send message to SQS:`, error);
         throw new Error(`Failed to send message to SQS: ${error.message}`);
     }
 }
@@ -239,5 +238,6 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
 module.exports = {
     lookupCompilerRouting,
     sendToSqs,
-    parseRequestBody
+    parseRequestBody,
+    buildQueueUrl
 };

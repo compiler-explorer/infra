@@ -32,7 +32,8 @@ export class EventsConnections {
 
         // Always query DynamoDB to ensure cross-container consistency
         // Cache is used as optimization but not relied upon for correctness
-        const queryStart = Date.now();
+        // eslint-disable-next-line no-console
+        console.info(`DynamoDB query start for subscription: ${subscription}`);
         const queryCommand = new QueryCommand({
             TableName: config.connections_table,
             IndexName: 'SubscriptionIndex',
@@ -49,7 +50,8 @@ export class EventsConnections {
         });
 
         const result = await ddbClient.send(queryCommand);
-        const queryTime = Date.now() - queryStart;
+        // eslint-disable-next-line no-console
+        console.info(`DynamoDB query end for subscription: ${subscription}, found ${result.Count} items`);
 
         // Update cache with results from DynamoDB
         if (result.Items) {
@@ -62,13 +64,12 @@ export class EventsConnections {
         if (cachedConnections.length > 0) {
             // eslint-disable-next-line no-console
             console.info(
-                `Cache had ${cachedConnections.length} items, DynamoDB query for ${subscription} ` +
-                    `took ${queryTime}ms and found ${result.Count} items`,
+                `Cache had ${cachedConnections.length} items for ${subscription}`,
             );
         } else {
             // eslint-disable-next-line no-console
             console.info(
-                `Cache miss for ${subscription}, DynamoDB query took ${queryTime}ms, found ${result.Count} items`,
+                `Cache miss for ${subscription}`,
             );
         }
 

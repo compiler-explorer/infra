@@ -34,15 +34,11 @@ exports.handler = async (event, context) => {
         const guid = generateGuid();
 
         // Start WebSocket subscription as early as possible to minimize race conditions
-        const subscribeStart = Date.now();
         try {
             await subscribePersistent(guid);
-            const subscribeTime = Date.now() - subscribeStart;
-            console.info(`Lambda timing: WebSocket subscribed in ${subscribeTime}ms`);
 
             // Add small delay to ensure subscription is processed before sending to SQS
             await new Promise(resolve => setTimeout(resolve, 50));
-            console.info('Lambda timing: fixed delay completed (50ms)');
         } catch (error) {
             console.error('Failed to subscribe to WebSocket:', error);
             return createErrorResponse(500, `Failed to setup result subscription: ${error.message}`);
@@ -75,6 +71,7 @@ exports.handler = async (event, context) => {
             // Direct URL forwarding - WebSocket subscription not needed, send unsubscribe
             const wsManager = getPersistentWebSocket();
             if (wsManager && wsManager.ws && wsManager.ws.readyState === 1) { // WebSocket.OPEN = 1
+                console.info(`WebSocket unsubscribe sent for GUID: ${guid} (URL routing)`);
                 wsManager.ws.send(`unsubscribe: ${guid}`);
             }
 
@@ -113,28 +110,19 @@ exports.handler = async (event, context) => {
         const resultPromise = waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
 
         // Now send request to SQS queue with headers
-        const sqsStart = Date.now();
         try {
             await sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl);
-            const sqsTime = Date.now() - sqsStart;
-            console.info(`Lambda timing: SQS queuing completed in ${sqsTime}ms`);
         } catch (error) {
             console.error('SQS error:', error);
             return createErrorResponse(500, `Failed to queue compilation request: ${error.message}`);
         }
 
         // Wait for compilation result via the already-subscribed WebSocket
-        const resultStart = Date.now();
         try {
             const result = await resultPromise;
-            const resultTime = Date.now() - resultStart;
-            console.info(`Lambda timing: result received in ${resultTime}ms`);
 
             // Get Accept header for response formatting
-            const responseStart = Date.now();
             const response = createSuccessResponse(result, headers.accept || headers.Accept || '');
-            const responseTime = Date.now() - responseStart;
-            console.info(`Lambda timing: response formatted in ${responseTime}ms`);
             return response;
 
         } catch (error) {

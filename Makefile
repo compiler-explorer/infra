@@ -87,7 +87,7 @@ $(UV_DEPS): $(UV_BIN) pyproject.toml
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
 
 .PHONY: test
-test: ce  ## Runs the tests
+test: ce test-compilation-lambda  ## Runs all tests (Python and Node.js)
 	$(UV_BIN) run pytest $(PY_SOURCE_ROOTS)
 
 .PHONY: static-checks

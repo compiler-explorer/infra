@@ -4,7 +4,6 @@ const axios = require('axios');
  * Forward compilation request directly to environment URL
  */
 async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) {
-    const forwardStart = Date.now();
     try {
         // Adjust URL for cmake vs compile endpoint
         if (isCmake && !url.endsWith('/cmake')) {
@@ -42,19 +41,16 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
             }
         }
 
-        console.info(`Forwarding request to ${url}`);
+        console.info(`HTTP forwarding start to ${url}`);
 
         // Make the HTTP request to the target environment
-        const httpStart = Date.now();
         const response = await axios.post(url, body, {
             headers: forwardHeaders,
             timeout: 60000, // 60 second timeout
             validateStatus: null // Don't throw on HTTP error status
         });
-        const httpDuration = Date.now() - httpStart;
-        const totalDuration = Date.now() - forwardStart;
 
-        console.info(`HTTP forwarding timing: request completed in ${httpDuration}ms (total: ${totalDuration}ms)`);
+        console.info(`HTTP forwarding end to ${url}, status: ${response.status}`);
 
         // Return the response content and headers
         return {
@@ -64,12 +60,11 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
         };
 
     } catch (error) {
-        const errorDuration = Date.now() - forwardStart;
         if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
-            console.error(`HTTP forwarding timing: timeout after ${errorDuration}ms forwarding to ${url}:`, error);
+            console.error(`HTTP forwarding timeout to ${url}:`, error);
             throw new Error(`Request timeout: ${error.message}`);
         }
-        console.error(`HTTP forwarding timing: error after ${errorDuration}ms forwarding to ${url}:`, error);
+        console.error(`HTTP forwarding error to ${url}:`, error);
         throw new Error(`Request failed: ${error.message}`);
     }
 }

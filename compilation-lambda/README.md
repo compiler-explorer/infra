@@ -26,10 +26,10 @@ The lambda handles two routing strategies:
 
 ## Environment Variables
 
-- `RETRY_COUNT` (default: 1) - Number of WebSocket connection retry attempts
 - `TIMEOUT_SECONDS` (default: 60) - Timeout for WebSocket response in seconds
 - `SQS_QUEUE_URL` - URL of the SQS FIFO queue for compilation requests
 - `WEBSOCKET_URL` - URL of the WebSocket endpoint for receiving results
+- `ENVIRONMENT_NAME` - Environment name for DynamoDB routing lookups
 
 ## Logging
 
