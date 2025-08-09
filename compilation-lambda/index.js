@@ -107,18 +107,16 @@ exports.handler = async (event, context) => {
         const queueUrl = routingInfo.target;
 
         // Create result waiting promise (but don't await it yet)
-        const resultPromise = waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
+        let resultPromise = null;
 
-        // Now send request to SQS queue with headers
         try {
+            // Now send request to SQS queue with headers
             await sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl);
-        } catch (error) {
-            console.error('SQS error:', error);
-            return createErrorResponse(500, `Failed to queue compilation request: ${error.message}`);
-        }
+            
+            // Only start waiting for result after SQS send succeeds
+            resultPromise = waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
 
-        // Wait for compilation result via the already-subscribed WebSocket
-        try {
+            // Wait for compilation result via the already-subscribed WebSocket
             const result = await resultPromise;
 
             // Get Accept header for response formatting
@@ -126,12 +124,18 @@ exports.handler = async (event, context) => {
             return response;
 
         } catch (error) {
-            console.error('Timeout or error waiting for compilation result:', error);
-
-            if (error.message.includes('No response received')) {
+            // Handle both SQS errors and compilation result errors
+            if (!resultPromise) {
+                // Error occurred before creating result promise (likely SQS error)
+                console.error('SQS error:', error);
+                return createErrorResponse(500, `Failed to queue compilation request: ${error.message}`);
+            } else if (error.message.includes('No response received')) {
+                console.error('Timeout waiting for compilation result:', error);
                 return createErrorResponse(408, `Compilation timeout: ${error.message}`);
+            } else {
+                console.error('Unexpected error during compilation:', error);
+                return createErrorResponse(500, `Failed to complete compilation: ${error.message}`);
             }
-            return createErrorResponse(500, `Failed to receive compilation result: ${error.message}`);
         }
 
     } catch (error) {

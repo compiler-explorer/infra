@@ -63,14 +63,10 @@ export class EventsConnections {
         // eslint-disable-next-line no-console
         if (cachedConnections.length > 0) {
             // eslint-disable-next-line no-console
-            console.info(
-                `Cache had ${cachedConnections.length} items for ${subscription}`,
-            );
+            console.info(`Cache had ${cachedConnections.length} items for ${subscription}`);
         } else {
             // eslint-disable-next-line no-console
-            console.info(
-                `Cache miss for ${subscription}`,
-            );
+            console.info(`Cache miss for ${subscription}`);
         }
 
         return result;
