@@ -69,11 +69,23 @@ async function handle_object_message(apiGwClient, connectionId, message, rawMess
     }
 }
 
+// Cache API Gateway client across Lambda invocations for better performance
+let cachedApiGwClient = null;
+let cachedEndpoint = null;
+
 export const handler = async event => {
-    const apiGwClient = new ApiGatewayManagementApiClient({
-        apiVersion: '2018-11-29',
-        endpoint: `https://${event.requestContext.domainName}/${event.requestContext.stage}`,
-    });
+    const currentEndpoint = `https://${event.requestContext.domainName}/${event.requestContext.stage}`;
+
+    // Reuse client if same endpoint, create new one if endpoint changes
+    if (!cachedApiGwClient || cachedEndpoint !== currentEndpoint) {
+        cachedApiGwClient = new ApiGatewayManagementApiClient({
+            apiVersion: '2018-11-29',
+            endpoint: currentEndpoint,
+        });
+        cachedEndpoint = currentEndpoint;
+    }
+
+    const apiGwClient = cachedApiGwClient;
 
     try {
         if (typeof event.body === 'string' && !event.body.startsWith('{')) {

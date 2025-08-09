@@ -145,6 +145,8 @@ resource "aws_lambda_function" "events_sendmessage" {
   function_name     = "events-sendmessage"
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-sendmessage.handler"
+  memory_size       = 512 # Increased for better CPU and reduced GC pressure
+  timeout           = 30  # Explicit timeout for API Gateway Management API calls
 
   runtime       = "nodejs22.x"
   architectures = ["arm64"]
@@ -156,17 +158,17 @@ resource "aws_lambda_function" "events_sendmessage" {
 
 resource "aws_cloudwatch_log_group" "events_onconnect" {
   name              = "/aws/lambda/events-onconnect"
-  retention_in_days = 7
+  retention_in_days = 1 # Minimum retention for high-volume production logging
 }
 
 resource "aws_cloudwatch_log_group" "events_ondisconnect" {
   name              = "/aws/lambda/events-ondisconnect"
-  retention_in_days = 7
+  retention_in_days = 1 # Minimum retention for high-volume production logging
 }
 
 resource "aws_cloudwatch_log_group" "events_sendmessage" {
   name              = "/aws/lambda/events-sendmessage"
-  retention_in_days = 7
+  retention_in_days = 1 # Minimum retention for high-volume production logging
 }
 
 ## S3 things for the code
@@ -212,7 +214,7 @@ resource "aws_lambda_permission" "events_sendmessage" {
 # Provisioned concurrency to keep events lambdas warm
 resource "aws_lambda_provisioned_concurrency_config" "events_sendmessage" {
   function_name                     = aws_lambda_function.events_sendmessage.function_name
-  provisioned_concurrent_executions = 1
+  provisioned_concurrent_executions = 5 # Increased for higher concurrent result processing
   qualifier                         = aws_lambda_function.events_sendmessage.version
 }
 
