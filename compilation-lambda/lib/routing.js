@@ -21,15 +21,18 @@ function buildQueueUrl(queueName) {
     if (!templateUrl) {
         throw new Error('SQS_QUEUE_URL environment variable not set');
     }
-    
+
     // Extract the base URL (everything before the last slash)
     const lastSlashIndex = templateUrl.lastIndexOf('/');
     if (lastSlashIndex === -1) {
         throw new Error('Invalid SQS_QUEUE_URL format');
     }
-    
+
+    // Ensure queue name has .fifo suffix (all queues in this system are FIFO)
+    const fifoQueueName = queueName.endsWith('.fifo') ? queueName : queueName + '.fifo';
+
     const baseUrl = templateUrl.substring(0, lastSlashIndex + 1);
-    return baseUrl + queueName;
+    return baseUrl + fifoQueueName;
 }
 
 // DynamoDB table for compiler routing
@@ -230,8 +233,8 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
         console.info(`SQS send end for GUID: ${guid}`);
 
     } catch (error) {
-        console.error(`Failed to send message to SQS:`, error);
-        throw new Error(`Failed to send message to SQS: ${error.message}`);
+        console.error(`Failed to send message to SQS (${queueUrl}):`, error);
+        throw new Error(`Failed to send message to SQS (${queueUrl}): ${error.message}`);
     }
 }
 

@@ -112,7 +112,7 @@ exports.handler = async (event, context) => {
         try {
             // Now send request to SQS queue with headers
             await sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl);
-            
+
             // Only start waiting for result after SQS send succeeds
             resultPromise = waitForCompilationResultPersistent(guid, TIMEOUT_SECONDS);
 

@@ -24,18 +24,18 @@ const { forwardToEnvironmentUrl } = require('./lib/http-forwarder');
 
 describe('Compilation Lambda Handler', () => {
     let originalConsoleError;
-    
+
     beforeAll(() => {
         // Suppress console.error during tests since we're testing error conditions
         originalConsoleError = console.error;
         console.error = jest.fn();
     });
-    
+
     afterAll(() => {
         // Restore original console.error
         console.error = originalConsoleError;
     });
-    
+
     beforeEach(() => {
         jest.clearAllMocks();
         // Clear the console.error mock for each test
