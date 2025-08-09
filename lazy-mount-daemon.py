@@ -10,6 +10,7 @@ import argparse
 import logging
 import logging.handlers
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -122,11 +123,10 @@ class LazyMountDaemon:
         # Redirect standard file descriptors
         sys.stdout.flush()
         sys.stderr.flush()
-        with open("/dev/null", "r") as f:
-            os.dup2(f.fileno(), sys.stdin.fileno())
-        with open("/dev/null", "a+") as f:
-            os.dup2(f.fileno(), sys.stdout.fileno())
-            os.dup2(f.fileno(), sys.stderr.fileno())
+        with open(os.devnull, "r") as null_in, open(os.devnull, "w") as null_out:
+            os.dup2(null_in.fileno(), sys.stdin.fileno())
+            os.dup2(null_out.fileno(), sys.stdout.fileno())
+            os.dup2(null_out.fileno(), sys.stderr.fileno())
 
     def mount_image(self, image_file: str, mount_prefix: str) -> bool:
         """Mount a squashfs image at the specified mount prefix"""
@@ -218,15 +218,15 @@ class LazyMountDaemon:
         # Note: Inline filtering logic since bpftrace doesn't support user-defined functions
         bpftrace_script = f"""
             tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
+                printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
             }}
 
             tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
+                printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
             }}
 
             tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
+                printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
             }}
         """
 
@@ -293,20 +293,23 @@ class LazyMountDaemon:
                         self.logger.debug(f"Skipping line with invalid UTF-8: {line_bytes[:50]}...")
                         continue
 
-                    # All filtering now done in kernel space - process all output
-                    if line:
+                    # Check for our custom prefix to filter out bpftrace status messages
+                    if line and line.startswith("CEPATH:"):
+                        # Strip the CEPATH: prefix
+                        path_remainder = line[7:]  # len("CEPATH:") = 7
+
                         # Validate that the remainder starts with the expected suffix
                         # BPF matched first BPF_MATCH_LENGTH chars, we need to validate the rest
                         mount_base_with_slash = self.mount_base.rstrip("/") + "/"
                         expected_remainder = mount_base_with_slash[BPF_MATCH_LENGTH:]
 
-                        if line.startswith(expected_remainder):
+                        if path_remainder.startswith(expected_remainder):
                             # Reconstruct full path from remainder (bpftrace outputs path after BPF_MATCH_LENGTH chars)
-                            full_path = f"{mount_base_with_slash[:BPF_MATCH_LENGTH]}{line}"
+                            full_path = f"{mount_base_with_slash[:BPF_MATCH_LENGTH]}{path_remainder}"
                             self.handle_access(full_path)
                         else:
                             # False positive - path doesn't actually match our full prefix
-                            self.logger.debug(f"Ignoring false positive: {line[:50]}...")
+                            self.logger.debug(f"Ignoring unexpected path: {path_remainder[:50]}...")
             except Exception as e:
                 self.logger.error(f"Error processing bpftrace output: {e}")
                 raise
@@ -405,10 +408,7 @@ def main():
     args = parser.parse_args()
 
     # Check if bpftrace is available
-    try:
-        subprocess.run(["which", "bpftrace"], check=True, capture_output=True, text=True)
-        # No print needed - daemon will log properly once started
-    except subprocess.CalledProcessError:
+    if not shutil.which("bpftrace"):
         print("Error: bpftrace is not installed or not in PATH")
         sys.exit(1)
 
