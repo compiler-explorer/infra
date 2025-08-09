@@ -5,18 +5,18 @@
 module "compilation_lambda_beta" {
   source = "./modules/compilation_lambda"
 
-  environment                    = "beta"
-  websocket_url                  = "wss://events.compiler-explorer.com/beta"
-  alb_listener_arn               = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-  enable_alb_listener            = true
-  alb_priority                   = 91
+  environment         = "beta"
+  websocket_url       = "wss://events.compiler-explorer.com/beta"
+  alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  enable_alb_listener = true
+  alb_priority        = 91
   alb_path_patterns = [
     "/beta/api/compiler/*/compile",
     "/beta/api/compiler/*/cmake"
   ]
-  s3_bucket                      = aws_s3_bucket.compiler-explorer.bucket
-  iam_role_arn                   = aws_iam_role.iam_for_lambda.arn
-  cloudwatch_log_retention_days  = 1  # Minimum possible retention (1 day) for high-volume logging
+  s3_bucket                     = aws_s3_bucket.compiler-explorer.bucket
+  iam_role_arn                  = aws_iam_role.iam_for_lambda.arn
+  cloudwatch_log_retention_days = 1 # Minimum possible retention (1 day) for high-volume logging
 
   tags = {
     Project = "compiler-explorer"
