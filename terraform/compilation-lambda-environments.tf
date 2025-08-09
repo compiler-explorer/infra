@@ -14,8 +14,9 @@ module "compilation_lambda_beta" {
     "/beta/api/compiler/*/compile",
     "/beta/api/compiler/*/cmake"
   ]
-  s3_bucket    = aws_s3_bucket.compiler-explorer.bucket
-  iam_role_arn = aws_iam_role.iam_for_lambda.arn
+  s3_bucket                     = aws_s3_bucket.compiler-explorer.bucket
+  iam_role_arn                  = aws_iam_role.iam_for_lambda.arn
+  cloudwatch_log_retention_days = 1 # Minimum possible retention (1 day) for high-volume logging
 
   tags = {
     Project = "compiler-explorer"
@@ -26,17 +27,18 @@ module "compilation_lambda_beta" {
 # module "compilation_lambda_staging" {
 #   source = "./modules/compilation_lambda"
 #
-#   environment         = "staging"
-#   websocket_url       = "wss://events.compiler-explorer.com/staging"
-#   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-#   enable_alb_listener = false # Disabled initially
-#   alb_priority        = 81
+#   environment                    = "staging"
+#   websocket_url                  = "wss://events.compiler-explorer.com/staging"
+#   alb_listener_arn               = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+#   enable_alb_listener            = false # Disabled initially
+#   alb_priority                   = 81
 #   alb_path_patterns = [
 #     "/staging/api/compiler/*/compile",
 #     "/staging/api/compiler/*/cmake"
 #   ]
-#   s3_bucket    = aws_s3_bucket.compiler-explorer.bucket
-#   iam_role_arn = aws_iam_role.iam_for_lambda.arn
+#   s3_bucket                      = aws_s3_bucket.compiler-explorer.bucket
+#   iam_role_arn                   = aws_iam_role.iam_for_lambda.arn
+#   cloudwatch_log_retention_days  = 1  # Minimum possible retention (1 day) for high-volume logging
 #
 #   tags = {
 #     Project = "compiler-explorer"
@@ -47,17 +49,18 @@ module "compilation_lambda_beta" {
 # module "compilation_lambda_prod" {
 #   source = "./modules/compilation_lambda"
 #
-#   environment         = "prod"
-#   websocket_url       = "wss://events.compiler-explorer.com/prod"
-#   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-#   enable_alb_listener = false # Disabled initially
-#   alb_priority        = 71
+#   environment                    = "prod"
+#   websocket_url                  = "wss://events.compiler-explorer.com/prod"
+#   alb_listener_arn               = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+#   enable_alb_listener            = false # Disabled initially
+#   alb_priority                   = 71
 #   alb_path_patterns = [
 #     "/api/compiler/*/compile",
 #     "/api/compiler/*/cmake"
 #   ]
-#   s3_bucket    = aws_s3_bucket.compiler-explorer.bucket
-#   iam_role_arn = aws_iam_role.iam_for_lambda.arn
+#   s3_bucket                      = aws_s3_bucket.compiler-explorer.bucket
+#   iam_role_arn                   = aws_iam_role.iam_for_lambda.arn
+#   cloudwatch_log_retention_days  = 1  # Minimum possible retention (1 day) for high-volume logging
 #
 #   tags = {
 #     Project = "compiler-explorer"
@@ -89,6 +92,35 @@ resource "aws_iam_policy" "compilation_lambda_sqs" {
 resource "aws_iam_role_policy_attachment" "compilation_lambda_sqs" {
   role       = aws_iam_role.iam_for_lambda.name
   policy_arn = aws_iam_policy.compilation_lambda_sqs.arn
+}
+
+# IAM policy for compilation Lambda to access compiler routing table
+data "aws_iam_policy_document" "compilation_lambda_routing" {
+  statement {
+    sid = "DynamoDBRouting"
+    actions = [
+      "dynamodb:GetItem"
+    ]
+    resources = [aws_dynamodb_table.compiler_routing.arn]
+  }
+  statement {
+    sid = "STSAccess"
+    actions = [
+      "sts:GetCallerIdentity"
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "compilation_lambda_routing" {
+  name        = "compilation_lambda_routing"
+  description = "Allow compilation Lambda to access compiler routing table"
+  policy      = data.aws_iam_policy_document.compilation_lambda_routing.json
+}
+
+resource "aws_iam_role_policy_attachment" "compilation_lambda_routing" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.compilation_lambda_routing.arn
 }
 
 # Outputs for backward compatibility and ASG integration

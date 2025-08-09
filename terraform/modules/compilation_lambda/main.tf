@@ -45,21 +45,26 @@ resource "aws_lambda_function" "compilation" {
   source_code_hash  = chomp(data.aws_s3_object.compilation_lambda_zip_sha.body)
   function_name     = "compilation-${var.environment}"
   role              = var.iam_role_arn
-  handler           = "lambda_function.lambda_handler"
+  handler           = "index.handler"
   timeout           = var.lambda_timeout
 
-  runtime = "python3.12"
+  runtime = "nodejs22.x"
+
+  architectures = ["arm64"]
 
   environment {
     variables = {
-      SQS_QUEUE_URL   = aws_sqs_queue.compilation_queue.id
-      WEBSOCKET_URL   = var.websocket_url
-      RETRY_COUNT     = var.lambda_retry_count
-      TIMEOUT_SECONDS = var.lambda_timeout_seconds
+      SQS_QUEUE_URL    = aws_sqs_queue.compilation_queue.id
+      WEBSOCKET_URL    = var.websocket_url
+      RETRY_COUNT      = var.lambda_retry_count
+      TIMEOUT_SECONDS  = var.lambda_timeout_seconds
+      ENVIRONMENT_NAME = var.environment
     }
   }
 
   depends_on = [aws_cloudwatch_log_group.compilation]
+
+  publish = true # Required for provisioned concurrency
 
   tags = merge({
     Environment = var.environment
@@ -121,4 +126,11 @@ resource "aws_alb_listener_rule" "compilation" {
     Environment = var.environment
     Purpose     = "compilation-routing"
   }, var.tags)
+}
+
+# Provisioned concurrency to keep at least 1 instance warm
+resource "aws_lambda_provisioned_concurrency_config" "compilation" {
+  function_name                     = aws_lambda_function.compilation.function_name
+  provisioned_concurrent_executions = 1
+  qualifier                         = aws_lambda_function.compilation.version
 }

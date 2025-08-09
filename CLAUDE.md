@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Check code style/linting: `make pre-commit`
 - Install pre-commit hooks: `make install-pre-commit`
 - Build lambda package: `make lambda-package`
+- Build compilation lambda package (Node.js): `make compilation-lambda-package`
 - Build events lambda package: `make events-lambda-package`
 
 ## Important Workflow Requirements
@@ -148,6 +149,51 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 All workflow trigger commands support `--dry-run` to preview the `gh` command without executing it.
 
+## Compiler Routing Management
+
+The `ce compiler-routing` command group provides functionality to manage compiler-to-queue routing mappings in DynamoDB:
+
+### Available Commands
+
+- **`ce compiler-routing update [--env ENVIRONMENT]`** - Update compiler routing table for specified environment using live API data
+  - Uses current environment if not specified
+  - Use `--dry-run` to preview changes without making them
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce --env prod compiler-routing update --dry-run`
+
+- **`ce compiler-routing status`** - Show current compiler routing table statistics
+  - Displays total compilers, environments, routing types, and queue distribution
+  - Example output shows prod (queue routing) vs winprod (URL routing)
+
+- **`ce compiler-routing lookup COMPILER_ID`** - Look up routing assignment for a specific compiler
+  - Shows environment, routing type (queue/url), and target (queue name or URL)
+  - Uses current environment context
+  - Example: `ce --env prod compiler-routing lookup gcc-trunk`
+
+- **`ce compiler-routing validate [--env ENVIRONMENT]`** - Validate routing table consistency against live API data
+  - Compares current table with live API data to identify needed changes
+  - Validates specific environment or all environments
+  - Example: `ce compiler-routing validate --env winprod`
+
+- **`ce compiler-routing clear --env ENVIRONMENT`** - Clear routing entries for a specific environment
+  - Removes all routing entries for the specified environment
+  - Affected compilers fall back to default queue routing
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce compiler-routing clear --env staging --skip-confirmation`
+
+
+### Architecture Features
+
+- **Environment Isolation**: Uses composite keys (e.g., `prod#gcc-trunk`) to prevent cross-environment conflicts
+- **Hybrid Routing**: Supports both SQS queue routing and direct URL forwarding based on environment configuration
+- **Backward Compatibility**: Legacy entries are supported during transition period
+- **Multi-Environment Support**: Single DynamoDB table serves all environments (prod, staging, beta, winprod, etc.)
+
+### Routing Strategies by Environment
+
+- **Queue Environments**: prod, staging, beta → Route to SQS queues
+- **URL Environments**: winprod, winstaging, wintest, gpu, aarch64prod, aarch64staging, runner → Forward directly to environment URLs
+
 ## AWS Integration Pattern
 
 AWS clients are defined in `bin/lib/amazon.py` using lazy initialization:
@@ -238,11 +284,34 @@ The codebase supports multiple environments defined in `lib/env.py`:
 
 Each environment has properties like `keep_builds`, `is_windows`, `is_prod`, etc.
 
-## Blue-Green Deployment Notifications
+## Blue-Green Deployment Process
 
-The blue-green deployment system includes GitHub notification functionality that automatically notifies PRs and issues when they go live in production.
+The blue-green deployment system includes automatic post-deployment steps that ensure the environment is fully configured.
 
-### How It Works
+### Deployment Steps
+
+1. **Version Setting**: Updates the deployed version (if specified)
+2. **Scale Up**: Scales the inactive ASG to target capacity
+3. **Health Checks**: Waits for instances to be healthy
+4. **Traffic Switch**: Switches load balancer traffic to new instances
+5. **Scale Down Protection**: Resets ASG minimum sizes
+6. **Compiler Routing Update**: Automatically updates the compiler routing table for the environment
+7. **GitHub Notifications**: Sends notifications for production deployments (when enabled)
+
+### Compiler Routing Integration
+
+After successful deployment, the system automatically runs `compiler-routing update` for the deployed environment:
+
+- **Automatic**: No manual intervention required
+- **Environment-specific**: Only updates routing for the deployed environment
+- **Safe**: Deployment continues even if routing update fails (with warning)
+- **Informative**: Shows count of added/updated/deleted routing entries
+
+### GitHub Notification System
+
+The deployment system includes GitHub notification functionality that automatically notifies PRs and issues when they go live in production.
+
+#### How It Works
 
 - **Production Only**: Notifications are only sent when deploying to production environment
 - **Version Change Detection**: Only notifies when there's an actual version change between deployments

@@ -20,6 +20,7 @@ Client A is a x86 compilation instance Client B is a aarch64 execution instance
 - Client B says: {"guid": "1234abc", "code": "42"}
 - Client A receives: {"guid": "1234abc", "code": "42"}
 - Client A handles the message
+- Client A says: "unsubscribe: 1234abc" (optional cleanup)
 
 ## Tables
 

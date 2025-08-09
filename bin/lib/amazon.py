@@ -64,6 +64,7 @@ ssm_client = LazyObjectWrapper(lambda: boto3.client("ssm"))
 cloudfront_client = LazyObjectWrapper(lambda: boto3.client("cloudfront"))
 LINKS_TABLE = "links"
 VERSIONS_LOGGING_TABLE = "versionslog"
+COMPILER_ROUTING_TABLE = "CompilerRouting"
 
 
 def target_group_for(cfg: Config) -> dict:
