@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Optional, Set
 
 # BPF output buffer size for path strings
+# As of 2025-08-10 the longest string we'd need is 58 chars; this gives us plenty of headroom
 BPFTRACE_STRING_LENGTH = 100
 
 # Prefix for our BPF output to distinguish from bpftrace status messages
@@ -53,11 +54,10 @@ class LazyMountDaemon:
         self.daemon = daemon
         self.verbose = verbose
 
-        # Internal state tracking (sufficient for single-threaded design)
-        # NOTE: If this daemon is ever made multi-process, external file
-        # locking would be required to coordinate between processes.
-        # However, since mounting is expensive (~50-200ms), sequential
-        # mounting is likely optimal anyway.
+        # Internal state tracking (sufficient for this single-threaded design)
+        # NOTE: If this daemon is ever made multi-process, external file locking would be required to coordinate
+        # between processes. However, since mounting is expensive (~50-200ms), sequential mounting is likely
+        # optimal anyway.
         self.mounted_prefixes: Set[str] = set()
 
         self.process: Optional[subprocess.Popen] = None
@@ -93,17 +93,22 @@ class LazyMountDaemon:
                 self.logger.error(f"Image directory does not exist: {self.image_dir}")
                 return
 
-            # Recursively find all .img files
-            img_files = list(image_dir_path.rglob("*.img"))
-
-            for img_file in img_files:
-                # Get relative path from image_dir and remove .img extension
-                rel_path = img_file.relative_to(image_dir_path)
-                path_prefix = str(rel_path.with_suffix(""))  # Remove .img extension
-
-                self.image_map[path_prefix] = str(img_file)
+            # Recursively find all .img files, and make a map of their prefix to the image
+            self.image_map = {
+                str(img_file.relative_to(image_dir_path).with_suffix("")): str(img_file)
+                for img_file in image_dir_path.rglob("*.img")
+            }
 
             self.logger.info(f"Discovered {len(self.image_map)} image files in {self.image_dir}")
+
+            # Check if any paths would exceed BPF output buffer
+            if self.image_map:
+                longest_prefix = max(self.image_map.keys(), key=len)
+                if len(longest_prefix) > BPFTRACE_STRING_LENGTH:
+                    self.logger.error(
+                        f"Path exceeds BPF buffer size ({BPFTRACE_STRING_LENGTH}): {longest_prefix} ({len(longest_prefix)} chars)"
+                    )
+
             if self.verbose:
                 for prefix, img_path in sorted(self.image_map.items()):
                     self.logger.debug(f"  {prefix} -> {img_path}")
@@ -144,7 +149,6 @@ class LazyMountDaemon:
 
     def mount_image(self, image_file: str, mount_prefix: str) -> bool:
         """Mount a squashfs image at the specified mount prefix"""
-        # Trust internal state - we're the only thing mounting squashfs images
         if mount_prefix in self.mounted_prefixes:
             return True
 
