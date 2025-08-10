@@ -34,7 +34,8 @@ from pathlib import Path
 from typing import Optional, Set
 
 # BPF output buffer size for path strings
-# As of 2025-08-10 the longest string we'd need is 58 chars; this gives us plenty of headroom
+# The BPF stack is limited to 512 bytes - larger values may cause stack overflow in bpftrace. The current max observed
+# path is 58 chars (as of 2025-08-10); 100 provides a safe buffer.
 BPFTRACE_STRING_LENGTH = 100
 
 # Prefix for our BPF output to distinguish from bpftrace status messages
