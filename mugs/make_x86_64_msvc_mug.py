@@ -3,15 +3,16 @@ from mug_common import (
     BG_COLOR,
     BORDER_COLOR,
     CE_GREEN,
-    COL1_WIDTH,
-    COL2_WIDTH,
-    COL3_WIDTH,
     FONT_FAMILY,
     HEADER_BG,
-    TABLE_Y,
+    ROW_LABEL_FUNCTION,
+    ROW_LABEL_MEMBER,
     TEXT_COLOR,
-    create_table_row,
-    render_info_items,
+    LayoutEngine,
+    MugLayout,
+    TableRow,
+    create_horizontal_table,
+    create_info_table,
     svg_to_png,
 )
 
@@ -19,150 +20,86 @@ from mug_common import (
 def create_abi_svg(
     filename: str, width: int = 1100, height: int = 800, generate_png: bool = True, dpi: int = 300
 ) -> None:
-    # Font settings (ABI-specific sizes)
-    title_size = 50
-    header_size = 28
-    text_size = 30
+    # Create layout using new system with styling
+    layout = MugLayout(
+        title="x86-64 Windows (MSVC) ABI",
+        code_examples=[],  # No longer used
+        table_headers=["RCX", "RDX", "R8", "R9"],
+        table_rows=[TableRow(cells=["1st", "2nd", "3rd", "4th"]), TableRow(cells=["this", "1st", "2nd", "3rd"])],
+        info_items=[
+            ("Return values", "RAX (RDX for 128-bit)"),
+            ("FP args", "XMM0-XMM3"),
+            ("", "(XMM# matches arg pos)"),
+            ("FP return", "XMM0"),
+            ("Caller-saved", "RAX RCX RDX R8-R11"),
+            ("", "XMM0-XMM5"),
+            ("Callee-saved", "RBX RBP RDI RSI R12-R15"),
+            ("", "XMM6-XMM15"),
+        ],
+        footer_lines=["Args beyond 4 on stack; 32-byte shadow space needed"],
+        title_size=72,
+        header_size=36,
+        text_size=38,
+        info_text_size=42,
+        row_height=70,
+        footer_spacing=40,
+    )
 
-    # Layout - center the entire design
-    table_width = COL1_WIDTH + COL2_WIDTH + COL3_WIDTH
-    table_x = (width - table_width) // 2
-    row_height = 60
+    # Use layout engine
+    engine = LayoutEngine(width, height)
+    positions = engine.layout_mug(layout)
 
-    # Table data
-    registers = [
-        ("RCX", "1st parameter", "this pointer"),
-        ("RDX", "2nd parameter", "1st parameter"),
-        ("R8", "3rd parameter", "2nd parameter"),
-        ("R9", "4th parameter", "3rd parameter"),
-    ]
-
-    # Start SVG
+    # Generate SVG
     svg = f"""<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="{width}" height="{height}" fill="{BG_COLOR}"/>
 
-  <!-- Title -->
-  <text x="{table_x}" y="45" font-family="{FONT_FAMILY}" font-size="{title_size}"
-        font-weight="bold" fill="{TEXT_COLOR}">x86-64 Windows (MSVC) ABI</text>
-
-  <!-- Code examples -->
-  <text x="{table_x}" y="90" font-family="{FONT_FAMILY}" font-size="{text_size - 2}"
-        fill="{TEXT_COLOR}">free_func(<tspan font-weight="bold" fill="{CE_GREEN}">RCX</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">RDX</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">R8</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">R9</tspan>);</text>
-  <text x="{table_x}" y="120" font-family="{FONT_FAMILY}" font-size="{text_size - 2}"
-        fill="{TEXT_COLOR}"><tspan font-weight="bold" fill="{CE_GREEN}">RCX</tspan>.member_func(<tspan font-weight="bold" fill="{CE_GREEN}">RDX</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">R8</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">R9</tspan>);</text>
-
-  <!-- Table header background -->
-  <rect x="{table_x}" y="{TABLE_Y}" width="{table_width}" height="{row_height}"
-        fill="{HEADER_BG}" stroke="{BORDER_COLOR}" stroke-width="1"/>
-
-  <!-- Table headers -->
-  <text x="{table_x + 25}" y="{TABLE_Y + 38}" font-family="{FONT_FAMILY}"
-        font-size="{header_size}" font-weight="bold" fill="{TEXT_COLOR}">Register</text>
-  <text x="{table_x + COL1_WIDTH + 25}" y="{TABLE_Y + 38}" font-family="{FONT_FAMILY}"
-        font-size="{header_size}" font-weight="bold" fill="{TEXT_COLOR}">Free Function</text>
-  <text x="{table_x + COL1_WIDTH + COL2_WIDTH + 25}" y="{TABLE_Y + 38}" font-family="{FONT_FAMILY}"
-        font-size="{header_size}" font-weight="bold" fill="{TEXT_COLOR}">Member Function</text>
+  <!-- Title (horizontal at top) -->
+  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{FONT_FAMILY}" font-size="{positions["title"]["size"]}"
+        font-weight="bold" fill="{CE_GREEN}" text-anchor="middle">{layout.title}</text>
 """
 
-    # Table rows
-    y = TABLE_Y + row_height
-    for i, (reg, free_func, member_func) in enumerate(registers):
-        svg += create_table_row(
-            i,
-            reg,
-            free_func,
-            member_func,
-            table_x,
-            y,
-            table_width,
-            row_height,
-            COL1_WIDTH,
-            COL2_WIDTH,
-            FONT_FAMILY,
-            text_size,
-            TEXT_COLOR,
-            CE_GREEN,
-            BORDER_COLOR,
-        )
-        y += row_height
+    # Main table with registers as headers
+    table_svg = create_horizontal_table(
+        headers=layout.table_headers,
+        rows=[row.cells for row in layout.table_rows],
+        row_labels=[ROW_LABEL_FUNCTION, ROW_LABEL_MEMBER],
+        table_x=positions["table"]["x"],
+        table_y=positions["table"]["y"],
+        col_width=positions["table"]["col_width"],
+        row_height=positions["table"]["row_height"],
+        label_width=positions["table"]["label_width"],
+        font_family=FONT_FAMILY,
+        header_size=positions["table"]["header_size"],
+        text_size=positions["table"]["text_size"],
+        text_color=TEXT_COLOR,
+        ce_green=CE_GREEN,
+        border_color=BORDER_COLOR,
+        header_bg=HEADER_BG,
+    )
+    svg += table_svg
 
-    # Additional info
-    info_y = y + 40
+    # Info table
+    info_table_svg = create_info_table(
+        rows=layout.info_items,
+        table_x=positions["info_items"]["x"],
+        table_y=positions["info_items"]["y"],
+        table_width=positions["info_items"]["width"],
+        row_height=positions["info_items"]["row_height"],
+        font_family=FONT_FAMILY,
+        text_size=positions["info_items"]["text_size"],
+        text_color=TEXT_COLOR,
+        ce_green=CE_GREEN,
+        border_color=BORDER_COLOR,
+        header_bg=HEADER_BG,
+        measurer=engine.measurer,
+    )
+    svg += info_table_svg
 
-    info_items = [
-        ("Return values:", [("RAX", True), (" (", False), ("RDX", True), (" for 128-bit)", False)]),
-        (
-            "FP args:",
-            [("XMM0", True), ("-", False), ("XMM3", True), ("*", False), (", return: ", False), ("XMM0", True)],
-        ),
-        (
-            "Caller-saved:",
-            [
-                ("RAX", True),
-                (" ", False),
-                ("RCX", True),
-                (" ", False),
-                ("RDX", True),
-                (" ", False),
-                ("R8", True),
-                ("-", False),
-                ("R11", True),
-                (" ", False),
-                ("XMM0", True),
-                ("-", False),
-                ("XMM5", True),
-            ],
-        ),
-        (
-            "Callee-saved:",
-            [
-                ("RBX", True),
-                (" ", False),
-                ("RBP", True),
-                (" ", False),
-                ("RDI", True),
-                (" ", False),
-                ("RSI", True),
-                (" ", False),
-                ("R12", True),
-                ("-", False),
-                ("R15", True),
-                (" ", False),
-                ("XMM6", True),
-                ("-", False),
-                ("XMM15", True),
-            ],
-        ),
-    ]
-
-    info_svg, info_y = render_info_items(info_items, table_x, info_y, FONT_FAMILY, text_size, TEXT_COLOR, CE_GREEN)
-    svg += info_svg
-
-    # Footnote explanation - line 1
-    svg += f"""
-  <!-- Footnote line 1 -->
-  <text x="{table_x}" y="{info_y + 15}" font-family="{FONT_FAMILY}" font-size="{text_size - 8}"
-        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic">
-    * FP args use <tspan font-weight="bold" fill="{CE_GREEN}">XMM</tspan> register matching parameter position
-  </text>
-"""
-
-    # Footnote explanation - line 2 (indented)
-    svg += f"""
-  <!-- Footnote line 2 -->
-  <text x="{table_x + 16}" y="{info_y + 35}" font-family="{FONT_FAMILY}" font-size="{text_size - 8}"
-        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic">
-    (<tspan font-weight="bold" fill="{CE_GREEN}">XMM1</tspan> for 2nd param, <tspan font-weight="bold" fill="{CE_GREEN}">XMM2</tspan> for 3rd param, etc.)
-  </text>
-"""
-
-    # Note about remaining parameters
-    svg += f"""
-  <!-- Stack note -->
-  <text x="{table_x}" y="{info_y + 65}" font-family="{FONT_FAMILY}" font-size="{text_size - 8}"
-        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic">
-    Parameters beyond 4 on stack; 32-byte shadow space required
-  </text>
+    # Footer lines (already optimized by layout engine)
+    for i, line in enumerate(positions["footer"]["lines"]):
+        line_y = positions["footer"]["y"] + (i * positions["footer"]["line_height"])
+        svg += f"""  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{FONT_FAMILY}" font-size="{positions["footer"]["size"]}"
+        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic" text-anchor="middle">{line}</text>
 """
 
     # Close SVG
@@ -174,6 +111,9 @@ def create_abi_svg(
 
     print(f"SVG created: {filename}")
     print(f"Dimensions: {width}x{height}")
+
+    # Cleanup
+    engine.cleanup()
 
     # Generate PNG if requested
     if generate_png:

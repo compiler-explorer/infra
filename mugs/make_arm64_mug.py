@@ -3,15 +3,16 @@ from mug_common import (
     BG_COLOR,
     BORDER_COLOR,
     CE_GREEN,
-    COL1_WIDTH,
-    COL2_WIDTH,
-    COL3_WIDTH,
     FONT_FAMILY,
     HEADER_BG,
-    TABLE_Y,
+    ROW_LABEL_FUNCTION,
+    ROW_LABEL_MEMBER,
     TEXT_COLOR,
-    create_table_row,
-    render_info_items,
+    LayoutEngine,
+    MugLayout,
+    TableRow,
+    create_horizontal_table,
+    create_info_table,
     svg_to_png,
 )
 
@@ -19,157 +20,89 @@ from mug_common import (
 def create_abi_svg(
     filename: str, width: int = 1100, height: int = 800, generate_png: bool = True, dpi: int = 300
 ) -> None:
-    # Font settings (ABI-specific sizes)
-    title_size = 50
-    header_size = 28
-    text_size = 30
+    # Create layout using new system with styling
+    layout = MugLayout(
+        title="ARM64 (AAPCS) ABI",
+        code_examples=[],  # No longer used
+        table_headers=["X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7"],  # 8 registers
+        table_rows=[
+            TableRow(cells=["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]),
+            TableRow(cells=["this", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th"]),
+        ],
+        info_items=[
+            ("Return values", "X0 (X1 for 128-bit)"),
+            ("Special regs", "X8 indirect, X29 FP"),
+            ("", "X30 LR, SP stack"),
+            ("FP args", "V0-V7"),
+            ("FP return", "V0/V1"),
+            ("Caller-saved", "X0-X17 V0-V7 V16-V31"),
+            ("Callee-saved", "X19-X28 V8-V15"),
+            ("", "(lower 64 bits)"),
+        ],
+        footer_lines=["Parameters beyond 8 int/FP args on stack (16-byte aligned)"],
+        title_size=72,
+        header_size=36,
+        text_size=38,
+        info_text_size=42,
+        row_height=70,
+        footer_spacing=40,
+    )
 
-    # Layout - center the entire design
-    table_width = COL1_WIDTH + COL2_WIDTH + COL3_WIDTH
-    table_x = (width - table_width) // 2
-    row_height = 48
+    # Use layout engine
+    engine = LayoutEngine(width, height)
+    positions = engine.layout_mug(layout)
 
-    # Table data
-    registers = [
-        ("X0", "1st parameter", "this pointer"),
-        ("X1", "2nd parameter", "1st parameter"),
-        ("X2", "3rd parameter", "2nd parameter"),
-        ("X3", "4th parameter", "3rd parameter"),
-        ("X4", "5th parameter", "4th parameter"),
-        ("X5", "6th parameter", "5th parameter"),
-        ("X6", "7th parameter", "6th parameter"),
-        ("X7", "8th parameter", "7th parameter"),
-    ]
-
-    # Start SVG
+    # Generate SVG
     svg = f"""<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="{width}" height="{height}" fill="{BG_COLOR}"/>
 
-  <!-- Title -->
-  <text x="{table_x}" y="45" font-family="{FONT_FAMILY}" font-size="{title_size}"
-        font-weight="bold" fill="{TEXT_COLOR}">ARM64 (AAPCS) ABI</text>
-
-  <!-- Code examples -->
-  <text x="{table_x}" y="90" font-family="{FONT_FAMILY}" font-size="{text_size - 2}"
-        fill="{TEXT_COLOR}">free_func(<tspan font-weight="bold" fill="{CE_GREEN}">X0</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X1</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X2</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X3</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X4</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X5</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X6</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X7</tspan>);</text>
-  <text x="{table_x}" y="120" font-family="{FONT_FAMILY}" font-size="{text_size - 2}"
-        fill="{TEXT_COLOR}"><tspan font-weight="bold" fill="{CE_GREEN}">X0</tspan>.member_func(<tspan font-weight="bold" fill="{CE_GREEN}">X1</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X2</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X3</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X4</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X5</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X6</tspan>, <tspan font-weight="bold" fill="{CE_GREEN}">X7</tspan>);</text>
-
-  <!-- Table header background -->
-  <rect x="{table_x}" y="{TABLE_Y}" width="{table_width}" height="{row_height}"
-        fill="{HEADER_BG}" stroke="{BORDER_COLOR}" stroke-width="1"/>
-
-  <!-- Table headers -->
-  <text x="{table_x + 25}" y="{TABLE_Y + 38}" font-family="{FONT_FAMILY}"
-        font-size="{header_size}" font-weight="bold" fill="{TEXT_COLOR}">Register</text>
-  <text x="{table_x + COL1_WIDTH + 25}" y="{TABLE_Y + 38}" font-family="{FONT_FAMILY}"
-        font-size="{header_size}" font-weight="bold" fill="{TEXT_COLOR}">Free Function</text>
-  <text x="{table_x + COL1_WIDTH + COL2_WIDTH + 25}" y="{TABLE_Y + 38}" font-family="{FONT_FAMILY}"
-        font-size="{header_size}" font-weight="bold" fill="{TEXT_COLOR}">Member Function</text>
+  <!-- Title (horizontal at top) -->
+  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{FONT_FAMILY}" font-size="{positions["title"]["size"]}"
+        font-weight="bold" fill="{CE_GREEN}" text-anchor="middle">{layout.title}</text>
 """
 
-    # Table rows
-    y = TABLE_Y + row_height
-    for i, (reg, free_func, member_func) in enumerate(registers):
-        svg += create_table_row(
-            i,
-            reg,
-            free_func,
-            member_func,
-            table_x,
-            y,
-            table_width,
-            row_height,
-            COL1_WIDTH,
-            COL2_WIDTH,
-            FONT_FAMILY,
-            text_size,
-            TEXT_COLOR,
-            CE_GREEN,
-            BORDER_COLOR,
-        )
-        y += row_height
+    # Main table with registers as headers
+    table_svg = create_horizontal_table(
+        headers=layout.table_headers,
+        rows=[row.cells for row in layout.table_rows],
+        row_labels=[ROW_LABEL_FUNCTION, ROW_LABEL_MEMBER],
+        table_x=positions["table"]["x"],
+        table_y=positions["table"]["y"],
+        col_width=positions["table"]["col_width"],
+        row_height=positions["table"]["row_height"],
+        label_width=positions["table"]["label_width"],
+        font_family=FONT_FAMILY,
+        header_size=positions["table"]["header_size"],
+        text_size=positions["table"]["text_size"],
+        text_color=TEXT_COLOR,
+        ce_green=CE_GREEN,
+        border_color=BORDER_COLOR,
+        header_bg=HEADER_BG,
+    )
+    svg += table_svg
 
-    # Additional info
-    info_y = y + 40
+    # Info table
+    info_table_svg = create_info_table(
+        rows=layout.info_items,
+        table_x=positions["info_items"]["x"],
+        table_y=positions["info_items"]["y"],
+        table_width=positions["info_items"]["width"],
+        row_height=positions["info_items"]["row_height"],
+        font_family=FONT_FAMILY,
+        text_size=positions["info_items"]["text_size"],
+        text_color=TEXT_COLOR,
+        ce_green=CE_GREEN,
+        border_color=BORDER_COLOR,
+        header_bg=HEADER_BG,
+        measurer=engine.measurer,
+    )
+    svg += info_table_svg
 
-    info_items = [
-        (
-            "Return values:",
-            [
-                ("X0", True),
-                (" (", False),
-                ("X1", True),
-                (" for 128-bit)", False),
-            ],
-        ),
-        (
-            "Special regs:",
-            [
-                ("X8", True),
-                (" indirect, ", False),
-                ("X29", True),
-                (" FP, ", False),
-                ("X30", True),
-                (" LR, ", False),
-                ("SP", True),
-                (" stack", False),
-            ],
-        ),
-        (
-            "FP args/return:",
-            [
-                ("V0", True),
-                ("-", False),
-                ("V7", True),
-                (" args, ", False),
-                ("V0", True),
-                ("/", False),
-                ("V1", True),
-                (" return", False),
-            ],
-        ),
-        (
-            "Caller-saved:",
-            [
-                ("X0", True),
-                ("-", False),
-                ("X17", True),
-                (" ", False),
-                ("V0", True),
-                ("-", False),
-                ("V7", True),
-                (" ", False),
-                ("V16", True),
-                ("-", False),
-                ("V31", True),
-            ],
-        ),
-        (
-            "Callee-saved:",
-            [
-                ("X19", True),
-                ("-", False),
-                ("X28", True),
-                (" ", False),
-                ("V8", True),
-                ("-", False),
-                ("V15", True),
-                (" (lower 64 bits)", False),
-            ],
-        ),
-    ]
-
-    info_svg, info_y = render_info_items(info_items, table_x, info_y, FONT_FAMILY, text_size, TEXT_COLOR, CE_GREEN)
-    svg += info_svg
-
-    # Note about remaining parameters
-    svg += f"""
-  <!-- Stack note -->
-  <text x="{table_x}" y="{info_y + 15}" font-family="{FONT_FAMILY}" font-size="{text_size - 8}"
-        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic">
-    Parameters beyond 8 int/FP args on stack (16-byte aligned)
-  </text>
+    # Footer lines (already optimized by layout engine)
+    for i, line in enumerate(positions["footer"]["lines"]):
+        line_y = positions["footer"]["y"] + (i * positions["footer"]["line_height"])
+        svg += f"""  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{FONT_FAMILY}" font-size="{positions["footer"]["size"]}"
+        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic" text-anchor="middle">{line}</text>
 """
 
     # Close SVG
@@ -181,6 +114,9 @@ def create_abi_svg(
 
     print(f"SVG created: {filename}")
     print(f"Dimensions: {width}x{height}")
+
+    # Cleanup
+    engine.cleanup()
 
     # Generate PNG if requested
     if generate_png:
