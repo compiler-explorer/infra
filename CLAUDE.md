@@ -149,6 +149,55 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 All workflow trigger commands support `--dry-run` to preview the `gh` command without executing it.
 
+## Compilation Lambda Management
+
+The `ce compilation-lambda` command group provides emergency controls for the compilation Lambda routing system:
+
+### Available Commands
+
+- **`ce compilation-lambda killswitch ENVIRONMENT`** - EMERGENCY: Disable compilation Lambda ALB routing for an environment
+  - Immediately stops routing compilation requests through Lambda
+  - Falls back to legacy instance-based routing within seconds
+  - Environments: beta, staging, prod
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce compilation-lambda killswitch beta`
+
+- **`ce compilation-lambda enable ENVIRONMENT`** - Re-enable compilation Lambda ALB routing for an environment
+  - Restores routing of compilation requests through Lambda
+  - Takes effect immediately after ALB rule modification
+  - Use `--skip-confirmation` to skip confirmation prompt
+  - Example: `ce compilation-lambda enable beta`
+
+- **`ce compilation-lambda status [ENVIRONMENT]`** - Show current status of compilation Lambda ALB routing
+  - Shows actual ALB listener rule state (not Terraform configuration)
+  - Status indicators:
+    - 🟢 ENABLED: Lambda routing active
+    - 🚨 KILLSWITCH ACTIVE: Using instance routing
+    - 🔴 NOT_FOUND: No ALB rule exists
+  - Without environment argument, shows status for all environments
+  - Example: `ce compilation-lambda status` or `ce compilation-lambda status prod`
+
+### Usage Scenarios
+
+**Emergency Response**: Use killswitch when Lambda compilation system is experiencing issues:
+```bash
+# Disable Lambda routing for production
+ce compilation-lambda killswitch prod
+
+# Check status across all environments
+ce compilation-lambda status
+
+# Re-enable when issues are resolved
+ce compilation-lambda enable prod
+```
+
+### Technical Details
+
+- Modifies ALB listener rules directly (bypasses Terraform)
+- Changes take effect immediately without deployment
+- Killswitch works by changing path patterns to never match
+- Enable restores original path patterns for the environment
+
 ## Compiler Routing Management
 
 The `ce compiler-routing` command group provides functionality to manage compiler-to-queue routing mappings in DynamoDB:

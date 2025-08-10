@@ -756,6 +756,60 @@ All compilation messages follow a consistent schema:
 | `text/plain` | Assembly text only |
 | *Missing/Other* | Default to JSON |
 
+## Emergency Management CLI Commands
+
+The system includes emergency killswitch functionality to immediately disable Lambda routing and fall back to instance-based routing:
+
+### Available Commands
+
+```bash
+# EMERGENCY: Disable compilation Lambda ALB routing for an environment
+ce compilation-lambda killswitch beta
+ce compilation-lambda killswitch prod --skip-confirmation
+
+# Re-enable compilation Lambda ALB routing after emergency
+ce compilation-lambda enable beta
+ce compilation-lambda enable prod --skip-confirmation
+
+# Check current ALB routing status (not Terraform config)
+ce compilation-lambda status        # Shows all environments
+ce compilation-lambda status beta   # Shows specific environment
+```
+
+### Killswitch Operation
+
+The killswitch modifies ALB listener rules directly (bypassing Terraform) for immediate effect:
+
+1. **Disable**: Changes path pattern to `/killswitch-disabled-*` (never matches)
+2. **Enable**: Restores original path patterns (`/api/compiler/*/compile`, `/api/compiler/*/cmake`)
+3. **Status**: Shows actual ALB rule state with indicators:
+   - 🟢 ENABLED: Lambda routing active
+   - 🚨 KILLSWITCH ACTIVE: Using instance routing
+   - 🔴 NOT_FOUND: No ALB rule exists
+
+### Emergency Response Workflow
+
+```bash
+# 1. Detect Lambda compilation issues
+# 2. Activate killswitch for affected environment
+ce compilation-lambda killswitch prod
+
+# 3. Traffic immediately falls back to instance routing
+# 4. Investigate and fix Lambda issues
+# 5. Re-enable when resolved
+ce compilation-lambda enable prod
+
+# 6. Verify status
+ce compilation-lambda status
+```
+
+### Important Notes
+
+- Changes take effect **immediately** without deployment
+- Bypasses Terraform configuration (manual ALB rule modification)
+- Works independently of blue-green deployments
+- No impact on other environments when targeting specific environment
+
 ## Operational Characteristics
 
 ### Performance Benefits
