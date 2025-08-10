@@ -6,6 +6,26 @@ Monitors file access to /opt/compiler-explorer/ and mounts corresponding
 squashfs images on-demand to improve boot performance.
 """
 
+# IMPLEMENTATION APPROACH:
+# This daemon uses eBPF via bpftrace to perform high-performance kernel-space filtering
+# of filesystem access syscalls (execve, execveat, openat). However, the Ubuntu 22.04
+# BPF verifier has strict limitations on character-by-character access chains that
+# prevent checking the full "/opt/compiler-explorer/" path (23 characters).
+#
+# Why not use string comparisons directly in BPF? The BPF stack is limited to 512 bytes,
+# and string operations would require copying the path to the stack. With our long paths
+# (often 100+ chars), this would exceed the stack limit and cause the BPF program to fail.
+#
+# To work around both limitations, we use a split approach:
+# 1. BPF kernel space: Match only first 15 characters ("/opt/compiler-e") using a large
+#    if() chain with ASCII character comparisons - the 15-char limit was empirically
+#    determined by testing against Ubuntu 22.04's BPF verifier
+# 2. Python user space: Validate remainder ("xplorer/") and handle the actual mounting
+#
+# This maintains kernel-space filtering performance (avoiding most syscall overhead)
+# while working around BPF verifier restrictions on "modified ctx ptr" operations.
+# The daemon outputs "CEPATH:" prefixed paths to distinguish from bpftrace status messages.
+
 import argparse
 import logging
 import logging.handlers
@@ -19,10 +39,10 @@ import time
 from pathlib import Path
 from typing import Optional, Set
 
-# BPF character matching limit - verifier restricts complex character access chains
+# BPF verifier limit - see IMPLEMENTATION APPROACH above
 BPF_MATCH_LENGTH = 15
 
-# BPF string length limit - for path remainder output after prefix matching
+# BPF output buffer for path remainder after prefix matching
 BPFTRACE_STRING_LENGTH = 100
 
 
@@ -203,8 +223,7 @@ class LazyMountDaemon:
         # Ensure mount_base ends with '/' for consistent matching
         mount_base_with_slash = self.mount_base.rstrip("/") + "/"
 
-        # Generate character-by-character comparison for mount_base (limited by BPF verifier)
-        # Only check first BPF_MATCH_LENGTH characters to avoid verifier "modified ctx ptr" errors
+        # Generate character-by-character comparison - see IMPLEMENTATION APPROACH above
         match_prefix = mount_base_with_slash[:BPF_MATCH_LENGTH]
         char_comparisons = []
         for i, char in enumerate(match_prefix):
@@ -214,8 +233,7 @@ class LazyMountDaemon:
 
         is_ce_path_condition = " && ".join(char_comparisons)
 
-        # Monitor both exec and file open syscalls with kernel-space filtering
-        # Note: Inline filtering logic since bpftrace doesn't support user-defined functions
+        # BPF script for kernel-space syscall filtering - see IMPLEMENTATION APPROACH above
         bpftrace_script = f"""
             tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
                 printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
@@ -293,18 +311,17 @@ class LazyMountDaemon:
                         self.logger.debug(f"Skipping line with invalid UTF-8: {line_bytes[:50]}...")
                         continue
 
-                    # Check for our custom prefix to filter out bpftrace status messages
+                    # Filter CEPATH: lines - see IMPLEMENTATION APPROACH above
                     if line and line.startswith("CEPATH:"):
                         # Strip the CEPATH: prefix
                         path_remainder = line[7:]  # len("CEPATH:") = 7
 
-                        # Validate that the remainder starts with the expected suffix
-                        # BPF matched first BPF_MATCH_LENGTH chars, we need to validate the rest
+                        # Python-side validation of path remainder - see IMPLEMENTATION APPROACH above
                         mount_base_with_slash = self.mount_base.rstrip("/") + "/"
                         expected_remainder = mount_base_with_slash[BPF_MATCH_LENGTH:]
 
                         if path_remainder.startswith(expected_remainder):
-                            # Reconstruct full path from remainder (bpftrace outputs path after BPF_MATCH_LENGTH chars)
+                            # Reconstruct full path from BPF-filtered remainder
                             full_path = f"{mount_base_with_slash[:BPF_MATCH_LENGTH]}{path_remainder}"
                             self.handle_access(full_path)
                         else:
