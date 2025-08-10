@@ -8,23 +8,17 @@ squashfs images on-demand to improve boot performance.
 
 # IMPLEMENTATION APPROACH:
 # This daemon uses eBPF via bpftrace to perform high-performance kernel-space filtering
-# of filesystem access syscalls (execve, execveat, openat). However, the Ubuntu 22.04
-# BPF verifier has strict limitations on character-by-character access chains that
-# prevent checking the full "/opt/compiler-explorer/" path (23 characters).
+# of filesystem access syscalls (execve, execveat, openat).
 #
-# Why not use string comparisons directly in BPF? The BPF stack is limited to 512 bytes,
-# and string operations would require copying the path to the stack. With our long paths
-# (often 100+ chars), this would exceed the stack limit and cause the BPF program to fail.
+# The BPF stack is limited to 512 bytes, preventing us from copying full paths (often 100+ chars)
+# to the stack for comparison. However, we can use string equality with a limited prefix copy:
+# str(args->filename, 23) == "/opt/compiler-explorer/" stays within stack limits.
 #
-# To work around both limitations, we use a split approach:
-# 1. BPF kernel space: Match only first 15 characters ("/opt/compiler-e") using a large
-#    if() chain with ASCII character comparisons - the 15-char limit was empirically
-#    determined by testing against Ubuntu 22.04's BPF verifier
-# 2. Python user space: Validate remainder ("xplorer/") and handle the actual mounting
+# This approach generates an "Addrspace mismatch" warning (comparing kernel/user space strings)
+# which is harmless and suppressed with -q --no-warning flags.
 #
-# This maintains kernel-space filtering performance (avoiding most syscall overhead)
-# while working around BPF verifier restrictions on "modified ctx ptr" operations.
-# The daemon outputs "CEPATH:" prefixed paths to distinguish from bpftrace status messages.
+# The daemon outputs "CEPATH:" prefixed paths to distinguish from bpftrace status messages,
+# though with -q this is less critical. Full filtering happens in kernel space for performance.
 
 import argparse
 import logging
@@ -39,11 +33,11 @@ import time
 from pathlib import Path
 from typing import Optional, Set
 
-# BPF verifier limit - see IMPLEMENTATION APPROACH above
-BPF_MATCH_LENGTH = 15
-
-# BPF output buffer for path remainder after prefix matching
+# BPF output buffer size for path strings
 BPFTRACE_STRING_LENGTH = 100
+
+# Prefix for our BPF output to distinguish from bpftrace status messages
+ACCESS_PREFIX = "CEPATH:"
 
 
 class LazyMountDaemon:
@@ -222,29 +216,21 @@ class LazyMountDaemon:
         """Start the bpftrace subprocess to monitor file access"""
         # Ensure mount_base ends with '/' for consistent matching
         mount_base_with_slash = self.mount_base.rstrip("/") + "/"
-
-        # Generate character-by-character comparison - see IMPLEMENTATION APPROACH above
-        match_prefix = mount_base_with_slash[:BPF_MATCH_LENGTH]
-        char_comparisons = []
-        for i, char in enumerate(match_prefix):
-            # Use ASCII decimal values for all characters to avoid bpftrace quote/syntax issues
-            ascii_value = ord(char)
-            char_comparisons.append(f"args->filename[{i}] == {ascii_value}")
-
-        is_ce_path_condition = " && ".join(char_comparisons)
+        mount_base_len = len(mount_base_with_slash)
 
         # BPF script for kernel-space syscall filtering - see IMPLEMENTATION APPROACH above
+        # Using string equality with limited prefix copy to stay within BPF stack limits
         bpftrace_script = f"""
-            tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
+            tracepoint:syscalls:sys_enter_execve /pid != {os.getpid()} && str(args->filename, {mount_base_len}) == "{mount_base_with_slash}"/ {{
+                printf("{ACCESS_PREFIX}%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
             }}
 
-            tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
+            tracepoint:syscalls:sys_enter_execveat /pid != {os.getpid()} && str(args->filename, {mount_base_len}) == "{mount_base_with_slash}"/ {{
+                printf("{ACCESS_PREFIX}%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
             }}
 
-            tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()} && ({is_ce_path_condition})/ {{
-                printf("CEPATH:%s\\n", str(args->filename + {BPF_MATCH_LENGTH}, {BPFTRACE_STRING_LENGTH}));
+            tracepoint:syscalls:sys_enter_openat /pid != {os.getpid()} && str(args->filename, {mount_base_len}) == "{mount_base_with_slash}"/ {{
+                printf("{ACCESS_PREFIX}%s\\n", str(args->filename + {mount_base_len}, {BPFTRACE_STRING_LENGTH}));
             }}
         """
 
@@ -252,7 +238,7 @@ class LazyMountDaemon:
         env["BPFTRACE_STRLEN"] = str(BPFTRACE_STRING_LENGTH)
         env["BPFTRACE_MAX_STRLEN"] = str(BPFTRACE_STRING_LENGTH)
 
-        bpftrace_cmd = ["bpftrace", "-e", bpftrace_script]
+        bpftrace_cmd = ["bpftrace", "-q", "--no-warning", "-e", bpftrace_script]
         self.logger.info(f"Starting bpftrace monitoring with command: {' '.join(bpftrace_cmd)}")
         self.logger.info(f"bpftrace script: {bpftrace_script.strip()}")
 
@@ -311,22 +297,14 @@ class LazyMountDaemon:
                         self.logger.debug(f"Skipping line with invalid UTF-8: {line_bytes[:50]}...")
                         continue
 
-                    # Filter CEPATH: lines - see IMPLEMENTATION APPROACH above
-                    if line and line.startswith("CEPATH:"):
-                        # Strip the CEPATH: prefix
-                        path_remainder = line[7:]  # len("CEPATH:") = 7
+                    # Filter ACCESS_PREFIX lines - see IMPLEMENTATION APPROACH above
+                    if line and line.startswith(ACCESS_PREFIX):
+                        # Strip the prefix
+                        path_remainder = line[len(ACCESS_PREFIX) :]
 
-                        # Python-side validation of path remainder - see IMPLEMENTATION APPROACH above
-                        mount_base_with_slash = self.mount_base.rstrip("/") + "/"
-                        expected_remainder = mount_base_with_slash[BPF_MATCH_LENGTH:]
-
-                        if path_remainder.startswith(expected_remainder):
-                            # Reconstruct full path from BPF-filtered remainder
-                            full_path = f"{mount_base_with_slash[:BPF_MATCH_LENGTH]}{path_remainder}"
-                            self.handle_access(full_path)
-                        else:
-                            # False positive - path doesn't actually match our full prefix
-                            self.logger.debug(f"Ignoring unexpected path: {path_remainder[:50]}...")
+                        # Reconstruct full path (BPF already did full filtering)
+                        full_path = f"{self.mount_base}/{path_remainder}"
+                        self.handle_access(full_path)
             except Exception as e:
                 self.logger.error(f"Error processing bpftrace output: {e}")
                 raise
