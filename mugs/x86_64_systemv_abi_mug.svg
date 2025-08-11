@@ -79,7 +79,6 @@
 <tspan font-weight="bold" fill="#67c52a">RBX</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">RBP</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">R12</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">R15</tspan>
   </text>
 
-  <!-- Footer lines -->
   <text x="550" y="793.0" font-family="DejaVu Sans Mono" font-size="28"
         fill="#000000" opacity="0.6" font-style="italic" text-anchor="middle">Parameters beyond 6 integer or 8 FP args are passed on the stack</text>
 </svg>

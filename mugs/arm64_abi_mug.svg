@@ -98,6 +98,7 @@
   <text x="461" y="737.0" font-family="DejaVu Sans Mono" font-size="42">
 <tspan fill="#000000">(lower 64 bits)</tspan>
   </text>
+
   <text x="550" y="792.0" font-family="DejaVu Sans Mono" font-size="30"
         fill="#000000" opacity="0.6" font-style="italic" text-anchor="middle">Parameters beyond 8 int/FP args on stack (16-byte aligned)</text>
 </svg>
