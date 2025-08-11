@@ -6,6 +6,7 @@ import logging.config
 import multiprocessing
 import os
 import signal
+import subprocess
 import sys
 import traceback
 from dataclasses import dataclass
@@ -94,17 +95,141 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
 
-def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> None:
+def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> int:
+    error_count = 0
     for filename in os.listdir(rootfolder / subdir):
         if filename.endswith(".img"):
             checkdir = Path("/opt/compiler-explorer/") / subdir / filename[:-4]
             if not checkdir.exists():
                 _LOGGER.error("Missing mount point %s", checkdir)
+                error_count += 1
         else:
             if subdir == "":
-                squash_mount_check(rootfolder, filename, context)
+                error_count += squash_mount_check(rootfolder, filename, context)
             else:
-                squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
+                error_count += squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
+    return error_count
+
+
+def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
+    """Verify squashfs image contents match NFS directory. Returns error count."""
+    error_count = 0
+
+    try:
+        # Extract squashfs metadata without mounting
+        result = subprocess.run(
+            ["unsquashfs", "-ll", "-d", "", str(img_path)], capture_output=True, text=True, check=True
+        )
+        sqfs_output = result.stdout
+    except subprocess.CalledProcessError as e:
+        _LOGGER.error("Failed to read squashfs image %s: %s", img_path, e)
+        return 1
+    except FileNotFoundError:
+        _LOGGER.error("unsquashfs command not found - install squashfs-tools")
+        return 1
+
+    # Parse squashfs output to get file list
+    sqfs_files = {}
+    for line in sqfs_output.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        # Parse ls -l style output: permissions, owner/group, size, date, time, path [-> target]
+        parts = line.split()
+        if len(parts) == 6:  # permissions, owner/group, size, date, time, path
+            abs_path = parts[5]
+            if abs_path.startswith("/"):
+                rel_path = abs_path[1:]  # Remove leading slash
+                if rel_path:  # Skip empty paths (root directory)
+                    file_type = parts[0][0]  # d/l/-
+                    size = parts[2] if file_type == "-" else "0"  # Size is in parts[2]
+                    sqfs_files[rel_path] = (file_type, size)
+        elif len(parts) == 8:  # Symlink: permissions, owner/group, size, date, time, path, ->, target
+            abs_path = parts[5]
+            if abs_path.startswith("/") and parts[6] == "->":
+                rel_path = abs_path[1:]  # Remove leading slash
+                if rel_path:  # Skip empty paths (root directory)
+                    file_type = parts[0][0]  # Should be 'l' for symlinks
+                    size = "0"  # Symlinks always have size 0 for comparison
+                    sqfs_files[rel_path] = (file_type, size)
+        elif len(parts) == 5:  # Root directory case (no path)
+            # Root directory without path: permissions, owner/group, size, date, time
+            if parts[0][0] != "d":
+                raise ValueError(f"Expected root directory but got: {line}")
+        else:
+            raise ValueError(f"Unexpected unsquashfs output format ({len(parts)} parts): {line}")
+
+    # Build equivalent from directory filesystem
+    dir_files = {}
+    if not nfs_path.exists():
+        _LOGGER.error("Directory does not exist: %s", nfs_path)
+        return 1
+
+    for item in nfs_path.rglob("*"):
+        rel_path = str(item.relative_to(nfs_path))
+
+        stat_result = item.lstat()
+
+        if item.is_symlink():
+            file_type = "l"
+            size = "0"
+        elif item.is_dir():
+            file_type = "d"
+            size = "0"
+        elif item.is_file():
+            file_type = "-"
+            size = str(stat_result.st_size)
+        else:
+            raise ValueError(f"Unknown file type for {item}")
+
+        dir_files[rel_path] = (file_type, size)
+
+    # Compare file sets
+    only_in_sqfs = set(sqfs_files.keys()) - set(dir_files.keys())
+    only_in_dir = set(dir_files.keys()) - set(sqfs_files.keys())
+
+    # Report files only in one location
+    if only_in_sqfs:
+        error_count += len(only_in_sqfs)
+        _LOGGER.error(
+            "Files only in squashfs (%d): %s",
+            len(only_in_sqfs),
+            ", ".join(sorted(list(only_in_sqfs)[:5])) + ("..." if len(only_in_sqfs) > 5 else ""),
+        )
+
+    if only_in_dir:
+        error_count += len(only_in_dir)
+        _LOGGER.error(
+            "Files only in directory (%d): %s",
+            len(only_in_dir),
+            ", ".join(sorted(list(only_in_dir)[:5])) + ("..." if len(only_in_dir) > 5 else ""),
+        )
+
+    # Check common files for mismatches
+    mismatches = 0
+    for path in set(sqfs_files.keys()) & set(dir_files.keys()):
+        sqfs_meta = sqfs_files[path]
+        dir_meta = dir_files[path]
+
+        # Compare type and size
+        if sqfs_meta[0] != dir_meta[0]:
+            _LOGGER.error("Type mismatch for %s: squashfs=%s, directory=%s", path, sqfs_meta[0], dir_meta[0])
+            mismatches += 1
+        elif sqfs_meta[0] == "-" and sqfs_meta[1] != dir_meta[1]:
+            _LOGGER.error("Size mismatch for %s: squashfs=%s, directory=%s", path, sqfs_meta[1], dir_meta[1])
+            mismatches += 1
+
+    error_count += mismatches
+
+    # Debug info
+    _LOGGER.info("Found %d files in squashfs, %d files in directory", len(sqfs_files), len(dir_files))
+
+    if error_count == 0:
+        _LOGGER.info("✓ Contents match: %d files verified", len(sqfs_files))
+    else:
+        _LOGGER.error("✗ Contents mismatch: %d errors found", error_count)
+
+    return error_count
 
 
 @click.group()
@@ -417,30 +542,53 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
 
 @cli.command()
 @click.pass_obj
+@click.option("--verify", is_flag=True, help="Verify squashfs contents match NFS directories")
+@click.option("--no-check-mount-targets", is_flag=True, help="Skip checking mount targets exist")
 @click.option(
     "--image-dir",
-    default=Path("/opt/squash-images"),
+    default=Path("/efs/squash-images"),
     metavar="IMAGES",
     type=click.Path(file_okay=False, path_type=Path),
     help="Look for images in IMAGES",
     show_default=True,
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
-    """Check squash images matching FILTER."""
+def squash_check(context: CliContext, filter_: List[str], image_dir: Path, verify: bool, no_check_mount_targets: bool):
+    """Check squash images matching FILTER, optionally verify contents."""
+    total_errors = 0
+
     if not image_dir.exists():
         _LOGGER.error("Missing squash directory %s", image_dir)
-        exit(1)
+        sys.exit(1)
 
-    for installable in context.get_installables(filter_):
+    # Check for missing/unexpected squash images
+    installables = context.get_installables(filter_)
+    for installable in installables:
         destination = image_dir / f"{installable.install_path}.img"
         if installable.nightly_like:
             if destination.exists():
                 _LOGGER.error("Found squash: %s for nightly", installable.name)
+                total_errors += 1
         elif not destination.exists():
             _LOGGER.error("Missing squash: %s (for %s)", installable.name, destination)
+            total_errors += 1
+        elif verify:
+            # Verify contents if requested
+            nfs_path = context.installation_context.destination / installable.install_path
+            _LOGGER.info("Verifying %s...", installable.name)
+            total_errors += verify_squashfs_contents(destination, nfs_path)
 
-    squash_mount_check(image_dir, "", context)
+    # Check mount points (unless disabled)
+    if not no_check_mount_targets:
+        total_errors += squash_mount_check(image_dir, "", context)
+
+    # Summary and exit
+    if total_errors > 0:
+        _LOGGER.error("Found %d total errors", total_errors)
+        sys.exit(1)
+    else:
+        _LOGGER.info("All checks passed")
+        sys.exit(0)
 
 
 def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
