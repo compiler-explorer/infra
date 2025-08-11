@@ -140,7 +140,7 @@ class MugLayout:
     header_size: int
     text_size: int
     info_text_size: int
-    row_height: int
+    table_row_padding: int  # Vertical padding above/below text in table rows
     footer_spacing: int
 
     def __post_init__(self):
@@ -205,8 +205,8 @@ class LayoutEngine:
             self._svg_font_family = self.measurer.get_svg_font_family()
         return self._svg_font_family
 
-    def _calculate_table_font_size(self, layout: MugLayout, content_width: int) -> Tuple[int, int, int]:
-        """Calculate optimal table font size and dimensions."""
+    def _calculate_table_font_size(self, layout: MugLayout, content_width: int) -> Tuple[int, int, int, int]:
+        """Calculate optimal table font size, dimensions, and row height."""
         num_registers = len(layout.table_headers)
         max_table_font_size = 60
         min_table_font_size = 32
@@ -243,7 +243,10 @@ class LayoutEngine:
                         break
 
             if all_fits:
-                return table_font_size, label_width, register_col_width
+                # Calculate dynamic row height based on font metrics + padding
+                font_measurement = self.measurer.measure_text("Sample", table_font_size)
+                calculated_row_height = int(font_measurement.height + (layout.table_row_padding * 2))
+                return table_font_size, label_width, register_col_width, calculated_row_height
 
             table_font_size = int(table_font_size - 0.5)
 
@@ -359,7 +362,9 @@ class LayoutEngine:
 
         # Table calculation
         table_y = content_y
-        table_font_size, label_width, register_col_width = self._calculate_table_font_size(layout, content_width)
+        table_font_size, label_width, register_col_width, calculated_row_height = self._calculate_table_font_size(
+            layout, content_width
+        )
 
         positions["table"] = {
             "x": content_x,
@@ -369,13 +374,13 @@ class LayoutEngine:
             "label_width": label_width,
             "num_cols": len(layout.table_headers),
             "num_rows": len(layout.table_rows),
-            "row_height": layout.row_height,
+            "row_height": calculated_row_height,
             "header_size": max(layout.header_size, table_font_size),
             "text_size": table_font_size,
         }
 
         # Calculate where the main table ends
-        main_table_bottom = table_y + layout.row_height * (len(layout.table_rows) + 1)  # header + data rows
+        main_table_bottom = table_y + calculated_row_height * (len(layout.table_rows) + 1)  # header + data rows
 
         # Footer calculation
         footer_data = self._calculate_footer_positioning(layout, content_width)

@@ -39,11 +39,11 @@ def create_abi_svg(
             TableRow(cells=["this", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th"]),
         ],
         info_items=[
-            ("Return values", "X0 (X1 for 128-bit)"),
+            ("Return values", "X0 (+ X1 for 128-bit)"),
             ("Special regs", "X8 indirect, X29 FP"),
             ("", "X30 LR, SP stack"),
             ("FP args", "V0-V7"),
-            ("FP return", "V0/V1"),
+            ("FP return", "V0 (+ V1 for 128-bit)"),
             ("Caller-saved", "X0-X17 V0-V7 V16-V31"),
             ("Callee-saved", "X19-X28 V8-V15"),
             ("", "(lower 64 bits)"),
@@ -53,7 +53,7 @@ def create_abi_svg(
         header_size=36,
         text_size=38,
         info_text_size=42,
-        row_height=70,
+        table_row_padding=20,  # Padding above/below text in table rows
         footer_spacing=40,
     )
 

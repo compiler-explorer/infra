@@ -39,9 +39,9 @@ def create_abi_svg(
             TableRow(["this", "1st", "2nd", "3rd", "4th", "5th"]),  # Member parameters
         ],
         info_items=[
-            ("Return values", "RAX (RDX for 128-bit)"),
+            ("Return values", "RAX (+ RDX for 128-bit)"),
             ("FP args", "XMM0-XMM7"),
-            ("FP return", "XMM0/XMM1"),
+            ("FP return", "XMM0 (+ XMM1 for 128-bit)"),
             ("Caller-saved", "RAX RCX RDX RSI RDI"),
             ("", "R8-R11 XMM0-XMM15"),
             ("Callee-saved", "RBX RBP R12-R15"),
@@ -51,7 +51,7 @@ def create_abi_svg(
         header_size=36,
         text_size=38,
         info_text_size=42,
-        row_height=70,
+        table_row_padding=16,  # Padding above/below text in table rows
         footer_spacing=90,
     )
 
