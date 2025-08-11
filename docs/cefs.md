@@ -50,6 +50,7 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
 ## Work
 
 - [ ] Investigate what I've forgotten about getting this to work
+  - [ ] Update builder to 22.04 and cefs support
 - [ ] Simple config loader
 - [ ] Disable squashing
 - [ ] Update installers to (optionally, based on config) install this way (even works for nightly; and `tar` installers etc can skip the middle man and just turn `tar` etc into a squashfs image maybe? or doesn't matter using local disk)
