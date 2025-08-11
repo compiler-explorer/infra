@@ -132,3 +132,64 @@ fi
 - **New compilation starting**: Gets ENOENT, CE retry logic handles
 - **Directory listing**: Briefly won't show the compiler
 - **New instances spinning up**: See either NFS version, symlink, or brief ENOENT
+
+### Consolidation
+
+After initial migration to CEFS, we can reduce mount overhead by combining multiple individual squashfs images into consolidated images with subdirectories. This amortizes the cost of mounting while maintaining the benefits of content-addressable storage.
+
+#### Design Principle: Filesystem as Truth
+
+No metadata database needed. The filesystem tells us everything:
+- Symlinks in `/opt/compiler-explorer/` show what's in use
+- Link targets reveal if using individual (`/cefs/HASH`) or consolidated (`/cefs/HASH/subdir`) images
+- Orphaned subdirs in consolidated images are discovered by scanning
+
+#### Consolidation Process
+
+1. **Find candidates**: Walk `/opt/compiler-explorer/` for symlinks pointing to individual images (paths like `/cefs/HASH` rather than `/cefs/HASH/subdir`)
+
+2. **Batch by size**: Group candidates together staying under size limits (e.g., 2GB compressed, 8GB uncompressed)
+
+3. **Build consolidated image**: Unpack individual images into subdirectories of a working directory, then create a new squashfs image from that directory
+
+4. **Update symlinks**: Atomically update each symlink to point to the appropriate subdirectory within the consolidated image
+
+#### Patching Strategy
+
+When a compiler in a consolidated image needs updating:
+
+1. Create new individual image with the update
+2. Update symlink to point to the new individual image
+3. Old subdirectory inside consolidated image becomes orphaned (wastes space temporarily)
+4. Next consolidation run detects the orphan and rebuilds without it
+
+This approach trades temporary space waste for simplicity and immediate updates.
+
+#### Orphan Detection
+
+Periodic scans find unused subdirectories in consolidated images by:
+- Listing all subdirectories within each consolidated image
+- Checking if any symlink in `/opt/compiler-explorer/` references each subdirectory
+- Marking unreferenced subdirectories as orphans for cleanup in the next consolidation run
+
+#### Benefits of No-Metadata Approach
+
+1. **Always correct**: Filesystem state cannot lie
+2. **No synchronization issues**: No separate database to maintain
+3. **Simple debugging**: `ls -la` shows everything
+4. **Easy recovery**: Just examine symlinks and images
+5. **Stateless operations**: Each consolidation run starts fresh
+
+#### Consolidation Guidelines
+
+- **Size limits**: Keep consolidated images reasonable (2GB compressed, 8GB uncompressed)
+- **Exclusions**: Never consolidate trunk/nightly/snapshot compilers
+- **Timing**: Run during low-usage periods
+- **Validation**: Test each consolidated image before updating symlinks
+- **Cleanup**: Remove orphaned individual images after successful consolidation
+
+#### Future Optimizations
+
+- **Multi-tier consolidation**: Could consolidate consolidated images for very cold data
+- **Smart grouping**: Analyze access patterns to group frequently co-accessed compilers
+- **Differential updates**: Use overlayfs for minor patches to avoid rebuilding
