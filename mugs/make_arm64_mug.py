@@ -8,7 +8,6 @@ from mug_common import (
     DEFAULT_DPI,
     DEFAULT_HEIGHT,
     DEFAULT_WIDTH,
-    FONT_NAME,
     FOOTER_OPACITY,
     HEADER_BG,
     ROW_LABEL_FUNCTION,
@@ -62,12 +61,15 @@ def create_abi_svg(
     engine = LayoutEngine(width, height)
     positions = engine.layout_mug(layout)
 
+    # Get proper SVG font family name
+    svg_font_family = engine.svg_font_family
+
     # Generate SVG
     svg = f"""<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="{width}" height="{height}" fill="{BG_COLOR}"/>
 
   <!-- Title (horizontal at top) -->
-  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{FONT_NAME}" font-size="{positions["title"]["size"]}"
+  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{svg_font_family}" font-size="{positions["title"]["size"]}"
         font-weight="bold" fill="{CE_GREEN}" text-anchor="middle">{layout.title}</text>
 """
 
@@ -81,7 +83,7 @@ def create_abi_svg(
         col_width=positions["table"]["col_width"],
         row_height=positions["table"]["row_height"],
         label_width=positions["table"]["label_width"],
-        font_family=FONT_NAME,
+        font_family=svg_font_family,
         header_size=positions["table"]["header_size"],
         text_size=positions["table"]["text_size"],
         text_color=TEXT_COLOR,
@@ -98,7 +100,7 @@ def create_abi_svg(
         table_y=positions["info_items"]["y"],
         table_width=positions["info_items"]["width"],
         row_height=positions["info_items"]["row_height"],
-        font_family=FONT_NAME,
+        font_family=svg_font_family,
         text_size=positions["info_items"]["text_size"],
         text_color=TEXT_COLOR,
         ce_green=CE_GREEN,
@@ -111,7 +113,7 @@ def create_abi_svg(
     # Footer lines (already optimized by layout engine)
     for i, line in enumerate(positions["footer"]["lines"]):
         line_y = positions["footer"]["y"] + (i * positions["footer"]["line_height"])
-        svg += f"""  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{FONT_NAME}" font-size="{positions["footer"]["size"]}"
+        svg += f"""  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{svg_font_family}" font-size="{positions["footer"]["size"]}"
         fill="{TEXT_COLOR}" opacity="{FOOTER_OPACITY}" font-style="italic" text-anchor="middle">{line}</text>
 """
 

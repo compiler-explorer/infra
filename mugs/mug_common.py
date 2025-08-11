@@ -181,6 +181,13 @@ class PILTextMeasurer:
 
         return TextMeasurement(width=float(width), height=float(height), ascent=float(ascent), descent=float(descent))
 
+    def get_svg_font_family(self, font_filename: str = FONT_NAME) -> str:
+        """Get the SVG-compatible font family name from a font file."""
+        # Load font and extract family name
+        font = ImageFont.truetype(font_filename, 12)  # Size doesn't matter for name extraction
+        family_name, _ = font.getname()
+        return family_name
+
 
 class LayoutEngine:
     def __init__(self, canvas_width: int, canvas_height: int, margin: int = DEFAULT_MARGIN):
@@ -188,6 +195,15 @@ class LayoutEngine:
         self.canvas_height = canvas_height
         self.margin = margin
         self.measurer = PILTextMeasurer()
+        # Cache the SVG font family name
+        self._svg_font_family: str | None = None
+
+    @property
+    def svg_font_family(self) -> str:
+        """Get the SVG-compatible font family name."""
+        if self._svg_font_family is None:
+            self._svg_font_family = self.measurer.get_svg_font_family()
+        return self._svg_font_family
 
     def _calculate_table_font_size(self, layout: MugLayout, content_width: int) -> Tuple[int, int, int]:
         """Calculate optimal table font size and dimensions."""

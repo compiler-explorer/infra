@@ -8,7 +8,6 @@ from mug_common import (
     DEFAULT_DPI,
     DEFAULT_HEIGHT,
     DEFAULT_WIDTH,
-    FONT_NAME,
     FOOTER_OPACITY,
     HEADER_BG,
     ROW_LABEL_FUNCTION,
@@ -60,12 +59,15 @@ def create_abi_svg(
     engine = LayoutEngine(width, height)
     positions = engine.layout_mug(layout)
 
+    # Get proper SVG font family name
+    svg_font_family = engine.svg_font_family
+
     # Start SVG
     svg = f"""<svg width="{width}" height="{height}" xmlns="http://www.w3.org/2000/svg">
   <rect width="{width}" height="{height}" fill="{BG_COLOR}"/>
 
   <!-- Title (horizontal at top) -->
-  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{FONT_NAME}" font-size="{positions["title"]["size"]}"
+  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{svg_font_family}" font-size="{positions["title"]["size"]}"
         font-weight="bold" fill="{CE_GREEN}" text-anchor="middle">{layout.title}</text>
 """
 
@@ -86,7 +88,7 @@ def create_abi_svg(
         table_pos["col_width"],
         table_pos["row_height"],
         table_pos["label_width"],
-        FONT_NAME,
+        svg_font_family,
         table_pos["header_size"],
         table_pos["text_size"],
         TEXT_COLOR,
@@ -103,7 +105,7 @@ def create_abi_svg(
         info_table_pos["y"],
         info_table_pos["width"],
         info_table_pos["row_height"],
-        FONT_NAME,
+        svg_font_family,
         info_table_pos["text_size"],
         TEXT_COLOR,
         CE_GREEN,
@@ -120,7 +122,7 @@ def create_abi_svg(
     for i, line in enumerate(positions["footer"]["lines"]):
         line_y = positions["footer"]["y"] + (i * positions["footer"]["line_height"])
         svg += f"""
-  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{FONT_NAME}" font-size="{positions["footer"]["size"]}"
+  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{svg_font_family}" font-size="{positions["footer"]["size"]}"
         fill="{TEXT_COLOR}" opacity="{FOOTER_OPACITY}" font-style="italic" text-anchor="middle">{line}</text>"""
 
     # Close SVG
