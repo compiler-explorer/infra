@@ -1,11 +1,11 @@
 """System V ABI mug generator."""
 
 from core.constants import (
+    STANDARD_FOOTER_SPACING,
     STANDARD_HEADER_SIZE,
     STANDARD_INFO_TEXT_SIZE,
     STANDARD_TEXT_SIZE,
     STANDARD_TITLE_SIZE,
-    SYSTEMV_FOOTER_SPACING,
     SYSTEMV_TABLE_ROW_PADDING,
 )
 from core.data_structures import MugLayout, TableRow
@@ -36,13 +36,13 @@ class SystemVMugGenerator(ABIMugGenerator):
                 ("", "R8-R11 XMM0-XMM15"),
                 ("Callee-saved", "RBX RBP R12-R15"),
             ],
-            footer_lines=["Parameters beyond 6 integer or 8 FP args are passed on the stack"],
+            footer_lines=["Args beyond 6 int or 8 FP args passed on the stack"],
             title_size=STANDARD_TITLE_SIZE,
             header_size=STANDARD_HEADER_SIZE,
             text_size=STANDARD_TEXT_SIZE,
             info_text_size=STANDARD_INFO_TEXT_SIZE,
             table_row_padding=SYSTEMV_TABLE_ROW_PADDING,  # Padding above/below text in table rows
-            footer_spacing=SYSTEMV_FOOTER_SPACING,
+            footer_spacing=STANDARD_FOOTER_SPACING,
         )
 
 

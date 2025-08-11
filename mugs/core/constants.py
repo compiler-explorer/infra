@@ -20,16 +20,15 @@ FONT_NAME_EXTRACTION_SIZE = 12  # Font size for extracting font family name (siz
 # Common font sizes used across mugs
 STANDARD_TITLE_SIZE = 72
 STANDARD_HEADER_SIZE = 36
-STANDARD_TEXT_SIZE = 38
-STANDARD_INFO_TEXT_SIZE = 42
+STANDARD_TEXT_SIZE = 48
+STANDARD_INFO_TEXT_SIZE = 54
 
 # Architecture-specific table row padding
-SYSTEMV_TABLE_ROW_PADDING = 16  # System V ABI row padding
-MSVC_TABLE_ROW_PADDING = 12  # MSVC ABI row padding
+SYSTEMV_TABLE_ROW_PADDING = 20  # System V ABI row padding
+MSVC_TABLE_ROW_PADDING = 20  # MSVC ABI row padding
 ARM64_TABLE_ROW_PADDING = 20  # ARM64 ABI row padding
 
 # Footer spacing values
-SYSTEMV_FOOTER_SPACING = 90
 STANDARD_FOOTER_SPACING = 40
 
 # Layout spacing constants
@@ -40,18 +39,13 @@ INFO_TABLE_HORIZONTAL_PADDING = 12  # Horizontal padding for info table
 TITLE_BOTTOM_SPACING = 50  # Space after title
 TABLE_TO_INFO_SPACING = 50  # Space between main table and info table
 INFO_TO_FOOTER_SPACING = 40  # Space between info table and footer
-INFO_TABLE_ROW_HEIGHT = 50  # Row height for info table
+INFO_TABLE_ROW_HEIGHT = 68  # Row height for info table
 
 # Table row labels
 ROW_LABEL_FUNCTION = "func()"
 ROW_LABEL_MEMBER = "obj.f()"
 
-# Column widths (original vertical table)
-COL1_WIDTH = 200
-COL2_WIDTH = 375
-COL3_WIDTH = 375
-
-# New horizontal table widths (for register names as headers)
+# Horizontal table widths (for register names as headers)
 REGISTER_COL_WIDTH = 120  # Width for each register column
 
 # Layout constants
@@ -75,6 +69,6 @@ DUMMY_IMAGE_SIZE = (1, 1)  # Size for PIL dummy image used for text measurement
 HEADER_ROW_COUNT = 1  # Number of header rows in main table
 
 # Default canvas dimensions
-DEFAULT_WIDTH = 1100
-DEFAULT_HEIGHT = 800
+DEFAULT_WIDTH = 1400
+DEFAULT_HEIGHT = 1000
 DEFAULT_DPI = 300

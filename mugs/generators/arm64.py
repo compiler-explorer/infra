@@ -38,7 +38,7 @@ class ARM64MugGenerator(ABIMugGenerator):
                 ("Callee-saved", "X19-X28 V8-V15"),
                 ("", "(lower 64 bits)"),
             ],
-            footer_lines=["Parameters beyond 8 int/FP args on stack (16-byte aligned)"],
+            footer_lines=["Args beyond 8 int/FP args on stack (16b aligned)"],
             title_size=STANDARD_TITLE_SIZE,
             header_size=STANDARD_HEADER_SIZE,
             text_size=STANDARD_TEXT_SIZE,
