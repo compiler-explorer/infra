@@ -12,7 +12,7 @@ We've tried [many](https://github.com/compiler-explorer/cefs) [different](https:
 
 Short version - symlink dirs from NFS to `/cefs/HASH`
 
-- Use autofs exactly as planned for the first cefs attempt (it's already installed in all clusters including the `runner` and `builder` node)
+- Use autofs exactly as planned for the first cefs attempt (it's already installed in all clusters including the `runner` node (but NOT `builder` yet))
 - Drop the complex "root file system" part (which had issues with simultaneous changes to the filesystem, and general admin ease of "just make changes on NFS")
 - Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/HASH`
 
