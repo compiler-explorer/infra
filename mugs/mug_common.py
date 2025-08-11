@@ -12,7 +12,7 @@ BORDER_COLOR = "#333333"
 HEADER_BG = "#f0f0f0"
 
 # Common font and layout constants
-FONT_FAMILY = "DejaVu Sans Mono"
+FONT_NAME = "DejaVuSansMono.ttf"
 
 # Font size constants
 MINIMUM_READABLE_FONT_SIZE = 28  # Minimum font size for any text
@@ -43,8 +43,19 @@ REGISTER_COL_WIDTH = 120  # Width for each register column
 # Layout constants
 TABLE_Y = 150
 
+# Typography and appearance constants
+LINE_HEIGHT_MULTIPLIER = 1.2  # Standard line spacing multiplier
+TEXT_VERTICAL_CENTER_OFFSET = 3  # Divisor for rough vertical centering (text_size // 3)
+FOOTER_OPACITY = 0.6  # Opacity for footer text
+ALTERNATING_ROW_COLORS = ("#ffffff", "#f9f9f9")  # Colors for alternating table rows
 
-def svg_to_png(svg_path: str, png_path: str = None, dpi: int = 300) -> str:
+# Default canvas dimensions
+DEFAULT_WIDTH = 1100
+DEFAULT_HEIGHT = 800
+DEFAULT_DPI = 300
+
+
+def svg_to_png(svg_path: str, png_path: str = None, dpi: int = DEFAULT_DPI) -> str:
     """Convert SVG to PNG using cairosvg."""
     if png_path is None:
         png_path = svg_path.replace(".svg", ".png")
@@ -103,7 +114,7 @@ class ContentBlock:
     font_size: int
     font_weight: str = "normal"
     color: str = TEXT_COLOR
-    font_family: str = FONT_FAMILY
+    font_family: str = FONT_NAME
 
 
 @dataclass
@@ -142,38 +153,19 @@ class PILTextMeasurer:
     def __init__(self):
         self._font_cache = {}
 
-    def _get_font(self, font_size: int, font_family: str = FONT_FAMILY):
+    def _get_font(self, font_size: int, font_family: str = FONT_NAME, font_weight: str = "normal"):
         """Get or create a PIL font object."""
-        cache_key = (font_size, font_family)
+        cache_key = (font_size, font_family, font_weight)
         if cache_key not in self._font_cache:
-            if font_family == "DejaVu Sans Mono":
-                # Common paths for DejaVu Sans Mono
-                font_paths = [
-                    "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
-                    "/System/Library/Fonts/Menlo.ttc",  # macOS
-                    "C:/Windows/Fonts/consola.ttf",  # Windows
-                ]
-                font = None
-                for path in font_paths:
-                    try:
-                        font = ImageFont.truetype(path, font_size)
-                        break
-                    except (OSError, IOError):
-                        continue
-
-                if font is None:
-                    raise RuntimeError(f"Could not find DejaVu Sans Mono font in any of: {font_paths}")
-
-                self._font_cache[cache_key] = font
-            else:
-                raise ValueError(f"Unsupported font family: {font_family}")
+            font = ImageFont.truetype(font_family, font_size)
+            self._font_cache[cache_key] = font
 
         return self._font_cache[cache_key]
 
     def measure_text(
-        self, text: str, font_size: int, font_family: str = FONT_FAMILY, font_weight: str = "normal"
+        self, text: str, font_size: int, font_family: str = FONT_NAME, font_weight: str = "normal"
     ) -> TextMeasurement:
-        font = self._get_font(font_size, font_family)
+        font = self._get_font(font_size, font_family, font_weight)
 
         # Create a dummy image to get text dimensions
         dummy_img = Image.new("RGB", (1, 1))
@@ -189,11 +181,6 @@ class PILTextMeasurer:
 
         return TextMeasurement(width=float(width), height=float(height), ascent=float(ascent), descent=float(descent))
 
-    def cleanup(self):
-        """Cleanup method for compatibility with LayoutEngine."""
-        # PIL doesn't need explicit cleanup like matplotlib
-        pass
-
 
 class LayoutEngine:
     def __init__(self, canvas_width: int, canvas_height: int, margin: int = DEFAULT_MARGIN):
@@ -202,39 +189,11 @@ class LayoutEngine:
         self.margin = margin
         self.measurer = PILTextMeasurer()
 
-    def layout_mug(self, layout: MugLayout) -> Dict[str, Any]:
-        # Measure title for horizontal placement at top
-        title_measurement = self.measurer.measure_text(layout.title, layout.title_size, font_weight="bold")
-        title_height_needed = title_measurement.height + TITLE_BOTTOM_SPACING
-
-        # Use full canvas width and start content below title
-        content_x = 0
-        content_width = self.canvas_width
-        content_y = title_height_needed
-
-        # Calculate positions
-        positions = {}
-        current_y = content_y
-
-        # Title (horizontal at top)
-        positions["title"] = {
-            "x": self.canvas_width // 2,  # Center horizontally
-            "y": title_measurement.height,  # Position from top
-            "size": layout.title_size,
-            "measurement": title_measurement,
-        }
-
-        # Skip code examples - no longer needed
-        positions["code_examples"] = {}
-
-        # Table - horizontal layout with registers as headers
-        table_y = current_y
-        num_registers = len(layout.table_headers)  # Should be register names now
-
-        # Find maximum font size that fits in columns
-        # Start with desired size and work down until everything fits
-        max_table_font_size = 60  # Start high
-        min_table_font_size = 32  # Never go below this
+    def _calculate_table_font_size(self, layout: MugLayout, content_width: int) -> Tuple[int, int, int]:
+        """Calculate optimal table font size and dimensions."""
+        num_registers = len(layout.table_headers)
+        max_table_font_size = 60
+        min_table_font_size = 32
 
         table_font_size = max_table_font_size
         while table_font_size >= min_table_font_size:
@@ -244,13 +203,12 @@ class LayoutEngine:
             label_width = int(max(function_measurement.width, member_measurement.width) + TABLE_CELL_PADDING * 2)
 
             # Calculate column width for register columns
-            table_width = content_width
-            register_col_width = (table_width - label_width) // num_registers
+            register_col_width = (content_width - label_width) // num_registers
 
             # Check if all table content fits at this size
             all_fits = True
 
-            # Check headers (they use header_size not table_font_size)
+            # Check headers
             for header in layout.table_headers:
                 measurement = self.measurer.measure_text(header, layout.header_size)
                 if measurement.width + TABLE_CELL_PADDING * 2 > register_col_width:
@@ -269,144 +227,163 @@ class LayoutEngine:
                         break
 
             if all_fits:
-                # This size works!
-                break
-            else:
-                # Try smaller
-                table_font_size = int(table_font_size - 0.5)
+                return table_font_size, label_width, register_col_width
 
-        # Check if we couldn't find a valid size
-        if not all_fits:
-            raise ValueError(
-                f"Cannot fit table content with minimum font size of {min_table_font_size}pt. Content is too wide for the available space."
-            )
+            table_font_size = int(table_font_size - 0.5)
 
-        positions["table"] = {
-            "x": content_x,
-            "y": table_y,
-            "width": table_width,
-            "col_width": register_col_width,
-            "label_width": label_width,
-            "num_cols": num_registers,
-            "num_rows": len(layout.table_rows),  # Should be 2 now (function + member)
-            "row_height": layout.row_height,
-            "header_size": max(layout.header_size, table_font_size),  # Use calculated size
-            "text_size": table_font_size,  # Use calculated maximum size
-        }
+        raise ValueError(
+            f"Cannot fit table content with minimum font size of {min_table_font_size}pt. Content is too wide for the available space."
+        )
 
-        # Table is much shorter now: header + 2 data rows
-        current_y = table_y + layout.row_height * (2 + 1) + TABLE_TO_INFO_SPACING
-
-        # Calculate info table dimensions
-        info_table_row_height = INFO_TABLE_ROW_HEIGHT
-
-        # Calculate actual info table height accounting for empty label spacing
-        # This mirrors the spacing logic in create_info_table
-        actual_height = 0
-        for i in range(len(layout.info_items)):
-            if i < len(layout.info_items) - 1:  # Not the last row
-                next_label, _ = layout.info_items[i + 1]
-                if next_label.strip() == "":
-                    # Next row is continuation - use reduced spacing
-                    actual_height += int(info_table_row_height * CONTINUATION_LINE_SPACING)
-                else:
-                    # Next row is normal - use full spacing
-                    actual_height += info_table_row_height
-            # Note: no spacing added after the last row
-        info_table_height = actual_height
-
-        # Calculate actual info table width by measuring content
-        # Find the widest label
-        max_label_width = 0
-        for label, _ in layout.info_items:
-            if label.strip():  # Only measure non-empty labels
-                measurement = self.measurer.measure_text(label, layout.info_text_size, font_weight="bold")
-                max_label_width = max(max_label_width, int(measurement.width))
-
-        # Find the widest content
-        max_content_width = 0
-        for _, content in layout.info_items:
-            # Measure content without register highlighting for width calculation
-            measurement = self.measurer.measure_text(content, layout.info_text_size)
-            max_content_width = max(max_content_width, int(measurement.width))
-
-        # Calculate actual table width
-        info_label_width = max_label_width + INFO_TABLE_HORIZONTAL_PADDING * 2
-        info_content_width = max_content_width + INFO_TABLE_HORIZONTAL_PADDING * 2
-        actual_info_table_width = info_label_width + info_content_width
-
-        # Center the info table
-        info_table_x = (self.canvas_width - actual_info_table_width) // 2
-
-        # Info table position and dimensions
-        positions["info_items"] = {
-            "x": info_table_x,
-            "y": current_y,
-            "width": actual_info_table_width,
-            "height": info_table_height,
-            "row_height": info_table_row_height,
-            "text_size": layout.info_text_size,
-        }
-
-        current_y += info_table_height
-
-        current_y += layout.footer_spacing
-
-        # Footer lines - measure each line and find widest to scale font size
-        if layout.footer_lines:
-            # Start with desired size and find maximum that fits
-            max_footer_font_size = layout.text_size - DEFAULT_FOOTER_REDUCTION
-            min_footer_font_size = MINIMUM_READABLE_FONT_SIZE
-
-            footer_size = max_footer_font_size
-            line_measurements: List[TextMeasurement] = []
-            while footer_size >= min_footer_font_size:
-                # Measure all lines at this size
-                max_width = 0
-                line_measurements = []
-                for line in layout.footer_lines:
-                    measurement = self.measurer.measure_text(line, footer_size)
-                    line_measurements.append(measurement)
-                    max_width = max(max_width, int(measurement.width))
-
-                # Check if widest line fits in available width
-                if max_width <= content_width:
-                    break
-                footer_size = int(footer_size - 1)
-
-            # Calculate total height needed for all lines
-            line_height = footer_size * 1.2  # Standard line spacing
-
-            # Position from bottom of canvas upwards accounting for descenders
-            # The last line baseline should be positioned so descenders don't go below canvas
-            sample_measurement = (
-                line_measurements[0] if line_measurements else self.measurer.measure_text("Sample", footer_size)
-            )
-            last_line_baseline_y = self.canvas_height - sample_measurement.descent
-            footer_start_y = last_line_baseline_y - ((len(layout.footer_lines) - 1) * line_height)
-
-            positions["footer"] = {
-                "x": self.canvas_width // 2,  # Center horizontally
-                "y": footer_start_y,
-                "size": footer_size,
-                "line_height": line_height,
-                "lines": layout.footer_lines,
-                "measurements": line_measurements,
-            }
-        else:
-            positions["footer"] = {
-                "x": content_x,
-                "y": current_y,
+    def _calculate_footer_positioning(self, layout: MugLayout, content_width: int) -> Dict[str, Any]:
+        """Calculate footer font size and positioning."""
+        if not layout.footer_lines:
+            return {
+                "x": 0,
+                "y": self.canvas_height,
                 "size": MINIMUM_READABLE_FONT_SIZE,
-                "line_height": MINIMUM_READABLE_FONT_SIZE * 1.2,
+                "line_height": MINIMUM_READABLE_FONT_SIZE * LINE_HEIGHT_MULTIPLIER,
                 "lines": [],
                 "measurements": [],
             }
 
-        return positions
+        max_footer_font_size = layout.text_size - DEFAULT_FOOTER_REDUCTION
+        min_footer_font_size = MINIMUM_READABLE_FONT_SIZE
 
-    def cleanup(self):
-        self.measurer.cleanup()
+        footer_size = max_footer_font_size
+        line_measurements: List[TextMeasurement] = []
+        while footer_size >= min_footer_font_size:
+            max_width = 0
+            line_measurements = []
+            for line in layout.footer_lines:
+                measurement = self.measurer.measure_text(line, footer_size)
+                line_measurements.append(measurement)
+                max_width = max(max_width, int(measurement.width))
+
+            if max_width <= content_width:
+                break
+            footer_size = int(footer_size - 1)
+
+        # Calculate positioning from bottom upwards
+        line_height = footer_size * LINE_HEIGHT_MULTIPLIER
+        sample_measurement = (
+            line_measurements[0] if line_measurements else self.measurer.measure_text("Sample", footer_size)
+        )
+        last_line_baseline_y = self.canvas_height - sample_measurement.descent
+        footer_start_y = last_line_baseline_y - ((len(layout.footer_lines) - 1) * line_height)
+
+        # Get font ascent for visual positioning
+        footer_ascent = sample_measurement.ascent
+
+        return {
+            "x": self.canvas_width // 2,
+            "y": footer_start_y,
+            "size": footer_size,
+            "line_height": line_height,
+            "lines": layout.footer_lines,
+            "measurements": line_measurements,
+            "ascent": footer_ascent,
+        }
+
+    def _calculate_info_table_dimensions(self, layout: MugLayout) -> Tuple[int, int, int]:
+        """Calculate info table dimensions and positioning."""
+        # Calculate the spacing between first and last row positions
+        # This matches exactly what create_info_table() does
+        spacing_height = 0
+        for i in range(len(layout.info_items) - 1):  # N-1 gaps between N rows
+            next_label, _ = layout.info_items[i + 1]
+            if next_label.strip() == "":
+                spacing_height += int(INFO_TABLE_ROW_HEIGHT * CONTINUATION_LINE_SPACING)
+            else:
+                spacing_height += INFO_TABLE_ROW_HEIGHT
+
+        # Total visual height: spacing + one row height for the last row's content
+        actual_height = spacing_height + INFO_TABLE_ROW_HEIGHT
+
+        # Calculate actual width by measuring content
+        max_label_width = 0
+        for label, _ in layout.info_items:
+            if label.strip():
+                measurement = self.measurer.measure_text(label, layout.info_text_size, font_weight="bold")
+                max_label_width = max(max_label_width, int(measurement.width))
+
+        max_content_width = 0
+        for _, content in layout.info_items:
+            measurement = self.measurer.measure_text(content, layout.info_text_size)
+            max_content_width = max(max_content_width, int(measurement.width))
+
+        info_label_width = max_label_width + INFO_TABLE_HORIZONTAL_PADDING * 2
+        info_content_width = max_content_width + INFO_TABLE_HORIZONTAL_PADDING * 2
+        actual_width = info_label_width + info_content_width
+
+        return actual_height, actual_width, info_label_width
+
+    def layout_mug(self, layout: MugLayout) -> Dict[str, Any]:
+        # Measure title for horizontal placement at top
+        title_measurement = self.measurer.measure_text(layout.title, layout.title_size, font_weight="bold")
+        title_height_needed = title_measurement.height + TITLE_BOTTOM_SPACING
+
+        # Use full canvas width and start content below title
+        content_x = 0
+        content_width = self.canvas_width
+        content_y = title_height_needed
+
+        positions = {}
+
+        # Title (horizontal at top)
+        positions["title"] = {
+            "x": self.canvas_width // 2,
+            "y": title_measurement.height,
+            "size": layout.title_size,
+            "measurement": title_measurement,
+        }
+
+        # Skip code examples - no longer needed
+        positions["code_examples"] = {}
+
+        # Table calculation
+        table_y = content_y
+        table_font_size, label_width, register_col_width = self._calculate_table_font_size(layout, content_width)
+
+        positions["table"] = {
+            "x": content_x,
+            "y": table_y,
+            "width": content_width,
+            "col_width": register_col_width,
+            "label_width": label_width,
+            "num_cols": len(layout.table_headers),
+            "num_rows": len(layout.table_rows),
+            "row_height": layout.row_height,
+            "header_size": max(layout.header_size, table_font_size),
+            "text_size": table_font_size,
+        }
+
+        # Calculate where the main table ends
+        main_table_bottom = table_y + layout.row_height * (len(layout.table_rows) + 1)  # header + data rows
+
+        # Footer calculation
+        footer_data = self._calculate_footer_positioning(layout, content_width)
+        positions["footer"] = footer_data
+        footer_start_y = footer_data["y"]
+
+        # Calculate footer visual top (baseline - ascent) for proper centering
+        footer_visual_top = footer_start_y - footer_data["ascent"]
+
+        # Info table calculation
+        info_table_height, actual_info_table_width, _ = self._calculate_info_table_dimensions(layout)
+        info_table_y = (main_table_bottom + footer_visual_top - info_table_height) // 2
+        info_table_x = (self.canvas_width - actual_info_table_width) // 2
+
+        positions["info_items"] = {
+            "x": info_table_x,
+            "y": info_table_y,
+            "width": actual_info_table_width,
+            "height": info_table_height,
+            "row_height": INFO_TABLE_ROW_HEIGHT,
+            "text_size": layout.info_text_size,
+        }
+
+        return positions
 
 
 def create_table_row(
@@ -428,13 +405,13 @@ def create_table_row(
 ) -> str:
     """Create a single table row with alternating background colors."""
     # Row background (alternate colors)
-    row_bg = "#ffffff" if i % 2 == 0 else "#f9f9f9"
+    row_bg = ALTERNATING_ROW_COLORS[i % 2]
     svg = f"""  <rect x="{table_x}" y="{y}" width="{table_width}" height="{row_height}"
         fill="{row_bg}" stroke="{border_color}" stroke-width="1"/>
 """
 
     # Calculate vertical center position
-    text_y = y + row_height // 2 + text_size // 3  # Rough vertical centering
+    text_y = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
 
     # Register name (with CE green accent)
     svg += f"""  <text x="{table_x + TABLE_CELL_PADDING}" y="{text_y}" font-family="{font_family}"
@@ -489,7 +466,7 @@ def create_horizontal_table(
     # Header text (register names) - centered in each column
     for i, header in enumerate(headers):
         x_pos = table_x + label_width + i * col_width + col_width // 2  # Center position
-        y_pos = table_y + row_height // 2 + header_size // 3
+        y_pos = table_y + row_height // 2 + header_size // TEXT_VERTICAL_CENTER_OFFSET
         svg += f"""  <text x="{x_pos}" y="{y_pos}" font-family="{font_family}"
         font-size="{header_size}" font-weight="bold" fill="{ce_green}" text-anchor="middle">{header}</text>
 """
@@ -497,7 +474,7 @@ def create_horizontal_table(
     # Data rows
     for row_idx, row_data in enumerate(rows):
         y = table_y + (row_idx + 1) * row_height
-        row_bg = "#ffffff" if row_idx % 2 == 0 else "#f9f9f9"
+        row_bg = ALTERNATING_ROW_COLORS[row_idx % 2]
 
         # Row background (including label column)
         svg += f"""  <rect x="{table_x}" y="{y}" width="{table_width}" height="{row_height}"
@@ -506,7 +483,7 @@ def create_horizontal_table(
 
         # Row label (function/member)
         label_x = table_x + label_width // 2  # Center in label column
-        label_y = y + row_height // 2 + text_size // 3
+        label_y = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
         svg += f"""  <text x="{label_x}" y="{label_y}" font-family="{font_family}"
         font-size="{text_size}" font-weight="bold" fill="{text_color}" text-anchor="middle">{row_labels[row_idx]}</text>
 """
@@ -514,7 +491,7 @@ def create_horizontal_table(
         # Row data - centered in each column
         for col_idx, cell_data in enumerate(row_data):
             x_pos = table_x + label_width + col_idx * col_width + col_width // 2  # Center position
-            y_pos = y + row_height // 2 + text_size // 3
+            y_pos = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
 
             # Highlight "this" in green
             if cell_data == "this":
@@ -565,14 +542,14 @@ def create_info_table(
         # Label (left column) - only if not empty
         if label.strip():
             label_x = table_x + INFO_TABLE_HORIZONTAL_PADDING
-            label_y = y + row_height // 2 + text_size // 3
+            label_y = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
             svg += f"""  <text x="{label_x}" y="{label_y}" font-family="{font_family}"
         font-size="{text_size}" font-weight="bold" fill="{text_color}">{label}</text>
 """
 
         # Content (right column) with register highlighting
         content_x = table_x + label_width + INFO_TABLE_HORIZONTAL_PADDING
-        content_y = y + row_height // 2 + text_size // 3
+        content_y = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
 
         # Parse content for register highlighting
         svg += f"""  <text x="{content_x}" y="{content_y}" font-family="{font_family}" font-size="{text_size}">
@@ -620,7 +597,7 @@ def wrap_text(
     max_width: int,
     measurer: PILTextMeasurer,
     font_size: int,
-    font_family: str = FONT_FAMILY,
+    font_family: str = FONT_NAME,
     font_weight: str = "normal",
 ) -> List[str]:
     """Wrap text to fit within max_width, breaking at word boundaries."""

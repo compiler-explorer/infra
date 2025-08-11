@@ -1,9 +1,15 @@
+from pathlib import Path
+
 import click
 from mug_common import (
     BG_COLOR,
     BORDER_COLOR,
     CE_GREEN,
-    FONT_FAMILY,
+    DEFAULT_DPI,
+    DEFAULT_HEIGHT,
+    DEFAULT_WIDTH,
+    FONT_NAME,
+    FOOTER_OPACITY,
     HEADER_BG,
     ROW_LABEL_FUNCTION,
     ROW_LABEL_MEMBER,
@@ -18,7 +24,11 @@ from mug_common import (
 
 
 def create_abi_svg(
-    filename: str, width: int = 1100, height: int = 800, generate_png: bool = True, dpi: int = 300
+    filename: str,
+    width: int = DEFAULT_WIDTH,
+    height: int = DEFAULT_HEIGHT,
+    generate_png: bool = True,
+    dpi: int = DEFAULT_DPI,
 ) -> None:
     # Create layout data structure - new horizontal format with styling
     layout = MugLayout(
@@ -55,7 +65,7 @@ def create_abi_svg(
   <rect width="{width}" height="{height}" fill="{BG_COLOR}"/>
 
   <!-- Title (horizontal at top) -->
-  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{FONT_FAMILY}" font-size="{positions["title"]["size"]}"
+  <text x="{positions["title"]["x"]}" y="{positions["title"]["y"]}" font-family="{FONT_NAME}" font-size="{positions["title"]["size"]}"
         font-weight="bold" fill="{CE_GREEN}" text-anchor="middle">{layout.title}</text>
 """
 
@@ -76,7 +86,7 @@ def create_abi_svg(
         table_pos["col_width"],
         table_pos["row_height"],
         table_pos["label_width"],
-        FONT_FAMILY,
+        FONT_NAME,
         table_pos["header_size"],
         table_pos["text_size"],
         TEXT_COLOR,
@@ -87,13 +97,13 @@ def create_abi_svg(
 
     # Info table using new format
     info_table_pos = positions["info_items"]
-    svg += create_info_table(
+    info_table_svg = create_info_table(
         layout.info_items,
         info_table_pos["x"],
         info_table_pos["y"],
         info_table_pos["width"],
         info_table_pos["row_height"],
-        FONT_FAMILY,
+        FONT_NAME,
         info_table_pos["text_size"],
         TEXT_COLOR,
         CE_GREEN,
@@ -101,6 +111,7 @@ def create_abi_svg(
         HEADER_BG,
         engine.measurer,
     )
+    svg += info_table_svg
 
     # Footer lines (already optimized by layout engine)
     svg += """
@@ -109,21 +120,14 @@ def create_abi_svg(
     for i, line in enumerate(positions["footer"]["lines"]):
         line_y = positions["footer"]["y"] + (i * positions["footer"]["line_height"])
         svg += f"""
-  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{FONT_FAMILY}" font-size="{positions["footer"]["size"]}"
-        fill="{TEXT_COLOR}" opacity="0.6" font-style="italic" text-anchor="middle">{line}</text>"""
-
-    svg += """
-"""
+  <text x="{positions["footer"]["x"]}" y="{line_y}" font-family="{FONT_NAME}" font-size="{positions["footer"]["size"]}"
+        fill="{TEXT_COLOR}" opacity="{FOOTER_OPACITY}" font-style="italic" text-anchor="middle">{line}</text>"""
 
     # Close SVG
-    svg += "</svg>\n"
-
-    # Cleanup
-    engine.cleanup()
+    svg += "\n</svg>\n"
 
     # Write file
-    with open(filename, "w") as f:
-        f.write(svg)
+    Path(filename).write_text(svg, encoding="utf-8")
 
     print(f"SVG created: {filename}")
     print(f"Dimensions: {width}x{height}")
@@ -139,10 +143,10 @@ def create_abi_svg(
 
 @click.command()
 @click.argument("filename", type=click.Path())
-@click.option("--width", default=1100, help="SVG width in pixels (default: 1100)")
-@click.option("--height", default=800, help="SVG height in pixels (default: 800)")
+@click.option("--width", default=DEFAULT_WIDTH, help=f"SVG width in pixels (default: {DEFAULT_WIDTH})")
+@click.option("--height", default=DEFAULT_HEIGHT, help=f"SVG height in pixels (default: {DEFAULT_HEIGHT})")
 @click.option("--no-png", is_flag=True, help="Skip PNG generation")
-@click.option("--dpi", default=300, help="DPI for PNG generation (default: 300)")
+@click.option("--dpi", default=DEFAULT_DPI, help=f"DPI for PNG generation (default: {DEFAULT_DPI})")
 def main(filename, width, height, no_png, dpi):
     """Generate x86-64 System V ABI reference design for mugs.
 
