@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
+"""Tests for squashfs utilities."""
 
-
-from lib.ce_install import SquashfsEntry, parse_unsquashfs_line
+from lib.squashfs import SquashfsEntry, parse_unsquashfs_line
 
 
 class TestUnsquashfsParser:
