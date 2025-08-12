@@ -19,13 +19,11 @@ Short version - symlink dirs from NFS to `/cefs/HASH`
 ## Initial implementation
 
 - Disable "squashing" for new images (for now)
+- Fix up mount-all-img.sh to _not_ mount if it determines the destination is a symlink
+  - This will let us migrate one thing at a time
 - Port each sqfs image one at a time:
   - Check contents are identical to NFS (alert if not; we know we have a few that need fixing)
-  - `shasum` it and move it (or copy) from `/efs/squash-images/path/to/sq.img` to `/efs/cefs-images/HASH.img`
-    - may need to force unmount it from all live images to prevent issues?
-      - `rm /path` then
-      - `ce --env prod exec_all sudo umount /path`
-      - (brief window where Bad Things Happen, and we fall back to regular NFS)
+  - `shasum` it and copy it from `/efs/squash-images/path/to/sq.img` to `/efs/cefs-images/HASH.img`
   - move the `/opt/compiler-explorer/path/to/sq` to a `/opt/compiler-explorer/path/to/sq.old` (to allow for rollback)
   - symlink `/opt/compiler-explorer/path/to/sq` to `/efs/cefs-images/HASH`
 - This lets us move one at a time (give or take the unmount from images etc)
@@ -52,6 +50,15 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
 - [ ] Investigate what I've forgotten about getting this to work
   - [ ] Update builder to 22.04 and cefs support
 - [ ] "Squash verify" to check current squash images are in fact "correct"
+  - [x] in progress
+  - [ ] fix up anything found that mismatches
+- [ ] Update `mount-all-img.sh` to do the Right Thing, test it, and rebuild and deploy all the AMIs
+  - [ ] staging
+  - [ ] prod
+  - [ ] gpu
+  - [ ] aarch64staging
+  - [ ] aarch64prod
+  - [ ] beta
 - [ ] Simple config loader
 - [ ] Disable squashing
 - [ ] Update installers to (optionally, based on config) install this way (even works for nightly; and `tar` installers etc can skip the middle man and just turn `tar` etc into a squashfs image maybe? or doesn't matter using local disk)
@@ -61,77 +68,35 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
 
 ## Claude Implementation Notes
 
-### Migration
-
-The migration from current squashfs mounts to CEFS symlinks requires careful handling of the directory-to-symlink transition. Since POSIX doesn't support atomic replacement of a directory with a symlink, we accept a brief unavailability window.
-
-#### The Challenge
-
-- `/opt/compiler-explorer/gcc-13.1.0/` is currently a mount point (squashfs mounted over NFS directory)
-- We want it to become a symlink to `/cefs/HASH`
-- Cannot atomically replace a directory with a symlink
-- Bind mounts won't work as we'd need to coordinate across 40 machines simultaneously
-
 #### Migration Sequence
 
-The key insight: the NFS directory underneath the mount is NOT empty - it contains the actual compiler files. When we unmount the squashfs, the NFS contents become visible again, providing a fallback during migration.
 
 ```bash
-# 1. Unmount everywhere - falls back to NFS (slower but works)
-ce --env prod exec_all sudo umount /opt/compiler-explorer/some/compiler
-
-# 2. Move the image so new instances won't mount it
+# Update/copy the image so new instances won't mount it
 HASH=$(sha256sum /efs/squash-images/some/compiler.img | cut -d' ' -f1)
-mv /efs/squash-images/some/compiler.img /efs/cefs-images/${HASH}.img
+cp /efs/squash-images/some/compiler.img /efs/cefs-images/${HASH}.img
 
-# 3. Move the actual NFS directory (NOT empty, contains all compiler files)
+# Move the actual NFS directory (NOT empty, contains all compiler files)
+# - machines that are already using squashfs won't notice this as they have mounted over this
+#   === BRIEF UNAVAILABILITY WINDOW ===
 mv /opt/compiler-explorer/some/compiler /opt/compiler-explorer/some/compiler.bak
 
-# 4. === BRIEF UNAVAILABILITY WINDOW ===
-# Any access to /opt/compiler-explorer/some/compiler gets ENOENT
-# Window duration: milliseconds (mv and ln -s are both inode operations)
-
-# 5. Create symlink to autofs mount point
+# Create symlink to autofs mount point
 ln -s /cefs/${HASH} /opt/compiler-explorer/some/compiler
 
-# 6. First access triggers autofs mount of /efs/cefs-images/${HASH}.img to /cefs/${HASH}
-```
+# First access triggers autofs mount of /efs/cefs-images/${HASH}.img to /cefs/${HASH}
+# New instances will see the symlink and mount-all-img.sh will not mount, preferring the symlink
+# We can refresh all instances with a deploy to get everything over to using the symlink
+# Once that's done we can remove from `/efs/squash-images/*` or wait until all migration has
+# been completed to do so.
 
-#### What Happens During Migration
-
-1. **After unmount (step 1)**: Compiler still accessible via NFS (slower but functional)
-2. **After image move (step 2)**: New instances won't mount the squashfs, will use NFS
-3. **During window (between steps 3-5)**: ENOENT errors - CE retry logic should handle
-4. **After symlink (step 5)**: Autofs transparently mounts on first access
-
-#### Verification and Rollback
-
-```bash
-# Quick verification after migration
-if /opt/compiler-explorer/some/compiler/bin/gcc --version > /dev/null 2>&1; then
-    echo "Migration successful"
-    # Keep .bak for 24 hours before cleanup
-else
-    echo "Migration failed, rolling back"
-    rm /opt/compiler-explorer/some/compiler
-    mv /opt/compiler-explorer/some/compiler.bak /opt/compiler-explorer/some/compiler
-    mv /efs/cefs-images/${HASH}.img /efs/squash-images/some/compiler.img
-fi
 ```
 
 #### Migration Strategy
 
-1. **Order**: Migrate least-used compilers first (gcc-4.x, deprecated versions)
-2. **Timing**: Popular compilers during night/weekend
-3. **Monitoring**: Watch for ENOENT errors in logs during migration
-4. **Cleanup**: Remove `.bak` directories after 24 hours of successful operation
-
-#### Edge Cases
-
-- **Compilation in progress**: Already loaded in memory, continues running
-- **New compilation starting**: Gets ENOENT, CE retry logic handles
-- **Directory listing**: Briefly won't show the compiler
-- **New instances spinning up**: See either NFS version, symlink, or brief ENOENT
+- **Order**: Migrate least-used compilers first (gcc-4.x, deprecated versions)
+- **Monitoring**: Watch for ENOENT errors in logs during migration
+- **Cleanup**: Remove `.bak` directories after 24 hours of successful operation, and `/efs/squash-images/` at the same time?
 
 ### Consolidation
 
