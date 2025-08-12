@@ -54,8 +54,8 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
   - [ ] fix up anything found that mismatches
 - [ ] Update `mount-all-img.sh` to do the Right Thing, test it, and rebuild and deploy all the AMIs
   - [x] make the change in main
-  - [ ] build and deploy staging
-  - [ ] build and deploy prod
+  - [x] build and deploy staging
+  - [x] build and deploy prod
   - [ ] build and deploy gpu
   - [ ] build and deploy aarch64staging
   - [ ] build and deploy aarch64prod
