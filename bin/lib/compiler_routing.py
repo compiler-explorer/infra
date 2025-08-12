@@ -2,6 +2,7 @@
 
 import json
 import logging
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Set, Tuple
 
@@ -120,8 +121,38 @@ def fetch_discovery_compilers(environment: str, version: Optional[str] = None) -
 
         # Fetch compiler data from API with JSON Accept header
         headers = {"Accept": "application/json"}
-        response = requests.get(api_url, headers=headers, timeout=30)
-        response.raise_for_status()
+
+        # Retry logic with exponential backoff for 503 errors
+        max_retries = 3
+        retry_delay = 2
+        last_exception = None
+
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(api_url, headers=headers, timeout=30)
+                response.raise_for_status()
+                break  # Success, exit retry loop
+            except requests.exceptions.HTTPError as e:
+                if e.response.status_code == 503:
+                    last_exception = e
+                    if attempt < max_retries - 1:
+                        wait_time = retry_delay * (2**attempt)  # Exponential backoff: 2, 4, 8 seconds
+                        LOGGER.warning(
+                            f"Got 503 error from {api_url}, attempt {attempt + 1}/{max_retries}. "
+                            f"Retrying in {wait_time} seconds..."
+                        )
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        LOGGER.error(f"Failed to fetch from {api_url} after {max_retries} attempts")
+                        raise
+                else:
+                    # Not a 503, don't retry
+                    raise
+        else:
+            # All retries failed
+            if last_exception:
+                raise last_exception
 
         compilers_list = response.json()
 
