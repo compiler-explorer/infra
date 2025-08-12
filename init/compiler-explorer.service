@@ -1,6 +1,6 @@
 [Unit]
 Description=Compiler Explorer
-After=remote-fs.target systemd-logind.service network-online.target cloud-init.target
+After=remote-fs.target systemd-logind.service network-online.target
 Wants=network-online.target
 Requires=remote-fs.target
 
@@ -9,6 +9,7 @@ Type=simple
 User=root
 TimeoutStartSec=infinity
 WorkingDirectory=/infra
+ExecStartPre=/usr/bin/cloud-init status --wait
 ExecStart=/infra/init/start.sh
 StandardOutput=journal
 StandardError=journal

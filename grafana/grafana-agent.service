@@ -1,14 +1,15 @@
 [Unit]
 Description=Grafana Agent
-After=network-online.target cloud-init.target
+After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=exec
 User=root
 Restart=always
-ExecStart=/usr/local/bin/grafana-agent --config.file=/etc/grafana/agent.yaml
+ExecStartPre=/usr/bin/cloud-init status --wait
 ExecStartPre=/etc/grafana/make-config.sh
+ExecStart=/usr/local/bin/grafana-agent --config.file=/etc/grafana/agent.yaml
 
 [Install]
 WantedBy=multi-user.target
