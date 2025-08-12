@@ -11,6 +11,7 @@ from functools import partial
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from lib.config import SquashfsConfig
 from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.installation_context import InstallationContext, is_windows
 from lib.library_build_config import LibraryBuildConfig
@@ -313,7 +314,11 @@ class Installable:
             return rbuilder.makebuild(buildfor)
         raise RuntimeError(f"Unsupported build_type ${self.build_config.build_type}")
 
-    def squash_to(self, destination_image: Path):
+    @property
+    def is_squashable(self) -> bool:
+        return True
+
+    def squash_to(self, destination_image: Path, squashfs_config: SquashfsConfig):
         destination_image.parent.mkdir(parents=True, exist_ok=True)
         source_folder = self.install_context.destination / self.install_path
         temp_image = destination_image.with_suffix(".tmp")
@@ -321,15 +326,15 @@ class Installable:
         self._logger.info("Squashing %s...", source_folder)
         self.install_context.check_call(
             [
-                "/usr/bin/mksquashfs",
+                squashfs_config.mksquashfs_path,
                 str(source_folder),
                 str(temp_image),
                 "-all-root",
                 "-progress",
                 "-comp",
-                "zstd",
+                squashfs_config.compression,
                 "-Xcompression-level",
-                "19",
+                str(squashfs_config.compression_level),
             ]
         )
         temp_image.replace(destination_image)
