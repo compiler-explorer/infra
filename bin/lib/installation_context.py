@@ -6,6 +6,7 @@ import logging
 import os
 import shlex
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
@@ -240,6 +241,42 @@ class InstallationContext:
             _LOGGER.debug("File not found for %s", link)
             return False
 
+    def _fix_permissions(self, path: Path) -> None:
+        """Fix permissions recursively to ensure files are accessible by all users.
+
+        Mirrors user permissions to group and other, but never grants write to group/other.
+        Always ensures user has write permission for future editing.
+        """
+        for root, dirs, files in os.walk(path):
+            for dir_name in dirs:
+                dir_path = Path(root) / dir_name
+                self._fix_single_permission(dir_path)
+
+            for file_name in files:
+                file_path = Path(root) / file_name
+                self._fix_single_permission(file_path)
+
+    def _fix_single_permission(self, file_path: Path) -> None:
+        """Fix permissions for a single file or directory."""
+        current_mode = file_path.stat().st_mode
+        current_perms = stat.S_IMODE(current_mode)
+
+        # Build expected permissions:
+        # - User always gets write, keeps read/exec
+        # - Group/other mirror user's read/exec but never get write
+        new_perms = (current_perms & stat.S_IRWXU) | stat.S_IWUSR  # Always give user write
+
+        if bool(current_perms & stat.S_IRUSR):
+            new_perms |= stat.S_IRGRP
+            new_perms |= stat.S_IROTH
+        if bool(current_perms & stat.S_IXUSR):
+            new_perms |= stat.S_IXGRP
+            new_perms |= stat.S_IXOTH
+
+        if current_perms != new_perms:
+            _LOGGER.warning("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
+            file_path.chmod(new_perms)
+
     def move_from_staging(
         self,
         staging: StagingDir,
@@ -260,9 +297,9 @@ class InstallationContext:
             staging_contents = subprocess.check_output(["ls", "-l", str(staging.path)]).decode("utf-8")
             _LOGGER.info("Directory listing of staging:\n%s", staging_contents)
             raise RuntimeError(f"Missing source '{source}'")
-        # Some tar'd up GCCs are actually marked read-only...
+        # Fix permissions to ensure files are accessible by all users
         if not is_windows():
-            subprocess.check_call(["chmod", "-R", "u+w", source])
+            self._fix_permissions(source)
         state = ""
         if dest.is_dir():
             if list(dest.iterdir()):
