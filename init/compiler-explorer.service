@@ -1,6 +1,8 @@
 [Unit]
 Description=Compiler Explorer
-After=remote-fs.target
+After=remote-fs.target systemd-logind.service network-online.target cloud-final.service
+Wants=network-online.target
+Requires=remote-fs.target
 
 [Service]
 Type=simple
@@ -8,8 +10,8 @@ User=root
 TimeoutStartSec=infinity
 WorkingDirectory=/infra
 ExecStart=/infra/init/start.sh
-StandardOutput=syslog
-StandardError=syslog
+StandardOutput=journal
+StandardError=journal
 SyslogIdentifier=compiler-explorer
 
 [Install]
