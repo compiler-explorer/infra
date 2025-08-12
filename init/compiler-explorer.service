@@ -1,8 +1,12 @@
 [Unit]
 Description=Compiler Explorer
-After=remote-fs.target systemd-logind.service network-online.target cloud-config.service
+After=remote-fs.target systemd-logind.service network-online.target cloud-init.target
 Wants=network-online.target
 Requires=remote-fs.target
+# DefaultDependencies=no prevents circular dependency: this service is WantedBy=multi-user.target
+# but needs After=cloud-init.target, and cloud-init.target is also WantedBy=multi-user.target
+# See: https://serverfault.com/questions/871328/start-service-after-aws-user-data-has-run
+DefaultDependencies=no
 
 [Service]
 Type=simple
