@@ -53,12 +53,13 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
   - [x] in progress
   - [ ] fix up anything found that mismatches
 - [ ] Update `mount-all-img.sh` to do the Right Thing, test it, and rebuild and deploy all the AMIs
-  - [ ] staging
-  - [ ] prod
-  - [ ] gpu
-  - [ ] aarch64staging
-  - [ ] aarch64prod
-  - [ ] beta
+  - [x] make the change in main
+  - [ ] build and deploy staging
+  - [ ] build and deploy prod
+  - [ ] build and deploy gpu
+  - [ ] build and deploy aarch64staging
+  - [ ] build and deploy aarch64prod
+  - [ ] build beta
 - [ ] Simple config loader
 - [ ] Disable squashing
 - [ ] Update installers to (optionally, based on config) install this way (even works for nightly; and `tar` installers etc can skip the middle man and just turn `tar` etc into a squashfs image maybe? or doesn't matter using local disk)
