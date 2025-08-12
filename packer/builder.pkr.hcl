@@ -39,12 +39,6 @@ locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
 source "amazon-ebs" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_block_device_mappings {
-    delete_on_termination = true
-    device_name           = "/dev/sda1"
-    volume_size           = 16
-    volume_type           = "gp2"
-  }
   ami_name                    = "compiler-explorer builder packer @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
