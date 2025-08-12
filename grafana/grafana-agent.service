@@ -2,6 +2,8 @@
 Description=Grafana Agent
 After=network-online.target cloud-init.target
 Wants=network-online.target
+# DefaultDependencies=no prevents circular dependency: this service is WantedBy=multi-user.target
+# but needs After=cloud-init.target, and cloud-init.target is also WantedBy=multi-user.target
 DefaultDependencies=no
 
 [Service]
