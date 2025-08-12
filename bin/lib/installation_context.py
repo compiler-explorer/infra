@@ -22,7 +22,7 @@ import requests.adapters
 import requests_cache
 import yaml
 
-from lib.cefs import backup_and_symlink, copy_to_cefs_atomically
+from lib.cefs import backup_and_symlink, calculate_squashfs_hash, copy_to_cefs_atomically
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -446,16 +446,6 @@ class InstallationContext:
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])
 
-    def _calculate_squashfs_hash(self, squashfs_path: Path) -> str:
-        """Calculate SHA256 hash of squashfs image using Python hashlib."""
-        import hashlib
-
-        sha256_hash = hashlib.sha256()
-        with open(squashfs_path, "rb") as f:
-            for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                sha256_hash.update(chunk)
-        return sha256_hash.hexdigest()
-
     def _deploy_to_cefs(
         self,
         staging: StagingDir,
@@ -511,7 +501,7 @@ class InstallationContext:
             )
 
             # Calculate hash and deploy to CEFS
-            hash_value = self._calculate_squashfs_hash(temp_squash_file)
+            hash_value = calculate_squashfs_hash(temp_squash_file)
             cefs_image_path = self.config.cefs.image_dir / f"{hash_value}.sqfs"
             cefs_target = Path(f"{self.config.cefs.mount_point}/{hash_value}")
 

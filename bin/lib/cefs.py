@@ -29,6 +29,37 @@ def detect_nfs_state(nfs_path: Path) -> str:
         return "missing"
 
 
+def validate_cefs_mount_point(mount_point: str) -> bool:
+    """Validate that CEFS mount point is accessible.
+
+    Args:
+        mount_point: CEFS mount point path (e.g., "/cefs")
+
+    Returns:
+        True if mount point is accessible, False otherwise
+    """
+    mount_path = Path(mount_point)
+
+    if not mount_path.exists():
+        _LOGGER.error("CEFS mount point does not exist: %s", mount_point)
+        return False
+
+    if not mount_path.is_dir():
+        _LOGGER.error("CEFS mount point is not a directory: %s", mount_point)
+        return False
+
+    # Try to access the mount point (this will trigger autofs if configured)
+    try:
+        list(mount_path.iterdir())
+        return True
+    except PermissionError:
+        _LOGGER.error("No permission to access CEFS mount point: %s", mount_point)
+        return False
+    except OSError as e:
+        _LOGGER.error("Cannot access CEFS mount point %s: %s", mount_point, e)
+        return False
+
+
 def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
     """Copy a file to CEFS images directory using atomic rename.
 
