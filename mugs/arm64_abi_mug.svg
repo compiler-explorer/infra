@@ -1,110 +1,104 @@
-<svg width="1100" height="800" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1100" height="800" fill="transparent"/>
+<svg width="1400" height="1000" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1400" height="1000" fill="transparent"/>
 
-  <!-- Title -->
-  <text x="75" y="45" font-family="Consolas, Monaco, monospace" font-size="50"
-        font-weight="bold" fill="#000000">ARM64 (AAPCS) ABI</text>
-
-  <!-- Code examples -->
-  <text x="75" y="90" font-family="Consolas, Monaco, monospace" font-size="28"
-        fill="#000000">free_func(<tspan font-weight="bold" fill="#67c52a">X0</tspan>, <tspan font-weight="bold" fill="#67c52a">X1</tspan>, <tspan font-weight="bold" fill="#67c52a">X2</tspan>, <tspan font-weight="bold" fill="#67c52a">X3</tspan>, <tspan font-weight="bold" fill="#67c52a">X4</tspan>, <tspan font-weight="bold" fill="#67c52a">X5</tspan>, <tspan font-weight="bold" fill="#67c52a">X6</tspan>, <tspan font-weight="bold" fill="#67c52a">X7</tspan>);</text>
-  <text x="75" y="120" font-family="Consolas, Monaco, monospace" font-size="28"
-        fill="#000000"><tspan font-weight="bold" fill="#67c52a">X0</tspan>.member_func(<tspan font-weight="bold" fill="#67c52a">X1</tspan>, <tspan font-weight="bold" fill="#67c52a">X2</tspan>, <tspan font-weight="bold" fill="#67c52a">X3</tspan>, <tspan font-weight="bold" fill="#67c52a">X4</tspan>, <tspan font-weight="bold" fill="#67c52a">X5</tspan>, <tspan font-weight="bold" fill="#67c52a">X6</tspan>, <tspan font-weight="bold" fill="#67c52a">X7</tspan>);</text>
-
-  <!-- Table header background -->
-  <rect x="75" y="150" width="950" height="48"
+  <!-- Title (horizontal at top) -->
+  <text x="700" y="64.0" font-family="DejaVu Sans Mono" font-size="72"
+        font-weight="bold" fill="#67c52a" text-anchor="middle">ARM64 (AAPCS) ABI</text>
+  <rect x="0" y="114.0" width="1399" height="91"
         fill="#f0f0f0" stroke="#333333" stroke-width="1"/>
+  <text x="311" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X0</text>
+  <text x="456" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X1</text>
+  <text x="601" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X2</text>
+  <text x="746" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X3</text>
+  <text x="891" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X4</text>
+  <text x="1036" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X5</text>
+  <text x="1181" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X6</text>
+  <text x="1326" y="176.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">X7</text>
+  <rect x="0" y="205.0" width="1399" height="91"
+        fill="#ffffff" stroke="#333333" stroke-width="1"/>
+  <text x="119" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#000000" text-anchor="middle">func()</text>
+  <text x="311" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">1st</text>
+  <text x="456" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">2nd</text>
+  <text x="601" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">3rd</text>
+  <text x="746" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">4th</text>
+  <text x="891" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">5th</text>
+  <text x="1036" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">6th</text>
+  <text x="1181" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">7th</text>
+  <text x="1326" y="267.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">8th</text>
+  <rect x="0" y="296.0" width="1399" height="91"
+        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
+  <text x="119" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#000000" text-anchor="middle">obj.f()</text>
+  <text x="311" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" font-weight="bold" fill="#67c52a" text-anchor="middle">this</text>
+  <text x="456" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">1st</text>
+  <text x="601" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">2nd</text>
+  <text x="746" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">3rd</text>
+  <text x="891" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">4th</text>
+  <text x="1036" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">5th</text>
+  <text x="1181" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">6th</text>
+  <text x="1326" y="358.0" font-family="DejaVu Sans Mono"
+        font-size="53" fill="#000000" text-anchor="middle">7th</text>
+  <text x="135" y="460.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Return values</text>
+  <text x="582" y="460.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">X0</tspan><tspan fill="#000000"> (+ </tspan><tspan font-weight="bold" fill="#67c52a">X1</tspan><tspan fill="#000000"> for 128-bit)</tspan>
+  </text>
+  <text x="135" y="528.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Special regs</text>
+  <text x="582" y="528.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">X8</tspan><tspan fill="#000000"> indirect, </tspan><tspan font-weight="bold" fill="#67c52a">X29</tspan><tspan fill="#000000"> FP</tspan>
+  </text>
+  <text x="582" y="585.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">X30</tspan><tspan fill="#000000"> LR, </tspan><tspan font-weight="bold" fill="#67c52a">SP</tspan><tspan fill="#000000"> stack</tspan>
+  </text>
+  <text x="135" y="653.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">FP args</text>
+  <text x="582" y="653.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">V0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V7</tspan>
+  </text>
+  <text x="135" y="721.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">FP return</text>
+  <text x="582" y="721.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">V0</tspan><tspan fill="#000000"> (+ </tspan><tspan font-weight="bold" fill="#67c52a">V1</tspan><tspan fill="#000000"> for 128-bit)</tspan>
+  </text>
+  <text x="135" y="789.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Caller-saved</text>
+  <text x="582" y="789.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">X0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">X17</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">V0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V7</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">V16</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V31</tspan>
+  </text>
+  <text x="135" y="857.0" font-family="DejaVu Sans Mono"
+        font-size="54" font-weight="bold" fill="#000000">Callee-saved</text>
+  <text x="582" y="857.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan font-weight="bold" fill="#67c52a">X19</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">X28</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">V8</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V15</tspan>
+  </text>
+  <text x="582" y="914.0" font-family="DejaVu Sans Mono" font-size="54">
+<tspan fill="#000000">(lower 64 bits)</tspan>
+  </text>
 
-  <!-- Table headers -->
-  <text x="100" y="188" font-family="Consolas, Monaco, monospace"
-        font-size="28" font-weight="bold" fill="#000000">Register</text>
-  <text x="300" y="188" font-family="Consolas, Monaco, monospace"
-        font-size="28" font-weight="bold" fill="#000000">Free Function</text>
-  <text x="675" y="188" font-family="Consolas, Monaco, monospace"
-        font-size="28" font-weight="bold" fill="#000000">Member Function</text>
-  <rect x="75" y="198" width="950" height="48"
-        fill="#ffffff" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="236" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X0</text>
-  <text x="300" y="236" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">1st parameter</text>
-  <text x="675" y="236" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">this pointer</text>
-  <rect x="75" y="246" width="950" height="48"
-        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="284" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X1</text>
-  <text x="300" y="284" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">2nd parameter</text>
-  <text x="675" y="284" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">1st parameter</text>
-  <rect x="75" y="294" width="950" height="48"
-        fill="#ffffff" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="332" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X2</text>
-  <text x="300" y="332" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">3rd parameter</text>
-  <text x="675" y="332" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">2nd parameter</text>
-  <rect x="75" y="342" width="950" height="48"
-        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="380" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X3</text>
-  <text x="300" y="380" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">4th parameter</text>
-  <text x="675" y="380" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">3rd parameter</text>
-  <rect x="75" y="390" width="950" height="48"
-        fill="#ffffff" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="428" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X4</text>
-  <text x="300" y="428" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">5th parameter</text>
-  <text x="675" y="428" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">4th parameter</text>
-  <rect x="75" y="438" width="950" height="48"
-        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="476" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X5</text>
-  <text x="300" y="476" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">6th parameter</text>
-  <text x="675" y="476" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">5th parameter</text>
-  <rect x="75" y="486" width="950" height="48"
-        fill="#ffffff" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="524" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X6</text>
-  <text x="300" y="524" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">7th parameter</text>
-  <text x="675" y="524" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">6th parameter</text>
-  <rect x="75" y="534" width="950" height="48"
-        fill="#f9f9f9" stroke="#333333" stroke-width="1"/>
-  <text x="100" y="572" font-family="Consolas, Monaco, monospace"
-        font-size="30" font-weight="bold" fill="#67c52a">X7</text>
-  <text x="300" y="572" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">8th parameter</text>
-  <text x="675" y="572" font-family="Consolas, Monaco, monospace"
-        font-size="30" fill="#000000">7th parameter</text>
-  <text x="75" y="622" font-family="Consolas, Monaco, monospace" font-size="30">
-    <tspan font-weight="bold" fill="#000000">Return values:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">X0</tspan><tspan fill="#000000"> (</tspan><tspan font-weight="bold" fill="#67c52a">X1</tspan><tspan fill="#000000"> for 128-bit)</tspan>
-  </text>
-  <text x="75" y="650" font-family="Consolas, Monaco, monospace" font-size="30">
-    <tspan font-weight="bold" fill="#000000">Special regs:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">X8</tspan><tspan fill="#000000"> indirect, </tspan><tspan font-weight="bold" fill="#67c52a">X29</tspan><tspan fill="#000000"> FP, </tspan><tspan font-weight="bold" fill="#67c52a">X30</tspan><tspan fill="#000000"> LR, </tspan><tspan font-weight="bold" fill="#67c52a">SP</tspan><tspan fill="#000000"> stack</tspan>
-  </text>
-  <text x="75" y="678" font-family="Consolas, Monaco, monospace" font-size="30">
-    <tspan font-weight="bold" fill="#000000">FP args/return:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">V0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V7</tspan><tspan fill="#000000"> args, </tspan><tspan font-weight="bold" fill="#67c52a">V0</tspan><tspan fill="#000000">/</tspan><tspan font-weight="bold" fill="#67c52a">V1</tspan><tspan fill="#000000"> return</tspan>
-  </text>
-  <text x="75" y="706" font-family="Consolas, Monaco, monospace" font-size="30">
-    <tspan font-weight="bold" fill="#000000">Caller-saved:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">X0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">X17</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">V0</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V7</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">V16</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V31</tspan>
-  </text>
-  <text x="75" y="734" font-family="Consolas, Monaco, monospace" font-size="30">
-    <tspan font-weight="bold" fill="#000000">Callee-saved:</tspan><tspan font-weight="bold" fill="#67c52a" dx="8">X19</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">X28</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">V8</tspan><tspan fill="#000000">-</tspan><tspan font-weight="bold" fill="#67c52a">V15</tspan><tspan fill="#000000"> (lower 64 bits)</tspan>
-  </text>
-
-  <!-- Stack note -->
-  <text x="75" y="777" font-family="Consolas, Monaco, monospace" font-size="22"
-        fill="#000000" opacity="0.6" font-style="italic">
-    Parameters beyond 8 int/FP args on stack (16-byte aligned)
-  </text>
+  <text x="700" y="990.0" font-family="DejaVu Sans Mono" font-size="40"
+        fill="#000000" opacity="0.6" font-style="italic" text-anchor="middle">Args beyond 8 int/FP args on stack (16b aligned)</text>
 </svg>

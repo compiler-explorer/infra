@@ -22,10 +22,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "noble" {
+data "amazon-ami" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-noble-24.04-amd64-server-*"
+    name                = "ubuntu-minimal/images/*ubuntu-*-22.04-amd64-minimal-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -37,9 +37,9 @@ data "amazon-ami" "noble" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "noble" {
+source "amazon-ebs" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_name                    = "compiler-explorer gpu packer 24.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer gpu packer @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
   instance_type               = "g4dn.xlarge"
@@ -55,7 +55,7 @@ source "amazon-ebs" "noble" {
   }
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.noble.id}"
+  source_ami        = "${data.amazon-ami.ubuntu.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -65,7 +65,7 @@ source "amazon-ebs" "noble" {
 }
 
 build {
-  sources = ["source.amazon-ebs.noble"]
+  sources = ["source.amazon-ebs.ubuntu"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
@@ -76,7 +76,7 @@ build {
     execute_command = "{{ .Vars }} sudo -E bash '{{ .Path }}'"
     inline = [
       "set -euo pipefail",
-      "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+      "cloud-init status --wait",
       "export DEBIAN_FRONTEND=noninteractive", "mkdir -p /root/.ssh",
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",

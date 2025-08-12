@@ -17,7 +17,9 @@ dependencies = [
     "python-dateutil>=2.8.2",
     "requests>=2.32.2",
     "PyYAML>=6.0",
-    "requests-cache>=1.2.1"
+    "requests-cache>=1.2.1",
+    "matplotlib>=3.10.5",
+    "pillow>=11.3.0",
 ]
 
 [tool.uv]

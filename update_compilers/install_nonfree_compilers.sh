@@ -58,6 +58,9 @@ done
 
 ##################################
 # Windows compilers
+# Honestly only here to remind me how to get them back if we somehow lose them
+# These would need to be `ce smb sync`-d but we're root here and we don't have
+# the creds set up.
 fix_up_windows() {
     local file=$1
     if [[ -d "${file}/lib/native/bin/amd64" ]]; then
@@ -75,8 +78,8 @@ fix_up_windows() {
     fi
 }
 
-mkdir -p windows
-pushd windows
+mkdir -p /opt/winshared/compilers/msvc-legacy-from-wine/
+pushd /opt/winshared/compilers/msvc-legacy-from-wine/
 for file in \
     10.0.10240.0 \
     14.0.24224-Pre \

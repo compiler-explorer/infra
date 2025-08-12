@@ -25,6 +25,7 @@ from lib.installation import installers_for
 from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_platform import LibraryPlatform
 from lib.library_yaml import LibraryYaml
+from lib.squashfs import verify_squashfs_contents
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -94,17 +95,20 @@ def filter_aggregate(filters: list, installable: Installable, filter_match_all: 
     return all(filter_generator) if filter_match_all else any(filter_generator)
 
 
-def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> None:
+def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> int:
+    error_count = 0
     for filename in os.listdir(rootfolder / subdir):
         if filename.endswith(".img"):
             checkdir = Path("/opt/compiler-explorer/") / subdir / filename[:-4]
             if not checkdir.exists():
                 _LOGGER.error("Missing mount point %s", checkdir)
+                error_count += 1
         else:
             if subdir == "":
-                squash_mount_check(rootfolder, filename, context)
+                error_count += squash_mount_check(rootfolder, filename, context)
             else:
-                squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
+                error_count += squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
+    return error_count
 
 
 @click.group()
@@ -417,30 +421,53 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
 
 @cli.command()
 @click.pass_obj
+@click.option("--verify", is_flag=True, help="Verify squashfs contents match NFS directories")
+@click.option("--no-check-mount-targets", is_flag=True, help="Skip checking mount targets exist")
 @click.option(
     "--image-dir",
-    default=Path("/opt/squash-images"),
+    default=Path("/efs/squash-images"),
     metavar="IMAGES",
     type=click.Path(file_okay=False, path_type=Path),
     help="Look for images in IMAGES",
     show_default=True,
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def squash_check(context: CliContext, filter_: List[str], image_dir: Path):
-    """Check squash images matching FILTER."""
+def squash_check(context: CliContext, filter_: List[str], image_dir: Path, verify: bool, no_check_mount_targets: bool):
+    """Check squash images matching FILTER, optionally verify contents."""
+    total_errors = 0
+
     if not image_dir.exists():
         _LOGGER.error("Missing squash directory %s", image_dir)
-        exit(1)
+        sys.exit(1)
 
-    for installable in context.get_installables(filter_):
+    # Check for missing/unexpected squash images
+    installables = context.get_installables(filter_)
+    for installable in installables:
         destination = image_dir / f"{installable.install_path}.img"
         if installable.nightly_like:
             if destination.exists():
                 _LOGGER.error("Found squash: %s for nightly", installable.name)
+                total_errors += 1
         elif not destination.exists():
             _LOGGER.error("Missing squash: %s (for %s)", installable.name, destination)
+            total_errors += 1
+        elif verify:
+            # Verify contents if requested
+            nfs_path = context.installation_context.destination / installable.install_path
+            _LOGGER.info("Verifying %s...", installable.name)
+            total_errors += verify_squashfs_contents(destination, nfs_path)
 
-    squash_mount_check(image_dir, "", context)
+    # Check mount points (unless disabled)
+    if not no_check_mount_targets:
+        total_errors += squash_mount_check(image_dir, "", context)
+
+    # Summary and exit
+    if total_errors > 0:
+        _LOGGER.error("Found %d total errors", total_errors)
+        sys.exit(1)
+    else:
+        _LOGGER.info("All checks passed")
+        sys.exit(0)
 
 
 def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:

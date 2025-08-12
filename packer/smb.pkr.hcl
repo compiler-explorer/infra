@@ -76,7 +76,7 @@ build {
     execute_command = "{{ .Vars }} sudo -E bash '{{ .Path }}'"
     inline = [
       "set -euo pipefail",
-      "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+      "cloud-init status --wait",
       "export DEBIAN_FRONTEND=noninteractive", "mkdir -p /root/.ssh",
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",
