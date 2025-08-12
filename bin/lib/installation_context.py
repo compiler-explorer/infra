@@ -80,10 +80,10 @@ class InstallationContext:
         self.allow_unsafe_ssl = allow_unsafe_ssl
         adapter = requests.adapters.HTTPAdapter(max_retries=retry_strategy)
         if cache:
-            _LOGGER.info("Using cache %s", cache)
+            _LOGGER.debug("Using cache %s", cache)
             self.fetcher = requests_cache.CachedSession(cache)
         else:
-            _LOGGER.info("Making uncached requests")
+            _LOGGER.debug("Making uncached requests")
             self.fetcher = requests.Session()
         self.fetcher.mount("https://", adapter)
         self.fetcher.mount("http://", adapter)

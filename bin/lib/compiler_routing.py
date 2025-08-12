@@ -110,6 +110,12 @@ def fetch_discovery_compilers(environment: str, version: Optional[str] = None) -
     Raises:
         CompilerRoutingError: If API cannot be fetched or parsed
     """
+    # aarch64 environments are execution-only and don't have their own compilers
+    # They receive work from other environments, so skip compiler fetch
+    if environment in ["aarch64prod", "aarch64staging"]:
+        LOGGER.info(f"Skipping compiler fetch for {environment} - execution-only environment without compilers")
+        return {}
+
     try:
         # Map environment to API URL with fields parameter to reduce bandwidth
         if environment == "prod":
