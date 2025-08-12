@@ -1296,7 +1296,7 @@ compilers:
           script: |
             chmod +x installer.bin
             ./installer.bin --unattendedmodeui none --mode unattended --prefix .
-            rm installer.bin
+            rm installer.bin {{dir}}/*.log {{dir}}/*.run {{dir}}/*.dat
     intel-cpp:
       type: script
       dir: "intel-cpp-{{name}}"
