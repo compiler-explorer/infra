@@ -5,6 +5,7 @@ import logging
 import logging.config
 import multiprocessing
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -111,6 +112,67 @@ def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> in
     return error_count
 
 
+@dataclass(frozen=True)
+class SquashfsEntry:
+    """Represents a parsed entry from unsquashfs -ll output."""
+
+    file_type: str  # 'd', 'l', '-', 'c', 'b', etc.
+    size: int  # File size in bytes (0 for non-regular files)
+    path: str  # Relative path without leading slash
+    target: Optional[str] = None  # Target for symlinks
+
+
+def parse_unsquashfs_line(line: str) -> Optional[SquashfsEntry]:
+    """Parse a single line from unsquashfs -ll output.
+
+    Returns SquashfsEntry with parsed data, or None if line cannot be parsed.
+    """
+    pattern = re.compile(
+        r"^(?P<permissions>[dlcbps-][rwxst-]{9})\s+"
+        r"(?P<owner_group>\S+)\s+"
+        r"(?P<size>\d+)\s+"
+        r"(?P<date>\d{4}-\d{2}-\d{2})\s+"
+        r"(?P<time>\d{2}:\d{2})"
+        r"(?:\s+(?P<path_part>.+?))?"
+        r"$"
+    )
+
+    match = pattern.match(line.strip())
+    if not match:
+        return None
+
+    groups = match.groupdict()
+
+    # No path means root directory - skip it
+    if not groups["path_part"]:
+        return None
+
+    file_type = groups["permissions"][0]
+
+    # Handle symlinks: "path -> target"
+    # Only split on ' -> ' if this is actually a symlink (type 'l')
+    target = None
+    path_part = groups["path_part"]
+    if file_type == "l" and " -> " in path_part:
+        path, target = path_part.split(" -> ", 1)
+    else:
+        path = path_part
+
+    # Remove leading slash for relative comparison
+    if path.startswith("/"):
+        path = path[1:]
+
+    if not path:  # Skip empty paths
+        return None
+
+    return SquashfsEntry(
+        file_type=file_type,
+        size=int(groups["size"]) if file_type == "-" else 0,
+        path=path,
+        target=target if target else None,
+    )
+
+
 def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
     """Verify squashfs image contents match NFS directory. Returns error count."""
     error_count = 0
@@ -131,33 +193,19 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
     # Parse squashfs output to get file list
     sqfs_files = {}
     for line in sqfs_output.split("\n"):
-        line = line.strip()
-        if not line:
+        if not line.strip():
             continue
-        # Parse ls -l style output: permissions, owner/group, size, date, time, path [-> target]
-        parts = line.split()
-        if len(parts) == 6:  # permissions, owner/group, size, date, time, path
-            abs_path = parts[5]
-            if abs_path.startswith("/"):
-                rel_path = abs_path[1:]  # Remove leading slash
-                if rel_path:  # Skip empty paths (root directory)
-                    file_type = parts[0][0]  # d/l/-
-                    size = parts[2] if file_type == "-" else "0"  # Size is in parts[2]
-                    sqfs_files[rel_path] = (file_type, size)
-        elif len(parts) == 8:  # Symlink: permissions, owner/group, size, date, time, path, ->, target
-            abs_path = parts[5]
-            if abs_path.startswith("/") and parts[6] == "->":
-                rel_path = abs_path[1:]  # Remove leading slash
-                if rel_path:  # Skip empty paths (root directory)
-                    file_type = parts[0][0]  # Should be 'l' for symlinks
-                    size = "0"  # Symlinks always have size 0 for comparison
-                    sqfs_files[rel_path] = (file_type, size)
-        elif len(parts) == 5:  # Root directory case (no path)
-            # Root directory without path: permissions, owner/group, size, date, time
-            if parts[0][0] != "d":
-                raise ValueError(f"Expected root directory but got: {line}")
+
+        # Skip known header lines from unsquashfs
+        if line.startswith("Parallel unsquashfs:") or line.startswith("Filesystem on"):
+            continue
+
+        parsed = parse_unsquashfs_line(line)
+        if parsed:
+            sqfs_files[parsed.path] = (parsed.file_type, str(parsed.size))
         else:
-            raise ValueError(f"Unexpected unsquashfs output format ({len(parts)} parts): {line}")
+            # Fail on any line we can't parse
+            raise ValueError(f"Failed to parse unsquashfs output line: {line}")
 
     # Build equivalent from directory filesystem
     dir_files = {}
