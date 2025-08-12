@@ -25,6 +25,7 @@ apt-get install -y \
     gnat \
     jq \
     libapparmor-dev \
+    libc6-dev:i386 \
     libc6-dev-i386 \
     libdatetime-perl \
     libelf-dev \
