@@ -1,6 +1,7 @@
 [Unit]
 Description=Grafana Agent
-After=network-online.target
+After=network-online.target cloud-init.target
+Wants=network-online.target
 
 [Service]
 Type=exec

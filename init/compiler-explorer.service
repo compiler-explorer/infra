@@ -1,6 +1,6 @@
 [Unit]
 Description=Compiler Explorer
-After=remote-fs.target systemd-logind.service network-online.target cloud-config.service
+After=remote-fs.target systemd-logind.service network-online.target cloud-init.target
 Wants=network-online.target
 Requires=remote-fs.target
 
