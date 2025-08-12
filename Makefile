@@ -186,7 +186,7 @@ compilation-lambda-package: $(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_P
 
 .PHONY: test-compilation-lambda  ## runs compilation lambda tests
 test-compilation-lambda:
-	cd compilation-lambda && npm test
+	cd compilation-lambda && npm install && npm test
 
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)

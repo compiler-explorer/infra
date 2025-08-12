@@ -6,7 +6,7 @@ module "compilation_lambda_beta" {
   source = "./modules/compilation_lambda"
 
   environment         = "beta"
-  websocket_url       = "wss://events.compiler-explorer.com/beta"
+  websocket_url       = "wss://events.compiler-explorer.com/prod" # All environments use the same WebSocket endpoint
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = true
   alb_priority        = 91
@@ -23,51 +23,51 @@ module "compilation_lambda_beta" {
   }
 }
 
-# Staging Environment - Commented out for beta testing
-# module "compilation_lambda_staging" {
-#   source = "./modules/compilation_lambda"
-#
-#   environment                    = "staging"
-#   websocket_url                  = "wss://events.compiler-explorer.com/staging"
-#   alb_listener_arn               = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-#   enable_alb_listener            = false # Disabled initially
-#   alb_priority                   = 81
-#   alb_path_patterns = [
-#     "/staging/api/compiler/*/compile",
-#     "/staging/api/compiler/*/cmake"
-#   ]
-#   s3_bucket                      = aws_s3_bucket.compiler-explorer.bucket
-#   iam_role_arn                   = aws_iam_role.iam_for_lambda.arn
-#   cloudwatch_log_retention_days  = 1  # Minimum possible retention (1 day) for high-volume logging
-#
-#   tags = {
-#     Project = "compiler-explorer"
-#   }
-# }
+# Staging Environment
+module "compilation_lambda_staging" {
+  source = "./modules/compilation_lambda"
 
-# Production Environment - Commented out for beta testing
-# module "compilation_lambda_prod" {
-#   source = "./modules/compilation_lambda"
-#
-#   environment                    = "prod"
-#   websocket_url                  = "wss://events.compiler-explorer.com/prod"
-#   alb_listener_arn               = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-#   enable_alb_listener            = false # Disabled initially
-#   alb_priority                   = 71
-#   alb_path_patterns = [
-#     "/api/compiler/*/compile",
-#     "/api/compiler/*/cmake"
-#   ]
-#   s3_bucket                      = aws_s3_bucket.compiler-explorer.bucket
-#   iam_role_arn                   = aws_iam_role.iam_for_lambda.arn
-#   cloudwatch_log_retention_days  = 1  # Minimum possible retention (1 day) for high-volume logging
-#
-#   tags = {
-#     Project = "compiler-explorer"
-#   }
-# }
+  environment         = "staging"
+  websocket_url       = "wss://events.compiler-explorer.com/staging"
+  alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  enable_alb_listener = false # Disabled initially - enable with ce compilation-lambda enable staging
+  alb_priority        = 81
+  alb_path_patterns = [
+    "/staging/api/compiler/*/compile",
+    "/staging/api/compiler/*/cmake"
+  ]
+  s3_bucket                     = aws_s3_bucket.compiler-explorer.bucket
+  iam_role_arn                  = aws_iam_role.iam_for_lambda.arn
+  cloudwatch_log_retention_days = 1 # Minimum possible retention (1 day) for high-volume logging
 
-# Updated IAM policy to use module outputs - Only beta for testing
+  tags = {
+    Project = "compiler-explorer"
+  }
+}
+
+# Production Environment
+module "compilation_lambda_prod" {
+  source = "./modules/compilation_lambda"
+
+  environment         = "prod"
+  websocket_url       = "wss://events.compiler-explorer.com/prod"
+  alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+  enable_alb_listener = false # Disabled initially - enable with ce compilation-lambda enable prod
+  alb_priority        = 71
+  alb_path_patterns = [
+    "/api/compiler/*/compile",
+    "/api/compiler/*/cmake"
+  ]
+  s3_bucket                     = aws_s3_bucket.compiler-explorer.bucket
+  iam_role_arn                  = aws_iam_role.iam_for_lambda.arn
+  cloudwatch_log_retention_days = 1 # Minimum possible retention (1 day) for high-volume logging
+
+  tags = {
+    Project = "compiler-explorer"
+  }
+}
+
+# Updated IAM policy to use module outputs for all environments
 data "aws_iam_policy_document" "compilation_lambda_sqs" {
   statement {
     sid = "SQSAccess"
@@ -77,8 +77,8 @@ data "aws_iam_policy_document" "compilation_lambda_sqs" {
     ]
     resources = [
       module.compilation_lambda_beta.sqs_queue_arn,
-      # module.compilation_lambda_staging.sqs_queue_arn,
-      # module.compilation_lambda_prod.sqs_queue_arn
+      module.compilation_lambda_staging.sqs_queue_arn,
+      module.compilation_lambda_prod.sqs_queue_arn
     ]
   }
 }
@@ -129,42 +129,42 @@ output "compilation_queue_beta_id" {
   value       = module.compilation_lambda_beta.sqs_queue_id
 }
 
-# output "compilation_queue_staging_id" {
-#   description = "Staging compilation queue ID"
-#   value       = module.compilation_lambda_staging.sqs_queue_id
-# }
-#
-# output "compilation_queue_prod_id" {
-#   description = "Production compilation queue ID"
-#   value       = module.compilation_lambda_prod.sqs_queue_id
-# }
+output "compilation_queue_staging_id" {
+  description = "Staging compilation queue ID"
+  value       = module.compilation_lambda_staging.sqs_queue_id
+}
+
+output "compilation_queue_prod_id" {
+  description = "Production compilation queue ID"
+  value       = module.compilation_lambda_prod.sqs_queue_id
+}
 
 output "compilation_queue_beta_arn" {
   description = "Beta compilation queue ARN"
   value       = module.compilation_lambda_beta.sqs_queue_arn
 }
 
-# output "compilation_queue_staging_arn" {
-#   description = "Staging compilation queue ARN"
-#   value       = module.compilation_lambda_staging.sqs_queue_arn
-# }
-#
-# output "compilation_queue_prod_arn" {
-#   description = "Production compilation queue ARN"
-#   value       = module.compilation_lambda_prod.sqs_queue_arn
-# }
+output "compilation_queue_staging_arn" {
+  description = "Staging compilation queue ARN"
+  value       = module.compilation_lambda_staging.sqs_queue_arn
+}
+
+output "compilation_queue_prod_arn" {
+  description = "Production compilation queue ARN"
+  value       = module.compilation_lambda_prod.sqs_queue_arn
+}
 
 output "compilation_queue_beta_name" {
   description = "Beta compilation queue name"
   value       = module.compilation_lambda_beta.sqs_queue_name
 }
 
-# output "compilation_queue_staging_name" {
-#   description = "Staging compilation queue name"
-#   value       = module.compilation_lambda_staging.sqs_queue_name
-# }
-#
-# output "compilation_queue_prod_name" {
-#   description = "Production compilation queue name"
-#   value       = module.compilation_lambda_prod.sqs_queue_name
-# }
+output "compilation_queue_staging_name" {
+  description = "Staging compilation queue name"
+  value       = module.compilation_lambda_staging.sqs_queue_name
+}
+
+output "compilation_queue_prod_name" {
+  description = "Production compilation queue name"
+  value       = module.compilation_lambda_prod.sqs_queue_name
+}
