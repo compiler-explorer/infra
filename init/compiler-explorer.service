@@ -12,7 +12,6 @@ WorkingDirectory=/infra
 ExecStart=/infra/init/start.sh
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=compiler-explorer
 
 [Install]
 WantedBy=multi-user.target
