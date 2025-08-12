@@ -6,7 +6,6 @@ import logging.config
 import multiprocessing
 import os
 import signal
-import subprocess
 import sys
 import traceback
 from dataclasses import dataclass
@@ -26,6 +25,7 @@ from lib.installation import installers_for
 from lib.installation_context import FetchFailure, InstallationContext
 from lib.library_platform import LibraryPlatform
 from lib.library_yaml import LibraryYaml
+from lib.squashfs import verify_squashfs_contents
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -108,127 +108,6 @@ def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> in
                 error_count += squash_mount_check(rootfolder, filename, context)
             else:
                 error_count += squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
-    return error_count
-
-
-def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
-    """Verify squashfs image contents match NFS directory. Returns error count."""
-    error_count = 0
-
-    try:
-        # Extract squashfs metadata without mounting
-        result = subprocess.run(
-            ["unsquashfs", "-ll", "-d", "", str(img_path)], capture_output=True, text=True, check=True
-        )
-        sqfs_output = result.stdout
-    except subprocess.CalledProcessError as e:
-        _LOGGER.error("Failed to read squashfs image %s: %s", img_path, e)
-        return 1
-    except FileNotFoundError:
-        _LOGGER.error("unsquashfs command not found - install squashfs-tools")
-        return 1
-
-    # Parse squashfs output to get file list
-    sqfs_files = {}
-    for line in sqfs_output.split("\n"):
-        line = line.strip()
-        if not line:
-            continue
-        # Parse ls -l style output: permissions, owner/group, size, date, time, path [-> target]
-        parts = line.split()
-        if len(parts) == 6:  # permissions, owner/group, size, date, time, path
-            abs_path = parts[5]
-            if abs_path.startswith("/"):
-                rel_path = abs_path[1:]  # Remove leading slash
-                if rel_path:  # Skip empty paths (root directory)
-                    file_type = parts[0][0]  # d/l/-
-                    size = parts[2] if file_type == "-" else "0"  # Size is in parts[2]
-                    sqfs_files[rel_path] = (file_type, size)
-        elif len(parts) == 8:  # Symlink: permissions, owner/group, size, date, time, path, ->, target
-            abs_path = parts[5]
-            if abs_path.startswith("/") and parts[6] == "->":
-                rel_path = abs_path[1:]  # Remove leading slash
-                if rel_path:  # Skip empty paths (root directory)
-                    file_type = parts[0][0]  # Should be 'l' for symlinks
-                    size = "0"  # Symlinks always have size 0 for comparison
-                    sqfs_files[rel_path] = (file_type, size)
-        elif len(parts) == 5:  # Root directory case (no path)
-            # Root directory without path: permissions, owner/group, size, date, time
-            if parts[0][0] != "d":
-                raise ValueError(f"Expected root directory but got: {line}")
-        else:
-            raise ValueError(f"Unexpected unsquashfs output format ({len(parts)} parts): {line}")
-
-    # Build equivalent from directory filesystem
-    dir_files = {}
-    if not nfs_path.exists():
-        _LOGGER.error("Directory does not exist: %s", nfs_path)
-        return 1
-
-    for item in nfs_path.rglob("*"):
-        rel_path = str(item.relative_to(nfs_path))
-
-        stat_result = item.lstat()
-
-        if item.is_symlink():
-            file_type = "l"
-            size = "0"
-        elif item.is_dir():
-            file_type = "d"
-            size = "0"
-        elif item.is_file():
-            file_type = "-"
-            size = str(stat_result.st_size)
-        else:
-            raise ValueError(f"Unknown file type for {item}")
-
-        dir_files[rel_path] = (file_type, size)
-
-    # Compare file sets
-    only_in_sqfs = set(sqfs_files.keys()) - set(dir_files.keys())
-    only_in_dir = set(dir_files.keys()) - set(sqfs_files.keys())
-
-    # Report files only in one location
-    if only_in_sqfs:
-        error_count += len(only_in_sqfs)
-        _LOGGER.error(
-            "Files only in squashfs (%d): %s",
-            len(only_in_sqfs),
-            ", ".join(sorted(list(only_in_sqfs)[:5])) + ("..." if len(only_in_sqfs) > 5 else ""),
-        )
-
-    if only_in_dir:
-        error_count += len(only_in_dir)
-        _LOGGER.error(
-            "Files only in directory (%d): %s",
-            len(only_in_dir),
-            ", ".join(sorted(list(only_in_dir)[:5])) + ("..." if len(only_in_dir) > 5 else ""),
-        )
-
-    # Check common files for mismatches
-    mismatches = 0
-    for path in set(sqfs_files.keys()) & set(dir_files.keys()):
-        sqfs_meta = sqfs_files[path]
-        dir_meta = dir_files[path]
-
-        # Compare type and size
-        if sqfs_meta[0] != dir_meta[0]:
-            _LOGGER.error("Type mismatch for %s: squashfs=%s, directory=%s", path, sqfs_meta[0], dir_meta[0])
-            mismatches += 1
-        elif sqfs_meta[0] == "-" and sqfs_meta[1] != dir_meta[1]:
-            _LOGGER.error("Size mismatch for %s: squashfs=%s, directory=%s", path, sqfs_meta[1], dir_meta[1])
-            mismatches += 1
-
-    error_count += mismatches
-
-    # Debug info
-    _LOGGER.info("Found %d files in squashfs, %d files in directory", len(sqfs_files), len(dir_files))
-
-    if error_count == 0:
-        _LOGGER.info("✓ Contents match: %d files verified", len(sqfs_files))
-    else:
-        _LOGGER.error("✗ Contents mismatch: %d errors found", error_count)
-
     return error_count
 
 
