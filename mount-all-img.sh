@@ -12,6 +12,8 @@ for img_file in "${IMG_DIR}"/**/*.img; do
   dst_path=${dst_path%.img}
   if mountpoint -q "$dst_path"; then
     echo "$dst_path is mounted already, skipping"
+  elif [ -L "$dst_path" ]; then
+    echo "$dst_path is a symlink, skipping"
   else
     mounts["$img_file"]="$dst_path"
   fi
