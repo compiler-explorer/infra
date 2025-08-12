@@ -32,7 +32,7 @@ def parse_unsquashfs_line(line: str) -> Optional[SquashfsEntry]:
         r"(?P<size>\d+)\s+"
         r"(?P<date>\d{4}-\d{2}-\d{2})\s+"
         r"(?P<time>\d{2}:\d{2})"
-        r"(?:\s+(?P<path_part>.+?))?"
+        r"(?:\s+(?P<path_part>.+?))?\s*"  # Allow trailing whitespace
         r"$"
     )
 

@@ -73,6 +73,13 @@ class TestUnsquashfsParser:
         result = parse_unsquashfs_line(line)
         assert result is None  # Root directory should be skipped
 
+    def test_parse_squashfs_root_directory(self):
+        """Test parsing the root directory line that appears in all squashfs images."""
+        # Every squashfs image starts with a root directory line with no path
+        line = "drwxr-xr-x root/root               145 2021-09-27 12:21 "
+        result = parse_unsquashfs_line(line)
+        assert result is None  # Root directory should be skipped
+
     def test_parse_executable_file(self):
         """Test parsing an executable file."""
         line = "-rwxr-xr-x root/root     12345 2021-03-12 09:29 /bin/bash"
