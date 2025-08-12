@@ -60,9 +60,10 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
   - [ ] build and deploy aarch64staging
   - [ ] build and deploy aarch64prod
   - [ ] build beta
-- [ ] Simple config loader
-- [ ] Disable squashing
+- [x] Simple config loader
 - [ ] Update installers to (optionally, based on config) install this way (even works for nightly; and `tar` installers etc can skip the middle man and just turn `tar` etc into a squashfs image maybe? or doesn't matter using local disk)
+- [ ] Disable squashing and enable the cefs install
+- [ ] Test with a single compiler or library
 - [ ] Write "port" code to move existing images over
 - [ ] Slowly move older things over
 - [ ] Write consolidation tooling and run it
