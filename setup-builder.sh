@@ -9,7 +9,7 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 wget -qO- https://get.docker.com/ | sh
 usermod -aG docker ubuntu
 
-apt -y install mosh fish cronic subversion upx gdb
+apt -y install mosh fish cronic subversion upx gdb cron
 chsh ubuntu -s /usr/bin/fish
 
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
