@@ -19,6 +19,7 @@ import yaml
 from click.core import ParameterSource
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
 from lib.installation import installers_for
@@ -36,6 +37,7 @@ class CliContext:
     enabled: List[str]
     filter_match_all: bool
     parallel: int
+    config: Config
 
     def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
         # https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
@@ -255,6 +257,7 @@ def cli(
         enabled=enable,
         filter_match_all=filter_match_all,
         parallel=parallel,
+        config=Config.load(dest / "config.yaml"),
     )
 
 
@@ -397,15 +400,20 @@ def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Option
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
 @click.option(
     "--image-dir",
-    default=Path("/opt/squash-images"),
+    default=None,
     metavar="IMAGES",
     type=click.Path(file_okay=False, path_type=Path),
     help="Build images to IMAGES",
-    show_default=True,
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path):
+def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Optional[Path]):
     """Create squashfs images for all targets matching FILTER."""
+    if not context.config.squashfs.enabled:
+        _LOGGER.error("Squashfs is disabled in configuration")
+        return
+
+    if image_dir is None:
+        image_dir = context.config.squashfs.image_dir
 
     with context.pool() as pool:
         should_install_func = partial(_to_squash, image_dir, force)
@@ -416,7 +424,7 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
             _LOGGER.info("Would squash %s to %s", installable.name, destination)
         else:
             _LOGGER.info("Squashing %s to %s", installable.name, destination)
-            installable.squash_to(destination)
+            installable.squash_to(destination, context.config.squashfs)
 
 
 @cli.command()
@@ -425,15 +433,19 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Path
 @click.option("--no-check-mount-targets", is_flag=True, help="Skip checking mount targets exist")
 @click.option(
     "--image-dir",
-    default=Path("/efs/squash-images"),
+    default=None,
     metavar="IMAGES",
     type=click.Path(file_okay=False, path_type=Path),
     help="Look for images in IMAGES",
-    show_default=True,
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def squash_check(context: CliContext, filter_: List[str], image_dir: Path, verify: bool, no_check_mount_targets: bool):
+def squash_check(
+    context: CliContext, filter_: List[str], image_dir: Optional[Path], verify: bool, no_check_mount_targets: bool
+):
     """Check squash images matching FILTER, optionally verify contents."""
+    if image_dir is None:
+        image_dir = context.config.squashfs.image_dir
+
     total_errors = 0
 
     if not image_dir.exists():
