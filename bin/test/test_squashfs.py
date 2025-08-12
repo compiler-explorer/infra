@@ -119,8 +119,16 @@ class TestUnsquashfsParser:
         )
 
     def test_invalid_line(self):
-        """Test that invalid lines return None."""
-        assert parse_unsquashfs_line("invalid line") is None
+        """Test that invalid lines raise ValueError."""
+        import pytest
+
+        with pytest.raises(ValueError, match="Cannot parse unsquashfs line"):
+            parse_unsquashfs_line("invalid line")
+
+        with pytest.raises(ValueError, match="Cannot parse unsquashfs line"):
+            parse_unsquashfs_line("some garbage text")
+
+        # Empty lines should return None (not raise)
         assert parse_unsquashfs_line("") is None
         assert parse_unsquashfs_line("   ") is None
 
