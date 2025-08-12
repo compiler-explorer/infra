@@ -24,7 +24,8 @@ class SquashfsEntry:
 def parse_unsquashfs_line(line: str) -> Optional[SquashfsEntry]:
     """Parse a single line from unsquashfs -ll output.
 
-    Returns SquashfsEntry with parsed data, or None if line cannot be parsed.
+    Returns SquashfsEntry with parsed data, or None for intentionally skipped entries (root dir).
+    Raises ValueError for unparseable lines.
     """
     pattern = re.compile(
         r"^(?P<permissions>[dlcbps-][rwxst-]{9})\s+"
@@ -32,13 +33,17 @@ def parse_unsquashfs_line(line: str) -> Optional[SquashfsEntry]:
         r"(?P<size>\d+)\s+"
         r"(?P<date>\d{4}-\d{2}-\d{2})\s+"
         r"(?P<time>\d{2}:\d{2})"
-        r"(?:\s+(?P<path_part>.+?))?"
+        r"(?:\s+(?P<path_part>.+?))?\s*"  # Allow trailing whitespace
         r"$"
     )
 
-    match = pattern.match(line.strip())
+    stripped_line = line.strip()
+    if not stripped_line:
+        return None  # Empty lines are ok to skip
+
+    match = pattern.match(stripped_line)
     if not match:
-        return None
+        raise ValueError(f"Cannot parse unsquashfs line: {line}")
 
     groups = match.groupdict()
 
@@ -99,12 +104,15 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
         if line.startswith("Parallel unsquashfs:") or line.startswith("Filesystem on"):
             continue
 
-        parsed = parse_unsquashfs_line(line)
-        if parsed:
+        try:
+            parsed = parse_unsquashfs_line(line)
+            if parsed is None:
+                # None means intentionally skipped (e.g., root directory, empty lines)
+                continue
             sqfs_files[parsed.path] = (parsed.file_type, str(parsed.size))
-        else:
-            # Fail on any line we can't parse
-            raise ValueError(f"Failed to parse unsquashfs output line: {line}")
+        except ValueError as e:
+            _LOGGER.error("Failed to parse unsquashfs output: %s", e)
+            raise
 
     # Build equivalent from directory filesystem
     dir_files: Dict[str, Tuple[str, str]] = {}
