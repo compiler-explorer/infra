@@ -30,7 +30,7 @@ module "compilation_lambda_staging" {
   environment         = "staging"
   websocket_url       = "wss://events.compiler-explorer.com/staging"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-  enable_alb_listener = false # Disabled initially - enable with ce compilation-lambda enable staging
+  enable_alb_listener = true
   alb_priority        = 81
   alb_path_patterns = [
     "/staging/api/compiler/*/compile",
@@ -52,11 +52,10 @@ module "compilation_lambda_prod" {
   environment         = "prod"
   websocket_url       = "wss://events.compiler-explorer.com/prod"
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
-  enable_alb_listener = false # Disabled initially - enable with ce compilation-lambda enable prod
+  enable_alb_listener = true
   alb_priority        = 71
   alb_path_patterns = [
-    "/api/compiler/*/compile",
-    "/api/compiler/*/cmake"
+    "/killswitch-disabled-*"
   ]
   s3_bucket                     = aws_s3_bucket.compiler-explorer.bucket
   iam_role_arn                  = aws_iam_role.iam_for_lambda.arn
