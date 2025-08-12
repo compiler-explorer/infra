@@ -382,6 +382,9 @@ def amazon_check():
 
 
 def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Optional[Tuple[Installable, Path]]:
+    if not installable.is_squashable:
+        _LOGGER.info("%s isn't squashable; skipping", installable.name)
+        return None
     if not installable.is_installed():
         _LOGGER.warning("%s wasn't installed; skipping squash", installable.name)
         return None
@@ -456,6 +459,8 @@ def squash_check(
     installables = context.get_installables(filter_)
     for installable in installables:
         destination = image_dir / f"{installable.install_path}.img"
+        if not installable.is_squashable:
+            continue
         if installable.nightly_like:
             if destination.exists():
                 _LOGGER.error("Found squash: %s for nightly", installable.name)

@@ -314,6 +314,10 @@ class Installable:
             return rbuilder.makebuild(buildfor)
         raise RuntimeError(f"Unsupported build_type ${self.build_config.build_type}")
 
+    @property
+    def is_squashable(self) -> bool:
+        return True
+
     def squash_to(self, destination_image: Path, squashfs_config: SquashfsConfig):
         destination_image.parent.mkdir(parents=True, exist_ok=True)
         source_folder = self.install_context.destination / self.install_path

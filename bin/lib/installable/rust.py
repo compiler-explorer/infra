@@ -109,3 +109,7 @@ class RustInstallable(Installable):
 class CratesIOInstallable(Installable):
     def is_installed(self) -> bool:
         return True
+
+    @property
+    def is_squashable(self) -> bool:
+        return False
