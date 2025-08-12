@@ -61,9 +61,12 @@ resource "aws_iam_policy" "lambda_events_logging" {
 
 data "aws_iam_policy_document" "aws_dynamodb_events" {
   statement {
-    sid       = "Allow"
-    resources = [aws_dynamodb_table.events-connections.arn]
-    actions   = ["dynamodb:*"]
+    sid = "Allow"
+    resources = [
+      aws_dynamodb_table.events-connections.arn,
+      "${aws_dynamodb_table.events-connections.arn}/index/*"
+    ]
+    actions = ["dynamodb:*"]
   }
 }
 
@@ -107,8 +110,10 @@ resource "aws_lambda_function" "events_onconnect" {
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-onconnect.handler"
 
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
+
+  publish = true # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_onconnect]
 }
@@ -123,8 +128,10 @@ resource "aws_lambda_function" "events_ondisconnect" {
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-ondisconnect.handler"
 
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
+
+  publish = true # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_ondisconnect]
 }
@@ -138,26 +145,30 @@ resource "aws_lambda_function" "events_sendmessage" {
   function_name     = "events-sendmessage"
   role              = aws_iam_role.iam_for_lambda_events.arn
   handler           = "events-sendmessage.handler"
+  memory_size       = 512 # Increased for better CPU and reduced GC pressure
+  timeout           = 30  # Explicit timeout for API Gateway Management API calls
 
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
+
+  publish = true # Required for provisioned concurrency
 
   depends_on = [aws_cloudwatch_log_group.events_sendmessage]
 }
 
 resource "aws_cloudwatch_log_group" "events_onconnect" {
   name              = "/aws/lambda/events-onconnect"
-  retention_in_days = 7
+  retention_in_days = 1 # Minimum retention for high-volume production logging
 }
 
 resource "aws_cloudwatch_log_group" "events_ondisconnect" {
   name              = "/aws/lambda/events-ondisconnect"
-  retention_in_days = 7
+  retention_in_days = 1 # Minimum retention for high-volume production logging
 }
 
 resource "aws_cloudwatch_log_group" "events_sendmessage" {
   name              = "/aws/lambda/events-sendmessage"
-  retention_in_days = 7
+  retention_in_days = 1 # Minimum retention for high-volume production logging
 }
 
 ## S3 things for the code
@@ -198,4 +209,23 @@ resource "aws_lambda_permission" "events_sendmessage" {
   function_name = aws_lambda_function.events_sendmessage.arn
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.events_api.execution_arn}/*/*"
+}
+
+# Provisioned concurrency to keep events lambdas warm
+resource "aws_lambda_provisioned_concurrency_config" "events_sendmessage" {
+  function_name                     = aws_lambda_function.events_sendmessage.function_name
+  provisioned_concurrent_executions = 5 # Increased for higher concurrent result processing
+  qualifier                         = aws_lambda_function.events_sendmessage.version
+}
+
+resource "aws_lambda_provisioned_concurrency_config" "events_onconnect" {
+  function_name                     = aws_lambda_function.events_onconnect.function_name
+  provisioned_concurrent_executions = 1
+  qualifier                         = aws_lambda_function.events_onconnect.version
+}
+
+resource "aws_lambda_provisioned_concurrency_config" "events_ondisconnect" {
+  function_name                     = aws_lambda_function.events_ondisconnect.function_name
+  provisioned_concurrent_executions = 1
+  qualifier                         = aws_lambda_function.events_ondisconnect.version
 }

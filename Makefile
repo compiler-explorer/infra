@@ -87,7 +87,7 @@ $(UV_DEPS): $(UV_BIN) pyproject.toml
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
 
 .PHONY: test
-test: ce  ## Runs the tests
+test: ce test-compilation-lambda  ## Runs all tests (Python and Node.js)
 	$(UV_BIN) run pytest $(PY_SOURCE_ROOTS)
 
 .PHONY: static-checks
@@ -162,7 +162,7 @@ EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
 EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
 EVENTS_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/events-lambda-package.zip.sha256
 EVENTS_LAMBDA_DIR:=$(CURDIR)/events-lambda
-$(EVENTS_LAMBDA_PACKAGE):
+$(EVENTS_LAMBDA_PACKAGE): $(wildcard events-lambda/*.js) events-lambda/package.json Makefile
 	rm -rf $(EVENTS_LAMBDA_PACKAGE_DIR)
 	mkdir -p $(EVENTS_LAMBDA_PACKAGE_DIR)
 	cd $(EVENTS_LAMBDA_DIR) && npm i && npm run lint && npm install --no-audit --ignore-scripts --production && npm install --no-audit --ignore-scripts --production --cpu arm64 && cd ..
@@ -178,15 +178,15 @@ events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
 COMPILATION_LAMBDA_PACKAGE:=$(CURDIR)/.dist/compilation-lambda-package.zip
 COMPILATION_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/compilation-lambda-package.zip.sha256
-$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.py) compilation-lambda/pyproject.toml Makefile scripts/build_lambda_deterministic.py
-	$(UV_BIN) run python scripts/build_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
+$(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA): $(wildcard compilation-lambda/*.js) $(wildcard compilation-lambda/lib/*.js) compilation-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_nodejs_lambda_deterministic.py $(CURDIR)/compilation-lambda $(COMPILATION_LAMBDA_PACKAGE)
 
 .PHONY: compilation-lambda-package  ## builds compilation lambda
 compilation-lambda-package: $(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_PACKAGE_SHA)
 
 .PHONY: test-compilation-lambda  ## runs compilation lambda tests
-test-compilation-lambda: ce
-	cd compilation-lambda && $(UV_BIN) run --with websocket-client --with boto3 --with pytest python -m pytest test_lambda_function.py -v
+test-compilation-lambda:
+	cd compilation-lambda && npm install && npm test
 
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
@@ -197,11 +197,11 @@ upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
 	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
 
 .PHONY: terraform-apply
-terraform-apply:  upload-lambda upload-compilation-lambda ## Applies terraform
+terraform-apply:  upload-lambda upload-compilation-lambda upload-events-lambda ## Applies terraform
 	terraform -chdir=terraform apply
 
 .PHONY: terraform-plan
-terraform-plan:  upload-lambda upload-compilation-lambda ## Plans terraform changes
+terraform-plan:  upload-lambda upload-compilation-lambda upload-events-lambda ## Plans terraform changes
 	terraform -chdir=terraform plan
 
 .PHONY: pre-commit
