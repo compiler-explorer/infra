@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Optional
 
 import yaml
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -21,7 +22,7 @@ _LOGGER = logging.getLogger(__name__)
 class SquashfsConfig(BaseModel):
     """Configuration for squashfs creation and management."""
 
-    enabled: bool = True
+    traditional_enabled: bool = True  # whether the old-style explicit "squash" is enabled
     image_dir: Path = Path("/efs/squash-images")
     compression: str = "zstd"
     compression_level: int = 19
@@ -36,6 +37,7 @@ class CefsConfig(BaseModel):
     enabled: bool = False
     mount_point: str = "/cefs"
     image_dir: Path = Path("/efs/cefs-images")
+    local_temp_dir: Path = Path("/tmp/ce-cefs-temp")
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -81,3 +83,38 @@ class Config(BaseModel):
         except Exception as e:
             _LOGGER.error("Failed to load config from %s: %s", config_path, e)
             raise
+
+    def with_cli_overrides(
+        self,
+        force_cefs: bool = False,
+        force_traditional: bool = False,
+        cefs_temp_dir: Optional[Path] = None,
+    ) -> Config:
+        """Create a new Config with CLI overrides applied.
+
+        Args:
+            force_cefs: Force CEFS enabled, overriding config
+            force_traditional: Force CEFS disabled, overriding config
+            cefs_temp_dir: Override local temp directory for CEFS
+
+        Returns:
+            New Config instance with overrides applied
+        """
+
+        if force_cefs and force_traditional:
+            raise ValueError("Cannot specify both --force-cefs and --force-traditional")
+
+        config_dict = self.model_dump()
+        if force_cefs:
+            config_dict["cefs"]["enabled"] = True
+            _LOGGER.info("CLI override: Forcing CEFS enabled")
+
+        if force_traditional:
+            config_dict["cefs"]["enabled"] = False
+            _LOGGER.info("CLI override: Forcing traditional NFS installation")
+
+        if cefs_temp_dir:
+            config_dict["cefs"]["local_temp_dir"] = cefs_temp_dir
+            _LOGGER.info("CLI override: CEFS temp dir = %s", cefs_temp_dir)
+
+        return self.__class__.model_validate(config_dict)

@@ -48,10 +48,12 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
 ## Work
 
 - [ ] Investigate what I've forgotten about getting this to work
-  - [ ] Update builder to 22.04 and cefs support
-- [ ] "Squash verify" to check current squash images are in fact "correct"
+  - [x] Update builder to 22.04 and cefs support
+  - [x] Runner too
+  - [ ] what else have I forgotten?
+- [x] "Squash verify" to check current squash images are in fact "correct"
   - [x] in progress
-  - [ ] fix up anything found that mismatches
+  - [x] fix up anything found that mismatches
 - [x] Update `mount-all-img.sh` to do the Right Thing, test it, and rebuild and deploy all the AMIs
   - [x] make the change in main
   - [x] build and deploy staging
@@ -62,7 +64,8 @@ I suggest we make a `/opt/compiler-explorer/config.yaml` or something that store
   - [x] build beta
 - [x] Simple config loader
 - [x] Write "port" code to move existing images over
-- [ ] Update installers to (optionally, based on config) install this way (even works for nightly; and `tar` installers etc can skip the middle man and just turn `tar` etc into a squashfs image maybe? or doesn't matter using local disk)
+- [x] Update installers to (optionally, based on config) install this way (even works for nightly)
+  - [ ] (and `tar` installers etc can skip the middle man and just turn `tar` etc into a squashfs image maybe? or doesn't matter using local disk)
 - [ ] Disable squashing and enable the cefs install
 - [ ] Test with a single compiler or library
 - [ ] Slowly move older things over

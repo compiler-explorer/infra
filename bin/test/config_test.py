@@ -26,7 +26,7 @@ class TestConfig(unittest.TestCase):
         config = Config.load(self.config_file)
 
         # Check squashfs defaults
-        self.assertTrue(config.squashfs.enabled)
+        self.assertTrue(config.squashfs.traditional_enabled)
         self.assertEqual(config.squashfs.image_dir, Path("/efs/squash-images"))
         self.assertEqual(config.squashfs.compression, "zstd")
         self.assertEqual(config.squashfs.compression_level, 19)
@@ -36,6 +36,7 @@ class TestConfig(unittest.TestCase):
         self.assertFalse(config.cefs.enabled)
         self.assertEqual(config.cefs.mount_point, "/cefs")
         self.assertEqual(config.cefs.image_dir, Path("/efs/cefs-images"))
+        self.assertEqual(config.cefs.local_temp_dir, Path("/tmp/ce-cefs-temp"))
 
     def test_empty_config_file(self):
         """Test loading empty config file."""
@@ -43,12 +44,12 @@ class TestConfig(unittest.TestCase):
         config = Config.load(self.config_file)
 
         # Should use defaults
-        self.assertTrue(config.squashfs.enabled)
+        self.assertTrue(config.squashfs.traditional_enabled)
         self.assertFalse(config.cefs.enabled)
 
     def test_partial_config(self):
         """Test loading config with only some values specified."""
-        config_data = {"squashfs": {"enabled": True, "compression_level": 15}}
+        config_data = {"squashfs": {"traditional_enabled": True, "compression_level": 15}}
 
         with self.config_file.open("w", encoding="utf-8") as f:
             yaml.dump(config_data, f)
@@ -56,7 +57,7 @@ class TestConfig(unittest.TestCase):
         config = Config.load(self.config_file)
 
         # Check specified values
-        self.assertTrue(config.squashfs.enabled)
+        self.assertTrue(config.squashfs.traditional_enabled)
         self.assertEqual(config.squashfs.compression_level, 15)
 
         # Check defaults are preserved
@@ -68,7 +69,7 @@ class TestConfig(unittest.TestCase):
         """Test loading complete config file."""
         config_data = {
             "squashfs": {
-                "enabled": True,
+                "traditional_enabled": True,
                 "image_dir": "/custom/squash-images",
                 "compression": "gzip",
                 "compression_level": 9,
@@ -87,7 +88,7 @@ class TestConfig(unittest.TestCase):
         config = Config.load(self.config_file)
 
         # Check squashfs values
-        self.assertTrue(config.squashfs.enabled)
+        self.assertTrue(config.squashfs.traditional_enabled)
         self.assertEqual(config.squashfs.image_dir, Path("/custom/squash-images"))
         self.assertEqual(config.squashfs.compression, "gzip")
         self.assertEqual(config.squashfs.compression_level, 9)
@@ -100,7 +101,7 @@ class TestConfig(unittest.TestCase):
 
     def test_unknown_keys_rejected(self):
         """Test that unknown keys in config are rejected."""
-        config_data = {"squashfs": {"enabled": True, "unknown_key": "should_fail"}}
+        config_data = {"squashfs": {"traditional_enabled": True, "unknown_key": "should_fail"}}
 
         with self.config_file.open("w", encoding="utf-8") as f:
             yaml.dump(config_data, f)
@@ -115,7 +116,7 @@ class TestConfig(unittest.TestCase):
     def test_unknown_top_level_keys_rejected(self):
         """Test that unknown top-level keys are rejected."""
         config_data = {
-            "squashfs": {"enabled": True},
+            "squashfs": {"traditional_enabled": True},
             "unknown_section": {"some": "value"},
         }
 
@@ -130,7 +131,7 @@ class TestConfig(unittest.TestCase):
 
     def test_invalid_types(self):
         """Test that invalid types are rejected."""
-        config_data = {"squashfs": {"enabled": "not_a_boolean", "compression_level": "not_an_int"}}
+        config_data = {"squashfs": {"traditional_enabled": "not_a_boolean", "compression_level": "not_an_int"}}
 
         with self.config_file.open("w", encoding="utf-8") as f:
             yaml.dump(config_data, f)
@@ -139,7 +140,7 @@ class TestConfig(unittest.TestCase):
             Config.load(self.config_file)
 
         error_str = str(cm.exception)
-        self.assertIn("enabled", error_str)
+        self.assertIn("traditional_enabled", error_str)
         self.assertIn("compression_level", error_str)
 
     def test_path_conversion(self):
@@ -164,7 +165,7 @@ class TestConfig(unittest.TestCase):
         config = Config.load(self.config_file)
 
         with self.assertRaises(ValidationError):
-            config.squashfs.enabled = True
+            config.squashfs.traditional_enabled = True
 
         with self.assertRaises(ValidationError):
             config.cefs.enabled = True
@@ -173,9 +174,9 @@ class TestConfig(unittest.TestCase):
 class TestSquashfsConfig(unittest.TestCase):
     def test_direct_construction(self):
         """Test creating SquashfsConfig directly."""
-        config = SquashfsConfig(enabled=True, compression="gzip", compression_level=9)
+        config = SquashfsConfig(traditional_enabled=True, compression="gzip", compression_level=9)
 
-        self.assertTrue(config.enabled)
+        self.assertTrue(config.traditional_enabled)
         self.assertEqual(config.compression, "gzip")
         self.assertEqual(config.compression_level, 9)
         # Defaults should be preserved
