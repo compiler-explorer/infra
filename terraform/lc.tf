@@ -1,5 +1,5 @@
 locals {
-  image_id                 = "ami-0898209aafa929263"
+  prod_image_id            = "ami-0898209aafa929263"
   staging_image_id         = "ami-0898209aafa929263"
   beta_image_id            = "ami-0898209aafa929263"
   gpu_image_id             = "ami-026c749706de56d71"
@@ -30,7 +30,7 @@ locals {
       instance_type = "m5.large"
     }
     prod = {
-      image_id      = local.image_id
+      image_id      = local.prod_image_id
       user_data     = local.prod_user_data
       instance_type = "c6i.large"
     }
