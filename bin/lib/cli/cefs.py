@@ -3,7 +3,6 @@
 
 import logging
 import subprocess
-from pathlib import Path
 from typing import List
 
 import click
@@ -14,6 +13,8 @@ from lib.cefs import (
     calculate_squashfs_hash,
     copy_to_cefs_atomically,
     detect_nfs_state,
+    get_cefs_image_path,
+    get_cefs_mount_path,
     validate_cefs_mount_point,
 )
 from lib.installable.installable import Installable
@@ -51,8 +52,8 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
         _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
         return False
 
-    cefs_image_path = context.config.cefs.image_dir / f"{hash_value}.sqfs"
-    cefs_target = Path(f"/cefs/{hash_value}")
+    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_value)
+    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, hash_value)
 
     # Copy squashfs to CEFS images directory if not already there
     # Never overwrite - hash ensures content is identical
@@ -184,9 +185,21 @@ def setup(context: CliContext, dry_run: bool):
         # Step 1: Create CEFS mount point
         run_cmd(["sudo", "mkdir", "-p", cefs_mount_point], f"Creating CEFS mount point: {cefs_mount_point}")
 
-        # Step 2: Create autofs map file
-        auto_cefs_content = f"* -fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/&.sqfs"
+        # Step 2: Create first-level autofs map file (handles /cefs/XX -> nested autofs)
+        auto_cefs_content = "* -fstype=autofs program:/etc/auto.cefs.sub"
         run_cmd(["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > /etc/auto.cefs"], "Creating /etc/auto.cefs")
+
+        # Step 2b: Create second-level autofs executable script (handles HASH -> squashfs mount)
+        auto_cefs_sub_script = f"""#!/bin/bash
+key="$1"
+subdir="${{key:0:2}}"
+echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key}}.sqfs"
+"""
+        run_cmd(
+            ["sudo", "bash", "-c", f"cat > /etc/auto.cefs.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
+            "Creating /etc/auto.cefs.sub script",
+        )
+        run_cmd(["sudo", "chmod", "+x", "/etc/auto.cefs.sub"], "Making /etc/auto.cefs.sub executable")
 
         # Step 3: Create autofs master entry
         auto_master_content = f"{cefs_mount_point} /etc/auto.cefs --negative-timeout 1"

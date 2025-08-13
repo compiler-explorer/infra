@@ -186,7 +186,14 @@ chown -R ubuntu /home/ubuntu/.ssh
 
 setup_cefs() {
     mkdir /cefs
-    echo "* -fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/&.sqfs" > /etc/auto.cefs
+    echo "* -fstype=autofs program:/etc/auto.cefs.sub" > /etc/auto.cefs
+    cat > /etc/auto.cefs.sub << 'EOF'
+#!/bin/bash
+key="$1"
+subdir="${key:0:2}"
+echo "-fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/${subdir}/${key}.sqfs"
+EOF
+    chmod +x /etc/auto.cefs.sub
     echo "/cefs /etc/auto.cefs --negative-timeout 1" > /etc/auto.master.d/cefs.autofs
     service autofs restart
 }

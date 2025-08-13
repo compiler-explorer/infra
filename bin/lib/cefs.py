@@ -10,6 +10,34 @@ from pathlib import Path
 _LOGGER = logging.getLogger(__name__)
 
 
+def get_cefs_image_path(image_dir: Path, hash_value: str) -> Path:
+    """Get the full CEFS image path for a given hash.
+
+    Args:
+        image_dir: Base image directory (e.g., Path("/efs/cefs-images"))
+        hash_value: SHA256 hash string
+
+    Returns:
+        Full path to the CEFS image file (e.g., /efs/cefs-images/a1/a1b2c3d4....sqfs)
+    """
+    subdir = hash_value[:2]
+    return image_dir / subdir / f"{hash_value}.sqfs"
+
+
+def get_cefs_mount_path(mount_point: Path, hash_value: str) -> Path:
+    """Get the full CEFS mount target path for a given hash.
+
+    Args:
+        mount_point: Base mount point (e.g., Path("/cefs"))
+        hash_value: SHA256 hash string
+
+    Returns:
+        Full path to the CEFS mount target (e.g., /cefs/a1/a1b2c3d4...)
+    """
+    subdir = hash_value[:2]
+    return mount_point / subdir / hash_value
+
+
 def calculate_squashfs_hash(squashfs_path: Path) -> str:
     """Calculate SHA256 hash of squashfs image using Python hashlib."""
     sha256_hash = hashlib.sha256()
@@ -29,16 +57,16 @@ def detect_nfs_state(nfs_path: Path) -> str:
         return "missing"
 
 
-def validate_cefs_mount_point(mount_point: str) -> bool:
+def validate_cefs_mount_point(mount_point: Path) -> bool:
     """Validate that CEFS mount point is accessible.
 
     Args:
-        mount_point: CEFS mount point path (e.g., "/cefs")
+        mount_point: CEFS mount point path (e.g., Path("/cefs"))
 
     Returns:
         True if mount point is accessible, False otherwise
     """
-    mount_path = Path(mount_point)
+    mount_path = mount_point
 
     if not mount_path.exists():
         _LOGGER.error("CEFS mount point does not exist: %s", mount_point)

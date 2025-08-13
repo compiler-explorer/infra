@@ -8,8 +8,6 @@ We do this as the access times via the cacheable, compressed SquashFS images are
 
 We've tried [many](https://github.com/compiler-explorer/cefs) [different](https://github.com/compiler-explorer/infra/pull/798) [approaches](https://github.com/compiler-explorer/infra/pull/1741) to improve this but all hit issues.
 
-XXX TODO
-- should we pony up and go 2-3 level fs in autofs before we make any decisions
 - "unpack" command to let us make ad hoc changes (unpack squashfs; replace symlink with contents)
 
 ## CEFS v2 Approach
@@ -25,14 +23,26 @@ Short version - symlink dirs from NFS to `/cefs/HASH`
 Autofs automatically mounts squashfs images on demand:
 
 ```
-# /etc/auto.cefs
-* -fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/&.sqfs
+# /etc/auto.cefs (first-level: handles /cefs/XX -> nested autofs)
+* -fstype=autofs program:/etc/auto.cefs.sub
+
+# /etc/auto.cefs.sub (executable script: handles /cefs/XX/HASH -> squashfs mount)
+#!/bin/bash
+key="$1"
+subdir="${key:0:2}"
+echo "-fstype=squashfs,loop,nosuid,nodev,ro :/efs/cefs-images/${subdir}/${key}.sqfs"
 
 # /etc/auto.master.d/cefs.autofs
 /cefs /etc/auto.cefs --negative-timeout 1
 ```
 
-First access to `/cefs/HASH` triggers mount of `/efs/cefs-images/HASH.sqfs`.
+CEFS uses a hierarchical directory structure to avoid filesystem performance issues with thousands of files in a single directory. Hash-based paths are structured as `/cefs/XX/XXYYZZZ...` where XX is the first two characters of the SHA256 hash. This provides up to 256 subdirectories (00-ff for hexadecimal hashes), distributing files evenly across the filesystem.
+
+The two-level autofs configuration works as follows:
+1. First access to `/cefs/XX` creates a nested autofs mount using the executable script `/etc/auto.cefs.sub`
+2. Second access to `/cefs/XX/XXYYZZZ` calls the script with the hash as argument
+3. The script extracts the first two characters from the hash and returns mount options for `/efs/cefs-images/XX/XXYYZZZ.sqfs`
+4. Autofs mounts the squashfs image at the requested location
 
 ## mount-all-img.sh Integration
 
@@ -56,6 +66,13 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] build and deploy aarch64staging
   - [x] build and deploy aarch64prod
   - [x] build beta
+- [ ] Fix up automounter
+  - [ ] fix in main
+  - [ ] install in admin
+  - [ ] staging, beta, prod script update and AMI
+  - [ ] aarch64 ditto
+  - [ ] gpu ditto
+  - [ ] windows rebuild just to pick up the other changes
 - [x] Simple config loader
 - [x] Write "port" code to move existing images over
 - [x] Update installers to (optionally, based on config) install this way (even works for nightly)
@@ -76,8 +93,8 @@ The modified script now skips mounting when the destination is already a symlink
 
 #### Migration Process
 
-1. Hash existing squashfs image and copy to `/efs/cefs-images/${HASH}.sqfs`
-2. Backup NFS directory and create symlink to `/cefs/${HASH}`
+1. Hash existing squashfs image and copy to `/efs/cefs-images/${HASH:0:2}/${HASH}.sqfs`
+2. Backup NFS directory and create symlink to `/cefs/${HASH:0:2}/${HASH}`
 3. First access triggers autofs mount of the CEFS image
 
 This is implemented in the `ce cefs convert`.

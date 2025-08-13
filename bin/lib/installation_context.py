@@ -22,7 +22,13 @@ import requests.adapters
 import requests_cache
 import yaml
 
-from lib.cefs import backup_and_symlink, calculate_squashfs_hash, copy_to_cefs_atomically
+from lib.cefs import (
+    backup_and_symlink,
+    calculate_squashfs_hash,
+    copy_to_cefs_atomically,
+    get_cefs_image_path,
+    get_cefs_mount_path,
+)
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -502,8 +508,8 @@ class InstallationContext:
 
             # Calculate hash and deploy to CEFS
             hash_value = calculate_squashfs_hash(temp_squash_file)
-            cefs_image_path = self.config.cefs.image_dir / f"{hash_value}.sqfs"
-            cefs_target = Path(f"{self.config.cefs.mount_point}/{hash_value}")
+            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value)
+            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
 
             # Copy to CEFS images directory if not already there
             if not cefs_image_path.exists():

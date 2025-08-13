@@ -34,7 +34,7 @@ class TestConfig(unittest.TestCase):
 
         # Check cefs defaults
         self.assertFalse(config.cefs.enabled)
-        self.assertEqual(config.cefs.mount_point, "/cefs")
+        self.assertEqual(config.cefs.mount_point, Path("/cefs"))
         self.assertEqual(config.cefs.image_dir, Path("/efs/cefs-images"))
         self.assertEqual(config.cefs.local_temp_dir, Path("/tmp/ce-cefs-temp"))
 
@@ -96,7 +96,7 @@ class TestConfig(unittest.TestCase):
 
         # Check cefs values
         self.assertTrue(config.cefs.enabled)
-        self.assertEqual(config.cefs.mount_point, "/custom/cefs")
+        self.assertEqual(config.cefs.mount_point, Path("/custom/cefs"))
         self.assertEqual(config.cefs.image_dir, Path("/custom/cefs-images"))
 
     def test_unknown_keys_rejected(self):
@@ -147,7 +147,7 @@ class TestConfig(unittest.TestCase):
         """Test that strings are properly converted to Path objects."""
         config_data = {
             "squashfs": {"image_dir": "/string/path"},
-            "cefs": {"image_dir": "/another/string/path"},
+            "cefs": {"image_dir": "/another/string/path", "mount_point": "/mount/string/path"},
         }
 
         with self.config_file.open("w", encoding="utf-8") as f:
@@ -159,6 +159,8 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.squashfs.image_dir, Path("/string/path"))
         self.assertIsInstance(config.cefs.image_dir, Path)
         self.assertEqual(config.cefs.image_dir, Path("/another/string/path"))
+        self.assertIsInstance(config.cefs.mount_point, Path)
+        self.assertEqual(config.cefs.mount_point, Path("/mount/string/path"))
 
     def test_config_immutability(self):
         """Test that config objects are immutable."""
@@ -195,7 +197,7 @@ class TestCefsConfig(unittest.TestCase):
         config = CefsConfig(enabled=True, mount_point="/custom/mount")
 
         self.assertTrue(config.enabled)
-        self.assertEqual(config.mount_point, "/custom/mount")
+        self.assertEqual(config.mount_point, Path("/custom/mount"))
         # Default should be preserved
         self.assertEqual(config.image_dir, Path("/efs/cefs-images"))
 

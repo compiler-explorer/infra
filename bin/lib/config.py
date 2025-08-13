@@ -35,7 +35,7 @@ class CefsConfig(BaseModel):
     """Configuration for CEFS (Compiler Explorer FileSystem) v2."""
 
     enabled: bool = False
-    mount_point: str = "/cefs"
+    mount_point: Path = Path("/cefs")
     image_dir: Path = Path("/efs/cefs-images")
     local_temp_dir: Path = Path("/tmp/ce-cefs-temp")
 
