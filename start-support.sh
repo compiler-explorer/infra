@@ -4,12 +4,18 @@
 
 SKIP_SQUASH=0
 CE_USER=ce
-ENV=$(cloud-init query userdata)
-ENV=${ENV:-prod}
+
+METADATA_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+ENV=$(curl -s -H "X-aws-ec2-metadata-token: $METADATA_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Environment)
+if [ -z "${ENV}" ]; then
+    echo "Environment not set!!"
+    exit 1
+fi
+echo Running in environment "${ENV}"
+
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
-echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
 source "${PWD}/site-${ENV}.sh"
 

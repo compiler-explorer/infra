@@ -32,10 +32,12 @@ module "compilation_lambda_staging" {
   alb_listener_arn    = aws_alb_listener.compiler-explorer-alb-listen-https.arn
   enable_alb_listener = true
   alb_priority        = 81
-  alb_path_patterns = [
-    "/staging/api/compiler/*/compile",
-    "/staging/api/compiler/*/cmake"
-  ]
+  # MRG changed this 2025-08-13 for now cc @partouf
+  alb_path_patterns = ["/killswitch-disabled-*"]
+  # alb_path_patterns = [
+  #   "/test/api/compilers/*/compile",
+  #   "/test/api/compilers/*/cmake"
+  # ]
   s3_bucket                     = aws_s3_bucket.compiler-explorer.bucket
   iam_role_arn                  = aws_iam_role.iam_for_lambda.arn
   cloudwatch_log_retention_days = 1 # Minimum possible retention (1 day) for high-volume logging
