@@ -411,7 +411,7 @@ def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Option
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Optional[Path]):
     """Create squashfs images for all targets matching FILTER."""
-    if not context.config.squashfs.enabled:
+    if not context.config.squashfs.traditional_enabled:
         _LOGGER.error("Squashfs is disabled in configuration")
         return
 
