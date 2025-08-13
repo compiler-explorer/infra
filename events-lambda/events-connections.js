@@ -82,22 +82,19 @@ export class EventsConnections {
         // Update cache first for instant response
         subscriptionCache.set(id, subscription);
 
-        // Update DynamoDB synchronously to ensure cross-container consistency
-        const updateCommand = new UpdateItemCommand({
+        // Use PutItem to ensure the item exists with the subscription
+        // This handles both new connections and updates to existing ones
+        const putCommand = new PutItemCommand({
             TableName: config.connections_table,
-            Key: {connectionId: {S: id}},
-            UpdateExpression: 'set #subscription = :subscription',
-            ExpressionAttributeNames: {'#subscription': 'subscription'},
-            ExpressionAttributeValues: {
-                ':subscription': {
-                    S: subscription,
-                },
+            Item: {
+                connectionId: {S: id},
+                subscription: {S: subscription},
             },
-            ReturnValues: 'ALL_NEW',
         });
 
         try {
-            return await ddbClient.send(updateCommand);
+            await ddbClient.send(putCommand);
+            return {Attributes: {connectionId: {S: id}, subscription: {S: subscription}}};
         } catch (error) {
             // eslint-disable-next-line no-console
             console.error(`Failed to update subscription in DynamoDB for ${id}:`, error);

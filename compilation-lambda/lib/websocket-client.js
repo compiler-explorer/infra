@@ -1,7 +1,11 @@
 const WebSocket = require('ws');
+const { getS3Client } = require('./aws-clients');
+const { GetObjectCommand } = require('@aws-sdk/client-s3');
 
 // Environment variables
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL || '';
+const COMPILATION_RESULTS_BUCKET = process.env.COMPILATION_RESULTS_BUCKET || 'storage.godbolt.org';
+const COMPILATION_RESULTS_PREFIX = process.env.COMPILATION_RESULTS_PREFIX || 'cache/';
 
 // WebSocket connection options for performance
 const WS_OPTIONS = {
@@ -74,7 +78,15 @@ class PersistentWebSocketManager {
                         console.info(`Received result for GUID: ${messageGuid}`);
                         const subscription = this.subscriptions.get(messageGuid);
                         clearTimeout(subscription.timeout);
-                        subscription.resolver(message);
+
+                        try {
+                            const resolvedMessage = await resolveS3FileIfNeeded(message);
+                            subscription.resolver(resolvedMessage);
+                        } catch (error) {
+                            console.error(`Failed to resolve S3 files for GUID: ${messageGuid}:`, error);
+                            subscription.resolver(message);
+                        }
+
                         this.subscriptions.delete(messageGuid);
 
                         // Send unsubscribe command to free server resources
@@ -201,6 +213,69 @@ class PersistentWebSocketManager {
 let persistentWS = null;
 
 /**
+ * Check if a compilation result needs S3 resolution and fetch complete data if so
+ * Detects lightweight messages with s3Key field that are missing typical result data
+ */
+async function resolveS3FileIfNeeded(message) {
+    // Only process objects that could be compilation results
+    if (!message || typeof message !== 'object' || Array.isArray(message)) {
+        return message;
+    }
+
+    // Check if this message has an s3Key field
+    if (!message.s3Key) {
+        return message;
+    }
+
+    // Check if this is a lightweight message missing typical result data
+    const hasTypicalResultData = message.asm || message.stdout || message.stderr ||
+                                 message.code !== undefined || message.output || message.result;
+
+    if (hasTypicalResultData) {
+        // Message already has result data, no need to fetch from S3
+        console.info(`Message has s3Key but already contains result data, skipping S3 fetch`);
+        return message;
+    }
+
+    // This appears to be a lightweight message - fetch complete result from S3
+    try {
+        const s3Key = `${COMPILATION_RESULTS_PREFIX}${message.s3Key}`;
+        console.info(`Fetching large compilation result from S3: ${COMPILATION_RESULTS_BUCKET}/${s3Key}`);
+
+        const s3Client = getS3Client();
+        const command = new GetObjectCommand({
+            Bucket: COMPILATION_RESULTS_BUCKET,
+            Key: s3Key
+        });
+
+        const response = await s3Client.send(command);
+        const bodyString = await response.Body.transformToString();
+
+        const s3Content = JSON.parse(bodyString);
+        console.info(`Successfully fetched and parsed S3 compilation result for ${message.s3Key}`);
+
+        const mergedResult = {
+            ...s3Content,
+            ...message,
+        };
+
+        return mergedResult;
+
+    } catch (error) {
+        console.error(`Failed to fetch S3 compilation result for ${message.s3Key}:`, error);
+
+        return {
+            ...message,
+            s3FetchError: `Failed to fetch complete result from S3: ${error.message}`,
+            asm: message.asm || [],
+            stdout: message.stdout || [],
+            stderr: message.stderr || [],
+            code: message.code !== undefined ? message.code : 0
+        };
+    }
+}
+
+/**
  * Get or create the persistent WebSocket manager
  */
 function getPersistentWebSocket() {
@@ -236,5 +311,6 @@ module.exports = {
     PersistentWebSocketManager,
     getPersistentWebSocket,
     subscribePersistent,
-    waitForCompilationResultPersistent
+    waitForCompilationResultPersistent,
+    resolveS3FileIfNeeded
 };

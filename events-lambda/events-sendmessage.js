@@ -52,10 +52,18 @@ async function handle_text_message(apiGwClient, connectionId, message) {
         // eslint-disable-next-line no-console
         console.info(`Processing subscription for ${subscription} on connection ${connectionId}`);
 
-        await EventsConnections.update(connectionId, subscription);
+        try {
+            await EventsConnections.update(connectionId, subscription);
+            // eslint-disable-next-line no-console
+            console.info(`Successfully subscribed ${connectionId} to ${subscription}`);
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(`Failed to subscribe ${connectionId} to ${subscription}:`, error);
+            throw error;
+        }
     } else if (message.startsWith('unsubscribe: ')) {
         const subscription = message.substring(13);
-        await EventsConnections.unsubscribe(connectionId, subscription);
+        await EventsConnections.unsubscribe(connectionId);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }

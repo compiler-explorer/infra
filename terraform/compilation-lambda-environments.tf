@@ -122,6 +122,41 @@ resource "aws_iam_role_policy_attachment" "compilation_lambda_routing" {
   policy_arn = aws_iam_policy.compilation_lambda_routing.arn
 }
 
+# IAM policy for compilation Lambda to read large results from S3 cache
+data "aws_iam_policy_document" "compilation_lambda_s3_cache" {
+  statement {
+    sid = "S3CacheRead"
+    actions = [
+      "s3:GetObject",
+      "s3:GetObjectVersion"
+    ]
+    resources = ["${aws_s3_bucket.storage-godbolt-org.arn}/cache/*"]
+  }
+  statement {
+    sid = "S3CacheList"
+    actions = [
+      "s3:ListBucket"
+    ]
+    resources = [aws_s3_bucket.storage-godbolt-org.arn]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["cache/*"]
+    }
+  }
+}
+
+resource "aws_iam_policy" "compilation_lambda_s3_cache" {
+  name        = "compilation_lambda_s3_cache"
+  description = "Allow compilation Lambda to read large results from S3 cache"
+  policy      = data.aws_iam_policy_document.compilation_lambda_s3_cache.json
+}
+
+resource "aws_iam_role_policy_attachment" "compilation_lambda_s3_cache" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.compilation_lambda_s3_cache.arn
+}
+
 # Outputs for backward compatibility and ASG integration
 output "compilation_queue_beta_id" {
   description = "Beta compilation queue ID"
