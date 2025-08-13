@@ -661,6 +661,12 @@ libraries:
       - 11.1.4
       - 11.2.0
       type: github
+    fusedkernellibrary:
+      check_file: README.md
+      repo: Libraries-Openly-Fused/FusedKernelLibrary
+      targets:
+      - Beta-0.1.9
+      type: github
     gcem:
       build_type: cmake
       repo: kthohr/gcem
@@ -2314,6 +2320,33 @@ libraries:
       - 1.0.1
       - 1.0.0
       type: github
+    re2:
+      build_type: cmake
+      check_file: README
+      extra_cmake_arg:
+      - -Dabsl_DIR=/tmp/abseil-cpp/lib/cmake/absl
+      lib_type: static
+      make_targets:
+      - all
+      method: clone_branch
+      package_install: true
+      postbuild_script:
+      - rm -Rf /tmp/abseil-cpp
+      postbuild_script_pwsh:
+      - echo "postbuild not using abseil"
+      prebuild_script:
+      - mkdir -p /tmp/abseil-cpp
+      - curl -sL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
+        -o abseil-cpp-20250127.0.tar.gz
+      - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
+      prebuild_script_pwsh:
+      - echo "prebuild not using abseil"
+      repo: google/re2
+      targets:
+      - name: '2024-07-02'
+        staticliblink:
+        - re2
+      type: github
     reactive_plus_plus:
       check_file: src/rpp/rpp/rpp.hpp
       method: clone_branch
@@ -2324,32 +2357,6 @@ libraries:
         method: nightlybranch
         name: v2
       type: github
-    re2:
-      build_type: cmake
-      check_file: README
-      lib_type: static
-      make_targets:
-      - all
-      method: clone_branch
-      repo: google/re2
-      package_install: true
-      targets:
-      - name: '2024-07-02'
-        staticliblink:
-        - re2
-      type: github
-      prebuild_script:
-      - mkdir -p /tmp/abseil-cpp
-      - curl -sL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx% -o abseil-cpp-20250127.0.tar.gz
-      - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
-      prebuild_script_pwsh:
-      - echo "prebuild not using abseil"
-      postbuild_script:
-      - rm -Rf /tmp/abseil-cpp
-      postbuild_script_pwsh:
-      - echo "postbuild not using abseil"
-      extra_cmake_arg:
-      - -Dabsl_DIR=/tmp/abseil-cpp/lib/cmake/absl
     scnlib:
       build_type: cmake
       extra_cmake_arg:
