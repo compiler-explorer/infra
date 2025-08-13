@@ -7,7 +7,7 @@ module "wintest_blue_green" {
 
   environment               = "wintest"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-wintest.id
+  launch_template_id        = aws_launch_template.ce["wintest"].id
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0
@@ -23,7 +23,7 @@ module "winstaging_blue_green" {
 
   environment               = "winstaging"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-winstaging.id
+  launch_template_id        = aws_launch_template.ce["winstaging"].id
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0
@@ -39,7 +39,7 @@ module "winprod_blue_green" {
 
   environment               = "winprod"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-winprod.id
+  launch_template_id        = aws_launch_template.ce["winprod"].id
   subnets                   = local.subnets
   asg_max_size              = 8
   initial_desired_capacity  = 0
