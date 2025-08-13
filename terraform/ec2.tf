@@ -26,12 +26,19 @@ resource "aws_instance" "AdminNode" {
   }
 
   tags = {
-    Name = "AdminNode"
+    Name        = "AdminNode"
+    Environment = "admin"
   }
 
   volume_tags = {
     Name = "AdminNodeVolume"
     Site = "CompilerExplorer"
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
   }
 }
 
@@ -54,12 +61,19 @@ resource "aws_instance" "ConanNode" {
   }
 
   tags = {
-    Name = "ConanNode"
+    Name        = "ConanNode"
+    Environment = "conan"
   }
 
   volume_tags = {
     Name = "CEConanServerVol1"
     Site = "CompilerExplorer"
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
   }
 }
 
@@ -99,6 +113,11 @@ resource "aws_instance" "BuilderNode" {
     Name        = "Builder"
     Environment = "builder"
   }
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
 }
 
 resource "aws_instance" "CERunner" {
@@ -130,6 +149,12 @@ resource "aws_instance" "CERunner" {
     Name        = "CERunner"
     Environment = "runner"
   }
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
+
 }
 
 resource "aws_instance" "CESMBServer" {
@@ -161,6 +186,12 @@ resource "aws_instance" "CESMBServer" {
     Name        = "CESMBServer"
     Environment = "smbserver"
   }
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
+  }
+
 }
 
 //resource "aws_instance" "CESMBTestServer" {
@@ -192,6 +223,11 @@ resource "aws_instance" "CESMBServer" {
 //    Name = "CESMBTestServer"
 //    Environment = "smbserver"
 //  }
+//   metadata_options {
+//   http_tokens                 = "required"
+//   http_put_response_hop_limit = 1
+//   instance_metadata_tags      = "enabled"
+// }
 //}
 
 resource "aws_instance" "elfshaker" {
@@ -235,11 +271,18 @@ EOF
   }
 
   tags = {
-    Name = "ElfShaker"
+    Name        = "ElfShaker"
+    Environment = "elfshaker"
   }
 
   volume_tags = {
     Name = "ElfShaker"
     Site = "CompilerExplorer"
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+    instance_metadata_tags      = "enabled"
   }
 }
