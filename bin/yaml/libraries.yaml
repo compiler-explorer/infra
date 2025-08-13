@@ -664,7 +664,6 @@ libraries:
     fusedkernellibrary:
       check_file: README.md
       repo: Libraries-Openly-Fused/FusedKernelLibrary
-      target_prefix: v
       targets:
       - Beta-0.1.9
       type: github
