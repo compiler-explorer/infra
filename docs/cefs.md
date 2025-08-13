@@ -8,6 +8,10 @@ We do this as the access times via the cacheable, compressed SquashFS images are
 
 We've tried [many](https://github.com/compiler-explorer/cefs) [different](https://github.com/compiler-explorer/infra/pull/798) [approaches](https://github.com/compiler-explorer/infra/pull/1741) to improve this but all hit issues.
 
+XXX TODO
+- should we pony up and go 2-3 level fs in autofs before we make any decisions
+- "unpack" command to let us make ad hoc changes (unpack squashfs; replace symlink with contents)
+
 ## CEFS v2 Approach
 
 Short version - symlink dirs from NFS to `/cefs/HASH`
