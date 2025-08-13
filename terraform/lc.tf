@@ -9,7 +9,7 @@ locals {
   winstaging_image_id      = "ami-0807541f025aad832"
   wintest_image_id         = "ami-0807541f025aad832"
   staging_user_data        = base64encode("staging")
-  beta_user_data           = base64encode("beta")
+  beta_user_data           = base64encode("envbeta")
   gpu_user_data            = base64encode("gpu")
   aarch64prod_user_data    = base64encode("aarch64prod")
   aarch64staging_user_data = base64encode("aarch64staging")
