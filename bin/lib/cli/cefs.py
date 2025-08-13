@@ -181,6 +181,8 @@ def setup(context: CliContext, dry_run: bool):
     if dry_run:
         _LOGGER.info("DRY RUN mode - showing commands that would be executed:")
 
+    # IMPORTANT: any changes to this setup should be reflected in the setup_cefs
+    # bash script in setup-common.sh (and vice versa).
     try:
         # Step 1: Create CEFS mount point
         run_cmd(["sudo", "mkdir", "-p", cefs_mount_point], f"Creating CEFS mount point: {cefs_mount_point}")

@@ -8,8 +8,6 @@ We do this as the access times via the cacheable, compressed SquashFS images are
 
 We've tried [many](https://github.com/compiler-explorer/cefs) [different](https://github.com/compiler-explorer/infra/pull/798) [approaches](https://github.com/compiler-explorer/infra/pull/1741) to improve this but all hit issues.
 
-- "unpack" command to let us make ad hoc changes (unpack squashfs; replace symlink with contents)
-
 ## CEFS v2 Approach
 
 Short version - symlink dirs from NFS to `/cefs/HASH`
@@ -67,14 +65,14 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] build and deploy aarch64prod
   - [x] build beta
 - [ ] Fix up automounter/general config
-  - [ ] fix in main
-  - [ ] install in admin
-  - [ ] staging, beta, prod script update and AMI
-  - [ ] aarch64 ditto
-  - [ ] gpu ditto
-  - [ ] windows rebuild just to pick up the other changes
-  - [ ] builder
-  - [ ] runner
+  - [x] fix in main
+  - [x] install in admin
+  - [x] staging, beta, prod script update and AMI
+  - [x] aarch64 ditto
+  - [x] gpu ditto
+  - [x] windows rebuild just to pick up the other changes
+  - [x] builder
+  - [x] runner
   - [ ] ce-ci too?
 - [x] Simple config loader
 - [x] Write "port" code to move existing images over
@@ -84,6 +82,7 @@ The modified script now skips mounting when the destination is already a symlink
 - [ ] Test with a single compiler or library
 - [ ] Slowly move older things over
 - [ ] Write consolidation tooling and run it
+- [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
 
 ## Implementation Notes
 
