@@ -1,12 +1,12 @@
 locals {
-  image_id                 = "ami-076fb669d8f6bad46"
-  staging_image_id         = "ami-076fb669d8f6bad46"
-  beta_image_id            = "ami-0714648404fb12346"
-  gpu_image_id             = "ami-0fb76d685df82e159"
-  aarch64prod_image_id     = "ami-024b4c0b3012cb09d"
-  aarch64staging_image_id  = "ami-024b4c0b3012cb09d"
-  winprod_image_id         = "ami-0807541f025aad832"
-  winstaging_image_id      = "ami-0807541f025aad832"
+  image_id                 = "ami-0898209aafa929263"
+  staging_image_id         = "ami-0898209aafa929263"
+  beta_image_id            = "ami-0898209aafa929263"
+  gpu_image_id             = "ami-026c749706de56d71"
+  aarch64prod_image_id     = "ami-0568490376b31f431"
+  aarch64staging_image_id  = "ami-0568490376b31f431"
+  winprod_image_id         = "ami-0cf55c2532ef41565"
+  winstaging_image_id      = "ami-0cf55c2532ef41565"
   wintest_image_id         = "ami-0807541f025aad832"
   staging_user_data        = base64encode("staging")
   beta_user_data           = base64encode("envbeta")
