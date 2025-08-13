@@ -162,16 +162,8 @@ EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
 EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
 EVENTS_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/events-lambda-package.zip.sha256
 EVENTS_LAMBDA_DIR:=$(CURDIR)/events-lambda
-$(EVENTS_LAMBDA_PACKAGE): $(wildcard events-lambda/*.js) events-lambda/package.json Makefile
-	rm -rf $(EVENTS_LAMBDA_PACKAGE_DIR)
-	mkdir -p $(EVENTS_LAMBDA_PACKAGE_DIR)
-	cd $(EVENTS_LAMBDA_DIR) && npm i && npm run lint && npm install --no-audit --ignore-scripts --production && npm install --no-audit --ignore-scripts --production --cpu arm64 && cd ..
-	cp -R $(EVENTS_LAMBDA_DIR)/* $(EVENTS_LAMBDA_PACKAGE_DIR)
-	rm -f $(EVENTS_LAMBDA_PACKAGE)
-	cd $(EVENTS_LAMBDA_PACKAGE_DIR) && zip -r $(EVENTS_LAMBDA_PACKAGE) .
-
-$(EVENTS_LAMBDA_PACKAGE_SHA): $(EVENTS_LAMBDA_PACKAGE)
-	openssl dgst -sha256 -binary $(EVENTS_LAMBDA_PACKAGE) | openssl enc -base64 > $@
+$(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA): $(wildcard events-lambda/*.js) events-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_nodejs_lambda_deterministic.py $(EVENTS_LAMBDA_DIR) $(EVENTS_LAMBDA_PACKAGE)
 
 .PHONY: events-lambda-package  ## builds events lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
@@ -191,10 +183,30 @@ test-compilation-lambda:
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
+.PHONY: check-events-lambda-changed
+check-events-lambda-changed: events-lambda-package
+	@mkdir -p $(dir $(EVENTS_LAMBDA_PACKAGE))
+	@echo "Checking if events lambda package has changed..."
+	@aws s3 cp s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256 $(EVENTS_LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote events lambda SHA doesn't exist yet" && touch $(EVENTS_LAMBDA_PACKAGE_SHA).remote)
+	@if [ ! -f $(EVENTS_LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(EVENTS_LAMBDA_PACKAGE_SHA) $(EVENTS_LAMBDA_PACKAGE_SHA).remote; then \
+		echo "Events lambda package has changed"; \
+		echo "EVENTS_LAMBDA_CHANGED=1" > $(EVENTS_LAMBDA_PACKAGE_SHA).status; \
+	else \
+		echo "Events lambda package has not changed"; \
+		echo "EVENTS_LAMBDA_CHANGED=0" > $(EVENTS_LAMBDA_PACKAGE_SHA).status; \
+	fi
+
 .PHONY: upload-events-lambda
-upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
-	aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip
-	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
+upload-events-lambda: check-events-lambda-changed  ## Uploads events-lambda to S3
+	@. $(EVENTS_LAMBDA_PACKAGE_SHA).status && \
+	if [ "$$EVENTS_LAMBDA_CHANGED" = "1" ]; then \
+		echo "Uploading new events lambda package to S3..."; \
+		aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip; \
+		aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256; \
+		echo "Events lambda package uploaded successfully!"; \
+	else \
+		echo "Events lambda package hasn't changed. No upload needed."; \
+	fi
 
 .PHONY: terraform-apply
 terraform-apply:  upload-lambda upload-compilation-lambda upload-events-lambda ## Applies terraform

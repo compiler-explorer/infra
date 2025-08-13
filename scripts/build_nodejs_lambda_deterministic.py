@@ -164,18 +164,21 @@ def create_deterministic_zip(source_path, output_path):
                 with open(file_path, "rb") as f:
                     zip_file.writestr(info, f.read())
 
-    # Generate SHA256 hash
+    # Generate SHA256 hash in base64 format (for AWS Lambda)
     with open(output_path, "rb") as f:
-        sha256_hash = hashlib.sha256(f.read()).hexdigest()
+        sha256_bytes = hashlib.sha256(f.read()).digest()
+        sha256_base64 = __import__("base64").b64encode(sha256_bytes).decode("ascii")
+        sha256_hex = sha256_bytes.hex()
 
     sha256_path = output_path.with_suffix(output_path.suffix + ".sha256")
     with open(sha256_path, "w") as f:
-        f.write(sha256_hash)
+        f.write(sha256_base64)
 
     file_size = output_path.stat().st_size
     print(f"✅ Created deterministic Lambda package: {output_path}")
     print(f"   Size: {file_size:,} bytes")
-    print(f"   SHA256: {sha256_hash}")
+    print(f"   SHA256 (hex): {sha256_hex}")
+    print(f"   SHA256 (base64): {sha256_base64}")
     print(f"   Hash file: {sha256_path}")
 
 

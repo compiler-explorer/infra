@@ -107,7 +107,7 @@ export class EventsConnections {
         }
     }
 
-    static async unsubscribe(id, subscription) {
+    static async unsubscribe(id) {
         // Remove from cache first for instant response
         subscriptionCache.delete(id);
 
@@ -117,19 +117,19 @@ export class EventsConnections {
             Key: {connectionId: {S: id}},
             UpdateExpression: 'remove #subscription',
             ExpressionAttributeNames: {'#subscription': 'subscription'},
-            ConditionExpression: '#subscription = :subscription',
-            ExpressionAttributeValues: {
-                ':subscription': {
-                    S: subscription,
-                },
-            },
+            // No condition expression - we don't care if the subscription matches or exists
+            // We just want to ensure it's removed. This prevents ConditionalCheckFailedException
+            // when multiple unsubscribe requests are processed or subscription was already removed
             ReturnValues: 'ALL_NEW',
         });
 
         // Fire and forget - don't await DynamoDB update
         ddbClient.send(updateCommand).catch(error => {
-            // eslint-disable-next-line no-console
-            console.error(`Failed to unsubscribe ${id} from DynamoDB:`, error);
+            // Only log if it's not an attribute not found error (which is expected)
+            if (error.name !== 'ValidationException' || !error.message?.includes('provided attribute')) {
+                // eslint-disable-next-line no-console
+                console.error(`Failed to unsubscribe ${id} from DynamoDB:`, error);
+            }
             // Don't re-add to cache - prioritize fast response over consistency
         });
 
