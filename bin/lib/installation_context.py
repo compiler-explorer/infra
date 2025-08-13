@@ -12,10 +12,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path
-from typing import IO, TYPE_CHECKING, Collection, Dict, Iterator, List, Optional, Sequence, Union
-
-if TYPE_CHECKING:
-    from lib.config import Config
+from typing import IO, Collection, Dict, Iterator, List, Optional, Sequence, Union
 
 import requests
 import requests.adapters
@@ -29,6 +26,7 @@ from lib.cefs import (
     get_cefs_image_path,
     get_cefs_mount_path,
 )
+from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
