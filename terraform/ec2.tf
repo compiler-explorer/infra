@@ -81,7 +81,6 @@ resource "aws_instance" "BuilderNode" {
   vpc_security_group_ids      = [aws_security_group.Builder.id]
   associate_public_ip_address = true
   source_dest_check           = false
-  user_data                   = "builder"
 
   root_block_device {
     volume_type           = "gp2"
@@ -97,7 +96,8 @@ resource "aws_instance" "BuilderNode" {
   }
 
   tags = {
-    Name = "Builder"
+    Name        = "Builder"
+    Environment = "builder"
   }
 }
 
@@ -112,7 +112,6 @@ resource "aws_instance" "CERunner" {
   vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
   associate_public_ip_address = true
   source_dest_check           = false
-  user_data                   = "runner"
 
   root_block_device {
     volume_type           = "gp2"
@@ -128,7 +127,8 @@ resource "aws_instance" "CERunner" {
   }
 
   tags = {
-    Name = "CERunner"
+    Name        = "CERunner"
+    Environment = "runner"
   }
 }
 
@@ -143,7 +143,6 @@ resource "aws_instance" "CESMBServer" {
   vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
   associate_public_ip_address = true
   source_dest_check           = false
-  user_data                   = "smbserver"
 
   root_block_device {
     volume_type           = "gp2"
@@ -159,7 +158,8 @@ resource "aws_instance" "CESMBServer" {
   }
 
   tags = {
-    Name = "CESMBServer"
+    Name        = "CESMBServer"
+    Environment = "smbserver"
   }
 }
 
@@ -174,7 +174,6 @@ resource "aws_instance" "CESMBServer" {
 //  vpc_security_group_ids      = [aws_security_group.CompilerExplorer.id]
 //  associate_public_ip_address = true
 //  source_dest_check           = false
-//  user_data                   = "smbserver"
 //
 //  root_block_device {
 //    volume_type           = "gp2"
@@ -191,6 +190,7 @@ resource "aws_instance" "CESMBServer" {
 //
 //  tags = {
 //    Name = "CESMBTestServer"
+//    Environment = "smbserver"
 //  }
 //}
 
