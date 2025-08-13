@@ -6,6 +6,10 @@ SKIP_SQUASH=0
 CE_USER=ce
 ENV=$(cloud-init query userdata)
 ENV=${ENV:-prod}
+if [ "$ENV" = "envbeta" ]; then
+    ENV="beta"
+fi
+
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
