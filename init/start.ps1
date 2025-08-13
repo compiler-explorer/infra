@@ -2,10 +2,19 @@ do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
 
-# On newer ubuntus this started returning empty and we had to use cloud-init BUT I think that's
-# ubuntu specific.
-$userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
-$env:CE_ENV = $userdata -as [string]
+# Get metadata token for IMDSv2
+$token = Invoke-WebRequest -Method PUT -Uri "http://169.254.169.254/latest/api/token" -Headers @{"X-aws-ec2-metadata-token-ttl-seconds" = "21600"} -UseBasicParsing
+$tokenHeader = @{"X-aws-ec2-metadata-token" = $token.Content}
+
+# Get Environment tag
+$envTag = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/tags/instance/Environment" -Headers $tokenHeader -UseBasicParsing
+$env:CE_ENV = $envTag.Content -as [string]
+
+if ([string]::IsNullOrEmpty($env:CE_ENV)) {
+    Write-Host "Environment tag not set!!"
+    exit 1
+}
+Write-Host "Running in environment $($env:CE_ENV)"
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
@@ -14,8 +23,9 @@ $loghost = "todo"
 $logport = "80"
 
 function GetBetterHostname {
-    $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
-    return $meta -as [string] -replace ".ec2.internal",""
+    $token = Invoke-WebRequest -Method PUT -Uri "http://169.254.169.254/latest/api/token" -Headers @{"X-aws-ec2-metadata-token-ttl-seconds" = "21600"} -UseBasicParsing
+    $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -Headers @{"X-aws-ec2-metadata-token" = $token.Content} -UseBasicParsing
+    return $meta.Content -as [string] -replace ".ec2.internal",""
 }
 
 $betterComputerName = GetBetterHostname

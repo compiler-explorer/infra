@@ -109,7 +109,7 @@ resource "aws_autoscaling_group" "color" {
 
   tag {
     key                 = "Name"
-    value               = "CompilerExplorer-${var.environment}-${each.value}"
+    value               = "ce-${var.environment}-${each.value}"
     propagate_at_launch = true
   }
 }
