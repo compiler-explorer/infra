@@ -1,5 +1,7 @@
 # Blue-Green deployment infrastructure for Windows environments
 # Uses the blue_green module to create matching blue and green infrastructure
+# NB the "environment" here sets the environment that's found by the startup
+# scripts and configured the CE environment etc
 
 # Windows Test Environment
 module "wintest_blue_green" {
