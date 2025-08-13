@@ -66,13 +66,16 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] build and deploy aarch64staging
   - [x] build and deploy aarch64prod
   - [x] build beta
-- [ ] Fix up automounter
+- [ ] Fix up automounter/general config
   - [ ] fix in main
   - [ ] install in admin
   - [ ] staging, beta, prod script update and AMI
   - [ ] aarch64 ditto
   - [ ] gpu ditto
   - [ ] windows rebuild just to pick up the other changes
+  - [ ] builder
+  - [ ] runner
+  - [ ] ce-ci too?
 - [x] Simple config loader
 - [x] Write "port" code to move existing images over
 - [x] Update installers to (optionally, based on config) install this way (even works for nightly)
