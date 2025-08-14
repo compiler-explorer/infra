@@ -274,7 +274,7 @@ class InstallationContext:
             new_perms |= stat.S_IXOTH
 
         if current_perms != new_perms:
-            _LOGGER.warning("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
+            _LOGGER.debug("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
             file_path.chmod(new_perms)
 
     def move_from_staging(
