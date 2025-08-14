@@ -122,7 +122,7 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None:
     """Backup NFS directory and create CEFS symlink with rollback on failure."""
-    backup_path = nfs_path.with_suffix(".bak")
+    backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
     if dry_run:
         _LOGGER.info("Would backup %s to %s", nfs_path, backup_path)

@@ -255,7 +255,7 @@ def rollback(context: CliContext, filter_: List[str], dry_run: bool):
 
     for installable in installables:
         nfs_path = context.installation_context.destination / installable.install_path
-        backup_path = nfs_path.with_suffix(".bak")
+        backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
         _LOGGER.info("Rolling back %s...", installable.name)
 
