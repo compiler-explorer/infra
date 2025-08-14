@@ -10,6 +10,7 @@ import click
 
 from lib.amazon import (
     as_client,
+    ec2,
     ec2_client,
     elb_client,
     get_autoscaling_group,
@@ -401,7 +402,6 @@ def get_isolated_instances_for_environment(cfg: Config):
         for asg_instance in asg_instances:
             if asg_instance["LifecycleState"] == "Standby":
                 instance_id = asg_instance["InstanceId"]
-                health = {"Target": {"Id": instance_id}, "TargetHealth": {"State": "unused"}}
                 if cfg.env.supports_blue_green:
                     deployment = BlueGreenDeployment(cfg)
                     if "blue" in asg_name.lower():
@@ -411,8 +411,13 @@ def get_isolated_instances_for_environment(cfg: Config):
                 else:
                     group_arn = target_group_arn_for(cfg)
 
-                isolated_instance = Instance(health, group_arn)
+                # Create a minimal instance object without SSH probing to avoid hangs
+                isolated_instance = Instance.__new__(Instance)
+                isolated_instance.group_arn = group_arn
+                isolated_instance.instance = ec2.Instance(id=instance_id)
                 isolated_instance.elb_health = "isolated"
+                isolated_instance.service_status = {"SubState": "isolated"}
+                isolated_instance.running_version = "unknown"
                 isolated_instances.append(isolated_instance)
 
     return isolated_instances
