@@ -8,7 +8,14 @@ from typing import Dict, Sequence
 
 import click
 
-from lib.amazon import as_client, get_autoscaling_group, target_group_arn_for
+from lib.amazon import (
+    as_client,
+    ec2_client,
+    elb_client,
+    get_autoscaling_group,
+    get_autoscaling_groups_for,
+    target_group_arn_for,
+)
 from lib.blue_green_deploy import BlueGreenDeployment
 from lib.ce_utils import (
     are_you_sure,
@@ -135,6 +142,115 @@ def instances_restart(cfg: Config, motd: str):
     sys.exit(1 if failed else 0)
 
 
+@instances.command(name="isolate")
+@click.pass_obj
+def instances_isolate(cfg: Config):
+    """Isolate an instance for investigation (enable protections, remove from LB/ASG)."""
+    instance = pick_instance(cfg)
+    instance_id = instance.instance.instance_id
+
+    as_instance_status = instance.describe_autoscale()
+    if not as_instance_status:
+        LOGGER.error("Failed isolating %s - was not in ASG", instance)
+        return
+
+    as_group_name = as_instance_status["AutoScalingGroupName"]
+
+    if not are_you_sure(f"isolate instance {instance_id} for investigation", cfg):
+        return
+
+    print(f"Isolating instance {instance_id} for investigation...")
+
+    try:
+        LOGGER.info("Enabling stop protection for %s", instance)
+        ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiStop={"Value": False})
+
+        LOGGER.info("Enabling termination protection for %s", instance)
+        ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiTermination={"Value": True})
+
+        LOGGER.info("Enabling instance protection for %s", instance)
+        as_client.set_instance_protection(
+            AutoScalingGroupName=as_group_name, InstanceIds=[instance_id], ProtectedFromScaleIn=True
+        )
+
+        LOGGER.info("Putting %s into standby", instance)
+        as_client.enter_standby(
+            InstanceIds=[instance_id], AutoScalingGroupName=as_group_name, ShouldDecrementDesiredCapacity=False
+        )
+        wait_for_autoscale_state(instance, "Standby")
+
+        LOGGER.info("Deregistering %s from target group", instance)
+        elb_client.deregister_targets(TargetGroupArn=instance.group_arn, Targets=[{"Id": instance_id}])
+
+        LOGGER.info("Waiting for instance to be deregistered from load balancer...")
+        while True:
+            health = elb_client.describe_target_health(TargetGroupArn=instance.group_arn, Targets=[{"Id": instance_id}])
+            if not health["TargetHealthDescriptions"]:
+                break
+            state = health["TargetHealthDescriptions"][0]["TargetHealth"]["State"]
+            if state == "unused":
+                break
+            LOGGER.debug("Deregistration state: %s", state)
+            time.sleep(5)
+
+        print(f"\n✅ Instance {instance_id} has been isolated successfully!")
+        print("   - Stop protection: ENABLED")
+        print("   - Termination protection: ENABLED")
+        print("   - ASG state: Standby (not serving traffic)")
+        print("   - Load balancer: Deregistered")
+        print("\nYou can now investigate the instance:")
+        print(f"   Private IP: {instance.instance.private_ip_address}")
+        print(f"   Instance ID: {instance_id}")
+        print("\nTo terminate this instance later, use: ce instances terminate-isolated")
+
+    except Exception as e:
+        LOGGER.error("Failed to isolate instance %s: %s", instance, e)
+        print(f"❌ Error isolating instance: {e}")
+        sys.exit(1)
+
+
+@instances.command(name="terminate-isolated")
+@click.pass_obj
+def instances_terminate_isolated(cfg: Config):
+    """Terminate an isolated instance and let ASG replace it."""
+    instance = pick_instance(cfg)
+    instance_id = instance.instance.instance_id
+
+    as_instance_status = instance.describe_autoscale()
+    if not as_instance_status:
+        LOGGER.error("Instance %s is not in ASG", instance)
+        return
+
+    lifecycle_state = as_instance_status["LifecycleState"]
+    if lifecycle_state != "Standby":
+        print(f"Instance {instance_id} is not in isolated state (current state: {lifecycle_state})")
+        print("Only instances in 'Standby' state can be terminated with this command.")
+        return
+
+    if not are_you_sure(f"terminate isolated instance {instance_id}", cfg):
+        return
+
+    print(f"Terminating isolated instance {instance_id}...")
+
+    try:
+        LOGGER.info("Removing termination protection for %s", instance)
+        ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiTermination={"Value": False})
+
+        LOGGER.info("Removing stop protection for %s", instance)
+        ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiStop={"Value": False})
+
+        LOGGER.info("Terminating instance %s", instance)
+        ec2_client.terminate_instances(InstanceIds=[instance_id])
+
+        print(f"\n✅ Instance {instance_id} has been terminated.")
+        print("The ASG will automatically launch a replacement instance.")
+
+    except Exception as e:
+        LOGGER.error("Failed to terminate instance %s: %s", instance, e)
+        print(f"❌ Error terminating instance: {e}")
+        sys.exit(1)
+
+
 @instances.command(name="status")
 @click.pass_obj
 def instances_status(cfg: Config):
@@ -143,7 +259,6 @@ def instances_status(cfg: Config):
         try:
             deployment = BlueGreenDeployment(cfg)
 
-            # Try to get blue and green target groups
             blue_tg_arn = deployment.get_target_group_arn("blue")
             green_tg_arn = deployment.get_target_group_arn("green")
             active_color = deployment.get_active_color()
@@ -152,7 +267,6 @@ def instances_status(cfg: Config):
             print(f"Active Color: {active_color}")
             print()
 
-            # Show blue instances
             blue_instances = Instance.elb_instances(blue_tg_arn)
             if blue_instances:
                 marker = " (ACTIVE)" if active_color == "blue" else ""
@@ -164,7 +278,6 @@ def instances_status(cfg: Config):
 
             print()
 
-            # Show green instances
             green_instances = Instance.elb_instances(green_tg_arn)
             if green_instances:
                 marker = " (ACTIVE)" if active_color == "green" else ""
@@ -174,34 +287,60 @@ def instances_status(cfg: Config):
                 marker = " (ACTIVE)" if active_color == "green" else ""
                 print(f"Green Instances{marker}: No instances")
 
-            # Add note about Service/Version information if not on admin node
-            if (blue_instances or green_instances) and not is_running_on_admin_node():
+            isolated_instances = get_isolated_instances_for_environment(cfg)
+            if isolated_instances:
+                print()
+                print("Isolated Instances (in Standby for investigation):")
+                print_instances(isolated_instances, number=False)
+
+            if (blue_instances or green_instances or isolated_instances) and not is_running_on_admin_node():
                 print()
                 print("Note: Service and Version information requires SSH access from admin node.")
 
         except Exception as e:
             print(f"Error: Failed to get blue-green status for {cfg.env.value}: {e}")
     else:
-        # Legacy single target group environment
         print(f"Environment: {cfg.env.value}")
         print_instances(Instance.elb_instances(target_group_arn_for(cfg)), number=False)
+
+        isolated_instances = get_isolated_instances_for_environment(cfg)
+        if isolated_instances:
+            print()
+            print("Isolated Instances (in Standby for investigation):")
+            print_instances(isolated_instances, number=False)
 
 
 def pick_instance(cfg: Config):
     elb_instances = get_instances_for_environment(cfg)
-    if len(elb_instances) == 1:
-        return elb_instances[0]
+    isolated_instances = get_isolated_instances_for_environment(cfg)
+    all_instances = elb_instances + isolated_instances
+    
+    if len(all_instances) == 1:
+        return all_instances[0]
     while True:
-        print_instances(elb_instances, number=True)
+        if elb_instances:
+            print("Active instances:")
+            print_instances(elb_instances, number=True)
+        if isolated_instances:
+            if elb_instances:
+                print()
+            print("Isolated instances (in Standby):")
+            start_num = len(elb_instances)
+            for i, inst in enumerate(isolated_instances):
+                print(f"{start_num + i: <3}", end="")
+                print_instances([inst], number=False)
+        
         inst = input("Which instance? ")
         try:
-            return elb_instances[int(inst)]
+            return all_instances[int(inst)]
         except (ValueError, IndexError):
             pass
 
 
 def pick_instances(cfg: Config):
-    return get_instances_for_environment(cfg)
+    elb_instances = get_instances_for_environment(cfg)
+    isolated_instances = get_isolated_instances_for_environment(cfg)
+    return elb_instances + isolated_instances
 
 
 def get_instances_for_environment(cfg: Config):
@@ -217,6 +356,39 @@ def get_instances_for_environment(cfg: Config):
             raise RuntimeError(f"Failed to get instances for blue-green environment {cfg.env.value}: {e}") from e
 
     return Instance.elb_instances(target_group_arn_for(cfg))
+
+
+def get_isolated_instances_for_environment(cfg: Config):
+    """Get isolated (Standby) instances for the environment."""
+    isolated_instances = []
+
+    asgs = get_autoscaling_groups_for(cfg)
+
+    for asg in asgs:
+        asg_name = asg["AutoScalingGroupName"]
+
+        asg_instances = as_client.describe_auto_scaling_instances(
+            InstanceIds=[inst["InstanceId"] for inst in asg["Instances"]]
+        )["AutoScalingInstances"]
+
+        for asg_instance in asg_instances:
+            if asg_instance["LifecycleState"] == "Standby":
+                instance_id = asg_instance["InstanceId"]
+                health = {"Target": {"Id": instance_id}, "TargetHealth": {"State": "unused"}}
+                if cfg.env.supports_blue_green:
+                    deployment = BlueGreenDeployment(cfg)
+                    if "blue" in asg_name.lower():
+                        group_arn = deployment.get_target_group_arn("blue")
+                    else:
+                        group_arn = deployment.get_target_group_arn("green")
+                else:
+                    group_arn = target_group_arn_for(cfg)
+
+                isolated_instance = Instance(health, group_arn)
+                isolated_instance.elb_health = "isolated"
+                isolated_instances.append(isolated_instance)
+
+    return isolated_instances
 
 
 def restart_one_instance(as_group_name: str, instance: Instance, modified_groups: Dict[str, int]):

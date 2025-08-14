@@ -72,6 +72,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This repository contains scripts and infrastructure configurations for Compiler Explorer.
 Files in `/opt/compiler-explorer` are the target installation location.
 
+## Instance Management
+
+The `ce instances` command group provides functionality to manage CE instances:
+
+### Available Commands
+
+- **`ce instances isolate`** - Isolate an instance for investigation
+  - Enables stop and termination protection on the EC2 instance
+  - Puts instance into standby mode (removes from ASG rotation)
+  - Deregisters from load balancer (stops serving traffic)
+  - Instance remains accessible via SSH for debugging
+  - Instance appears in `ce instances status` as "Isolated"
+  - Example: `ce --env staging instances isolate`
+
+- **`ce instances terminate-isolated`** - Terminate an isolated instance
+  - Only works on instances in Standby state
+  - Removes stop and termination protection
+  - Terminates the instance (ASG will automatically replace it)
+  - Example: `ce --env staging instances terminate-isolated`
+
+- **`ce instances status`** - Show all instances including isolated ones
+  - Shows active instances registered with load balancer
+  - Shows isolated instances in Standby state
+  - Example: `ce --env prod instances status`
+
+- **`ce instances restart`** - Rolling restart of all instances
+- **`ce instances restart_one`** - Restart a single instance
+- **`ce instances login`** - SSH into an instance
+- **`ce instances exec_all`** - Execute command on all instances
+
+### Isolation Use Cases
+
+Use instance isolation when you need to:
+- Debug production issues without affecting traffic
+- Investigate memory leaks or performance problems
+- Analyze core dumps or logs
+- Test fixes before applying to all instances
+
 ## CLI Architecture
 
 The CLI system (`bin/ce`) uses Click framework with a modular command structure:
