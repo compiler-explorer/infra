@@ -314,7 +314,7 @@ def pick_instance(cfg: Config):
     elb_instances = get_instances_for_environment(cfg)
     isolated_instances = get_isolated_instances_for_environment(cfg)
     all_instances = elb_instances + isolated_instances
-    
+
     if len(all_instances) == 1:
         return all_instances[0]
     while True:
@@ -329,7 +329,7 @@ def pick_instance(cfg: Config):
             for i, inst in enumerate(isolated_instances):
                 print(f"{start_num + i: <3}", end="")
                 print_instances([inst], number=False)
-        
+
         inst = input("Which instance? ")
         try:
             return all_instances[int(inst)]

@@ -1,11 +1,9 @@
 import unittest
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, call, patch
 
 from click.testing import CliRunner
-
 from lib.cli.instances import instances
 from lib.env import Config, Environment
-from lib.instance import Instance
 
 
 class TestInstanceIsolation(unittest.TestCase):
@@ -14,24 +12,21 @@ class TestInstanceIsolation(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         self.cfg = Config(env=Environment.STAGING)
-        
+
         # Create mock instance
         self.mock_instance = Mock()
-        
+
         # Create mock EC2 instance object
         mock_ec2_instance = Mock()
         mock_ec2_instance.instance_id = "i-1234567890abcdef0"
         mock_ec2_instance.private_ip_address = "10.0.1.100"
-        
+
         # Attach the EC2 instance to the mock instance
         self.mock_instance.instance = mock_ec2_instance
         self.mock_instance.group_arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/staging/abcdef"
-        
+
         # Mock ASG status
-        self.mock_as_status = {
-            "AutoScalingGroupName": "staging-asg",
-            "LifecycleState": "InService"
-        }
+        self.mock_as_status = {"AutoScalingGroupName": "staging-asg", "LifecycleState": "InService"}
         self.mock_instance.describe_autoscale.return_value = self.mock_as_status
 
     @patch("lib.cli.instances.pick_instance")
@@ -55,49 +50,41 @@ class TestInstanceIsolation(unittest.TestCase):
         # Set up mocks
         mock_pick_instance.return_value = self.mock_instance
         mock_are_you_sure.return_value = True
-        
+
         # Mock ELB deregistration response
-        mock_elb_client.describe_target_health.return_value = {
-            "TargetHealthDescriptions": []
-        }
-        
+        mock_elb_client.describe_target_health.return_value = {"TargetHealthDescriptions": []}
+
         # Call the function using Click's test runner
         runner = CliRunner()
         with runner.isolated_filesystem():
             result = runner.invoke(instances, ["isolate"], obj=self.cfg)
-        
+
         # Verify EC2 protection calls
-        mock_ec2_client.modify_instance_attribute.assert_has_calls([
-            call(
-                InstanceId="i-1234567890abcdef0",
-                DisableApiStop={"Value": False}
-            ),
-            call(
-                InstanceId="i-1234567890abcdef0",
-                DisableApiTermination={"Value": True}
-            ),
-        ])
-        
+        mock_ec2_client.modify_instance_attribute.assert_has_calls(
+            [
+                call(InstanceId="i-1234567890abcdef0", DisableApiStop={"Value": False}),
+                call(InstanceId="i-1234567890abcdef0", DisableApiTermination={"Value": True}),
+            ]
+        )
+
         # Verify ASG protection
         mock_as_client.set_instance_protection.assert_called_once_with(
-            AutoScalingGroupName="staging-asg",
-            InstanceIds=["i-1234567890abcdef0"],
-            ProtectedFromScaleIn=True
+            AutoScalingGroupName="staging-asg", InstanceIds=["i-1234567890abcdef0"], ProtectedFromScaleIn=True
         )
-        
+
         # Verify standby
         mock_as_client.enter_standby.assert_called_once_with(
             InstanceIds=["i-1234567890abcdef0"],
             AutoScalingGroupName="staging-asg",
-            ShouldDecrementDesiredCapacity=False
+            ShouldDecrementDesiredCapacity=False,
         )
-        
+
         # Verify deregistration
         mock_elb_client.deregister_targets.assert_called_once_with(
             TargetGroupArn="arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/staging/abcdef",
-            Targets=[{"Id": "i-1234567890abcdef0"}]
+            Targets=[{"Id": "i-1234567890abcdef0"}],
         )
-        
+
         # Verify success message printed
         assert "has been isolated successfully" in result.output
 
@@ -112,12 +99,12 @@ class TestInstanceIsolation(unittest.TestCase):
         # Set up mocks
         self.mock_instance.describe_autoscale.return_value = None
         mock_pick_instance.return_value = self.mock_instance
-        
+
         # Call the function using Click's test runner
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(instances, ["isolate"], obj=self.cfg)
-        
+            runner.invoke(instances, ["isolate"], obj=self.cfg)
+
         # Verify are_you_sure was not called
         mock_are_you_sure.assert_not_called()
 
@@ -135,29 +122,23 @@ class TestInstanceIsolation(unittest.TestCase):
         self.mock_as_status["LifecycleState"] = "Standby"
         mock_pick_instance.return_value = self.mock_instance
         mock_are_you_sure.return_value = True
-        
+
         # Call the function using Click's test runner
         runner = CliRunner()
         with runner.isolated_filesystem():
             result = runner.invoke(instances, ["terminate-isolated"], obj=self.cfg)
-        
+
         # Verify protection removal
-        mock_ec2_client.modify_instance_attribute.assert_has_calls([
-            call(
-                InstanceId="i-1234567890abcdef0",
-                DisableApiTermination={"Value": False}
-            ),
-            call(
-                InstanceId="i-1234567890abcdef0",
-                DisableApiStop={"Value": False}
-            ),
-        ])
-        
-        # Verify termination
-        mock_ec2_client.terminate_instances.assert_called_once_with(
-            InstanceIds=["i-1234567890abcdef0"]
+        mock_ec2_client.modify_instance_attribute.assert_has_calls(
+            [
+                call(InstanceId="i-1234567890abcdef0", DisableApiTermination={"Value": False}),
+                call(InstanceId="i-1234567890abcdef0", DisableApiStop={"Value": False}),
+            ]
         )
-        
+
+        # Verify termination
+        mock_ec2_client.terminate_instances.assert_called_once_with(InstanceIds=["i-1234567890abcdef0"])
+
         # Verify success message
         assert "has been terminated" in result.output
 
@@ -172,15 +153,15 @@ class TestInstanceIsolation(unittest.TestCase):
         # Set up mocks - instance is InService, not Standby
         self.mock_as_status["LifecycleState"] = "InService"
         mock_pick_instance.return_value = self.mock_instance
-        
+
         # Call the function using Click's test runner
         runner = CliRunner()
         with runner.isolated_filesystem():
             result = runner.invoke(instances, ["terminate-isolated"], obj=self.cfg)
-        
+
         # Verify are_you_sure was not called
         mock_are_you_sure.assert_not_called()
-        
+
         # Verify error message
         assert "not in isolated state" in result.output
 
@@ -205,15 +186,15 @@ class TestInstanceIsolation(unittest.TestCase):
         # Set up mocks
         mock_pick_instance.return_value = self.mock_instance
         mock_are_you_sure.return_value = True
-        
+
         # Simulate EC2 API error
         mock_ec2_client.modify_instance_attribute.side_effect = Exception("EC2 API Error")
-        
+
         # Call the function using Click's test runner
         runner = CliRunner()
         with runner.isolated_filesystem():
             result = runner.invoke(instances, ["isolate"], obj=self.cfg)
-        
+
         # Verify error handling
         assert result.exit_code == 1
         assert "Error isolating instance" in result.output
@@ -239,19 +220,19 @@ class TestInstanceIsolation(unittest.TestCase):
         # Set up mocks
         mock_pick_instance.return_value = self.mock_instance
         mock_are_you_sure.return_value = True
-        
+
         # Simulate deregistration in progress, then complete
         mock_elb_client.describe_target_health.side_effect = [
             {"TargetHealthDescriptions": [{"TargetHealth": {"State": "draining"}}]},
             {"TargetHealthDescriptions": [{"TargetHealth": {"State": "draining"}}]},
-            {"TargetHealthDescriptions": []}
+            {"TargetHealthDescriptions": []},
         ]
-        
+
         # Call the function using Click's test runner
         runner = CliRunner()
         with runner.isolated_filesystem():
-            result = runner.invoke(instances, ["isolate"], obj=self.cfg)
-        
+            runner.invoke(instances, ["isolate"], obj=self.cfg)
+
         # Verify it waited for deregistration
         assert mock_elb_client.describe_target_health.call_count == 3
         assert mock_sleep.call_count == 2
