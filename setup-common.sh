@@ -185,6 +185,9 @@ rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
 
 setup_cefs() {
+    # This manual setup should be kept in sync with `ce_install cefs setup`
+    # To save us having to install `uv` etc in our packer stages we duplicate
+    # the setup here.
     mkdir /cefs
     echo "* -fstype=autofs program:/etc/auto.cefs.sub" > /etc/auto.cefs
     cat > /etc/auto.cefs.sub << 'EOF'

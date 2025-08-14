@@ -193,6 +193,16 @@ def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> in
     metavar="N",
     show_default=True,
 )
+@click.option("--force-cefs", is_flag=True, help="Force CEFS installation mode even if disabled in config")
+@click.option(
+    "--force-traditional", is_flag=True, help="Force traditional NFS installation even if CEFS enabled in config"
+)
+@click.option(
+    "--cefs-temp-dir",
+    metavar="DIR",
+    help="Override local temp directory for CEFS staging",
+    type=click.Path(file_okay=False, path_type=Path),
+)
 @click.pass_context
 def cli(
     ctx: click.Context,
@@ -214,6 +224,9 @@ def cli(
     filter_match_all: bool,
     parallel: int,
     check_user: str,
+    force_cefs: bool,
+    force_traditional: bool,
+    cefs_temp_dir: Optional[Path],
 ):
     """Install binaries, libraries and compilers for Compiler Explorer."""
     formatter = logging.Formatter(fmt="%(asctime)s %(name)-15s %(levelname)-8s %(message)s")
@@ -237,6 +250,11 @@ def cli(
     if staging_source == ParameterSource.DEFAULT:
         staging_dir = Path(f"{dest}/staging")
 
+    config = Config.load(dest / "config.yaml").with_cli_overrides(
+        force_cefs=force_cefs,
+        force_traditional=force_traditional,
+        cefs_temp_dir=cefs_temp_dir,
+    )
     context = InstallationContext(
         destination=dest,
         staging_root=staging_dir,
@@ -251,18 +269,19 @@ def cli(
         keep_staging=keep_staging,
         check_user=check_user,
         platform=platform,
+        config=config,
     )
     ctx.obj = CliContext(
         installation_context=context,
         enabled=enable,
         filter_match_all=filter_match_all,
         parallel=parallel,
-        config=Config.load(dest / "config.yaml"),
+        config=config,
     )
 
 
 # Import CLI modules to register commands
-from lib.cli import cpp_libraries, fortran_libraries  # noqa: F401, E402
+from lib.cli import cefs, cpp_libraries, fortran_libraries  # noqa: F401, E402
 
 
 @cli.command(name="list")
