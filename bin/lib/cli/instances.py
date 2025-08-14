@@ -162,8 +162,19 @@ def instances_isolate(cfg: Config):
     print(f"Isolating instance {instance_id} for investigation...")
 
     try:
-        LOGGER.info("Enabling stop protection for %s", instance)
-        ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiStop={"Value": False})
+        # Check if this is a Spot instance
+        instance_details = ec2_client.describe_instances(InstanceIds=[instance_id])
+        is_spot = False
+        if instance_details["Reservations"]:
+            instance_info = instance_details["Reservations"][0]["Instances"][0]
+            is_spot = instance_info.get("InstanceLifecycle") == "spot"
+
+        if is_spot:
+            LOGGER.info("Skipping stop protection for Spot instance %s", instance)
+            print("Note: This is a Spot instance - stop protection not available")
+        else:
+            LOGGER.info("Enabling stop protection for %s", instance)
+            ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiStop={"Value": False})
 
         LOGGER.info("Enabling termination protection for %s", instance)
         ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiTermination={"Value": True})
@@ -194,7 +205,10 @@ def instances_isolate(cfg: Config):
             time.sleep(5)
 
         print(f"\n✅ Instance {instance_id} has been isolated successfully!")
-        print("   - Stop protection: ENABLED")
+        if is_spot:
+            print("   - Stop protection: N/A (Spot instance)")
+        else:
+            print("   - Stop protection: ENABLED")
         print("   - Termination protection: ENABLED")
         print("   - ASG state: Standby (not serving traffic)")
         print("   - Load balancer: Deregistered")
@@ -233,11 +247,19 @@ def instances_terminate_isolated(cfg: Config):
     print(f"Terminating isolated instance {instance_id}...")
 
     try:
+        # Check if this is a Spot instance
+        instance_details = ec2_client.describe_instances(InstanceIds=[instance_id])
+        is_spot = False
+        if instance_details["Reservations"]:
+            instance_info = instance_details["Reservations"][0]["Instances"][0]
+            is_spot = instance_info.get("InstanceLifecycle") == "spot"
+
         LOGGER.info("Removing termination protection for %s", instance)
         ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiTermination={"Value": False})
 
-        LOGGER.info("Removing stop protection for %s", instance)
-        ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiStop={"Value": False})
+        if not is_spot:
+            LOGGER.info("Removing stop protection for %s", instance)
+            ec2_client.modify_instance_attribute(InstanceId=instance_id, DisableApiStop={"Value": False})
 
         LOGGER.info("Terminating instance %s", instance)
         ec2_client.terminate_instances(InstanceIds=[instance_id])
