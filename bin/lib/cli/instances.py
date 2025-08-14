@@ -389,6 +389,7 @@ def get_instances_for_environment(cfg: Config):
 def get_isolated_instances_for_environment(cfg: Config):
     """Get isolated (Standby) instances for the environment."""
     isolated_instances = []
+    seen_instance_ids = set()
 
     asgs = get_autoscaling_groups_for(cfg)
 
@@ -402,6 +403,12 @@ def get_isolated_instances_for_environment(cfg: Config):
         for asg_instance in asg_instances:
             if asg_instance["LifecycleState"] == "Standby":
                 instance_id = asg_instance["InstanceId"]
+
+                # Skip if we've already seen this instance (can happen in blue-green setups)
+                if instance_id in seen_instance_ids:
+                    continue
+                seen_instance_ids.add(instance_id)
+
                 if cfg.env.supports_blue_green:
                     deployment = BlueGreenDeployment(cfg)
                     if "blue" in asg_name.lower():
