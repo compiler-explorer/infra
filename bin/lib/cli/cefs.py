@@ -117,11 +117,6 @@ def status(context):
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def convert(context: CliContext, filter_: List[str], force: bool):
     """Convert squashfs images to CEFS format for targets matching FILTER."""
-    if not context.config.cefs.enabled:
-        _LOGGER.error("CEFS is disabled in configuration")
-        return
-
-    # Validate CEFS mount point is accessible
     if not validate_cefs_mount_point(context.config.cefs.mount_point):
         _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
         raise click.ClickException("CEFS not properly configured")
