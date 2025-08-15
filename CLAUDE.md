@@ -451,6 +451,10 @@ Send 'now live' notifications to GitHub issues/PRs? [yes/dry-run/no] (yes):
 - **dry-run**: Shows what would be notified without sending
 - **no**: Skips notifications entirely
 
+## CE Install Filter System
+
+The `ce_install` command supports a filter system to narrow down installables. Filter syntax and usage patterns are documented in `docs/filter-system.md`.
+
 ## Terraform Integration
 
 - Infrastructure defined in `terraform/` directory
