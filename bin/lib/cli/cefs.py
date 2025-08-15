@@ -464,9 +464,10 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
     _LOGGER.info("Created %d consolidation groups", len(groups))
 
-    # Calculate space requirements (5x compressed size for conservative estimate)
+    # Calculate space requirements (5x largest group size since we process sequentially)
+    largest_group_size = max(sum(item["size"] for item in group) for group in groups)
     total_compressed_size = sum(sum(item["size"] for item in group) for group in groups)
-    required_temp_space = total_compressed_size * 5
+    required_temp_space = largest_group_size * 5
 
     # Show consolidation plan
     for i, group in enumerate(groups):
@@ -477,7 +478,11 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
                 _LOGGER.debug("  - %s (%s)", item["installable"].name, _format_size(item["size"]))
 
     _LOGGER.info("Total compressed size: %s", _format_size(total_compressed_size))
-    _LOGGER.info("Required temp space: %s (5x safety factor)", _format_size(required_temp_space))
+    _LOGGER.info(
+        "Required temp space: %s (5x largest group: %s)",
+        _format_size(required_temp_space),
+        _format_size(largest_group_size),
+    )
 
     # Check available space
     temp_dir = context.config.cefs.local_temp_dir
