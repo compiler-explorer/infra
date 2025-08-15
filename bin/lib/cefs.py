@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import humanfriendly
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -89,6 +91,25 @@ def validate_cefs_mount_point(mount_point: Path) -> bool:
     except OSError as e:
         _LOGGER.error("Cannot access CEFS mount point %s: %s", mount_point, e)
         return False
+
+
+def get_directory_size(directory: Path) -> int:
+    """Calculate total size of a directory tree in bytes.
+
+    Args:
+        directory: Directory to measure
+
+    Returns:
+        Total size in bytes
+    """
+    total_size = 0
+    try:
+        for item in directory.rglob("*"):
+            if item.is_file() and not item.is_symlink():
+                total_size += item.stat().st_size
+    except OSError as e:
+        _LOGGER.warning("Error calculating directory size for %s: %s", directory, e)
+    return total_size
 
 
 def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
@@ -258,9 +279,20 @@ def create_consolidated_image(
 
     try:
         # Extract each squashfs image to its subdirectory
+        total_compressed_size = 0
+        total_extracted_size = 0
+
         for _nfs_path, squashfs_path, subdir_name in items:
             subdir_path = extraction_dir / subdir_name
-            _LOGGER.info("Extracting %s to %s", squashfs_path, subdir_path)
+            compressed_size = squashfs_path.stat().st_size
+            total_compressed_size += compressed_size
+
+            _LOGGER.info(
+                "Extracting %s (%s) to %s",
+                squashfs_path,
+                humanfriendly.format_size(compressed_size, binary=True),
+                subdir_path,
+            )
 
             # Use unsquashfs to extract directly to target directory
             cmd = [
@@ -275,7 +307,26 @@ def create_consolidated_image(
             if result.returncode != 0:
                 raise RuntimeError(f"Failed to extract {squashfs_path}: {result.stderr}")
 
-            _LOGGER.debug("Successfully extracted %s", squashfs_path)
+            # Measure extracted size and calculate compression ratio
+            extracted_size = get_directory_size(subdir_path)
+            total_extracted_size += extracted_size
+            compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
+
+            _LOGGER.info(
+                "Extracted %s -> %s (%.1fx compression)",
+                humanfriendly.format_size(compressed_size, binary=True),
+                humanfriendly.format_size(extracted_size, binary=True),
+                compression_ratio,
+            )
+
+        # Log total extraction summary
+        total_compression_ratio = total_extracted_size / total_compressed_size if total_compressed_size > 0 else 0
+        _LOGGER.info(
+            "Total extraction: %s -> %s (%.1fx compression)",
+            humanfriendly.format_size(total_compressed_size, binary=True),
+            humanfriendly.format_size(total_extracted_size, binary=True),
+            total_compression_ratio,
+        )
 
         # Create consolidated squashfs image
         _LOGGER.info("Creating consolidated squashfs image at %s", output_path)
@@ -294,7 +345,22 @@ def create_consolidated_image(
         if result.returncode != 0:
             raise RuntimeError(f"Failed to create consolidated squashfs: {result.stderr}")
 
-        _LOGGER.info("Successfully created consolidated image: %s", output_path)
+        # Log final consolidation compression ratio
+        consolidated_size = output_path.stat().st_size
+        final_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
+
+        _LOGGER.info("Consolidation complete:")
+        _LOGGER.info(
+            "  Final image: %s (%.1fx compression of extracted data)",
+            humanfriendly.format_size(consolidated_size, binary=True),
+            final_compression_ratio,
+        )
+        _LOGGER.info(
+            "  Overall: %s -> %s (%.1fx end-to-end compression)",
+            humanfriendly.format_size(total_compressed_size, binary=True),
+            humanfriendly.format_size(consolidated_size, binary=True),
+            total_compressed_size / consolidated_size if consolidated_size > 0 else 0,
+        )
 
     finally:
         # Clean up extraction directory
