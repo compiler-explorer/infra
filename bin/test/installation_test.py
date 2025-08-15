@@ -8,6 +8,7 @@ from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
 from lib.installation import targets_from
 from lib.installation_context import InstallationContext
+from lib.library_platform import LibraryPlatform
 
 
 def parse_targets(string_config, enabled=None):
@@ -202,3 +203,48 @@ def test_check_exe_dep():
     installation_b.install_path = "pathy"
     Installable.resolve([installation_a, installation_b])
     assert installation_a.check_call == ["/some/install/dir/pathy/bin/java", "--jar", "path/to/jar"]
+
+
+def test_get_path_prefix():
+    """Test the _get_path_prefix function that extracts identifiable prefixes from relative paths."""
+    ic = InstallationContext(
+        destination=Path("/opt/compiler-explorer"),
+        staging_root=Path("/tmp/staging"),
+        s3_url="https://s3.example.com",
+        dry_run=False,
+        is_nightly_enabled=False,
+        only_nightly=False,
+        cache=None,
+        yaml_dir=Path("/tmp/yaml"),
+        allow_unsafe_ssl=False,
+        resource_dir=Path("/tmp/resources"),
+        keep_staging=False,
+        check_user="user",
+        platform=LibraryPlatform.Linux,
+        config=None,
+    )
+
+    # Test relative paths (as they would be passed to move_from_staging)
+    assert ic._get_path_prefix("gcc/13.2.0") == "gcc-13.2.0"
+    assert ic._get_path_prefix("clang/trunk/bin") == "clang-trunk-bin"
+    assert ic._get_path_prefix("libs/boost/1.82.0") == "libs-boost-1.82.0"
+
+    # Test path with trailing slashes
+    assert ic._get_path_prefix("gcc/13.2.0/") == "gcc-13.2.0"
+
+    # Test simple paths without subdirectories
+    assert ic._get_path_prefix("gcc") == "gcc"
+    assert ic._get_path_prefix("something") == "something"
+
+    # Test with special characters (should be sanitized)
+    assert ic._get_path_prefix("gcc@13.2.0/bin") == "gcc_13.2.0-bin"
+    assert ic._get_path_prefix("test$dir/sub#dir") == "test_dir-sub_dir"
+
+    # Test empty path
+    assert ic._get_path_prefix("") == "unknown"
+
+    # Test length limiting (50 chars max)
+    long_path = "a" * 60
+    result = ic._get_path_prefix(long_path)
+    assert len(result) <= 50
+    assert result == "a" * 50

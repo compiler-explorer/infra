@@ -450,6 +450,18 @@ class InstallationContext:
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])
 
+    def _get_path_prefix(self, path: PathOrString) -> str:
+        """Extract an identifiable prefix from the relative destination path."""
+        path_str = str(path)
+
+        # Replace slashes with dashes and remove any trailing slashes
+        identifier = path_str.strip("/").replace("/", "-")
+        # Limit length and ensure it's filesystem-safe
+        identifier = identifier[:50]  # Reasonable limit
+        # Remove any characters that might be problematic (but keep dots for version numbers)
+        identifier = "".join(c if c.isalnum() or c in "-_." else "_" for c in identifier)
+        return identifier if identifier else "unknown"
+
     def _deploy_to_cefs(
         self,
         staging: StagingDir,
@@ -506,8 +518,13 @@ class InstallationContext:
 
             # Calculate hash and deploy to CEFS
             hash_value = calculate_squashfs_hash(temp_squash_file)
-            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value)
-            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
+
+            # Get identifiable prefix from the relative destination path
+            path_prefix = self._get_path_prefix(dest)
+            prefixed_hash = f"{path_prefix}_{hash_value}" if path_prefix else hash_value
+
+            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, prefixed_hash)
+            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, prefixed_hash)
 
             # Copy to CEFS images directory if not already there
             if not cefs_image_path.exists():
