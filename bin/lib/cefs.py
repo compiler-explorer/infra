@@ -349,6 +349,10 @@ def create_consolidated_image(
         consolidated_size = output_path.stat().st_size
         final_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
 
+        # Calculate space savings vs original and total compression
+        space_savings_ratio = total_compressed_size / consolidated_size if consolidated_size > 0 else 0
+        total_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
+
         _LOGGER.info("Consolidation complete:")
         _LOGGER.info(
             "  Final image: %s (%.1fx compression of extracted data)",
@@ -356,10 +360,16 @@ def create_consolidated_image(
             final_compression_ratio,
         )
         _LOGGER.info(
-            "  Overall: %s -> %s (%.1fx end-to-end compression)",
+            "  Space comparison: %s -> %s (%.1fx space savings)",
             humanfriendly.format_size(total_compressed_size, binary=True),
             humanfriendly.format_size(consolidated_size, binary=True),
-            total_compressed_size / consolidated_size if consolidated_size > 0 else 0,
+            space_savings_ratio,
+        )
+        _LOGGER.info(
+            "  Total compression: %s -> %s (%.1fx overall compression)",
+            humanfriendly.format_size(total_extracted_size, binary=True),
+            humanfriendly.format_size(consolidated_size, binary=True),
+            total_compression_ratio,
         )
 
     finally:
