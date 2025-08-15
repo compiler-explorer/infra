@@ -238,9 +238,8 @@ echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key
 
 @cefs.command()
 @click.pass_obj
-@click.option("--dry-run", is_flag=True, help="Show what would be done without making changes")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def rollback(context: CliContext, filter_: List[str], dry_run: bool):
+def rollback(context: CliContext, filter_: List[str]):
     """Rollback CEFS conversions by restoring from .bak directories.
 
     This undoes CEFS conversions by:
@@ -261,8 +260,15 @@ def rollback(context: CliContext, filter_: List[str], dry_run: bool):
     successful = 0
     failed = 0
     skipped = 0
+    rollback_details = []  # Track details for summary
 
     for installable in installables:
+        # Only process installed installables
+        if not installable.is_installed():
+            _LOGGER.debug("Skipping %s - not installed", installable.name)
+            skipped += 1
+            continue
+
         nfs_path = context.installation_context.destination / installable.install_path
         backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
@@ -279,16 +285,34 @@ def rollback(context: CliContext, filter_: List[str], dry_run: bool):
             failed += 1
             continue
 
-        if dry_run:
+        # Track where the symlink points for reporting
+        try:
+            symlink_target = str(nfs_path.readlink())
+        except OSError:
+            symlink_target = "<unable to read>"
+
+        if context.installation_context.dry_run:
             _LOGGER.info(
-                "Would rollback %s: remove symlink %s, restore from %s", installable.name, nfs_path, backup_path
+                "Would rollback %s: remove symlink %s -> %s, restore from %s",
+                installable.name,
+                nfs_path,
+                symlink_target,
+                backup_path,
+            )
+            rollback_details.append(
+                {
+                    "name": installable.name,
+                    "status": "would_rollback",
+                    "symlink_target": symlink_target,
+                    "nfs_path": str(nfs_path),
+                }
             )
             successful += 1
             continue
 
         try:
             # Remove symlink
-            _LOGGER.info("Removing CEFS symlink: %s", nfs_path)
+            _LOGGER.info("Removing CEFS symlink: %s -> %s", nfs_path, symlink_target)
             nfs_path.unlink()
 
             # Restore from backup
@@ -298,16 +322,57 @@ def rollback(context: CliContext, filter_: List[str], dry_run: bool):
             # Verify restoration
             if installable.is_installed():
                 _LOGGER.info("Successfully rolled back %s", installable.name)
+                rollback_details.append(
+                    {
+                        "name": installable.name,
+                        "status": "success",
+                        "symlink_target": symlink_target,
+                        "nfs_path": str(nfs_path),
+                    }
+                )
                 successful += 1
             else:
                 _LOGGER.error("Rollback validation failed for %s", installable.name)
+                rollback_details.append(
+                    {
+                        "name": installable.name,
+                        "status": "validation_failed",
+                        "symlink_target": symlink_target,
+                        "nfs_path": str(nfs_path),
+                    }
+                )
                 failed += 1
 
         except OSError as e:
             _LOGGER.error("Failed to rollback %s: %s", installable.name, e)
+            rollback_details.append(
+                {
+                    "name": installable.name,
+                    "status": "failed",
+                    "symlink_target": symlink_target,
+                    "nfs_path": str(nfs_path),
+                    "error": str(e),
+                }
+            )
             failed += 1
 
+    # Detailed summary
     _LOGGER.info("Rollback complete: %d successful, %d failed, %d skipped", successful, failed, skipped)
+
+    if rollback_details:
+        _LOGGER.info("Rollback details:")
+        for detail in rollback_details:
+            if detail["status"] in ("success", "would_rollback"):
+                _LOGGER.info("  %s: %s (symlink was: %s)", detail["name"], detail["status"], detail["symlink_target"])
+            else:
+                error_msg = f" - {detail.get('error', '')}" if detail.get("error") else ""
+                _LOGGER.info(
+                    "  %s: %s (symlink was: %s)%s",
+                    detail["name"],
+                    detail["status"],
+                    detail["symlink_target"],
+                    error_msg,
+                )
 
     if failed > 0:
         raise click.ClickException(f"Failed to rollback {failed} installables")
