@@ -3,9 +3,12 @@
 
 import hashlib
 import logging
+import os
 import shutil
+import subprocess
 import tempfile
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,3 +156,228 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None
             backup_path.rename(nfs_path)
             _LOGGER.error("Rollback: restored %s from backup", nfs_path)
         raise RuntimeError(f"Failed to create symlink: {e}") from e
+
+
+def check_temp_space_available(temp_dir: Path, required_bytes: int) -> bool:
+    """Check if temp directory has enough space for consolidation.
+
+    Args:
+        temp_dir: Directory to check space for
+        required_bytes: Required space in bytes
+
+    Returns:
+        True if enough space is available
+    """
+    try:
+        stat = os.statvfs(temp_dir)
+        available_bytes = stat.f_bavail * stat.f_frsize
+        _LOGGER.debug("Available space: %d bytes, required: %d bytes", available_bytes, required_bytes)
+        return available_bytes >= required_bytes
+    except OSError as e:
+        _LOGGER.error("Failed to check disk space for %s: %s", temp_dir, e)
+        return False
+
+
+def snapshot_symlink_targets(symlink_paths: List[Path]) -> Dict[Path, Path]:
+    """Snapshot current symlink targets for race condition detection.
+
+    Args:
+        symlink_paths: List of symlink paths to snapshot
+
+    Returns:
+        Dictionary mapping symlink path to current target
+    """
+    snapshot = {}
+    for symlink_path in symlink_paths:
+        try:
+            if symlink_path.is_symlink():
+                snapshot[symlink_path] = symlink_path.readlink()
+                _LOGGER.debug("Snapshotted %s -> %s", symlink_path, snapshot[symlink_path])
+        except OSError as e:
+            _LOGGER.warning("Failed to read symlink %s: %s", symlink_path, e)
+    return snapshot
+
+
+def verify_symlinks_unchanged(snapshot: Dict[Path, Path]) -> Tuple[List[Path], List[Path]]:
+    """Verify symlinks haven't changed since snapshot.
+
+    Args:
+        snapshot: Dictionary of symlink path to expected target
+
+    Returns:
+        Tuple of (unchanged_symlinks, changed_symlinks)
+    """
+    unchanged = []
+    changed = []
+
+    for symlink_path, expected_target in snapshot.items():
+        try:
+            if symlink_path.is_symlink():
+                current_target = symlink_path.readlink()
+                if current_target == expected_target:
+                    unchanged.append(symlink_path)
+                else:
+                    changed.append(symlink_path)
+                    _LOGGER.warning(
+                        "Symlink changed during consolidation: %s (was: %s, now: %s)",
+                        symlink_path,
+                        expected_target,
+                        current_target,
+                    )
+            else:
+                changed.append(symlink_path)
+                _LOGGER.warning("Symlink no longer exists: %s", symlink_path)
+        except OSError as e:
+            changed.append(symlink_path)
+            _LOGGER.warning("Failed to read symlink %s: %s", symlink_path, e)
+
+    return unchanged, changed
+
+
+def create_consolidated_image(
+    items: List[Tuple[Path, Path, str]],
+    temp_dir: Path,
+    output_path: Path,
+    compression: str = "zstd",
+    compression_level: int = 7,
+) -> None:
+    """Create a consolidated squashfs image from multiple CEFS items.
+
+    Args:
+        items: List of (nfs_path, squashfs_path, subdirectory_name) tuples
+        temp_dir: Temporary directory for extraction
+        output_path: Path for the consolidated squashfs image
+        compression: Squashfs compression type
+        compression_level: Compression level
+
+    Raises:
+        RuntimeError: If consolidation fails
+    """
+    extraction_dir = temp_dir / "extract"
+    extraction_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Extract each squashfs image to its subdirectory
+        for _nfs_path, squashfs_path, subdir_name in items:
+            subdir_path = extraction_dir / subdir_name
+            _LOGGER.info("Extracting %s to %s", squashfs_path, subdir_path)
+
+            # Use unsquashfs to extract directly to target directory
+            cmd = [
+                "unsquashfs",
+                "-f",  # Force overwrite
+                "-d",
+                str(subdir_path),  # Destination directory
+                str(squashfs_path),
+            ]
+
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if result.returncode != 0:
+                raise RuntimeError(f"Failed to extract {squashfs_path}: {result.stderr}")
+
+            _LOGGER.debug("Successfully extracted %s", squashfs_path)
+
+        # Create consolidated squashfs image
+        _LOGGER.info("Creating consolidated squashfs image at %s", output_path)
+        cmd = [
+            "mksquashfs",
+            str(extraction_dir),
+            str(output_path),
+            "-comp",
+            compression,
+            "-Xcompression-level",
+            str(compression_level),
+            "-noappend",  # Don't append, create new
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+        if result.returncode != 0:
+            raise RuntimeError(f"Failed to create consolidated squashfs: {result.stderr}")
+
+        _LOGGER.info("Successfully created consolidated image: %s", output_path)
+
+    finally:
+        # Clean up extraction directory
+        if extraction_dir.exists():
+            shutil.rmtree(extraction_dir)
+            _LOGGER.debug("Cleaned up extraction directory: %s", extraction_dir)
+
+
+def update_symlinks_for_consolidation(
+    unchanged_symlinks: List[Path], consolidated_hash: str, mount_point: Path, subdir_mapping: Dict[Path, str]
+) -> None:
+    """Update symlinks to point to consolidated CEFS mount.
+
+    Args:
+        unchanged_symlinks: List of symlinks that are safe to update
+        consolidated_hash: Hash of the consolidated image
+        mount_point: CEFS mount point
+        subdir_mapping: Mapping of nfs_path to subdirectory name in consolidated image
+
+    Raises:
+        RuntimeError: If symlink update fails
+    """
+    for symlink_path in unchanged_symlinks:
+        if symlink_path not in subdir_mapping:
+            _LOGGER.warning("No subdirectory mapping for %s, skipping", symlink_path)
+            continue
+
+        subdir_name = subdir_mapping[symlink_path]
+        # New target: /cefs/XX/HASH/subdir_name
+        new_target = get_cefs_mount_path(mount_point, consolidated_hash) / subdir_name
+
+        try:
+            # Atomic symlink update: remove old, create new
+            backup_target = symlink_path.readlink()
+            symlink_path.unlink()
+            symlink_path.symlink_to(new_target)
+            _LOGGER.info("Updated symlink %s -> %s", symlink_path, new_target)
+
+        except OSError as e:
+            # Try to restore original symlink on failure
+            try:
+                symlink_path.unlink(missing_ok=True)
+                symlink_path.symlink_to(backup_target)
+                _LOGGER.error("Restored original symlink after failure: %s", symlink_path)
+            except OSError:
+                _LOGGER.error("Failed to restore symlink %s", symlink_path)
+            raise RuntimeError(f"Failed to update symlink {symlink_path}: {e}") from e
+
+
+def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> Tuple[Path, bool]:
+    """Parse CEFS symlink target and return image path and consolidation status.
+
+    Args:
+        cefs_target: The symlink target (e.g., /cefs/XX/HASH or /cefs/XX/HASH/subdir)
+        cefs_image_dir: Base directory for CEFS images (e.g., /efs/cefs-images)
+
+    Returns:
+        Tuple of (cefs_image_path, is_already_consolidated)
+
+    Raises:
+        ValueError: If the CEFS target format is invalid
+
+    Examples:
+        >>> parse_cefs_target(Path("/cefs/9d/9da642f6..."), Path("/efs/cefs-images"))
+        (Path("/efs/cefs-images/9d/9da642f6....sqfs"), False)
+
+        >>> parse_cefs_target(Path("/cefs/ab/abcdef123/gcc-4.5"), Path("/efs/cefs-images"))
+        (Path("/efs/cefs-images/ab/abcdef123.sqfs"), True)
+    """
+    parts = cefs_target.parts
+    # Expected: ('', 'cefs', 'XX', 'HASH', ...) for /cefs/XX/HASH/...
+
+    if len(parts) < 4:  # Need at least '', 'cefs', 'XX', 'HASH'
+        raise ValueError(f"Invalid CEFS target format: {cefs_target}")
+
+    if parts[1] != "cefs":
+        raise ValueError(f"CEFS target must start with /cefs: {cefs_target}")
+
+    hash_prefix = parts[2]  # XX
+    hash_value = parts[3]  # HASH
+    cefs_image_path = cefs_image_dir / hash_prefix / f"{hash_value}.sqfs"
+
+    # If there are more parts after the hash, it's already consolidated
+    is_already_consolidated = len(parts) > 4
+
+    return cefs_image_path, is_already_consolidated

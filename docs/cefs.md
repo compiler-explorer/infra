@@ -112,3 +112,7 @@ Once a few of these have been done and we're happy with the results, we set the 
 ## Future Work
 
 **Consolidation**: Combine multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits.
+
+**Garbage Collection**: Implement automated cleanup of unused CEFS images. After conversions, consolidations, or reinstallations, some CEFS images may no longer be referenced by any symlinks. These should be identified and removed to free up disk space. This requires careful verification that images are truly unreferenced before deletion.
+
+**Re-consolidation of Sparse Consolidated Images**: As items are updated/reinstalled, consolidated images may become sparse (e.g., if we consolidate X, Y, Z but later Y and Z are reinstalled individually, the consolidated image only serves X). Consider detecting such cases and re-consolidating remaining items to maintain efficiency. This ties into the garbage collection process as the old consolidated image would need cleanup after re-consolidation.
