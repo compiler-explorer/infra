@@ -99,7 +99,7 @@ The modified script now skips mounting when the destination is already a symlink
 2. Backup NFS directory and create symlink to `/cefs/${HASH:0:2}/${HASH}`
 3. First access triggers autofs mount of the CEFS image
 
-Note: New installations via `ce_install` now create CEFS images with prefixed filenames like `gcc-13.2.0_${HASH}.sqfs` to make them more identifiable while maintaining hash-based uniqueness.
+Note: New installations via `ce_install` now create CEFS images with suffixed filenames like `${HASH}_gcc-13.2.0.sqfs` to make them more identifiable while maintaining hash-based subdirectory distribution.
 
 This is implemented in the `ce cefs convert`.
 

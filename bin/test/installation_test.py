@@ -205,8 +205,8 @@ def test_check_exe_dep():
     assert installation_a.check_call == ["/some/install/dir/pathy/bin/java", "--jar", "path/to/jar"]
 
 
-def test_get_path_prefix():
-    """Test the _get_path_prefix function that extracts identifiable prefixes from relative paths."""
+def test_get_path_suffix():
+    """Test the _get_path_suffix function that extracts identifiable suffixes from relative paths."""
     ic = InstallationContext(
         destination=Path("/opt/compiler-explorer"),
         staging_root=Path("/tmp/staging"),
@@ -225,26 +225,26 @@ def test_get_path_prefix():
     )
 
     # Test relative paths (as they would be passed to move_from_staging)
-    assert ic._get_path_prefix("gcc/13.2.0") == "gcc-13.2.0"
-    assert ic._get_path_prefix("clang/trunk/bin") == "clang-trunk-bin"
-    assert ic._get_path_prefix("libs/boost/1.82.0") == "libs-boost-1.82.0"
+    assert ic._get_path_suffix("gcc/13.2.0") == "gcc-13.2.0"
+    assert ic._get_path_suffix("clang/trunk/bin") == "clang-trunk-bin"
+    assert ic._get_path_suffix("libs/boost/1.82.0") == "libs-boost-1.82.0"
 
     # Test path with trailing slashes
-    assert ic._get_path_prefix("gcc/13.2.0/") == "gcc-13.2.0"
+    assert ic._get_path_suffix("gcc/13.2.0/") == "gcc-13.2.0"
 
     # Test simple paths without subdirectories
-    assert ic._get_path_prefix("gcc") == "gcc"
-    assert ic._get_path_prefix("something") == "something"
+    assert ic._get_path_suffix("gcc") == "gcc"
+    assert ic._get_path_suffix("something") == "something"
 
     # Test with special characters (should be sanitized)
-    assert ic._get_path_prefix("gcc@13.2.0/bin") == "gcc_13.2.0-bin"
-    assert ic._get_path_prefix("test$dir/sub#dir") == "test_dir-sub_dir"
+    assert ic._get_path_suffix("gcc@13.2.0/bin") == "gcc_13.2.0-bin"
+    assert ic._get_path_suffix("test$dir/sub#dir") == "test_dir-sub_dir"
 
     # Test empty path
-    assert ic._get_path_prefix("") == "unknown"
+    assert ic._get_path_suffix("") == "unknown"
 
     # Test length limiting (50 chars max)
     long_path = "a" * 60
-    result = ic._get_path_prefix(long_path)
+    result = ic._get_path_suffix(long_path)
     assert len(result) <= 50
     assert result == "a" * 50

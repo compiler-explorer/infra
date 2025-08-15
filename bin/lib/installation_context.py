@@ -450,8 +450,8 @@ class InstallationContext:
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])
 
-    def _get_path_prefix(self, path: PathOrString) -> str:
-        """Extract an identifiable prefix from the relative destination path."""
+    def _get_path_suffix(self, path: PathOrString) -> str:
+        """Extract an identifiable suffix from the relative destination path."""
         path_str = str(path)
 
         # Replace slashes with dashes and remove any trailing slashes
@@ -519,12 +519,12 @@ class InstallationContext:
             # Calculate hash and deploy to CEFS
             hash_value = calculate_squashfs_hash(temp_squash_file)
 
-            # Get identifiable prefix from the relative destination path
-            path_prefix = self._get_path_prefix(dest)
-            prefixed_hash = f"{path_prefix}_{hash_value}" if path_prefix else hash_value
+            # Get identifiable suffix from the relative destination path
+            path_suffix = self._get_path_suffix(dest)
+            suffixed_hash = f"{hash_value}_{path_suffix}" if path_suffix else hash_value
 
-            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, prefixed_hash)
-            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, prefixed_hash)
+            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, suffixed_hash)
+            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, suffixed_hash)
 
             # Copy to CEFS images directory if not already there
             if not cefs_image_path.exists():
