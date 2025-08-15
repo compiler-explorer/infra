@@ -110,10 +110,12 @@ class TestInstanceIsolation(unittest.TestCase):
 
     @patch("lib.cli.instances.pick_instance")
     @patch("lib.cli.instances.are_you_sure")
+    @patch("lib.cli.instances.as_client")
     @patch("lib.cli.instances.ec2_client")
     def test_terminate_isolated_success(
         self,
         mock_ec2_client,
+        mock_as_client,
         mock_are_you_sure,
         mock_pick_instance,
     ):
@@ -138,6 +140,13 @@ class TestInstanceIsolation(unittest.TestCase):
 
         # Verify termination
         mock_ec2_client.terminate_instances.assert_called_once_with(InstanceIds=["i-1234567890abcdef0"])
+
+        # Verify instance was detached from ASG
+        mock_as_client.detach_instances.assert_called_once_with(
+            InstanceIds=["i-1234567890abcdef0"],
+            AutoScalingGroupName="staging-asg",
+            ShouldDecrementDesiredCapacity=False,
+        )
 
         # Verify success message
         assert "has been terminated" in result.output
