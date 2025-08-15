@@ -245,6 +245,8 @@ def instances_terminate_isolated(cfg: Config):
         print("Only instances in 'Standby' state can be terminated with this command.")
         return
 
+    as_group_name = as_instance_status["AutoScalingGroupName"]
+
     if not are_you_sure(f"terminate isolated instance {instance_id}", cfg):
         return
 
@@ -270,7 +272,13 @@ def instances_terminate_isolated(cfg: Config):
         LOGGER.info("Terminating instance %s", instance)
         ec2_client.terminate_instances(InstanceIds=[instance_id])
 
-        print(f"\n✅ Instance {instance_id} has been terminated.")
+        # Detach the instance from the ASG to remove the stale entry
+        LOGGER.info("Detaching instance %s from ASG %s", instance, as_group_name)
+        as_client.detach_instances(
+            InstanceIds=[instance_id], AutoScalingGroupName=as_group_name, ShouldDecrementDesiredCapacity=False
+        )
+
+        print(f"\n✅ Instance {instance_id} has been terminated and removed from ASG.")
         print("The ASG will automatically launch a replacement instance.")
 
     except Exception as e:
@@ -422,6 +430,18 @@ def get_isolated_instances_for_environment(cfg: Config):
                 isolated_instance = Instance.__new__(Instance)
                 isolated_instance.group_arn = group_arn
                 isolated_instance.instance = ec2.Instance(id=instance_id)
+
+                # Try to load instance details - skip if instance no longer exists
+                try:
+                    isolated_instance.instance.load()
+                    # Check if the instance actually exists (load() sets meta.data to None if not found)
+                    if isolated_instance.instance.meta.data is None:
+                        LOGGER.debug(f"Instance {instance_id} no longer exists, skipping")
+                        continue
+                except Exception as e:
+                    LOGGER.debug(f"Failed to load instance {instance_id}: {e}, skipping")
+                    continue
+
                 isolated_instance.elb_health = "isolated"
                 isolated_instance.service_status = {"SubState": "isolated"}
                 isolated_instance.running_version = "unknown"
