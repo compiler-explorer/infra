@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 # coding=utf-8
+import fnmatch
 import json
 import logging
 import logging.config
 import multiprocessing
 import os
+import re
 import signal
 import sys
 import traceback
@@ -68,9 +70,10 @@ def _context_match(context_query: str, installable: Installable) -> bool:
     Context matching rules:
     - If query starts with "/", requires exact prefix match from root
     - Otherwise, searches for substring match anywhere in the path
+    - Supports wildcards (*) for glob-style pattern matching
 
     Args:
-        context_query: Path pattern like "gcc", "cross/gcc", or "/compilers"
+        context_query: Path pattern like "gcc", "cross/gcc", "/compilers", or "*/gcc"
         installable: The installable to check
 
     Returns:
@@ -80,7 +83,14 @@ def _context_match(context_query: str, installable: Installable) -> bool:
         - "gcc" matches paths containing "gcc" anywhere
         - "cross/gcc" matches paths containing that sequence
         - "/compilers" only matches paths starting with "compilers/"
+        - "*/gcc" matches any path ending with "gcc"
     """
+    # Check if query contains wildcards
+    if "*" in context_query:
+        full_path = "/".join(installable.context)
+        return fnmatch.fnmatch(full_path, context_query.lstrip("/"))
+
+    # Original exact matching logic
     context = context_query.split("/")
     root_only = context[0] == ""
     if root_only:
@@ -93,21 +103,102 @@ def _context_match(context_query: str, installable: Installable) -> bool:
     return False
 
 
+def _parse_version(version_str: str) -> tuple:
+    """Parse a version string into comparable tuple.
+
+    Extracts numeric parts from any version string for comparison.
+    Returns tuple of integers, or original string if no numbers found.
+    """
+    # Extract numeric parts from the string
+    parts = re.findall(r"\d+", version_str)
+    if not parts:
+        return (version_str,)  # Return as-is if no numbers found
+
+    # Convert to integers for comparison
+    return tuple(int(p) for p in parts)
+
+
+def _version_matches_range(version_str: str, range_pattern: str) -> bool:
+    """Check if a version matches a range pattern.
+
+    Supports patterns like: ">=14.0", "<15.0", "~1.70" (matches 1.70.x)
+    Only works if both version and pattern contain numeric parts.
+    """
+    version_tuple = _parse_version(version_str)
+
+    # Skip range matching if no numeric parts found
+    if len(version_tuple) == 1 and isinstance(version_tuple[0], str):
+        return False
+
+    # Handle tilde range (~1.70 matches 1.70.x)
+    if range_pattern.startswith("~"):
+        target = _parse_version(range_pattern[1:])
+        if len(target) == 1 and isinstance(target[0], str):
+            return False
+        # Compare only the major.minor parts for tilde matching
+        min_len = min(2, len(target), len(version_tuple))
+        return version_tuple[:min_len] == target[:min_len]
+
+    # Handle >= operator
+    if range_pattern.startswith(">="):
+        target = _parse_version(range_pattern[2:])
+        if len(target) == 1 and isinstance(target[0], str):
+            return False
+        return version_tuple >= target
+
+    # Handle > operator
+    if range_pattern.startswith(">"):
+        target = _parse_version(range_pattern[1:])
+        if len(target) == 1 and isinstance(target[0], str):
+            return False
+        return version_tuple > target
+
+    # Handle <= operator
+    if range_pattern.startswith("<="):
+        target = _parse_version(range_pattern[2:])
+        if len(target) == 1 and isinstance(target[0], str):
+            return False
+        return version_tuple <= target
+
+    # Handle < operator
+    if range_pattern.startswith("<"):
+        target = _parse_version(range_pattern[1:])
+        if len(target) == 1 and isinstance(target[0], str):
+            return False
+        return version_tuple < target
+
+    return False
+
+
 def _target_match(target: str, installable: Installable) -> bool:
-    """Match target query against installable's target name (exact match only).
+    """Match target query against installable's target name.
 
     Args:
-        target: Target name like "14.1.0", "1.70.0", or specific version
+        target: Target pattern like "14.1.0", "14.*", ">=14.0", "!assertions-*"
         installable: The installable to check
 
     Returns:
-        True if target exactly matches the installable's target name
+        True if target matches the installable's target name
 
     Examples:
         - "14.1.0" matches only items with target_name exactly "14.1.0"
-        - "14" matches only items with target_name exactly "14"
-        - Does NOT do substring matching - "14" won't match "14.1.0"
+        - "14.*" matches "14.1.0", "14.2.1", etc.
+        - ">=14.0" matches "14.1.0", "15.0.0", etc.
+        - "!assertions-*" matches anything NOT matching "assertions-*"
     """
+    # Handle negative patterns
+    if target.startswith("!"):
+        return not _target_match(target[1:], installable)
+
+    # Handle version range patterns
+    if any(target.startswith(op) for op in [">=", "<=", ">", "<", "~"]):
+        return _version_matches_range(installable.target_name, target)
+
+    # Handle wildcard patterns
+    if "*" in target:
+        return fnmatch.fnmatch(installable.target_name, target)
+
+    # Original exact matching
     return target == installable.target_name
 
 
@@ -115,11 +206,12 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
     """Match a filter query against an installable.
 
     Filter syntax:
-    - Single word: matches context (substring) OR target (exact)
-    - Two words: first matches context (substring) AND second matches target (exact)
+    - Single word: matches context (substring) OR target (pattern)
+    - Two words: first matches context (pattern) AND second matches target (pattern)
+    - Supports wildcards (*), negatives (!), and version ranges (>=, <, ~)
 
     Args:
-        filter_query: Filter string like "gcc", "gcc 14.1.0", "cross/gcc", etc.
+        filter_query: Filter string like "gcc", "gcc 14.*", "!cross", ">=14.0", etc.
         installable: The installable to check
 
     Returns:
@@ -127,14 +219,20 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
 
     Examples:
         - "gcc" matches installables with "gcc" in path OR target named "gcc"
-        - "gcc 14.1.0" matches installables with "gcc" in path AND target "14.1.0"
-        - "cross/gcc" matches installables with "cross/gcc" in path OR target "cross/gcc"
-        - "/libraries fmt" matches items starting with "libraries/" AND target "fmt"
+        - "gcc 14.*" matches installables with "gcc" in path AND target matching "14.*"
+        - "!cross" matches installables without "cross" in path AND target not "cross"
+        - "*/gcc >=14.0" matches any gcc with version >= 14.0
     """
     split = filter_query.split(" ", 1)
     if len(split) == 1:
-        # We don't know if this is a target or context, so either work
-        return _context_match(split[0], installable) or _target_match(split[0], installable)
+        query = split[0]
+        # Handle negative patterns specially for single word
+        if query.startswith("!"):
+            # For negative single word, both context and target must NOT match
+            positive_query = query[1:]
+            return not (_context_match(positive_query, installable) or _target_match(positive_query, installable))
+        # Otherwise, either context OR target can match
+        return _context_match(query, installable) or _target_match(query, installable)
     return _context_match(split[0], installable) and _target_match(split[1], installable)
 
 

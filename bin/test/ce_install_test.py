@@ -140,3 +140,110 @@ def test_all_should_match_any_filter():
     test4 = list(filter(lambda installable: filter_aggregate(filter4, installable, filter_match_all=False), test))
     test4_answer = [test[1], test[2], test[3], test[5], test[6], test[7], test[9], test[10], test[11]]
     assert test4 == test4_answer
+
+
+def test_wildcard_target_matching():
+    """Test wildcard patterns in target names."""
+    # Test single * wildcard
+    assert filter_match("assertions-*", fake("compilers/c++/clang", "assertions-3.5.0"))
+    assert filter_match("assertions-*", fake("compilers/c++/clang", "assertions-10.0.0"))
+    assert not filter_match("assertions-*", fake("compilers/c++/clang", "10.0.0"))
+
+    # Test version wildcards
+    assert filter_match("14.*", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("14.*", fake("compilers/c++/gcc", "14.2.1"))
+    assert not filter_match("14.*", fake("compilers/c++/gcc", "13.1.0"))
+
+    # Test context + wildcard target
+    assert filter_match("gcc 14.*", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("clang assertions-*", fake("compilers/c++/clang", "assertions-3.5.0"))
+    assert not filter_match("gcc 14.*", fake("compilers/c++/clang", "14.1.0"))
+
+
+def test_wildcard_context_matching():
+    """Test wildcard patterns in context paths."""
+    # Test wildcards in context
+    assert filter_match("*/gcc", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("*/gcc", fake("cross/gcc", "14.1.0"))
+    assert not filter_match("*/gcc", fake("compilers/c++/clang", "14.1.0"))
+
+    # Test multiple wildcards
+    assert filter_match("*/c++/*", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("*/c++/*", fake("libraries/c++/boost", "1.70.0"))
+    assert not filter_match("*/c++/*", fake("compilers/c/gcc", "14.1.0"))
+
+
+def test_negative_filter_matching():
+    """Test negative filter patterns."""
+    # Test negative context matching
+    assert filter_match("!cross", fake("compilers/c++/gcc", "14.1.0"))
+    assert not filter_match("!cross", fake("compilers/c++/cross/gcc", "14.1.0"))
+
+    # Test negative target matching
+    assert filter_match("!assertions-3.5.0", fake("compilers/c++/clang", "10.0.0"))
+    assert not filter_match("!assertions-3.5.0", fake("compilers/c++/clang", "assertions-3.5.0"))
+
+    # Test negative with wildcards
+    assert filter_match("!assertions-*", fake("compilers/c++/clang", "10.0.0"))
+    assert not filter_match("!assertions-*", fake("compilers/c++/clang", "assertions-3.5.0"))
+
+    # Test context + negative target
+    assert filter_match("gcc !assertions-*", fake("compilers/c++/gcc", "14.1.0"))
+    assert not filter_match("gcc !assertions-*", fake("compilers/c++/gcc", "assertions-14.1.0"))
+
+
+def test_version_range_matching():
+    """Test semantic version range patterns."""
+    # Test >= version matching
+    assert filter_match(">=14.0.0", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match(">=14.0.0", fake("compilers/c++/gcc", "15.0.0"))
+    assert not filter_match(">=14.0.0", fake("compilers/c++/gcc", "13.1.0"))
+
+    # Test < version matching
+    assert filter_match("<15.0.0", fake("compilers/c++/gcc", "14.1.0"))
+    assert not filter_match("<15.0.0", fake("compilers/c++/gcc", "15.0.0"))
+
+    # Test tilde range matching (~1.70 matches 1.70.x)
+    assert filter_match("~1.70", fake("libraries/c++/boost", "1.70.0"))
+    assert filter_match("~1.70", fake("libraries/c++/boost", "1.70.5"))
+    assert not filter_match("~1.70", fake("libraries/c++/boost", "1.71.0"))
+
+    # Test context + version range
+    assert filter_match("gcc >=14.0", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("boost ~1.70", fake("libraries/c++/boost", "1.70.0"))
+
+
+def test_complex_filter_combinations():
+    """Test combinations of multiple filter features."""
+    # Wildcards with negative
+    assert filter_match("gcc !14.*", fake("compilers/c++/gcc", "13.1.0"))
+    assert not filter_match("gcc !14.*", fake("compilers/c++/gcc", "14.1.0"))
+
+    # Multiple negatives
+    test_items = [
+        fake("compilers/c++/gcc", "14.1.0"),
+        fake("compilers/c++/clang", "14.1.0"),
+        fake("compilers/c++/icc", "14.1.0"),
+        fake("cross/gcc", "14.1.0"),
+    ]
+
+    # Should match only ICC (not gcc, not clang, not cross)
+    filtered = list(
+        filter(lambda x: filter_aggregate(["!gcc", "!clang", "!cross"], x, filter_match_all=True), test_items)
+    )
+    assert len(filtered) == 1
+    assert filtered[0].context == ["compilers", "c++", "icc"]
+
+
+def test_backwards_compatibility():
+    """Ensure existing filter behavior is preserved."""
+    # All existing exact matching should still work
+    assert filter_match("gcc", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("14.1.0", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("gcc 14.1.0", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("/compilers", fake("compilers/c++/gcc", "14.1.0"))
+    assert filter_match("c++/gcc", fake("compilers/c++/gcc", "14.1.0"))
+
+    # Ensure non-pattern strings don't get treated as patterns
+    assert not filter_match("14.1.0", fake("compilers/c++/gcc", "14.1.1"))
+    assert not filter_match("gcc", fake("compilers/c++/clang", "14.1.0"))
