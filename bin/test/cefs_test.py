@@ -11,56 +11,10 @@ from lib.cefs import (
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
 )
-from lib.cli.cefs import _format_size, _parse_size
 
 
 class TestCEFSConsolidation(unittest.TestCase):
     """Test cases for CEFS consolidation functions."""
-
-    def test_parse_size_valid_formats(self):
-        """Test parsing of valid size strings."""
-        # Test GB formats
-        self.assertEqual(_parse_size("2GB"), 2 * 1024 * 1024 * 1024)
-        self.assertEqual(_parse_size("1.5GB"), int(1.5 * 1024 * 1024 * 1024))
-
-        # Test MB formats
-        self.assertEqual(_parse_size("500MB"), 500 * 1024 * 1024)
-        self.assertEqual(_parse_size("100.5MB"), int(100.5 * 1024 * 1024))
-
-        # Test KB formats
-        self.assertEqual(_parse_size("1024KB"), 1024 * 1024)
-
-        # Test bytes
-        self.assertEqual(_parse_size("1024"), 1024)
-
-        # Test case insensitive
-        self.assertEqual(_parse_size("2gb"), 2 * 1024 * 1024 * 1024)
-        self.assertEqual(_parse_size("500mb"), 500 * 1024 * 1024)
-
-    def test_parse_size_invalid_formats(self):
-        """Test parsing of invalid size strings."""
-        with self.assertRaises(ValueError):
-            _parse_size("invalid")
-
-        with self.assertRaises(ValueError):
-            _parse_size("2TB")  # Not supported
-
-        with self.assertRaises(ValueError):
-            _parse_size("2.5.3GB")  # Invalid number
-
-    def test_format_size(self):
-        """Test formatting of byte sizes to human readable strings."""
-        # Test GB
-        self.assertEqual(_format_size(2 * 1024 * 1024 * 1024), "2.0GB")
-        self.assertEqual(_format_size(int(1.5 * 1024 * 1024 * 1024)), "1.5GB")
-
-        # Test MB
-        self.assertEqual(_format_size(500 * 1024 * 1024), "500.0MB")
-        self.assertEqual(_format_size(1024 * 1024), "1.0MB")
-
-        # Test KB
-        self.assertEqual(_format_size(1024), "1.0KB")
-        self.assertEqual(_format_size(500), "500B")
 
     @patch("os.statvfs")
     def test_check_temp_space_available(self, mock_statvfs):

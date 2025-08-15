@@ -8,6 +8,7 @@ import uuid
 from typing import Any, Dict, List
 
 import click
+import humanfriendly
 
 from lib.ce_install import CliContext, cli
 from lib.cefs import (
@@ -312,39 +313,12 @@ def rollback(context: CliContext, filter_: List[str], dry_run: bool):
         raise click.ClickException(f"Failed to rollback {failed} installables")
 
 
-def _parse_size(size_str: str) -> int:
-    """Parse size string (e.g., '2GB', '500MB') to bytes."""
-    size_str = size_str.upper().strip()
-
-    # Extract number and unit
-    if size_str.endswith("GB"):
-        return int(float(size_str[:-2]) * 1024 * 1024 * 1024)
-    elif size_str.endswith("MB"):
-        return int(float(size_str[:-2]) * 1024 * 1024)
-    elif size_str.endswith("KB"):
-        return int(float(size_str[:-2]) * 1024)
-    elif size_str.isdigit():
-        return int(size_str)  # Assume bytes
-    else:
-        raise ValueError(f"Invalid size format: {size_str}")
-
-
-def _format_size(size_bytes: int) -> str:
-    """Format bytes as human readable string."""
-    if size_bytes >= 1024 * 1024 * 1024:
-        return f"{size_bytes / (1024 * 1024 * 1024):.1f}GB"
-    elif size_bytes >= 1024 * 1024:
-        return f"{size_bytes / (1024 * 1024):.1f}MB"
-    elif size_bytes >= 1024:
-        return f"{size_bytes / 1024:.1f}KB"
-    else:
-        return f"{size_bytes}B"
-
-
 @cefs.command()
 @click.pass_obj
-@click.option("--max-size", default="2GB", help="Maximum size per consolidated image")
-@click.option("--min-items", default=3, help="Minimum items to justify consolidation")
+@click.option(
+    "--max-size", default="2GB", metavar="SIZE", help="Maximum size per consolidated image (e.g., 2GB, 500M, 10G)"
+)
+@click.option("--min-items", default=3, metavar="N", help="Minimum items to justify consolidation")
 @click.argument("filter_", metavar="[FILTER]", nargs=-1, required=False)
 def consolidate(context: CliContext, max_size: str, min_items: int, filter_: List[str]):
     """Consolidate multiple CEFS images into larger consolidated images to reduce mount overhead.
@@ -366,8 +340,8 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
     # Parse max size
     try:
-        max_size_bytes = _parse_size(max_size)
-    except ValueError as e:
+        max_size_bytes = humanfriendly.parse_size(max_size, binary=True)
+    except humanfriendly.InvalidSize as e:
         raise click.ClickException(str(e)) from e
 
     # Get all installables and filter for CEFS-converted ones
@@ -406,7 +380,10 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
                                 }
                             )
                             _LOGGER.debug(
-                                "Found CEFS item %s -> %s (%s)", installable.name, cefs_image_path, _format_size(size)
+                                "Found CEFS item %s -> %s (%s)",
+                                installable.name,
+                                cefs_image_path,
+                                humanfriendly.format_size(size, binary=True),
                             )
                         else:
                             _LOGGER.warning("CEFS image not found for %s: %s", installable.name, cefs_image_path)
@@ -423,7 +400,11 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
                 cefs_items.append(
                     {"installable": installable, "nfs_path": nfs_path, "squashfs_path": squashfs_path, "size": size}
                 )
-                _LOGGER.debug("Found traditional squashfs item %s (%s)", installable.name, _format_size(size))
+                _LOGGER.debug(
+                    "Found traditional squashfs item %s (%s)",
+                    installable.name,
+                    humanfriendly.format_size(size, binary=True),
+                )
             except OSError as e:
                 _LOGGER.warning("Failed to get size for %s: %s", squashfs_path, e)
 
@@ -473,16 +454,20 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
     # Show consolidation plan
     for i, group in enumerate(groups):
         group_size = sum(item["size"] for item in group)
-        _LOGGER.info("Group %d: %d items, %s compressed", i + 1, len(group), _format_size(group_size))
+        _LOGGER.info(
+            "Group %d: %d items, %s compressed", i + 1, len(group), humanfriendly.format_size(group_size, binary=True)
+        )
         if _LOGGER.isEnabledFor(logging.DEBUG):
             for item in group:
-                _LOGGER.debug("  - %s (%s)", item["installable"].name, _format_size(item["size"]))
+                _LOGGER.debug(
+                    "  - %s (%s)", item["installable"].name, humanfriendly.format_size(item["size"], binary=True)
+                )
 
-    _LOGGER.info("Total compressed size: %s", _format_size(total_compressed_size))
+    _LOGGER.info("Total compressed size: %s", humanfriendly.format_size(total_compressed_size, binary=True))
     _LOGGER.info(
         "Required temp space: %s (5x largest group: %s)",
-        _format_size(required_temp_space),
-        _format_size(largest_group_size),
+        humanfriendly.format_size(required_temp_space, binary=True),
+        humanfriendly.format_size(largest_group_size, binary=True),
     )
 
     # Check available space
@@ -496,8 +481,8 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
             available = stat.f_bavail * stat.f_frsize
             _LOGGER.error(
                 "Insufficient temp space. Required: %s, Available: %s",
-                _format_size(required_temp_space),
-                _format_size(available),
+                humanfriendly.format_size(required_temp_space, binary=True),
+                humanfriendly.format_size(available, binary=True),
             )
         else:
             _LOGGER.error("Temp directory does not exist: %s", temp_dir)
