@@ -556,6 +556,13 @@ def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Option
     if not installable.is_installed():
         _LOGGER.warning("%s wasn't installed; skipping squash", installable.name)
         return None
+
+    # Check if source path is a symlink (indicates CEFS conversion)
+    source_path = installable.install_context.destination / installable.install_path
+    if source_path.is_symlink():
+        _LOGGER.info("%s source path is a symlink (CEFS converted); skipping squash", installable.name)
+        return None
+
     destination = image_dir / f"{installable.install_path}.img"
     if destination.exists() and not force:
         _LOGGER.info("Skipping %s as it already exists at %s", installable.name, destination)
