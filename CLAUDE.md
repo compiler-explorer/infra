@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication
+
+When writing, especially PRs and commit messages:
+- Avoid emojis
+- Avoid "LLM tells", for example:
+ - Don't use bullet items with `**Heading** - description`, unless it's _absolutely required for emphasis_
+ - Avoid cliches
+- Be terse but informative
+
 ## Build/Test/Lint Commands
 
 - Setup environment: `make ce`
@@ -17,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Important Workflow Requirements
 
 - ALWAYS run pre-commit hooks before committing: `make pre-commit`
-- The hooks will run tests and lint checks, and will fail the commit if there are any issues
+- The hooks will run tests and lint checks, and will fail the commit if there are any issues. You will need to `git add` those changed files
 - Failing to run pre-commit hooks may result in style issues and commit failures
 - For comprehensive validation, run `make static-checks` before committing (includes all linting and type checking)
 - If static checks fail, fix the issues before committing to avoid CI failures
