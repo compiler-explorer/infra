@@ -39,7 +39,7 @@ ce_install list "!assertions-*"   # Exclude assertion builds
 
 # Version ranges
 ce_install list ">=14.0"          # Version 14.0 and newer
-ce_install list "~1.70"           # Version 1.70.x (tilde range)
+ce_install list "~=1.70.0"        # Version 1.70.x (tilde range)
 ```
 
 ### Two Word Filters
@@ -135,11 +135,20 @@ ce_install list "gcc >=14.0"
 ce_install list "boost <1.75"
 
 # All 1.70.x versions (tilde range)
-ce_install list "boost ~1.70"
+ce_install list "boost ~=1.70.0"
+
+# Exact version matching
+ce_install list "gcc ==14.1.0"
+
+# Exclude specific version
+ce_install list "gcc !=14.1.0"
 
 # Version range combinations
 ce_install list "gcc >=14.0"
 ce_install list "clang <=15.0"
+
+# Compound constraints
+ce_install list "gcc >=14.0,<15.0"
 ```
 
 **Version Range Operators:**
@@ -147,7 +156,19 @@ ce_install list "clang <=15.0"
 - `>` - Greater than
 - `<=` - Less than or equal
 - `<` - Less than
-- `~` - Tilde range (matches major.minor.x)
+- `==` - Exactly equal
+- `!=` - Not equal
+- `~=` - Tilde range (matches major.minor.x)
+
+**Compound Constraints:**
+Combine multiple version constraints with commas:
+```bash
+# Version 14.x but before 15.0
+ce_install list "gcc >=14.0,<15.0"
+
+# Boost between 1.70 and 1.80
+ce_install list "boost >=1.70.0,<1.80.0"
+```
 
 ### Complex Combinations
 Combine multiple features for precise filtering:
@@ -211,7 +232,7 @@ ce_install list "/libraries"
 ce_install list "libraries/c++"
 
 # All Boost 1.70.x versions
-ce_install list "boost ~1.70"
+ce_install list "boost ~=1.70.0"
 
 # Recent Boost versions (1.75+)
 ce_install list "boost >=1.75"
@@ -233,6 +254,12 @@ ce_install list "*/arm/*"
 
 # Cross-compilers for specific architecture and version range
 ce_install list "cross/gcc/arm >=12.0"
+
+# Specific version only
+ce_install list "gcc ==14.1.0"
+
+# Everything except a specific version
+ce_install list "gcc !=13.1.0"
 ```
 
 ### Assertion and Specialized Builds
@@ -280,7 +307,7 @@ ce_install list ">=assertions-3.0"  # Works - extracts "3.0"
 ce_install list ">=gcc"             # No effect - no numbers
 
 # Tilde ranges compare major.minor only
-ce_install list "~1.70"         # Matches 1.70.0, 1.70.5, not 1.71.0
+ce_install list "~=1.70.0"      # Matches 1.70.0, 1.70.5, not 1.71.0
 ```
 
 ### Wildcard Behavior

@@ -6,7 +6,6 @@ import logging
 import logging.config
 import multiprocessing
 import os
-import re
 import signal
 import sys
 import traceback
@@ -19,6 +18,7 @@ from typing import List, Optional, TextIO, Tuple
 import click
 import yaml
 from click.core import ParameterSource
+from packaging import specifiers, version
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.config import Config
@@ -85,12 +85,10 @@ def _context_match(context_query: str, installable: Installable) -> bool:
         - "/compilers" only matches paths starting with "compilers/"
         - "*/gcc" matches any path ending with "gcc"
     """
-    # Check if query contains wildcards
-    if "*" in context_query:
+    if "*" in context_query:  # Handle wildcards
         full_path = "/".join(installable.context)
         return fnmatch.fnmatch(full_path, context_query.lstrip("/"))
 
-    # Original exact matching logic
     context = context_query.split("/")
     root_only = context[0] == ""
     if root_only:
@@ -103,78 +101,61 @@ def _context_match(context_query: str, installable: Installable) -> bool:
     return False
 
 
-def _parse_version(version_str: str) -> tuple:
-    """Parse a version string into comparable tuple.
+def _parse_version(version_str: str) -> version.Version | None:
+    """Parse a version string, trying to extract a valid version.
 
-    Extracts numeric parts from any version string for comparison.
-    Returns tuple of integers, or original string if no numbers found.
+    First tries the version as-is, then tries removing prefix up to and
+    including the last hyphen. Returns None if no valid version found.
     """
-    # Extract numeric parts from the string
-    parts = re.findall(r"\d+", version_str)
-    if not parts:
-        return (version_str,)  # Return as-is if no numbers found
+    try:
+        return version.parse(version_str)
+    except version.InvalidVersion:
+        pass
 
-    # Convert to integers for comparison
-    return tuple(int(p) for p in parts)
+    if "-" in version_str:
+        last_hyphen = version_str.rfind("-")
+        candidate = version_str[last_hyphen + 1 :]
+        try:
+            return version.parse(candidate)
+        except version.InvalidVersion:
+            pass
+
+    return None
 
 
-def _version_matches_range(version_str: str, range_pattern: str) -> bool:
-    """Check if a version matches a range pattern.
+def try_parse_specifiers(query: str) -> Optional[specifiers.SpecifierSet]:
+    """Try to parse a string into a SpecifierSet.
 
-    Supports patterns like: ">=14.0", "<15.0", "~1.70" (matches 1.70.x)
-    Only works if both version and pattern contain numeric parts.
+    Args:
+        query: The string to parse.
+
+    Returns:
+        A SpecifierSet if parsing was successful, None otherwise.
     """
-    version_tuple = _parse_version(version_str)
+    try:
+        return specifiers.SpecifierSet(query)
+    except (version.InvalidVersion, specifiers.InvalidSpecifier):
+        return None
 
-    # Skip range matching if no numeric parts found
-    if len(version_tuple) == 1 and isinstance(version_tuple[0], str):
+
+def _version_matches_range(version_str: str, specifiers: specifiers.SpecifierSet) -> bool:
+    """Check if a version matches a range pattern using packaging.specifiers.
+
+    Supports PEP 440 patterns like: ">=14.0", "<15.0", "~=1.70.0"
+    Uses Python's standard packaging library for robust version comparison.
+    """
+    v = _parse_version(version_str)
+    if v is None:
         return False
 
-    # Handle tilde range (~1.70 matches 1.70.x)
-    if range_pattern.startswith("~"):
-        target = _parse_version(range_pattern[1:])
-        if len(target) == 1 and isinstance(target[0], str):
-            return False
-        # Compare only the major.minor parts for tilde matching
-        min_len = min(2, len(target), len(version_tuple))
-        return version_tuple[:min_len] == target[:min_len]
-
-    # Handle >= operator
-    if range_pattern.startswith(">="):
-        target = _parse_version(range_pattern[2:])
-        if len(target) == 1 and isinstance(target[0], str):
-            return False
-        return version_tuple >= target
-
-    # Handle > operator
-    if range_pattern.startswith(">"):
-        target = _parse_version(range_pattern[1:])
-        if len(target) == 1 and isinstance(target[0], str):
-            return False
-        return version_tuple > target
-
-    # Handle <= operator
-    if range_pattern.startswith("<="):
-        target = _parse_version(range_pattern[2:])
-        if len(target) == 1 and isinstance(target[0], str):
-            return False
-        return version_tuple <= target
-
-    # Handle < operator
-    if range_pattern.startswith("<"):
-        target = _parse_version(range_pattern[1:])
-        if len(target) == 1 and isinstance(target[0], str):
-            return False
-        return version_tuple < target
-
-    return False
+    return v in specifiers
 
 
 def _target_match(target: str, installable: Installable) -> bool:
     """Match target query against installable's target name.
 
     Args:
-        target: Target pattern like "14.1.0", "14.*", ">=14.0", "!assertions-*"
+        target: Target pattern like "14.1.0", "14.*", ">=14.0", "~=1.70.0", "!assertions-*"
         installable: The installable to check
 
     Returns:
@@ -184,22 +165,19 @@ def _target_match(target: str, installable: Installable) -> bool:
         - "14.1.0" matches only items with target_name exactly "14.1.0"
         - "14.*" matches "14.1.0", "14.2.1", etc.
         - ">=14.0" matches "14.1.0", "15.0.0", etc.
+        - "~=1.70.0" matches "1.70.x" versions (compatible release)
         - "!assertions-*" matches anything NOT matching "assertions-*"
     """
-    # Handle negative patterns
-    if target.startswith("!"):
+    if target == installable.target_name:  # Exact match is always ok
+        return True
+
+    if specifiers := try_parse_specifiers(target):  # PEP 440 version specifiers
+        return _version_matches_range(installable.target_name, specifiers)
+
+    if target.startswith("!"):  # negative patterns
         return not _target_match(target[1:], installable)
 
-    # Handle version range patterns
-    if any(target.startswith(op) for op in [">=", "<=", ">", "<", "~"]):
-        return _version_matches_range(installable.target_name, target)
-
-    # Handle wildcard patterns
-    if "*" in target:
-        return fnmatch.fnmatch(installable.target_name, target)
-
-    # Original exact matching
-    return target == installable.target_name
+    return fnmatch.fnmatch(installable.target_name, target)
 
 
 def filter_match(filter_query: str, installable: Installable) -> bool:
@@ -226,8 +204,8 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
     split = filter_query.split(" ", 1)
     if len(split) == 1:
         query = split[0]
-        # Handle negative patterns specially for single word
-        if query.startswith("!"):
+        # Handle negative patterns specially for single word, unless it's a version match
+        if query.startswith("!") and not try_parse_specifiers(query):
             # For negative single word, both context and target must NOT match
             positive_query = query[1:]
             return not (_context_match(positive_query, installable) or _target_match(positive_query, installable))
@@ -553,22 +531,22 @@ def amazon_check():
 
         for libraryid in libraries:
             _LOGGER.debug("Checking %s", libraryid)
-            for version in libraries[libraryid]["versionprops"]:
-                includepaths = libraries[libraryid]["versionprops"][version]["path"]
+            for lib_version in libraries[libraryid]["versionprops"]:
+                includepaths = libraries[libraryid]["versionprops"][lib_version]["path"]
                 for includepath in includepaths:
-                    _LOGGER.debug("Checking for library %s %s: %s", libraryid, version, includepath)
+                    _LOGGER.debug("Checking for library %s %s: %s", libraryid, lib_version, includepath)
                     if not os.path.exists(includepath):
-                        _LOGGER.error("Path missing for library %s %s: %s", libraryid, version, includepath)
+                        _LOGGER.error("Path missing for library %s %s: %s", libraryid, lib_version, includepath)
                     else:
-                        _LOGGER.debug("Found path for library %s %s: %s", libraryid, version, includepath)
+                        _LOGGER.debug("Found path for library %s %s: %s", libraryid, lib_version, includepath)
 
-                libpaths = libraries[libraryid]["versionprops"][version]["libpath"]
+                libpaths = libraries[libraryid]["versionprops"][lib_version]["libpath"]
                 for libpath in libpaths:
-                    _LOGGER.debug("Checking for library %s %s: %s", libraryid, version, libpath)
+                    _LOGGER.debug("Checking for library %s %s: %s", libraryid, lib_version, libpath)
                     if not os.path.exists(libpath):
-                        _LOGGER.error("Path missing for library %s %s: %s", libraryid, version, libpath)
+                        _LOGGER.error("Path missing for library %s %s: %s", libraryid, lib_version, libpath)
                     else:
-                        _LOGGER.debug("Found path for library %s %s: %s", libraryid, version, libpath)
+                        _LOGGER.debug("Found path for library %s %s: %s", libraryid, lib_version, libpath)
 
 
 def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Optional[Tuple[Installable, Path]]:

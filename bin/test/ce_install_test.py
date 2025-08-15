@@ -203,14 +203,48 @@ def test_version_range_matching():
     assert filter_match("<15.0.0", fake("compilers/c++/gcc", "14.1.0"))
     assert not filter_match("<15.0.0", fake("compilers/c++/gcc", "15.0.0"))
 
-    # Test tilde range matching (~1.70 matches 1.70.x)
-    assert filter_match("~1.70", fake("libraries/c++/boost", "1.70.0"))
-    assert filter_match("~1.70", fake("libraries/c++/boost", "1.70.5"))
-    assert not filter_match("~1.70", fake("libraries/c++/boost", "1.71.0"))
+    # Test tilde range matching (~=1.70.0 matches 1.70.x)
+    assert filter_match("~=1.70.0", fake("libraries/c++/boost", "1.70.0"))
+    assert filter_match("~=1.70.0", fake("libraries/c++/boost", "1.70.5"))
+    assert not filter_match("~=1.70.0", fake("libraries/c++/boost", "1.71.0"))
 
     # Test context + version range
     assert filter_match("gcc >=14.0", fake("compilers/c++/gcc", "14.1.0"))
-    assert filter_match("boost ~1.70", fake("libraries/c++/boost", "1.70.0"))
+    assert filter_match("boost ~=1.70.0", fake("libraries/c++/boost", "1.70.0"))
+
+    # Test real-world version patterns with prefixes
+    assert filter_match(">=3.0", fake("compilers/c++/clang", "assertions-3.5.0"))
+    assert not filter_match(">=10.0", fake("compilers/c++/gcc", "9.5.0"))
+
+    # Test versions that can't be parsed (should not match version ranges)
+    assert not filter_match(">=1.0", fake("compilers/c++/gcc", "trunk"))
+    assert not filter_match(">=1.0", fake("compilers/c++/gcc", "snapshot"))
+    assert not filter_match(
+        ">=10.0", fake("cross/gcc", "gcc-aarch64-none-elf-10.1.morello")
+    )  # Complex strings don't parse
+
+
+def test_version_edge_cases():
+    """Test edge cases for version parsing and specifier handling."""
+    # Test invalid version specifiers - should not crash, just not match
+    assert not filter_match(">=invalid-spec", fake("compilers/c++/gcc", "14.1.0"))
+    assert not filter_match("~=not.a.version", fake("libraries/c++/boost", "1.70.0"))
+
+    # Test compound version specifiers
+    assert filter_match(">=14.0,<15.0", fake("compilers/c++/gcc", "14.5.0"))
+    assert not filter_match(">=14.0,<15.0", fake("compilers/c++/gcc", "15.1.0"))
+    assert not filter_match(">=14.0,<15.0", fake("compilers/c++/gcc", "13.9.0"))
+
+    # Test specific == and != operators
+    assert filter_match("==14.1.0", fake("compilers/c++/gcc", "14.1.0"))
+    assert not filter_match("==14.1.0", fake("compilers/c++/gcc", "14.2.0"))
+
+    assert filter_match("!=14.1.0", fake("compilers/c++/gcc", "14.2.0"))
+    assert not filter_match("!=14.1.0", fake("compilers/c++/gcc", "14.1.0"))
+
+    # Test complex version constraints
+    assert filter_match(">=1.70.0,<1.80.0", fake("libraries/c++/boost", "1.75.0"))
+    assert not filter_match(">=1.70.0,<1.80.0", fake("libraries/c++/boost", "1.85.0"))
 
 
 def test_complex_filter_combinations():
