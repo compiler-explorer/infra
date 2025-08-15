@@ -29,7 +29,7 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(config.squashfs.traditional_enabled)
         self.assertEqual(config.squashfs.image_dir, Path("/efs/squash-images"))
         self.assertEqual(config.squashfs.compression, "zstd")
-        self.assertEqual(config.squashfs.compression_level, 19)
+        self.assertEqual(config.squashfs.compression_level, 7)
         self.assertEqual(config.squashfs.mksquashfs_path, "/usr/bin/mksquashfs")
 
         # Check cefs defaults

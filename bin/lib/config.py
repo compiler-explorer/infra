@@ -25,7 +25,19 @@ class SquashfsConfig(BaseModel):
     traditional_enabled: bool = True  # whether the old-style explicit "squash" is enabled
     image_dir: Path = Path("/efs/squash-images")
     compression: str = "zstd"
-    compression_level: int = 19
+    # Compression level for squashfs, default picked after playing with a 1.4G GCC on my 8 CPU laptop:
+    # lvl: tims : final size
+    #  1 : 1.3s : 455MB
+    #  2 : 1.5s : 441MB
+    #  5 : 5.6s : 417MB
+    #  7 : 5.7s : 404MB
+    #  9 :  12s : 401MB
+    # 10 :  24s : 400MB
+    # 12 :  26s : 399MB
+    # 15 :  96s : 375MB
+    # 19 : 290s : 368MB
+    # Seems a decent tradeoff
+    compression_level: int = 7
     mksquashfs_path: str = "/usr/bin/mksquashfs"
 
     model_config = ConfigDict(frozen=True, extra="forbid")
