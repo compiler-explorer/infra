@@ -63,6 +63,24 @@ class CliContext:
 
 
 def _context_match(context_query: str, installable: Installable) -> bool:
+    """Match context query against installable's context path.
+
+    Context matching rules:
+    - If query starts with "/", requires exact prefix match from root
+    - Otherwise, searches for substring match anywhere in the path
+
+    Args:
+        context_query: Path pattern like "gcc", "cross/gcc", or "/compilers"
+        installable: The installable to check
+
+    Returns:
+        True if context matches the query pattern
+
+    Examples:
+        - "gcc" matches paths containing "gcc" anywhere
+        - "cross/gcc" matches paths containing that sequence
+        - "/compilers" only matches paths starting with "compilers/"
+    """
     context = context_query.split("/")
     root_only = context[0] == ""
     if root_only:
@@ -76,10 +94,43 @@ def _context_match(context_query: str, installable: Installable) -> bool:
 
 
 def _target_match(target: str, installable: Installable) -> bool:
+    """Match target query against installable's target name (exact match only).
+
+    Args:
+        target: Target name like "14.1.0", "1.70.0", or specific version
+        installable: The installable to check
+
+    Returns:
+        True if target exactly matches the installable's target name
+
+    Examples:
+        - "14.1.0" matches only items with target_name exactly "14.1.0"
+        - "14" matches only items with target_name exactly "14"
+        - Does NOT do substring matching - "14" won't match "14.1.0"
+    """
     return target == installable.target_name
 
 
 def filter_match(filter_query: str, installable: Installable) -> bool:
+    """Match a filter query against an installable.
+
+    Filter syntax:
+    - Single word: matches context (substring) OR target (exact)
+    - Two words: first matches context (substring) AND second matches target (exact)
+
+    Args:
+        filter_query: Filter string like "gcc", "gcc 14.1.0", "cross/gcc", etc.
+        installable: The installable to check
+
+    Returns:
+        True if the installable matches the filter query
+
+    Examples:
+        - "gcc" matches installables with "gcc" in path OR target named "gcc"
+        - "gcc 14.1.0" matches installables with "gcc" in path AND target "14.1.0"
+        - "cross/gcc" matches installables with "cross/gcc" in path OR target "cross/gcc"
+        - "/libraries fmt" matches items starting with "libraries/" AND target "fmt"
+    """
     split = filter_query.split(" ", 1)
     if len(split) == 1:
         # We don't know if this is a target or context, so either work
@@ -88,6 +139,28 @@ def filter_match(filter_query: str, installable: Installable) -> bool:
 
 
 def filter_aggregate(filters: list, installable: Installable, filter_match_all: bool = True) -> bool:
+    """Apply multiple filters to an installable with AND/OR logic.
+
+    Args:
+        filters: List of filter query strings
+        installable: The installable to check against all filters
+        filter_match_all: If True, all filters must match (AND logic).
+                         If False, any filter can match (OR logic).
+
+    Returns:
+        True if the installable passes the filter criteria
+
+    Examples:
+        With filter_match_all=True (default):
+        - ["gcc", "14.1.0"] requires BOTH "gcc" match AND "14.1.0" match
+
+        With filter_match_all=False:
+        - ["gcc", "clang"] requires EITHER "gcc" match OR "clang" match
+
+    Notes:
+        - Empty filter list matches everything
+        - Use --filter-match-all/--filter-match-any CLI flags to control behavior
+    """
     # if there are no filters, accept it
     if not filters:
         return True
