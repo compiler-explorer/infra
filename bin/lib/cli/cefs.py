@@ -4,6 +4,7 @@
 import logging
 import shutil
 import subprocess
+import uuid
 from typing import Any, Dict, List
 
 import click
@@ -511,6 +512,10 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
     symlink_snapshot = snapshot_symlink_targets(all_symlinks)
     _LOGGER.info("Snapshotted %d symlinks", len(symlink_snapshot))
 
+    # Create unique directory for this consolidation run
+    consolidation_dir = temp_dir / str(uuid.uuid4())
+    consolidation_dir.mkdir(parents=True, exist_ok=True)
+
     # Process each group
     successful_groups = 0
     failed_groups = 0
@@ -522,7 +527,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
         try:
             # Create temp directory for this group
-            group_temp_dir = temp_dir / f"consolidate-group-{group_idx}"
+            group_temp_dir = consolidation_dir / "extract"
             group_temp_dir.mkdir(parents=True, exist_ok=True)
 
             # Prepare items for consolidation
@@ -588,6 +593,10 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
     _LOGGER.info("  Failed groups: %d", failed_groups)
     _LOGGER.info("  Updated symlinks: %d", total_updated_symlinks)
     _LOGGER.info("  Skipped symlinks: %d", total_skipped_symlinks)
+
+    # Clean up consolidation directory
+    if consolidation_dir.exists():
+        shutil.rmtree(consolidation_dir)
 
     if failed_groups > 0:
         raise click.ClickException(f"Failed to consolidate {failed_groups} groups")

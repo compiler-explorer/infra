@@ -327,20 +327,10 @@ def update_symlinks_for_consolidation(
         new_target = get_cefs_mount_path(mount_point, consolidated_hash) / subdir_name
 
         try:
-            # Atomic symlink update: remove old, create new
-            backup_target = symlink_path.readlink()
-            symlink_path.unlink()
-            symlink_path.symlink_to(new_target)
+            # Use existing backup_and_symlink function for consistency with convert
+            backup_and_symlink(symlink_path, new_target, dry_run=False)
             _LOGGER.info("Updated symlink %s -> %s", symlink_path, new_target)
-
-        except OSError as e:
-            # Try to restore original symlink on failure
-            try:
-                symlink_path.unlink(missing_ok=True)
-                symlink_path.symlink_to(backup_target)
-                _LOGGER.error("Restored original symlink after failure: %s", symlink_path)
-            except OSError:
-                _LOGGER.error("Failed to restore symlink %s", symlink_path)
+        except RuntimeError as e:
             raise RuntimeError(f"Failed to update symlink {symlink_path}: {e}") from e
 
 
