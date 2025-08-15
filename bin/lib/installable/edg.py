@@ -241,7 +241,6 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.make_subdir(self.install_path)
             self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
 
     def __repr__(self) -> str:
