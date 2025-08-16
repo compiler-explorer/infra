@@ -18,7 +18,7 @@ resource "aws_backup_plan" "compiler-explorer" {
   }
 }
 
-resource "aws_backup_selection" "compiler-explorer" {
+resource "aws_backup_selection" "conan-server" {
   name         = "conan-server"
   iam_role_arn = "arn:aws:iam::052730242331:role/service-role/AWSBackupDefaultServiceRole"
   plan_id      = aws_backup_plan.compiler-explorer.id
@@ -30,4 +30,12 @@ resource "aws_backup_selection" "compiler-explorer" {
       value = "CEConanServerVol1"
     }
   }
+}
+
+resource "aws_backup_selection" "efs" {
+  name         = "efs"
+  iam_role_arn = "arn:aws:iam::052730242331:role/service-role/AWSBackupDefaultServiceRole"
+  plan_id      = aws_backup_plan.compiler-explorer.id
+
+  resources = [aws_efs_file_system.fs-db4c8192.arn]
 }
