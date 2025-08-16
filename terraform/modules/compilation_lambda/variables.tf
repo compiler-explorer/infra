@@ -90,6 +90,18 @@ variable "iam_role_arn" {
   type        = string
 }
 
+variable "compilation_results_bucket" {
+  description = "S3 bucket for storing large compilation results"
+  type        = string
+  default     = "storage.godbolt.org"
+}
+
+variable "compilation_results_prefix" {
+  description = "S3 prefix for compilation results"
+  type        = string
+  default     = "cache/"
+}
+
 variable "tags" {
   description = "Additional tags to apply to resources"
   type        = map(string)

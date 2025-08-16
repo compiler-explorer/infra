@@ -30,6 +30,8 @@ The lambda handles two routing strategies:
 - `SQS_QUEUE_URL` - URL of the SQS FIFO queue for compilation requests
 - `WEBSOCKET_URL` - URL of the WebSocket endpoint for receiving results
 - `ENVIRONMENT_NAME` - Environment name for DynamoDB routing lookups
+- `COMPILATION_RESULTS_BUCKET` (default: "storage.godbolt.org") - S3 bucket for large results
+- `COMPILATION_RESULTS_PREFIX` (default: "cache/") - S3 prefix for compilation results
 
 ## Logging
 
@@ -103,7 +105,7 @@ WebSocket subscription:
 subscribe: uuid-string
 ```
 
-WebSocket result:
+WebSocket result (normal):
 ```json
 {
   "guid": "uuid-string",
@@ -113,3 +115,20 @@ WebSocket result:
   "asm": []
 }
 ```
+
+WebSocket result (large, S3-stored):
+```json
+{
+  "guid": "uuid-string",
+  "s3Key": "filename.json"
+}
+```
+
+## S3 Large Result Handling
+
+For compilation results exceeding 31KiB, the system automatically stores complete results in S3 and sends lightweight messages via WebSocket containing only the `s3Key`. The Lambda:
+
+1. Detects lightweight messages with `s3Key` field but missing typical result data
+2. Fetches the complete result from `${COMPILATION_RESULTS_BUCKET}/${COMPILATION_RESULTS_PREFIX}${s3Key}`
+3. Merges S3 content with the original message metadata
+4. Provides graceful fallback if S3 retrieval fails

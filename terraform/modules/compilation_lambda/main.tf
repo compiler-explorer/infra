@@ -54,11 +54,13 @@ resource "aws_lambda_function" "compilation" {
 
   environment {
     variables = {
-      SQS_QUEUE_URL    = aws_sqs_queue.compilation_queue.id
-      WEBSOCKET_URL    = var.websocket_url
-      RETRY_COUNT      = var.lambda_retry_count
-      TIMEOUT_SECONDS  = var.lambda_timeout_seconds
-      ENVIRONMENT_NAME = var.environment
+      SQS_QUEUE_URL              = aws_sqs_queue.compilation_queue.id
+      WEBSOCKET_URL              = var.websocket_url
+      RETRY_COUNT                = var.lambda_retry_count
+      TIMEOUT_SECONDS            = var.lambda_timeout_seconds
+      ENVIRONMENT_NAME           = var.environment
+      COMPILATION_RESULTS_BUCKET = var.compilation_results_bucket
+      COMPILATION_RESULTS_PREFIX = var.compilation_results_prefix
     }
   }
 

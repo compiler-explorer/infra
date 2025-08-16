@@ -1,5 +1,6 @@
 const { DynamoDBClient, GetItemCommand } = require('@aws-sdk/client-dynamodb');
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
+const { S3Client } = require('@aws-sdk/client-s3');
 const { NodeHttpHandler } = require('@smithy/node-http-handler');
 const https = require('https');
 
@@ -32,9 +33,19 @@ const clientConfig = {
 const dynamodb = new DynamoDBClient(clientConfig);
 const sqs = new SQSClient(clientConfig);
 
+// S3 client - using a function to create on-demand since it's only needed for large results
+let s3Client = null;
+const getS3Client = () => {
+    if (!s3Client) {
+        s3Client = new S3Client(clientConfig);
+    }
+    return s3Client;
+};
+
 module.exports = {
     dynamodb,
     sqs,
+    getS3Client,
     AWS_ACCOUNT_ID,
     GetItemCommand,
     SendMessageCommand
