@@ -263,7 +263,7 @@ async function resolveS3FileIfNeeded(message) {
 
     } catch (error) {
         console.error(`Failed to fetch S3 compilation result for ${message.s3Key}:`, error);
-        
+
         // Return a user-friendly error message in the compilation result format
         return {
             code: -1,
