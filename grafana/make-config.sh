@@ -2,10 +2,12 @@
 
 set -ex
 
-ENV=$(cloud-init query userdata)
-ENV=${ENV:-prod}
-if [ "$ENV" = "envbeta" ]; then
-    ENV="beta"
+METADATA_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+ENV=$(curl -s -H "X-aws-ec2-metadata-token: $METADATA_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Environment)
+
+if [ -z "${ENV}" ]; then
+    echo "Environment not set!!"
+    exit 1
 fi
 
 HOSTNAME=$(hostname)

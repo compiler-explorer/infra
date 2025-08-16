@@ -7,7 +7,7 @@ module "aarch64prod_blue_green" {
 
   environment               = "aarch64prod"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-aarch64prod.id
+  launch_template_id        = aws_launch_template.ce["aarch64prod"].id
   subnets                   = local.subnets
   asg_max_size              = 6
   initial_desired_capacity  = 0
@@ -36,7 +36,7 @@ module "aarch64staging_blue_green" {
 
   environment               = "aarch64staging"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-aarch64staging.id
+  launch_template_id        = aws_launch_template.ce["aarch64staging"].id
   subnets                   = local.subnets
   asg_max_size              = 4
   initial_desired_capacity  = 0

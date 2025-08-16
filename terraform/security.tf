@@ -600,6 +600,11 @@ resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
   policy_arn = aws_iam_policy.ReadS3Minimal.arn
 }
 
+resource "aws_iam_role_policy_attachment" "Builder_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.Builder.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 
 resource "aws_security_group" "efs" {
   vpc_id      = module.ce_network.vpc.id

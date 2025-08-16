@@ -211,8 +211,6 @@ class GitHubInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            if self.subdir:
-                self.install_context.make_subdir(self.subdir)
             self.install_context.move_from_staging(
                 staging, self.untar_dir if self.method == "archive" else self.install_path, self.install_path
             )

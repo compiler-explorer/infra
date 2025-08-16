@@ -6,7 +6,7 @@ module "beta_blue_green" {
 
   environment               = "beta"
   vpc_id                    = module.ce_network.vpc.id
-  launch_template_id        = aws_launch_template.CompilerExplorer-beta.id
+  launch_template_id        = aws_launch_template.ce["beta"].id
   subnets                   = local.subnets
   asg_max_size              = 10 # Increased to 10 for high load scenarios
   initial_desired_capacity  = 0

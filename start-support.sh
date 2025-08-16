@@ -4,16 +4,18 @@
 
 SKIP_SQUASH=0
 CE_USER=ce
-ENV=$(cloud-init query userdata)
-ENV=${ENV:-prod}
-if [ "$ENV" = "envbeta" ]; then
-    ENV="beta"
+
+METADATA_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+ENV=$(curl -s -H "X-aws-ec2-metadata-token: $METADATA_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Environment)
+if [ -z "${ENV}" ]; then
+    echo "Environment not set!!"
+    exit 1
 fi
+echo Running in environment "${ENV}"
 
 DEPLOY_DIR=${PWD}/.deploy
 COMPILERS_FILE=$DEPLOY_DIR/discovered-compilers.json
 
-echo Running in environment "${ENV}"
 # shellcheck disable=SC1090
 source "${PWD}/site-${ENV}.sh"
 
@@ -97,6 +99,17 @@ install_ninja() {
 }
 
 setup_cgroups() {
+    ######################
+    # Debugging a weird apparent race condition at boot that means we don't get the "cpu" delegation
+    # despite the cgcreates below all succeeding.
+    # See https://github.com/compiler-explorer/infra/issues/1761
+    echo "Current cgroup.subtree_control: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
+    if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
+        echo "CPU controller missing, adding it"
+        echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
+    fi
+    ######################
+
     if grep cgroup2 /proc/filesystems; then
         cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu:ce-sandbox
         cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu:ce-compile
@@ -105,6 +118,26 @@ setup_cgroups() {
         cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-sandbox
         cgcreate -a ${CE_USER}:${CE_USER} -g memory,pids,cpu,net_cls:ce-compile
     fi
+
+    ######################
+    # Debugging, again see above
+    echo "Cgroup setup diagnostics:"
+    echo "Root cgroup.subtree_control: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
+    for cgroup in ce-compile ce-sandbox; do
+        if [ -d "/sys/fs/cgroup/$cgroup" ]; then
+            echo "$cgroup exists: YES"
+            echo "  controllers: $(cat /sys/fs/cgroup/$cgroup/cgroup.controllers)"
+            echo "  subtree_control: $(cat /sys/fs/cgroup/$cgroup/cgroup.subtree_control)"
+            if [ -f "/sys/fs/cgroup/$cgroup/cpu.max" ]; then
+                echo "  cpu.max exists: YES"
+            else
+                echo "  cpu.max exists: NO"
+            fi
+        else
+            echo "$cgroup exists: NO"
+        fi
+    done
+    ######################
 }
 
 mount_nosym() {

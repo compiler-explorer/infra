@@ -19,6 +19,14 @@ import requests.adapters
 import requests_cache
 import yaml
 
+from lib.cefs import (
+    backup_and_symlink,
+    calculate_squashfs_hash,
+    copy_to_cefs_atomically,
+    get_cefs_image_path,
+    get_cefs_mount_path,
+)
+from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
@@ -55,11 +63,13 @@ class InstallationContext:
         keep_staging: bool,
         check_user: str,
         platform: LibraryPlatform,
+        config: Optional["Config"] = None,
     ):
         self._destination = destination
         self._prior_installation = self.destination
         self._staging_root = staging_root
         self._keep_staging = keep_staging
+        self.config = config
         self.s3_url = s3_url
         self.dry_run = dry_run
         self.is_nightly_enabled = is_nightly_enabled
@@ -95,7 +105,13 @@ class InstallationContext:
 
     @contextlib.contextmanager
     def new_staging_dir(self) -> Iterator[StagingDir]:
-        staging_dir = StagingDir(self._staging_root / str(uuid.uuid4()), self._keep_staging)
+        # Use local staging directory when CEFS is enabled for better performance
+        if self.config and self.config.cefs.enabled:
+            local_staging_root = self.config.cefs.local_temp_dir / "staging"
+            local_staging_root.mkdir(parents=True, exist_ok=True)
+            staging_dir = StagingDir(local_staging_root / str(uuid.uuid4()), self._keep_staging)
+        else:
+            staging_dir = StagingDir(self._staging_root / str(uuid.uuid4()), self._keep_staging)
         try:
             yield staging_dir
         finally:
@@ -274,7 +290,7 @@ class InstallationContext:
             new_perms |= stat.S_IXOTH
 
         if current_perms != new_perms:
-            _LOGGER.warning("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
+            _LOGGER.debug("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
             file_path.chmod(new_perms)
 
     def move_from_staging(
@@ -285,34 +301,48 @@ class InstallationContext:
         do_staging_move=lambda source, dest: source.replace(dest),
     ) -> None:
         dest = dest or source
-        existing_dir_rename = staging.path.with_suffix(".orig")
-        source = staging.path / source
-        dest = self.destination / dest
+
         if self.dry_run:
             _LOGGER.info("Would install %s to %s but in dry-run mode", source, dest)
             return
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        _LOGGER.info("Moving from staging (%s) to final destination (%s)", source, dest)
-        if not source.is_dir():
+
+        # Check if CEFS is enabled and should be used for this installation
+        if self.config and self.config.cefs.enabled:
+            _LOGGER.info("Installing via CEFS: %s -> %s", source, dest)
+            self._deploy_to_cefs(staging, source, dest, do_staging_move)
+            return
+
+        # Traditional installation flow
+        existing_dir_rename = staging.path.with_suffix(".orig")
+        source_path = staging.path / source
+        dest_path = self.destination / dest
+
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+        _LOGGER.info("Moving from staging (%s) to final destination (%s)", source_path, dest_path)
+
+        if not source_path.is_dir():
             staging_contents = subprocess.check_output(["ls", "-l", str(staging.path)]).decode("utf-8")
             _LOGGER.info("Directory listing of staging:\n%s", staging_contents)
-            raise RuntimeError(f"Missing source '{source}'")
+            raise RuntimeError(f"Missing source '{source_path}'")
+
         # Fix permissions to ensure files are accessible by all users
         if not is_windows():
-            self._fix_permissions(source)
+            self._fix_permissions(source_path)
+
         state = ""
-        if dest.is_dir():
-            if list(dest.iterdir()):
+        if dest_path.is_dir():
+            if list(dest_path.iterdir()):
                 _LOGGER.info(
-                    "Destination %s exists, temporarily moving out of the way (to %s)", dest, existing_dir_rename
+                    "Destination %s exists, temporarily moving out of the way (to %s)", dest_path, existing_dir_rename
                 )
-                dest.replace(existing_dir_rename)
+                dest_path.replace(existing_dir_rename)
                 state = "old_renamed"
             else:
-                _LOGGER.info("Destination %s exists but is empty; deleting it", dest)
-                shutil.rmtree(dest)
+                _LOGGER.info("Destination %s exists but is empty; deleting it", dest_path)
+                shutil.rmtree(dest_path)
+
         try:
-            do_staging_move(source, dest)
+            do_staging_move(source_path, dest_path)
             if state == "old_renamed":
                 state = "old_needs_remove"
         finally:
@@ -321,7 +351,7 @@ class InstallationContext:
                 shutil.rmtree(existing_dir_rename, ignore_errors=True)
             elif state == "old_renamed":
                 _LOGGER.warning("Moving old destination back")
-                existing_dir_rename.replace(dest)
+                existing_dir_rename.replace(dest_path)
 
     def compare_against_staging(self, staging: StagingDir, source_str: str, dest_str: Optional[str] = None) -> bool:
         dest_str = dest_str or source_str
@@ -419,3 +449,79 @@ class InstallationContext:
 
     def is_elf(self, maybe_elf_file: Path):
         return b"ELF" in subprocess.check_output(["file", maybe_elf_file])
+
+    def _deploy_to_cefs(
+        self,
+        staging: StagingDir,
+        source: PathOrString,
+        dest: PathOrString,
+        do_staging_move=lambda source, dest: source.replace(dest),
+    ) -> None:
+        """Deploy staging content directly to CEFS storage."""
+        if not self.config or not self.config.cefs.enabled:
+            raise RuntimeError("CEFS not enabled but _deploy_to_cefs called")
+
+        source_path = staging.path / source
+        nfs_path = self.destination / dest
+
+        # Apply any special staging move logic (e.g., for Python virtual environments)
+        # We need to create a temporary destination to apply do_staging_move
+        temp_dest_dir = self.config.cefs.local_temp_dir / "temp_dest"
+        temp_dest_dir.mkdir(parents=True, exist_ok=True)
+        temp_dest_path = temp_dest_dir / f"temp_{uuid.uuid4()}"
+
+        try:
+            # Apply special move logic if needed
+            if not source_path.is_dir():
+                raise RuntimeError(f"Missing source '{source_path}'")
+
+            # Fix permissions before squashing
+            if not is_windows():
+                self._fix_permissions(source_path)
+
+            # Create a copy for squashing (do_staging_move might modify the source)
+            final_source_path = temp_dest_path
+            do_staging_move(source_path, final_source_path)
+
+            # Create temporary squashfs image
+            temp_squash_dir = self.config.cefs.local_temp_dir / "squash"
+            temp_squash_dir.mkdir(parents=True, exist_ok=True)
+            temp_squash_file = temp_squash_dir / f"temp_{uuid.uuid4()}.img"
+
+            # Create squashfs image from processed content
+            _LOGGER.info("Creating squashfs image from %s", final_source_path)
+            subprocess.check_call(
+                [
+                    self.config.squashfs.mksquashfs_path,
+                    str(final_source_path),
+                    str(temp_squash_file),
+                    "-all-root",
+                    "-progress",
+                    "-comp",
+                    self.config.squashfs.compression,
+                    "-Xcompression-level",
+                    str(self.config.squashfs.compression_level),
+                ]
+            )
+
+            # Calculate hash and deploy to CEFS
+            hash_value = calculate_squashfs_hash(temp_squash_file)
+            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value)
+            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
+
+            # Copy to CEFS images directory if not already there
+            if not cefs_image_path.exists():
+                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_image_path)
+                copy_to_cefs_atomically(temp_squash_file, cefs_image_path)
+            else:
+                _LOGGER.info("CEFS image already exists: %s", cefs_image_path)
+
+            # Create symlink in NFS
+            backup_and_symlink(nfs_path, cefs_target, self.dry_run)
+
+        finally:
+            # Clean up temporary files
+            if "temp_squash_file" in locals():
+                temp_squash_file.unlink(missing_ok=True)
+            if temp_dest_path.exists():
+                shutil.rmtree(temp_dest_path, ignore_errors=True)
