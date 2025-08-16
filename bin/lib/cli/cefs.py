@@ -12,11 +12,13 @@ import humanfriendly
 
 from lib.ce_install import CliContext, cli
 from lib.cefs import (
+    CEFSState,
     backup_and_symlink,
     calculate_squashfs_hash,
     check_temp_space_available,
     copy_to_cefs_atomically,
     create_consolidated_image,
+    describe_cefs_image,
     detect_nfs_state,
     get_cefs_image_path,
     get_cefs_mount_path,
@@ -650,3 +652,114 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
     if failed_groups > 0:
         raise click.ClickException(f"Failed to consolidate {failed_groups} groups")
+
+
+@cefs.command()
+@click.pass_obj
+@click.option("--force", is_flag=True, help="Skip confirmation prompt")
+def gc(context: CliContext, force: bool):
+    """Garbage collect unreferenced CEFS images.
+
+    Scans all installables (including nightly/non-free) and their .bak versions
+    to find all referenced CEFS images, then identifies and removes unreferenced ones.
+    """
+    _LOGGER.info("Starting CEFS garbage collection...")
+
+    # Track errors throughout the function
+    error_count = 0
+
+    # Create state tracker
+    state = CEFSState(
+        nfs_dir=context.installation_context.destination,
+        cefs_image_dir=context.config.cefs.image_dir,
+    )
+
+    # Get ALL installables (bypassing if: conditions)
+    _LOGGER.info("Getting all installables...")
+    all_installables = context.get_installables([], bypass_enable_check=True)
+    _LOGGER.info("Found %d installables to check", len(all_installables))
+
+    # Scan for CEFS references
+    _LOGGER.info("Scanning installables for CEFS references...")
+    state.scan_installables(all_installables)
+
+    # Scan CEFS images directory
+    _LOGGER.info("Scanning CEFS images directory...")
+    state.scan_cefs_images()
+
+    # Get summary
+    summary = state.get_summary()
+    _LOGGER.info("CEFS GC Summary:")
+    _LOGGER.info("  Total CEFS images: %d", summary["total_images"])
+    _LOGGER.info("  Referenced images: %d", summary["referenced_images"])
+    _LOGGER.info("  Unreferenced images: %d", summary["unreferenced_images"])
+
+    if summary["space_to_reclaim"] > 0:
+        _LOGGER.info("  Space to reclaim: %s", humanfriendly.format_size(summary["space_to_reclaim"], binary=True))
+
+    # Find unreferenced images
+    unreferenced = state.find_unreferenced_images()
+
+    if not unreferenced:
+        _LOGGER.info("No unreferenced CEFS images found. Nothing to clean up.")
+        if error_count > 0:
+            raise click.ClickException(f"GC completed with {error_count} errors during analysis")
+        return
+
+    # List what would be deleted with descriptions
+    _LOGGER.info("Unreferenced CEFS images to delete:")
+    for image_path in unreferenced:
+        try:
+            size = image_path.stat().st_size
+            size_str = humanfriendly.format_size(size, binary=True)
+        except OSError:
+            size_str = "size unknown"
+            error_count += 1
+            _LOGGER.error("Could not stat image: %s", image_path)
+
+        # Get hash from filename for description
+        hash_value = image_path.stem
+        contents = describe_cefs_image(hash_value, context.config.cefs.mount_point)
+        if contents:
+            contents_str = f" [contains: {', '.join(contents)}]"
+        else:
+            contents_str = " [contents unknown]"
+
+        _LOGGER.info("  %s (%s)%s", image_path, size_str, contents_str)
+
+    # Handle dry-run
+    if context.installation_context.dry_run:
+        _LOGGER.info("DRY RUN: Would delete %d unreferenced images", len(unreferenced))
+        if error_count > 0:
+            raise click.ClickException(f"GC completed with {error_count} errors during analysis")
+        return
+
+    # Confirm deletion
+    if not force:
+        if not click.confirm(f"Delete {len(unreferenced)} unreferenced CEFS images?"):
+            _LOGGER.info("Garbage collection cancelled by user")
+            return
+
+    # Delete unreferenced images
+    deleted_count = 0
+    deleted_size = 0
+    for image_path in unreferenced:
+        try:
+            size = image_path.stat().st_size
+            image_path.unlink()
+            deleted_count += 1
+            deleted_size += size
+            _LOGGER.info("Deleted: %s", image_path)
+        except OSError as e:
+            error_count += 1
+            _LOGGER.error("Failed to delete %s: %s", image_path, e)
+
+    _LOGGER.info(
+        "Garbage collection complete: deleted %d images, freed %s",
+        deleted_count,
+        humanfriendly.format_size(deleted_size, binary=True) if deleted_size > 0 else "0 bytes",
+    )
+
+    # Exit with error if there were problems
+    if error_count > 0:
+        raise click.ClickException(f"GC completed with {error_count} errors")
