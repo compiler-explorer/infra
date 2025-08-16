@@ -66,7 +66,7 @@ class PersistentWebSocketManager {
 
             this.ws = new WebSocket(this.url, [], WS_OPTIONS);
 
-            this.ws.on('message', (data) => {
+            this.ws.on('message', async (data) => {
                 const messageText = data.toString();
 
                 // Try to parse as JSON for result messages

@@ -66,16 +66,37 @@ export class EventsConnections {
             }
         }
 
-        // eslint-disable-next-line no-console
-        if (cachedConnections.length > 0) {
-            // eslint-disable-next-line no-console
-            console.info(`Cache had ${cachedConnections.length} items for ${subscription}`);
-        } else {
-            // eslint-disable-next-line no-console
-            console.info(`Cache miss for ${subscription}`);
+        // Merge cached connections with DynamoDB results to handle GSI eventual consistency
+        // Use a Set to avoid duplicates
+        const connectionIdSet = new Set();
+
+        // Add DynamoDB results
+        if (result.Items) {
+            for (const item of result.Items) {
+                connectionIdSet.add(item.connectionId.S);
+            }
         }
 
-        return result;
+        // Add cached results to handle GSI propagation delay
+        for (const conn of cachedConnections) {
+            connectionIdSet.add(conn.connectionId.S);
+        }
+
+        // Convert Set back to the expected format
+        const mergedItems = Array.from(connectionIdSet).map(id => ({connectionId: {S: id}}));
+
+        // eslint-disable-next-line no-console
+        if (cachedConnections.length > 0 || result.Count > 0) {
+            // eslint-disable-next-line no-console
+            console.info(`Cache: ${cachedConnections.length} items, DynamoDB: ${result.Count || 0} items, Merged: ${mergedItems.length} items for ${subscription}`);
+        }
+
+        // Return a result object with merged items
+        return {
+            Items: mergedItems,
+            Count: mergedItems.length,
+            ScannedCount: result.ScannedCount || 0
+        };
     }
 
     static async update(id, subscription) {
