@@ -8,8 +8,10 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, List, Set, Tuple
 
+if TYPE_CHECKING:
+    from lib.installable.installable import Installable
 import humanfriendly
 
 _LOGGER = logging.getLogger(__name__)
@@ -437,3 +439,121 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> Tuple[Path, bo
     is_already_consolidated = len(parts) > 4
 
     return cefs_image_path, is_already_consolidated
+
+
+def describe_cefs_image(hash_value: str, cefs_mount_point: Path = Path("/cefs")) -> List[str]:
+    """Get top-level entries from a CEFS image by triggering autofs mount.
+
+    Args:
+        hash_value: The CEFS hash to describe
+        cefs_mount_point: Base CEFS mount point (default: /cefs)
+
+    Returns:
+        List of top-level entry names in the CEFS image
+    """
+    cefs_path = get_cefs_mount_path(cefs_mount_point, hash_value)
+    try:
+        # This will trigger autofs mount
+        entries = list(cefs_path.iterdir())
+        return [entry.name for entry in entries]
+    except OSError as e:
+        _LOGGER.warning("Could not list contents of %s: %s", cefs_path, e)
+        return []
+
+
+class CEFSState:
+    """Track CEFS images and their references for garbage collection."""
+
+    def __init__(self, nfs_dir: Path, cefs_image_dir: Path):
+        """Initialize CEFS state tracker.
+
+        Args:
+            nfs_dir: Base NFS directory (e.g., /opt/compiler-explorer)
+            cefs_image_dir: CEFS images directory (e.g., /efs/cefs-images)
+        """
+        self.nfs_dir = nfs_dir
+        self.cefs_image_dir = cefs_image_dir
+        self.referenced_hashes: Set[str] = set()  # All CEFS hashes referenced by symlinks
+        self.all_cefs_images: Dict[str, Path] = {}  # hash -> image_path
+
+    def scan_installables(self, installables: List["Installable"]) -> None:
+        """Scan all installables and their .bak versions for CEFS references.
+
+        Args:
+            installables: List of Installable objects to check
+        """
+        for installable in installables:
+            # Check main path
+            path = self.nfs_dir / installable.install_path
+            self._check_path_for_cefs(path, installable.name)
+
+            # Check .bak path
+            bak_path = path.with_name(path.name + ".bak")
+            self._check_path_for_cefs(bak_path, f"{installable.name}.bak")
+
+    def _check_path_for_cefs(self, path: Path, name: str) -> None:
+        """Check if a path is a CEFS symlink and track the reference.
+
+        Args:
+            path: Path to check for CEFS symlink
+            name: Human-readable name for logging
+        """
+        if path.is_symlink():
+            try:
+                target = str(path.readlink())
+                if target.startswith("/cefs/"):
+                    # Extract hash from /cefs/XX/HASH[/optional/subdir]
+                    parts = target.split("/")
+                    if len(parts) >= 4:
+                        hash_value = parts[3]
+                        self.referenced_hashes.add(hash_value)
+                        _LOGGER.debug("Found CEFS reference: %s -> %s", name, hash_value)
+            except OSError:
+                _LOGGER.error("Could not read symlink: %s", path)
+
+    def scan_cefs_images(self) -> None:
+        """Scan all CEFS images in the image directory."""
+        if not self.cefs_image_dir.exists():
+            _LOGGER.warning("CEFS images directory does not exist: %s", self.cefs_image_dir)
+            return
+
+        for subdir in self.cefs_image_dir.iterdir():
+            if subdir.is_dir():
+                for image_file in subdir.glob("*.sqfs"):
+                    # Extract hash from filename (removing .sqfs)
+                    hash_value = image_file.stem
+                    self.all_cefs_images[hash_value] = image_file
+
+    def find_unreferenced_images(self) -> List[Path]:
+        """Find all CEFS images that are not referenced by any symlink.
+
+        Returns:
+            List of Path objects for unreferenced CEFS images
+        """
+        unreferenced = []
+        for hash_value, image_path in self.all_cefs_images.items():
+            if hash_value not in self.referenced_hashes:
+                unreferenced.append(image_path)
+        return unreferenced
+
+    def get_summary(self) -> Dict[str, int]:
+        """Get summary statistics for reporting.
+
+        Returns:
+            Dictionary with summary statistics
+        """
+        unreferenced_images = self.find_unreferenced_images()
+        space_to_reclaim = 0
+
+        for image_path in unreferenced_images:
+            try:
+                space_to_reclaim += image_path.stat().st_size
+            except OSError:
+                _LOGGER.warning("Could not stat unreferenced image: %s", image_path)
+
+        return {
+            "total_images": len(self.all_cefs_images),
+            "referenced_images": len(self.referenced_hashes),
+            "unreferenced_images": len(unreferenced_images),
+            "space_to_reclaim": space_to_reclaim,
+        }
