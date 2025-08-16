@@ -263,14 +263,16 @@ async function resolveS3FileIfNeeded(message) {
 
     } catch (error) {
         console.error(`Failed to fetch S3 compilation result for ${message.s3Key}:`, error);
-
+        
+        // Return a user-friendly error message in the compilation result format
         return {
-            ...message,
-            s3FetchError: `Failed to fetch complete result from S3: ${error.message}`,
-            asm: message.asm || [],
-            stdout: message.stdout || [],
-            stderr: message.stderr || [],
-            code: message.code !== undefined ? message.code : 0
+            code: -1,
+            okToCache: false,
+            stdout: [],
+            stderr: [{text: 'An internal error has occurred while retrieving the compilation result'}],
+            execTime: 0,
+            timedOut: false,
+            guid: message.guid
         };
     }
 }
