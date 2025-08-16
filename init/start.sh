@@ -13,6 +13,9 @@ LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 setup_cgroups
 mount_opt
 mount_nosym
+
+sudo -u ce nsjail --config /infra/.deploy/etc/nsjail/compilers-and-tools.cfg -- /bin/bash -c "echo working"
+
 update_code
 
 COMPILERS_ARG=
