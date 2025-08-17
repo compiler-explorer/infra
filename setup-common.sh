@@ -17,7 +17,9 @@ apt purge -y --auto-remove unattended-upgrades
 apt-get -y update
 apt-get -y dist-upgrade --force-yes
 
+# auditd is for debugging cgroups
 apt-get -y install \
+  auditd \
   autofs \
   gpg-agent \
   jq \

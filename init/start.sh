@@ -15,7 +15,10 @@ mount_opt
 mount_nosym
 update_code
 
-sudo -u ce nsjail --config /infra/.deploy/etc/nsjail/compilers-and-tools.cfg -- /bin/bash -c "echo working"
+if ! sudo -u ${CE_USER} nsjail --config /infra/.deploy/etc/nsjail/compilers-and-tools.cfg -- /bin/bash -c "echo nsjail works"; then
+    echo "nsjail is not working, please check the configuration."
+    exit 1
+fi
 
 COMPILERS_ARG=
 if [[ -f "${COMPILERS_FILE}" ]]; then
