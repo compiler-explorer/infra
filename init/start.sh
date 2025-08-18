@@ -15,8 +15,9 @@ mount_opt
 mount_nosym
 update_code
 
-if ! sudo -u ${CE_USER} nsjail --config /infra/.deploy/etc/nsjail/compilers-and-tools.cfg -- /bin/bash -c "echo nsjail works"; then
+if ! sudo -u "${CE_USER}" nsjail --config /infra/.deploy/etc/nsjail/compilers-and-tools.cfg -- /bin/bash -c "echo nsjail works"; then
     echo "nsjail is not working, please check the configuration."
+    log_cgroups
     exit 1
 fi
 
