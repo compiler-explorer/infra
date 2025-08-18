@@ -147,20 +147,16 @@ setup_cgroups() {
     log_cgroups
     (
         set +x
-        auditctl -w /sys/fs/cgroup/cgroup.subtree_control -p wa -k cgroup_changes
         while true; do
             if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
                 echo "ALERT: CPU controller disappeared!"
                 # Log what's running at the time
                 ps aux --sort=-start_time | head -20
                 log_cgroups
-                echo "Looking for audit events"
-                ausearch -k cgroup_changes --format text
-                echo "----"
                 echo "Re-adding cpu controller"
                 echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
             fi
-            sleep 10
+            sleep 5
         done
     ) &
     ######################
