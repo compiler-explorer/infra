@@ -98,6 +98,29 @@ install_ninja() {
     cp "$(readlink -f /opt/compiler-explorer/ninja/ninja)" /usr/local/bin
 }
 
+######################
+# Debugging a weird apparent race condition at boot that means we don't get the "cpu" delegation
+# despite the cgcreates below all succeeding.
+# See https://github.com/compiler-explorer/infra/issues/1761
+log_cgroups() {
+    echo "Cgroup setup diagnostics:"
+    echo "Root cgroup.subtree_control: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
+    for cgroup in ce-compile ce-sandbox; do
+        if [ -d "/sys/fs/cgroup/$cgroup" ]; then
+            echo "$cgroup exists: YES"
+            echo "  controllers: $(cat /sys/fs/cgroup/$cgroup/cgroup.controllers)"
+            echo "  subtree_control: $(cat /sys/fs/cgroup/$cgroup/cgroup.subtree_control)"
+            if [ -f "/sys/fs/cgroup/$cgroup/cpu.max" ]; then
+                echo "  cpu.max exists: YES"
+            else
+                echo "  cpu.max exists: NO"
+            fi
+        else
+            echo "$cgroup exists: NO"
+        fi
+    done
+}
+
 setup_cgroups() {
     ######################
     # Debugging a weird apparent race condition at boot that means we don't get the "cpu" delegation
@@ -121,22 +144,21 @@ setup_cgroups() {
 
     ######################
     # Debugging, again see above
-    echo "Cgroup setup diagnostics:"
-    echo "Root cgroup.subtree_control: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
-    for cgroup in ce-compile ce-sandbox; do
-        if [ -d "/sys/fs/cgroup/$cgroup" ]; then
-            echo "$cgroup exists: YES"
-            echo "  controllers: $(cat /sys/fs/cgroup/$cgroup/cgroup.controllers)"
-            echo "  subtree_control: $(cat /sys/fs/cgroup/$cgroup/cgroup.subtree_control)"
-            if [ -f "/sys/fs/cgroup/$cgroup/cpu.max" ]; then
-                echo "  cpu.max exists: YES"
-            else
-                echo "  cpu.max exists: NO"
+    log_cgroups
+    (
+        set +x
+        while true; do
+            if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
+                echo "ALERT: CPU controller disappeared!"
+                # Log what's running at the time
+                ps aux --sort=-start_time | head -20
+                log_cgroups
+                echo "Re-adding cpu controller"
+                echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
             fi
-        else
-            echo "$cgroup exists: NO"
-        fi
-    done
+            sleep 5
+        done
+    ) &
     ######################
 }
 
