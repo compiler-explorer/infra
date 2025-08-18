@@ -5,6 +5,7 @@ import logging
 import shutil
 import subprocess
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List
 
 import click
@@ -20,11 +21,19 @@ from lib.cefs import (
     detect_nfs_state,
     get_cefs_image_path,
     get_cefs_mount_path,
+    get_extraction_path_from_symlink,
     parse_cefs_target,
     snapshot_symlink_targets,
     update_symlinks_for_consolidation,
     validate_cefs_mount_point,
     verify_symlinks_unchanged,
+)
+from lib.cefs_manifest import (
+    create_manifest,
+    extract_installable_info_from_path,
+    generate_cefs_filename,
+    truncate_hash,
+    write_manifest_alongside_image,
 )
 from lib.installable.installable import Installable
 
@@ -61,17 +70,34 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
         _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
         return False
 
-    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_value)
-    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, hash_value)
+    # Generate new filename format
+    hash_24 = truncate_hash(hash_value)
+    # For conversion, use the squashfs image path to create meaningful suffix
+    relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
+    filename = generate_cefs_filename(hash_24, "convert", str(relative_path))
+
+    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_24, filename)
+    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, hash_24)
+
+    # Generate manifest for conversion (cannot write inside existing squashfs)
+    installable_info = extract_installable_info_from_path(installable.install_path, nfs_path)
+    manifest = create_manifest(
+        operation="convert",
+        description=f"Created through conversion of {installable.name}",
+        contents=[installable_info],
+    )
 
     # Copy squashfs to CEFS images directory if not already there
     # Never overwrite - hash ensures content is identical
     if not cefs_image_path.exists():
         if context.installation_context.dry_run:
             _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_image_path)
+            _LOGGER.info("Would write manifest alongside image")
         else:
             try:
                 copy_to_cefs_atomically(squashfs_image_path, cefs_image_path)
+                # Write manifest alongside the converted image
+                write_manifest_alongside_image(manifest, cefs_image_path)
             except RuntimeError as e:
                 _LOGGER.error("Failed to copy image for %s: %s", installable.name, e)
                 return False
@@ -580,18 +606,51 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
             group_temp_dir = consolidation_dir / "extract"
             group_temp_dir.mkdir(parents=True, exist_ok=True)
 
-            # Prepare items for consolidation
+            # Prepare items for consolidation - follow symlinks to determine extraction paths
             items_for_consolidation = []
             subdir_mapping = {}
 
             for item in group:
                 # Use the installable name as subdirectory name
                 subdir_name = item["installable"].name.replace("/", "_").replace(" ", "_")
-                items_for_consolidation.append((item["nfs_path"], item["squashfs_path"], subdir_name))
+
+                # Follow the symlink to determine what to extract
+                try:
+                    symlink_target = item["nfs_path"].readlink()
+                    extraction_path = get_extraction_path_from_symlink(symlink_target)
+                    _LOGGER.debug(
+                        "For %s: symlink %s -> %s, extracting %s",
+                        item["installable"].name,
+                        item["nfs_path"],
+                        symlink_target,
+                        extraction_path,
+                    )
+                except OSError as e:
+                    _LOGGER.warning("Failed to read symlink %s: %s, extracting from root", item["nfs_path"], e)
+                    extraction_path = Path(".")
+
+                items_for_consolidation.append((item["nfs_path"], item["squashfs_path"], subdir_name, extraction_path))
                 subdir_mapping[item["nfs_path"]] = subdir_name
 
-            # Create temporary consolidated image
+            # Generate manifest for consolidation
+            contents = []
+            for item in group:
+                installable_info = extract_installable_info_from_path(
+                    item["installable"].install_path, item["nfs_path"]
+                )
+                contents.append(installable_info)
+
+            manifest = create_manifest(
+                operation="consolidate",
+                description=f"Created through consolidation of {len(group)} items: "
+                + ", ".join(item["installable"].name for item in group),
+                contents=contents,
+            )
+
+            # Create temporary consolidated image with manifest
             temp_consolidated_path = group_temp_dir / "consolidated.sqfs"
+
+            # First create basic consolidated image, then add manifest
             create_consolidated_image(
                 items_for_consolidation,
                 group_temp_dir,
@@ -600,14 +659,54 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
                 context.config.squashfs.compression_level,
             )
 
-            # Calculate hash and copy to CEFS
+            # Now we need to add the manifest to the consolidated image
+            # Extract the consolidated image, add manifest, and recreate
+            temp_with_manifest_dir = group_temp_dir / "with_manifest"
+            temp_with_manifest_dir.mkdir(parents=True, exist_ok=True)
+
+            # Extract the consolidated image
+            cmd = ["unsquashfs", "-f", "-d", str(temp_with_manifest_dir), str(temp_consolidated_path)]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if result.returncode != 0:
+                raise RuntimeError(f"Failed to extract consolidated image: {result.stderr}")
+
+            # Write manifest to the root of extracted content
+            from lib.cefs_manifest import write_manifest_to_directory
+
+            write_manifest_to_directory(manifest, temp_with_manifest_dir)
+
+            # Recreate the squashfs with manifest included
+            final_consolidated_path = group_temp_dir / "final_consolidated.sqfs"
+            cmd = [
+                "mksquashfs",
+                str(temp_with_manifest_dir),
+                str(final_consolidated_path),
+                "-comp",
+                context.config.squashfs.compression,
+                "-Xcompression-level",
+                str(context.config.squashfs.compression_level),
+                "-noappend",
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if result.returncode != 0:
+                raise RuntimeError(f"Failed to create final consolidated squashfs: {result.stderr}")
+
+            # Use the final consolidated image
+            temp_consolidated_path = final_consolidated_path
+
+            # Calculate hash and generate filename
             consolidated_hash = calculate_squashfs_hash(temp_consolidated_path)
-            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, consolidated_hash)
+            hash_24 = truncate_hash(consolidated_hash)
+            filename = generate_cefs_filename(hash_24, "consolidate")
+
+            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_24, filename)
 
             if cefs_image_path.exists():
                 _LOGGER.info("Consolidated image already exists: %s", cefs_image_path)
             else:
                 copy_to_cefs_atomically(temp_consolidated_path, cefs_image_path)
+                # Write manifest alongside the consolidated image
+                write_manifest_alongside_image(manifest, cefs_image_path)
 
             # Verify symlinks haven't changed and update them
             group_symlinks = [item["nfs_path"] for item in group]
@@ -622,7 +721,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
             if unchanged_symlinks:
                 update_symlinks_for_consolidation(
-                    unchanged_symlinks, consolidated_hash, context.config.cefs.mount_point, subdir_mapping
+                    unchanged_symlinks, hash_24, context.config.cefs.mount_point, subdir_mapping
                 )
                 total_updated_symlinks += len(unchanged_symlinks)
                 _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
