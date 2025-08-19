@@ -40,17 +40,12 @@ locale-gen en_US.UTF-8
 
 apt-get autoremove --purge -y
 
-# This returns amd64 or arm64
-ARCH=$(dpkg --print-architecture)
+source "/infra/arch-mappings.sh"
 
 if [ "$INSTALL_TYPE" != 'ci' ]; then
   mkdir /tmp/aws-install
   pushd /tmp/aws-install
-  if [ "$ARCH" == 'amd64' ]; then
-    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  else
-    curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
-  fi
+  curl -sL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip"
   unzip awscliv2.zip
   ./aws/install
   popd
@@ -72,11 +67,7 @@ echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart
 pushd /tmp
 
-if [ "$ARCH" == 'amd64' ]; then
-  curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_amd64.tar.gz' | tar zxf -
-else
-  curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_arm64.tar.gz' | tar zxf -
-fi
+curl -sL "https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_${ARCH}.tar.gz" | tar zxf -
 
 cp remote_syslog/remote_syslog /usr/local/bin/
 popd

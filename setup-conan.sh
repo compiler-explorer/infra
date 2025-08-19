@@ -5,8 +5,10 @@ set -ex
 CE_USER=ce
 NODE_VERSION="v22.11.0"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${DIR}"
 
+source "${DIR}/arch-mappings.sh"
+
+cd "${DIR}"
 if [[ "$1" != "--updated" ]]; then
     sudo -u ubuntu git -C "${DIR}" pull
     pwd
@@ -57,9 +59,10 @@ git clone https://github.com/compiler-explorer/conanproxy.git
 cd /home/ubuntu
 
 rm -Rf node
-wget https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz
-tar -xf node-${NODE_VERSION}-linux-x64.tar.xz
-mv node-${NODE_VERSION}-linux-x64 node
+
+wget "https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
+tar -xf "node-${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"
+mv "node-${NODE_VERSION}-linux-${NODE_ARCH}" node
 chown -Rf root:root node
 
 # quick smoke test of this node version
@@ -86,7 +89,7 @@ PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart
 pushd /tmp
-curl -sL 'https://github.com/papertrail/remote_syslog2/releases/download/v0.20/remote_syslog_linux_amd64.tar.gz' | tar zxf -
+curl -sL "https://github.com/papertrail/remote_syslog2/releases/download/v0.21/remote_syslog_linux_${ARCH}.tar.gz" | tar zxf -
 cp remote_syslog/remote_syslog /usr/local/bin/
 popd
 

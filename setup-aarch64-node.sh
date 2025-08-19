@@ -69,7 +69,8 @@ pushd /opt
 # node.js
 TARGET_NODE_VERSION=v22.13.1
 echo "Installing node ${TARGET_NODE_VERSION}"
-curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-arm64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-arm64 node
+
+curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" | tar xJf - && mv "node-${TARGET_NODE_VERSION}-linux-${NODE_ARCH}" node
 popd
 
 cp nginx/nginx.conf /etc/nginx/nginx.conf
