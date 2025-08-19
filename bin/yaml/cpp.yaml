@@ -1598,6 +1598,7 @@ compilers:
           - name: trunk
             symlink: gcc-snapshot
           - contracts-nonattr-trunk
+          - lambda-p2034-trunk
           - cxx-coroutines-trunk
           - cxx-modules-trunk
           - lock3-contracts-trunk
