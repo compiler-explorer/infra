@@ -5,10 +5,9 @@ set -ex
 CE_USER=ce
 NODE_VERSION="v22.11.0"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-source "${DIR}/arch-mappings.sh"
-
 cd "${DIR}"
+source ./arch-mappings.sh
+
 if [[ "$1" != "--updated" ]]; then
     sudo -u ubuntu git -C "${DIR}" pull
     pwd
