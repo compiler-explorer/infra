@@ -145,20 +145,21 @@ setup_cgroups() {
     ######################
     # Debugging, again see above
     log_cgroups
-    (
-        set +x
-        while true; do
-            if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
-                echo "ALERT: CPU controller disappeared!"
-                # Log what's running at the time
-                ps aux --sort=-start_time | head -20
-                log_cgroups
-                echo "Re-adding cpu controller"
-                echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
-            fi
-            sleep 5
-        done
-    ) &
+    # Disabled for now as it upsets the runner
+    # (
+    #     set +x
+    #     while true; do
+    #         if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
+    #             echo "ALERT: CPU controller disappeared!"
+    #             # Log what's running at the time
+    #             ps aux --sort=-start_time | head -20
+    #             log_cgroups
+    #             echo "Re-adding cpu controller"
+    #             echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
+    #         fi
+    #         sleep 5
+    #     done
+    # ) &
     ######################
 }
 
