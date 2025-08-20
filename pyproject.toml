@@ -42,6 +42,7 @@ select = [
     "E", # pycodestyle errors,
     "W", # pycodestyle warnings
     "F", # pyflake
+    "FA", # pyflake future annotations
     "B", # flake8-bugbear
     "I", # isort
     "UP", # pyupgrade
