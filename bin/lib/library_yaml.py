@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 from pathlib import Path
-from typing import List
 
 import yaml
 
@@ -45,14 +46,14 @@ class LibraryYaml:
             libraries_for_language[libid] = dict(type="cratesio", build_type="cargo", targets=[libversion])
 
     def get_ce_properties_for_rust_libraries(self):
-        all_ids: List[str] = []
+        all_ids: list[str] = []
         properties_txt = ""
 
         libraries_for_language = self.yaml_doc["libraries"]["rust"]
         for libid in libraries_for_language:
             all_ids.append(libid)
 
-            all_libver_ids: List[str] = []
+            all_libver_ids: list[str] = []
 
             for libver in libraries_for_language[libid]["targets"]:
                 all_libver_ids.append(version_to_id(libver))
@@ -136,7 +137,7 @@ class LibraryYaml:
         return libverprops
 
     def get_ce_properties_for_cpp_windows_libraries(self, logger):
-        all_ids: List[str] = []
+        all_ids: list[str] = []
         properties_txt = ""
 
         [_, linux_libraries] = get_properties_compilers_and_libraries("c++", logger, LibraryPlatform.Linux, False)
@@ -199,7 +200,7 @@ class LibraryYaml:
             packagedheaders_property_key = generate_library_property_key(linux_libid, "packagedheaders")
             libverprops += f"{packagedheaders_property_key}=true\n"
 
-            all_libver_ids: List[str] = []
+            all_libver_ids: list[str] = []
             for yamllibid in reorganised_libs[linux_libid]:
                 if yamllibid in libraries_for_language:
                     if "targets" in libraries_for_language[yamllibid]:

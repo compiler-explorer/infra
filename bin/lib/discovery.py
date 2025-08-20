@@ -1,5 +1,7 @@
 """Discovery file management utilities for Compiler Explorer."""
 
+from __future__ import annotations
+
 import boto3
 import botocore.exceptions
 

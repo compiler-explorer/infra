@@ -1,7 +1,6 @@
 """SVG generation functions for mug layouts."""
 
 import re
-from typing import List, Optional, Tuple
 
 import cairosvg
 
@@ -19,7 +18,7 @@ from core.constants import (
 from core.text_measurement import PILTextMeasurer
 
 
-def svg_to_png(svg_path: str, png_path: Optional[str] = None, dpi: int = DEFAULT_DPI) -> str:
+def svg_to_png(svg_path: str, png_path: str | None = None, dpi: int = DEFAULT_DPI) -> str:
     """Convert SVG to PNG using cairosvg."""
     if png_path is None:
         png_path = svg_path.replace(".svg", ".png")
@@ -34,14 +33,14 @@ def svg_to_png(svg_path: str, png_path: Optional[str] = None, dpi: int = DEFAULT
 
 
 def render_info_items(
-    info_items: List[Tuple[str, List[Tuple[str, bool]]]],
+    info_items: list[tuple[str, list[tuple[str, bool]]]],
     table_x: int,
     info_y: int,
     font_family: str,
     text_size: int,
     text_color: str,
     ce_green: str,
-) -> Tuple[str, int]:
+) -> tuple[str, int]:
     """Render info items with register highlighting using tspan elements."""
     svg = ""
     current_y = info_y
@@ -115,9 +114,9 @@ def create_table_row(
 
 
 def create_horizontal_table(
-    headers: List[str],
-    rows: List[List[str]],
-    row_labels: List[str],  # Add row labels parameter
+    headers: list[str],
+    rows: list[list[str]],
+    row_labels: list[str],  # Add row labels parameter
     table_x: int,
     table_y: int,
     col_width: int,
@@ -185,7 +184,7 @@ def create_horizontal_table(
 
 
 def create_info_table(
-    rows: List[Tuple[str, str]],  # (label, content) pairs
+    rows: list[tuple[str, str]],  # (label, content) pairs
     table_x: int,
     table_y: int,
     table_width: int,

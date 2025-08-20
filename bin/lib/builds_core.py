@@ -1,10 +1,11 @@
 """Core build functions without CLI dependencies."""
 
+from __future__ import annotations
+
 import datetime
 import os
 import subprocess
 import tempfile
-from typing import Optional
 
 import requests
 
@@ -24,7 +25,7 @@ from lib.env import Config
 from lib.releases import Release, Version
 
 
-def old_deploy_staticfiles(branch: Optional[str], versionfile: str) -> None:
+def old_deploy_staticfiles(branch: str | None, versionfile: str) -> None:
     """Deploy static files using the old method (for releases without static_key)."""
     print("Deploying static files")
     downloadfile = versionfile
@@ -79,13 +80,13 @@ def deploy_staticfiles(release: Release, ignore_hash_mismatch: bool = False) -> 
             return job.run()
 
 
-def check_compiler_discovery(cfg: Config, version: str, branch: Optional[str] = None) -> Optional[Release]:
+def check_compiler_discovery(cfg: Config, version: str, branch: str | None = None) -> Release | None:
     """Check if a version exists and has compiler discovery run.
 
     Returns the Release object if found, None if not found.
     Raises RuntimeError if discovery hasn't run.
     """
-    release: Optional[Release] = None
+    release: Release | None = None
 
     if version == "latest":
         release = find_latest_release(cfg, branch or "")
@@ -114,7 +115,7 @@ def check_compiler_discovery(cfg: Config, version: str, branch: Optional[str] = 
     return release
 
 
-def get_release_without_discovery_check(cfg: Config, version: str, branch: Optional[str] = None) -> Optional[Release]:
+def get_release_without_discovery_check(cfg: Config, version: str, branch: str | None = None) -> Release | None:
     """Get a release without checking compiler discovery."""
     if version == "latest":
         return find_latest_release(cfg, branch or "")

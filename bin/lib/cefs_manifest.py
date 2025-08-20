@@ -7,7 +7,7 @@ import subprocess
 import sys
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -91,9 +91,9 @@ def generate_cefs_filename(hash: str, operation: str, path: str = "") -> str:
 def create_manifest(
     operation: str,
     description: str,
-    contents: List[Dict[str, str]],
-    command: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    contents: list[dict[str, str]],
+    command: list[str] | None = None,
+) -> dict[str, Any]:
     """Create a manifest dictionary for a CEFS image.
 
     Args:
@@ -121,7 +121,7 @@ def create_manifest(
 
     manifest = {
         "version": 1,
-        "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "created_at": datetime.datetime.now(datetime.UTC).isoformat(),
         "git_sha": get_git_sha(),
         "command": command,
         "description": description,
@@ -132,7 +132,7 @@ def create_manifest(
     return manifest
 
 
-def write_manifest_alongside_image(manifest: Dict[str, Any], image_path: Path) -> None:
+def write_manifest_alongside_image(manifest: dict[str, Any], image_path: Path) -> None:
     """Write manifest as manifest.yaml alongside a CEFS image file.
 
     This creates a manifest file next to the .sqfs file for easy access
@@ -151,7 +151,7 @@ def write_manifest_alongside_image(manifest: Dict[str, Any], image_path: Path) -
         yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
 
 
-def read_manifest_from_alongside(image_path: Path) -> Optional[Dict[str, Any]]:
+def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
     """Read manifest from the .yaml file alongside a CEFS image.
 
     Args:
@@ -166,14 +166,14 @@ def read_manifest_from_alongside(image_path: Path) -> Optional[Dict[str, Any]]:
         return None
 
     try:
-        with open(manifest_path, "r", encoding="utf-8") as f:
+        with open(manifest_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
     except (OSError, yaml.YAMLError) as e:
         _LOGGER.warning("Failed to read manifest from %s: %s", manifest_path, e)
         return None
 
 
-def extract_installable_info_from_path(install_path: str, nfs_path: Path) -> Dict[str, str]:
+def extract_installable_info_from_path(install_path: str, nfs_path: Path) -> dict[str, str]:
     """Extract installable information from installation path for manifest contents.
 
     This is a best-effort function to create reasonable name/target/destination

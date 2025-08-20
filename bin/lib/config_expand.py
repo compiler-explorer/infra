@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import logging
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 import jinja2
 

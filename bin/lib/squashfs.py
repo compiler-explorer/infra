@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Utilities for working with squashfs images."""
 
+from __future__ import annotations
+
 import logging
 import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,10 +19,10 @@ class SquashfsEntry:
     file_type: str  # 'd', 'l', '-', 'c', 'b', etc.
     size: int  # File size in bytes (0 for non-regular files)
     path: str  # Relative path without leading slash
-    target: Optional[str] = None  # Target for symlinks
+    target: str | None = None  # Target for symlinks
 
 
-def parse_unsquashfs_line(line: str) -> Optional[SquashfsEntry]:
+def parse_unsquashfs_line(line: str) -> SquashfsEntry | None:
     """Parse a single line from unsquashfs -ll output.
 
     Returns SquashfsEntry with parsed data, or None for intentionally skipped entries (root dir).
@@ -95,7 +96,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
         return 1
 
     # Parse squashfs output to get file list
-    sqfs_files: Dict[str, Tuple[str, str]] = {}
+    sqfs_files: dict[str, tuple[str, str]] = {}
     for line in sqfs_output.split("\n"):
         if not line.strip():
             continue
@@ -115,7 +116,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
             raise
 
     # Build equivalent from directory filesystem
-    dir_files: Dict[str, Tuple[str, str]] = {}
+    dir_files: dict[str, tuple[str, str]] = {}
     if not nfs_path.exists():
         _LOGGER.error("Directory does not exist: %s", nfs_path)
         return 1

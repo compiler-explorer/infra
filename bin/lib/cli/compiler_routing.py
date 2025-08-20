@@ -1,7 +1,8 @@
 """CLI commands for compiler routing management."""
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
 
 import click
 
@@ -32,7 +33,7 @@ def compiler_routing():
 @click.option("--dry-run", is_flag=True, help="Show what would be changed without making changes")
 @click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
 @click.pass_obj
-def update_routing(cfg: Config, environment: Optional[str], dry_run: bool, skip_confirmation: bool):
+def update_routing(cfg: Config, environment: str | None, dry_run: bool, skip_confirmation: bool):
     """Update compiler routing table for specified environment using live API data."""
     try:
         # Use current environment if not specified
@@ -146,7 +147,7 @@ def lookup_compiler(cfg: Config, compiler_id: str):
 @compiler_routing.command(name="validate")
 @click.option("--env", "environment", help="Environment to validate (default: all environments)")
 @click.pass_obj
-def validate_routing(cfg: Config, environment: Optional[str]):
+def validate_routing(cfg: Config, environment: str | None):
     """Validate routing table consistency against live API data."""
     try:
         print("Compiler Routing Validation\n" + "=" * 28)

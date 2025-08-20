@@ -11,8 +11,9 @@ import subprocess
 import tempfile
 import time
 import uuid
+from collections.abc import Collection, Iterator, Sequence
 from pathlib import Path
-from typing import IO, Collection, Dict, Iterator, List, Optional, Sequence, Union
+from typing import IO
 
 import requests
 import requests.adapters
@@ -38,7 +39,7 @@ from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
-PathOrString = Union[Path, str]
+PathOrString = Path | str
 
 
 def is_windows():
@@ -62,14 +63,14 @@ class InstallationContext:
         dry_run: bool,
         is_nightly_enabled: bool,
         only_nightly: bool,
-        cache: Optional[Path],
+        cache: Path | None,
         yaml_dir: Path,
         allow_unsafe_ssl: bool,
         resource_dir: Path,
         keep_staging: bool,
         check_user: str,
         platform: LibraryPlatform,
-        config: Optional["Config"] = None,
+        config: Config | None = None,
     ):
         self._destination = destination
         self._prior_installation = self.destination
@@ -126,7 +127,7 @@ class InstallationContext:
                     subprocess.check_call(["chmod", "-R", "u+w", staging_dir.path])
                 shutil.rmtree(staging_dir.path, ignore_errors=True)
 
-    def fetch_rest_query(self, url: str) -> Dict:
+    def fetch_rest_query(self, url: str) -> dict:
         _LOGGER.debug("Fetching %s", url)
         return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
 
@@ -166,7 +167,7 @@ class InstallationContext:
         fd.flush()
 
     def fetch_url_and_pipe_to(
-        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Union[Path, str] = ".", agent: str = ""
+        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Path | str = ".", agent: str = ""
     ) -> None:
         untar_dir = staging.path / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
@@ -183,10 +184,10 @@ class InstallationContext:
             with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as script_file:
                 # first to extract the tar file
                 script_file.write(
-                    f'{" ".join(command)} -o"{os.path.dirname(temp_file_path)}" {temp_file_path}\n'.encode("utf-8")
+                    f'{" ".join(command)} -o"{os.path.dirname(temp_file_path)}" {temp_file_path}\n'.encode()
                 )
                 # the tar file was automatically suffixed with ~ by 7z, extract that tar to the untar_dir
-                script_file.write(f'7z x -ttar -o"{untar_dir}" {temp_file_path}~\n'.encode("utf-8"))
+                script_file.write(f'7z x -ttar -o"{untar_dir}" {temp_file_path}~\n'.encode())
 
             subprocess.check_call(["pwsh", script_file.name], cwd=str(untar_dir))
 
@@ -202,7 +203,7 @@ class InstallationContext:
                 _LOGGER.info("Piping to %s", shlex.join(command))
                 subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
-    def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Optional[Path] = None) -> None:
+    def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Path | None = None) -> None:
         _LOGGER.info("Staging with %s", shlex.join(command))
         env = os.environ.copy()
         env["CE_STAGING_DIR"] = str(staging.path)
@@ -245,7 +246,7 @@ class InstallationContext:
     def glob(self, pattern: str) -> Collection[str]:
         return [os.path.relpath(x, str(self.destination)) for x in glob.glob(str(self.destination / pattern))]
 
-    def remove_dir(self, directory: Union[str, Path]) -> None:
+    def remove_dir(self, directory: str | Path) -> None:
         if self.dry_run:
             _LOGGER.info("Would remove directory %s but in dry-run mode", directory)
         else:
@@ -303,7 +304,7 @@ class InstallationContext:
         self,
         staging: StagingDir,
         source: PathOrString,
-        dest: Optional[PathOrString] = None,
+        dest: PathOrString | None = None,
         do_staging_move=lambda source, dest: source.replace(dest),
     ) -> None:
         dest = dest or source
@@ -359,7 +360,7 @@ class InstallationContext:
                 _LOGGER.warning("Moving old destination back")
                 existing_dir_rename.replace(dest_path)
 
-    def compare_against_staging(self, staging: StagingDir, source_str: str, dest_str: Optional[str] = None) -> bool:
+    def compare_against_staging(self, staging: StagingDir, source_str: str, dest_str: str | None = None) -> bool:
         dest_str = dest_str or source_str
         source = staging.path / source_str
         dest = self.destination / dest_str
@@ -371,7 +372,7 @@ class InstallationContext:
             _LOGGER.warning("Contents differ")
         return result == 0
 
-    def check_output(self, args: List[str], env: Optional[dict] = None, stderr_on_stdout=False) -> str:
+    def check_output(self, args: list[str], env: dict | None = None, stderr_on_stdout=False) -> str:
         args = args[:]
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
@@ -403,13 +404,13 @@ class InstallationContext:
 
         return fulloutput
 
-    def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
+    def check_call(self, args: list[str], env: dict | None = None) -> None:
         args = args[:]
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
         subprocess.check_call(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL)
 
-    def strip_exes(self, staging: StagingDir, paths: Union[bool, List[str]]) -> None:
+    def strip_exes(self, staging: StagingDir, paths: bool | list[str]) -> None:
         if isinstance(paths, bool):
             if not paths:
                 return
@@ -429,7 +430,7 @@ class InstallationContext:
         # Deliberately ignore errors
         subprocess.call(["strip"] + to_strip)
 
-    def run_script(self, staging: StagingDir, from_path: Union[str, Path], lines: List[str]) -> None:
+    def run_script(self, staging: StagingDir, from_path: str | Path, lines: list[str]) -> None:
         from_path = Path(from_path)
         if len(lines) > 0:
             _LOGGER.info("Running script")
