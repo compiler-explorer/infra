@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import time
-from typing import Sequence
+from collections.abc import Sequence
 
 import click
 
@@ -41,14 +43,14 @@ def builder_start():
                 break
             time.sleep(5)
         else:
-            raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
+            raise RuntimeError(f"Unable to start instance, still in state: {instance.status()}")
     for _ in range(60):
         try:
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
         except Exception as e:
-            print("Still waiting for SSH: got: {}".format(e))
+            print(f"Still waiting for SSH: got: {e}")
         time.sleep(5)
     else:
         raise RuntimeError("Unable to get SSH access")
@@ -66,4 +68,4 @@ def builder_stop():
 @builder.command(name="status")
 def builder_status():
     """Get the builder status (running or otherwise)."""
-    print("Builder status: {}".format(BuilderInstance.instance().status()))
+    print(f"Builder status: {BuilderInstance.instance().status()}")

@@ -1,9 +1,11 @@
 """Blue-green deployment management for Compiler Explorer."""
 
+from __future__ import annotations
+
 import logging
 import signal
 import sys
-from typing import Any, Dict, Optional
+from typing import Any
 
 from botocore.exceptions import ClientError
 
@@ -50,7 +52,7 @@ class BlueGreenDeployment:
         self.running_on_admin_node = is_running_on_admin_node()
 
         # Deployment state for signal handling
-        self._deployment_state: Dict[str, Any] = {
+        self._deployment_state: dict[str, Any] = {
             "active_asg": None,
             "inactive_asg": None,
             "active_original_min": None,
@@ -147,7 +149,7 @@ class BlueGreenDeployment:
         """Get ASG name for the specified color."""
         return f"{self.env}-{color}"
 
-    def get_listener_rule_arn(self) -> Optional[str]:
+    def get_listener_rule_arn(self) -> str | None:
         """Get the ALB listener rule ARN for this environment."""
         # Get listeners for the load balancer
         listeners = elb_client.describe_listeners(LoadBalancerArn=self._get_load_balancer_arn())
@@ -220,10 +222,10 @@ class BlueGreenDeployment:
 
     def deploy(
         self,
-        target_capacity: Optional[int] = None,
+        target_capacity: int | None = None,
         skip_confirmation: bool = False,
-        version: Optional[str] = None,
-        branch: Optional[str] = None,
+        version: str | None = None,
+        branch: str | None = None,
         ignore_hash_mismatch: bool = False,
     ) -> None:
         """Perform a blue-green deployment with optional version setting."""
@@ -567,12 +569,12 @@ class BlueGreenDeployment:
         scale_asg(inactive_asg, 0)
         print(f"{inactive_asg} scaled to 0")
 
-    def status(self) -> Dict[str, Any]:
+    def status(self) -> dict[str, Any]:
         """Get the current status of blue-green deployment."""
         active_color = self.get_active_color()
         inactive_color = self.get_inactive_color()
 
-        status: Dict[str, Any] = {
+        status: dict[str, Any] = {
             "environment": self.env,
             "active_color": active_color,
             "inactive_color": inactive_color,

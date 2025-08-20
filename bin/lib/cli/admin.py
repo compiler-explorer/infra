@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import os
 import subprocess
-from typing import List
 
 import click
 
@@ -26,7 +27,7 @@ def admin_login(mosh: bool):
 
 @admin.command(name="exec")
 @click.argument("command", nargs=-1)
-def admin_exec(command: List[str]):
+def admin_exec(command: list[str]):
     """Execute a command on the admin instance."""
     exec_remote_to_stdout(AdminInstance.instance(), command)
 

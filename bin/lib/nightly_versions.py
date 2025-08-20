@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from typing import Any, Dict, Set
+from typing import Any
 
 from lib.amazon import dynamodb_client
 from lib.amazon_properties import get_properties_compilers_and_libraries
@@ -11,33 +13,33 @@ class NightlyVersions:
     exe_table_name: str = "nightly-exe"
     props_loaded: bool = False
 
-    ada: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    assembly: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    c: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    circle: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    circt: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    clean: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    cpp_for_opencl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    cpp: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    cppx: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    cppx_blue: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    cppx_gold: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    d: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    dart: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    fortran: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    go: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    hlsl: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    ispc: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    javascript: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    mlir: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    nim: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    objc: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    objcpp: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    pony: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    racket: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    rust: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    swift: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    zig: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    ada: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    assembly: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    c: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    circle: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    circt: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    clean: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    cpp_for_opencl: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    cpp: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    cppx: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    cppx_blue: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    cppx_gold: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    d: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    dart: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    fortran: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    go: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    hlsl: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    ispc: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    javascript: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    mlir: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    nim: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    objc: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    objcpp: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    pony: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    racket: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    rust: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    swift: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    zig: dict[str, dict[str, Any]] = defaultdict(lambda: {})
 
     def __init__(self, logger):
         self.logger = logger
@@ -101,7 +103,7 @@ class NightlyVersions:
             return exe[:-3] + "gfortran"
         return exe
 
-    def collect_compiler_ids_for(self, ids: set, exe: str, compilers: Dict[str, Dict[str, Any]]):
+    def collect_compiler_ids_for(self, ids: set, exe: str, compilers: dict[str, dict[str, Any]]):
         for compiler_id in compilers:
             compiler = compilers[compiler_id]
             if "exe" in compiler and exe == compiler["exe"]:
@@ -110,7 +112,7 @@ class NightlyVersions:
     def get_compiler_ids(self, exe: str):
         self.load_ce_properties()
 
-        ids: Set = set()
+        ids: set = set()
 
         ada_exe = self.as_ada_compiler(exe)
         c_exe = self.as_c_compiler(exe)

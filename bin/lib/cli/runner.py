@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import sys
 import time
+from collections.abc import Sequence
 from tempfile import NamedTemporaryFile
-from typing import Sequence, TextIO
+from typing import TextIO
 
 import boto3
 import click
@@ -139,14 +142,14 @@ def runner_start():
                 break
             time.sleep(5)
         else:
-            raise RuntimeError("Unable to start instance, still in state: {}".format(instance.status()))
+            raise RuntimeError(f"Unable to start instance, still in state: {instance.status()}")
     for _ in range(60):
         try:
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
         except Exception as e:
-            print("Still waiting for SSH: got: {}".format(e))
+            print(f"Still waiting for SSH: got: {e}")
         time.sleep(5)
     else:
         raise RuntimeError("Unable to get SSH access")
@@ -177,4 +180,4 @@ def runner_stop():
 @runner.command(name="status")
 def runner_status():
     """Get the runner status (running or otherwise)."""
-    print("Runner status: {}".format(RunnerInstance.instance().status()))
+    print(f"Runner status: {RunnerInstance.instance().status()}")

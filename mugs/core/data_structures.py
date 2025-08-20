@@ -1,7 +1,7 @@
 """Data structures for mug generation."""
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 from core.constants import FONT_NAME, TEXT_COLOR
 
@@ -26,23 +26,23 @@ class ContentBlock:
 @dataclass
 class TableRow:
     label: str
-    cells: List[str]
+    cells: list[str]
 
 
 @dataclass
 class InfoItem:
     label: str
-    parts: List[Tuple[str, bool]]
+    parts: list[tuple[str, bool]]
 
 
 @dataclass
 class MugLayout:
     title: str
-    code_examples: List[str]
-    table_headers: List[str]
-    table_rows: List[TableRow]
-    info_items: List[Tuple[str, str]]  # Now (label, content) pairs for info table
-    footer_lines: List[str]  # Changed from footer_note to array of lines
+    code_examples: list[str]
+    table_headers: list[str]
+    table_rows: list[TableRow]
+    info_items: list[tuple[str, str]]  # Now (label, content) pairs for info table
+    footer_lines: list[str]  # Changed from footer_note to array of lines
     title_size: int
     header_size: int
     text_size: int
@@ -51,4 +51,4 @@ class MugLayout:
     footer_spacing: int
 
     def __post_init__(self) -> None:
-        self.measurements: Dict[str, Any] = {}
+        self.measurements: dict[str, Any] = {}

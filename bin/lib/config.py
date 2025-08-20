@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Optional
 
 import yaml
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -100,7 +99,7 @@ class Config(BaseModel):
         self,
         force_cefs: bool = False,
         force_traditional: bool = False,
-        cefs_temp_dir: Optional[Path] = None,
+        cefs_temp_dir: Path | None = None,
     ) -> Config:
         """Create a new Config with CLI overrides applied.
 

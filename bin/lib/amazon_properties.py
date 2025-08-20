@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import os
 import re
 import urllib.parse
 from collections import defaultdict
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -24,8 +26,8 @@ COMPILEROPT_RE = re.compile(r"(\w*)\.(.*)\.(\w*)")
 
 
 def get_properties_compilers_and_libraries(language, logger, platform: LibraryPlatform, filter_binary_support: bool):
-    _compilers: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
-    _libraries: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    _compilers: dict[str, dict[str, Any]] = defaultdict(lambda: {})
+    _libraries: dict[str, dict[str, Any]] = defaultdict(lambda: {})
 
     encoded_language = urllib.parse.quote(language)
 
@@ -53,7 +55,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
         lines += request.text[request.text.index("libs=") :].splitlines(keepends=False)
 
     logger.debug("Reading properties for groups")
-    groups: Dict[str, Dict[str, Any]] = defaultdict(lambda: {})
+    groups: dict[str, dict[str, Any]] = defaultdict(lambda: {})
     for line in lines:
         if line.startswith("group."):
             keyval = line.split("=", 1)

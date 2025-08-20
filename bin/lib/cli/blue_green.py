@@ -1,6 +1,6 @@
 """Blue-green deployment CLI commands."""
 
-from typing import Optional
+from __future__ import annotations
 
 import click
 
@@ -22,7 +22,7 @@ from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config, Environment
 from lib.notify import handle_notify
 
 
-def _get_commit_hash_for_version(cfg: Config, version_key: Optional[str]) -> Optional[str]:
+def _get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | None:
     """Convert a version key to its commit hash."""
     if not version_key:
         return None
@@ -35,9 +35,7 @@ def _get_commit_hash_for_version(cfg: Config, version_key: Optional[str]) -> Opt
         return None
 
 
-def _get_commit_hash_for_version_param(
-    cfg: Config, version: Optional[str], branch: Optional[str] = None
-) -> Optional[str]:
+def _get_commit_hash_for_version_param(cfg: Config, version: str | None, branch: str | None = None) -> str | None:
     """Convert a version parameter (from CLI) to its commit hash."""
     if not version:
         return None
@@ -209,12 +207,12 @@ def blue_green_deploy(
     cfg: Config,
     capacity: int,
     skip_confirmation: bool,
-    branch: Optional[str],
-    notify: Optional[bool],
+    branch: str | None,
+    notify: bool | None,
     dry_run_notify: bool,
     check_notifications: bool,
     ignore_hash_mismatch: bool,
-    version: Optional[str],
+    version: str | None,
 ):
     """Deploy to the inactive color using blue-green strategy.
 
@@ -239,8 +237,8 @@ def blue_green_deploy(
     inactive = deployment.get_inactive_color()
 
     # Track commit hashes for notifications (before deployment starts)
-    original_commit_hash: Optional[str] = None
-    target_commit_hash: Optional[str] = None
+    original_commit_hash: str | None = None
+    target_commit_hash: str | None = None
 
     if cfg.env == Environment.PROD:
         # Get original commit hash (what's currently deployed)

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import json
 import logging
 from datetime import datetime
 from operator import attrgetter
-from typing import List, Optional
 
 from lib.env import Config, Environment
 from lib.releases import Hash, Release, Version, VersionSource
@@ -83,7 +84,7 @@ def get_autoscaling_group(group_name):
     return result["AutoScalingGroups"][0]
 
 
-def get_autoscaling_groups_for(cfg: Config) -> List[dict]:
+def get_autoscaling_groups_for(cfg: Config) -> list[dict]:
     if cfg.env.supports_blue_green:
         # For blue-green environments, get both blue and green ASGs
         blue_asg_name = f"{cfg.env.value}-blue"
@@ -145,7 +146,7 @@ def remove_release(release: Release) -> None:
     )
 
 
-def _get_releases(source: VersionSource, prefix: str, archive_extension: str = ".tar.xz") -> List[Release]:
+def _get_releases(source: VersionSource, prefix: str, archive_extension: str = ".tar.xz") -> list[Release]:
     paginator = s3_client.get_paginator("list_objects_v2")
     result_iterator = paginator.paginate(Bucket="compiler-explorer", Prefix=prefix)
 
@@ -182,14 +183,14 @@ def _get_releases(source: VersionSource, prefix: str, archive_extension: str = "
     return list(releases.values())
 
 
-def get_releases(cfg: Config) -> List[Release]:
+def get_releases(cfg: Config) -> list[Release]:
     if cfg.env.is_windows:
         return _get_releases(VersionSource.GITHUB, "dist/gh", ".zip")
     else:
         return _get_releases(VersionSource.TRAVIS, "dist/travis") + _get_releases(VersionSource.GITHUB, "dist/gh")
 
 
-def get_all_releases() -> List[Release]:
+def get_all_releases() -> list[Release]:
     return (
         _get_releases(VersionSource.TRAVIS, "dist/travis")
         + _get_releases(VersionSource.GITHUB, "dist/gh")
@@ -197,7 +198,7 @@ def get_all_releases() -> List[Release]:
     )
 
 
-def get_tools_releases() -> List[Release]:
+def get_tools_releases() -> list[Release]:
     return _get_releases(VersionSource.TRAVIS, "dist/tools")
 
 
@@ -209,19 +210,19 @@ def download_release_fileobj(key, fobj):
     s3_client.download_fileobj("compiler-explorer", key, fobj)
 
 
-def find_release(cfg: Config, version: Version) -> Optional[Release]:
+def find_release(cfg: Config, version: Version) -> Release | None:
     for r in get_releases(cfg):
         if r.version == version:
             return r
     return None
 
 
-def find_latest_release(cfg: Config, branch: str) -> Optional[Release]:
+def find_latest_release(cfg: Config, branch: str) -> Release | None:
     releases = [release for release in get_releases(cfg) if branch == "" or release.branch == branch]
     return max(releases, key=attrgetter("version")) if len(releases) > 0 else None
 
 
-def get_current_key(cfg: Config) -> Optional[str]:
+def get_current_key(cfg: Config) -> str | None:
     try:
         o = s3_client.get_object(Bucket="compiler-explorer", Key=cfg.env.version_key)
         return o["Body"].read().decode("utf-8").strip()
@@ -229,7 +230,7 @@ def get_current_key(cfg: Config) -> Optional[str]:
         return None
 
 
-def get_all_current() -> List[str]:
+def get_all_current() -> list[str]:
     versions = []
     for env in [env for env in Environment if env.keep_builds]:
         try:
@@ -242,18 +243,18 @@ def get_all_current() -> List[str]:
 
 def set_current_key(cfg: Config, key: str):
     s3_key = cfg.env.version_key
-    print("Setting {} to {}".format(s3_key, key))
+    print(f"Setting {s3_key} to {key}")
     s3_client.put_object(Bucket="compiler-explorer", Key=s3_key, Body=key, ACL="public-read")
 
 
-def release_for(releases: List[Release], s3_key: str) -> Optional[Release]:
+def release_for(releases: list[Release], s3_key: str) -> Release | None:
     for r in releases:
         if r.key == s3_key:
             return r
     return None
 
 
-def get_current_release(cfg: Config) -> Optional[Release]:
+def get_current_release(cfg: Config) -> Release | None:
     current = get_current_key(cfg)
     return release_for(get_releases(cfg), current) if current else None
 
@@ -278,7 +279,7 @@ def save_event_file(cfg: Config, contents: str):
 
 
 def events_file_for(cfg: Config):
-    events_file = "motd/motd-{}.json".format(cfg.env.value)
+    events_file = f"motd/motd-{cfg.env.value}.json"
     return events_file
 
 
@@ -326,7 +327,7 @@ def list_all_build_logs(cfg: Config):
     print_version_logs(result.get("Items", []))
 
 
-def list_period_build_logs(cfg: Config, from_time: Optional[str], until_time: Optional[str]):
+def list_period_build_logs(cfg: Config, from_time: str | None, until_time: str | None):
     result = None
     if from_time is None and until_time is None:
         #  Our only calling site already checks this, but added as fallback just in case

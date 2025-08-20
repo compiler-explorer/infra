@@ -1,13 +1,15 @@
 """General AWS utility functions for Compiler Explorer infrastructure."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from __future__ import annotations
+
+from typing import Any
 
 from botocore.exceptions import ClientError
 
 from lib.amazon import as_client, ec2_client, elb_client
 
 
-def get_instance_private_ip(instance_id: str) -> Optional[str]:
+def get_instance_private_ip(instance_id: str) -> str | None:
     """Get the private IP address of an EC2 instance."""
     try:
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
@@ -20,7 +22,7 @@ def get_instance_private_ip(instance_id: str) -> Optional[str]:
     return None
 
 
-def get_asg_info(asg_name: str) -> Optional[Dict[str, Any]]:
+def get_asg_info(asg_name: str) -> dict[str, Any] | None:
     """Get ASG information or return None if not found."""
     try:
         response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
@@ -31,7 +33,7 @@ def get_asg_info(asg_name: str) -> Optional[Dict[str, Any]]:
     return None
 
 
-def get_target_health_counts(target_group_arn: str, instance_ids: List[str]) -> Dict[str, int]:
+def get_target_health_counts(target_group_arn: str, instance_ids: list[str]) -> dict[str, int]:
     """Get counts of healthy and unused instances in a target group."""
     try:
         tg_health = elb_client.describe_target_health(
@@ -99,7 +101,7 @@ def restore_asg_capacity_protection(asg_name: str, original_min_size: int, origi
     )
 
 
-def protect_asg_capacity(asg_name: str) -> Optional[Tuple[int, int]]:
+def protect_asg_capacity(asg_name: str) -> tuple[int, int] | None:
     """Protect an ASG from scaling by setting MinSize and MaxSize to current capacity.
 
     Returns a tuple of (original_min_size, original_max_size) for restoration, or None if ASG not found.

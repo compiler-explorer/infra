@@ -1,4 +1,6 @@
-from typing import Any, Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from lib.installation_context import is_windows
 
@@ -6,7 +8,7 @@ valid_lib_types = ["static", "shared", "cshared", "headeronly"]
 
 
 class LibraryBuildConfig:
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, config: dict[str, Any]):
         self.config = config
         self.build_type = self.config_get("build_type", "none")
         self.build_fixed_arch = self.config_get("build_fixed_arch", "")
@@ -46,7 +48,7 @@ class LibraryBuildConfig:
             self.domainurl = self.config_get("domainurl", "https://github.com")
             self.repo = self.config_get("repo", "")
 
-    def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
+    def config_get(self, config_key: str, default: Any | None = None) -> Any:
         if config_key not in self.config and default is None:
             raise RuntimeError(f"Missing required key '{config_key}'")
         return self.config.get(config_key, default)
