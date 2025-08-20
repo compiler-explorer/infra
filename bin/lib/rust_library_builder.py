@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import glob
 import hashlib
@@ -9,9 +11,10 @@ import shutil
 import subprocess
 import tempfile
 from collections import defaultdict
+from collections.abc import Generator
 from enum import Enum, unique
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, TextIO
+from typing import Any, TextIO
 
 import requests
 from urllib3.exceptions import ProtocolError
@@ -35,7 +38,7 @@ build_supported_stdlib = [""]
 build_supported_flags = [""]
 build_supported_flagscollection = [[""]]
 
-_propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
+_propsandlibs: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
 CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
@@ -78,8 +81,8 @@ class RustLibraryBuilder:
         self.install_context = install_context
         self.target_name = target_name
         self.forcebuild = False
-        self.current_buildparameters_obj: Dict[str, Any] = defaultdict(lambda: [])
-        self.current_buildparameters: List[str] = []
+        self.current_buildparameters_obj: dict[str, Any] = defaultdict(lambda: [])
+        self.current_buildparameters: list[str] = []
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
@@ -92,7 +95,7 @@ class RustLibraryBuilder:
             )
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 
-        self.cached_source_folders: List[str] = []
+        self.cached_source_folders: list[str] = []
 
         self.completeBuildConfig()
 
@@ -251,7 +254,7 @@ class RustLibraryBuilder:
 
         return compiler + "_" + hasher.hexdigest()
 
-    def get_conan_hash(self, buildfolder: str) -> Optional[str]:
+    def get_conan_hash(self, buildfolder: str) -> str | None:
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
             conaninfo = subprocess.check_output(

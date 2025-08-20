@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 import time
-from typing import List, Optional
 
 from lib.amazon import cloudfront_client
 from lib.cloudfront_config import CLOUDFRONT_INVALIDATION_CONFIG
@@ -9,9 +10,7 @@ from lib.env import Config
 logger = logging.getLogger(__name__)
 
 
-def create_cloudfront_invalidation(
-    distribution_id: str, paths: List[str], caller_reference: Optional[str] = None
-) -> str:
+def create_cloudfront_invalidation(distribution_id: str, paths: list[str], caller_reference: str | None = None) -> str:
     """Create a CloudFront invalidation for the specified distribution and paths.
 
     Args:

@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """CEFS (Compiler Explorer FileSystem) v2 commands."""
 
+from __future__ import annotations
+
 import logging
 import shutil
 import subprocess
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
 import click
 import humanfriendly
@@ -124,7 +126,7 @@ def status(context):
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force conversion even if already converted to CEFS")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def convert(context: CliContext, filter_: List[str], force: bool):
+def convert(context: CliContext, filter_: list[str], force: bool):
     """Convert squashfs images to CEFS format for targets matching FILTER."""
     if not validate_cefs_mount_point(context.config.cefs.mount_point):
         _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
@@ -239,7 +241,7 @@ echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key
 @cefs.command()
 @click.pass_obj
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def rollback(context: CliContext, filter_: List[str]):
+def rollback(context: CliContext, filter_: list[str]):
     """Rollback CEFS conversions by restoring from .bak directories.
 
     This undoes CEFS conversions by:
@@ -385,7 +387,7 @@ def rollback(context: CliContext, filter_: List[str]):
 )
 @click.option("--min-items", default=3, metavar="N", help="Minimum items to justify consolidation")
 @click.argument("filter_", metavar="[FILTER]", nargs=-1, required=False)
-def consolidate(context: CliContext, max_size: str, min_items: int, filter_: List[str]):
+def consolidate(context: CliContext, max_size: str, min_items: int, filter_: list[str]):
     """Consolidate multiple CEFS images into larger consolidated images to reduce mount overhead.
 
     This command combines multiple individual squashfs images into larger consolidated images
@@ -411,7 +413,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
     # Get all installables and filter for CEFS-converted ones
     all_installables = context.get_installables(filter_)
-    cefs_items: List[Dict[str, Any]] = []
+    cefs_items: list[dict[str, Any]] = []
 
     for installable in all_installables:
         if not installable.is_squashable:
@@ -485,8 +487,8 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
     cefs_items.sort(key=lambda x: x["installable"].name)
 
     # Pack items into groups
-    groups: List[List[Dict[str, Any]]] = []
-    current_group: List[Dict[str, Any]] = []
+    groups: list[list[dict[str, Any]]] = []
+    current_group: list[dict[str, Any]] = []
     current_size = 0
 
     for item in cefs_items:

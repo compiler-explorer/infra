@@ -1,7 +1,9 @@
 """General deployment utility functions for Compiler Explorer infrastructure."""
 
+from __future__ import annotations
+
 import time
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 from botocore.exceptions import ClientError
@@ -11,7 +13,7 @@ from lib.aws_utils import get_instance_private_ip
 from lib.ce_utils import is_running_on_admin_node, print_elapsed_minutes, print_elapsed_time
 
 
-def print_target_group_diagnostics(target_group_arn: str, instance_ids: List[str]) -> None:
+def print_target_group_diagnostics(target_group_arn: str, instance_ids: list[str]) -> None:
     """Print diagnostic information about target group health status."""
     print("\nChecking target group status for diagnostic purposes...")
     try:
@@ -27,7 +29,7 @@ def print_target_group_diagnostics(target_group_arn: str, instance_ids: List[str
         print(f"  Could not check target group status: {e}")
 
 
-def print_instance_details(instances: List[Dict[str, Any]], prefix: str = "  ") -> None:
+def print_instance_details(instances: list[dict[str, Any]], prefix: str = "  ") -> None:
     """Print details for a list of instances."""
     for instance in instances:
         iid = instance["InstanceId"]
@@ -36,7 +38,7 @@ def print_instance_details(instances: List[Dict[str, Any]], prefix: str = "  ") 
         print(f"{prefix}{iid}: ASG Health={health}, Lifecycle={state}")
 
 
-def wait_for_instances_healthy(asg_name: str, timeout: int = 900) -> List[str]:
+def wait_for_instances_healthy(asg_name: str, timeout: int = 900) -> list[str]:
     """Wait for all instances in ASG to be InService (running).
 
     Note: This only waits for instances to be running, not for health checks to pass.
@@ -102,7 +104,7 @@ def wait_for_instances_healthy(asg_name: str, timeout: int = 900) -> List[str]:
     raise TimeoutError(f"Timeout waiting for instances in {asg_name} to become healthy")
 
 
-def wait_for_targets_healthy(target_group_arn: str, instance_ids: List[str], timeout: int = 600) -> List[str]:
+def wait_for_targets_healthy(target_group_arn: str, instance_ids: list[str], timeout: int = 600) -> list[str]:
     """Wait for instances to become healthy in the target group."""
     if not instance_ids:
         return []
@@ -171,7 +173,7 @@ def wait_for_targets_healthy(target_group_arn: str, instance_ids: List[str], tim
     raise TimeoutError("Timeout waiting for targets to become healthy")
 
 
-def wait_for_http_health(instance_ids: List[str], timeout: int = 300) -> List[str]:
+def wait_for_http_health(instance_ids: list[str], timeout: int = 300) -> list[str]:
     """Wait for instances to respond healthy to HTTP health checks."""
     if not instance_ids:
         return []
@@ -217,7 +219,7 @@ def wait_for_http_health(instance_ids: List[str], timeout: int = 300) -> List[st
     raise TimeoutError(f"Timeout waiting for HTTP health checks to pass for {len(instance_ids)} instances")
 
 
-def check_instance_health(instance_id: str, running_on_admin_node: bool) -> Dict[str, Any]:
+def check_instance_health(instance_id: str, running_on_admin_node: bool) -> dict[str, Any]:
     """Check the health of an instance by testing its /healthcheck endpoint."""
     if not running_on_admin_node:
         return {

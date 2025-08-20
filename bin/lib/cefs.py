@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """CEFS (Compiler Explorer FileSystem) v2 utility functions."""
 
+from __future__ import annotations
+
 import hashlib
 import logging
 import os
@@ -8,7 +10,6 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import humanfriendly
 
@@ -199,7 +200,7 @@ def check_temp_space_available(temp_dir: Path, required_bytes: int) -> bool:
         return False
 
 
-def snapshot_symlink_targets(symlink_paths: List[Path]) -> Dict[Path, Path]:
+def snapshot_symlink_targets(symlink_paths: list[Path]) -> dict[Path, Path]:
     """Snapshot current symlink targets for race condition detection.
 
     Args:
@@ -219,7 +220,7 @@ def snapshot_symlink_targets(symlink_paths: List[Path]) -> Dict[Path, Path]:
     return snapshot
 
 
-def verify_symlinks_unchanged(snapshot: Dict[Path, Path]) -> Tuple[List[Path], List[Path]]:
+def verify_symlinks_unchanged(snapshot: dict[Path, Path]) -> tuple[list[Path], list[Path]]:
     """Verify symlinks haven't changed since snapshot.
 
     Args:
@@ -256,7 +257,7 @@ def verify_symlinks_unchanged(snapshot: Dict[Path, Path]) -> Tuple[List[Path], L
 
 
 def create_consolidated_image(
-    items: List[Tuple[Path, Path, str]],
+    items: list[tuple[Path, Path, str]],
     temp_dir: Path,
     output_path: Path,
     compression: str = "zstd",
@@ -380,7 +381,7 @@ def create_consolidated_image(
 
 
 def update_symlinks_for_consolidation(
-    unchanged_symlinks: List[Path], consolidated_hash: str, mount_point: Path, subdir_mapping: Dict[Path, str]
+    unchanged_symlinks: list[Path], consolidated_hash: str, mount_point: Path, subdir_mapping: dict[Path, str]
 ) -> None:
     """Update symlinks to point to consolidated CEFS mount.
 
@@ -410,7 +411,7 @@ def update_symlinks_for_consolidation(
             raise RuntimeError(f"Failed to update symlink {symlink_path}: {e}") from e
 
 
-def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> Tuple[Path, bool]:
+def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bool]:
     """Parse CEFS symlink target and return image path and consolidation status.
 
     Args:

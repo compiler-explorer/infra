@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import os
 import sys
 import tempfile
 from collections import defaultdict
-from typing import Dict, Optional, Sequence
+from collections.abc import Sequence
 
 import click
 
@@ -72,10 +74,10 @@ def check_staticfiles_for_deployment(release) -> bool:
 @click.option("--branch", help="if version == latest, branch to get latest version from")
 @click.option("--raw/--no-raw", help="Set a raw path for a version")
 @click.argument("version")
-def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
+def check_hashes(cfg: Config, branch: str | None, version: str, raw: bool):
     """Checks the static files for this version."""
-    to_set: Optional[str] = None
-    release: Optional[Release] = None
+    to_set: str | None = None
+    release: Release | None = None
     if raw:
         to_set = version
     else:
@@ -88,7 +90,7 @@ def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
         if not release:
             print("Unable to find version " + version)
             if setting_latest and branch != "":
-                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+                print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
             sys.exit(1)
         else:
             to_set = release.key
@@ -109,7 +111,7 @@ def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
 )
 @click.argument("version")
 def builds_set_current(
-    cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool, ignore_hash_mismatch: bool
+    cfg: Config, branch: str | None, version: str, raw: bool, confirm: bool, ignore_hash_mismatch: bool
 ):
     """Set the current version to VERSION for this environment.
 
@@ -125,8 +127,8 @@ def builds_set_current(
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
         sys.exit(1)
-    to_set: Optional[str] = None
-    release: Optional[Release] = None
+    to_set: str | None = None
+    release: Release | None = None
     if raw:
         to_set = version
     else:
@@ -139,12 +141,12 @@ def builds_set_current(
         if not release:
             print("Unable to find version " + version)
             if setting_latest and branch != "":
-                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+                print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
             sys.exit(1)
         elif confirm:
             print(f"Found release {release}")
             to_set = release.key
-        elif are_you_sure("change current version to {}".format(release.key), cfg) and confirm_branch(release.branch):
+        elif are_you_sure(f"change current version to {release.key}", cfg) and confirm_branch(release.branch):
             print(f"Found release {release}")
             to_set = release.key
     if to_set is not None and release is not None:
@@ -181,7 +183,7 @@ def builds_set_current(
 def builds_rm_old(dry_run: bool, max_age: int):
     """Remove all but the last MAX_AGE builds."""
     current = get_all_current()
-    max_builds: Dict[VersionSource, int] = defaultdict(int)
+    max_builds: dict[VersionSource, int] = defaultdict(int)
     for release in get_all_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
     for release in get_all_releases():
@@ -226,12 +228,10 @@ def builds_list(cfg: Config, branch: Sequence[str]):
 @click.option("--from", "from_time")
 @click.option("--until", "until_time")
 @click.pass_obj
-def builds_history(cfg: Config, from_time: Optional[str], until_time: Optional[str]):
+def builds_history(cfg: Config, from_time: str | None, until_time: str | None):
     """Show the history of current versions for this environment."""
     if from_time is None and until_time is None:
-        if confirm_action(
-            "Do you want list all builds for {}? It might be an expensive operation:".format(cfg.env.value)
-        ):
+        if confirm_action(f"Do you want list all builds for {cfg.env.value}? It might be an expensive operation:"):
             list_all_build_logs(cfg)
     else:
         list_period_build_logs(cfg, from_time, until_time)

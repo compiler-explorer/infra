@@ -44,8 +44,10 @@ When writing, especially PRs and commit messages:
 
 - Python formatting: Black with 120 char line length
 - Use type hints for Python code (mypy for validation)
-  - Use `typing.Any` instead of builtin `any` for type annotations
-  - Import types from `typing` module (e.g., `List`, `Dict`, `Optional`, `Any`)
+  - All Python files must include `from __future__ import annotations` at the top (after docstring)
+  - Use modern Python 3.9+ typing syntax: `list[str]`, `dict[str, Any]`, `str | None` instead of `Optional[str]`
+  - Only import `Any` from `typing` module when needed; use built-in types otherwise
+  - Union types: use `X | Y` syntax instead of `Union[X, Y]`
 - Follow shell best practices (shellcheck enforced)
 - No unused imports or variables (autoflake enforced)
 - Error handling: Use appropriate error classes and logging
