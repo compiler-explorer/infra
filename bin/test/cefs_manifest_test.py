@@ -16,7 +16,6 @@ from lib.cefs_manifest import (
     get_git_sha,
     read_manifest_from_alongside,
     sanitize_path_for_filename,
-    truncate_hash,
     write_manifest_alongside_image,
     write_manifest_to_directory,
 )
@@ -24,12 +23,6 @@ from lib.cefs_manifest import (
 
 class TestCEFSManifest(unittest.TestCase):
     """Test cases for CEFS manifest functionality."""
-
-    def test_truncate_hash(self):
-        """Test hash truncation to 24 characters."""
-        full_hash = "9da642f654bc890a123456789abcdef0123456789abcdef0123456789abcdef012"
-        expected = "9da642f654bc890a12345678"
-        self.assertEqual(truncate_hash(full_hash), expected)
 
     def test_sanitize_path_for_filename(self):
         """Test path sanitization for filenames."""
@@ -47,7 +40,7 @@ class TestCEFSManifest(unittest.TestCase):
 
     def test_generate_cefs_filename(self):
         """Test CEFS filename generation."""
-        hash_24 = "9da642f654bc890a12345678"
+        hash_value = "9da642f654bc890a12345678"
 
         test_cases = [
             (
@@ -62,7 +55,7 @@ class TestCEFSManifest(unittest.TestCase):
 
         for operation, path, expected in test_cases:
             with self.subTest(operation=operation, path=path):
-                result = generate_cefs_filename(hash_24, operation, path)
+                result = generate_cefs_filename(hash_value, operation, path)
                 self.assertEqual(result, expected)
 
     def test_parse_cefs_filename(self):

@@ -25,7 +25,6 @@ def get_git_sha() -> str:
         Git SHA string, or "unknown" if git command fails
     """
     try:
-        # Navigate to infra root directory (assumes this file is in bin/lib/)
         project_root = Path(__file__).parent.parent.parent
         result = subprocess.run(
             ["git", "-C", str(project_root), "rev-parse", "HEAD"],
@@ -44,18 +43,6 @@ def get_git_sha() -> str:
         return "unknown"
 
 
-def truncate_hash(full_hash: str) -> str:
-    """Truncate a hash to 24 characters for the new naming convention.
-
-    Args:
-        full_hash: Full hash string (typically SHA256)
-
-    Returns:
-        First 24 characters of the hash
-    """
-    return full_hash[:24]
-
-
 def sanitize_path_for_filename(path: str) -> str:
     """Sanitize a path for use in filename by replacing problematic characters.
 
@@ -65,18 +52,16 @@ def sanitize_path_for_filename(path: str) -> str:
     Returns:
         Sanitized string safe for use in filenames
     """
-    # Replace forward slashes with underscores and remove leading slashes
     sanitized = path.strip("/").replace("/", "_")
-    # Replace other problematic characters
     sanitized = sanitized.replace(" ", "_").replace(":", "_").replace("?", "_")
     return sanitized
 
 
-def generate_cefs_filename(hash_24: str, operation: str, path: str = "") -> str:
+def generate_cefs_filename(hash: str, operation: str, path: str = "") -> str:
     """Generate a CEFS filename using the new naming convention.
 
     Args:
-        hash_24: 24-character truncated hash
+        hash: 24-character hash
         operation: Operation type ("install", "convert", "consolidate")
         path: Path information for suffix (optional)
 
@@ -94,8 +79,6 @@ def generate_cefs_filename(hash_24: str, operation: str, path: str = "") -> str:
         suffix = "consolidated"
     elif operation == "convert":
         if path:
-            # For convert, path might be like "/efs/squash-images/arm/gcc-10.2.0.img"
-            # Extract meaningful part and sanitize
             meaningful_path = path.replace("/efs/squash-images/", "").replace(".img", "")
             sanitized = sanitize_path_for_filename(meaningful_path)
             suffix = f"converted_{sanitized}"
@@ -108,10 +91,9 @@ def generate_cefs_filename(hash_24: str, operation: str, path: str = "") -> str:
         else:
             suffix = "install"
     else:
-        # Fallback for unknown operations
         suffix = operation
 
-    return f"{hash_24}_{suffix}.sqfs"
+    return f"{hash}_{suffix}.sqfs"
 
 
 def create_manifest(
@@ -229,14 +211,11 @@ def extract_installable_info_from_path(install_path: str, nfs_path: Path) -> Dic
     Returns:
         Dictionary with name, target, destination fields
     """
-    # Try to parse common patterns like "compiler-version" or "library-version"
     parts = install_path.split("-")
     if len(parts) >= 2:
-        # Assume last part is version, rest is name
         name = "-".join(parts[:-1])
         target = parts[-1]
     else:
-        # Fallback: use the path as name, no specific target
         name = install_path
         target = "unknown"
 

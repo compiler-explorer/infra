@@ -110,10 +110,10 @@ class TestCEFSConsolidation(unittest.TestCase):
     def test_get_cefs_image_path_with_filename(self):
         """Test CEFS image path generation with new filename."""
         image_dir = Path("/efs/cefs-images")
-        hash_24 = "9da642f654bc890a12345678"
+        hash_value = "9da642f654bc890a12345678"
         filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
 
-        result = get_cefs_image_path(image_dir, hash_24, filename)
+        result = get_cefs_image_path(image_dir, hash_value, filename)
         expected = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
 
         self.assertEqual(result, expected)

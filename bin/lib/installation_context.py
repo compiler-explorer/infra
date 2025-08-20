@@ -30,7 +30,6 @@ from lib.cefs_manifest import (
     create_manifest,
     extract_installable_info_from_path,
     generate_cefs_filename,
-    truncate_hash,
     write_manifest_alongside_image,
     write_manifest_to_directory,
 )
@@ -534,11 +533,10 @@ class InstallationContext:
 
                 # Calculate hash and generate new filename
                 hash_value = calculate_squashfs_hash(temp_squash_file)
-                hash_24 = truncate_hash(hash_value)
-                filename = generate_cefs_filename(hash_24, "install", str(dest))
+                filename = generate_cefs_filename(hash_value, "install", str(dest))
 
-                cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_24, filename)
-                cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_24)
+                cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value, filename)
+                cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
 
                 # Copy to CEFS images directory if not already there
                 if not cefs_image_path.exists():

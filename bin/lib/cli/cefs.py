@@ -32,7 +32,6 @@ from lib.cefs_manifest import (
     create_manifest,
     extract_installable_info_from_path,
     generate_cefs_filename,
-    truncate_hash,
     write_manifest_alongside_image,
 )
 from lib.installable.installable import Installable
@@ -70,16 +69,12 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
         _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
         return False
 
-    # Generate new filename format
-    hash_24 = truncate_hash(hash_value)
-    # For conversion, use the squashfs image path to create meaningful suffix
     relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
-    filename = generate_cefs_filename(hash_24, "convert", str(relative_path))
+    filename = generate_cefs_filename(hash_value, "convert", str(relative_path))
 
-    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_24, filename)
-    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, hash_24)
+    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_value, filename)
+    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, hash_value)
 
-    # Generate manifest for conversion (cannot write inside existing squashfs)
     installable_info = extract_installable_info_from_path(installable.install_path, nfs_path)
     manifest = create_manifest(
         operation="convert",
@@ -632,13 +627,9 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
                 items_for_consolidation.append((item["nfs_path"], item["squashfs_path"], subdir_name, extraction_path))
                 subdir_mapping[item["nfs_path"]] = subdir_name
 
-            # Generate manifest for consolidation
-            contents = []
-            for item in group:
-                installable_info = extract_installable_info_from_path(
-                    item["installable"].install_path, item["nfs_path"]
-                )
-                contents.append(installable_info)
+            contents = [
+                extract_installable_info_from_path(item["installable"].install_path, item["nfs_path"]) for item in group
+            ]
 
             manifest = create_manifest(
                 operation="consolidate",
@@ -696,10 +687,9 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
             # Calculate hash and generate filename
             consolidated_hash = calculate_squashfs_hash(temp_consolidated_path)
-            hash_24 = truncate_hash(consolidated_hash)
-            filename = generate_cefs_filename(hash_24, "consolidate")
+            filename = generate_cefs_filename(consolidated_hash, "consolidate")
 
-            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_24, filename)
+            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, consolidated_hash, filename)
 
             if cefs_image_path.exists():
                 _LOGGER.info("Consolidated image already exists: %s", cefs_image_path)
@@ -721,7 +711,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
 
             if unchanged_symlinks:
                 update_symlinks_for_consolidation(
-                    unchanged_symlinks, hash_24, context.config.cefs.mount_point, subdir_mapping
+                    unchanged_symlinks, consolidated_hash, context.config.cefs.mount_point, subdir_mapping
                 )
                 total_updated_symlinks += len(unchanged_symlinks)
                 _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)

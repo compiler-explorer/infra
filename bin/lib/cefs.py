@@ -15,34 +15,33 @@ import humanfriendly
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_cefs_image_path(image_dir: Path, hash_24: str, filename: str) -> Path:
-    """Get the full CEFS image path for a given 24-char hash and filename.
+def get_cefs_image_path(image_dir: Path, hash: str, filename: str) -> Path:
+    """Get the full CEFS image path for a given hash and filename.
 
     Args:
         image_dir: Base image directory (e.g., Path("/efs/cefs-images"))
-        hash_24: 24-character truncated hash
+        hash: 24-character hash
         filename: Complete filename with descriptive suffix
 
     Returns:
         Full path to the CEFS image file (e.g., /efs/cefs-images/a1/a1b2c3d4....sqfs)
     """
-    # Use the first 2 characters of the hash for subdirectory
-    subdir = hash_24[:2]
+    subdir = hash[:2]
     return image_dir / subdir / filename
 
 
-def get_cefs_mount_path(mount_point: Path, hash_24: str) -> Path:
-    """Get the full CEFS mount target path for a given 24-char hash.
+def get_cefs_mount_path(mount_point: Path, hash: str) -> Path:
+    """Get the full CEFS mount target path for a given hash.
 
     Args:
         mount_point: Base mount point (e.g., Path("/cefs"))
-        hash_24: 24-character truncated hash
+        hash: 24-character hash
 
     Returns:
         Full path to the CEFS mount target (e.g., /cefs/a1/a1b2c3d4...)
     """
-    subdir = hash_24[:2]
-    return mount_point / subdir / hash_24
+    subdir = hash[:2]
+    return mount_point / subdir / hash
 
 
 def calculate_squashfs_hash(squashfs_path: Path) -> str:
@@ -51,7 +50,7 @@ def calculate_squashfs_hash(squashfs_path: Path) -> str:
     with open(squashfs_path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             sha256_hash.update(chunk)
-    return sha256_hash.hexdigest()
+    return sha256_hash.hexdigest()[:24]
 
 
 def parse_cefs_filename(filename: str) -> Tuple[str, str, str]:
@@ -73,25 +72,20 @@ def parse_cefs_filename(filename: str) -> Tuple[str, str, str]:
         >>> parse_cefs_filename("123456789abcdef0123456789_converted_arm_gcc-10.2.0.sqfs")
         ("123456789abcdef0123456789", "convert", "arm_gcc-10.2.0")
     """
-    # Remove .sqfs extension
     base = filename.replace(".sqfs", "")
 
-    # Split on first underscore to separate hash from suffix
     parts = base.split("_", 1)
     if len(parts) != 2:
-        # Legacy format or invalid - return as-is
         return (base, "unknown", "")
 
     hash_part, suffix = parts
 
-    # Determine operation from suffix
     if suffix == "consolidated":
         return (hash_part, "consolidate", "")
     elif suffix.startswith("converted_"):
         path_suffix = suffix[10:]  # Remove "converted_" prefix
         return (hash_part, "convert", path_suffix)
     else:
-        # Regular install operation
         return (hash_part, "install", suffix)
 
 
@@ -351,9 +345,7 @@ def create_consolidated_image(
                 subdir_path,
             )
 
-            # Use unsquashfs to extract specific path to target directory
             if extraction_path == Path("."):
-                # Extract everything from root
                 cmd = [
                     "unsquashfs",
                     "-f",  # Force overwrite
@@ -362,7 +354,6 @@ def create_consolidated_image(
                     str(squashfs_path),
                 ]
             else:
-                # Extract specific subdirectory
                 cmd = [
                     "unsquashfs",
                     "-f",  # Force overwrite
@@ -509,16 +500,14 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> Tuple[Path, bo
         raise ValueError(f"CEFS target must start with /cefs: {cefs_target}")
 
     hash_prefix = parts[2]  # XX
-    hash_24 = parts[3]  # 24-char hash
+    hash = parts[3]  # 24-char hash
 
-    # Find the corresponding file in the CEFS image directory
     image_dir_subdir = cefs_image_dir / hash_prefix
-    matching_files = list(image_dir_subdir.glob(f"{hash_24}*.sqfs"))
+    matching_files = list(image_dir_subdir.glob(f"{hash}*.sqfs"))
 
     if not matching_files:
-        raise ValueError(f"No CEFS image found for hash {hash_24} in {image_dir_subdir}")
+        raise ValueError(f"No CEFS image found for hash {hash} in {image_dir_subdir}")
 
-    # Use the first matching file (should be unique for 24-char hash)
     cefs_image_path = matching_files[0]
 
     # If there are more parts after the hash, it's already consolidated
@@ -540,9 +529,7 @@ def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
     """
     parts = symlink_target.parts
     if len(parts) <= 4:
-        # Just /cefs/XX/HASH - extract from root
         return Path(".")
 
-    # Everything after /cefs/XX/HASH/
     relative_parts = parts[4:]
     return Path(*relative_parts)
