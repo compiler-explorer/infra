@@ -1,5 +1,5 @@
 locals {
-  runner_image_id        = local.prod_image_id
+  runner_image_id        = "ami-0bea15f8813952492"
   conan_image_id         = "ami-0b41dc7a318b530bd"
   builder_image_id       = "ami-050c4d904e6ab8fc1"
   smbserver_image_id     = "ami-01e7c7963a9c4755d"

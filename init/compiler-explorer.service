@@ -16,6 +16,9 @@ WorkingDirectory=/infra
 ExecStart=/infra/init/start.sh
 StandardOutput=journal
 StandardError=journal
+# Keep CPU controller enabled during daemon-reload to prevent cgroup setup race - see #1761
+CPUAccounting=yes
+CPUQuota=100%
 
 [Install]
 WantedBy=multi-user.target

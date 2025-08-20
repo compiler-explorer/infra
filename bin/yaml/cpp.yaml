@@ -1410,6 +1410,11 @@ compilers:
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/39c79383-66bf-4f44-a6dd-14366e34e255/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
           script: *intel-one-install-script
+        - name: 2025.2.1.7
+          check_exe: compiler/latest/bin/icx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/04c5fd98-57e6-4a4b-be4d-e84de3aea45a/intel-dpcpp-cpp-compiler-{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
 
     nvhpc-sdk:
       type: script
@@ -1598,6 +1603,7 @@ compilers:
           - name: trunk
             symlink: gcc-snapshot
           - contracts-nonattr-trunk
+          - lambda-p2034-trunk
           - cxx-coroutines-trunk
           - cxx-modules-trunk
           - lock3-contracts-trunk

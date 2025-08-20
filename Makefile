@@ -99,6 +99,7 @@ mugs: ce  ## Generate all ABI reference mug designs (SVG + PNG)
 	$(UV_BIN) run mugs/make_x86_64_systemv_mug.py mugs/x86_64_systemv_abi_mug.svg
 	$(UV_BIN) run mugs/make_x86_64_msvc_mug.py mugs/x86_64_msvc_abi_mug.svg
 	$(UV_BIN) run mugs/make_arm64_mug.py mugs/arm64_abi_mug.svg
+	$(UV_BIN) run mugs/make_riscv_mug.py mugs/riscv_abi_mug.svg
 
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
 LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
