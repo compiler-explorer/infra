@@ -24,7 +24,10 @@ class MSVCMugGenerator(ABIMugGenerator):
             title=self.get_title(),
             code_examples=[],  # No longer used
             table_headers=["RCX", "RDX", "R8", "R9"],
-            table_rows=[TableRow(cells=["1st", "2nd", "3rd", "4th"]), TableRow(cells=["this", "1st", "2nd", "3rd"])],
+            table_rows=[
+                TableRow(label="func()", cells=["1st", "2nd", "3rd", "4th"]),
+                TableRow(label="obj.f()", cells=["this", "1st", "2nd", "3rd"]),
+            ],
             info_items=[
                 ("Return values", "RAX (+ RDX for 128-bit)"),
                 ("FP args", "XMM0-XMM3"),

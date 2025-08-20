@@ -25,8 +25,8 @@ class SystemVMugGenerator(ABIMugGenerator):
             code_examples=[],  # No longer used
             table_headers=["RDI", "RSI", "RDX", "RCX", "R8", "R9"],  # Register names
             table_rows=[
-                TableRow(["1st", "2nd", "3rd", "4th", "5th", "6th"]),  # Function parameters
-                TableRow(["this", "1st", "2nd", "3rd", "4th", "5th"]),  # Member parameters
+                TableRow(label="func()", cells=["1st", "2nd", "3rd", "4th", "5th", "6th"]),  # Function parameters
+                TableRow(label="obj.f()", cells=["this", "1st", "2nd", "3rd", "4th", "5th"]),  # Member parameters
             ],
             info_items=[
                 ("Return values", "RAX (+ RDX for 128-bit)"),
