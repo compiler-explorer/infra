@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import sys
 from pathlib import Path
@@ -186,7 +188,7 @@ def generate_cpp_windows_props(input_file, output_file, library, version):
         new_properties_text = library_yaml.get_ce_properties_for_cpp_windows_libraries(logger)
 
     if input_file:
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             existing_content = f.read()
 
         merged_content = merge_properties(existing_content, new_properties_text)

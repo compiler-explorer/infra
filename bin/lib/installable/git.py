@@ -6,7 +6,6 @@ import re
 import shlex
 import subprocess
 from pathlib import Path
-from typing import Optional, Union
 
 from lib.installable.installable import Installable
 from lib.staging import StagingDir
@@ -17,7 +16,7 @@ _VALID_METHODS = _CLONE_METHODS | {_ARCHIVE_METHOD}
 _LOGGER = logging.getLogger(__name__)
 
 
-def _git_raw(logger: logging.Logger, cwd: Path, *git_args: Union[str, Path]) -> str:
+def _git_raw(logger: logging.Logger, cwd: Path, *git_args: str | Path) -> str:
     full_args = ["git"] + [str(x) for x in git_args]
     _LOGGER.debug(shlex.join(full_args))
     result = subprocess.check_output(full_args, cwd=cwd).decode("utf-8").strip()
@@ -89,10 +88,10 @@ class GitHubInstallable(Installable):
             return ["--recursive"]
         return []
 
-    def _git(self, staging: StagingDir, *git_args: Union[str, Path]) -> str:
+    def _git(self, staging: StagingDir, *git_args: str | Path) -> str:
         return _git_raw(self._logger, staging.path, *git_args)
 
-    def clone(self, staging: StagingDir, remote_url: str, branch: Optional[str]) -> Path:
+    def clone(self, staging: StagingDir, remote_url: str, branch: str | None) -> Path:
         self._logger.info("Cloning %s, branch: %s", remote_url, branch or "(default)")
         prior_installation = self.install_context.prior_installation / self.install_path
         dest = staging.path / self.install_path
@@ -106,7 +105,7 @@ class GitHubInstallable(Installable):
         else:
             self._git(staging, "clone", "-n", "-q", remote_url, dest)
 
-        def _git(*git_args: Union[str, Path]) -> str:
+        def _git(*git_args: str | Path) -> str:
             return self._git(staging, "-C", dest, *git_args)
 
         # Ensure we're not configured to do any detached background work which will get upset when we start moving

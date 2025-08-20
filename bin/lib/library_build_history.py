@@ -1,4 +1,6 @@
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 
 import botocore
 
@@ -9,12 +11,12 @@ class LibraryBuildHistory:
     def __init__(self, logger):
         self.logger = logger
 
-    def get_lib_key(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
+    def get_lib_key(self, buildparameters_obj: dict[str, Any], commit_hash: str):
         library = buildparameters_obj["library"]
         library_version = buildparameters_obj["library_version"]
         return f"{library}#{library_version}#{commit_hash}"
 
-    def get_compiler_key(self, buildparameters_obj: Dict[str, Any]):
+    def get_compiler_key(self, buildparameters_obj: dict[str, Any]):
         compiler = buildparameters_obj["compiler"]
         compiler_version = buildparameters_obj["compiler_version"]
         arch = buildparameters_obj["arch"]
@@ -22,12 +24,12 @@ class LibraryBuildHistory:
 
         return f"{compiler}#{compiler_version}#{arch}#{libcxx}"
 
-    def failed(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
+    def failed(self, buildparameters_obj: dict[str, Any], commit_hash: str):
         lib_key = self.get_lib_key(buildparameters_obj, commit_hash)
         compiler_key = self.get_compiler_key(buildparameters_obj)
         self.insert(lib_key, compiler_key, False)
 
-    def success(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
+    def success(self, buildparameters_obj: dict[str, Any], commit_hash: str):
         lib_key = self.get_lib_key(buildparameters_obj, commit_hash)
         compiler_key = self.get_compiler_key(buildparameters_obj)
         self.insert(lib_key, compiler_key, True)

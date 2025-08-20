@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import csv
 import glob
@@ -11,9 +13,10 @@ import subprocess
 import tempfile
 import time
 from collections import defaultdict
+from collections.abc import Generator
 from enum import Enum, unique
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, TextIO
+from typing import Any, TextIO
 
 import requests
 from urllib3.exceptions import ProtocolError
@@ -27,7 +30,7 @@ from lib.staging import StagingDir
 
 _TIMEOUT = 600
 compiler_popularity_treshhold = 1000
-popular_compilers: Dict[str, Any] = defaultdict(lambda: [])
+popular_compilers: dict[str, Any] = defaultdict(lambda: [])
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
@@ -39,8 +42,8 @@ build_supported_flagscollection = [[""]]
 
 disable_clang_libcpp = [""]
 
-_propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
-_supports_x86: Dict[str, Any] = defaultdict(lambda: [])
+_propsandlibs: dict[str, Any] = defaultdict(lambda: [])
+_supports_x86: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
 CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
@@ -90,8 +93,8 @@ class FortranLibraryBuilder:
         self.sourcefolder = sourcefolder
         self.target_name = target_name
         self.forcebuild = False
-        self.current_buildparameters_obj: Dict[str, Any] = defaultdict(lambda: [])
-        self.current_buildparameters: List[str] = []
+        self.current_buildparameters_obj: dict[str, Any] = defaultdict(lambda: [])
+        self.current_buildparameters: list[str] = []
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
@@ -447,7 +450,7 @@ class FortranLibraryBuilder:
 
         return compiler + "_" + hasher.hexdigest()
 
-    def get_conan_hash(self, buildfolder: str) -> Optional[str]:
+    def get_conan_hash(self, buildfolder: str) -> str | None:
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
             conaninfo = subprocess.check_output(

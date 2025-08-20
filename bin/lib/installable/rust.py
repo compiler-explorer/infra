@@ -6,7 +6,7 @@ import os
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from lib.amazon import list_s3_artifacts
 from lib.installable.installable import Installable
@@ -27,7 +27,7 @@ def s3_available_rust_artifacts(prefix):
 
 
 class RustInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         self.base_package = self.config_get("base_package")

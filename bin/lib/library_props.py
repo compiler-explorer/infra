@@ -6,6 +6,8 @@ from libraries.yaml configurations. These functions are designed to be reusable
 across different parts of the system.
 """
 
+from __future__ import annotations
+
 from urllib.parse import urlparse
 
 
@@ -580,7 +582,7 @@ def process_library_specific_properties(input_file, library, lib_props, specific
     """Handle the full flow for library-specific property generation."""
     if input_file:
         # Load existing properties file
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             existing_content = f.read()
 
         # Update only the specific library
@@ -619,7 +621,7 @@ def process_all_libraries_properties(input_file, new_properties_text):
     """Handle the full flow for all-libraries property generation."""
     if input_file:
         # Load existing properties file
-        with open(input_file, "r", encoding="utf-8") as f:
+        with open(input_file, encoding="utf-8") as f:
             existing_content = f.read()
 
         # Merge properties

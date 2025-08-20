@@ -44,6 +44,7 @@ select = [
     "F", # pyflake
     "B", # flake8-bugbear
     "I", # isort
+    "UP", # pyupgrade
 ]
 ignore = [
     "E501" # line length

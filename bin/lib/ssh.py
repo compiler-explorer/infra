@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
@@ -11,7 +13,7 @@ from requests.exceptions import ConnectTimeout
 logger = logging.getLogger("ssh")
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def running_on_ec2():
     logger.debug("Checking to see if running on ec2...")
     try:

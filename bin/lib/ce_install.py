@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# coding=utf-8
+from __future__ import annotations
+
 import fnmatch
 import json
 import logging
@@ -13,7 +14,7 @@ from dataclasses import dataclass
 from functools import partial
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import List, Optional, TextIO, Tuple
+from typing import TextIO
 
 import click
 import yaml
@@ -36,7 +37,7 @@ _LOGGER = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class CliContext:
     installation_context: InstallationContext
-    enabled: List[str]
+    enabled: list[str]
     filter_match_all: bool
     parallel: int
     config: Config
@@ -49,7 +50,7 @@ class CliContext:
         signal.signal(signal.SIGINT, original_sigint_handler)
         return pool
 
-    def get_installables(self, args_filter: List[str]) -> List[Installable]:
+    def get_installables(self, args_filter: list[str]) -> list[Installable]:
         installables = []
         for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
             with yaml_path.open(encoding="utf-8") as yaml_file:
@@ -123,7 +124,7 @@ def _parse_version(version_str: str) -> version.Version | None:
     return None
 
 
-def try_parse_specifiers(query: str) -> Optional[specifiers.SpecifierSet]:
+def try_parse_specifiers(query: str) -> specifiers.SpecifierSet | None:
     """Try to parse a string into a SpecifierSet.
 
     Args:
@@ -359,13 +360,13 @@ def cli(
     staging_dir: Path,
     debug: bool,
     log_to_console: bool,
-    log: Optional[str],
+    log: str | None,
     s3_bucket: str,
     s3_dir: str,
     dry_run: bool,
-    enable: List[str],
+    enable: list[str],
     only_nightly: bool,
-    cache: Optional[Path],
+    cache: Path | None,
     yaml_dir: Path,
     allow_unsafe_ssl: bool,
     resource_dir: Path,
@@ -375,7 +376,7 @@ def cli(
     check_user: str,
     force_cefs: bool,
     force_traditional: bool,
-    cefs_temp_dir: Optional[Path],
+    cefs_temp_dir: Path | None,
 ):
     """Install binaries, libraries and compilers for Compiler Explorer."""
     formatter = logging.Formatter(fmt="%(asctime)s %(name)-15s %(levelname)-8s %(message)s")
@@ -438,7 +439,7 @@ from lib.cli import cefs, cpp_libraries, fortran_libraries  # noqa: F401, E402
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
 @click.option("--installed-only", is_flag=True, help="Only output installed targets")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: List[str], as_json: bool, installed_only: bool):
+def list_cmd(context: CliContext, filter_: list[str], as_json: bool, installed_only: bool):
     """List installation targets matching FILTER."""
     for installable in context.get_installables(filter_):
         if installed_only and not installable.is_installed():
@@ -450,7 +451,7 @@ def list_cmd(context: CliContext, filter_: List[str], as_json: bool, installed_o
 @cli.command()
 @click.pass_obj
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def verify(context: CliContext, filter_: List[str]):
+def verify(context: CliContext, filter_: list[str]):
     """Verify the installations of targets matching FILTER."""
     num_ok = 0
     num_not_ok = 0
@@ -474,7 +475,7 @@ def verify(context: CliContext, filter_: List[str]):
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
 @click.option("--absolute", is_flag=True, help="Show absolute paths")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_paths(context: CliContext, filter_: List[str], as_json: bool, absolute: bool):
+def list_paths(context: CliContext, filter_: list[str], as_json: bool, absolute: bool):
     """List installation paths for targets matching FILTER without installing."""
     paths = {}
     for installable in context.get_installables(filter_):
@@ -499,7 +500,7 @@ def list_paths(context: CliContext, filter_: List[str], as_json: bool, absolute:
 @cli.command()
 @click.pass_obj
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def check_installed(context: CliContext, filter_: List[str]):
+def check_installed(context: CliContext, filter_: list[str]):
     """Check whether targets matching FILTER are installed."""
     for installable in context.get_installables(filter_):
         if installable.is_installed():
@@ -511,7 +512,7 @@ def check_installed(context: CliContext, filter_: List[str]):
 @cli.command()
 @click.pass_obj
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def check_should_install(context: CliContext, filter_: List[str]):
+def check_should_install(context: CliContext, filter_: list[str]):
     """Check whether targets matching FILTER Should be installed."""
     for installable in context.get_installables(filter_):
         if installable.should_install():
@@ -549,7 +550,7 @@ def amazon_check():
                         _LOGGER.debug("Found path for library %s %s: %s", libraryid, lib_version, libpath)
 
 
-def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Optional[Tuple[Installable, Path]]:
+def _to_squash(image_dir: Path, force: bool, installable: Installable) -> tuple[Installable, Path] | None:
     if not installable.is_squashable:
         _LOGGER.info("%s isn't squashable; skipping", installable.name)
         return None
@@ -584,7 +585,7 @@ def _to_squash(image_dir: Path, force: bool, installable: Installable) -> Option
     help="Build images to IMAGES",
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Optional[Path]):
+def squash(context: CliContext, filter_: list[str], force: bool, image_dir: Path | None):
     """Create squashfs images for all targets matching FILTER."""
     if not context.config.squashfs.traditional_enabled:
         _LOGGER.error("Squashfs is disabled in configuration")
@@ -618,7 +619,7 @@ def squash(context: CliContext, filter_: List[str], force: bool, image_dir: Opti
 )
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def squash_check(
-    context: CliContext, filter_: List[str], image_dir: Optional[Path], verify: bool, no_check_mount_targets: bool
+    context: CliContext, filter_: list[str], image_dir: Path | None, verify: bool, no_check_mount_targets: bool
 ):
     """Check squash images matching FILTER, optionally verify contents."""
     if image_dir is None:
@@ -662,7 +663,7 @@ def squash_check(
         sys.exit(0)
 
 
-def _should_install(force: bool, installable: Installable) -> Tuple[Installable, bool]:
+def _should_install(force: bool, installable: Installable) -> tuple[Installable, bool]:
     try:
         return installable, force or installable.should_install()
     except Exception as ex:
@@ -673,7 +674,7 @@ def _should_install(force: bool, installable: Installable) -> Tuple[Installable,
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force even if would otherwise skip")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def install(context: CliContext, filter_: List[str], force: bool):
+def install(context: CliContext, filter_: list[str], force: bool):
     """Install targets matching FILTER."""
     num_installed = 0
     num_skipped = 0
@@ -729,7 +730,7 @@ def install(context: CliContext, filter_: List[str], force: bool):
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def build(
     context: CliContext,
-    filter_: List[str],
+    filter_: list[str],
     force: bool,
     buildfor: str,
     popular_compilers_only: bool,
@@ -849,7 +850,7 @@ def generate_cpp_windows_props(context: CliContext):
 @click.pass_obj
 @click.option("--per-lib", is_flag=True, help="Group by library instead of version")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_gh_build_commands(context: CliContext, per_lib: bool, filter_: List[str]):
+def list_gh_build_commands(context: CliContext, per_lib: bool, filter_: list[str]):
     """List gh workflow commands matching FILTER."""
     grouped = set()
 

@@ -4,6 +4,8 @@
 CLI commands for managing compilation Lambda routing and killswitch functionality.
 """
 
+from __future__ import annotations
+
 import boto3
 import click
 from botocore.exceptions import ClientError
