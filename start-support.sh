@@ -126,6 +126,9 @@ setup_cgroups() {
     # Debugging a weird apparent race condition at boot that means we don't get the "cpu" delegation
     # despite the cgcreates below all succeeding.
     # See https://github.com/compiler-explorer/infra/issues/1761
+    # TODO(mattgodbolt) 2025-08-20 we should no longer need this or log_cgroups. Check for any
+    # times we see the "CPU controller missing" message and after a few weeks if no problems,
+    # consider removing this complexity.
     echo "Current cgroup.subtree_control: $(cat /sys/fs/cgroup/cgroup.subtree_control)"
     if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
         echo "CPU controller missing, adding it"
@@ -145,21 +148,6 @@ setup_cgroups() {
     ######################
     # Debugging, again see above
     log_cgroups
-    # Disabled for now as it upsets the runner
-    # (
-    #     set +x
-    #     while true; do
-    #         if ! grep -q cpu /sys/fs/cgroup/cgroup.subtree_control; then
-    #             echo "ALERT: CPU controller disappeared!"
-    #             # Log what's running at the time
-    #             ps aux --sort=-start_time | head -20
-    #             log_cgroups
-    #             echo "Re-adding cpu controller"
-    #             echo "+cpu" > /sys/fs/cgroup/cgroup.subtree_control
-    #         fi
-    #         sleep 5
-    #     done
-    # ) &
     ######################
 }
 
