@@ -7,10 +7,8 @@ from unittest.mock import Mock, patch
 
 from lib.cefs import (
     check_temp_space_available,
-    extract_hash_from_cefs_filename,
     get_cefs_image_path,
     get_extraction_path_from_symlink,
-    parse_cefs_filename,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
@@ -117,35 +115,6 @@ class TestCEFSConsolidation(unittest.TestCase):
         expected = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
 
         self.assertEqual(result, expected)
-
-    def test_parse_cefs_filename(self):
-        """Test CEFS filename parsing."""
-        test_cases = [
-            ("9da642f654bc890a12345678_gcc-15.1.0.sqfs", ("9da642f654bc890a12345678", "install", "gcc-15.1.0")),
-            ("abcdef1234567890abcdef12_consolidated.sqfs", ("abcdef1234567890abcdef12", "consolidate", "")),
-            (
-                "123456789abcdef0123456789_converted_arm_gcc-10.2.0.sqfs",
-                ("123456789abcdef0123456789", "convert", "arm_gcc-10.2.0"),
-            ),
-        ]
-
-        for filename, expected in test_cases:
-            with self.subTest(filename=filename):
-                result = parse_cefs_filename(filename)
-                self.assertEqual(result, expected)
-
-    def test_extract_hash_from_cefs_filename(self):
-        """Test hash extraction from CEFS filename."""
-        test_cases = [
-            ("9da642f654bc890a12345678_gcc-15.1.0.sqfs", "9da642f654bc890a12345678"),
-            ("abcdef1234567890abcdef12_consolidated.sqfs", "abcdef1234567890abcdef12"),
-            ("legacy_format", "legacy"),  # parse_cefs_filename will split on first underscore
-        ]
-
-        for filename, expected in test_cases:
-            with self.subTest(filename=filename):
-                result = extract_hash_from_cefs_filename(filename)
-                self.assertEqual(result, expected)
 
     @patch("pathlib.Path.glob")
     def test_parse_cefs_target_with_new_naming(self, mock_glob):

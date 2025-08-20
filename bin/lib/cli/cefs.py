@@ -650,41 +650,6 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: Lis
                 context.config.squashfs.compression_level,
             )
 
-            # Now we need to add the manifest to the consolidated image
-            # Extract the consolidated image, add manifest, and recreate
-            temp_with_manifest_dir = group_temp_dir / "with_manifest"
-            temp_with_manifest_dir.mkdir(parents=True, exist_ok=True)
-
-            # Extract the consolidated image
-            cmd = ["unsquashfs", "-f", "-d", str(temp_with_manifest_dir), str(temp_consolidated_path)]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            if result.returncode != 0:
-                raise RuntimeError(f"Failed to extract consolidated image: {result.stderr}")
-
-            # Write manifest to the root of extracted content
-            from lib.cefs_manifest import write_manifest_to_directory
-
-            write_manifest_to_directory(manifest, temp_with_manifest_dir)
-
-            # Recreate the squashfs with manifest included
-            final_consolidated_path = group_temp_dir / "final_consolidated.sqfs"
-            cmd = [
-                "mksquashfs",
-                str(temp_with_manifest_dir),
-                str(final_consolidated_path),
-                "-comp",
-                context.config.squashfs.compression,
-                "-Xcompression-level",
-                str(context.config.squashfs.compression_level),
-                "-noappend",
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            if result.returncode != 0:
-                raise RuntimeError(f"Failed to create final consolidated squashfs: {result.stderr}")
-
-            # Use the final consolidated image
-            temp_consolidated_path = final_consolidated_path
-
             # Calculate hash and generate filename
             consolidated_hash = calculate_squashfs_hash(temp_consolidated_path)
             filename = generate_cefs_filename(consolidated_hash, "consolidate")

@@ -7,8 +7,6 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import yaml
-from lib.cefs import parse_cefs_filename
 from lib.cefs_manifest import (
     create_manifest,
     extract_installable_info_from_path,
@@ -17,7 +15,6 @@ from lib.cefs_manifest import (
     read_manifest_from_alongside,
     sanitize_path_for_filename,
     write_manifest_alongside_image,
-    write_manifest_to_directory,
 )
 
 
@@ -50,29 +47,12 @@ class TestCEFSManifest(unittest.TestCase):
             ),
             ("consolidate", "", "9da642f654bc890a12345678_consolidated.sqfs"),
             ("convert", "arm/gcc-10.2.0.img", "9da642f654bc890a12345678_converted_arm_gcc-10.2.0.sqfs"),
-            ("unknown", "test", "9da642f654bc890a12345678_unknown.sqfs"),
+            ("unknown", "test", "9da642f654bc890a12345678_test.sqfs"),
         ]
 
         for operation, path, expected in test_cases:
             with self.subTest(operation=operation, path=path):
                 result = generate_cefs_filename(hash_value, operation, path)
-                self.assertEqual(result, expected)
-
-    def test_parse_cefs_filename(self):
-        """Test parsing of CEFS filenames."""
-        test_cases = [
-            ("9da642f654bc890a12345678_gcc-15.1.0.sqfs", ("9da642f654bc890a12345678", "install", "gcc-15.1.0")),
-            ("abcdef1234567890abcdef12_consolidated.sqfs", ("abcdef1234567890abcdef12", "consolidate", "")),
-            (
-                "123456789abcdef012345678_converted_arm_gcc-10.2.0.sqfs",
-                ("123456789abcdef012345678", "convert", "arm_gcc-10.2.0"),
-            ),
-            ("invalidformat", ("invalidformat", "unknown", "")),
-        ]
-
-        for filename, expected in test_cases:
-            with self.subTest(filename=filename):
-                result = parse_cefs_filename(filename)
                 self.assertEqual(result, expected)
 
     def test_extract_installable_info_from_path(self):
@@ -155,26 +135,6 @@ class TestCEFSManifest(unittest.TestCase):
 
         # Verify created_at is a valid ISO format timestamp
         datetime.datetime.fromisoformat(manifest["created_at"])
-
-    def test_write_and_read_manifest_to_directory(self):
-        """Test writing and reading manifest to/from directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-
-            manifest = {"version": 1, "operation": "test", "description": "Test manifest", "contents": []}
-
-            # Write manifest
-            write_manifest_to_directory(manifest, temp_path)
-
-            # Check file exists
-            manifest_file = temp_path / "manifest.yaml"
-            self.assertTrue(manifest_file.exists())
-
-            # Read and verify content
-            with open(manifest_file, "r", encoding="utf-8") as f:
-                loaded_manifest = yaml.safe_load(f)
-
-            self.assertEqual(loaded_manifest, manifest)
 
     def test_write_and_read_manifest_alongside_image(self):
         """Test writing and reading manifest alongside image."""

@@ -52,9 +52,8 @@ def sanitize_path_for_filename(path: str) -> str:
     Returns:
         Sanitized string safe for use in filenames
     """
-    sanitized = path.strip("/").replace("/", "_")
-    sanitized = sanitized.replace(" ", "_").replace(":", "_").replace("?", "_")
-    return sanitized
+    translation_table = str.maketrans("/ :?", "____")
+    return path.strip("/").translate(translation_table)
 
 
 def generate_cefs_filename(hash: str, operation: str, path: str = "") -> str:
@@ -77,19 +76,12 @@ def generate_cefs_filename(hash: str, operation: str, path: str = "") -> str:
     """
     if operation == "consolidate":
         suffix = "consolidated"
-    elif operation == "convert":
-        if path:
-            meaningful_path = path.replace("/efs/squash-images/", "").replace(".img", "")
-            sanitized = sanitize_path_for_filename(meaningful_path)
-            suffix = f"converted_{sanitized}"
-        else:
-            suffix = "converted"
-    elif operation == "install":
-        if path:
-            sanitized = sanitize_path_for_filename(path)
-            suffix = sanitized
-        else:
-            suffix = "install"
+    elif operation == "convert" and path:
+        meaningful_path = path.replace(".img", "")
+        sanitized = sanitize_path_for_filename(meaningful_path)
+        suffix = f"converted_{sanitized}"
+    elif path:
+        suffix = sanitize_path_for_filename(path)
     else:
         suffix = operation
 
@@ -138,23 +130,6 @@ def create_manifest(
     }
 
     return manifest
-
-
-def write_manifest_to_directory(manifest: Dict[str, Any], directory: Path) -> None:
-    """Write manifest as manifest.yaml to a directory.
-
-    This is used when we want to include the manifest inside a squashfs image.
-
-    Args:
-        manifest: Manifest dictionary
-        directory: Directory to write manifest.yaml into
-    """
-    directory.mkdir(parents=True, exist_ok=True)
-    manifest_path = directory / "manifest.yaml"
-
-    _LOGGER.debug("Writing manifest to %s", manifest_path)
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
 
 
 def write_manifest_alongside_image(manifest: Dict[str, Any], image_path: Path) -> None:

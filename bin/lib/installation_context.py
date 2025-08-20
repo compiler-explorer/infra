@@ -31,7 +31,6 @@ from lib.cefs_manifest import (
     extract_installable_info_from_path,
     generate_cefs_filename,
     write_manifest_alongside_image,
-    write_manifest_to_directory,
 )
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
@@ -490,71 +489,53 @@ class InstallationContext:
             final_source_path = temp_dest_path
             do_staging_move(source_path, final_source_path)
 
-            # Create manifest staging directory
-            manifest_staging_dir = self.config.cefs.local_temp_dir / "manifest_staging" / f"temp_{uuid.uuid4()}"
-            manifest_staging_dir.mkdir(parents=True, exist_ok=True)
+            # Generate manifest for this installation
+            installable_info = extract_installable_info_from_path(str(dest), nfs_path)
+            manifest = create_manifest(
+                operation="install",
+                description=f"Created through installation of {dest}",
+                contents=[installable_info],
+            )
 
-            try:
-                # Generate manifest for this installation
-                installable_info = extract_installable_info_from_path(str(dest), nfs_path)
-                manifest = create_manifest(
-                    operation="install",
-                    description=f"Created through installation of {dest}",
-                    contents=[installable_info],
-                )
+            # Create temporary squashfs image
+            temp_squash_dir = self.config.cefs.local_temp_dir / "squash"
+            temp_squash_dir.mkdir(parents=True, exist_ok=True)
+            temp_squash_file = temp_squash_dir / f"temp_{uuid.uuid4()}.img"
 
-                # Write manifest to staging directory
-                write_manifest_to_directory(manifest, manifest_staging_dir)
+            # Create squashfs image from processed content
+            _LOGGER.info("Creating squashfs image from %s", final_source_path)
+            subprocess.check_call(
+                [
+                    self.config.squashfs.mksquashfs_path,
+                    str(final_source_path),
+                    str(temp_squash_file),
+                    "-all-root",
+                    "-progress",
+                    "-comp",
+                    self.config.squashfs.compression,
+                    "-Xcompression-level",
+                    str(self.config.squashfs.compression_level),
+                ]
+            )
 
-                # Copy content to manifest staging directory
-                content_dir = manifest_staging_dir / "content"
-                shutil.copytree(final_source_path, content_dir)
+            # Calculate hash and generate new filename
+            hash_value = calculate_squashfs_hash(temp_squash_file)
+            filename = generate_cefs_filename(hash_value, "install", str(dest))
 
-                # Create temporary squashfs image from manifest staging (includes both content and manifest.yaml)
-                temp_squash_dir = self.config.cefs.local_temp_dir / "squash"
-                temp_squash_dir.mkdir(parents=True, exist_ok=True)
-                temp_squash_file = temp_squash_dir / f"temp_{uuid.uuid4()}.img"
+            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value, filename)
+            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
 
-                # Create squashfs image from manifest staging directory
-                _LOGGER.info("Creating squashfs image with manifest from %s", manifest_staging_dir)
-                subprocess.check_call(
-                    [
-                        self.config.squashfs.mksquashfs_path,
-                        str(manifest_staging_dir),
-                        str(temp_squash_file),
-                        "-all-root",
-                        "-progress",
-                        "-comp",
-                        self.config.squashfs.compression,
-                        "-Xcompression-level",
-                        str(self.config.squashfs.compression_level),
-                    ]
-                )
+            # Copy to CEFS images directory if not already there
+            if not cefs_image_path.exists():
+                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_image_path)
+                copy_to_cefs_atomically(temp_squash_file, cefs_image_path)
+                # Write manifest alongside the image for easy access
+                write_manifest_alongside_image(manifest, cefs_image_path)
+            else:
+                _LOGGER.info("CEFS image already exists: %s", cefs_image_path)
 
-                # Calculate hash and generate new filename
-                hash_value = calculate_squashfs_hash(temp_squash_file)
-                filename = generate_cefs_filename(hash_value, "install", str(dest))
-
-                cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value, filename)
-                cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
-
-                # Copy to CEFS images directory if not already there
-                if not cefs_image_path.exists():
-                    _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_image_path)
-                    copy_to_cefs_atomically(temp_squash_file, cefs_image_path)
-                    # Write manifest alongside the image for easy access
-                    write_manifest_alongside_image(manifest, cefs_image_path)
-                else:
-                    _LOGGER.info("CEFS image already exists: %s", cefs_image_path)
-
-                # Create symlink in NFS (use content subdirectory since manifest is at root)
-                content_target = cefs_target / "content"
-                backup_and_symlink(nfs_path, content_target, self.dry_run)
-
-            finally:
-                # Clean up manifest staging directory
-                if manifest_staging_dir.exists():
-                    shutil.rmtree(manifest_staging_dir, ignore_errors=True)
+            # Create symlink in NFS
+            backup_and_symlink(nfs_path, cefs_target, self.dry_run)
 
         finally:
             # Clean up temporary files

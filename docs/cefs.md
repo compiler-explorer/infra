@@ -121,12 +121,12 @@ Once a few of these have been done and we're happy with the results, we set the 
 - Operation type (install/convert/consolidate)
 - Creation timestamp
 
-The manifest enables robust garbage collection by checking if symlinks at each destination still point back to the image. Manifests are written both inside the squashfs image (when possible) and alongside the `.sqfs` file for easy access without mounting.
+The manifest enables robust garbage collection by checking if symlinks at each destination still point back to the image. Manifests are written alongside the `.sqfs` file for easy access without mounting.
 
 **Image Structure**:
-- **New installations**: Include manifest.yaml at root with content in `content/` subdirectory. Symlinks point to `/cefs/HASH/content`.
-- **Conversions**: Cannot modify existing squashfs, so manifest is only written alongside the image file.
-- **Consolidations**: Include manifest.yaml at root with subdirectories for each consolidated item. Symlinks point to `/cefs/HASH/subdir_name`.
+- **New installations**: Symlinks point directly to `/cefs/HASH`.
+- **Conversions**: Manifest is written alongside the image file.
+- **Consolidations**: Subdirectories for each consolidated item. Symlinks point to `/cefs/HASH/subdir_name`.
 
 **Improved Naming Convention**: CEFS images use a 24-character hash (96 bits) plus descriptive suffix format:
 - `HASH24_consolidated.sqfs` - for consolidated images

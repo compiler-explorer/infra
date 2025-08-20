@@ -53,55 +53,6 @@ def calculate_squashfs_hash(squashfs_path: Path) -> str:
     return sha256_hash.hexdigest()[:24]
 
 
-def parse_cefs_filename(filename: str) -> Tuple[str, str, str]:
-    """Parse a CEFS filename to extract hash, operation, and suffix.
-
-    Args:
-        filename: CEFS filename (e.g., "9da642f654bc890a12345678_gcc-15.1.0.sqfs")
-
-    Returns:
-        Tuple of (hash, operation, path_suffix)
-
-    Examples:
-        >>> parse_cefs_filename("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
-        ("9da642f654bc890a12345678", "install", "gcc-15.1.0")
-
-        >>> parse_cefs_filename("abcdef1234567890abcdef12_consolidated.sqfs")
-        ("abcdef1234567890abcdef12", "consolidate", "")
-
-        >>> parse_cefs_filename("123456789abcdef0123456789_converted_arm_gcc-10.2.0.sqfs")
-        ("123456789abcdef0123456789", "convert", "arm_gcc-10.2.0")
-    """
-    base = filename.replace(".sqfs", "")
-
-    parts = base.split("_", 1)
-    if len(parts) != 2:
-        return (base, "unknown", "")
-
-    hash_part, suffix = parts
-
-    if suffix == "consolidated":
-        return (hash_part, "consolidate", "")
-    elif suffix.startswith("converted_"):
-        path_suffix = suffix[10:]  # Remove "converted_" prefix
-        return (hash_part, "convert", path_suffix)
-    else:
-        return (hash_part, "install", suffix)
-
-
-def extract_hash_from_cefs_filename(filename: str) -> str:
-    """Extract just the hash portion from a CEFS filename.
-
-    Args:
-        filename: CEFS filename
-
-    Returns:
-        Hash portion of the filename
-    """
-    hash_part, _, _ = parse_cefs_filename(filename)
-    return hash_part
-
-
 def detect_nfs_state(nfs_path: Path) -> str:
     """Detect current state: 'symlink', 'directory', or 'missing'."""
     if nfs_path.is_symlink():
@@ -345,23 +296,15 @@ def create_consolidated_image(
                 subdir_path,
             )
 
-            if extraction_path == Path("."):
-                cmd = [
-                    "unsquashfs",
-                    "-f",  # Force overwrite
-                    "-d",
-                    str(subdir_path),  # Destination directory
-                    str(squashfs_path),
-                ]
-            else:
-                cmd = [
-                    "unsquashfs",
-                    "-f",  # Force overwrite
-                    "-d",
-                    str(subdir_path),  # Destination directory
-                    str(squashfs_path),
-                    str(extraction_path),  # Extract this specific path
-                ]
+            cmd = [
+                "unsquashfs",
+                "-f",  # Force overwrite
+                "-d",
+                str(subdir_path),  # Destination directory
+                str(squashfs_path),
+            ]
+            if extraction_path != Path("."):
+                cmd.append(str(extraction_path))  # Extract this specific path
 
             result = subprocess.run(cmd, capture_output=True, text=True, check=False)
             if result.returncode != 0:
