@@ -14,7 +14,8 @@ Short version - symlink dirs from NFS to `/cefs/HASH`
 
 - Use autofs exactly as [planned for the first cefs attempt](https://github.com/compiler-explorer/infra/pull/798) (already installed in all clusters)
 - Drop the complex "root file system" part (which had issues with simultaneous changes to the filesystem)
-- Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/HASH`
+- Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/HASH_some_user_readable_tag`
+- For every squashfs image, keep a manifest explaining what it is and how it was created
 
 ## Autofs Configuration
 
@@ -78,8 +79,8 @@ The modified script now skips mounting when the destination is already a symlink
 - [x] Write "port" code to move existing images over
 - [x] Update installers to (optionally, based on config) install this way (even works for nightly)
 - [x] CLI commands for setup, conversion, and rollback
+- [x] Test with a single compiler or library
 - [ ] Disable squashing and enable the cefs install
-- [ ] Test with a single compiler or library
 - [ ] Slowly move older things over
 - [ ] Write consolidation tooling and run it
 - [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
@@ -113,7 +114,7 @@ Once a few of these have been done and we're happy with the results, we set the 
 
 **Consolidation**: Combine multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits.
 
-**Manifest System**: All CEFS images include a `manifest.yaml` file at the root containing:
+**Manifest System**: All CEFS images have a YAML manifest containing:
 - List of all installables and their destination paths
 - Git SHA of the producing `ce_install`
 - Command-line that created the image
