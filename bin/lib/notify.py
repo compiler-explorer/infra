@@ -14,7 +14,7 @@ NOW_LIVE_LABEL = "live"
 NOW_LIVE_MESSAGE = "This is now live"
 
 
-def post(entity: str, token: str, query: dict = None, dry_run=False) -> dict:
+def post(entity: str, token: str, query: dict | None = None, dry_run=False) -> dict:
     try:
         if query is None:
             query = {}
@@ -40,7 +40,7 @@ def post(entity: str, token: str, query: dict = None, dry_run=False) -> dict:
         raise RuntimeError(f"Error while posting {entity}") from e
 
 
-def get(entity: str, token: str, query: dict = None) -> dict:
+def get(entity: str, token: str, query: dict | None = None) -> dict:
     try:
         if query is None:
             query = {}
@@ -65,7 +65,7 @@ def get(entity: str, token: str, query: dict = None) -> dict:
         raise RuntimeError(f"Error while getting {entity}") from e
 
 
-def paginated_get(entity: str, token: str, query: dict = None) -> list[dict]:
+def paginated_get(entity: str, token: str, query: dict | None = None) -> list[dict]:
     if query is None:
         query = {}
     result: list[dict] = []
