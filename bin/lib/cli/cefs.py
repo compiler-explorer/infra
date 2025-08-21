@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 import logging
+import os
 import shutil
 import subprocess
 import uuid
-from pathlib import Path
 from typing import Any
 
 import click
@@ -302,23 +302,23 @@ def rollback(context: CliContext, filter_: list[str]):
 
         # Track where the symlink points for reporting
         try:
-            symlink_target: Path | None = nfs_path.readlink()
+            symlink_target_str = str(nfs_path.readlink())
         except OSError:
-            symlink_target = None
+            symlink_target_str = "<unable to read>"
 
         if context.installation_context.dry_run:
             _LOGGER.info(
                 "Would rollback %s: remove symlink %s -> %s, restore from %s",
                 installable.name,
                 nfs_path,
-                symlink_target or "<unable to read>",
+                symlink_target_str,
                 backup_path,
             )
             rollback_details.append(
                 {
                     "name": installable.name,
                     "status": "would_rollback",
-                    "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
+                    "symlink_target": symlink_target_str,
                     "nfs_path": str(nfs_path),
                 }
             )
@@ -327,7 +327,7 @@ def rollback(context: CliContext, filter_: list[str]):
 
         try:
             # Remove symlink
-            _LOGGER.info("Removing CEFS symlink: %s -> %s", nfs_path, symlink_target or "<unable to read>")
+            _LOGGER.info("Removing CEFS symlink: %s -> %s", nfs_path, symlink_target_str or "<unable to read>")
             nfs_path.unlink()
 
             # Restore from backup
@@ -341,7 +341,7 @@ def rollback(context: CliContext, filter_: list[str]):
                     {
                         "name": installable.name,
                         "status": "success",
-                        "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
+                        "symlink_target": symlink_target_str,
                         "nfs_path": str(nfs_path),
                     }
                 )
@@ -352,7 +352,7 @@ def rollback(context: CliContext, filter_: list[str]):
                     {
                         "name": installable.name,
                         "status": "validation_failed",
-                        "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
+                        "symlink_target": symlink_target_str,
                         "nfs_path": str(nfs_path),
                     }
                 )
@@ -364,7 +364,7 @@ def rollback(context: CliContext, filter_: list[str]):
                 {
                     "name": installable.name,
                     "status": "failed",
-                    "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
+                    "symlink_target": symlink_target_str,
                     "nfs_path": str(nfs_path),
                     "error": str(e),
                 }
@@ -414,11 +414,11 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
     # 2. Re-consolidation of sparse consolidated images - if we consolidate X,Y,Z but later
     #    Y and Z are reinstalled individually, the consolidated image only serves X and should
     #    be considered for re-consolidation with other single-use images.
+    # 3. Refactor this gargantuan function into testable functions.
     if not validate_cefs_mount_point(context.config.cefs.mount_point):
         _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
         raise click.ClickException("CEFS not properly configured")
 
-    # Parse max size
     try:
         max_size_bytes = humanfriendly.parse_size(max_size, binary=True)
     except humanfriendly.InvalidSize as e:
@@ -433,51 +433,44 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
             continue
 
         nfs_path = context.installation_context.destination / installable.install_path
-        squashfs_path = context.config.squashfs.image_dir / f"{installable.install_path}.img"
 
         # Check if item is already CEFS-converted (symlink to /cefs/)
         if nfs_path.is_symlink():
             try:
                 cefs_target = nfs_path.readlink()
-                if str(cefs_target).startswith(str(context.config.cefs.mount_point)):
-                    try:
-                        cefs_image_path, is_already_consolidated = parse_cefs_target(
-                            cefs_target, context.config.cefs.image_dir
-                        )
-
-                        if is_already_consolidated:
-                            _LOGGER.debug("Item %s already consolidated at %s", installable.name, cefs_target)
-                            continue  # Skip already-consolidated items
-
-                        if cefs_image_path.exists():
-                            size = cefs_image_path.stat().st_size
-                            cefs_items.append(
-                                {
-                                    "installable": installable,
-                                    "nfs_path": nfs_path,
-                                    "squashfs_path": cefs_image_path,  # Use CEFS image
-                                    "size": size,
-                                }
-                            )
-                            _LOGGER.debug(
-                                "Found CEFS item %s -> %s (%s)",
-                                installable.name,
-                                cefs_image_path,
-                                humanfriendly.format_size(size, binary=True),
-                            )
-                        else:
-                            _LOGGER.warning("CEFS image not found for %s: %s", installable.name, cefs_image_path)
-                    except ValueError as e:
-                        _LOGGER.warning("Invalid CEFS target format for %s: %s", installable.name, e)
-                else:
-                    _LOGGER.debug("Symlink %s does not point to CEFS mount", nfs_path)
             except OSError as e:
                 _LOGGER.warning("Failed to read symlink %s: %s", nfs_path, e)
-        elif squashfs_path.exists():
-            # Skip traditional squashfs images - only CEFS-converted items can be consolidated
+                continue
+            if not cefs_target.is_relative_to(context.config.cefs.mount_point):
+                _LOGGER.warning("Symlink %s does not point to CEFS mount: skipping", nfs_path)
+                continue
+            try:
+                cefs_image_path, is_already_consolidated = parse_cefs_target(cefs_target, context.config.cefs.image_dir)
+            except ValueError as e:
+                _LOGGER.warning("Invalid CEFS target format for %s: %s", installable.name, e)
+                continue
+
+            if is_already_consolidated:
+                _LOGGER.debug("Item %s already consolidated at %s", installable.name, cefs_target)
+                continue
+
+            if not cefs_image_path.exists():
+                _LOGGER.warning("CEFS image not found for %s: %s", installable.name, cefs_image_path)
+                continue
+            size = cefs_image_path.stat().st_size
+            cefs_items.append(
+                {
+                    "installable": installable,
+                    "nfs_path": nfs_path,
+                    "squashfs_path": cefs_image_path,  # Use CEFS image
+                    "size": size,
+                }
+            )
             _LOGGER.debug(
-                "Skipping traditional squashfs item %s (use 'ce cefs convert' to convert first)",
+                "Found CEFS item %s -> %s (%s)",
                 installable.name,
+                cefs_image_path,
+                humanfriendly.format_size(size, binary=True),
             )
 
     if not cefs_items:
@@ -545,8 +538,6 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
     if not check_temp_space_available(temp_dir, required_temp_space):
         available_stat = temp_dir.stat() if temp_dir.exists() else None
         if available_stat:
-            import os
-
             stat = os.statvfs(temp_dir)
             available = stat.f_bavail * stat.f_frsize
             _LOGGER.error(
@@ -656,7 +647,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
 
             successful_groups += 1
 
-        except Exception as e:
+        except RuntimeError as e:
             group_items = ", ".join(item["installable"].name for item in group)
             _LOGGER.error("Failed to consolidate group %d (%s): %s", group_idx + 1, group_items, e)
             _LOGGER.debug("Full error details:", exc_info=True)

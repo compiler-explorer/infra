@@ -9,6 +9,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from lib.config import SquashfsConfig
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -84,6 +86,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
 
     try:
         # Extract squashfs metadata without mounting
+        # TODO make unsquashfs path configurable like all other uses of it.
         result = subprocess.run(
             ["unsquashfs", "-ll", "-d", "", str(img_path)], capture_output=True, text=True, check=True
         )
@@ -188,8 +191,12 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
     return error_count
 
 
+class SquashfsError(RuntimeError):
+    pass
+
+
 def create_squashfs_image(
-    config_squashfs,
+    config_squashfs: SquashfsConfig,
     source_path: Path,
     output_path: Path,
     compression: str | None = None,
@@ -207,8 +214,9 @@ def create_squashfs_image(
         additional_args: Additional arguments to pass to mksquashfs
 
     Raises:
-        subprocess.CalledProcessError: If mksquashfs command fails
+        SquashfsError: If mksquashfs command fails
     """
+    # TODO: mksquashfs produces non-deterministic output - investigate options for reproducible builds
     cmd = [
         config_squashfs.mksquashfs_path,
         str(source_path),
@@ -225,11 +233,13 @@ def create_squashfs_image(
     if additional_args:
         cmd.extend(additional_args)
 
-    subprocess.run(cmd, check=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, stderr=subprocess.STDOUT)
+    if result.returncode != 0:
+        raise SquashfsError(f"mksquashfs of {source_path} failed: {result.stdout.strip()}")
 
 
 def extract_squashfs_image(
-    config_squashfs,
+    config_squashfs: SquashfsConfig,
     squashfs_path: Path,
     output_dir: Path,
     extract_path: Path | None = None,
@@ -243,7 +253,7 @@ def extract_squashfs_image(
         extract_path: Specific path within the archive to extract (optional)
 
     Raises:
-        subprocess.CalledProcessError: If unsquashfs command fails
+        SquashfsError: If unsquashfs command fails
     """
     cmd = [
         config_squashfs.unsquashfs_path,
@@ -254,8 +264,8 @@ def extract_squashfs_image(
     ]
 
     if extract_path and extract_path != Path("."):
-        cmd.append(str(extract_path))  # Extract this specific path
+        cmd.append(str(extract_path))
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False, stderr=subprocess.STDOUT)
     if result.returncode != 0:
-        raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)
+        raise SquashfsError(f"unsquashfs of {squashfs_path} failed: {result.stdout.strip()}")

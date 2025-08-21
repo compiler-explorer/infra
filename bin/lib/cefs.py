@@ -7,7 +7,6 @@ import hashlib
 import logging
 import os
 import shutil
-import subprocess
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -15,6 +14,7 @@ from pathlib import Path
 import humanfriendly
 
 from .cefs_manifest import generate_cefs_filename, write_manifest_alongside_image
+from .config import SquashfsConfig
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
 _LOGGER = logging.getLogger(__name__)
@@ -226,9 +226,8 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None
             else:
                 backup_path.unlink()
 
-        # Backup current directory (or symlink) if it exists
+        # Backup current directory (or symlink) if it exists. Follow symlinks=False here to account for broken symlinks
         if nfs_path.exists(follow_symlinks=False):
-            # Follow symlinks=False here to account for "if the destination is a broken symlink"
             nfs_path.rename(backup_path)
             _LOGGER.info("Backed up %s to %s", nfs_path, backup_path)
 
@@ -322,7 +321,7 @@ def verify_symlinks_unchanged(snapshot: dict[Path, Path]) -> tuple[list[Path], l
 
 
 def create_consolidated_image(
-    squashfs_config,
+    squashfs_config: SquashfsConfig,
     items: list[tuple[Path, Path, str, Path]],
     temp_dir: Path,
     output_path: Path,
@@ -359,10 +358,7 @@ def create_consolidated_image(
                 subdir_path,
             )
 
-            try:
-                extract_squashfs_image(squashfs_config, squashfs_path, subdir_path, extraction_path)
-            except subprocess.CalledProcessError as e:
-                raise RuntimeError(f"Failed to extract {squashfs_path} path {extraction_path}: {e.stderr}") from e
+            extract_squashfs_image(squashfs_config, squashfs_path, subdir_path, extraction_path)
 
             # Measure extracted size and calculate compression ratio
             extracted_size = get_directory_size(subdir_path)
@@ -387,11 +383,7 @@ def create_consolidated_image(
 
         # Create consolidated squashfs image
         _LOGGER.info("Creating consolidated squashfs image at %s", output_path)
-        # TODO: mksquashfs produces non-deterministic output - investigate options for reproducible builds
-        try:
-            create_squashfs_image(squashfs_config, extraction_dir, output_path)
-        except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to create consolidated squashfs: {e.stderr}") from e
+        create_squashfs_image(squashfs_config, extraction_dir, output_path)
 
         # Log final consolidation compression ratio
         consolidated_size = output_path.stat().st_size
