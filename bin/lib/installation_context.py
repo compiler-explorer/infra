@@ -520,11 +520,10 @@ class InstallationContext:
             )
 
             # Calculate hash and generate new filename
-            hash_value = calculate_squashfs_hash(temp_squash_file)
-            filename = generate_cefs_filename(hash_value, "install", str(dest))
+            filename = generate_cefs_filename(calculate_squashfs_hash(temp_squash_file), "install", str(dest))
 
-            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value, filename)
-            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
+            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, filename)
+            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, filename)
 
             # Copy to CEFS images directory if not already there
             if not cefs_image_path.exists():

@@ -8,6 +8,7 @@ from unittest.mock import Mock, patch
 from lib.cefs import (
     check_temp_space_available,
     get_cefs_image_path,
+    get_cefs_mount_path,
     get_extraction_path_from_symlink,
     parse_cefs_target,
     snapshot_symlink_targets,
@@ -106,13 +107,21 @@ class TestCEFSConsolidation(unittest.TestCase):
             self.assertEqual(changed, [path])
 
     def test_get_cefs_image_path_with_filename(self):
-        """Test CEFS image path generation with new filename."""
+        """Test CEFS image path generation with filename."""
         image_dir = Path("/efs/cefs-images")
-        hash_value = "9da642f654bc890a12345678"
-        filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
+        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
 
-        result = get_cefs_image_path(image_dir, hash_value, filename)
+        result = get_cefs_image_path(image_dir, filename)
         expected = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        self.assertEqual(result, expected)
+
+    def test_get_cefs_mount_path_with_filename(self):
+        """Test CEFS image path generation with new filename."""
+        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        result = get_cefs_mount_path(Path("/cefs"), filename)
+        expected = Path("/cefs/9d/9da642f654bc890a12345678_gcc-15.1.0")
 
         self.assertEqual(result, expected)
 

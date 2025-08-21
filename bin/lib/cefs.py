@@ -13,36 +13,35 @@ from pathlib import Path
 
 import humanfriendly
 
+from .cefs_manifest import generate_cefs_filename
+
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_cefs_image_path(image_dir: Path, hash: str, filename: str) -> Path:
-    """Get the full CEFS image path for a given hash and filename.
+def get_cefs_image_path(image_dir: Path, filename: Path) -> Path:
+    """Get the full CEFS image path for a given filename.
 
     Args:
         image_dir: Base image directory (e.g., Path("/efs/cefs-images"))
-        hash: 24-character hash
         filename: Complete filename with descriptive suffix
 
     Returns:
         Full path to the CEFS image file (e.g., /efs/cefs-images/a1/a1b2c3d4....sqfs)
     """
-    subdir = hash[:2]
-    return image_dir / subdir / filename
+    return image_dir / str(filename)[:2] / filename
 
 
-def get_cefs_mount_path(mount_point: Path, hash: str) -> Path:
+def get_cefs_mount_path(mount_point: Path, filename: Path) -> Path:
     """Get the full CEFS mount target path for a given hash.
 
     Args:
         mount_point: Base mount point (e.g., Path("/cefs"))
-        hash: 24-character hash
+        filename: Complete filename with descriptive suffix
 
     Returns:
         Full path to the CEFS mount target (e.g., /cefs/a1/a1b2c3d4...)
     """
-    subdir = hash[:2]
-    return mount_point / subdir / hash
+    return mount_point / str(filename)[:2] / filename.with_suffix("")
 
 
 def calculate_squashfs_hash(squashfs_path: Path) -> str:
@@ -163,13 +162,14 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None
             else:
                 backup_path.unlink()
 
-        # Backup current directory if it exists
-        if nfs_path.exists():
+        # Backup current directory (or symlink) if it exists
+        if nfs_path.exists(follow_symlinks=False):
+            # Follow symlinks=False here to account for "if the destination is a broken symlink"
             nfs_path.rename(backup_path)
             _LOGGER.info("Backed up %s to %s", nfs_path, backup_path)
 
         # Create symlink
-        nfs_path.symlink_to(cefs_target)
+        nfs_path.symlink_to(cefs_target, target_is_directory=True)
         _LOGGER.info("Created symlink %s -> %s", nfs_path, cefs_target)
 
     except OSError as e:
@@ -334,8 +334,10 @@ def create_consolidated_image(
 
         # Create consolidated squashfs image
         _LOGGER.info("Creating consolidated squashfs image at %s", output_path)
+        # TODO all mksquashfs's are seemingly non-deterministic, we should control this better
+        # all root?
         cmd = [
-            "mksquashfs",
+            "mksquashfs",  # TODO THIS MUST COME FROM CONFIG NOT CODE
             str(extraction_dir),
             str(output_path),
             "-comp",
@@ -404,10 +406,10 @@ def update_symlinks_for_consolidation(
 
         subdir_name = subdir_mapping[symlink_path]
         # New target: /cefs/XX/HASH/subdir_name
-        new_target = get_cefs_mount_path(mount_point, consolidated_hash) / subdir_name
+        consolidated_filename = generate_cefs_filename(consolidated_hash, "consolidate")
+        new_target = get_cefs_mount_path(mount_point, consolidated_filename) / subdir_name
 
         try:
-            # Use existing backup_and_symlink function for consistency with convert
             backup_and_symlink(symlink_path, new_target, dry_run=False)
             _LOGGER.info("Updated symlink %s -> %s", symlink_path, new_target)
         except RuntimeError as e:

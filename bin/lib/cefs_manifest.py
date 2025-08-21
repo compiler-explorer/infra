@@ -56,7 +56,7 @@ def sanitize_path_for_filename(path: str) -> str:
     return path.strip("/").translate(translation_table)
 
 
-def generate_cefs_filename(hash: str, operation: str, path: str = "") -> str:
+def generate_cefs_filename(hash: str, operation: str, path: str = "") -> Path:
     """Generate a CEFS filename using the new naming convention.
 
     Args:
@@ -85,7 +85,7 @@ def generate_cefs_filename(hash: str, operation: str, path: str = "") -> str:
     else:
         suffix = operation
 
-    return f"{hash}_{suffix}.sqfs"
+    return Path(f"{hash}_{suffix}.sqfs")
 
 
 def create_manifest(

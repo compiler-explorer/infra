@@ -74,8 +74,8 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
     relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
     filename = generate_cefs_filename(hash_value, "convert", str(relative_path))
 
-    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, hash_value, filename)
-    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, hash_value)
+    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, filename)
+    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, filename)
 
     installable_info = extract_installable_info_from_path(installable.install_path, nfs_path)
     manifest = create_manifest(
@@ -656,7 +656,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
             consolidated_hash = calculate_squashfs_hash(temp_consolidated_path)
             filename = generate_cefs_filename(consolidated_hash, "consolidate")
 
-            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, consolidated_hash, filename)
+            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, filename)
 
             if cefs_image_path.exists():
                 _LOGGER.info("Consolidated image already exists: %s", cefs_image_path)
