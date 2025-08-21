@@ -490,7 +490,6 @@ class InstallationContext:
             final_source_path = temp_dest_path
             do_staging_move(source_path, final_source_path)
 
-            # Generate manifest for this installation
             installable_info = extract_installable_info_from_path(str(dest), nfs_path)
             manifest = create_manifest(
                 operation="install",
@@ -519,7 +518,6 @@ class InstallationContext:
                 ]
             )
 
-            # Calculate hash and generate new filename
             filename = generate_cefs_filename(calculate_squashfs_hash(temp_squash_file), "install", str(dest))
 
             cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, filename)
@@ -529,7 +527,6 @@ class InstallationContext:
             if not cefs_image_path.exists():
                 _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_image_path)
                 copy_to_cefs_atomically(temp_squash_file, cefs_image_path)
-                # Write manifest alongside the image for easy access
                 write_manifest_alongside_image(manifest, cefs_image_path)
             else:
                 _LOGGER.info("CEFS image already exists: %s", cefs_image_path)

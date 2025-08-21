@@ -168,9 +168,12 @@ def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
     try:
         with open(manifest_path, encoding="utf-8") as f:
             return yaml.safe_load(f)
-    except (OSError, yaml.YAMLError) as e:
-        _LOGGER.warning("Failed to read manifest from %s: %s", manifest_path, e)
-        return None
+    except OSError as e:
+        _LOGGER.error("Failed to read manifest file %s: %s", manifest_path, e)
+        raise
+    except yaml.YAMLError as e:
+        _LOGGER.error("Invalid YAML in manifest file %s: %s", manifest_path, e)
+        raise
 
 
 def extract_installable_info_from_path(install_path: str, nfs_path: Path) -> dict[str, str]:

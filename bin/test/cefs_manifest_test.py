@@ -7,6 +7,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import yaml
 from lib.cefs_manifest import (
     create_manifest,
     extract_installable_info_from_path,
@@ -175,8 +176,8 @@ class TestCEFSManifest(unittest.TestCase):
             with open(manifest_path, "w", encoding="utf-8") as f:
                 f.write("invalid: yaml: content: [")
 
-            result = read_manifest_from_alongside(image_path)
-            self.assertIsNone(result)
+            with self.assertRaises(yaml.YAMLError):
+                read_manifest_from_alongside(image_path)
 
 
 if __name__ == "__main__":
