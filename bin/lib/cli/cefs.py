@@ -481,27 +481,17 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
             except OSError as e:
                 _LOGGER.warning("Failed to read symlink %s: %s", nfs_path, e)
         elif squashfs_path.exists():
-            # Handle traditional squashfs images that haven't been converted yet
-            try:
-                size = squashfs_path.stat().st_size
-                cefs_items.append(
-                    {"installable": installable, "nfs_path": nfs_path, "squashfs_path": squashfs_path, "size": size}
-                )
-                _LOGGER.debug(
-                    "Found traditional squashfs item %s (%s)",
-                    installable.name,
-                    humanfriendly.format_size(size, binary=True),
-                )
-            except OSError as e:
-                _LOGGER.warning("Failed to get size for %s: %s", squashfs_path, e)
+            # Skip traditional squashfs images - only CEFS-converted items can be consolidated
+            _LOGGER.debug(
+                "Skipping traditional squashfs item %s (use 'ce cefs convert' to convert first)",
+                installable.name,
+            )
 
     if not cefs_items:
-        _LOGGER.warning(
-            "No CEFS-converted installables found matching filter: %s", " ".join(filter_) if filter_ else "all"
-        )
+        _LOGGER.warning("No CEFS items found matching filter: %s", " ".join(filter_) if filter_ else "all")
         return
 
-    _LOGGER.info("Found %d CEFS-converted items", len(cefs_items))
+    _LOGGER.info("Found %d CEFS items", len(cefs_items))
 
     # Sort by name for deterministic packing
     cefs_items.sort(key=lambda x: x["installable"].name)
@@ -677,7 +667,9 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
             successful_groups += 1
 
         except Exception as e:
-            _LOGGER.error("Failed to consolidate group %d: %s", group_idx + 1, e)
+            group_items = ", ".join(item["installable"].name for item in group)
+            _LOGGER.error("Failed to consolidate group %d (%s): %s", group_idx + 1, group_items, e)
+            _LOGGER.debug("Full error details:", exc_info=True)
             failed_groups += 1
 
         finally:
