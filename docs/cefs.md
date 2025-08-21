@@ -129,7 +129,7 @@ The manifest enables robust garbage collection by checking if symlinks at each d
 - **Conversions**: Manifest is written alongside the image file.
 - **Consolidations**: Subdirectories for each consolidated item. Symlinks point to `/cefs/HASH/subdir_name`.
 
-**Improved Naming Convention**: CEFS images use a 24-character hash (96 bits) plus descriptive suffix format:
+**Improved Naming Convention**: CEFS images use a 24-character hexadecimal hash (24 × 4 = 96 bits) plus descriptive suffix format:
 - `HASH24_consolidated.sqfs` - for consolidated images
 - `HASH24_converted_path_to_img.sqfs` - for conversions (path components joined with underscores)
 - `HASH24_path_to_root.sqfs` - for regular installs (destination path components joined with underscores)
