@@ -16,13 +16,12 @@ import humanfriendly
 from lib.ce_install import CliContext, cli
 from lib.cefs import (
     backup_and_symlink,
-    calculate_squashfs_hash,
     check_temp_space_available,
-    copy_to_cefs_atomically,
     create_consolidated_image,
+    deploy_to_cefs_with_manifest,
     detect_nfs_state,
-    get_cefs_image_path,
-    get_cefs_mount_path,
+    get_cefs_filename_for_image,
+    get_cefs_paths,
     get_extraction_path_from_symlink,
     parse_cefs_target,
     snapshot_symlink_targets,
@@ -33,8 +32,6 @@ from lib.cefs import (
 from lib.cefs_manifest import (
     create_manifest,
     extract_installable_info_from_path,
-    generate_cefs_filename,
-    write_manifest_alongside_image,
 )
 from lib.installable.installable import Installable
 
@@ -62,20 +59,17 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
             _LOGGER.error("NFS directory missing for %s: %s", installable.name, nfs_path)
             return False
 
-    # Calculate hash and set up CEFS paths
+    # Generate CEFS filename and paths
     try:
         _LOGGER.info("Calculating hash for %s...", squashfs_image_path)
-        hash_value = calculate_squashfs_hash(squashfs_image_path)
-        _LOGGER.info("Hash: %s", hash_value)
-    except RuntimeError as e:
+        relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
+        filename = get_cefs_filename_for_image(squashfs_image_path, "convert", relative_path)
+        _LOGGER.info("Filename: %s", filename)
+    except OSError as e:
         _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
         return False
 
-    relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
-    filename = generate_cefs_filename(hash_value, "convert", relative_path)
-
-    cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, filename)
-    cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, filename)
+    cefs_paths = get_cefs_paths(context.config.cefs.image_dir, context.config.cefs.mount_point, filename)
 
     installable_info = extract_installable_info_from_path(installable.install_path, nfs_path)
     manifest = create_manifest(
@@ -86,23 +80,22 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
 
     # Copy squashfs to CEFS images directory if not already there
     # Never overwrite - hash ensures content is identical
-    if not cefs_image_path.exists():
+    if not cefs_paths.image_path.exists():
         if context.installation_context.dry_run:
-            _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_image_path)
+            _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_paths.image_path)
             _LOGGER.info("Would write manifest alongside image")
         else:
             try:
-                copy_to_cefs_atomically(squashfs_image_path, cefs_image_path)
-                write_manifest_alongside_image(manifest, cefs_image_path)
-            except RuntimeError as e:
-                _LOGGER.error("Failed to copy image for %s: %s", installable.name, e)
+                deploy_to_cefs_with_manifest(squashfs_image_path, cefs_paths.image_path, manifest)
+            except Exception as e:
+                _LOGGER.error("Failed to deploy image for %s: %s", installable.name, e)
                 return False
     else:
-        _LOGGER.info("CEFS image already exists: %s", cefs_image_path)
+        _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
 
     # Backup NFS directory and create symlink
     try:
-        backup_and_symlink(nfs_path, cefs_target, context.installation_context.dry_run)
+        backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run)
     except RuntimeError as e:
         _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
         return False
@@ -635,16 +628,13 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
                 temp_consolidated_path,
             )
 
-            consolidated_hash = calculate_squashfs_hash(temp_consolidated_path)
-            filename = generate_cefs_filename(consolidated_hash, "consolidate")
+            filename = get_cefs_filename_for_image(temp_consolidated_path, "consolidate")
+            cefs_paths = get_cefs_paths(context.config.cefs.image_dir, context.config.cefs.mount_point, filename)
 
-            cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, filename)
-
-            if cefs_image_path.exists():
-                _LOGGER.info("Consolidated image already exists: %s", cefs_image_path)
+            if cefs_paths.image_path.exists():
+                _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
             else:
-                copy_to_cefs_atomically(temp_consolidated_path, cefs_image_path)
-                write_manifest_alongside_image(manifest, cefs_image_path)
+                deploy_to_cefs_with_manifest(temp_consolidated_path, cefs_paths.image_path, manifest)
 
             # Verify symlinks haven't changed and update them
             group_symlinks = [item["nfs_path"] for item in group]

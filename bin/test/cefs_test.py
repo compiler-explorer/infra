@@ -6,9 +6,11 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from lib.cefs import (
+    CEFSPaths,
     check_temp_space_available,
     get_cefs_image_path,
     get_cefs_mount_path,
+    get_cefs_paths,
     get_extraction_path_from_symlink,
     parse_cefs_target,
     snapshot_symlink_targets,
@@ -169,6 +171,24 @@ class TestCEFSConsolidation(unittest.TestCase):
             with self.subTest(symlink_target=str(symlink_target)):
                 result = get_extraction_path_from_symlink(symlink_target)
                 self.assertEqual(result, expected)
+
+    def test_get_cefs_paths(self):
+        """Test the combined get_cefs_paths function."""
+        image_dir = Path("/efs/cefs-images")
+        mount_point = Path("/cefs")
+        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        result = get_cefs_paths(image_dir, mount_point, filename)
+
+        # Verify the result is a CEFSPaths object
+        self.assertIsInstance(result, CEFSPaths)
+
+        # Verify the paths are correct
+        expected_image_path = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+        expected_mount_path = Path("/cefs/9d/9da642f654bc890a12345678_gcc-15.1.0")
+
+        self.assertEqual(result.image_path, expected_image_path)
+        self.assertEqual(result.mount_path, expected_mount_path)
 
 
 class TestCEFSConsolidationIntegration(unittest.TestCase):

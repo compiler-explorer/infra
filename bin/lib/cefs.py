@@ -9,13 +9,23 @@ import os
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import humanfriendly
 
+from .cefs_manifest import generate_cefs_filename, write_manifest_alongside_image
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
 _LOGGER = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class CEFSPaths:
+    """Container for CEFS image path and mount path."""
+
+    image_path: Path
+    mount_path: Path
 
 
 def get_cefs_image_path(image_dir: Path, filename: Path) -> Path:
@@ -44,6 +54,23 @@ def get_cefs_mount_path(mount_point: Path, filename: Path) -> Path:
     return mount_point / str(filename)[:2] / filename.with_suffix("")
 
 
+def get_cefs_paths(image_dir: Path, mount_point: Path, filename: Path) -> CEFSPaths:
+    """Get both CEFS image path and mount path for a given filename.
+
+    Args:
+        image_dir: Base image directory (e.g., Path("/efs/cefs-images"))
+        mount_point: Base mount point (e.g., Path("/cefs"))
+        filename: Complete filename with descriptive suffix
+
+    Returns:
+        CEFSPaths containing both image_path and mount_path
+    """
+    return CEFSPaths(
+        image_path=get_cefs_image_path(image_dir, filename),
+        mount_path=get_cefs_mount_path(mount_point, filename),
+    )
+
+
 def calculate_squashfs_hash(squashfs_path: Path) -> str:
     """Calculate SHA256 hash of squashfs image using Python hashlib."""
     sha256_hash = hashlib.sha256()
@@ -51,6 +78,26 @@ def calculate_squashfs_hash(squashfs_path: Path) -> str:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             sha256_hash.update(chunk)
     return sha256_hash.hexdigest()[:24]
+
+
+def get_cefs_filename_for_image(squashfs_path: Path, operation: str, path: Path | None = None) -> Path:
+    """Generate CEFS filename by calculating hash and adding suffix.
+
+    Combines hash calculation and filename generation into a single operation.
+
+    Args:
+        squashfs_path: Path to squashfs image to hash
+        operation: Operation type ("install", "convert", "consolidate")
+        path: Optional path for suffix generation
+
+    Returns:
+        Generated filename with hash and descriptive suffix
+
+    Raises:
+        OSError: If unable to read the squashfs file
+    """
+    hash_value = calculate_squashfs_hash(squashfs_path)
+    return generate_cefs_filename(hash_value, operation, path)
 
 
 def detect_nfs_state(nfs_path: Path) -> str:
@@ -143,6 +190,23 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
         # Clean up temp file on any failure
         temp_path.unlink(missing_ok=True)
         raise
+
+
+def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manifest: dict) -> None:
+    """Deploy an image to CEFS with its manifest.
+
+    Atomically copies the squashfs image and writes its manifest alongside.
+
+    Args:
+        source_path: Source squashfs image to deploy
+        cefs_image_path: Target path in CEFS images directory
+        manifest: Manifest dictionary to write alongside the image
+
+    Raises:
+        Exception: If deployment fails (all files are cleaned up)
+    """
+    copy_to_cefs_atomically(source_path, cefs_image_path)
+    write_manifest_alongside_image(manifest, cefs_image_path)
 
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None:
