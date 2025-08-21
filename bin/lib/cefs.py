@@ -13,7 +13,6 @@ from pathlib import Path
 
 import humanfriendly
 
-from .cefs_manifest import generate_cefs_filename
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
 _LOGGER = logging.getLogger(__name__)
@@ -365,13 +364,13 @@ def create_consolidated_image(
 
 
 def update_symlinks_for_consolidation(
-    unchanged_symlinks: list[Path], consolidated_hash: str, mount_point: Path, subdir_mapping: dict[Path, str]
+    unchanged_symlinks: list[Path], consolidated_filename: Path, mount_point: Path, subdir_mapping: dict[Path, str]
 ) -> None:
     """Update symlinks to point to consolidated CEFS mount.
 
     Args:
         unchanged_symlinks: List of symlinks that are safe to update
-        consolidated_hash: Hash of the consolidated image
+        consolidated_filename: Filename of the consolidated image (e.g., HASH_consolidated.sqfs)
         mount_point: CEFS mount point
         subdir_mapping: Mapping of nfs_path to subdirectory name in consolidated image
 
@@ -384,8 +383,7 @@ def update_symlinks_for_consolidation(
             continue
 
         subdir_name = subdir_mapping[symlink_path]
-        # New target: /cefs/XX/HASH/subdir_name
-        consolidated_filename = generate_cefs_filename(consolidated_hash, "consolidate")
+        # New target: /cefs/XX/HASH_consolidated/subdir_name
         new_target = get_cefs_mount_path(mount_point, consolidated_filename) / subdir_name
 
         try:

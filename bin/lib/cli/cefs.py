@@ -659,7 +659,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
 
             if unchanged_symlinks:
                 update_symlinks_for_consolidation(
-                    unchanged_symlinks, consolidated_hash, context.config.cefs.mount_point, subdir_mapping
+                    unchanged_symlinks, filename, context.config.cefs.mount_point, subdir_mapping
                 )
                 total_updated_symlinks += len(unchanged_symlinks)
                 _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
