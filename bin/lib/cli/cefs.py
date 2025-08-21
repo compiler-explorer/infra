@@ -7,6 +7,7 @@ import logging
 import shutil
 import subprocess
 import uuid
+from pathlib import Path
 from typing import Any
 
 import click
@@ -71,7 +72,7 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
         return False
 
     relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
-    filename = generate_cefs_filename(hash_value, "convert", str(relative_path))
+    filename = generate_cefs_filename(hash_value, "convert", relative_path)
 
     cefs_image_path = get_cefs_image_path(context.config.cefs.image_dir, filename)
     cefs_target = get_cefs_mount_path(context.config.cefs.mount_point, filename)
@@ -308,23 +309,23 @@ def rollback(context: CliContext, filter_: list[str]):
 
         # Track where the symlink points for reporting
         try:
-            symlink_target = str(nfs_path.readlink())
+            symlink_target: Path | None = nfs_path.readlink()
         except OSError:
-            symlink_target = "<unable to read>"
+            symlink_target = None
 
         if context.installation_context.dry_run:
             _LOGGER.info(
                 "Would rollback %s: remove symlink %s -> %s, restore from %s",
                 installable.name,
                 nfs_path,
-                symlink_target,
+                symlink_target or "<unable to read>",
                 backup_path,
             )
             rollback_details.append(
                 {
                     "name": installable.name,
                     "status": "would_rollback",
-                    "symlink_target": symlink_target,
+                    "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
                     "nfs_path": str(nfs_path),
                 }
             )
@@ -333,7 +334,7 @@ def rollback(context: CliContext, filter_: list[str]):
 
         try:
             # Remove symlink
-            _LOGGER.info("Removing CEFS symlink: %s -> %s", nfs_path, symlink_target)
+            _LOGGER.info("Removing CEFS symlink: %s -> %s", nfs_path, symlink_target or "<unable to read>")
             nfs_path.unlink()
 
             # Restore from backup
@@ -347,7 +348,7 @@ def rollback(context: CliContext, filter_: list[str]):
                     {
                         "name": installable.name,
                         "status": "success",
-                        "symlink_target": symlink_target,
+                        "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
                         "nfs_path": str(nfs_path),
                     }
                 )
@@ -358,7 +359,7 @@ def rollback(context: CliContext, filter_: list[str]):
                     {
                         "name": installable.name,
                         "status": "validation_failed",
-                        "symlink_target": symlink_target,
+                        "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
                         "nfs_path": str(nfs_path),
                     }
                 )
@@ -370,7 +371,7 @@ def rollback(context: CliContext, filter_: list[str]):
                 {
                     "name": installable.name,
                     "status": "failed",
-                    "symlink_target": symlink_target,
+                    "symlink_target": str(symlink_target) if symlink_target else "<unable to read>",
                     "nfs_path": str(nfs_path),
                     "error": str(e),
                 }
@@ -638,11 +639,10 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
 
             # First create basic consolidated image, then add manifest
             create_consolidated_image(
+                context.config.squashfs,
                 items_for_consolidation,
                 group_temp_dir,
                 temp_consolidated_path,
-                context.config.squashfs.compression,
-                context.config.squashfs.compression_level,
             )
 
             consolidated_hash = calculate_squashfs_hash(temp_consolidated_path)

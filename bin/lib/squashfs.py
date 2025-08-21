@@ -186,3 +186,76 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
         _LOGGER.error("✗ Contents mismatch: %d errors found", error_count)
 
     return error_count
+
+
+def create_squashfs_image(
+    config_squashfs,
+    source_path: Path,
+    output_path: Path,
+    compression: str | None = None,
+    compression_level: int | None = None,
+    additional_args: list[str] | None = None,
+) -> None:
+    """Create a squashfs image using configured mksquashfs tool.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths and settings
+        source_path: Source directory to compress
+        output_path: Output squashfs file path
+        compression: Compression type (defaults to config.compression)
+        compression_level: Compression level (defaults to config.compression_level)
+        additional_args: Additional arguments to pass to mksquashfs
+
+    Raises:
+        subprocess.CalledProcessError: If mksquashfs command fails
+    """
+    cmd = [
+        config_squashfs.mksquashfs_path,
+        str(source_path),
+        str(output_path),
+        "-all-root",
+        "-progress",
+        "-comp",
+        compression or config_squashfs.compression,
+        "-Xcompression-level",
+        str(compression_level or config_squashfs.compression_level),
+        "-noappend",  # Don't append, create new
+    ]
+
+    if additional_args:
+        cmd.extend(additional_args)
+
+    subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+
+def extract_squashfs_image(
+    config_squashfs,
+    squashfs_path: Path,
+    output_dir: Path,
+    extract_path: Path | None = None,
+) -> None:
+    """Extract a squashfs image using configured unsquashfs tool.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths
+        squashfs_path: Path to squashfs file to extract
+        output_dir: Directory to extract to
+        extract_path: Specific path within the archive to extract (optional)
+
+    Raises:
+        subprocess.CalledProcessError: If unsquashfs command fails
+    """
+    cmd = [
+        config_squashfs.unsquashfs_path,
+        "-f",  # Force overwrite
+        "-d",
+        str(output_dir),  # Destination directory
+        str(squashfs_path),
+    ]
+
+    if extract_path and extract_path != Path("."):
+        cmd.append(str(extract_path))  # Extract this specific path
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(result.returncode, cmd, output=result.stdout, stderr=result.stderr)

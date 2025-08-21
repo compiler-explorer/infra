@@ -25,15 +25,15 @@ class TestCEFSManifest(unittest.TestCase):
     def test_sanitize_path_for_filename(self):
         """Test path sanitization for filenames."""
         test_cases = [
-            ("/opt/compiler-explorer/gcc-15.1.0", "opt_compiler-explorer_gcc-15.1.0"),
-            ("libs/fusedkernellibrary/Beta-0.1.9/", "libs_fusedkernellibrary_Beta-0.1.9"),
-            ("arm/gcc-10.2.0", "arm_gcc-10.2.0"),
-            ("path with spaces", "path_with_spaces"),
-            ("path:with:colons", "path_with_colons"),
+            (Path("/opt/compiler-explorer/gcc-15.1.0"), "opt_compiler-explorer_gcc-15.1.0"),
+            (Path("libs/fusedkernellibrary/Beta-0.1.9/"), "libs_fusedkernellibrary_Beta-0.1.9"),
+            (Path("arm/gcc-10.2.0"), "arm_gcc-10.2.0"),
+            (Path("path with spaces"), "path_with_spaces"),
+            (Path("path:with:colons"), "path_with_colons"),
         ]
 
         for input_path, expected in test_cases:
-            with self.subTest(input_path=input_path):
+            with self.subTest(input_path=str(input_path)):
                 self.assertEqual(sanitize_path_for_filename(input_path), expected)
 
     def test_generate_cefs_filename(self):
@@ -43,12 +43,12 @@ class TestCEFSManifest(unittest.TestCase):
         test_cases = [
             (
                 "install",
-                "/opt/compiler-explorer/gcc-15.1.0",
+                Path("/opt/compiler-explorer/gcc-15.1.0"),
                 Path("9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0.sqfs"),
             ),
-            ("consolidate", "", Path("9da642f654bc890a12345678_consolidated.sqfs")),
-            ("convert", "arm/gcc-10.2.0.img", Path("9da642f654bc890a12345678_converted_arm_gcc-10.2.0.sqfs")),
-            ("unknown", "test", Path("9da642f654bc890a12345678_test.sqfs")),
+            ("consolidate", None, Path("9da642f654bc890a12345678_consolidated.sqfs")),
+            ("convert", Path("arm/gcc-10.2.0.img"), Path("9da642f654bc890a12345678_converted_arm_gcc-10.2.0.sqfs")),
+            ("unknown", Path("test"), Path("9da642f654bc890a12345678_test.sqfs")),
         ]
 
         for operation, path, expected in test_cases:

@@ -518,7 +518,7 @@ class InstallationContext:
                 ]
             )
 
-            filename = generate_cefs_filename(calculate_squashfs_hash(temp_squash_file), "install", str(dest))
+            filename = generate_cefs_filename(calculate_squashfs_hash(temp_squash_file), "install", Path(dest))
 
             cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, filename)
             cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, filename)

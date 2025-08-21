@@ -38,6 +38,7 @@ class SquashfsConfig(BaseModel):
     # Seems a decent tradeoff
     compression_level: int = 7
     mksquashfs_path: str = "/usr/bin/mksquashfs"
+    unsquashfs_path: str = "/usr/bin/unsquashfs"
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 

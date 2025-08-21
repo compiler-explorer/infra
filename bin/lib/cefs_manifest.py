@@ -43,20 +43,20 @@ def get_git_sha() -> str:
         return "unknown"
 
 
-def sanitize_path_for_filename(path: str) -> str:
+def sanitize_path_for_filename(path: Path) -> str:
     """Sanitize a path for use in filename by replacing problematic characters.
 
     Args:
-        path: Path string to sanitize
+        path: Path to sanitize
 
     Returns:
         Sanitized string safe for use in filenames
     """
     translation_table = str.maketrans("/ :?", "____")
-    return path.strip("/").translate(translation_table)
+    return str(path).strip("/").translate(translation_table)
 
 
-def generate_cefs_filename(hash: str, operation: str, path: str = "") -> Path:
+def generate_cefs_filename(hash: str, operation: str, path: Path | None = None) -> Path:
     """Generate a CEFS filename using the new naming convention.
 
     Args:
@@ -68,7 +68,7 @@ def generate_cefs_filename(hash: str, operation: str, path: str = "") -> Path:
         Generated filename with appropriate suffix
 
     Examples:
-        >>> generate_cefs_filename("9da642f654bc890a12345678", "install", "/opt/compiler-explorer/gcc-15.1.0")
+        >>> generate_cefs_filename("9da642f654bc890a12345678", "install", Path("/opt/compiler-explorer/gcc-15.1.0"))
         "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0.sqfs"
 
         >>> generate_cefs_filename("abcdef1234567890abcdef12", "consolidate")
@@ -77,8 +77,8 @@ def generate_cefs_filename(hash: str, operation: str, path: str = "") -> Path:
     if operation == "consolidate":
         suffix = "consolidated"
     elif operation == "convert" and path:
-        meaningful_path = path.replace(".img", "")
-        sanitized = sanitize_path_for_filename(meaningful_path)
+        meaningful_path = str(path).replace(".img", "")
+        sanitized = sanitize_path_for_filename(Path(meaningful_path))
         suffix = f"converted_{sanitized}"
     elif path:
         suffix = sanitize_path_for_filename(path)
