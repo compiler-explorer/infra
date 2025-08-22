@@ -33,6 +33,7 @@ from lib.cefs_manifest import (
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
+from lib.squashfs import create_squashfs_image
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
@@ -501,19 +502,7 @@ class InstallationContext:
 
             # Create squashfs image from processed content
             _LOGGER.info("Creating squashfs image from %s", final_source_path)
-            subprocess.check_call(
-                [
-                    self.config.squashfs.mksquashfs_path,
-                    str(final_source_path),
-                    str(temp_squash_file),
-                    "-all-root",
-                    "-progress",
-                    "-comp",
-                    self.config.squashfs.compression,
-                    "-Xcompression-level",
-                    str(self.config.squashfs.compression_level),
-                ]
-            )
+            create_squashfs_image(self.config.squashfs, final_source_path, temp_squash_file)
 
             filename = get_cefs_filename_for_image(temp_squash_file, "install", Path(dest))
             cefs_paths = get_cefs_paths(self.config.cefs.image_dir, self.config.cefs.mount_point, filename)

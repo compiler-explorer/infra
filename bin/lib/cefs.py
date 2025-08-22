@@ -74,10 +74,15 @@ def get_cefs_paths(image_dir: Path, mount_point: Path, filename: Path) -> CEFSPa
 def calculate_squashfs_hash(squashfs_path: Path) -> str:
     """Calculate SHA256 hash of squashfs image using Python hashlib."""
     sha256_hash = hashlib.sha256()
+    file_size = squashfs_path.stat().st_size
+    _LOGGER.debug("Calculating hash for %s (size: %d bytes)", squashfs_path, file_size)
     with open(squashfs_path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             sha256_hash.update(chunk)
-    return sha256_hash.hexdigest()[:24]
+    full_hash = sha256_hash.hexdigest()
+    truncated_hash = full_hash[:24]
+    _LOGGER.debug("Hash for %s: full=%s, truncated=%s", squashfs_path, full_hash, truncated_hash)
+    return truncated_hash
 
 
 def get_cefs_filename_for_image(squashfs_path: Path, operation: str, path: Path | None = None) -> Path:

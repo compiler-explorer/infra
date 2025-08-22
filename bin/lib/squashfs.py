@@ -216,7 +216,6 @@ def create_squashfs_image(
     Raises:
         SquashfsError: If mksquashfs command fails
     """
-    # TODO: mksquashfs produces non-deterministic output - investigate options for reproducible builds
     cmd = [
         config_squashfs.mksquashfs_path,
         str(source_path),
@@ -228,12 +227,17 @@ def create_squashfs_image(
         "-Xcompression-level",
         str(compression_level or config_squashfs.compression_level),
         "-noappend",  # Don't append, create new
+        "-mkfs-time",
+        "0",  # Set filesystem creation time to epoch for deterministic builds
+        "-all-time",
+        "0",  # Set all file timestamps to epoch for deterministic builds
     ]
 
     if additional_args:
         cmd.extend(additional_args)
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False, stderr=subprocess.STDOUT)
+    _LOGGER.debug("Running mksquashfs command: %s", " ".join(cmd))
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
     if result.returncode != 0:
         raise SquashfsError(f"mksquashfs of {source_path} failed: {result.stdout.strip()}")
 
@@ -266,6 +270,6 @@ def extract_squashfs_image(
     if extract_path and extract_path != Path("."):
         cmd.append(str(extract_path))
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=False, stderr=subprocess.STDOUT)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
     if result.returncode != 0:
         raise SquashfsError(f"unsquashfs of {squashfs_path} failed: {result.stdout.strip()}")
