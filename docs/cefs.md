@@ -14,7 +14,7 @@ Short version - symlink dirs from NFS to `/cefs/HASH`
 
 - Use autofs exactly as [planned for the first cefs attempt](https://github.com/compiler-explorer/infra/pull/798) (already installed in all clusters)
 - Drop the complex "root file system" part (which had issues with simultaneous changes to the filesystem)
-- Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/HASH_some_user_readable_tag`
+- Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/XX/XXYYZZZ..._descriptive_suffix` (where `XXYYZZZ...` is a 24-character hash, as described below)
 - For every squashfs image, keep a manifest explaining what it is and how it was created
 
 ## Autofs Configuration
