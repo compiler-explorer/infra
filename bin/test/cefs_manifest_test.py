@@ -11,7 +11,6 @@ import yaml
 from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
-    extract_installable_info_from_path,
     generate_cefs_filename,
     get_git_sha,
     read_manifest_from_alongside,
@@ -55,31 +54,6 @@ class TestCEFSManifest(unittest.TestCase):
         for operation, path, expected in test_cases:
             with self.subTest(operation=operation, path=path):
                 result = generate_cefs_filename(hash_value, operation, path)
-                self.assertEqual(result, expected)
-
-    def test_extract_installable_info_from_path(self):
-        """Test extraction of installable info from paths."""
-        test_cases = [
-            (
-                "gcc-15.1.0",
-                Path("/opt/compiler-explorer/gcc-15.1.0"),
-                {"name": "gcc", "target": "15.1.0", "destination": "/opt/compiler-explorer/gcc-15.1.0"},
-            ),
-            (
-                "boost-1.82",
-                Path("/opt/libs/boost-1.82"),
-                {"name": "boost", "target": "1.82", "destination": "/opt/libs/boost-1.82"},
-            ),
-            (
-                "singlename",
-                Path("/opt/singlename"),
-                {"name": "singlename", "target": "unknown", "destination": "/opt/singlename"},
-            ),
-        ]
-
-        for install_path, nfs_path, expected in test_cases:
-            with self.subTest(install_path=install_path):
-                result = extract_installable_info_from_path(install_path, nfs_path)
                 self.assertEqual(result, expected)
 
     def test_create_installable_manifest_entry(self):
@@ -151,7 +125,7 @@ class TestCEFSManifest(unittest.TestCase):
 
     def test_create_manifest(self):
         """Test manifest creation."""
-        contents = [{"name": "gcc", "target": "15.1.0", "destination": "/opt/compiler-explorer/gcc-15.1.0"}]
+        contents = [{"name": "compilers/c++/x86/gcc 15.1.0", "destination": "/opt/compiler-explorer/gcc-15.1.0"}]
 
         with patch("lib.cefs_manifest.get_git_sha", return_value="test_sha"):
             manifest = create_manifest(

@@ -108,10 +108,9 @@ def create_manifest(
     Example:
         >>> manifest = create_manifest(
         ...     operation="install",
-        ...     description="Created through installation of gcc-15.1.0",
+        ...     description="Created through installation of compilers/c++/x86/gcc 15.1.0",
         ...     contents=[{
-        ...         "name": "compilers/c++/x86/gcc",
-        ...         "target": "15.1.0",
+        ...         "name": "compilers/c++/x86/gcc 15.1.0",
         ...         "destination": "/opt/compiler-explorer/gcc-15.1.0"
         ...     }]
         ... )
@@ -176,39 +175,8 @@ def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
         raise
 
 
-def extract_installable_info_from_path(install_path: str, nfs_path: Path) -> dict[str, str]:
-    """Extract installable information from installation path for manifest contents.
-
-    This is a best-effort function to create reasonable name/target/destination
-    entries for the manifest when we don't have full installable metadata.
-
-    Args:
-        install_path: Relative installation path (e.g., "gcc-15.1.0")
-        nfs_path: Full NFS destination path
-
-    Returns:
-        Dictionary with name, target, destination fields
-    """
-    parts = install_path.split("-")
-    if len(parts) >= 2:
-        name = "-".join(parts[:-1])
-        target = parts[-1]
-    else:
-        name = install_path
-        target = "unknown"
-
-    return {
-        "name": name,
-        "target": target,
-        "destination": str(nfs_path),
-    }
-
-
 def create_installable_manifest_entry(installable_name: str, destination_path: Path) -> dict[str, str]:
     """Create manifest entry from installable information.
-
-    This is the preferred way to create manifest entries when we have the full
-    installable name, ensuring the name field is unambiguous.
 
     Args:
         installable_name: Full installable name including version (e.g., "compilers/c++/x86/gcc 10.1.0")
