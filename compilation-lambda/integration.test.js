@@ -12,9 +12,10 @@ process.env.AWS_REGION = 'us-east-1';
 process.env.SQS_QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/052730242331/test-compilation-queue.fifo';
 process.env.WEBSOCKET_URL = 'wss://test.example.com/websocket';
 
-const { lookupCompilerRouting, sendToSqs, parseRequestBody } = require('./lib/routing');
-const { AWS_ACCOUNT_ID } = require('./lib/aws-clients');
+const { lookupCompilerRouting, sendToSqs, parseRequestBody, buildQueueUrl } = require('./lib/routing');
+const { AWS_ACCOUNT_ID, sqs } = require('./lib/aws-clients');
 const { generateGuid, extractCompilerId, isCmakeRequest, createSuccessResponse } = require('./lib/utils');
+const routing = require('./lib/routing');
 
 describe('Integration Tests - Real AWS Services', () => {
     let originalConsoleWarn;
@@ -87,14 +88,12 @@ describe('Integration Tests - Real AWS Services', () => {
                     console.log(`✓ GPU compiler routed to queue: ${result.target}`);
                 } else {
                     // If no GPU queue routing found, test our buildQueueUrl logic with a hypothetical GPU queue
-                    const { buildQueueUrl } = require('./lib/routing');
                     const gpuQueueUrl = buildQueueUrl('gpu-compilation-queue');
                     expect(gpuQueueUrl).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/gpu-compilation-queue.fifo');
                     console.log(`✓ GPU queue URL would be: ${gpuQueueUrl}`);
                 }
             } catch (error) {
                 // If ptxas12 doesn't exist, test the buildQueueUrl function instead
-                const { buildQueueUrl } = require('./lib/routing');
                 const gpuQueueUrl = buildQueueUrl('gpu-compilation-queue');
                 expect(gpuQueueUrl).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/gpu-compilation-queue.fifo');
                 console.log(`✓ GPU queue URL derivation works: ${gpuQueueUrl}`);
@@ -217,7 +216,6 @@ describe('Integration Tests - Real AWS Services', () => {
     });
 
     describe('Queue URL Building', () => {
-        const { buildQueueUrl } = require('./lib/routing');
 
         test('should build queue URL from template and queue name', () => {
             // Using the existing SQS_QUEUE_URL from test setup
@@ -265,9 +263,9 @@ describe('Integration Tests - Real AWS Services', () => {
             const headers = { 'content-type': 'application/json' };
 
             // Mock the SQS send to capture the message that would be sent
-            const originalSqs = require('./lib/aws-clients').sqs;
+            const originalSqsSend = sqs.send;
             const mockSend = jest.fn();
-            require('./lib/aws-clients').sqs.send = mockSend;
+            sqs.send = mockSend;
 
             try {
                 await sendToSqs(guid, compilerId, body, isCmake, headers, process.env.SQS_QUEUE_URL);
@@ -299,7 +297,7 @@ describe('Integration Tests - Real AWS Services', () => {
 
             } finally {
                 // Restore original SQS client
-                require('./lib/aws-clients').sqs.send = originalSqs.send;
+                sqs.send = originalSqsSend;
             }
         });
 
@@ -308,9 +306,9 @@ describe('Integration Tests - Real AWS Services', () => {
             const body = 'int main() { return 0; }';
             const headers = { 'content-type': 'text/plain' };
 
-            const originalSqs = require('./lib/aws-clients').sqs;
+            const originalSqsSend2 = sqs.send;
             const mockSend = jest.fn();
-            require('./lib/aws-clients').sqs.send = mockSend;
+            sqs.send = mockSend;
 
             try {
                 await sendToSqs(guid, 'gcc', body, false, headers, process.env.SQS_QUEUE_URL);
@@ -318,7 +316,7 @@ describe('Integration Tests - Real AWS Services', () => {
                 const messageBody = JSON.parse(mockSend.mock.calls[0][0].input.MessageBody);
                 expect(messageBody.source).toBe('int main() { return 0; }');
             } finally {
-                require('./lib/aws-clients').sqs.send = originalSqs.send;
+                sqs.send = originalSqsSend2;
             }
         });
 
@@ -333,7 +331,6 @@ describe('Integration Tests - Real AWS Services', () => {
         test('should handle DynamoDB access errors gracefully', async () => {
             // Temporarily break the table name to simulate an error
             const originalTableName = 'CompilerRouting';
-            const routing = require('./lib/routing');
 
             // We can't easily mock this in integration test, but we can test with invalid compiler
             // The function should handle errors gracefully and return default routing

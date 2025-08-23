@@ -66,38 +66,56 @@ export class EventsConnections {
             }
         }
 
-        // eslint-disable-next-line no-console
-        if (cachedConnections.length > 0) {
-            // eslint-disable-next-line no-console
-            console.info(`Cache had ${cachedConnections.length} items for ${subscription}`);
-        } else {
-            // eslint-disable-next-line no-console
-            console.info(`Cache miss for ${subscription}`);
+        // Merge cached connections with DynamoDB results to handle GSI eventual consistency
+        // Use a Set to avoid duplicates
+        const connectionIdSet = new Set();
+
+        // Add DynamoDB results
+        if (result.Items) {
+            for (const item of result.Items) {
+                connectionIdSet.add(item.connectionId.S);
+            }
         }
 
-        return result;
+        // Add cached results to handle GSI propagation delay
+        for (const conn of cachedConnections) {
+            connectionIdSet.add(conn.connectionId.S);
+        }
+
+        // Convert Set back to the expected format
+        const mergedItems = Array.from(connectionIdSet).map(id => ({connectionId: {S: id}}));
+
+        // eslint-disable-next-line no-console
+        if (cachedConnections.length > 0 || result.Count > 0) {
+            // eslint-disable-next-line no-console
+            console.info(`Cache: ${cachedConnections.length} items, DynamoDB: ${result.Count || 0} items, Merged: ${mergedItems.length} items for ${subscription}`);
+        }
+
+        // Return a result object with merged items
+        return {
+            Items: mergedItems,
+            Count: mergedItems.length,
+            ScannedCount: result.ScannedCount || 0
+        };
     }
 
     static async update(id, subscription) {
         // Update cache first for instant response
         subscriptionCache.set(id, subscription);
 
-        // Update DynamoDB synchronously to ensure cross-container consistency
-        const updateCommand = new UpdateItemCommand({
+        // Use PutItem to ensure the item exists with the subscription
+        // This handles both new connections and updates to existing ones
+        const putCommand = new PutItemCommand({
             TableName: config.connections_table,
-            Key: {connectionId: {S: id}},
-            UpdateExpression: 'set #subscription = :subscription',
-            ExpressionAttributeNames: {'#subscription': 'subscription'},
-            ExpressionAttributeValues: {
-                ':subscription': {
-                    S: subscription,
-                },
+            Item: {
+                connectionId: {S: id},
+                subscription: {S: subscription},
             },
-            ReturnValues: 'ALL_NEW',
         });
 
         try {
-            return await ddbClient.send(updateCommand);
+            await ddbClient.send(putCommand);
+            return {Attributes: {connectionId: {S: id}, subscription: {S: subscription}}};
         } catch (error) {
             // eslint-disable-next-line no-console
             console.error(`Failed to update subscription in DynamoDB for ${id}:`, error);
