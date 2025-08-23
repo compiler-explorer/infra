@@ -175,7 +175,7 @@ class PipInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path, do_staging_move=do_mv)
+            self.install_context.move_from_staging(staging, self.name, self.install_path, do_staging_move=do_mv)
 
     def resolve_dependencies(self, resolver: Callable[[str], str]) -> None:
         self.python = resolver(self.python)

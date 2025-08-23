@@ -30,8 +30,8 @@ from lib.cefs import (
     verify_symlinks_unchanged,
 )
 from lib.cefs_manifest import (
+    create_installable_manifest_entry,
     create_manifest,
-    extract_installable_info_from_path,
 )
 from lib.installable.installable import Installable
 
@@ -71,7 +71,7 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
 
     cefs_paths = get_cefs_paths(context.config.cefs.image_dir, context.config.cefs.mount_point, filename)
 
-    installable_info = extract_installable_info_from_path(installable.install_path, nfs_path)
+    installable_info = create_installable_manifest_entry(installable.name, nfs_path)
     manifest = create_manifest(
         operation="convert",
         description=f"Created through conversion of {installable.name}",
@@ -597,9 +597,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
                 items_for_consolidation.append((item["nfs_path"], item["squashfs_path"], subdir_name, extraction_path))
                 subdir_mapping[item["nfs_path"]] = subdir_name
 
-            contents = [
-                extract_installable_info_from_path(item["installable"].install_path, item["nfs_path"]) for item in group
-            ]
+            contents = [create_installable_manifest_entry(item["installable"].name, item["nfs_path"]) for item in group]
 
             manifest = create_manifest(
                 operation="consolidate",
