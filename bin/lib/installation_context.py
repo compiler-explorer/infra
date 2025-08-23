@@ -27,8 +27,8 @@ from lib.cefs import (
     get_cefs_paths,
 )
 from lib.cefs_manifest import (
+    create_installable_manifest_entry,
     create_manifest,
-    extract_installable_info_from_path,
 )
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
@@ -301,6 +301,7 @@ class InstallationContext:
     def move_from_staging(
         self,
         staging: StagingDir,
+        installable_name: str,
         source: PathOrString,
         dest: PathOrString | None = None,
         do_staging_move=lambda source, dest: source.replace(dest),
@@ -314,7 +315,7 @@ class InstallationContext:
         # Check if CEFS is enabled and should be used for this installation
         if self.config and self.config.cefs.enabled:
             _LOGGER.info("Installing via CEFS: %s -> %s", source, dest)
-            self._deploy_to_cefs(staging, source, dest, do_staging_move)
+            self._deploy_to_cefs(staging, installable_name, source, dest, do_staging_move)
             return
 
         # Traditional installation flow
@@ -458,6 +459,7 @@ class InstallationContext:
     def _deploy_to_cefs(
         self,
         staging: StagingDir,
+        installable_name: str,
         source: PathOrString,
         dest: PathOrString,
         do_staging_move=lambda source, dest: source.replace(dest),
@@ -488,10 +490,10 @@ class InstallationContext:
             final_source_path = temp_dest_path
             do_staging_move(source_path, final_source_path)
 
-            installable_info = extract_installable_info_from_path(str(dest), nfs_path)
+            installable_info = create_installable_manifest_entry(installable_name, nfs_path)
             manifest = create_manifest(
                 operation="install",
-                description=f"Created through installation of {dest}",
+                description=f"Created through installation of {installable_name}",
                 contents=[installable_info],
             )
 

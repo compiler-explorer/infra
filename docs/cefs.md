@@ -115,12 +115,16 @@ Once a few of these have been done and we're happy with the results, we set the 
 **Consolidation**: Combine multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits.
 
 **Manifest System**: All CEFS images have a YAML manifest containing:
-- List of all installables and their destination paths
+- List of all installables with their full name and destination paths
 - Git SHA of the producing `ce_install`
 - Command-line that created the image
 - Human-readable description
 - Operation type (install/convert/consolidate)
 - Creation timestamp
+
+Each installable entry in the manifest contains:
+- `name`: Full installable name including version (e.g., "compilers/c++/x86/gcc 10.1.0")
+- `destination`: Installation path (e.g., "/opt/compiler-explorer/gcc-10.1.0")
 
 The manifest enables robust garbage collection by checking if symlinks at each destination still point back to the image. Manifests are written alongside the `.sqfs` file for easy access without mounting.
 

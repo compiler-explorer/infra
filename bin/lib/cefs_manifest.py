@@ -202,3 +202,26 @@ def extract_installable_info_from_path(install_path: str, nfs_path: Path) -> dic
         "target": target,
         "destination": str(nfs_path),
     }
+
+
+def create_installable_manifest_entry(installable_name: str, destination_path: Path) -> dict[str, str]:
+    """Create manifest entry from installable information.
+
+    This is the preferred way to create manifest entries when we have the full
+    installable name, ensuring the name field is unambiguous.
+
+    Args:
+        installable_name: Full installable name including version (e.g., "compilers/c++/x86/gcc 10.1.0")
+        destination_path: Full NFS destination path
+
+    Returns:
+        Dictionary with name and destination fields
+
+    Example:
+        >>> create_installable_manifest_entry("compilers/c++/x86/gcc 10.1.0", Path("/opt/compiler-explorer/gcc-10.1.0"))
+        {"name": "compilers/c++/x86/gcc 10.1.0", "destination": "/opt/compiler-explorer/gcc-10.1.0"}
+    """
+    return {
+        "name": installable_name,
+        "destination": str(destination_path),
+    }

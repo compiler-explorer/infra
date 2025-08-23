@@ -87,7 +87,7 @@ class S3TarballInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.untar_dir, self.install_path)
 
     def __repr__(self) -> str:
         return f"S3TarballInstallable({self.name}, {self.install_path})"
@@ -177,7 +177,7 @@ class NightlyInstallable(Installable):
             for to_remove in all_versions[:-num_to_keep]:
                 self.install_context.remove_dir(to_remove)
 
-            self.install_context.move_from_staging(staging, self.local_path, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.local_path, self.install_path)
             self.install_context.set_link(Path(self.install_path), self.path_name_symlink)
 
     def __repr__(self) -> str:
@@ -257,7 +257,7 @@ class TarballInstallable(Installable):
                 for to_remove in all_versions[:-num_to_keep]:
                     self.install_context.remove_dir(to_remove)
 
-            self.install_context.move_from_staging(staging, self.untar_path, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.untar_path, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
 
@@ -341,7 +341,7 @@ class ZipArchiveInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
 

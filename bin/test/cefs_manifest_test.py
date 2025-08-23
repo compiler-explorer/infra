@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 import yaml
 from lib.cefs_manifest import (
+    create_installable_manifest_entry,
     create_manifest,
     extract_installable_info_from_path,
     generate_cefs_filename,
@@ -80,6 +81,40 @@ class TestCEFSManifest(unittest.TestCase):
             with self.subTest(install_path=install_path):
                 result = extract_installable_info_from_path(install_path, nfs_path)
                 self.assertEqual(result, expected)
+
+    def test_create_installable_manifest_entry(self):
+        """Test creating manifest entry from installable name."""
+        test_cases = [
+            {
+                "installable_name": "compilers/c++/x86/gcc 10.1.0",
+                "destination_path": Path("/opt/compiler-explorer/gcc-10.1.0"),
+                "expected": {
+                    "name": "compilers/c++/x86/gcc 10.1.0",
+                    "destination": "/opt/compiler-explorer/gcc-10.1.0",
+                },
+            },
+            {
+                "installable_name": "libraries/boost 1.84.0",
+                "destination_path": Path("/opt/compiler-explorer/libs/boost_1_84_0"),
+                "expected": {
+                    "name": "libraries/boost 1.84.0",
+                    "destination": "/opt/compiler-explorer/libs/boost_1_84_0",
+                },
+            },
+            {
+                "installable_name": "tools/cmake 3.25.1",
+                "destination_path": Path("/opt/compiler-explorer/cmake-3.25.1"),
+                "expected": {
+                    "name": "tools/cmake 3.25.1",
+                    "destination": "/opt/compiler-explorer/cmake-3.25.1",
+                },
+            },
+        ]
+
+        for case in test_cases:
+            with self.subTest(installable_name=case["installable_name"]):
+                result = create_installable_manifest_entry(case["installable_name"], case["destination_path"])
+                self.assertEqual(result, case["expected"])
 
     @patch("lib.cefs_manifest.subprocess.run")
     def test_get_git_sha_success(self, mock_run):
