@@ -77,7 +77,7 @@ def calculate_squashfs_hash(squashfs_path: Path) -> str:
     file_size = squashfs_path.stat().st_size
     _LOGGER.debug("Calculating hash for %s (size: %d bytes)", squashfs_path, file_size)
     with open(squashfs_path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+        for chunk in iter(lambda: f.read(16 * 1024 * 1024), b""):
             sha256_hash.update(chunk)
     full_hash = sha256_hash.hexdigest()
     truncated_hash = full_hash[:24]
