@@ -6,7 +6,12 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from lib.cefs import (
+    CEFSPaths,
     check_temp_space_available,
+    get_cefs_image_path,
+    get_cefs_mount_path,
+    get_cefs_paths,
+    get_extraction_path_from_symlink,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
@@ -103,6 +108,88 @@ class TestCEFSConsolidation(unittest.TestCase):
             self.assertEqual(unchanged, [])
             self.assertEqual(changed, [path])
 
+    def test_get_cefs_image_path_with_filename(self):
+        """Test CEFS image path generation with filename."""
+        image_dir = Path("/efs/cefs-images")
+        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        result = get_cefs_image_path(image_dir, filename)
+        expected = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        self.assertEqual(result, expected)
+
+    def test_get_cefs_mount_path_with_filename(self):
+        """Test CEFS image path generation with new filename."""
+        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        result = get_cefs_mount_path(Path("/cefs"), filename)
+        expected = Path("/cefs/9d/9da642f654bc890a12345678_gcc-15.1.0")
+
+        self.assertEqual(result, expected)
+
+    @patch("pathlib.Path.glob")
+    def test_parse_cefs_target_with_new_naming(self, mock_glob):
+        """Test parsing CEFS target with new naming convention."""
+        cefs_target = Path("/cefs/9d/9da642f654bc890a12345678")
+        cefs_image_dir = Path("/efs/cefs-images")
+
+        # Mock that there's a matching file
+        mock_glob.return_value = [Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")]
+
+        cefs_image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir)
+
+        expected_path = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+        self.assertEqual(cefs_image_path, expected_path)
+        self.assertFalse(is_consolidated)
+
+    @patch("pathlib.Path.glob")
+    def test_parse_cefs_target_consolidated(self, mock_glob):
+        """Test parsing CEFS target for consolidated image."""
+        cefs_target = Path("/cefs/ab/abcdef1234567890abcdef12/gcc-4.5")
+        cefs_image_dir = Path("/efs/cefs-images")
+
+        # Mock that there's a matching consolidated file
+        mock_glob.return_value = [Path("/efs/cefs-images/ab/abcdef1234567890abcdef12_consolidated.sqfs")]
+
+        cefs_image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir)
+
+        expected_path = Path("/efs/cefs-images/ab/abcdef1234567890abcdef12_consolidated.sqfs")
+        self.assertEqual(cefs_image_path, expected_path)
+        self.assertTrue(is_consolidated)
+
+    def test_get_extraction_path_from_symlink(self):
+        """Test extraction path determination from symlink targets."""
+        test_cases = [
+            (Path("/cefs/ab/abcdef1234567890abcdef12"), Path(".")),
+            (Path("/cefs/ab/abcdef1234567890abcdef12/content"), Path("content")),
+            (Path("/cefs/ab/abcdef1234567890abcdef12/gcc-4.5"), Path("gcc-4.5")),
+            (Path("/cefs/ab/abcdef1234567890abcdef12/libs/boost"), Path("libs/boost")),
+            (Path("/cefs/cd/cdef1234567890123456789/deep/nested/path"), Path("deep/nested/path")),
+        ]
+
+        for symlink_target, expected in test_cases:
+            with self.subTest(symlink_target=str(symlink_target)):
+                result = get_extraction_path_from_symlink(symlink_target)
+                self.assertEqual(result, expected)
+
+    def test_get_cefs_paths(self):
+        """Test the combined get_cefs_paths function."""
+        image_dir = Path("/efs/cefs-images")
+        mount_point = Path("/cefs")
+        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+
+        result = get_cefs_paths(image_dir, mount_point, filename)
+
+        # Verify the result is a CEFSPaths object
+        self.assertIsInstance(result, CEFSPaths)
+
+        # Verify the paths are correct
+        expected_image_path = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+        expected_mount_path = Path("/cefs/9d/9da642f654bc890a12345678_gcc-15.1.0")
+
+        self.assertEqual(result.image_path, expected_image_path)
+        self.assertEqual(result.mount_path, expected_mount_path)
+
 
 class TestCEFSConsolidationIntegration(unittest.TestCase):
     """Integration tests for CEFS consolidation."""
@@ -169,73 +256,6 @@ class TestCEFSConsolidationIntegration(unittest.TestCase):
             # This is the logic from the consolidate command
             subdir_name = input_name.replace("/", "_").replace(" ", "_")
             self.assertEqual(subdir_name, expected_output)
-
-
-class TestCEFSPathParsing(unittest.TestCase):
-    """Test cases for CEFS path parsing function."""
-
-    def setUp(self):
-        self.cefs_image_dir = Path("/efs/cefs-images")
-
-    def test_parse_hierarchical_format(self):
-        """Test parsing /cefs/XX/HASH format."""
-        cefs_target = Path("/cefs/9d/9da642f6a4675f8305f992c02fd9cd019555cbfc2f00c4ba6f8110759aba43f9")
-
-        image_path, is_consolidated = parse_cefs_target(cefs_target, self.cefs_image_dir)
-
-        expected_path = Path(
-            "/efs/cefs-images/9d/9da642f6a4675f8305f992c02fd9cd019555cbfc2f00c4ba6f8110759aba43f9.sqfs"
-        )
-        self.assertEqual(image_path, expected_path)
-        self.assertFalse(is_consolidated)
-
-    def test_parse_consolidated_format(self):
-        """Test parsing /cefs/XX/HASH/subdir format."""
-        cefs_target = Path("/cefs/ab/abcdef123456789/gcc-4.5.4")
-
-        image_path, is_consolidated = parse_cefs_target(cefs_target, self.cefs_image_dir)
-
-        expected_path = Path("/efs/cefs-images/ab/abcdef123456789.sqfs")
-        self.assertEqual(image_path, expected_path)
-        self.assertTrue(is_consolidated)
-
-    def test_parse_deeply_nested_consolidated(self):
-        """Test parsing /cefs/XX/HASH/deep/sub/dir format."""
-        cefs_target = Path("/cefs/cd/cdef456789abc/some-lib/v1.2/bin")
-
-        image_path, is_consolidated = parse_cefs_target(cefs_target, self.cefs_image_dir)
-
-        expected_path = Path("/efs/cefs-images/cd/cdef456789abc.sqfs")
-        self.assertEqual(image_path, expected_path)
-        self.assertTrue(is_consolidated)
-
-    def test_parse_invalid_too_short(self):
-        """Test parsing invalid format with too few components."""
-        cefs_target = Path("/cefs/9d")  # Missing HASH
-
-        with self.assertRaises(ValueError) as cm:
-            parse_cefs_target(cefs_target, self.cefs_image_dir)
-        self.assertIn("Invalid CEFS target format", str(cm.exception))
-
-    def test_parse_invalid_wrong_prefix(self):
-        """Test parsing invalid format with wrong prefix."""
-        cefs_target = Path("/invalid/9d/hash123")
-
-        with self.assertRaises(ValueError) as cm:
-            parse_cefs_target(cefs_target, self.cefs_image_dir)
-        self.assertIn("CEFS target must start with /cefs", str(cm.exception))
-
-    def test_parse_real_gcc_assertions_example(self):
-        """Test with real gcc-assertions symlink target."""
-        cefs_target = Path("/cefs/9d/9da642f6a4675f8305f992c02fd9cd019555cbfc2f00c4ba6f8110759aba43f9")
-
-        image_path, is_consolidated = parse_cefs_target(cefs_target, self.cefs_image_dir)
-
-        expected_path = Path(
-            "/efs/cefs-images/9d/9da642f6a4675f8305f992c02fd9cd019555cbfc2f00c4ba6f8110759aba43f9.sqfs"
-        )
-        self.assertEqual(image_path, expected_path)
-        self.assertFalse(is_consolidated)
 
 
 if __name__ == "__main__":

@@ -14,7 +14,8 @@ Short version - symlink dirs from NFS to `/cefs/HASH`
 
 - Use autofs exactly as [planned for the first cefs attempt](https://github.com/compiler-explorer/infra/pull/798) (already installed in all clusters)
 - Drop the complex "root file system" part (which had issues with simultaneous changes to the filesystem)
-- Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/HASH`
+- Symlink directories from `/opt/compiler-explorer/...` on NFS directly to `/cefs/XX/XXYYZZZ..._descriptive_suffix` (where `XXYYZZZ...` is a 24-character hash, as described below)
+- For every squashfs image, keep a manifest explaining what it is and how it was created
 
 ## Autofs Configuration
 
@@ -78,8 +79,8 @@ The modified script now skips mounting when the destination is already a symlink
 - [x] Write "port" code to move existing images over
 - [x] Update installers to (optionally, based on config) install this way (even works for nightly)
 - [x] CLI commands for setup, conversion, and rollback
+- [x] Test with a single compiler or library
 - [ ] Disable squashing and enable the cefs install
-- [ ] Test with a single compiler or library
 - [ ] Slowly move older things over
 - [ ] Write consolidation tooling and run it
 - [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
@@ -113,6 +114,35 @@ Once a few of these have been done and we're happy with the results, we set the 
 
 **Consolidation**: Combine multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits.
 
-**Garbage Collection**: Implement automated cleanup of unused CEFS images. After conversions, consolidations, or reinstallations, some CEFS images may no longer be referenced by any symlinks. These should be identified and removed to free up disk space. This requires careful verification that images are truly unreferenced before deletion.
+**Manifest System**: All CEFS images have a YAML manifest containing:
+- List of all installables and their destination paths
+- Git SHA of the producing `ce_install`
+- Command-line that created the image
+- Human-readable description
+- Operation type (install/convert/consolidate)
+- Creation timestamp
 
-**Re-consolidation of Sparse Consolidated Images**: As items are updated/reinstalled, consolidated images may become sparse (e.g., if we consolidate X, Y, Z but later Y and Z are reinstalled individually, the consolidated image only serves X). Consider detecting such cases and re-consolidating remaining items to maintain efficiency. This ties into the garbage collection process as the old consolidated image would need cleanup after re-consolidation.
+The manifest enables robust garbage collection by checking if symlinks at each destination still point back to the image. Manifests are written alongside the `.sqfs` file for easy access without mounting.
+
+**Image Structure**:
+- **New installations**: Symlinks point directly to `/cefs/HASH`.
+- **Conversions**: Manifest is written alongside the image file.
+- **Consolidations**: Subdirectories for each consolidated item. Symlinks point to `/cefs/HASH/subdir_name`.
+
+**Improved Naming Convention**: CEFS images use a 24 hexadecimal character (96 bits) hash plus descriptive suffix format:
+- `HASH24_consolidated.sqfs` - for consolidated images
+- `HASH24_converted_path_to_img.sqfs` - for conversions (path components joined with underscores)
+- `HASH24_path_to_root.sqfs` - for regular installs (destination path components joined with underscores)
+
+Examples:
+- `9da642f654bc890a12345678_libs_fusedkernellibrary_Beta-0.1.9.sqfs`
+- `abcdef1234567890abcdef12_consolidated.sqfs`
+- `123456789abcdef012345678_converted_arm_gcc-10.2.0.sqfs`
+
+**Garbage Collection**: Implement automated cleanup of unused CEFS images using the manifest system. The process:
+1. Read `manifest.yaml` from each image directory
+2. For each destination in the manifest contents, check if the symlink points back to this image
+3. If no symlinks reference the image, it can be safely removed
+4. The manifest provides full traceability for debugging and validation
+
+**Re-consolidation of Sparse Consolidated Images**: As items are updated/reinstalled, consolidated images may become sparse (e.g., if we consolidate X, Y, Z but later Y and Z are reinstalled individually, the consolidated image only serves X). The manifest system enables detecting such cases and re-consolidating remaining items to maintain efficiency. This ties into the garbage collection process as the old consolidated image would need cleanup after re-consolidation.

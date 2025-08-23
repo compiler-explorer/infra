@@ -31,6 +31,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.squashfs.compression, "zstd")
         self.assertEqual(config.squashfs.compression_level, 7)
         self.assertEqual(config.squashfs.mksquashfs_path, "/usr/bin/mksquashfs")
+        self.assertEqual(config.squashfs.unsquashfs_path, "/usr/bin/unsquashfs")
 
         # Check cefs defaults
         self.assertFalse(config.cefs.enabled)
@@ -74,6 +75,7 @@ class TestConfig(unittest.TestCase):
                 "compression": "gzip",
                 "compression_level": 9,
                 "mksquashfs_path": "/custom/bin/mksquashfs",
+                "unsquashfs_path": "/custom/bin/unsquashfs",
             },
             "cefs": {
                 "enabled": True,
@@ -93,6 +95,7 @@ class TestConfig(unittest.TestCase):
         self.assertEqual(config.squashfs.compression, "gzip")
         self.assertEqual(config.squashfs.compression_level, 9)
         self.assertEqual(config.squashfs.mksquashfs_path, "/custom/bin/mksquashfs")
+        self.assertEqual(config.squashfs.unsquashfs_path, "/custom/bin/unsquashfs")
 
         # Check cefs values
         self.assertTrue(config.cefs.enabled)
