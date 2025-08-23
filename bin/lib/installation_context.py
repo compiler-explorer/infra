@@ -22,14 +22,18 @@ import yaml
 
 from lib.cefs import (
     backup_and_symlink,
-    calculate_squashfs_hash,
-    copy_to_cefs_atomically,
-    get_cefs_image_path,
-    get_cefs_mount_path,
+    deploy_to_cefs_with_manifest,
+    get_cefs_filename_for_image,
+    get_cefs_paths,
+)
+from lib.cefs_manifest import (
+    create_manifest,
+    extract_installable_info_from_path,
 )
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
+from lib.squashfs import create_squashfs_image
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
@@ -484,6 +488,13 @@ class InstallationContext:
             final_source_path = temp_dest_path
             do_staging_move(source_path, final_source_path)
 
+            installable_info = extract_installable_info_from_path(str(dest), nfs_path)
+            manifest = create_manifest(
+                operation="install",
+                description=f"Created through installation of {dest}",
+                contents=[installable_info],
+            )
+
             # Create temporary squashfs image
             temp_squash_dir = self.config.cefs.local_temp_dir / "squash"
             temp_squash_dir.mkdir(parents=True, exist_ok=True)
@@ -491,34 +502,20 @@ class InstallationContext:
 
             # Create squashfs image from processed content
             _LOGGER.info("Creating squashfs image from %s", final_source_path)
-            subprocess.check_call(
-                [
-                    self.config.squashfs.mksquashfs_path,
-                    str(final_source_path),
-                    str(temp_squash_file),
-                    "-all-root",
-                    "-progress",
-                    "-comp",
-                    self.config.squashfs.compression,
-                    "-Xcompression-level",
-                    str(self.config.squashfs.compression_level),
-                ]
-            )
+            create_squashfs_image(self.config.squashfs, final_source_path, temp_squash_file)
 
-            # Calculate hash and deploy to CEFS
-            hash_value = calculate_squashfs_hash(temp_squash_file)
-            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value)
-            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
+            filename = get_cefs_filename_for_image(temp_squash_file, "install", Path(dest))
+            cefs_paths = get_cefs_paths(self.config.cefs.image_dir, self.config.cefs.mount_point, filename)
 
             # Copy to CEFS images directory if not already there
-            if not cefs_image_path.exists():
-                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_image_path)
-                copy_to_cefs_atomically(temp_squash_file, cefs_image_path)
+            if not cefs_paths.image_path.exists():
+                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_paths.image_path)
+                deploy_to_cefs_with_manifest(temp_squash_file, cefs_paths.image_path, manifest)
             else:
-                _LOGGER.info("CEFS image already exists: %s", cefs_image_path)
+                _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
 
             # Create symlink in NFS
-            backup_and_symlink(nfs_path, cefs_target, self.dry_run)
+            backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run)
 
         finally:
             # Clean up temporary files

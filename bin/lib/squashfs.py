@@ -9,6 +9,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+from lib.config import SquashfsConfig
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -84,6 +86,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
 
     try:
         # Extract squashfs metadata without mounting
+        # TODO make unsquashfs path configurable like all other uses of it.
         result = subprocess.run(
             ["unsquashfs", "-ll", "-d", "", str(img_path)], capture_output=True, text=True, check=True
         )
@@ -186,3 +189,87 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
         _LOGGER.error("✗ Contents mismatch: %d errors found", error_count)
 
     return error_count
+
+
+class SquashfsError(RuntimeError):
+    pass
+
+
+def create_squashfs_image(
+    config_squashfs: SquashfsConfig,
+    source_path: Path,
+    output_path: Path,
+    compression: str | None = None,
+    compression_level: int | None = None,
+    additional_args: list[str] | None = None,
+) -> None:
+    """Create a squashfs image using configured mksquashfs tool.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths and settings
+        source_path: Source directory to compress
+        output_path: Output squashfs file path
+        compression: Compression type (defaults to config.compression)
+        compression_level: Compression level (defaults to config.compression_level)
+        additional_args: Additional arguments to pass to mksquashfs
+
+    Raises:
+        SquashfsError: If mksquashfs command fails
+    """
+    cmd = [
+        config_squashfs.mksquashfs_path,
+        str(source_path),
+        str(output_path),
+        "-all-root",
+        "-progress",
+        "-comp",
+        compression or config_squashfs.compression,
+        "-Xcompression-level",
+        str(compression_level or config_squashfs.compression_level),
+        "-noappend",  # Don't append, create new
+        "-mkfs-time",
+        "0",  # Set filesystem creation time to epoch for deterministic builds
+        "-all-time",
+        "0",  # Set all file timestamps to epoch for deterministic builds
+    ]
+
+    if additional_args:
+        cmd.extend(additional_args)
+
+    _LOGGER.debug("Running mksquashfs command: %s", " ".join(cmd))
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+    if result.returncode != 0:
+        raise SquashfsError(f"mksquashfs of {source_path} failed: {result.stdout.strip()}")
+
+
+def extract_squashfs_image(
+    config_squashfs: SquashfsConfig,
+    squashfs_path: Path,
+    output_dir: Path,
+    extract_path: Path | None = None,
+) -> None:
+    """Extract a squashfs image using configured unsquashfs tool.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths
+        squashfs_path: Path to squashfs file to extract
+        output_dir: Directory to extract to
+        extract_path: Specific path within the archive to extract (optional)
+
+    Raises:
+        SquashfsError: If unsquashfs command fails
+    """
+    cmd = [
+        config_squashfs.unsquashfs_path,
+        "-f",  # Force overwrite
+        "-d",
+        str(output_dir),  # Destination directory
+        str(squashfs_path),
+    ]
+
+    if extract_path and extract_path != Path("."):
+        cmd.append(str(extract_path))
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+    if result.returncode != 0:
+        raise SquashfsError(f"unsquashfs of {squashfs_path} failed: {result.stdout.strip()}")
