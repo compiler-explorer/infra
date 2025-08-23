@@ -100,7 +100,7 @@ class RustInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.install_path)
 
     def __repr__(self) -> str:
         return f"RustInstallable({self.name}, {self.install_path})"
