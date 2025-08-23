@@ -535,6 +535,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
 
     # Check available space
     temp_dir = context.config.cefs.local_temp_dir
+    temp_dir.mkdir(parents=True, exist_ok=True)
     if not check_temp_space_available(temp_dir, required_temp_space):
         available_stat = temp_dir.stat() if temp_dir.exists() else None
         if available_stat:
