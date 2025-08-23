@@ -28,6 +28,7 @@ compilers:
       url: https://ziglang.org/download/{{name}}/zig-x86_64-linux-{{name}}.tar.xz
       targets:
         - 0.14.1
+        - 0.15.1
     nightly:
       if: nightly
       type: restQueryTarballs
