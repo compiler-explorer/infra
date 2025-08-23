@@ -22,6 +22,7 @@ When writing, especially PRs and commit messages:
 - Build lambda package: `make lambda-package`
 - Build compilation lambda package (Node.js): `make compilation-lambda-package`
 - Build events lambda package: `make events-lambda-package`
+- **NEVER USE THE SYSTEM PYTHON** - always use `uv` to invoke python or pytest or to run experiments with python syntax
 
 ## Important Workflow Requirements
 
@@ -33,6 +34,7 @@ When writing, especially PRs and commit messages:
 - **Critical**: After fixing any issues, run `make static-checks` AGAIN. Repeat until it passes completely. Only commit when `make static-checks` runs with zero errors.
 
 ### Correct Commit Workflow
+
 1. Make changes
 2. Run `make static-checks`
 3. If it fails, fix the issues
