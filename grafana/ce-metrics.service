@@ -1,0 +1,22 @@
+[Unit]
+Description=Compiler Explorer Node Exporter
+Documentation=https://github.com/compiler-explorer/ce-metrics
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+ExecStartPre=/etc/grafana/update-metrics.sh
+ExecStart=/usr/local/bin/ce-node-exporter --listen-address=:10242
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/
+
+[Install]
+WantedBy=multi-user.target
