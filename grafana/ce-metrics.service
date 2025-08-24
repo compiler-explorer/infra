@@ -4,8 +4,8 @@ Documentation=https://github.com/compiler-explorer/ce-metrics
 After=network.target
 
 [Service]
-Type=simple
-DynamicUser=yes
+Type=exec
+User=root
 ExecStartPre=/etc/grafana/update-metrics.sh
 ExecStart=/usr/local/bin/ce-node-exporter --listen-address=:10242
 Restart=always
