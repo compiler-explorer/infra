@@ -45,7 +45,7 @@ class LibraryYaml:
         else:
             libraries_for_language[libid] = dict(type="cratesio", build_type="cargo", targets=[libversion])
 
-    def get_ce_properties_for_rust_libraries(self):
+    def get_ce_properties_for_rust_libraries(self) -> str:
         all_ids: list[str] = []
         properties_txt = ""
 
@@ -136,13 +136,13 @@ class LibraryYaml:
 
         return libverprops
 
-    def get_ce_properties_for_cpp_windows_libraries(self, logger):
+    def get_ce_properties_for_cpp_windows_libraries(self, logger) -> str:
         all_ids: list[str] = []
         properties_txt = ""
 
         [_, linux_libraries] = get_properties_compilers_and_libraries("c++", logger, LibraryPlatform.Linux, False)
 
-        reorganised_libs = dict()
+        reorganised_libs: dict[str, set] = dict()
 
         # id's in the yaml file are more unique than the ones in the linux (amazon) properties file (example boost & boost_bin)
         #  so we need to map them to the linux properties file using the .lookupname used in the linux properties file
