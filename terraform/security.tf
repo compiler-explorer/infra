@@ -350,9 +350,12 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
       "sqs:GetQueueAttributes"
     ]
     resources = [
-      module.compilation_lambda_beta.sqs_queue_arn,
-      module.compilation_lambda_staging.sqs_queue_arn,
-      module.compilation_lambda_prod.sqs_queue_arn,
+      module.compilation_lambda_beta.sqs_queue_blue_arn,
+      module.compilation_lambda_beta.sqs_queue_green_arn,
+      module.compilation_lambda_staging.sqs_queue_blue_arn,
+      module.compilation_lambda_staging.sqs_queue_green_arn,
+      module.compilation_lambda_prod.sqs_queue_blue_arn,
+      module.compilation_lambda_prod.sqs_queue_green_arn,
     ]
   }
 }

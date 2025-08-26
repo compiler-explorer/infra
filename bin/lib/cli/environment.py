@@ -8,6 +8,7 @@ from lib.amazon import (
     as_client,
     get_autoscaling_groups_for,
 )
+from lib.blue_green_deploy import BlueGreenDeployment
 from lib.ce_utils import are_you_sure, describe_current_release, set_update_message
 from lib.cli import cli
 from lib.cloudfront_utils import invalidate_cloudfront_distributions
@@ -25,8 +26,6 @@ def environment_status(cfg: Config):
     """Gets the status of an environment."""
     if cfg.env.supports_blue_green:
         # For blue-green environments, show which color is active
-        from lib.blue_green_deploy import BlueGreenDeployment
-
         deployment = BlueGreenDeployment(cfg)
         try:
             active_color = deployment.get_active_color()

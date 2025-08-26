@@ -22,8 +22,12 @@ module "compilation_lambda_example" {
 }
 
 # Example output usage
-output "queue_name" {
-  value = module.compilation_lambda_example.sqs_queue_name
+output "blue_queue_name" {
+  value = module.compilation_lambda_example.sqs_queue_blue_name
+}
+
+output "green_queue_name" {
+  value = module.compilation_lambda_example.sqs_queue_green_name
 }
 
 output "lambda_arn" {

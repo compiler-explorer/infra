@@ -10,6 +10,17 @@ CE_PROP_ENV="--env amazon"
 LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
 LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
+# Detect instance color for blue-green deployment queue routing
+echo "Detecting instance color..."
+INSTANCE_COLOR=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Color 2>/dev/null)
+if [[ -n "$INSTANCE_COLOR" ]]; then
+    echo "Instance color: $INSTANCE_COLOR"
+    INSTANCE_COLOR_ARG="--instance-color ${INSTANCE_COLOR}"
+else
+    echo "No instance color detected, using legacy queue routing"
+    INSTANCE_COLOR_ARG=""
+fi
+
 setup_cgroups
 mount_opt
 mount_nosym
@@ -48,5 +59,6 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     --metrics-port 10241 \
     --loki "http://127.0.0.1:3500" \
     --dist \
+    ${INSTANCE_COLOR_ARG} \
     ${COMPILERS_ARG} \
     ${EXTRA_ARGS}
