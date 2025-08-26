@@ -1,18 +1,35 @@
 # Outputs for compilation Lambda module
 
-output "sqs_queue_id" {
-  description = "SQS queue ID"
-  value       = aws_sqs_queue.compilation_queue.id
+# Blue queue outputs
+output "sqs_queue_blue_id" {
+  description = "Blue SQS queue ID"
+  value       = aws_sqs_queue.compilation_queue_blue.id
 }
 
-output "sqs_queue_arn" {
-  description = "SQS queue ARN"
-  value       = aws_sqs_queue.compilation_queue.arn
+output "sqs_queue_blue_arn" {
+  description = "Blue SQS queue ARN"
+  value       = aws_sqs_queue.compilation_queue_blue.arn
 }
 
-output "sqs_queue_name" {
-  description = "SQS queue name"
-  value       = aws_sqs_queue.compilation_queue.name
+output "sqs_queue_blue_name" {
+  description = "Blue SQS queue name"
+  value       = aws_sqs_queue.compilation_queue_blue.name
+}
+
+# Green queue outputs
+output "sqs_queue_green_id" {
+  description = "Green SQS queue ID"
+  value       = aws_sqs_queue.compilation_queue_green.id
+}
+
+output "sqs_queue_green_arn" {
+  description = "Green SQS queue ARN"
+  value       = aws_sqs_queue.compilation_queue_green.arn
+}
+
+output "sqs_queue_green_name" {
+  description = "Green SQS queue name"
+  value       = aws_sqs_queue.compilation_queue_green.name
 }
 
 output "lambda_function_arn" {

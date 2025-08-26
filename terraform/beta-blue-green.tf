@@ -43,7 +43,7 @@ resource "aws_autoscaling_policy" "beta_blue_compilation_scaling" {
             metric_name = "ApproximateNumberOfMessagesVisible"
             dimensions {
               name  = "QueueName"
-              value = module.compilation_lambda_beta.sqs_queue_name
+              value = module.compilation_lambda_beta.sqs_queue_blue_name
             }
           }
           stat = "Sum"
@@ -114,7 +114,7 @@ resource "aws_autoscaling_policy" "beta_green_compilation_scaling" {
             metric_name = "ApproximateNumberOfMessagesVisible"
             dimensions {
               name  = "QueueName"
-              value = module.compilation_lambda_beta.sqs_queue_name
+              value = module.compilation_lambda_beta.sqs_queue_green_name
             }
           }
           stat = "Sum"

@@ -13,8 +13,16 @@ This Node.js Lambda function handles compilation requests for Compiler Explorer 
 
 The lambda handles two routing strategies:
 
-1. **Queue-based routing**: Sends requests to SQS queues and waits for results via WebSocket
+1. **Queue-based routing**: Routes requests to color-specific SQS queues based on active deployment color and waits for results via WebSocket
 2. **URL forwarding**: Directly forwards requests to environment-specific URLs (Windows, GPU, ARM environments)
+
+### Color-Specific Queue Routing
+
+For blue-green deployment environments, the Lambda uses color-specific queues:
+- Determines the active color from SSM Parameter Store (`/compiler-explorer/{environment}/active-color`)
+- Routes compilation requests to the appropriate colored queue (blue or green)
+- Caches the active color for 30 seconds to optimize performance
+- This prevents queue consumption overlap during blue-green deployments
 
 ## Request Flow
 
@@ -27,7 +35,8 @@ The lambda handles two routing strategies:
 ## Environment Variables
 
 - `TIMEOUT_SECONDS` (default: 60) - Timeout for WebSocket response in seconds
-- `SQS_QUEUE_URL` - URL of the SQS FIFO queue for compilation requests
+- `SQS_QUEUE_URL_BLUE` - URL of the blue SQS FIFO queue for compilation requests
+- `SQS_QUEUE_URL_GREEN` - URL of the green SQS FIFO queue for compilation requests
 - `WEBSOCKET_URL` - URL of the WebSocket endpoint for receiving results
 - `ENVIRONMENT_NAME` - Environment name for DynamoDB routing lookups
 - `COMPILATION_RESULTS_BUCKET` (default: "storage.godbolt.org") - S3 bucket for large results

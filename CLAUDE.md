@@ -407,6 +407,15 @@ After successful deployment, the system automatically runs `compiler-routing upd
 - **Safe**: Deployment continues even if routing update fails (with warning)
 - **Informative**: Shows count of added/updated/deleted routing entries
 
+### Color-Specific Queue Routing
+
+The blue-green deployment system uses color-specific SQS queues to prevent queue consumption overlap:
+
+- **Instance Color Detection**: Instances automatically detect their color from EC2 instance tags (`Color` tag)
+- **Startup Parameter Passing**: `init/start.sh` and `start.ps1` pass `--instance-color` to Node.js when color is detected
+- **Queue Separation**: Blue instances consume from blue queues, green instances consume from green queues
+- **Lambda Routing**: Compilation Lambda routes requests to the active color's queue based on SSM parameter
+
 ### GitHub Notification System
 
 The deployment system includes GitHub notification functionality that automatically notifies PRs and issues when they go live in production.

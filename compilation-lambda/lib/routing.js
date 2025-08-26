@@ -1,37 +1,115 @@
-const { dynamodb, sqs, GetItemCommand, SendMessageCommand } = require('./aws-clients');
+const { dynamodb, sqs, ssm, GetItemCommand, SendMessageCommand, GetParameterCommand } = require('./aws-clients');
 
 // Environment variables - read dynamically to support environment switching in tests
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+
+// Cache for active color (with TTL)
+let activeColorCache = {
+    color: null,
+    timestamp: 0,
+    TTL: 30000 // 30 seconds TTL
+};
 
 function getEnvironmentName() {
     return process.env.ENVIRONMENT_NAME || 'unknown';
 }
 
-function getSqsQueueUrl() {
-    return process.env.SQS_QUEUE_URL || '';
+function getBlueQueueUrl() {
+    return process.env.SQS_QUEUE_URL_BLUE || '';
+}
+
+function getGreenQueueUrl() {
+    return process.env.SQS_QUEUE_URL_GREEN || '';
 }
 
 /**
- * Build a queue URL from the template SQS_QUEUE_URL and a specific queue name
- * @param {string} queueName - Name of the queue to route to
- * @returns {string} Full SQS queue URL
+ * Get the active color (blue/green) from SSM Parameter Store with caching
+ * @returns {Promise<string>} The active color ('blue' or 'green')
  */
-function buildQueueUrl(queueName) {
-    const templateUrl = getSqsQueueUrl();
+async function getActiveColor() {
+    const now = Date.now();
+
+    // Check cache
+    if (activeColorCache.color && (now - activeColorCache.timestamp) < activeColorCache.TTL) {
+        console.info(`Active color cache hit: ${activeColorCache.color}`);
+        return activeColorCache.color;
+    }
+
+    const environmentName = getEnvironmentName();
+    const paramName = `/compiler-explorer/${environmentName}/active-color`;
+
+    try {
+        console.info(`Fetching active color from SSM: ${paramName}`);
+        const response = await ssm.send(new GetParameterCommand({
+            Name: paramName
+        }));
+
+        const color = response.Parameter?.Value || 'blue';
+
+        // Update cache
+        activeColorCache = {
+            color: color,
+            timestamp: now,
+            TTL: activeColorCache.TTL
+        };
+
+        console.info(`Active color from SSM: ${color}`);
+        return color;
+    } catch (error) {
+        console.warn(`Failed to get active color from SSM, defaulting to blue:`, error);
+        return 'blue';
+    }
+}
+
+/**
+ * Get the appropriate SQS queue URL based on active color
+ * @returns {Promise<string>} The SQS queue URL for the active color
+ */
+async function getColoredQueueUrl() {
+    const activeColor = await getActiveColor();
+
+    const queueUrl = activeColor === 'green' ? getGreenQueueUrl() : getBlueQueueUrl();
+
+    if (!queueUrl) {
+        throw new Error(`Queue URL for active color '${activeColor}' not configured in environment variables`);
+    }
+
+    console.info(`Using ${activeColor} queue: ${queueUrl}`);
+    return queueUrl;
+}
+
+/**
+ * Build a queue URL from a template queue URL and a specific queue name
+ * For color-specific queues, this function ensures routing to the active color
+ * @param {string} queueName - Name of the queue to route to
+ * @param {string} activeColor - The active color ('blue' or 'green')
+ * @returns {string} Full SQS queue URL for the active color
+ */
+function buildQueueUrl(queueName, activeColor) {
+    // Get the active color's queue URL as template
+    const templateUrl = activeColor === 'green' ? getGreenQueueUrl() : getBlueQueueUrl();
     if (!templateUrl) {
-        throw new Error('SQS_QUEUE_URL environment variable not set');
+        throw new Error(`Queue URL for active color '${activeColor}' not configured in environment variables`);
     }
 
     // Extract the base URL (everything before the last slash)
     const lastSlashIndex = templateUrl.lastIndexOf('/');
     if (lastSlashIndex === -1) {
-        throw new Error('Invalid SQS_QUEUE_URL format');
+        throw new Error('Invalid queue URL format');
+    }
+
+    const baseUrl = templateUrl.substring(0, lastSlashIndex + 1);
+
+    // If queueName doesn't have a color suffix, add the active color
+    let finalQueueName = queueName;
+    if (!queueName.includes('-blue') && !queueName.includes('-green')) {
+        // Add active color to queue name (e.g., "prod-compilation-queue" -> "prod-compilation-queue-blue")
+        finalQueueName = queueName.replace('.fifo', '') + `-${activeColor}`;
     }
 
     // Ensure queue name has .fifo suffix (all queues in this system are FIFO)
-    const fifoQueueName = queueName.endsWith('.fifo') ? queueName : queueName + '.fifo';
+    const fifoQueueName = finalQueueName.endsWith('.fifo') ? finalQueueName : finalQueueName + '.fifo';
 
-    const baseUrl = templateUrl.substring(0, lastSlashIndex + 1);
     return baseUrl + fifoQueueName;
 }
 
@@ -135,7 +213,8 @@ async function lookupCompilerRouting(compilerId) {
                 // Queue routing - use queueName from DynamoDB to build full queue URL
                 const queueName = item.queueName?.S;
                 if (queueName) {
-                    const queueUrl = buildQueueUrl(queueName);
+                    const activeColor = await getActiveColor();
+                    const queueUrl = buildQueueUrl(queueName, activeColor);
                     const result = {
                         type: 'queue',
                         target: queueUrl,
@@ -147,39 +226,42 @@ async function lookupCompilerRouting(compilerId) {
                     console.info(`Routing lookup complete for compiler: ${compilerId}`);
                     return result;
                 } else {
-                    // Fallback to default queue if no queueName specified
+                    // Fallback to colored queue if no queueName specified
+                    const queueUrl = await getColoredQueueUrl();
                     const result = {
                         type: 'queue',
-                        target: getSqsQueueUrl(),
+                        target: queueUrl,
                         environment: item.environment?.S || ''
                     };
                     // Cache the result
                     routingCache.set(cacheKey, result);
-                    console.info(`Compiler ${compilerId} routed to default queue (no queueName in DynamoDB)`);
+                    console.info(`Compiler ${compilerId} routed to colored queue (no queueName in DynamoDB)`);
                     console.info(`Routing lookup complete for compiler: ${compilerId}`);
                     return result;
                 }
             }
         }
 
-        // No routing found, use default queue
-        console.info(`No routing found for compiler ${compilerId}, using default queue`);
+        // No routing found, use colored queue
+        console.info(`No routing found for compiler ${compilerId}, using colored queue`);
+        const queueUrl = await getColoredQueueUrl();
         const result = {
             type: 'queue',
-            target: getSqsQueueUrl(),
+            target: queueUrl,
             environment: 'unknown'
         };
-        // Cache the default result
+        // Cache the result
         routingCache.set(cacheKey, result);
-        console.info(`Routing lookup complete for compiler: ${compilerId}, using default queue`);
+        console.info(`Routing lookup complete for compiler: ${compilerId}, using colored queue`);
         return result;
 
     } catch (error) {
-        // On any error, fall back to default queue
+        // On any error, fall back to colored queue
         console.warn(`Failed to lookup routing for compiler ${compilerId}:`, error);
+        const queueUrl = await getColoredQueueUrl();
         return {
             type: 'queue',
-            target: getSqsQueueUrl(),
+            target: queueUrl,
             environment: 'unknown'
         };
     }

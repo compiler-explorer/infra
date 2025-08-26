@@ -201,6 +201,13 @@ def blue_green_status(cfg: Config, detailed: bool):
 @click.option(
     "--ignore-hash-mismatch", help="Continue deployment even if files have unexpected hash values", is_flag=True
 )
+@click.option("--skip-compiler-check", help="Skip compiler registration check before switching traffic", is_flag=True)
+@click.option(
+    "--compiler-timeout",
+    type=int,
+    default=600,
+    help="Timeout in seconds for compiler registration check (default: 600)",
+)
 @click.argument("version", required=False)
 @click.pass_obj
 def blue_green_deploy(
@@ -212,6 +219,8 @@ def blue_green_deploy(
     dry_run_notify: bool,
     check_notifications: bool,
     ignore_hash_mismatch: bool,
+    skip_compiler_check: bool,
+    compiler_timeout: int,
     version: str | None,
 ):
     """Deploy to the inactive color using blue-green strategy.
@@ -350,6 +359,8 @@ def blue_green_deploy(
             version=version,
             branch=branch,
             ignore_hash_mismatch=ignore_hash_mismatch,
+            skip_compiler_check=skip_compiler_check,
+            compiler_timeout=compiler_timeout,
         )
         print("\nDeployment successful!")
         print("Run 'ce blue-green rollback' if you need to revert")
