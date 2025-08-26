@@ -99,6 +99,71 @@ def construct_environment_url(compiler_id: str, environment: str, is_cmake: bool
     return f"{base_url}/api/compiler/{compiler_id}/{endpoint}"
 
 
+def fetch_compilers_from_instance(instance_ip: str, environment: str) -> dict[str, dict[str, Any]]:
+    """Fetch compiler data directly from a specific instance via private IP.
+
+    Args:
+        instance_ip: Private IP address of the instance to query
+        environment: Environment name for building the correct API path
+
+    Returns:
+        Dictionary mapping compiler IDs to their configuration data
+
+    Raises:
+        CompilerRoutingError: If API cannot be fetched or parsed
+    """
+    try:
+        # Build API URL based on environment, querying the specific instance
+        if environment == "prod":
+            api_path = "/api/compilers"
+        else:
+            api_path = f"/{environment}/api/compilers"
+
+        url = f"http://{instance_ip}{api_path}?fields=id,exe"
+
+        LOGGER.info(f"Fetching compiler list from instance {instance_ip}: {url}")
+
+        headers = {"Accept": "application/json"}
+
+        # Single attempt with timeout - if this instance is unreachable, we fail fast
+        # The calling code should have already verified instance health
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        compilers_list = response.json()
+
+        # Convert list to dictionary keyed by compiler ID, filtering out /dev/null compilers
+        compilers = {}
+        skipped_count = 0
+
+        for compiler in compilers_list:
+            compiler_id = compiler.get("id", "")
+            if not compiler_id:
+                continue
+
+            # Skip /dev/null compilers (broken or disabled compilers)
+            exe_path = compiler.get("exe", "")
+            if exe_path == "/dev/null":
+                skipped_count += 1
+                continue
+
+            compilers[compiler_id] = compiler
+
+        LOGGER.info(
+            f"Fetched {len(compilers)} compilers from instance {instance_ip} (skipped {skipped_count} /dev/null)"
+        )
+        return compilers
+
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Failed to fetch compilers from instance {instance_ip}: {e}"
+        LOGGER.error(error_msg)
+        raise CompilerRoutingError(error_msg) from e
+    except (ValueError, KeyError) as e:
+        error_msg = f"Failed to parse compiler data from instance {instance_ip}: {e}"
+        LOGGER.error(error_msg)
+        raise CompilerRoutingError(error_msg) from e
+
+
 def fetch_discovery_compilers(environment: str, version: str | None = None) -> dict[str, dict[str, Any]]:
     """Fetch compiler data from the live API endpoints.
 
@@ -448,7 +513,7 @@ def batch_delete_items(items_to_delete: set[str]) -> None:
 
 
 def update_compiler_routing_table(
-    environment: str, version: str | None = None, dry_run: bool = False
+    environment: str, version: str | None = None, dry_run: bool = False, instance_ips: list[str] | None = None
 ) -> dict[str, int]:
     """Update the compiler routing table for a specific environment.
 
@@ -456,6 +521,7 @@ def update_compiler_routing_table(
         environment: Environment name (prod, staging, beta, etc.)
         version: Version string (unused, kept for compatibility)
         dry_run: If True, only show what would be changed without making changes
+        instance_ips: Optional list of instance private IPs to query directly instead of public API
 
     Returns:
         Dictionary with counts of changes made: {"added": N, "updated": N, "deleted": N}
@@ -466,8 +532,15 @@ def update_compiler_routing_table(
     try:
         LOGGER.info(f"Updating compiler routing table for {environment}")
 
-        # Fetch current compiler data from API
-        current_compilers = fetch_discovery_compilers(environment)
+        # Fetch current compiler data from API or directly from instances
+        if instance_ips:
+            # Query compilers directly from one of the provided instances
+            # Use the first available IP - they should all have the same compiler set
+            current_compilers = fetch_compilers_from_instance(instance_ips[0], environment)
+            LOGGER.info(f"Fetched compilers directly from instance {instance_ips[0]} (bypassing public API)")
+        else:
+            # Use public API as fallback
+            current_compilers = fetch_discovery_compilers(environment)
 
         # Get existing routing table contents for this environment only
         existing_table = get_current_routing_table(environment)

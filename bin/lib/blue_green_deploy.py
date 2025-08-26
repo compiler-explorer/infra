@@ -12,6 +12,7 @@ from botocore.exceptions import ClientError
 from lib.amazon import elb_client, get_current_key, set_current_key, ssm_client
 from lib.aws_utils import (
     get_asg_info,
+    get_instance_private_ip,
     get_target_health_counts,
     protect_asg_capacity,
     reset_asg_min_size,
@@ -501,7 +502,20 @@ class BlueGreenDeployment:
             # Step 6: Update compiler routing table
             print(f"\nStep 6: Updating compiler routing table for {self.env}")
             try:
-                result = update_compiler_routing_table(self.env)
+                # Get private IPs of new instances to query directly (bypassing ALB propagation delay)
+                instance_ips = []
+                for instance_id in instances:
+                    private_ip = get_instance_private_ip(instance_id)
+                    if private_ip:
+                        instance_ips.append(private_ip)
+
+                if instance_ips:
+                    print("  Querying compiler list directly from new instances (bypassing ALB)")
+                    result = update_compiler_routing_table(self.env, instance_ips=instance_ips)
+                else:
+                    print("  Warning: No instance IPs found, falling back to public API")
+                    result = update_compiler_routing_table(self.env)
+
                 print(
                     f"  Compiler routing updated: {result['added']} added, {result['updated']} updated, {result['deleted']} deleted"
                 )
