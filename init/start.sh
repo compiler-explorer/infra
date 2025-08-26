@@ -12,7 +12,8 @@ LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
 
 # Detect instance color for blue-green deployment queue routing
 echo "Detecting instance color..."
-INSTANCE_COLOR=$(curl -s http://169.254.169.254/latest/meta-data/tags/instance/Color 2>/dev/null)
+METADATA_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+INSTANCE_COLOR=$(curl -s -H "X-aws-ec2-metadata-token: $METADATA_TOKEN" http://169.254.169.254/latest/meta-data/tags/instance/Color 2>/dev/null)
 if [[ -n "$INSTANCE_COLOR" ]]; then
     echo "Instance color: $INSTANCE_COLOR"
     INSTANCE_COLOR_ARG="--instance-color ${INSTANCE_COLOR}"
