@@ -114,6 +114,21 @@ The CE instances need to be updated to:
 - Track Lambda routing decisions in CloudWatch
 - Verify auto-scaling responds to correct queue metrics
 
+## Deployment Safety Improvements
+
+To address timing issues where instances appeared healthy but compilers weren't ready:
+
+### Compiler Registration Check
+- Added Step 3.5 to blue-green deployments
+- Verifies `/api/compilers` endpoint returns expected number of compilers
+- Configurable via `--skip-compiler-check` and `--compiler-timeout` flags
+- Prevents traffic switching to instances with incomplete compiler discovery
+
+### Integration with Colored Queues
+- Ensures instances are ready to consume from their assigned colored queue
+- Prevents premature scaling based on queue metrics
+- Complements the color separation strategy by ensuring readiness
+
 ## Benefits
 
 1. **Clean Separation**: Each deployment color processes its own queue
@@ -121,3 +136,4 @@ The CE instances need to be updated to:
 3. **Predictable Scaling**: Auto-scaling based on color-specific metrics
 4. **Safe Deployments**: No risk of mixed code versions processing same requests
 5. **Gradual Migration**: System works with existing infrastructure during transition
+6. **Ready State Verification**: Compiler registration checks ensure instances are ready before receiving traffic

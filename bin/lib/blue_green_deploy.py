@@ -9,7 +9,7 @@ from typing import Any
 
 from botocore.exceptions import ClientError
 
-from lib.amazon import elb_client, get_current_key, ssm_client
+from lib.amazon import elb_client, get_current_key, set_current_key, ssm_client
 from lib.aws_utils import (
     get_asg_info,
     get_target_health_counts,
@@ -28,6 +28,7 @@ from lib.compiler_routing import update_compiler_routing_table
 from lib.deployment_utils import (
     check_instance_health,
     print_target_group_diagnostics,
+    wait_for_compiler_registration,
     wait_for_http_health,
     wait_for_instances_healthy,
 )
@@ -97,8 +98,6 @@ class BlueGreenDeployment:
         if version_was_changed and original_version_key:
             print(f"Rolling back version to {original_version_key}")
             try:
-                from lib.amazon import set_current_key
-
                 set_current_key(self.cfg, original_version_key)
                 print("✓ Version rolled back successfully")
             except Exception as e:
@@ -227,6 +226,8 @@ class BlueGreenDeployment:
         version: str | None = None,
         branch: str | None = None,
         ignore_hash_mismatch: bool = False,
+        skip_compiler_check: bool = False,
+        compiler_timeout: int = 600,
     ) -> None:
         """Perform a blue-green deployment with optional version setting."""
         active_color = self.get_active_color()
@@ -462,6 +463,28 @@ class BlueGreenDeployment:
                     # Cleanup will happen in finally block
                     return
 
+            # Step 3.5: Check compiler registration (unless skipped)
+            if not skip_compiler_check:
+                print("\nStep 3.5: Checking compiler registration and discovery")
+                try:
+                    wait_for_compiler_registration(instances, self.env, timeout=compiler_timeout)
+                    print("✅ All instances have completed compiler registration!")
+                except TimeoutError:
+                    LOGGER.error("Compiler registration check timed out")
+                    LOGGER.error("Instances may not be ready to handle compilation requests")
+
+                    if skip_confirmation:
+                        LOGGER.error("Deployment aborted due to compiler registration timeout")
+                        raise RuntimeError("Compiler registration timeout") from None
+                    else:
+                        LOGGER.warning("Do you want to proceed anyway? Instances may not be fully ready.")
+                        response = input("Continue with deployment? (yes/no): ").strip().lower()
+                        if response not in ["yes", "y"]:
+                            print("Deployment cancelled due to compiler registration issues.")
+                            return
+            else:
+                print("\nStep 3.5: Skipping compiler registration check (--skip-compiler-check)")
+
             # Step 4: Switch traffic to new color
             print(f"\nStep 4: Switching traffic to {inactive_color}")
             self.switch_target_group(inactive_color)
@@ -510,8 +533,6 @@ class BlueGreenDeployment:
                 if version_was_changed and original_version_key:
                     print(f"\nRolling back version to {original_version_key}")
                     try:
-                        from lib.amazon import set_current_key
-
                         set_current_key(self.cfg, original_version_key)
                         print("✓ Version rolled back successfully")
                     except Exception as e:

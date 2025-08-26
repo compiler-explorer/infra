@@ -492,8 +492,6 @@ def list_paths(context: CliContext, filter_: list[str], as_json: bool, absolute:
             print(f"{installable.name}: {path}")
 
     if as_json:
-        import json
-
         print(json.dumps(paths, indent=2))
 
 
