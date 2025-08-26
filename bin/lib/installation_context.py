@@ -279,6 +279,11 @@ class InstallationContext:
 
     def _fix_single_permission(self, file_path: Path) -> None:
         """Fix permissions for a single file or directory."""
+        # Skip symlinks - they don't have their own permissions and
+        # chmod would affect the target, which may not exist (broken symlinks)
+        if file_path.is_symlink():
+            return
+
         current_mode = file_path.stat().st_mode
         current_perms = stat.S_IMODE(current_mode)
 
