@@ -36,7 +36,7 @@ module "oidc_repo_brontosource" {
   source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1"
 
   openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
-  repo                        = "brontosource/bin"
+  repo                        = "brontosource/repo"
   role_name                   = "brontosource"
 
   default_conditions = ["allow_main"]
