@@ -39,7 +39,7 @@ module "oidc_repo_brontosource" {
   repo                        = "brontosource/repo"
   role_name                   = "brontosource"
 
-  default_conditions = ["allow_main"]
+  default_conditions = ["allow_all"]
 }
 
 data "aws_iam_policy_document" "s3_bronto" {
