@@ -895,6 +895,7 @@ libraries:
       - 4.6.00
       - 4.6.01
       - 4.6.02
+      - 4.7.00
       type: github
     kumi:
       check_file: README.md
