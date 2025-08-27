@@ -41,9 +41,9 @@ $nodeargs = @(
     "--hostname-for-logging", $HostnameForLogging
 )
 
-if ($InstanceColor) {
-    $nodeargs += @("--instance-color", $InstanceColor)
-}
+# if ($InstanceColor) {
+    # $nodeargs += @("--instance-color", $InstanceColor)
+# }
 
 $nodeargs += @(
     "--env", "amazonwin",
