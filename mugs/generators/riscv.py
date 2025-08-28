@@ -25,8 +25,8 @@ class RISCVMugGenerator(ABIMugGenerator):
             code_examples=[],  # No longer used
             table_headers=["a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7"],  # 8 argument registers
             table_rows=[
-                TableRow(cells=["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]),
-                TableRow(cells=["this", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th"]),
+                TableRow(label="func()", cells=["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]),
+                TableRow(label="obj.f()", cells=["this", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th"]),
             ],
             info_items=[
                 ("Return values", "a0 (+ a1 for 128-bit)"),

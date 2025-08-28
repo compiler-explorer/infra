@@ -25,6 +25,7 @@ class ContentBlock:
 
 @dataclass
 class TableRow:
+    label: str
     cells: list[str]
 
 
