@@ -47,10 +47,10 @@ class LayoutEngine:
         table_font_size = max_table_font_size
         while table_font_size >= min_table_font_size:
             # Measure the row labels at this font size
-            label_width = int(max([
-                self.measurer.measure_text(row.label, table_font_size).width
-                for row in layout.table_rows
-            ]) + TABLE_CELL_PADDING * 2)
+            label_width = int(
+                max([self.measurer.measure_text(row.label, table_font_size).width for row in layout.table_rows])
+                + TABLE_CELL_PADDING * 2
+            )
 
             # Calculate column width for register columns
             register_col_width = (content_width - label_width) // num_registers

@@ -25,8 +25,12 @@ class X86MugGenerator(ABIMugGenerator):
             code_examples=[],  # No longer used
             table_headers=["AX", "BX", "CX", "DI", "SI", "R8", "R9", "R10", "R11"],  # Register names
             table_rows=[
-                TableRow(label="Func()", cells=["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]),  # Function parameters
-                TableRow(label="v.Fn()", cells=["v", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]),  # Member parameters
+                TableRow(
+                    label="Func()", cells=["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th"]
+                ),  # Function parameters
+                TableRow(
+                    label="v.Fn()", cells=["v", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th"]
+                ),  # Member parameters
             ],
             info_items=[
                 ("Return values", "Same as arguments"),
@@ -44,7 +48,8 @@ class X86MugGenerator(ABIMugGenerator):
             table_row_padding=SYSTEMV_TABLE_ROW_PADDING,  # Padding above/below text in table rows
             footer_spacing=STANDARD_FOOTER_SPACING,
         )
-    
+
+
 class ArmMugGenerator(ABIMugGenerator):
     """Arm Go mug generator."""
 
@@ -57,8 +62,12 @@ class ArmMugGenerator(ABIMugGenerator):
             code_examples=[],  # No longer used
             table_headers=["R0", "R1", "R2", "R3", "...", "R12", "R13", "R14", "R15"],  # Register names
             table_rows=[
-                TableRow(label="Func()", cells=["1st", "2nd", "3rd", "4th", "...", "13th", "14th", "15th", "16th"]),  # Function parameters
-                TableRow(label="v.Fn()", cells=["v", "1st", "2nd", "3rd", "...", "12th", "13th", "14th", "15th"]),  # Member parameters
+                TableRow(
+                    label="Func()", cells=["1st", "2nd", "3rd", "4th", "...", "13th", "14th", "15th", "16th"]
+                ),  # Function parameters
+                TableRow(
+                    label="v.Fn()", cells=["v", "1st", "2nd", "3rd", "...", "12th", "13th", "14th", "15th"]
+                ),  # Member parameters
             ],
             info_items=[
                 ("Return values", "Same as arguments"),
@@ -79,7 +88,8 @@ class ArmMugGenerator(ABIMugGenerator):
             table_row_padding=SYSTEMV_TABLE_ROW_PADDING,  # Padding above/below text in table rows
             footer_spacing=STANDARD_FOOTER_SPACING,
         )
-    
+
+
 class RiscvMugGenerator(ABIMugGenerator):
     """Riscv Go mug generator."""
 
@@ -92,8 +102,12 @@ class RiscvMugGenerator(ABIMugGenerator):
             code_examples=[],  # No longer used
             table_headers=["X10", "X11", "...", "X17", "X8", "X9", "X18", "...", "X23"],  # Register names
             table_rows=[
-                TableRow(label="Func()", cells=["1st", "2nd", "...", "8th", "9th", "10th", "11th", "...", "16th"]),  # Function parameters
-                TableRow(label="v.Fn()", cells=["v", "1st", "...", "7th", "8th", "9th", "10th", "...", "15th"]),  # Member parameters
+                TableRow(
+                    label="Func()", cells=["1st", "2nd", "...", "8th", "9th", "10th", "11th", "...", "16th"]
+                ),  # Function parameters
+                TableRow(
+                    label="v.Fn()", cells=["v", "1st", "...", "7th", "8th", "9th", "10th", "...", "15th"]
+                ),  # Member parameters
             ],
             info_items=[
                 ("Return values", "Same as arguments"),

@@ -25,8 +25,8 @@ class ARM32EABIMugGenerator(ABIMugGenerator):
             code_examples=[],  # No longer used
             table_headers=["R0", "R1", "R2", "R3"],  # 4 registers for integer args
             table_rows=[
-                TableRow(cells=["1st", "2nd", "3rd", "4th"]),
-                TableRow(cells=["this", "1st", "2nd", "3rd"]),
+                TableRow(label="func()", cells=["1st", "2nd", "3rd", "4th"]),
+                TableRow(label="obj.f()", cells=["this", "1st", "2nd", "3rd"]),
             ],
             info_items=[
                 ("Return values", "R0 (+ R1 for 64-bit)"),
