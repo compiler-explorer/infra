@@ -234,7 +234,7 @@ def create_info_table(
 
         # Register highlighting with single regex
         # Find all registers with one regex
-        register_pattern = r"\b([RE]?([ABCD]X|[DS]I|[BSI]P)|f?[RFXVastf]\d+|[XYZ]MM\d+|SP|ra|sp|fp)\b|(XMM#)"
+        register_pattern = r"\b([RE]?([ABCD]X|[DS]I|[BSI]P)|f?[RFXVastf]\d+|[XYZ]MM\d+|SP|ra|sp|fp|x\d+|a[0-7]|s[0-9]|s1[01]|t[0-6]|fa[0-7]|ft[0-9]|ft1[01]|fs[0-9]|fs1[01]|S\d+|D\d+)\b|(XMM#)"
 
         last_end = 0
         for match in re.finditer(register_pattern, content):
