@@ -546,7 +546,7 @@ def describe_cefs_image(hash_value: str, cefs_mount_point: Path = Path("/cefs"))
 
 
 class CEFSState:
-    """Track CEFS images and their references for garbage collection."""
+    """Track CEFS images and their references for garbage collection using manifests."""
 
     def __init__(self, nfs_dir: Path, cefs_image_dir: Path):
         """Initialize CEFS state tracker.
@@ -557,46 +557,14 @@ class CEFSState:
         """
         self.nfs_dir = nfs_dir
         self.cefs_image_dir = cefs_image_dir
-        self.referenced_hashes: set[str] = set()  # All CEFS hashes referenced by symlinks
-        self.all_cefs_images: dict[str, Path] = {}  # hash -> image_path
+        self.all_cefs_images: dict[str, Path] = {}  # filename_stem -> image_path
+        self.image_references: dict[str, list[Path]] = {}  # filename_stem -> list of expected symlink destinations
+        self.referenced_images: set[str] = set()  # Set of filename_stems that have valid symlinks
 
-    def scan_installables(self, installables: list[Installable]) -> None:
-        """Scan all installables and their .bak versions for CEFS references.
+    def scan_cefs_images_with_manifests(self) -> None:
+        """Scan all CEFS images and read their manifests to determine expected references."""
+        from .cefs_manifest import read_manifest_from_alongside
 
-        Args:
-            installables: List of Installable objects to check
-        """
-        for installable in installables:
-            # Check main path
-            path = self.nfs_dir / installable.install_path
-            self._check_path_for_cefs(path, installable.name)
-
-            # Check .bak path
-            bak_path = path.with_name(path.name + ".bak")
-            self._check_path_for_cefs(bak_path, f"{installable.name}.bak")
-
-    def _check_path_for_cefs(self, path: Path, name: str) -> None:
-        """Check if a path is a CEFS symlink and track the reference.
-
-        Args:
-            path: Path to check for CEFS symlink
-            name: Human-readable name for logging
-        """
-        if path.is_symlink():
-            try:
-                target = str(path.readlink())
-                if target.startswith("/cefs/"):
-                    # Extract hash from /cefs/XX/HASH[/optional/subdir]
-                    parts = target.split("/")
-                    if len(parts) >= 4:
-                        hash_value = parts[3]
-                        self.referenced_hashes.add(hash_value)
-                        _LOGGER.debug("Found CEFS reference: %s -> %s", name, hash_value)
-            except OSError:
-                _LOGGER.error("Could not read symlink: %s", path)
-
-    def scan_cefs_images(self) -> None:
-        """Scan all CEFS images in the image directory."""
         if not self.cefs_image_dir.exists():
             _LOGGER.warning("CEFS images directory does not exist: %s", self.cefs_image_dir)
             return
@@ -604,9 +572,112 @@ class CEFSState:
         for subdir in self.cefs_image_dir.iterdir():
             if subdir.is_dir():
                 for image_file in subdir.glob("*.sqfs"):
-                    # Extract hash from filename (removing .sqfs)
-                    hash_value = image_file.stem
-                    self.all_cefs_images[hash_value] = image_file
+                    # Store by filename stem (includes hash and suffix)
+                    filename_stem = image_file.stem
+                    self.all_cefs_images[filename_stem] = image_file
+
+                    # Try to read manifest to get expected destinations
+                    try:
+                        manifest = read_manifest_from_alongside(image_file)
+                        if manifest and "contents" in manifest:
+                            destinations = []
+                            for content in manifest["contents"]:
+                                if "destination" in content:
+                                    dest_path = Path(content["destination"])
+                                    destinations.append(dest_path)
+                            self.image_references[filename_stem] = destinations
+                            _LOGGER.debug("Image %s expects %d symlinks", filename_stem, len(destinations))
+                        else:
+                            # No manifest or no contents - fallback to old-style checking
+                            self.image_references[filename_stem] = []
+                            _LOGGER.debug("No manifest for %s, will check with fallback", filename_stem)
+                    except Exception as e:
+                        _LOGGER.warning("Failed to read manifest for %s: %s", image_file, e)
+                        self.image_references[filename_stem] = []
+
+    def check_symlink_references(self) -> None:
+        """Check if expected symlinks exist and point to the correct CEFS images."""
+        for filename_stem, expected_destinations in self.image_references.items():
+            # For images with manifests, check if symlinks exist at expected destinations
+            if expected_destinations:
+                for dest_path in expected_destinations:
+                    if self._check_symlink_points_to_image(dest_path, filename_stem):
+                        self.referenced_images.add(filename_stem)
+                        break  # At least one valid reference found
+            else:
+                # Fallback: scan for any symlinks pointing to this image (for older images without manifests)
+                if self._find_any_symlink_to_image(filename_stem):
+                    self.referenced_images.add(filename_stem)
+
+    def _check_symlink_points_to_image(self, dest_path: Path, filename_stem: str) -> bool:
+        """Check if a symlink at dest_path points to the given CEFS image.
+
+        Args:
+            dest_path: Expected destination path for symlink
+            filename_stem: The filename stem (hash + suffix) of the CEFS image
+
+        Returns:
+            True if symlink exists and points to this image
+        """
+        full_path = dest_path if dest_path.is_absolute() else self.nfs_dir / dest_path.relative_to(Path("/"))
+
+        if full_path.is_symlink():
+            try:
+                target = full_path.readlink()
+                if str(target).startswith("/cefs/"):
+                    # Extract the hash/filename from the symlink target
+                    # Format: /cefs/XX/HASH_suffix or /cefs/XX/HASH_suffix/subdir
+                    parts = str(target).split("/")
+                    if len(parts) >= 4:
+                        # The filename part is at index 3
+                        target_filename = parts[3]
+                        # Check if this matches our image's filename stem
+                        if target_filename == filename_stem:
+                            _LOGGER.debug("Found valid symlink: %s -> %s", full_path, target)
+                            return True
+            except OSError as e:
+                _LOGGER.debug("Could not read symlink %s: %s", full_path, e)
+        return False
+
+    def _find_any_symlink_to_image(self, filename_stem: str) -> bool:
+        """Fallback method: scan filesystem for any symlink pointing to this image.
+
+        This is used for images without manifests.
+
+        Args:
+            filename_stem: The filename stem to search for
+
+        Returns:
+            True if any symlink points to this image
+        """
+        # This is expensive but only used for images without manifests
+        # Check common locations first
+        for subdir in self.nfs_dir.iterdir():
+            if subdir.is_symlink():
+                try:
+                    target = str(subdir.readlink())
+                    if "/cefs/" in target and filename_stem in target:
+                        return True
+                except OSError:
+                    continue
+
+            # Check .bak versions too
+            bak_path = subdir.with_name(subdir.name + ".bak")
+            if bak_path.is_symlink():
+                try:
+                    target = str(bak_path.readlink())
+                    if "/cefs/" in target and filename_stem in target:
+                        return True
+                except OSError:
+                    continue
+        return False
+
+    def scan_installables(self, installables: list[Installable]) -> None:
+        """Legacy method kept for compatibility - now just logs a warning.
+
+        The new implementation uses manifests instead of scanning installables.
+        """
+        _LOGGER.warning("scan_installables called but manifest-based GC doesn't use it")
 
     def find_unreferenced_images(self) -> list[Path]:
         """Find all CEFS images that are not referenced by any symlink.
@@ -615,8 +686,8 @@ class CEFSState:
             List of Path objects for unreferenced CEFS images
         """
         unreferenced = []
-        for hash_value, image_path in self.all_cefs_images.items():
-            if hash_value not in self.referenced_hashes:
+        for filename_stem, image_path in self.all_cefs_images.items():
+            if filename_stem not in self.referenced_images:
                 unreferenced.append(image_path)
         return unreferenced
 
@@ -637,7 +708,7 @@ class CEFSState:
 
         return {
             "total_images": len(self.all_cefs_images),
-            "referenced_images": len(self.referenced_hashes),
+            "referenced_images": len(self.referenced_images),
             "unreferenced_images": len(unreferenced_images),
             "space_to_reclaim": space_to_reclaim,
         }

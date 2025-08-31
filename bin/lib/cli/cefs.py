@@ -687,12 +687,13 @@ def consolidate(context: CliContext, max_size: str, min_items: int, defer_backup
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
 def gc(context: CliContext, force: bool):
-    """Garbage collect unreferenced CEFS images.
+    """Garbage collect unreferenced CEFS images using manifests.
 
-    Scans all installables (including nightly/non-free) and their .bak versions
-    to find all referenced CEFS images, then identifies and removes unreferenced ones.
+    Reads manifest files from CEFS images to determine expected symlink locations,
+    then checks if those symlinks exist and point back to the images.
+    Images without valid references are marked for deletion.
     """
-    _LOGGER.info("Starting CEFS garbage collection...")
+    _LOGGER.info("Starting CEFS garbage collection using manifest system...")
 
     # Track errors throughout the function
     error_count = 0
@@ -703,18 +704,13 @@ def gc(context: CliContext, force: bool):
         cefs_image_dir=context.config.cefs.image_dir,
     )
 
-    # Get ALL installables (bypassing if: conditions)
-    _LOGGER.info("Getting all installables...")
-    all_installables = context.get_installables([], bypass_enable_check=True)
-    _LOGGER.info("Found %d installables to check", len(all_installables))
+    # Scan CEFS images and read manifests
+    _LOGGER.info("Scanning CEFS images directory and reading manifests...")
+    state.scan_cefs_images_with_manifests()
 
-    # Scan for CEFS references
-    _LOGGER.info("Scanning installables for CEFS references...")
-    state.scan_installables(all_installables)
-
-    # Scan CEFS images directory
-    _LOGGER.info("Scanning CEFS images directory...")
-    state.scan_cefs_images()
+    # Check which images have valid symlink references
+    _LOGGER.info("Checking symlink references...")
+    state.check_symlink_references()
 
     # Get summary
     summary = state.get_summary()
@@ -746,12 +742,32 @@ def gc(context: CliContext, force: bool):
             error_count += 1
             _LOGGER.error("Could not stat image: %s", image_path)
 
-        # Get hash from filename for description
-        hash_value = image_path.stem
-        contents = describe_cefs_image(hash_value, context.config.cefs.mount_point)
-        if contents:
-            contents_str = f" [contains: {', '.join(contents)}]"
-        else:
+        # Try to get description from manifest
+        from lib.cefs_manifest import read_manifest_from_alongside
+
+        contents_str = ""
+        try:
+            manifest = read_manifest_from_alongside(image_path)
+            if manifest and "contents" in manifest:
+                names = []
+                for content in manifest["contents"]:
+                    if "name" in content:
+                        names.append(content["name"])
+                if names:
+                    contents_str = f" [contains: {', '.join(names[:3])}{'...' if len(names) > 3 else ''}]"
+        except Exception:
+            # Fallback to trying to mount and list contents
+            filename_stem = image_path.stem
+            # Extract just the hash part for describe_cefs_image
+            hash_part = filename_stem.split("_")[0] if "_" in filename_stem else filename_stem
+            try:
+                contents = describe_cefs_image(hash_part, context.config.cefs.mount_point)
+                if contents:
+                    contents_str = f" [contains: {', '.join(contents[:3])}{'...' if len(contents) > 3 else ''}]"
+            except Exception:
+                pass
+
+        if not contents_str:
             contents_str = " [contents unknown]"
 
         _LOGGER.info("  %s (%s)%s", image_path, size_str, contents_str)
@@ -779,6 +795,14 @@ def gc(context: CliContext, force: bool):
             deleted_count += 1
             deleted_size += size
             _LOGGER.info("Deleted: %s", image_path)
+            # Also delete the manifest file if it exists
+            manifest_path = image_path.with_suffix(".yaml")
+            if manifest_path.exists():
+                try:
+                    manifest_path.unlink()
+                    _LOGGER.debug("Deleted manifest: %s", manifest_path)
+                except OSError as e:
+                    _LOGGER.warning("Failed to delete manifest %s: %s", manifest_path, e)
         except OSError as e:
             error_count += 1
             _LOGGER.error("Failed to delete %s: %s", image_path, e)

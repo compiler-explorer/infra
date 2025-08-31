@@ -418,116 +418,7 @@ class TestCEFSState(unittest.TestCase):
         """Test CEFSState initialization."""
         self.assertEqual(self.state.nfs_dir, self.nfs_dir)
         self.assertEqual(self.state.cefs_image_dir, self.cefs_image_dir)
-        self.assertEqual(len(self.state.referenced_hashes), 0)
-        self.assertEqual(len(self.state.all_cefs_images), 0)
-
-    @patch("pathlib.Path.is_symlink")
-    @patch("pathlib.Path.readlink")
-    def test_check_path_for_cefs_symlink(self, mock_readlink, mock_is_symlink):
-        """Test CEFS symlink detection."""
-        mock_is_symlink.return_value = True
-        mock_readlink.return_value = Path("/cefs/ab/abc123def456")
-
-        test_path = Path("/opt/compiler-explorer/gcc-11.1.0")
-        self.state._check_path_for_cefs(test_path, "gcc-11.1.0")
-
-        self.assertIn("abc123def456", self.state.referenced_hashes)
-
-    @patch("pathlib.Path.is_symlink")
-    @patch("pathlib.Path.readlink")
-    def test_check_path_for_non_cefs_symlink(self, mock_readlink, mock_is_symlink):
-        """Test non-CEFS symlink handling."""
-        mock_is_symlink.return_value = True
-        mock_readlink.return_value = Path("/somewhere/else")
-
-        test_path = Path("/opt/compiler-explorer/some-tool")
-        self.state._check_path_for_cefs(test_path, "some-tool")
-
-        self.assertEqual(len(self.state.referenced_hashes), 0)
-
-    @patch("pathlib.Path.is_symlink")
-    def test_check_path_for_regular_file(self, mock_is_symlink):
-        """Test regular file/directory handling."""
-        mock_is_symlink.return_value = False
-
-        test_path = Path("/opt/compiler-explorer/regular-dir")
-        self.state._check_path_for_cefs(test_path, "regular-dir")
-
-        self.assertEqual(len(self.state.referenced_hashes), 0)
-
-    @patch("pathlib.Path.is_symlink")
-    @patch("pathlib.Path.readlink")
-    def test_check_path_for_broken_symlink(self, mock_readlink, mock_is_symlink):
-        """Test broken symlink handling."""
-        mock_is_symlink.return_value = True
-        mock_readlink.side_effect = OSError("No such file or directory")
-
-        test_path = Path("/opt/compiler-explorer/broken-link")
-        self.state._check_path_for_cefs(test_path, "broken-link")
-
-        self.assertEqual(len(self.state.referenced_hashes), 0)
-
-    def test_scan_installables(self):
-        """Test scanning installables for CEFS references."""
-        # Create mock installables
-        mock_installable1 = Mock()
-        mock_installable1.name = "gcc-11.1.0"
-        mock_installable1.install_path = "gcc-11.1.0"
-
-        mock_installable2 = Mock()
-        mock_installable2.name = "libraries/c++/boost-1.82.0"
-        mock_installable2.install_path = "libraries/c++/boost-1.82.0"
-
-        installables = [mock_installable1, mock_installable2]
-
-        with patch.object(self.state, "_check_path_for_cefs") as mock_check:
-            self.state.scan_installables(installables)
-
-            # Should check both main path and .bak path for each installable
-            self.assertEqual(mock_check.call_count, 4)
-
-            # Verify the correct paths were checked
-            mock_check.assert_any_call(self.nfs_dir / "gcc-11.1.0", "gcc-11.1.0")
-            mock_check.assert_any_call(self.nfs_dir / "gcc-11.1.0.bak", "gcc-11.1.0.bak")
-            mock_check.assert_any_call(self.nfs_dir / "libraries/c++/boost-1.82.0", "libraries/c++/boost-1.82.0")
-            mock_check.assert_any_call(
-                self.nfs_dir / "libraries/c++/boost-1.82.0.bak", "libraries/c++/boost-1.82.0.bak"
-            )
-
-    @patch("pathlib.Path.exists")
-    @patch("pathlib.Path.iterdir")
-    def test_scan_cefs_images(self, mock_iterdir, mock_exists):
-        """Test scanning CEFS images directory."""
-        mock_exists.return_value = True
-
-        # Mock directory structure
-        subdir1 = Mock()
-        subdir1.is_dir.return_value = True
-        subdir1.glob.return_value = [
-            Mock(stem="abc123def456", spec=Path),
-            Mock(stem="def456ghi789", spec=Path),
-        ]
-
-        subdir2 = Mock()
-        subdir2.is_dir.return_value = True
-        subdir2.glob.return_value = [Mock(stem="ghi789jkl012", spec=Path)]
-
-        mock_iterdir.return_value = [subdir1, subdir2]
-
-        self.state.scan_cefs_images()
-
-        self.assertEqual(len(self.state.all_cefs_images), 3)
-        self.assertIn("abc123def456", self.state.all_cefs_images)
-        self.assertIn("def456ghi789", self.state.all_cefs_images)
-        self.assertIn("ghi789jkl012", self.state.all_cefs_images)
-
-    @patch("pathlib.Path.exists")
-    def test_scan_cefs_images_missing_dir(self, mock_exists):
-        """Test scanning when CEFS images directory doesn't exist."""
-        mock_exists.return_value = False
-
-        self.state.scan_cefs_images()
-
+        self.assertEqual(len(self.state.referenced_images), 0)
         self.assertEqual(len(self.state.all_cefs_images), 0)
 
     def test_find_unreferenced_images(self):
@@ -538,7 +429,7 @@ class TestCEFSState(unittest.TestCase):
             "def456": Path("/efs/cefs-images/de/def456.sqfs"),
             "ghi789": Path("/efs/cefs-images/gh/ghi789.sqfs"),
         }
-        self.state.referenced_hashes = {"abc123", "def456"}
+        self.state.referenced_images = {"abc123", "def456"}
 
         unreferenced = self.state.find_unreferenced_images()
 
@@ -554,7 +445,7 @@ class TestCEFSState(unittest.TestCase):
             "def456": Path("/efs/cefs-images/de/def456.sqfs"),
             "ghi789": Path("/efs/cefs-images/gh/ghi789.sqfs"),
         }
-        self.state.referenced_hashes = {"abc123", "def456"}
+        self.state.referenced_images = {"abc123", "def456"}
 
         # Mock file sizes
         mock_stat.return_value.st_size = 1024 * 1024  # 1MB
