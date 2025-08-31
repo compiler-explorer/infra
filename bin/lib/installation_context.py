@@ -11,8 +11,9 @@ import subprocess
 import tempfile
 import time
 import uuid
+from collections.abc import Collection, Iterator, Sequence
 from pathlib import Path
-from typing import IO, Collection, Dict, Iterator, List, Optional, Sequence, Union
+from typing import IO
 
 import requests
 import requests.adapters
@@ -21,18 +22,22 @@ import yaml
 
 from lib.cefs import (
     backup_and_symlink,
-    calculate_squashfs_hash,
-    copy_to_cefs_atomically,
-    get_cefs_image_path,
-    get_cefs_mount_path,
+    deploy_to_cefs_with_manifest,
+    get_cefs_filename_for_image,
+    get_cefs_paths,
+)
+from lib.cefs_manifest import (
+    create_installable_manifest_entry,
+    create_manifest,
 )
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.library_platform import LibraryPlatform
+from lib.squashfs import create_squashfs_image
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
-PathOrString = Union[Path, str]
+PathOrString = Path | str
 
 
 def is_windows():
@@ -56,14 +61,14 @@ class InstallationContext:
         dry_run: bool,
         is_nightly_enabled: bool,
         only_nightly: bool,
-        cache: Optional[Path],
+        cache: Path | None,
         yaml_dir: Path,
         allow_unsafe_ssl: bool,
         resource_dir: Path,
         keep_staging: bool,
         check_user: str,
         platform: LibraryPlatform,
-        config: Optional["Config"] = None,
+        config: Config | None = None,
     ):
         self._destination = destination
         self._prior_installation = self.destination
@@ -120,7 +125,7 @@ class InstallationContext:
                     subprocess.check_call(["chmod", "-R", "u+w", staging_dir.path])
                 shutil.rmtree(staging_dir.path, ignore_errors=True)
 
-    def fetch_rest_query(self, url: str) -> Dict:
+    def fetch_rest_query(self, url: str) -> dict:
         _LOGGER.debug("Fetching %s", url)
         return yaml.load(self.fetcher.get(url).text, Loader=ConfigSafeLoader)
 
@@ -160,7 +165,7 @@ class InstallationContext:
         fd.flush()
 
     def fetch_url_and_pipe_to(
-        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Union[Path, str] = ".", agent: str = ""
+        self, staging: StagingDir, url: str, command: Sequence[str], subdir: Path | str = ".", agent: str = ""
     ) -> None:
         untar_dir = staging.path / subdir
         untar_dir.mkdir(parents=True, exist_ok=True)
@@ -177,10 +182,10 @@ class InstallationContext:
             with tempfile.NamedTemporaryFile(suffix=".ps1", delete=False) as script_file:
                 # first to extract the tar file
                 script_file.write(
-                    f'{" ".join(command)} -o"{os.path.dirname(temp_file_path)}" {temp_file_path}\n'.encode("utf-8")
+                    f'{" ".join(command)} -o"{os.path.dirname(temp_file_path)}" {temp_file_path}\n'.encode()
                 )
                 # the tar file was automatically suffixed with ~ by 7z, extract that tar to the untar_dir
-                script_file.write(f'7z x -ttar -o"{untar_dir}" {temp_file_path}~\n'.encode("utf-8"))
+                script_file.write(f'7z x -ttar -o"{untar_dir}" {temp_file_path}~\n'.encode())
 
             subprocess.check_call(["pwsh", script_file.name], cwd=str(untar_dir))
 
@@ -196,7 +201,7 @@ class InstallationContext:
                 _LOGGER.info("Piping to %s", shlex.join(command))
                 subprocess.check_call(command, stdin=fd, cwd=str(untar_dir))
 
-    def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Optional[Path] = None) -> None:
+    def stage_command(self, staging: StagingDir, command: Sequence[str], cwd: Path | None = None) -> None:
         _LOGGER.info("Staging with %s", shlex.join(command))
         env = os.environ.copy()
         env["CE_STAGING_DIR"] = str(staging.path)
@@ -239,7 +244,7 @@ class InstallationContext:
     def glob(self, pattern: str) -> Collection[str]:
         return [os.path.relpath(x, str(self.destination)) for x in glob.glob(str(self.destination / pattern))]
 
-    def remove_dir(self, directory: Union[str, Path]) -> None:
+    def remove_dir(self, directory: str | Path) -> None:
         if self.dry_run:
             _LOGGER.info("Would remove directory %s but in dry-run mode", directory)
         else:
@@ -274,6 +279,11 @@ class InstallationContext:
 
     def _fix_single_permission(self, file_path: Path) -> None:
         """Fix permissions for a single file or directory."""
+        # Skip symlinks - they don't have their own permissions and
+        # chmod would affect the target, which may not exist (broken symlinks)
+        if file_path.is_symlink():
+            return
+
         current_mode = file_path.stat().st_mode
         current_perms = stat.S_IMODE(current_mode)
 
@@ -296,8 +306,9 @@ class InstallationContext:
     def move_from_staging(
         self,
         staging: StagingDir,
+        installable_name: str,
         source: PathOrString,
-        dest: Optional[PathOrString] = None,
+        dest: PathOrString | None = None,
         do_staging_move=lambda source, dest: source.replace(dest),
     ) -> None:
         dest = dest or source
@@ -309,7 +320,7 @@ class InstallationContext:
         # Check if CEFS is enabled and should be used for this installation
         if self.config and self.config.cefs.enabled:
             _LOGGER.info("Installing via CEFS: %s -> %s", source, dest)
-            self._deploy_to_cefs(staging, source, dest, do_staging_move)
+            self._deploy_to_cefs(staging, installable_name, source, dest, do_staging_move)
             return
 
         # Traditional installation flow
@@ -353,7 +364,7 @@ class InstallationContext:
                 _LOGGER.warning("Moving old destination back")
                 existing_dir_rename.replace(dest_path)
 
-    def compare_against_staging(self, staging: StagingDir, source_str: str, dest_str: Optional[str] = None) -> bool:
+    def compare_against_staging(self, staging: StagingDir, source_str: str, dest_str: str | None = None) -> bool:
         dest_str = dest_str or source_str
         source = staging.path / source_str
         dest = self.destination / dest_str
@@ -365,7 +376,7 @@ class InstallationContext:
             _LOGGER.warning("Contents differ")
         return result == 0
 
-    def check_output(self, args: List[str], env: Optional[dict] = None, stderr_on_stdout=False) -> str:
+    def check_output(self, args: list[str], env: dict | None = None, stderr_on_stdout=False) -> str:
         args = args[:]
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
@@ -397,13 +408,13 @@ class InstallationContext:
 
         return fulloutput
 
-    def check_call(self, args: List[str], env: Optional[dict] = None) -> None:
+    def check_call(self, args: list[str], env: dict | None = None) -> None:
         args = args[:]
         args[0] = str(self.destination / args[0])
         _LOGGER.debug("Executing %s in %s", args, self.destination)
         subprocess.check_call(args, cwd=str(self.destination), env=env, stdin=subprocess.DEVNULL)
 
-    def strip_exes(self, staging: StagingDir, paths: Union[bool, List[str]]) -> None:
+    def strip_exes(self, staging: StagingDir, paths: bool | list[str]) -> None:
         if isinstance(paths, bool):
             if not paths:
                 return
@@ -423,7 +434,7 @@ class InstallationContext:
         # Deliberately ignore errors
         subprocess.call(["strip"] + to_strip)
 
-    def run_script(self, staging: StagingDir, from_path: Union[str, Path], lines: List[str]) -> None:
+    def run_script(self, staging: StagingDir, from_path: str | Path, lines: list[str]) -> None:
         from_path = Path(from_path)
         if len(lines) > 0:
             _LOGGER.info("Running script")
@@ -453,6 +464,7 @@ class InstallationContext:
     def _deploy_to_cefs(
         self,
         staging: StagingDir,
+        installable_name: str,
         source: PathOrString,
         dest: PathOrString,
         do_staging_move=lambda source, dest: source.replace(dest),
@@ -483,6 +495,13 @@ class InstallationContext:
             final_source_path = temp_dest_path
             do_staging_move(source_path, final_source_path)
 
+            installable_info = create_installable_manifest_entry(installable_name, nfs_path)
+            manifest = create_manifest(
+                operation="install",
+                description=f"Created through installation of {installable_name}",
+                contents=[installable_info],
+            )
+
             # Create temporary squashfs image
             temp_squash_dir = self.config.cefs.local_temp_dir / "squash"
             temp_squash_dir.mkdir(parents=True, exist_ok=True)
@@ -490,34 +509,21 @@ class InstallationContext:
 
             # Create squashfs image from processed content
             _LOGGER.info("Creating squashfs image from %s", final_source_path)
-            subprocess.check_call(
-                [
-                    self.config.squashfs.mksquashfs_path,
-                    str(final_source_path),
-                    str(temp_squash_file),
-                    "-all-root",
-                    "-progress",
-                    "-comp",
-                    self.config.squashfs.compression,
-                    "-Xcompression-level",
-                    str(self.config.squashfs.compression_level),
-                ]
-            )
+            create_squashfs_image(self.config.squashfs, final_source_path, temp_squash_file)
 
-            # Calculate hash and deploy to CEFS
-            hash_value = calculate_squashfs_hash(temp_squash_file)
-            cefs_image_path = get_cefs_image_path(self.config.cefs.image_dir, hash_value)
-            cefs_target = get_cefs_mount_path(self.config.cefs.mount_point, hash_value)
+            filename = get_cefs_filename_for_image(temp_squash_file, "install", Path(dest))
+            cefs_paths = get_cefs_paths(self.config.cefs.image_dir, self.config.cefs.mount_point, filename)
 
             # Copy to CEFS images directory if not already there
-            if not cefs_image_path.exists():
-                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_image_path)
-                copy_to_cefs_atomically(temp_squash_file, cefs_image_path)
+            if not cefs_paths.image_path.exists():
+                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_paths.image_path)
+                deploy_to_cefs_with_manifest(temp_squash_file, cefs_paths.image_path, manifest)
             else:
-                _LOGGER.info("CEFS image already exists: %s", cefs_image_path)
+                _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
 
             # Create symlink in NFS
-            backup_and_symlink(nfs_path, cefs_target, self.dry_run)
+            # TODO: Add defer_cleanup parameter to install command to speed up bulk installations
+            backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
 
         finally:
             # Clean up temporary files

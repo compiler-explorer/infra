@@ -1,8 +1,8 @@
 # Main configuration for compilation Lambda module
 
-# SQS FIFO Queue for compilation requests
-resource "aws_sqs_queue" "compilation_queue" {
-  name                        = "${var.environment}-compilation-queue.fifo"
+# Color-specific SQS FIFO Queues for blue-green deployments
+resource "aws_sqs_queue" "compilation_queue_blue" {
+  name                        = "${var.environment}-compilation-queue-blue.fifo"
   fifo_queue                  = true
   content_based_deduplication = false
   message_retention_seconds   = var.sqs_message_retention_seconds
@@ -11,6 +11,21 @@ resource "aws_sqs_queue" "compilation_queue" {
   tags = merge({
     Environment = var.environment
     Purpose     = "compilation-requests"
+    Color       = "blue"
+  }, var.tags)
+}
+
+resource "aws_sqs_queue" "compilation_queue_green" {
+  name                        = "${var.environment}-compilation-queue-green.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = false
+  message_retention_seconds   = var.sqs_message_retention_seconds
+  visibility_timeout_seconds  = var.sqs_visibility_timeout_seconds
+
+  tags = merge({
+    Environment = var.environment
+    Purpose     = "compilation-requests"
+    Color       = "green"
   }, var.tags)
 }
 
@@ -54,11 +69,14 @@ resource "aws_lambda_function" "compilation" {
 
   environment {
     variables = {
-      SQS_QUEUE_URL    = aws_sqs_queue.compilation_queue.id
-      WEBSOCKET_URL    = var.websocket_url
-      RETRY_COUNT      = var.lambda_retry_count
-      TIMEOUT_SECONDS  = var.lambda_timeout_seconds
-      ENVIRONMENT_NAME = var.environment
+      SQS_QUEUE_URL_BLUE         = aws_sqs_queue.compilation_queue_blue.id
+      SQS_QUEUE_URL_GREEN        = aws_sqs_queue.compilation_queue_green.id
+      WEBSOCKET_URL              = var.websocket_url
+      RETRY_COUNT                = var.lambda_retry_count
+      TIMEOUT_SECONDS            = var.lambda_timeout_seconds
+      ENVIRONMENT_NAME           = var.environment
+      COMPILATION_RESULTS_BUCKET = var.compilation_results_bucket
+      COMPILATION_RESULTS_PREFIX = var.compilation_results_prefix
     }
   }
 

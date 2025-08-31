@@ -70,10 +70,10 @@
   <text x="135" y="528.0" font-family="DejaVu Sans Mono"
         font-size="54" font-weight="bold" fill="#000000">Special regs</text>
   <text x="582" y="528.0" font-family="DejaVu Sans Mono" font-size="54">
-<tspan font-weight="bold" fill="#67c52a">X8</tspan><tspan fill="#000000"> indirect, </tspan><tspan font-weight="bold" fill="#67c52a">X29</tspan><tspan fill="#000000"> FP</tspan>
+<tspan font-weight="bold" fill="#67c52a">X8</tspan><tspan fill="#000000"> indirect, </tspan><tspan font-weight="bold" fill="#67c52a">X29</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">FP</tspan>
   </text>
   <text x="582" y="585.0" font-family="DejaVu Sans Mono" font-size="54">
-<tspan font-weight="bold" fill="#67c52a">X30</tspan><tspan fill="#000000"> LR, </tspan><tspan font-weight="bold" fill="#67c52a">SP</tspan><tspan fill="#000000"> stack</tspan>
+<tspan font-weight="bold" fill="#67c52a">X30</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">LR</tspan><tspan fill="#000000">, </tspan><tspan font-weight="bold" fill="#67c52a">SP</tspan><tspan fill="#000000"> stack</tspan>
   </text>
   <text x="135" y="653.0" font-family="DejaVu Sans Mono"
         font-size="54" font-weight="bold" fill="#000000">FP args</text>

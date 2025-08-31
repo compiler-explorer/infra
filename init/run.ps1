@@ -4,7 +4,8 @@ param(
     $LogPort,
     $CeEnv,
     $HostnameForLogging,
-    $SMBServer
+    $SMBServer,
+    $InstanceColor = $null
 )
 
 function MountZ {
@@ -28,7 +29,7 @@ MountZ
 $env:NODE_ENV = "production"
 $env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
 
-$nodeargs = (
+$nodeargs = @(
     "--max_old_space_size=6000", "--", "app.js",
 #    "--debug", "--prop-debug",
     "--dist",
@@ -37,7 +38,14 @@ $nodeargs = (
     "--suppress-console-log",
     "--log-host", $LogHost,
     "--log-port", $LogPort,
-    "--hostname-for-logging", $HostnameForLogging,
+    "--hostname-for-logging", $HostnameForLogging
+)
+
+# if ($InstanceColor) {
+    # $nodeargs += @("--instance-color", $InstanceColor)
+# }
+
+$nodeargs += @(
     "--env", "amazonwin",
     "--env", $CeEnv,
     "--language", "c",

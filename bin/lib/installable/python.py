@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import re
 import shutil
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Union
+from typing import Any
 
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
@@ -18,8 +19,8 @@ def is_virtualenv(path: Path) -> bool:
 def find_and_replace_paths(dest_path: Path, source_path: Path) -> None:
     """Replace old virtualenv paths with new paths in all relevant files"""
     # Find and replace old virtualenv path with new
-    bin_files: List[Path]
-    record_files: List[Path]
+    bin_files: list[Path]
+    record_files: list[Path]
 
     # Find files in bin directory
     bin_dir = dest_path / "bin"
@@ -34,7 +35,7 @@ def find_and_replace_paths(dest_path: Path, source_path: Path) -> None:
     dest_path_bytes = bytes(str(dest_path), "ascii")
 
     # Check all files for the source path
-    files_to_modify: List[Path] = []
+    files_to_modify: list[Path] = []
     for file_path in bin_files + record_files:
         content = file_path.read_bytes()
         if source_path_bytes in content:
@@ -100,7 +101,7 @@ def fix_pth_files(dest_path: Path, source_path: Path, dest_path_str: str) -> Non
             # Replace the path
             content = content.replace(source_path_str, dest_path_str + "/")
             file_path.write_text(content)
-        except (IOError, UnicodeDecodeError):
+        except (OSError, UnicodeDecodeError):
             continue
 
 
@@ -122,7 +123,7 @@ def fix_symlinks(dest_path: Path) -> None:
                 path.symlink_to(new_target)
 
 
-def do_mv(source: Union[str, Path], dest: Union[str, Path]) -> None:
+def do_mv(source: str | Path, dest: str | Path) -> None:
     """Move a Python virtualenv from source to dest, updating all references"""
     dest_path = Path(dest).absolute()
     source_path = Path(source).absolute()
@@ -149,10 +150,10 @@ def do_mv(source: Union[str, Path], dest: Union[str, Path]) -> None:
 
 
 class PipInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path: str = self.config_get("dir")
-        self.package: Union[str, List[str]] = self.config_get("package")
+        self.package: str | list[str] = self.config_get("package")
         self.python: str = self.config_get("python")
 
     def stage(self, staging: StagingDir) -> None:
@@ -174,7 +175,7 @@ class PipInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path, do_staging_move=do_mv)
+            self.install_context.move_from_staging(staging, self.name, self.install_path, do_staging_move=do_mv)
 
     def resolve_dependencies(self, resolver: Callable[[str], str]) -> None:
         self.python = resolver(self.python)

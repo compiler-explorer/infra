@@ -4,9 +4,10 @@ import logging
 import shlex
 import subprocess
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any
 
 from lib import amazon
 from lib.installable.archives import NonFreeS3TarballInstallable
@@ -80,7 +81,7 @@ _SHIM_SHELL_FUNCS: dict[str, Callable[..., str]] = {
 
 
 class EdgCompilerInstallable(NonFreeS3TarballInstallable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self._scraper = self.config_get("scraper")
         self._macro_gen = self.config_get("macro_gen", "")
@@ -241,7 +242,7 @@ class EdgCompilerInstallable(NonFreeS3TarballInstallable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.untar_dir, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.untar_dir, self.install_path)
 
     def __repr__(self) -> str:
         return f"EdgCompilerInstallable({self.name}, {self.install_path})"

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 from enum import Enum
-from typing import Optional, Tuple
 
 from attr import dataclass
 
@@ -13,7 +14,7 @@ class Hash:
 
 
 class VersionSource(Enum):
-    value: Tuple[int, str]  # type: ignore[assignment]
+    value: tuple[int, str]  # type: ignore[assignment]
     TRAVIS = (0, "tr")
     GITHUB = (1, "gh")
 
@@ -54,4 +55,4 @@ class Release:
     info_key: str
     size: int
     hash: Hash
-    static_key: Optional[str] = None
+    static_key: str | None = None

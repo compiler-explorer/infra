@@ -1,7 +1,6 @@
 """SVG generation functions for mug layouts."""
 
 import re
-from typing import List, Optional, Tuple
 
 import cairosvg
 
@@ -16,10 +15,11 @@ from core.constants import (
     TABLE_CELL_PADDING,
     TEXT_VERTICAL_CENTER_OFFSET,
 )
+from core.data_structures import TableRow
 from core.text_measurement import PILTextMeasurer
 
 
-def svg_to_png(svg_path: str, png_path: Optional[str] = None, dpi: int = DEFAULT_DPI) -> str:
+def svg_to_png(svg_path: str, png_path: str | None = None, dpi: int = DEFAULT_DPI) -> str:
     """Convert SVG to PNG using cairosvg."""
     if png_path is None:
         png_path = svg_path.replace(".svg", ".png")
@@ -34,14 +34,14 @@ def svg_to_png(svg_path: str, png_path: Optional[str] = None, dpi: int = DEFAULT
 
 
 def render_info_items(
-    info_items: List[Tuple[str, List[Tuple[str, bool]]]],
+    info_items: list[tuple[str, list[tuple[str, bool]]]],
     table_x: int,
     info_y: int,
     font_family: str,
     text_size: int,
     text_color: str,
     ce_green: str,
-) -> Tuple[str, int]:
+) -> tuple[str, int]:
     """Render info items with register highlighting using tspan elements."""
     svg = ""
     current_y = info_y
@@ -115,9 +115,8 @@ def create_table_row(
 
 
 def create_horizontal_table(
-    headers: List[str],
-    rows: List[List[str]],
-    row_labels: List[str],  # Add row labels parameter
+    headers: list[str],
+    rows: list[TableRow],
     table_x: int,
     table_y: int,
     col_width: int,
@@ -163,11 +162,11 @@ def create_horizontal_table(
         label_x = table_x + label_width // 2  # Center in label column
         label_y = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
         svg += f"""  <text x="{label_x}" y="{label_y}" font-family="{font_family}"
-        font-size="{text_size}" font-weight="bold" fill="{text_color}" text-anchor="middle">{row_labels[row_idx]}</text>
+        font-size="{text_size}" font-weight="bold" fill="{text_color}" text-anchor="middle">{row_data.label}</text>
 """
 
         # Row data - centered in each column
-        for col_idx, cell_data in enumerate(row_data):
+        for col_idx, cell_data in enumerate(row_data.cells):
             x_pos = table_x + label_width + col_idx * col_width + col_width // 2  # Center position
             y_pos = y + row_height // 2 + text_size // TEXT_VERTICAL_CENTER_OFFSET
 
@@ -185,7 +184,7 @@ def create_horizontal_table(
 
 
 def create_info_table(
-    rows: List[Tuple[str, str]],  # (label, content) pairs
+    rows: list[tuple[str, str]],  # (label, content) pairs
     table_x: int,
     table_y: int,
     table_width: int,
@@ -235,7 +234,7 @@ def create_info_table(
 
         # Register highlighting with single regex
         # Find all registers with one regex
-        register_pattern = r"\b(RAX|RBX|RCX|RDX|RSI|RDI|RBP|RSP|R\d+|XMM\d+|X\d+|V\d+|SP)\b|(XMM#)"
+        register_pattern = r"\b([RE]?([ABCD]X|[DS]I|[BSI]P)|f?[RFXVastf]\d+|[XYZ]MM\d+|SP|FP|LR|PC|ra|sp|fp|x\d+|a[0-7]|s[0-9]|s1[01]|t[0-6]|fa[0-7]|ft[0-9]|ft1[01]|fs[0-9]|fs1[01]|S\d+|D\d+)\b|(XMM#)"
 
         last_end = 0
         for match in re.finditer(register_pattern, content):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 from lib.installable.installable import Installable
 from lib.installation_context import InstallationContext
@@ -10,7 +10,7 @@ from lib.staging import StagingDir
 
 
 class ScriptInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         self.install_path_symlink = self.config_get("symlink", False)
@@ -43,7 +43,7 @@ class ScriptInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.install_path)
             if self.install_path_symlink:
                 self.install_context.set_link(Path(self.install_path), self.install_path_symlink)
 

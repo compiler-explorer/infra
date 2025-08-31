@@ -22,6 +22,7 @@ When writing, especially PRs and commit messages:
 - Build lambda package: `make lambda-package`
 - Build compilation lambda package (Node.js): `make compilation-lambda-package`
 - Build events lambda package: `make events-lambda-package`
+- **NEVER USE THE SYSTEM PYTHON** - always use `uv` to invoke python or pytest or to run experiments with python syntax
 
 ## Important Workflow Requirements
 
@@ -33,6 +34,7 @@ When writing, especially PRs and commit messages:
 - **Critical**: After fixing any issues, run `make static-checks` AGAIN. Repeat until it passes completely. Only commit when `make static-checks` runs with zero errors.
 
 ### Correct Commit Workflow
+
 1. Make changes
 2. Run `make static-checks`
 3. If it fails, fix the issues
@@ -44,8 +46,10 @@ When writing, especially PRs and commit messages:
 
 - Python formatting: Black with 120 char line length
 - Use type hints for Python code (mypy for validation)
-  - Use `typing.Any` instead of builtin `any` for type annotations
-  - Import types from `typing` module (e.g., `List`, `Dict`, `Optional`, `Any`)
+  - All Python files must include `from __future__ import annotations` at the top (after docstring)
+  - Use modern Python 3.9+ typing syntax: `list[str]`, `dict[str, Any]`, `str | None` instead of `Optional[str]`
+  - Only import `Any` from `typing` module when needed; use built-in types otherwise
+  - Union types: use `X | Y` syntax instead of `Union[X, Y]`
 - Follow shell best practices (shellcheck enforced)
 - No unused imports or variables (autoflake enforced)
 - Error handling: Use appropriate error classes and logging
@@ -402,6 +406,15 @@ After successful deployment, the system automatically runs `compiler-routing upd
 - **Environment-specific**: Only updates routing for the deployed environment
 - **Safe**: Deployment continues even if routing update fails (with warning)
 - **Informative**: Shows count of added/updated/deleted routing entries
+
+### Color-Specific Queue Routing
+
+The blue-green deployment system uses color-specific SQS queues to prevent queue consumption overlap:
+
+- **Instance Color Detection**: Instances automatically detect their color from EC2 instance tags (`Color` tag)
+- **Startup Parameter Passing**: `init/start.sh` and `start.ps1` pass `--instance-color` to Node.js when color is detected
+- **Queue Separation**: Blue instances consume from blue queues, green instances consume from green queues
+- **Lambda Routing**: Compilation Lambda routes requests to the active color's queue based on SSM parameter
 
 ### GitHub Notification System
 

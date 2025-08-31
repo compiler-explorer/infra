@@ -4,7 +4,7 @@ This Terraform module creates the infrastructure for Lambda-based compilation en
 
 ## Features
 
-- **Lambda Function**: Python 3.12 function to handle compilation requests
+- **Lambda Function**: Node.js 22.x function to handle compilation requests
 - **SQS FIFO Queue**: Reliable message queuing for compilation requests
 - **ALB Integration**: Target group and optional listener rules for request routing
 - **CloudWatch Logs**: Centralized logging with configurable retention
@@ -89,6 +89,8 @@ resource "aws_autoscaling_policy" "compilation_scaling" {
 | lambda_timeout | Lambda function timeout in seconds | `number` | `120` | no |
 | lambda_retry_count | Number of WebSocket retry attempts | `string` | `"2"` | no |
 | lambda_timeout_seconds | WebSocket response timeout in seconds | `string` | `"90"` | no |
+| compilation_results_bucket | S3 bucket for storing large compilation results | `string` | `"storage.godbolt.org"` | no |
+| compilation_results_prefix | S3 prefix for compilation results | `string` | `"cache/"` | no |
 
 ## Outputs
 

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import json
 import logging
 import urllib.parse
 import urllib.request
-from typing import List
 
 LOGGER = logging.getLogger(__name__)
 
@@ -13,7 +14,7 @@ NOW_LIVE_LABEL = "live"
 NOW_LIVE_MESSAGE = "This is now live"
 
 
-def post(entity: str, token: str, query: dict = None, dry_run=False) -> dict:
+def post(entity: str, token: str, query: dict | None = None, dry_run=False) -> dict:
     try:
         if query is None:
             query = {}
@@ -39,7 +40,7 @@ def post(entity: str, token: str, query: dict = None, dry_run=False) -> dict:
         raise RuntimeError(f"Error while posting {entity}") from e
 
 
-def get(entity: str, token: str, query: dict = None) -> dict:
+def get(entity: str, token: str, query: dict | None = None) -> dict:
     try:
         if query is None:
             query = {}
@@ -64,10 +65,10 @@ def get(entity: str, token: str, query: dict = None) -> dict:
         raise RuntimeError(f"Error while getting {entity}") from e
 
 
-def paginated_get(entity: str, token: str, query: dict = None) -> List[dict]:
+def paginated_get(entity: str, token: str, query: dict | None = None) -> list[dict]:
     if query is None:
         query = {}
-    result: List[dict] = []
+    result: list[dict] = []
     results_per_page = 50
     query["page"] = 1
     query["per_page"] = results_per_page
@@ -81,7 +82,7 @@ def paginated_get(entity: str, token: str, query: dict = None) -> List[dict]:
     return result
 
 
-def list_inbetween_commits(end_commit: str, new_commit: str, token: str) -> List[dict]:
+def list_inbetween_commits(end_commit: str, new_commit: str, token: str) -> list[dict]:
     commits = get(f"repos/{OWNER_REPO}/compare/{end_commit}...{new_commit}", token=token)
     return commits["commits"]
 
@@ -93,41 +94,38 @@ def get_linked_pr(commit: str, token: str) -> dict:
 
 
 def get_linked_issues(pr: str, token: str, dry_run=False):
-    query = (
-        """
-query {
-  repository(owner: "compiler-explorer", name: "compiler-explorer") {
-    pullRequest(number: %s) {
-      closingIssuesReferences(first: 10) {
-        edges {
-          node {
-            repository {
-              owner {
+    query = f"""
+query {{
+  repository(owner: "compiler-explorer", name: "compiler-explorer") {{
+    pullRequest(number: {pr}) {{
+      closingIssuesReferences(first: 10) {{
+        edges {{
+          node {{
+            repository {{
+              owner {{
                 login
-              }
+              }}
               name
-            }
-            labels(first: 10) {
-              edges {
-                node {
+            }}
+            labels(first: 10) {{
+              edges {{
+                node {{
                   name
-                }
-              }
-            }
+                }}
+              }}
+            }}
             number
-          }
-        }
-      }
-    }
-  }
-}
+          }}
+        }}
+      }}
+    }}
+  }}
+}}
     """
-        % pr
-    )
     return post("graphql", token, {"query": query}, dry_run=dry_run)
 
 
-def get_issue_comments(issue: str, repo: str, token: str) -> List[dict]:
+def get_issue_comments(issue: str, repo: str, token: str) -> list[dict]:
     return paginated_get(f"repos/{repo}/issues/{issue}/comments", token)
 
 
@@ -136,7 +134,7 @@ def comment_on_issue(issue: str, repo: str, msg: str, token: str, dry_run=False)
     return result
 
 
-def set_issue_labels(issue: str, repo: str, labels: List[str], token: str, dry_run=False):
+def set_issue_labels(issue: str, repo: str, labels: list[str], token: str, dry_run=False):
     post(f"repos/{repo}/issues/{issue}/labels", token, {"labels": labels}, dry_run=dry_run)
 
 
@@ -159,7 +157,7 @@ def send_live_message(issue: str, repo: str, token: str, dry_run=False):
             comment_on_issue(issue, repo, NOW_LIVE_MESSAGE, token, dry_run=dry_run)
 
 
-def get_edges(issue: dict) -> List[dict]:
+def get_edges(issue: dict) -> list[dict]:
     return issue["data"]["repository"]["pullRequest"]["closingIssuesReferences"]["edges"]
 
 

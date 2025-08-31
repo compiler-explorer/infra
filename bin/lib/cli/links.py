@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from pprint import pformat
 
@@ -39,7 +41,7 @@ def links_name(link_from: str, link_to: str):
         raise RuntimeError("to length must be at least 6")
     base_link = get_short_link(link_from)
     if not base_link:
-        raise RuntimeError("Couldn't find base link {}".format(link_from))
+        raise RuntimeError(f"Couldn't find base link {link_from}")
     base_link["prefix"]["S"] = link_to[0:6]
     base_link["unique_subhash"]["S"] = link_to
     base_link["stats"]["M"]["clicks"]["N"] = "0"
@@ -61,8 +63,8 @@ def links_name(link_from: str, link_to: str):
             "description": {"S": description},
         }
     }
-    print("New link: {}".format(pformat(base_link)))
-    if are_you_sure("create new link named {}".format(link_to)):
+    print(f"New link: {pformat(base_link)}")
+    if are_you_sure(f"create new link named {link_to}"):
         put_short_link(base_link)
 
 
@@ -77,13 +79,13 @@ def links_update(link_from: str, link_to: str):
         raise RuntimeError("to length must be at least 6")
     base_link = get_short_link(link_from)
     if not base_link:
-        raise RuntimeError("Couldn't find base link {}".format(link_from))
+        raise RuntimeError(f"Couldn't find base link {link_from}")
     link_to_update = get_short_link(link_to)
     if not link_to_update:
-        raise RuntimeError("Couldn't find existing short link {}".format(link_to))
+        raise RuntimeError(f"Couldn't find existing short link {link_to}")
     link_to_update["full_hash"] = base_link["full_hash"]
-    print("New link: {}".format(pformat(link_to_update)))
-    if are_you_sure("update link named {}".format(link_to)):
+    print(f"New link: {pformat(link_to_update)}")
+    if are_you_sure(f"update link named {link_to}"):
         put_short_link(link_to_update)
 
 
@@ -113,9 +115,9 @@ def links_maintenance(dry_run: bool):
         if s3key not in dbhashes_set:
             s3dirty_set.add(s3key)
 
-    if are_you_sure("delete {} db elements:\n{}\n".format(len(dbdirty_set), dbdirty_set)) and not dry_run:
+    if are_you_sure(f"delete {len(dbdirty_set)} db elements:\n{dbdirty_set}\n") and not dry_run:
         for item in dbdirty_set:
-            print("Deleting {}".format(item))
+            print(f"Deleting {item}")
             delete_short_link(item)
-    if are_you_sure("delete {} s3 elements:\n{}\n".format(len(s3dirty_set), s3dirty_set)) and not dry_run:
+    if are_you_sure(f"delete {len(s3dirty_set)} s3 elements:\n{s3dirty_set}\n") and not dry_run:
         delete_s3_links(s3dirty_set)

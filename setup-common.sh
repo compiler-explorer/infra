@@ -139,8 +139,13 @@ setup_grafana() {
     else
       cp /infra/grafana/make-config.sh /etc/grafana/make-config.sh
     fi
+
+    cp /infra/grafana/update-metrics.sh /etc/grafana/update-metrics.sh
+    cp /infra/grafana/ce-metrics.service /lib/systemd/system/ce-metrics.service
     cp /infra/grafana/grafana-agent.service /lib/systemd/system/grafana-agent.service
+
     systemctl daemon-reload
+    systemctl enable ce-metrics
     systemctl enable grafana-agent
 }
 setup_grafana

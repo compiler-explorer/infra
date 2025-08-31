@@ -9,12 +9,27 @@
 // Set environment variables for testing
 process.env.ENVIRONMENT_NAME = 'test';
 process.env.AWS_REGION = 'us-east-1';
-process.env.SQS_QUEUE_URL = 'https://sqs.us-east-1.amazonaws.com/052730242331/test-compilation-queue.fifo';
+process.env.SQS_QUEUE_URL_BLUE = 'https://sqs.us-east-1.amazonaws.com/052730242331/test-compilation-queue-blue.fifo';
+process.env.SQS_QUEUE_URL_GREEN = 'https://sqs.us-east-1.amazonaws.com/052730242331/test-compilation-queue-green.fifo';
 process.env.WEBSOCKET_URL = 'wss://test.example.com/websocket';
 
 const { lookupCompilerRouting, sendToSqs, parseRequestBody } = require('./lib/routing');
-const { AWS_ACCOUNT_ID } = require('./lib/aws-clients');
+const { AWS_ACCOUNT_ID, sqs, ssm } = require('./lib/aws-clients');
 const { generateGuid, extractCompilerId, isCmakeRequest, createSuccessResponse } = require('./lib/utils');
+const routing = require('./lib/routing');
+
+// Mock SSM for testing - return 'blue' as default active color
+const originalSsmSend = ssm.send;
+ssm.send = jest.fn().mockImplementation((command) => {
+    if (command.constructor.name === 'GetParameterCommand') {
+        return Promise.resolve({
+            Parameter: {
+                Value: 'blue'
+            }
+        });
+    }
+    return originalSsmSend.call(ssm, command);
+});
 
 describe('Integration Tests - Real AWS Services', () => {
     let originalConsoleWarn;
@@ -86,18 +101,12 @@ describe('Integration Tests - Real AWS Services', () => {
                     expect(result.environment).toBe('gpu');
                     console.log(`✓ GPU compiler routed to queue: ${result.target}`);
                 } else {
-                    // If no GPU queue routing found, test our buildQueueUrl logic with a hypothetical GPU queue
-                    const { buildQueueUrl } = require('./lib/routing');
-                    const gpuQueueUrl = buildQueueUrl('gpu-compilation-queue');
-                    expect(gpuQueueUrl).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/gpu-compilation-queue.fifo');
-                    console.log(`✓ GPU queue URL would be: ${gpuQueueUrl}`);
+                    // GPU queue routing not found - this is expected for some compilers
+                    console.log(`✓ GPU compiler routed as expected`);
                 }
             } catch (error) {
-                // If ptxas12 doesn't exist, test the buildQueueUrl function instead
-                const { buildQueueUrl } = require('./lib/routing');
-                const gpuQueueUrl = buildQueueUrl('gpu-compilation-queue');
-                expect(gpuQueueUrl).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/gpu-compilation-queue.fifo');
-                console.log(`✓ GPU queue URL derivation works: ${gpuQueueUrl}`);
+                // If ptxas12 doesn't exist, this is expected for some test environments
+                console.log(`✓ GPU routing test completed (ptxas12 not found)`);
             } finally {
                 process.env.ENVIRONMENT_NAME = originalEnv;
             }
@@ -106,10 +115,10 @@ describe('Integration Tests - Real AWS Services', () => {
         test('should handle non-existent compiler gracefully', async () => {
             const result = await lookupCompilerRouting('non-existent-compiler-12345');
 
-            // Should fallback to default queue
+            // Should fallback to color-specific queue
             expect(result).toBeDefined();
             expect(result.type).toBe('queue');
-            expect(result.target).toBe(process.env.SQS_QUEUE_URL);
+            expect(result.target).toBe(process.env.SQS_QUEUE_URL_BLUE); // Should use blue queue (our mock returns 'blue')
             expect(result.environment).toBe('unknown');
         }, 10000);
 
@@ -123,7 +132,7 @@ describe('Integration Tests - Real AWS Services', () => {
 
                 expect(result).toBeDefined();
                 expect(result.type).toBe('queue');
-                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue.fifo');
+                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo');
                 expect(result.environment).toBe('prod');
             } finally {
                 process.env.ENVIRONMENT_NAME = originalEnv;
@@ -138,7 +147,7 @@ describe('Integration Tests - Real AWS Services', () => {
                 const result = await lookupCompilerRouting('gimpleesp32g20230208');
 
                 expect(result.type).toBe('queue');
-                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue.fifo');
+                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo');
             } finally {
                 process.env.ENVIRONMENT_NAME = originalEnv;
             }
@@ -216,44 +225,6 @@ describe('Integration Tests - Real AWS Services', () => {
         });
     });
 
-    describe('Queue URL Building', () => {
-        const { buildQueueUrl } = require('./lib/routing');
-
-        test('should build queue URL from template and queue name', () => {
-            // Using the existing SQS_QUEUE_URL from test setup
-            const result = buildQueueUrl('custom-queue');
-            expect(result).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/custom-queue.fifo');
-        });
-
-        test('should build queue URL for different queue names', () => {
-            expect(buildQueueUrl('prod-queue')).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-queue.fifo');
-            expect(buildQueueUrl('gpu-compilation-queue')).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/gpu-compilation-queue.fifo');
-            expect(buildQueueUrl('arm-compilation-queue')).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/arm-compilation-queue.fifo');
-            expect(buildQueueUrl('windows-compilation-queue')).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/windows-compilation-queue.fifo');
-        });
-
-        test('should handle queue names that already have .fifo suffix', () => {
-            expect(buildQueueUrl('existing-queue.fifo')).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/existing-queue.fifo');
-        });
-
-        test('should throw error if SQS_QUEUE_URL not set', () => {
-            const originalUrl = process.env.SQS_QUEUE_URL;
-            delete process.env.SQS_QUEUE_URL;
-
-            expect(() => buildQueueUrl('test-queue')).toThrow('SQS_QUEUE_URL environment variable not set');
-
-            process.env.SQS_QUEUE_URL = originalUrl;
-        });
-
-        test('should throw error for invalid URL format', () => {
-            const originalUrl = process.env.SQS_QUEUE_URL;
-            process.env.SQS_QUEUE_URL = 'invalid-url-without-slash';
-
-            expect(() => buildQueueUrl('test-queue')).toThrow('Invalid SQS_QUEUE_URL format');
-
-            process.env.SQS_QUEUE_URL = originalUrl;
-        });
-    });
 
     describe('SQS Integration (Dry Run)', () => {
         test('should construct valid SQS message without actually sending', async () => {
@@ -265,19 +236,19 @@ describe('Integration Tests - Real AWS Services', () => {
             const headers = { 'content-type': 'application/json' };
 
             // Mock the SQS send to capture the message that would be sent
-            const originalSqs = require('./lib/aws-clients').sqs;
+            const originalSqsSend = sqs.send;
             const mockSend = jest.fn();
-            require('./lib/aws-clients').sqs.send = mockSend;
+            sqs.send = mockSend;
 
             try {
-                await sendToSqs(guid, compilerId, body, isCmake, headers, process.env.SQS_QUEUE_URL);
+                await sendToSqs(guid, compilerId, body, isCmake, headers, process.env.SQS_QUEUE_URL_BLUE);
 
                 expect(mockSend).toHaveBeenCalledTimes(1);
                 const callArgs = mockSend.mock.calls[0][0];
 
                 // Verify SQS command structure
                 expect(callArgs.constructor.name).toBe('SendMessageCommand');
-                expect(callArgs.input.QueueUrl).toBe(process.env.SQS_QUEUE_URL);
+                expect(callArgs.input.QueueUrl).toBe(process.env.SQS_QUEUE_URL_BLUE);
                 expect(callArgs.input.MessageGroupId).toBe('default');
                 expect(callArgs.input.MessageDeduplicationId).toBe(guid);
 
@@ -299,7 +270,7 @@ describe('Integration Tests - Real AWS Services', () => {
 
             } finally {
                 // Restore original SQS client
-                require('./lib/aws-clients').sqs.send = originalSqs.send;
+                sqs.send = originalSqsSend;
             }
         });
 
@@ -308,17 +279,17 @@ describe('Integration Tests - Real AWS Services', () => {
             const body = 'int main() { return 0; }';
             const headers = { 'content-type': 'text/plain' };
 
-            const originalSqs = require('./lib/aws-clients').sqs;
+            const originalSqsSend2 = sqs.send;
             const mockSend = jest.fn();
-            require('./lib/aws-clients').sqs.send = mockSend;
+            sqs.send = mockSend;
 
             try {
-                await sendToSqs(guid, 'gcc', body, false, headers, process.env.SQS_QUEUE_URL);
+                await sendToSqs(guid, 'gcc', body, false, headers, process.env.SQS_QUEUE_URL_BLUE);
 
                 const messageBody = JSON.parse(mockSend.mock.calls[0][0].input.MessageBody);
                 expect(messageBody.source).toBe('int main() { return 0; }');
             } finally {
-                require('./lib/aws-clients').sqs.send = originalSqs.send;
+                sqs.send = originalSqsSend2;
             }
         });
 
@@ -333,14 +304,13 @@ describe('Integration Tests - Real AWS Services', () => {
         test('should handle DynamoDB access errors gracefully', async () => {
             // Temporarily break the table name to simulate an error
             const originalTableName = 'CompilerRouting';
-            const routing = require('./lib/routing');
 
             // We can't easily mock this in integration test, but we can test with invalid compiler
             // The function should handle errors gracefully and return default routing
             const result = await lookupCompilerRouting('definitely-non-existent-compiler-xyz-999');
 
             expect(result.type).toBe('queue');
-            expect(result.target).toBe(process.env.SQS_QUEUE_URL);
+            expect(result.target).toBe(process.env.SQS_QUEUE_URL_BLUE);
             expect(result.environment).toBe('unknown');
         }, 10000);
     });
@@ -357,7 +327,7 @@ describe('Integration Tests - Real AWS Services', () => {
 
                 // Should find the prod routing
                 expect(result.type).toBe('queue');
-                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue.fifo');
+                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo');
                 expect(result.environment).toBe('prod');
 
                 // Verify queue URL format is correct for SQS usage

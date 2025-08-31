@@ -1,10 +1,12 @@
 """Compiler routing management for DynamoDB queue mappings."""
 
+from __future__ import annotations
+
 import json
 import logging
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Set, Tuple
+from datetime import UTC, datetime
+from typing import Any
 
 import requests
 
@@ -60,7 +62,7 @@ def create_composite_key(environment: str, compiler_id: str) -> str:
     return f"{environment}#{compiler_id}"
 
 
-def parse_composite_key(composite_key: str) -> Tuple[str, str]:
+def parse_composite_key(composite_key: str) -> tuple[str, str]:
     """Parse a composite key back into environment and compiler ID.
 
     Args:
@@ -97,7 +99,72 @@ def construct_environment_url(compiler_id: str, environment: str, is_cmake: bool
     return f"{base_url}/api/compiler/{compiler_id}/{endpoint}"
 
 
-def fetch_discovery_compilers(environment: str, version: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+def fetch_compilers_from_instance(instance_ip: str, environment: str) -> dict[str, dict[str, Any]]:
+    """Fetch compiler data directly from a specific instance via private IP.
+
+    Args:
+        instance_ip: Private IP address of the instance to query
+        environment: Environment name for building the correct API path
+
+    Returns:
+        Dictionary mapping compiler IDs to their configuration data
+
+    Raises:
+        CompilerRoutingError: If API cannot be fetched or parsed
+    """
+    try:
+        # Build API URL based on environment, querying the specific instance
+        if environment == "prod":
+            api_path = "/api/compilers"
+        else:
+            api_path = f"/{environment}/api/compilers"
+
+        url = f"http://{instance_ip}{api_path}?fields=id,exe"
+
+        LOGGER.info(f"Fetching compiler list from instance {instance_ip}: {url}")
+
+        headers = {"Accept": "application/json"}
+
+        # Single attempt with timeout - if this instance is unreachable, we fail fast
+        # The calling code should have already verified instance health
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+
+        compilers_list = response.json()
+
+        # Convert list to dictionary keyed by compiler ID, filtering out /dev/null compilers
+        compilers = {}
+        skipped_count = 0
+
+        for compiler in compilers_list:
+            compiler_id = compiler.get("id", "")
+            if not compiler_id:
+                continue
+
+            # Skip /dev/null compilers (broken or disabled compilers)
+            exe_path = compiler.get("exe", "")
+            if exe_path == "/dev/null":
+                skipped_count += 1
+                continue
+
+            compilers[compiler_id] = compiler
+
+        LOGGER.info(
+            f"Fetched {len(compilers)} compilers from instance {instance_ip} (skipped {skipped_count} /dev/null)"
+        )
+        return compilers
+
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Failed to fetch compilers from instance {instance_ip}: {e}"
+        LOGGER.error(error_msg)
+        raise CompilerRoutingError(error_msg) from e
+    except (ValueError, KeyError) as e:
+        error_msg = f"Failed to parse compiler data from instance {instance_ip}: {e}"
+        LOGGER.error(error_msg)
+        raise CompilerRoutingError(error_msg) from e
+
+
+def fetch_discovery_compilers(environment: str, version: str | None = None) -> dict[str, dict[str, Any]]:
     """Fetch compiler data from the live API endpoints.
 
     Args:
@@ -188,7 +255,7 @@ def fetch_discovery_compilers(environment: str, version: Optional[str] = None) -
         raise CompilerRoutingError(f"Unexpected error fetching compilers: {e}") from e
 
 
-def get_current_routing_table(environment: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+def get_current_routing_table(environment: str | None = None) -> dict[str, dict[str, Any]]:
     """Get current compiler routing mappings from DynamoDB.
 
     Args:
@@ -241,7 +308,7 @@ def get_current_routing_table(environment: Optional[str] = None) -> Dict[str, Di
         raise CompilerRoutingError(f"Failed to scan routing table: {e}") from e
 
 
-def generate_queue_name(compiler_data: Dict[str, Any], environment: str) -> str:
+def generate_queue_name(compiler_data: dict[str, Any], environment: str) -> str:
     """Generate appropriate queue name for a compiler.
 
     Args:
@@ -269,7 +336,7 @@ def generate_queue_name(compiler_data: Dict[str, Any], environment: str) -> str:
             return f"{environment}-compilation-queue"
 
 
-def generate_routing_info(compiler_data: Dict[str, Any], environment: str) -> Dict[str, str]:
+def generate_routing_info(compiler_data: dict[str, Any], environment: str) -> dict[str, str]:
     """Generate complete routing information for a compiler.
 
     Args:
@@ -297,8 +364,8 @@ def generate_routing_info(compiler_data: Dict[str, Any], environment: str) -> Di
 
 
 def calculate_routing_changes(
-    current_compilers: Dict[str, Dict[str, Any]], existing_table: Dict[str, Dict[str, Any]], environment: str
-) -> Tuple[Dict[str, Dict[str, Any]], Set[str], Dict[str, Dict[str, Any]]]:
+    current_compilers: dict[str, dict[str, Any]], existing_table: dict[str, dict[str, Any]], environment: str
+) -> tuple[dict[str, dict[str, Any]], set[str], dict[str, dict[str, Any]]]:
     """Calculate what changes need to be made to the routing table.
 
     Args:
@@ -313,7 +380,7 @@ def calculate_routing_changes(
     items_to_delete = set()
     items_to_update = {}
 
-    current_time = datetime.now(timezone.utc).isoformat()
+    current_time = datetime.now(UTC).isoformat()
 
     # Find compilers to add or update
     for compiler_id, compiler_data in current_compilers.items():
@@ -354,7 +421,7 @@ def calculate_routing_changes(
     return items_to_add, items_to_delete, items_to_update
 
 
-def batch_write_items(items_to_write: Dict[str, Dict[str, Any]]) -> None:
+def batch_write_items(items_to_write: dict[str, dict[str, Any]]) -> None:
     """Write items to DynamoDB using batch operations.
 
     Args:
@@ -407,7 +474,7 @@ def batch_write_items(items_to_write: Dict[str, Dict[str, Any]]) -> None:
         raise CompilerRoutingError(f"Failed to batch write items: {e}") from e
 
 
-def batch_delete_items(items_to_delete: Set[str]) -> None:
+def batch_delete_items(items_to_delete: set[str]) -> None:
     """Delete items from DynamoDB using batch operations.
 
     Args:
@@ -446,14 +513,15 @@ def batch_delete_items(items_to_delete: Set[str]) -> None:
 
 
 def update_compiler_routing_table(
-    environment: str, version: Optional[str] = None, dry_run: bool = False
-) -> Dict[str, int]:
+    environment: str, version: str | None = None, dry_run: bool = False, instance_ips: list[str] | None = None
+) -> dict[str, int]:
     """Update the compiler routing table for a specific environment.
 
     Args:
         environment: Environment name (prod, staging, beta, etc.)
         version: Version string (unused, kept for compatibility)
         dry_run: If True, only show what would be changed without making changes
+        instance_ips: Optional list of instance private IPs to query directly instead of public API
 
     Returns:
         Dictionary with counts of changes made: {"added": N, "updated": N, "deleted": N}
@@ -464,8 +532,15 @@ def update_compiler_routing_table(
     try:
         LOGGER.info(f"Updating compiler routing table for {environment}")
 
-        # Fetch current compiler data from API
-        current_compilers = fetch_discovery_compilers(environment)
+        # Fetch current compiler data from API or directly from instances
+        if instance_ips:
+            # Query compilers directly from one of the provided instances
+            # Use the first available IP - they should all have the same compiler set
+            current_compilers = fetch_compilers_from_instance(instance_ips[0], environment)
+            LOGGER.info(f"Fetched compilers directly from instance {instance_ips[0]} (bypassing public API)")
+        else:
+            # Use public API as fallback
+            current_compilers = fetch_discovery_compilers(environment)
 
         # Get existing routing table contents for this environment only
         existing_table = get_current_routing_table(environment)
@@ -505,7 +580,7 @@ def update_compiler_routing_table(
             raise CompilerRoutingError(f"Failed to update routing table: {e}") from e
 
 
-def get_routing_table_stats() -> Dict[str, Any]:
+def get_routing_table_stats() -> dict[str, Any]:
     """Get statistics about the current routing table.
 
     Returns:
@@ -520,7 +595,7 @@ def get_routing_table_stats() -> Dict[str, Any]:
         # Calculate statistics
         total_compilers = len(routing_data)
         environments = set()
-        queue_counts: Dict[str, int] = {}
+        queue_counts: dict[str, int] = {}
         routing_type_counts = {"queue": 0, "url": 0}
 
         for _compiler_id, data in routing_data.items():
@@ -546,7 +621,7 @@ def get_routing_table_stats() -> Dict[str, Any]:
         raise CompilerRoutingError(f"Failed to get table statistics: {e}") from e
 
 
-def lookup_compiler_queue(compiler_id: str) -> Optional[str]:
+def lookup_compiler_queue(compiler_id: str) -> str | None:
     """Look up the queue name for a specific compiler.
 
     Args:
@@ -571,7 +646,7 @@ def lookup_compiler_queue(compiler_id: str) -> Optional[str]:
         raise CompilerRoutingError(f"Failed to lookup compiler queue: {e}") from e
 
 
-def lookup_compiler_routing(compiler_id: str, environment: Optional[str] = None) -> Optional[Dict[str, str]]:
+def lookup_compiler_routing(compiler_id: str, environment: str | None = None) -> dict[str, str] | None:
     """Look up complete routing information for a specific compiler.
 
     Args:

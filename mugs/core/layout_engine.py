@@ -1,6 +1,6 @@
 """Layout engine for mug generation."""
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from core.constants import (
     CONTINUATION_LINE_SPACING,
@@ -15,8 +15,6 @@ from core.constants import (
     MAX_TABLE_FONT_SIZE,
     MIN_TABLE_FONT_SIZE,
     MINIMUM_READABLE_FONT_SIZE,
-    ROW_LABEL_FUNCTION,
-    ROW_LABEL_MEMBER,
     TABLE_CELL_PADDING,
     TITLE_BOTTOM_SPACING,
 )
@@ -31,7 +29,7 @@ class LayoutEngine:
         self.margin = margin
         self.measurer = PILTextMeasurer()
         # Cache the SVG font family name
-        self._svg_font_family: Optional[str] = None
+        self._svg_font_family: str | None = None
 
     @property
     def svg_font_family(self) -> str:
@@ -40,7 +38,7 @@ class LayoutEngine:
             self._svg_font_family = self.measurer.get_svg_font_family()
         return self._svg_font_family
 
-    def _calculate_table_font_size(self, layout: MugLayout, content_width: int) -> Tuple[int, int, int, int]:
+    def _calculate_table_font_size(self, layout: MugLayout, content_width: int) -> tuple[int, int, int, int]:
         """Calculate optimal table font size, dimensions, and row height."""
         num_registers = len(layout.table_headers)
         max_table_font_size = MAX_TABLE_FONT_SIZE
@@ -49,9 +47,10 @@ class LayoutEngine:
         table_font_size = max_table_font_size
         while table_font_size >= min_table_font_size:
             # Measure the row labels at this font size
-            function_measurement = self.measurer.measure_text(ROW_LABEL_FUNCTION, table_font_size)
-            member_measurement = self.measurer.measure_text(ROW_LABEL_MEMBER, table_font_size)
-            label_width = int(max(function_measurement.width, member_measurement.width) + TABLE_CELL_PADDING * 2)
+            label_width = int(
+                max([self.measurer.measure_text(row.label, table_font_size).width for row in layout.table_rows])
+                + TABLE_CELL_PADDING * 2
+            )
 
             # Calculate column width for register columns
             register_col_width = (content_width - label_width) // num_registers
@@ -89,7 +88,7 @@ class LayoutEngine:
             f"Cannot fit table content with minimum font size of {min_table_font_size}pt. Content is too wide for the available space."
         )
 
-    def _calculate_footer_positioning(self, layout: MugLayout, content_width: int) -> Dict[str, Any]:
+    def _calculate_footer_positioning(self, layout: MugLayout, content_width: int) -> dict[str, Any]:
         """Calculate footer font size and positioning."""
         if not layout.footer_lines:
             return {
@@ -105,7 +104,7 @@ class LayoutEngine:
         min_footer_font_size = MINIMUM_READABLE_FONT_SIZE
 
         footer_size = max_footer_font_size
-        line_measurements: List[TextMeasurement] = []
+        line_measurements: list[TextMeasurement] = []
         while footer_size >= min_footer_font_size:
             max_width = 0
             line_measurements = []
@@ -139,7 +138,7 @@ class LayoutEngine:
             "ascent": footer_ascent,
         }
 
-    def _calculate_info_table_dimensions(self, layout: MugLayout) -> Tuple[int, int, int]:
+    def _calculate_info_table_dimensions(self, layout: MugLayout) -> tuple[int, int, int]:
         """Calculate info table dimensions and positioning."""
         # Calculate the spacing between first and last row positions
         # This matches exactly what create_info_table() does
@@ -172,7 +171,7 @@ class LayoutEngine:
 
         return actual_height, actual_width, info_label_width
 
-    def layout_mug(self, layout: MugLayout) -> Dict[str, Any]:
+    def layout_mug(self, layout: MugLayout) -> dict[str, Any]:
         # Measure title for horizontal placement at top
         title_measurement = self.measurer.measure_text(layout.title, layout.title_size, font_weight="bold")
         title_height_needed = title_measurement.height + TITLE_BOTTOM_SPACING

@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """Utilities for working with squashfs images."""
 
+from __future__ import annotations
+
 import logging
 import re
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Optional, Tuple
+
+from lib.config import SquashfsConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,10 +21,10 @@ class SquashfsEntry:
     file_type: str  # 'd', 'l', '-', 'c', 'b', etc.
     size: int  # File size in bytes (0 for non-regular files)
     path: str  # Relative path without leading slash
-    target: Optional[str] = None  # Target for symlinks
+    target: str | None = None  # Target for symlinks
 
 
-def parse_unsquashfs_line(line: str) -> Optional[SquashfsEntry]:
+def parse_unsquashfs_line(line: str) -> SquashfsEntry | None:
     """Parse a single line from unsquashfs -ll output.
 
     Returns SquashfsEntry with parsed data, or None for intentionally skipped entries (root dir).
@@ -83,6 +86,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
 
     try:
         # Extract squashfs metadata without mounting
+        # TODO make unsquashfs path configurable like all other uses of it.
         result = subprocess.run(
             ["unsquashfs", "-ll", "-d", "", str(img_path)], capture_output=True, text=True, check=True
         )
@@ -95,7 +99,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
         return 1
 
     # Parse squashfs output to get file list
-    sqfs_files: Dict[str, Tuple[str, str]] = {}
+    sqfs_files: dict[str, tuple[str, str]] = {}
     for line in sqfs_output.split("\n"):
         if not line.strip():
             continue
@@ -115,7 +119,7 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
             raise
 
     # Build equivalent from directory filesystem
-    dir_files: Dict[str, Tuple[str, str]] = {}
+    dir_files: dict[str, tuple[str, str]] = {}
     if not nfs_path.exists():
         _LOGGER.error("Directory does not exist: %s", nfs_path)
         return 1
@@ -185,3 +189,87 @@ def verify_squashfs_contents(img_path: Path, nfs_path: Path) -> int:
         _LOGGER.error("✗ Contents mismatch: %d errors found", error_count)
 
     return error_count
+
+
+class SquashfsError(RuntimeError):
+    pass
+
+
+def create_squashfs_image(
+    config_squashfs: SquashfsConfig,
+    source_path: Path,
+    output_path: Path,
+    compression: str | None = None,
+    compression_level: int | None = None,
+    additional_args: list[str] | None = None,
+) -> None:
+    """Create a squashfs image using configured mksquashfs tool.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths and settings
+        source_path: Source directory to compress
+        output_path: Output squashfs file path
+        compression: Compression type (defaults to config.compression)
+        compression_level: Compression level (defaults to config.compression_level)
+        additional_args: Additional arguments to pass to mksquashfs
+
+    Raises:
+        SquashfsError: If mksquashfs command fails
+    """
+    cmd = [
+        config_squashfs.mksquashfs_path,
+        str(source_path),
+        str(output_path),
+        "-all-root",
+        "-progress",
+        "-comp",
+        compression or config_squashfs.compression,
+        "-Xcompression-level",
+        str(compression_level or config_squashfs.compression_level),
+        "-noappend",  # Don't append, create new
+        "-mkfs-time",
+        "0",  # Set filesystem creation time to epoch for deterministic builds
+        "-all-time",
+        "0",  # Set all file timestamps to epoch for deterministic builds
+    ]
+
+    if additional_args:
+        cmd.extend(additional_args)
+
+    _LOGGER.debug("Running mksquashfs command: %s", " ".join(cmd))
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+    if result.returncode != 0:
+        raise SquashfsError(f"mksquashfs of {source_path} failed: {result.stdout.strip()}")
+
+
+def extract_squashfs_image(
+    config_squashfs: SquashfsConfig,
+    squashfs_path: Path,
+    output_dir: Path,
+    extract_path: Path | None = None,
+) -> None:
+    """Extract a squashfs image using configured unsquashfs tool.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths
+        squashfs_path: Path to squashfs file to extract
+        output_dir: Directory to extract to
+        extract_path: Specific path within the archive to extract (optional)
+
+    Raises:
+        SquashfsError: If unsquashfs command fails
+    """
+    cmd = [
+        config_squashfs.unsquashfs_path,
+        "-f",  # Force overwrite
+        "-d",
+        str(output_dir),  # Destination directory
+        str(squashfs_path),
+    ]
+
+    if extract_path and extract_path != Path("."):
+        cmd.append(str(extract_path))
+
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
+    if result.returncode != 0:
+        raise SquashfsError(f"unsquashfs of {squashfs_path} failed: {result.stdout.strip()}")

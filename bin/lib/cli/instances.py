@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import datetime
 import logging
 import shlex
 import subprocess
 import sys
 import time
-from typing import Dict, Sequence
+from collections.abc import Sequence
 
 import click
 
@@ -47,7 +49,7 @@ def instances_exec_all(cfg: Config, remote_cmd: Sequence[str]):
     if not are_you_sure(f"exec command {escaped} in all instances", cfg):
         return
 
-    print("Running '{}' on all instances".format(escaped))
+    print(f"Running '{escaped}' on all instances")
     exec_remote_all(pick_instances(cfg), remote_cmd)
 
 
@@ -69,7 +71,7 @@ def instances_restart_one(cfg: Config):
         LOGGER.error("Failed restarting %s - was not in ASG", instance)
         return
     as_group_name = as_instance_status["AutoScalingGroupName"]
-    modified_groups: Dict[str, int] = {}
+    modified_groups: dict[str, int] = {}
     try:
         restart_one_instance(as_group_name, instance, modified_groups)
     except RuntimeError as e:
@@ -106,12 +108,12 @@ def instances_stop(cfg: Config):
 @click.pass_obj
 def instances_restart(cfg: Config, motd: str):
     """Restart the instances, picking up new code."""
-    if not are_you_sure("restart all instances with version {}".format(describe_current_release(cfg)), cfg):
+    if not are_you_sure(f"restart all instances with version {describe_current_release(cfg)}", cfg):
         return
     begin_time = datetime.datetime.now()
     # Store old motd
     set_update_message(cfg, motd)
-    modified_groups: Dict[str, int] = {}
+    modified_groups: dict[str, int] = {}
     failed = False
     to_restart = pick_instances(cfg)
 
@@ -450,7 +452,7 @@ def get_isolated_instances_for_environment(cfg: Config):
     return isolated_instances
 
 
-def restart_one_instance(as_group_name: str, instance: Instance, modified_groups: Dict[str, int]):
+def restart_one_instance(as_group_name: str, instance: Instance, modified_groups: dict[str, int]):
     instance_id = instance.instance.instance_id
     LOGGER.info("Enabling instance protection for %s", instance)
     as_client.set_instance_protection(
@@ -490,7 +492,7 @@ def wait_for_elb_state(instance, state):
         instance.update()
         instance_state = instance.instance.state["Name"]
         if instance_state != "running":
-            raise RuntimeError("Instance no longer running (state {})".format(instance_state))
+            raise RuntimeError(f"Instance no longer running (state {instance_state})")
         LOGGER.debug("State is %s", instance.elb_health)
         if instance.elb_health == state:
             LOGGER.info("...done")

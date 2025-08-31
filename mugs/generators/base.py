@@ -13,8 +13,6 @@ from core.constants import (
     DEFAULT_WIDTH,
     FOOTER_OPACITY,
     HEADER_BG,
-    ROW_LABEL_FUNCTION,
-    ROW_LABEL_MEMBER,
     TEXT_COLOR,
 )
 from core.data_structures import MugLayout
@@ -66,15 +64,9 @@ class ABIMugGenerator(ABC):
         # Horizontal table with registers as headers
         table_pos = positions["table"]
 
-        # Convert table data to format expected by create_horizontal_table
-        table_data = []
-        for row in layout.table_rows:
-            table_data.append(row.cells)
-
         svg += create_horizontal_table(
             layout.table_headers,  # Register names
-            table_data,  # Cell data
-            [ROW_LABEL_FUNCTION, ROW_LABEL_MEMBER],  # Row labels using constants
+            layout.table_rows,  # Cell data
             table_pos["x"],
             table_pos["y"],
             table_pos["col_width"],

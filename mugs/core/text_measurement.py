@@ -1,7 +1,5 @@
 """Text measurement utilities using PIL."""
 
-from typing import Dict, List, Tuple
-
 from PIL import Image, ImageDraw, ImageFont
 
 from core.constants import DUMMY_IMAGE_SIZE, FONT_NAME, FONT_NAME_EXTRACTION_SIZE
@@ -12,7 +10,7 @@ class PILTextMeasurer:
     """Text measurer using PIL ImageDraw for accurate pixel measurements."""
 
     def __init__(self) -> None:
-        self._font_cache: Dict[Tuple[int, str, str], ImageFont.FreeTypeFont] = {}
+        self._font_cache: dict[tuple[int, str, str], ImageFont.FreeTypeFont] = {}
 
     def _get_font(
         self, font_size: int, font_family: str = FONT_NAME, font_weight: str = "normal"
@@ -59,7 +57,7 @@ def wrap_text(
     font_size: int,
     font_family: str = FONT_NAME,
     font_weight: str = "normal",
-) -> List[str]:
+) -> list[str]:
     """Wrap text to fit within max_width, breaking at word boundaries."""
     words = text.split()
     lines = []
