@@ -1,6 +1,7 @@
 name: CEFS consolidation
 
 on:
+  # TODO: enable
   # schedule:
   #   - cron: '15 6 * * *'
   workflow_dispatch:
@@ -23,4 +24,5 @@ jobs:
       - name: Set up environment
         run: make ce
       - name: Consolidate ${{ github.event.inputs.filter }} into ${{ github.event.inputs.max-size }} chunks
+        # TODO: remove `--defer-backup-cleanup` once we have converted everything and manually cleaned up the backups
         run: bin/ce_install cefs consolidate --max-size ${{ github.event.inputs.max-size }} ${{ github.event.inputs.filter }}
