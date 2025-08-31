@@ -12,10 +12,10 @@ on:
         required: false
       max-size:
         description: Maximum size of things to consolidate
-        default: 40G
+        default: 20G
         required: false
 jobs:
-  squash:
+  consolidate:
     runs-on: [ 'self-hosted', 'ce', 'linux', 'x64' ]
     steps:
       - name: Start from a clean directory
