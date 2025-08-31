@@ -25,4 +25,5 @@ jobs:
         run: make ce
       - name: Consolidate ${{ github.event.inputs.filter }} into ${{ github.event.inputs.max-size }} chunks
         # TODO: remove `--defer-backup-cleanup` once we have converted everything and manually cleaned up the backups
-        run: bin/ce_install cefs consolidate --max-size ${{ github.event.inputs.max-size }} ${{ github.event.inputs.filter }}
+        # TODO: finally sort out permissions for this. I hate sudo
+        run: sudo bin/ce_install cefs consolidate --max-size ${{ github.event.inputs.max-size }} ${{ github.event.inputs.filter }}
