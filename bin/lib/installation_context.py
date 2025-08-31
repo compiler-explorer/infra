@@ -522,7 +522,8 @@ class InstallationContext:
                 _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
 
             # Create symlink in NFS
-            backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run)
+            # TODO: Add defer_cleanup parameter to install command to speed up bulk installations
+            backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
 
         finally:
             # Clean up temporary files

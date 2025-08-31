@@ -214,8 +214,17 @@ def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manif
     write_manifest_alongside_image(manifest, cefs_image_path)
 
 
-def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None:
-    """Backup NFS directory and create CEFS symlink with rollback on failure."""
+def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_cleanup: bool) -> None:
+    """Backup NFS directory and create CEFS symlink with rollback on failure.
+
+    Args:
+        nfs_path: Path to the NFS directory to backup and replace with symlink
+        cefs_target: Target path for the CEFS symlink
+        dry_run: If True, only log what would be done
+        defer_cleanup: If True, rename old .bak to .DELETE_ME_<timestamp> instead of deleting
+    """
+    import datetime
+
     backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
     if dry_run:
@@ -224,12 +233,20 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool) -> None
         return
 
     try:
-        # Remove old backup if it exists
+        # Handle old backup if it exists
         if backup_path.exists():
-            if backup_path.is_dir():
-                shutil.rmtree(backup_path)
+            if defer_cleanup:
+                # Rename to .DELETE_ME_<timestamp> for later cleanup
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                delete_me_path = nfs_path.with_name(f"{nfs_path.name}.DELETE_ME_{timestamp}")
+                backup_path.rename(delete_me_path)
+                _LOGGER.info("Renamed old backup %s to %s for deferred cleanup", backup_path, delete_me_path)
             else:
-                backup_path.unlink()
+                # Original behavior: delete immediately
+                if backup_path.is_dir():
+                    shutil.rmtree(backup_path)
+                else:
+                    backup_path.unlink()
 
         # Backup current directory (or symlink) if it exists. Follow symlinks=False here to account for broken symlinks
         if nfs_path.exists(follow_symlinks=False):
@@ -425,7 +442,11 @@ def create_consolidated_image(
 
 
 def update_symlinks_for_consolidation(
-    unchanged_symlinks: list[Path], consolidated_filename: Path, mount_point: Path, subdir_mapping: dict[Path, str]
+    unchanged_symlinks: list[Path],
+    consolidated_filename: Path,
+    mount_point: Path,
+    subdir_mapping: dict[Path, str],
+    defer_cleanup: bool,
 ) -> None:
     """Update symlinks to point to consolidated CEFS mount.
 
@@ -434,6 +455,7 @@ def update_symlinks_for_consolidation(
         consolidated_filename: Filename of the consolidated image (e.g., HASH_consolidated.sqfs)
         mount_point: CEFS mount point
         subdir_mapping: Mapping of nfs_path to subdirectory name in consolidated image
+        defer_cleanup: If True, rename old .bak to .DELETE_ME_<timestamp> instead of deleting
 
     Raises:
         RuntimeError: If symlink update fails
@@ -448,7 +470,7 @@ def update_symlinks_for_consolidation(
         new_target = get_cefs_mount_path(mount_point, consolidated_filename) / subdir_name
 
         try:
-            backup_and_symlink(symlink_path, new_target, dry_run=False)
+            backup_and_symlink(symlink_path, new_target, dry_run=False, defer_cleanup=defer_cleanup)
             _LOGGER.info("Updated symlink %s -> %s", symlink_path, new_target)
         except RuntimeError as e:
             raise RuntimeError(f"Failed to update symlink {symlink_path}: {e}") from e

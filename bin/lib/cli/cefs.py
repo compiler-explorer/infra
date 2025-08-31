@@ -38,7 +38,7 @@ from lib.installable.installable import Installable
 _LOGGER = logging.getLogger(__name__)
 
 
-def convert_to_cefs(context: CliContext, installable: Installable, force: bool) -> bool:
+def convert_to_cefs(context: CliContext, installable: Installable, force: bool, defer_cleanup: bool) -> bool:
     """Convert a single installable from squashfs to CEFS.
 
     Returns True if conversion was successful or already converted.
@@ -95,7 +95,7 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool) 
 
     # Backup NFS directory and create symlink
     try:
-        backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run)
+        backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run, defer_cleanup)
     except RuntimeError as e:
         _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
         return False
@@ -138,8 +138,13 @@ def status(context):
 @cefs.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Force conversion even if already converted to CEFS")
+@click.option(
+    "--defer-backup-cleanup",
+    is_flag=True,
+    help="Rename old .bak directories to .DELETE_ME_<timestamp> instead of deleting them immediately",
+)
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def convert(context: CliContext, filter_: list[str], force: bool):
+def convert(context: CliContext, filter_: list[str], force: bool, defer_backup_cleanup: bool):
     """Convert squashfs images to CEFS format for targets matching FILTER."""
     if not validate_cefs_mount_point(context.config.cefs.mount_point):
         _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
@@ -162,7 +167,7 @@ def convert(context: CliContext, filter_: list[str], force: bool):
             continue
 
         _LOGGER.info("Converting %s...", installable.name)
-        if convert_to_cefs(context, installable, force):
+        if convert_to_cefs(context, installable, force, defer_backup_cleanup):
             successful += 1
         else:
             failed += 1
@@ -399,8 +404,13 @@ def rollback(context: CliContext, filter_: list[str]):
     "--max-size", default="2GB", metavar="SIZE", help="Maximum size per consolidated image (e.g., 2GB, 500M, 10G)"
 )
 @click.option("--min-items", default=3, metavar="N", help="Minimum items to justify consolidation")
+@click.option(
+    "--defer-backup-cleanup",
+    is_flag=True,
+    help="Rename old .bak directories to .DELETE_ME_<timestamp> instead of deleting them immediately",
+)
 @click.argument("filter_", metavar="[FILTER]", nargs=-1, required=False)
-def consolidate(context: CliContext, max_size: str, min_items: int, filter_: list[str]):
+def consolidate(context: CliContext, max_size: str, min_items: int, defer_backup_cleanup: bool, filter_: list[str]):
     """Consolidate multiple CEFS images into larger consolidated images to reduce mount overhead.
 
     This command combines multiple individual squashfs images into larger consolidated images
@@ -639,7 +649,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, filter_: lis
 
             if unchanged_symlinks:
                 update_symlinks_for_consolidation(
-                    unchanged_symlinks, filename, context.config.cefs.mount_point, subdir_mapping
+                    unchanged_symlinks, filename, context.config.cefs.mount_point, subdir_mapping, defer_backup_cleanup
                 )
                 total_updated_symlinks += len(unchanged_symlinks)
                 _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
