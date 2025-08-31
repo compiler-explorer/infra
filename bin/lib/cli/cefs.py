@@ -409,8 +409,21 @@ def rollback(context: CliContext, filter_: list[str]):
     is_flag=True,
     help="Rename old .bak directories to .DELETE_ME_<timestamp> instead of deleting them immediately",
 )
+@click.option(
+    "--max-parallel-extractions",
+    type=int,
+    default=None,
+    help="Maximum parallel extractions (default: CPU count)",
+)
 @click.argument("filter_", metavar="[FILTER]", nargs=-1, required=False)
-def consolidate(context: CliContext, max_size: str, min_items: int, defer_backup_cleanup: bool, filter_: list[str]):
+def consolidate(
+    context: CliContext,
+    max_size: str,
+    min_items: int,
+    defer_backup_cleanup: bool,
+    max_parallel_extractions: int | None,
+    filter_: list[str],
+):
     """Consolidate multiple CEFS images into larger consolidated images to reduce mount overhead.
 
     This command combines multiple individual squashfs images into larger consolidated images
@@ -626,6 +639,7 @@ def consolidate(context: CliContext, max_size: str, min_items: int, defer_backup
                 items_for_consolidation,
                 group_temp_dir,
                 temp_consolidated_path,
+                max_parallel_extractions,
             )
 
             filename = get_cefs_filename_for_image(temp_consolidated_path, "consolidate")
