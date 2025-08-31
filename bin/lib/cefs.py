@@ -17,7 +17,7 @@ import humanfriendly
 
 from .cefs_manifest import generate_cefs_filename, write_manifest_alongside_image
 from .config import SquashfsConfig
-from .squashfs import create_squashfs_image
+from .squashfs import create_squashfs_image, extract_squashfs_image
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -353,14 +353,6 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
     Returns:
         Dictionary with extraction metrics and status
     """
-    import logging
-    from pathlib import Path
-
-    import humanfriendly
-
-    from lib.config import SquashfsConfig
-    from lib.squashfs import extract_squashfs_image
-
     # Set up logging for worker process
     logger = logging.getLogger(__name__)
 
