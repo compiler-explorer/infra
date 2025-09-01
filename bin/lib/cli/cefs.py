@@ -722,6 +722,7 @@ def gc(context: CliContext, force: bool, min_age: str):
     except humanfriendly.InvalidTimespan as e:
         raise click.ClickException(f"Invalid min-age: {e}") from e
 
+    now = datetime.datetime.now()
     error_count = 0
 
     state = CEFSState(
@@ -737,7 +738,6 @@ def gc(context: CliContext, force: bool, min_age: str):
 
     if state.inprogress_images:
         _LOGGER.warning("Found %d in-progress operations (these will NOT be deleted):", len(state.inprogress_images))
-        now = datetime.datetime.now()
         for inprogress_path in state.inprogress_images:
             try:
                 mtime = datetime.datetime.fromtimestamp(inprogress_path.stat().st_mtime)
@@ -763,14 +763,9 @@ def gc(context: CliContext, force: bool, min_age: str):
     _LOGGER.info("  Total CEFS images: %d", summary.total_images)
     _LOGGER.info("  Referenced images: %d", summary.referenced_images)
     _LOGGER.info("  Unreferenced images: %d", summary.unreferenced_images)
+    _LOGGER.info("  Space to reclaim: %s", humanfriendly.format_size(summary.space_to_reclaim, binary=True))
 
-    if summary.space_to_reclaim > 0:
-        _LOGGER.info("  Space to reclaim: %s", humanfriendly.format_size(summary.space_to_reclaim, binary=True))
-
-    unreferenced = state.find_unreferenced_images()
-
-    now = datetime.datetime.now()
-    filter_result = filter_images_by_age(unreferenced, min_age_delta, now)
+    filter_result = filter_images_by_age(state.find_unreferenced_images(), min_age_delta, now)
     unreferenced = filter_result.old_enough
 
     for image_path, age in filter_result.too_recent:
@@ -787,19 +782,18 @@ def gc(context: CliContext, force: bool, min_age: str):
     _LOGGER.info("Unreferenced CEFS images to delete:")
     for image_path in unreferenced:
         try:
-            size = image_path.stat().st_size
-            size_str = humanfriendly.format_size(size, binary=True)
+            size_str = humanfriendly.format_size(image_path.stat().st_size, binary=True)
         except OSError:
             size_str = "size unknown"
             error_count += 1
             _LOGGER.error("Could not stat image: %s", image_path)
-
-        names = get_image_description(image_path, context.config.cefs.mount_point)
-        contents_str = format_image_contents_string(names, 3)
-        if not contents_str:
-            contents_str = " [contents unknown]"
-
-        _LOGGER.info("  %s (%s)%s", image_path, size_str, contents_str)
+        _LOGGER.info(
+            "  %s (%s)%s",
+            image_path,
+            size_str,
+            format_image_contents_string(get_image_description(image_path, context.config.cefs.mount_point), 3)
+            or " [contents unknown]",
+        )
 
     if context.installation_context.dry_run:
         _LOGGER.info("DRY RUN: Would delete %d unreferenced images", len(unreferenced))
@@ -807,25 +801,21 @@ def gc(context: CliContext, force: bool, min_age: str):
             raise click.ClickException(f"GC completed with {error_count} errors during analysis")
         return
 
-    if not force:
-        if not click.confirm(f"Delete {len(unreferenced)} unreferenced CEFS images?"):
-            _LOGGER.info("Garbage collection cancelled by user")
-            return
+    if not force and not click.confirm(f"Delete {len(unreferenced)} unreferenced CEFS images?"):
+        _LOGGER.info("Garbage collection cancelled by user")
+        return
 
     deleted_count = 0
     deleted_size = 0
     _LOGGER.info("Performing double-check before deletion...")
 
     for image_path in unreferenced:
-        # SAFETY: Double-check - Re-verify the image is still unreferenced immediately before deletion
-        # This guards against race conditions where another process creates a symlink
-        # between our initial scan and the deletion attempt. Since we have no locking,
+        # SAFETY: Double-check - Re-verify the image is still unreferenced immediately before deletion, by
+        # checking no symlinks now point to this image. This guards against race conditions where another
+        # process creates a symlink between our initial scan and the deletion attempt. Since we have no locking,
         # this is our last line of defense against deleting an image that just became referenced.
-        filename_stem = image_path.stem
-
-        # Double-check: re-verify no symlinks now point to this image
         try:
-            if state.is_image_referenced(filename_stem):
+            if state.is_image_referenced(image_path.stem):
                 _LOGGER.warning("Double-check: Image %s is now referenced, skipping deletion", image_path)
                 continue
         except ValueError as e:
@@ -848,7 +838,7 @@ def gc(context: CliContext, force: bool, min_age: str):
     _LOGGER.info(
         "Garbage collection complete: deleted %d images, freed %s",
         deleted_count,
-        humanfriendly.format_size(deleted_size, binary=True) if deleted_size > 0 else "0 bytes",
+        humanfriendly.format_size(deleted_size, binary=True),
     )
 
     if error_count > 0:
