@@ -87,20 +87,17 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool, 
 
     # Copy squashfs to CEFS images directory if not already there
     # Never overwrite - hash ensures content is identical
-    image_was_created = False
-    if not cefs_paths.image_path.exists():
-        image_was_created = True
-        if context.installation_context.dry_run:
-            _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_paths.image_path)
-            _LOGGER.info("Would write manifest alongside image")
-        else:
-            try:
-                deploy_to_cefs_with_manifest(squashfs_image_path, cefs_paths.image_path, manifest)
-            except Exception as e:
-                _LOGGER.error("Failed to deploy image for %s: %s", installable.name, e)
-                return False
-    else:
+    if image_already_existed := cefs_paths.image_path.exists():
         _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
+    elif context.installation_context.dry_run:
+        _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_paths.image_path)
+        _LOGGER.info("Would write manifest alongside image")
+    else:
+        try:
+            deploy_to_cefs_with_manifest(squashfs_image_path, cefs_paths.image_path, manifest)
+        except RuntimeError as e:
+            _LOGGER.error("Failed to deploy image for %s: %s", installable.name, e)
+            return False
 
     # Backup NFS directory and create symlink
     try:
@@ -109,15 +106,14 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool, 
         _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
         return False
 
-    # Finalize the manifest now that symlink is created (critical for GC safety)
-    if not context.installation_context.dry_run and image_was_created:
-        # Only finalize if we just created the image
+    # Finalize the manifest now that symlink is created (critical for GC safety), but only if we just created the image.
+    if not context.installation_context.dry_run and not image_already_existed:
         try:
             finalize_manifest(cefs_paths.image_path)
             _LOGGER.debug("Finalized manifest for %s", installable.name)
-        except Exception as e:
+        except RuntimeError as e:
             _LOGGER.error("Failed to finalize manifest for %s: %s", installable.name, e)
-            # This is non-fatal - the conversion succeeded, just the manifest isn't finalized
+            return False
 
     # Post-migration validation (skip in dry-run)
     if not context.installation_context.dry_run:

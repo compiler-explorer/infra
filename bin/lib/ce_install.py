@@ -61,9 +61,7 @@ class CliContext:
         for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
             with yaml_path.open(encoding="utf-8") as yaml_file:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
-            # Use True to bypass conditions when requested, otherwise use self.enabled
-            enabled = True if bypass_enable_check else self.enabled
-            for installer in installers_for(self.installation_context, yaml_doc, enabled):
+            for installer in installers_for(self.installation_context, yaml_doc, bypass_enable_check or self.enabled):
                 installables.append(installer)
         Installable.resolve(installables)
         installables = sorted(
