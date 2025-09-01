@@ -3,14 +3,17 @@
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import logging
 import os
 import shutil
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+import yaml
 
 if TYPE_CHECKING:
     from lib.installable.installable import Installable
@@ -536,12 +539,12 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bo
     return cefs_image_path, is_already_consolidated
 
 
-def describe_cefs_image(hash_value: str, cefs_mount_point: Path = Path("/cefs")) -> list[str]:
+def describe_cefs_image(hash_value: str, cefs_mount_point: Path) -> list[str]:
     """Get top-level entries from a CEFS image by triggering autofs mount.
 
     Args:
         hash_value: The CEFS hash to describe
-        cefs_mount_point: Base CEFS mount point (default: /cefs)
+        cefs_mount_point: Base CEFS mount point
 
     Returns:
         List of top-level entry names in the CEFS image
@@ -747,11 +750,11 @@ class CEFSState:
                 unreferenced.append(image_path)
         return unreferenced
 
-    def get_summary(self) -> dict[str, int]:
+    def get_summary(self) -> GCSummary:
         """Get summary statistics for reporting.
 
         Returns:
-            Dictionary with summary statistics
+            GCSummary with statistics
         """
         unreferenced_images = self.find_unreferenced_images()
         space_to_reclaim = 0
@@ -762,12 +765,12 @@ class CEFSState:
             except OSError:
                 _LOGGER.warning("Could not stat unreferenced image: %s", image_path)
 
-        return {
-            "total_images": len(self.all_cefs_images),
-            "referenced_images": len(self.referenced_images),
-            "unreferenced_images": len(unreferenced_images),
-            "space_to_reclaim": space_to_reclaim,
-        }
+        return GCSummary(
+            total_images=len(self.all_cefs_images),
+            referenced_images=len(self.referenced_images),
+            unreferenced_images=len(unreferenced_images),
+            space_to_reclaim=space_to_reclaim,
+        )
 
 
 def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
@@ -787,3 +790,169 @@ def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
 
     relative_parts = parts[4:]
     return Path(*relative_parts)
+
+
+@dataclass(frozen=True)
+class ImageAgeFilterResult:
+    """Result of filtering images by age."""
+
+    old_enough: list[Path]
+    too_recent: list[tuple[Path, datetime.timedelta]]
+
+
+@dataclass(frozen=True)
+class ImageDeletionResult:
+    """Result of deleting a CEFS image with its manifest."""
+
+    success: bool
+    deleted_size: int
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class GCSummary:
+    """Summary statistics for garbage collection."""
+
+    total_images: int
+    referenced_images: int
+    unreferenced_images: int
+    space_to_reclaim: int
+
+
+def filter_images_by_age(
+    images: list[Path], min_age_delta: datetime.timedelta, now: datetime.datetime
+) -> ImageAgeFilterResult:
+    """Filter images by age, separating old enough from too recent.
+
+    Args:
+        images: List of image paths to filter
+        min_age_delta: Minimum age for deletion
+        now: Current time to use for age calculation
+
+    Returns:
+        ImageAgeFilterResult with old_enough and too_recent lists
+    """
+    old_enough = []
+    too_recent = []
+
+    for image_path in images:
+        try:
+            mtime = datetime.datetime.fromtimestamp(image_path.stat().st_mtime)
+            age = now - mtime
+            if age >= min_age_delta:
+                old_enough.append(image_path)
+            else:
+                too_recent.append((image_path, age))
+        except OSError:
+            # If we can't stat it, include it as potentially broken
+            old_enough.append(image_path)
+
+    return ImageAgeFilterResult(old_enough=old_enough, too_recent=too_recent)
+
+
+def get_image_description_from_manifest(image_path: Path) -> list[str] | None:
+    """Extract content names from an image's manifest file.
+
+    Args:
+        image_path: Path to the CEFS image
+
+    Returns:
+        List of content names or None if manifest unavailable/invalid
+    """
+    try:
+        manifest = read_manifest_from_alongside(image_path)
+        if manifest and "contents" in manifest:
+            names = []
+            for content in manifest["contents"]:
+                if "name" in content:
+                    names.append(content["name"])
+            return names if names else None
+        return None
+    except (OSError, yaml.YAMLError):
+        return None
+
+
+def get_image_description(image_path: Path, cefs_mount_point: Path) -> list[str] | None:
+    """Get description of image contents from manifest or by mounting.
+
+    First tries to read from manifest, then falls back to mounting the image.
+
+    Args:
+        image_path: Path to the CEFS image
+        cefs_mount_point: Base mount point for CEFS
+
+    Returns:
+        List of content names or None if unable to determine
+    """
+    # Try manifest first
+    names = get_image_description_from_manifest(image_path)
+    if names:
+        return names
+
+    # Fallback to mounting
+    filename_stem = image_path.stem
+    # Extract just the hash part for describe_cefs_image
+    hash_part = filename_stem.split("_")[0] if "_" in filename_stem else filename_stem
+    try:
+        contents = describe_cefs_image(hash_part, cefs_mount_point)
+        return contents if contents else None
+    except OSError:
+        return None
+
+
+def format_image_contents_string(names: list[str] | None, max_items: int) -> str:
+    """Format a list of content names for display.
+
+    Args:
+        names: List of content names or None
+        max_items: Maximum number of items to show before truncating
+
+    Returns:
+        Formatted string like "[contains: name1, name2, ...]" or empty string
+    """
+    if not names:
+        return ""
+
+    if len(names) <= max_items:
+        return f" [contains: {', '.join(names)}]"
+    else:
+        shown = names[:max_items]
+        return f" [contains: {', '.join(shown)}...]"
+
+
+def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
+    """Delete a CEFS image and its associated manifest file.
+
+    Args:
+        image_path: Path to the CEFS image to delete
+
+    Returns:
+        ImageDeletionResult with success status, size, and any errors
+    """
+    errors = []
+    deleted_size = 0
+
+    # Get size before deletion
+    try:
+        deleted_size = image_path.stat().st_size
+    except OSError as e:
+        errors.append(f"Could not stat {image_path}: {e}")
+        # Try to delete anyway
+
+    # Delete the image
+    try:
+        image_path.unlink()
+    except OSError as e:
+        errors.append(f"Failed to delete {image_path}: {e}")
+        return ImageDeletionResult(success=False, deleted_size=0, errors=errors)
+
+    # Delete the manifest if it exists
+    manifest_path = image_path.with_suffix(".yaml")
+    if manifest_path.exists():
+        try:
+            manifest_path.unlink()
+        except OSError as e:
+            errors.append(f"Failed to delete manifest {manifest_path}: {e}")
+            # This is non-fatal - image was deleted
+
+    return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)

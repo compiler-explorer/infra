@@ -20,12 +20,15 @@ from lib.cefs import (
     backup_and_symlink,
     check_temp_space_available,
     create_consolidated_image,
+    delete_image_with_manifest,
     deploy_to_cefs_with_manifest,
-    describe_cefs_image,
     detect_nfs_state,
+    filter_images_by_age,
+    format_image_contents_string,
     get_cefs_filename_for_image,
     get_cefs_paths,
     get_extraction_path_from_symlink,
+    get_image_description,
     parse_cefs_target,
     snapshot_symlink_targets,
     update_symlinks_for_consolidation,
@@ -36,7 +39,6 @@ from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
     finalize_manifest,
-    read_manifest_from_alongside,
 )
 from lib.installable.installable import Installable
 
@@ -713,7 +715,6 @@ def gc(context: CliContext, force: bool, min_age: str):
     """
     _LOGGER.info("Starting CEFS garbage collection using manifest system...")
 
-    # Parse minimum age
     try:
         min_age_seconds = humanfriendly.parse_timespan(min_age)
         min_age_delta = datetime.timedelta(seconds=min_age_seconds)
@@ -721,24 +722,19 @@ def gc(context: CliContext, force: bool, min_age: str):
     except humanfriendly.InvalidTimespan as e:
         raise click.ClickException(f"Invalid min-age: {e}") from e
 
-    # Track errors throughout the function
     error_count = 0
 
-    # Create state tracker
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
     )
 
-    # Scan CEFS images and read manifests
     _LOGGER.info("Scanning CEFS images directory and reading manifests...")
     state.scan_cefs_images_with_manifests()
 
-    # Check which images have valid symlink references
     _LOGGER.info("Checking symlink references...")
     state.check_symlink_references()
 
-    # Report on in-progress operations
     if state.inprogress_images:
         _LOGGER.warning("Found %d in-progress operations (these will NOT be deleted):", len(state.inprogress_images))
         now = datetime.datetime.now()
@@ -751,38 +747,25 @@ def gc(context: CliContext, force: bool, min_age: str):
             except OSError as e:
                 _LOGGER.warning("  %s (could not get age: %s)", inprogress_path, e)
 
-    # Get summary
     summary = state.get_summary()
     _LOGGER.info("CEFS GC Summary:")
-    _LOGGER.info("  Total CEFS images: %d", summary["total_images"])
-    _LOGGER.info("  Referenced images: %d", summary["referenced_images"])
-    _LOGGER.info("  Unreferenced images: %d", summary["unreferenced_images"])
+    _LOGGER.info("  Total CEFS images: %d", summary.total_images)
+    _LOGGER.info("  Referenced images: %d", summary.referenced_images)
+    _LOGGER.info("  Unreferenced images: %d", summary.unreferenced_images)
 
-    if summary["space_to_reclaim"] > 0:
-        _LOGGER.info("  Space to reclaim: %s", humanfriendly.format_size(summary["space_to_reclaim"], binary=True))
+    if summary.space_to_reclaim > 0:
+        _LOGGER.info("  Space to reclaim: %s", humanfriendly.format_size(summary.space_to_reclaim, binary=True))
 
-    # Find unreferenced images
     unreferenced = state.find_unreferenced_images()
 
-    # Filter by age
     now = datetime.datetime.now()
-    unreferenced_old_enough = []
-    for image_path in unreferenced:
-        try:
-            mtime = datetime.datetime.fromtimestamp(image_path.stat().st_mtime)
-            age = now - mtime
-            if age >= min_age_delta:
-                unreferenced_old_enough.append(image_path)
-            else:
-                _LOGGER.info(
-                    "Skipping recent image (age %s): %s", humanfriendly.format_timespan(age.total_seconds()), image_path
-                )
-        except OSError as e:
-            _LOGGER.warning("Could not check age of %s: %s", image_path, e)
-            # Include it anyway - if we can't stat it, it's probably broken
-            unreferenced_old_enough.append(image_path)
+    filter_result = filter_images_by_age(unreferenced, min_age_delta, now)
+    unreferenced = filter_result.old_enough
 
-    unreferenced = unreferenced_old_enough
+    for image_path, age in filter_result.too_recent:
+        _LOGGER.info(
+            "Skipping recent image (age %s): %s", humanfriendly.format_timespan(age.total_seconds()), image_path
+        )
 
     if not unreferenced:
         _LOGGER.info("No unreferenced CEFS images found. Nothing to clean up.")
@@ -790,7 +773,6 @@ def gc(context: CliContext, force: bool, min_age: str):
             raise click.ClickException(f"GC completed with {error_count} errors during analysis")
         return
 
-    # List what would be deleted with descriptions
     _LOGGER.info("Unreferenced CEFS images to delete:")
     for image_path in unreferenced:
         try:
@@ -801,48 +783,24 @@ def gc(context: CliContext, force: bool, min_age: str):
             error_count += 1
             _LOGGER.error("Could not stat image: %s", image_path)
 
-        # Try to get description from manifest
-        contents_str = ""
-        try:
-            manifest = read_manifest_from_alongside(image_path)
-            if manifest and "contents" in manifest:
-                names = []
-                for content in manifest["contents"]:
-                    if "name" in content:
-                        names.append(content["name"])
-                if names:
-                    contents_str = f" [contains: {', '.join(names[:3])}{'...' if len(names) > 3 else ''}]"
-        except Exception:
-            # Fallback to trying to mount and list contents
-            filename_stem = image_path.stem
-            # Extract just the hash part for describe_cefs_image
-            hash_part = filename_stem.split("_")[0] if "_" in filename_stem else filename_stem
-            try:
-                contents = describe_cefs_image(hash_part, context.config.cefs.mount_point)
-                if contents:
-                    contents_str = f" [contains: {', '.join(contents[:3])}{'...' if len(contents) > 3 else ''}]"
-            except Exception:
-                pass
-
+        names = get_image_description(image_path, context.config.cefs.mount_point)
+        contents_str = format_image_contents_string(names, 3)
         if not contents_str:
             contents_str = " [contents unknown]"
 
         _LOGGER.info("  %s (%s)%s", image_path, size_str, contents_str)
 
-    # Handle dry-run
     if context.installation_context.dry_run:
         _LOGGER.info("DRY RUN: Would delete %d unreferenced images", len(unreferenced))
         if error_count > 0:
             raise click.ClickException(f"GC completed with {error_count} errors during analysis")
         return
 
-    # Confirm deletion
     if not force:
         if not click.confirm(f"Delete {len(unreferenced)} unreferenced CEFS images?"):
             _LOGGER.info("Garbage collection cancelled by user")
             return
 
-    # Delete unreferenced images with double-check verification
     deleted_count = 0
     deleted_size = 0
     _LOGGER.info("Performing double-check before deletion...")
@@ -854,17 +812,14 @@ def gc(context: CliContext, force: bool, min_age: str):
         # this is our last line of defense against deleting an image that just became referenced.
         filename_stem = image_path.stem
 
-        # Re-check if any symlinks were created since our initial scan
         skip_deletion = False
         if filename_stem in state.image_references:
-            # Check each expected symlink location to see if a symlink was created
             for dest_path in state.image_references[filename_stem]:
                 if state._check_symlink_points_to_image(dest_path, filename_stem):
                     _LOGGER.warning("Double-check: Image %s is now referenced, skipping deletion", image_path)
                     skip_deletion = True
                     break
         else:
-            # For images without manifests, do a fallback check for any symlinks
             if state._find_any_symlink_to_image(filename_stem):
                 _LOGGER.warning(
                     "Double-check: Image %s is now referenced (fallback check), skipping deletion", image_path
@@ -874,23 +829,17 @@ def gc(context: CliContext, force: bool, min_age: str):
         if skip_deletion:
             continue
 
-        try:
-            size = image_path.stat().st_size
-            image_path.unlink()
+        result = delete_image_with_manifest(image_path)
+        if result.success:
             deleted_count += 1
-            deleted_size += size
+            deleted_size += result.deleted_size
             _LOGGER.info("Deleted: %s", image_path)
-            # Also delete the manifest file if it exists
-            manifest_path = image_path.with_suffix(".yaml")
-            if manifest_path.exists():
-                try:
-                    manifest_path.unlink()
-                    _LOGGER.debug("Deleted manifest: %s", manifest_path)
-                except OSError as e:
-                    _LOGGER.warning("Failed to delete manifest %s: %s", manifest_path, e)
-        except OSError as e:
+            for error in result.errors:
+                _LOGGER.warning(error)
+        else:
             error_count += 1
-            _LOGGER.error("Failed to delete %s: %s", image_path, e)
+            for error in result.errors:
+                _LOGGER.error(error)
 
     _LOGGER.info(
         "Garbage collection complete: deleted %d images, freed %s",
@@ -898,6 +847,5 @@ def gc(context: CliContext, force: bool, min_age: str):
         humanfriendly.format_size(deleted_size, binary=True) if deleted_size > 0 else "0 bytes",
     )
 
-    # Exit with error if there were problems
     if error_count > 0:
         raise click.ClickException(f"GC completed with {error_count} errors")

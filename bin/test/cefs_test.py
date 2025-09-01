@@ -376,7 +376,7 @@ class TestDescribeCefsImage(unittest.TestCase):
 
         mock_iterdir.return_value = [entry1, entry2]
 
-        result = describe_cefs_image("abc123")
+        result = describe_cefs_image("abc123", Path("/cefs"))
 
         self.assertEqual(result, ["compilers_c++_x86_gcc_11.1.0", "compilers_c++_x86_gcc_11.2.0"])
         mock_get_mount_path.assert_called_once_with(Path("/cefs"), Path("abc123"))
@@ -390,7 +390,7 @@ class TestDescribeCefsImage(unittest.TestCase):
 
         mock_iterdir.side_effect = OSError("Permission denied")
 
-        result = describe_cefs_image("abc123")
+        result = describe_cefs_image("abc123", Path("/cefs"))
 
         self.assertEqual(result, [])
 
@@ -459,10 +459,10 @@ class TestCEFSState(unittest.TestCase):
 
         summary = self.state.get_summary()
 
-        self.assertEqual(summary["total_images"], 3)
-        self.assertEqual(summary["referenced_images"], 2)
-        self.assertEqual(summary["unreferenced_images"], 1)
-        self.assertEqual(summary["space_to_reclaim"], 1024 * 1024)
+        self.assertEqual(summary.total_images, 3)
+        self.assertEqual(summary.referenced_images, 2)
+        self.assertEqual(summary.unreferenced_images, 1)
+        self.assertEqual(summary.space_to_reclaim, 1024 * 1024)
 
     def test_check_symlink_protects_bak(self):
         """Test that _check_symlink_points_to_image protects .bak symlinks.
@@ -863,9 +863,9 @@ class TestCEFSGarbageCollection(unittest.TestCase):
         summary = state.get_summary()
         # Note: inprog image is not included in total_images because it's skipped due to .yaml.inprogress
         # but it IS added to referenced_images to protect it from deletion
-        self.assertEqual(summary["total_images"], 3, "Should have 3 total images (inprog excluded)")
-        self.assertEqual(summary["referenced_images"], 3, "Should have 3 referenced images (ref, inprog, bak)")
-        self.assertEqual(summary["unreferenced_images"], 1, "Should have 1 unreferenced image")
+        self.assertEqual(summary.total_images, 3, "Should have 3 total images (inprog excluded)")
+        self.assertEqual(summary.referenced_images, 3, "Should have 3 referenced images (ref, inprog, bak)")
+        self.assertEqual(summary.unreferenced_images, 1, "Should have 1 unreferenced image")
 
         # Check specific images
         self.assertIn(ref_hash, state.referenced_images, "Referenced image should be protected")
@@ -902,6 +902,214 @@ class TestCEFSGarbageCollection(unittest.TestCase):
         self.assertTrue(ref_image.exists(), "Referenced image should still exist")
         self.assertTrue(inprog_image.exists(), "In-progress image should still exist")
         self.assertTrue(bak_image.exists(), ".bak image should still exist")
+
+
+class TestExtractedGCFunctions(unittest.TestCase):
+    """Test the extracted GC utility functions."""
+
+    def test_filter_images_by_age(self):
+        """Test filtering images by age."""
+        import os
+        import time
+
+        from lib.cefs import filter_images_by_age
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create images with different ages
+            old_image = Path(tmpdir) / "old.sqfs"
+            recent_image = Path(tmpdir) / "recent.sqfs"
+            broken_image = Path(tmpdir) / "broken.sqfs"
+
+            # Create files
+            old_image.touch()
+            recent_image.touch()
+
+            # Set old image to 2 hours ago
+            old_time = time.time() - (2 * 3600)
+            os.utime(old_image, (old_time, old_time))
+
+            # recent_image has current time (just created)
+
+            # Test filtering with 1 hour threshold
+            test_now = datetime.datetime.now()
+            min_age_delta = datetime.timedelta(hours=1)
+
+            images = [old_image, recent_image, broken_image]  # broken doesn't exist
+            result = filter_images_by_age(images, min_age_delta, test_now)
+
+            # Old image and broken (non-existent) should be in old_enough
+            self.assertEqual(len(result.old_enough), 2)
+            self.assertIn(old_image, result.old_enough)
+            self.assertIn(broken_image, result.old_enough)  # Can't stat = assume broken = old enough
+
+            # Recent image should be in too_recent with its age
+            self.assertEqual(len(result.too_recent), 1)
+            self.assertEqual(result.too_recent[0][0], recent_image)
+            self.assertLess(result.too_recent[0][1], min_age_delta)
+
+    def test_get_image_description_from_manifest(self):
+        """Test extracting description from manifest."""
+        from lib.cefs import get_image_description_from_manifest
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "test.sqfs"
+            manifest_path = image_path.with_suffix(".yaml")
+
+            # Test with valid manifest
+            manifest_path.write_text(
+                yaml.dump(
+                    {
+                        "contents": [
+                            {"name": "gcc-11", "destination": "/opt/gcc-11"},
+                            {"name": "boost-1.75", "destination": "/opt/boost"},
+                        ]
+                    }
+                )
+            )
+
+            names = get_image_description_from_manifest(image_path)
+            self.assertEqual(names, ["gcc-11", "boost-1.75"])
+
+            # Test with empty contents
+            manifest_path.write_text(yaml.dump({"contents": []}))
+            names = get_image_description_from_manifest(image_path)
+            self.assertIsNone(names)
+
+            # Test with missing manifest
+            manifest_path.unlink()
+            names = get_image_description_from_manifest(image_path)
+            self.assertIsNone(names)
+
+            # Test with invalid YAML
+            manifest_path.write_text("invalid: yaml: content: {")
+            names = get_image_description_from_manifest(image_path)
+            self.assertIsNone(names)
+
+    def test_format_image_contents_string(self):
+        """Test formatting image contents for display."""
+        from lib.cefs import format_image_contents_string
+
+        # Test with None
+        self.assertEqual(format_image_contents_string(None, 3), "")
+
+        # Test with empty list
+        self.assertEqual(format_image_contents_string([], 3), "")
+
+        # Test with items <= max_items
+        names = ["gcc-11", "boost"]
+        result = format_image_contents_string(names, 3)
+        self.assertEqual(result, " [contains: gcc-11, boost]")
+
+        # Test with items > max_items
+        names = ["gcc-11", "boost", "cmake", "ninja", "python"]
+        result = format_image_contents_string(names, 3)
+        self.assertEqual(result, " [contains: gcc-11, boost, cmake...]")
+
+        # Test with max_items = 1
+        names = ["gcc-11", "boost"]
+        result = format_image_contents_string(names, 1)
+        self.assertEqual(result, " [contains: gcc-11...]")
+
+    def test_delete_image_with_manifest(self):
+        """Test deleting image and manifest."""
+        from lib.cefs import delete_image_with_manifest
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "test.sqfs"
+            manifest_path = image_path.with_suffix(".yaml")
+
+            # Test successful deletion with manifest
+            image_path.write_bytes(b"image content")
+            manifest_path.write_text("manifest content")
+
+            result = delete_image_with_manifest(image_path)
+            self.assertTrue(result.success)
+            self.assertEqual(result.deleted_size, 13)  # len(b"image content")
+            self.assertEqual(result.errors, [])
+            self.assertFalse(image_path.exists())
+            self.assertFalse(manifest_path.exists())
+
+            # Test deletion without manifest
+            image_path.write_bytes(b"image")
+            result = delete_image_with_manifest(image_path)
+            self.assertTrue(result.success)
+            self.assertEqual(result.deleted_size, 5)  # len(b"image")
+            self.assertEqual(result.errors, [])
+
+            # Test deletion of non-existent image
+            result = delete_image_with_manifest(image_path)
+            self.assertFalse(result.success)
+            self.assertEqual(result.deleted_size, 0)
+            self.assertEqual(len(result.errors), 2)  # stat error and delete error
+
+            # Test deletion when manifest doesn't exist but image does
+            image_path.write_bytes(b"content")
+            # No manifest created this time
+            result = delete_image_with_manifest(image_path)
+            self.assertTrue(result.success)  # Image was deleted successfully
+            self.assertEqual(result.deleted_size, 7)
+            self.assertEqual(len(result.errors), 0)  # No errors
+            self.assertFalse(image_path.exists())
+
+    def test_get_image_description_integration(self):
+        """Test getting image description with fallback."""
+        from lib.cefs import get_image_description
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "test.sqfs"
+            manifest_path = image_path.with_suffix(".yaml")
+            cefs_mount = Path("/fake/cefs")  # Won't be used if manifest exists
+
+            # Test with manifest
+            manifest_path.write_text(yaml.dump({"contents": [{"name": "gcc-11", "destination": "/opt/gcc-11"}]}))
+            names = get_image_description(image_path, cefs_mount)
+            self.assertEqual(names, ["gcc-11"])
+
+            # Test without manifest (will try to mount, which will fail)
+            manifest_path.unlink()
+            names = get_image_description(image_path, cefs_mount)
+            self.assertIsNone(names)  # Falls back to mounting which fails in test
+
+    def test_filter_images_by_age_with_specific_times(self):
+        """Test age filtering with controlled timestamps."""
+        import os
+        import time
+
+        from lib.cefs import filter_images_by_age
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image1 = Path(tmpdir) / "image1.sqfs"
+            image2 = Path(tmpdir) / "image2.sqfs"
+            image3 = Path(tmpdir) / "image3.sqfs"
+
+            # Create files
+            for img in [image1, image2, image3]:
+                img.touch()
+
+            # Set specific modification times
+            base_time = time.time()
+            os.utime(image1, (base_time - 7200, base_time - 7200))  # 2 hours old
+            os.utime(image2, (base_time - 3600, base_time - 3600))  # 1 hour old
+            os.utime(image3, (base_time - 1800, base_time - 1800))  # 30 minutes old
+
+            # Test with 45 minute threshold
+            test_now = datetime.datetime.fromtimestamp(base_time)
+            min_age_delta = datetime.timedelta(minutes=45)
+
+            images = [image1, image2, image3]
+            result = filter_images_by_age(images, min_age_delta, test_now)
+
+            # image1 and image2 should be old enough
+            self.assertEqual(len(result.old_enough), 2)
+            self.assertIn(image1, result.old_enough)
+            self.assertIn(image2, result.old_enough)
+
+            # image3 should be too recent
+            self.assertEqual(len(result.too_recent), 1)
+            self.assertEqual(result.too_recent[0][0], image3)
+            # Check the age is approximately 30 minutes
+            age_minutes = result.too_recent[0][1].total_seconds() / 60
+            self.assertAlmostEqual(age_minutes, 30, delta=1)
 
 
 if __name__ == "__main__":
