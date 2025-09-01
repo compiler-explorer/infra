@@ -855,18 +855,21 @@ def gc(context: CliContext, force: bool, min_age: str):
         filename_stem = image_path.stem
 
         # Re-check if any symlinks were created since our initial scan
-        state_recheck = CEFSState(
-            nfs_dir=context.installation_context.destination,
-            cefs_image_dir=context.config.cefs.image_dir,
-        )
-        # Just check this specific image
         skip_deletion = False
         if filename_stem in state.image_references:
+            # Check each expected symlink location to see if a symlink was created
             for dest_path in state.image_references[filename_stem]:
-                if state_recheck._check_symlink_points_to_image(dest_path, filename_stem):
+                if state._check_symlink_points_to_image(dest_path, filename_stem):
                     _LOGGER.warning("Double-check: Image %s is now referenced, skipping deletion", image_path)
                     skip_deletion = True
                     break
+        else:
+            # For images without manifests, do a fallback check for any symlinks
+            if state._find_any_symlink_to_image(filename_stem):
+                _LOGGER.warning(
+                    "Double-check: Image %s is now referenced (fallback check), skipping deletion", image_path
+                )
+                skip_deletion = True
 
         if skip_deletion:
             continue

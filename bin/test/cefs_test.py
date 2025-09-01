@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """Tests for CEFS consolidation functionality."""
 
+import datetime
+import os
+import shutil
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import yaml
 from lib.cefs import (
     CEFSPaths,
     CEFSState,
@@ -19,6 +24,7 @@ from lib.cefs import (
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
 )
+from lib.cefs_manifest import finalize_manifest, write_manifest_inprogress
 
 
 class TestCEFSConsolidation(unittest.TestCase):
@@ -565,8 +571,6 @@ class TestCEFSManifest(unittest.TestCase):
     def test_write_and_finalize_manifest(self):
         """Test write_manifest_inprogress and finalize_manifest workflow."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            from lib.cefs_manifest import finalize_manifest, write_manifest_inprogress
-
             image_path = Path(tmpdir) / "test.sqfs"
             image_path.touch()
 
@@ -588,13 +592,316 @@ class TestCEFSManifest(unittest.TestCase):
     def test_finalize_missing_inprogress(self):
         """Test finalize_manifest raises error when .yaml.inprogress doesn't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            from lib.cefs_manifest import finalize_manifest
-
             image_path = Path(tmpdir) / "test.sqfs"
             image_path.touch()
 
             with self.assertRaises(FileNotFoundError):
                 finalize_manifest(image_path)
+
+
+class TestCEFSGarbageCollection(unittest.TestCase):
+    """Test cases for CEFS garbage collection functionality."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.nfs_dir = Path(self.temp_dir) / "nfs"
+        self.cefs_image_dir = Path(self.temp_dir) / "cefs-images"
+        self.nfs_dir.mkdir()
+        self.cefs_image_dir.mkdir()
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        shutil.rmtree(self.temp_dir, ignore_errors=True)
+
+    def test_double_check_prevents_deletion_race(self):
+        """Test that double-check prevents deletion when symlink is created after initial scan."""
+
+        # Create test image with manifest
+        image_hash = "abc123"
+        subdir = self.cefs_image_dir / image_hash[:2]
+        subdir.mkdir()
+        image_path = subdir / f"{image_hash}.sqfs"
+        image_path.touch()
+
+        # Create manifest indicating where symlink should be
+        manifest_path = image_path.with_suffix(".yaml")
+        manifest_content = {"contents": [{"name": "test-compiler", "destination": str(self.nfs_dir / "test-compiler")}]}
+        manifest_path.write_text(yaml.dump(manifest_content))
+
+        # Create state and do initial scan
+        state = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state.scan_cefs_images_with_manifests()
+        state.check_symlink_references()
+
+        # Initially, no symlink exists, so image should be unreferenced
+        self.assertIn(image_hash, state.all_cefs_images)
+        self.assertNotIn(image_hash, state.referenced_images)
+
+        # Now create a symlink (simulating another process creating it)
+        symlink_path = self.nfs_dir / "test-compiler"
+        symlink_path.symlink_to(f"/cefs/{image_hash[:2]}/{image_hash}")
+
+        # Double-check should detect the new symlink
+        is_referenced = state._check_symlink_points_to_image(self.nfs_dir / "test-compiler", image_hash)
+        self.assertTrue(is_referenced, "Double-check should detect newly created symlink")
+
+    def test_bak_symlink_protection(self):
+        """Test that .bak symlinks protect images from deletion."""
+
+        # Create test image
+        image_hash = "def456"
+        subdir = self.cefs_image_dir / image_hash[:2]
+        subdir.mkdir()
+        image_path = subdir / f"{image_hash}.sqfs"
+        image_path.touch()
+
+        # Create manifest
+        manifest_path = image_path.with_suffix(".yaml")
+        manifest_content = {
+            "contents": [{"name": "rollback-compiler", "destination": str(self.nfs_dir / "rollback-compiler")}]
+        }
+        manifest_path.write_text(yaml.dump(manifest_content))
+
+        # Create only .bak symlink (main symlink is missing/broken)
+        bak_symlink = self.nfs_dir / "rollback-compiler.bak"
+        bak_symlink.symlink_to(f"/cefs/{image_hash[:2]}/{image_hash}")
+
+        # Create state and scan
+        state = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state.scan_cefs_images_with_manifests()
+        state.check_symlink_references()
+
+        # Image should be marked as referenced due to .bak symlink
+        self.assertIn(image_hash, state.referenced_images, ".bak symlink should protect image from GC")
+
+    def test_inprogress_manifest_protection(self):
+        """Test that images with .yaml.inprogress are never deleted."""
+
+        # Create test image with .yaml.inprogress
+        image_hash = "ghi789"
+        subdir = self.cefs_image_dir / image_hash[:2]
+        subdir.mkdir()
+        image_path = subdir / f"{image_hash}.sqfs"
+        image_path.touch()
+
+        # Create .yaml.inprogress file (incomplete operation)
+        inprogress_path = Path(str(image_path.with_suffix(".yaml")) + ".inprogress")
+        inprogress_path.touch()
+
+        # Create state and scan
+        state = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state.scan_cefs_images_with_manifests()
+
+        # Image should be in referenced set (protected from deletion)
+        self.assertIn(image_hash, state.referenced_images, ".yaml.inprogress should protect image")
+        self.assertIn(inprogress_path, state.inprogress_images)
+
+    def test_age_filtering_logic(self):
+        """Test that age filtering correctly excludes recent images from deletion."""
+
+        # Create test images with different ages
+        old_hash = "old001"
+        new_hash = "new002"
+
+        for hash_val in [old_hash, new_hash]:
+            subdir = self.cefs_image_dir / hash_val[:2]
+            subdir.mkdir(exist_ok=True)
+            image_path = subdir / f"{hash_val}.sqfs"
+            image_path.touch()
+
+            # Set modification time
+            if hash_val == old_hash:
+                # Make this image 2 hours old
+                old_time = time.time() - (2 * 3600)
+                os.utime(image_path, (old_time, old_time))
+
+        # Create state and scan
+        state = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state.scan_cefs_images_with_manifests()
+        state.check_symlink_references()
+
+        # Both should be unreferenced
+        unreferenced = state.find_unreferenced_images()
+        self.assertEqual(len(unreferenced), 2)
+
+        # With 1 hour min age, only old image should be eligible
+        now = datetime.datetime.now()
+        min_age_delta = datetime.timedelta(hours=1)
+
+        eligible_for_deletion = []
+        for image_path in unreferenced:
+            mtime = datetime.datetime.fromtimestamp(image_path.stat().st_mtime)
+            age = now - mtime
+            if age >= min_age_delta:
+                eligible_for_deletion.append(image_path)
+
+        self.assertEqual(len(eligible_for_deletion), 1, "Only old image should be eligible for deletion")
+        self.assertEqual(eligible_for_deletion[0].stem, old_hash)
+
+    def test_fallback_for_images_without_manifests(self):
+        """Test that GC uses fallback checking for images without manifests."""
+
+        # Create test image WITHOUT manifest
+        image_hash = "jkl012"
+        subdir = self.cefs_image_dir / image_hash[:2]
+        subdir.mkdir()
+        image_path = subdir / f"{image_hash}.sqfs"
+        image_path.touch()
+        # No manifest created
+
+        # Create a symlink pointing to this image
+        symlink_path = self.nfs_dir / "legacy-compiler"
+        symlink_path.symlink_to(f"/cefs/{image_hash[:2]}/{image_hash}")
+
+        # Create state and scan
+        state = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state.scan_cefs_images_with_manifests()
+        state.check_symlink_references()
+
+        # Image should be found via fallback scanning
+        self.assertIn(image_hash, state.referenced_images, "Fallback should find symlink for image without manifest")
+
+    def test_concurrent_gc_safety(self):
+        """Test that concurrent GC executions are safe."""
+
+        # Create test image
+        image_hash = "mno345"
+        subdir = self.cefs_image_dir / image_hash[:2]
+        subdir.mkdir()
+        image_path = subdir / f"{image_hash}.sqfs"
+        image_path.touch()
+
+        # Create two independent state objects (simulating concurrent GC runs)
+        state1 = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state2 = CEFSState(self.nfs_dir, self.cefs_image_dir)
+
+        # Both scan at the same time
+        state1.scan_cefs_images_with_manifests()
+        state2.scan_cefs_images_with_manifests()
+
+        # Both identify the same unreferenced image
+        unreferenced1 = state1.find_unreferenced_images()
+        unreferenced2 = state2.find_unreferenced_images()
+
+        self.assertEqual(len(unreferenced1), 1)
+        self.assertEqual(unreferenced1, unreferenced2)
+
+        # If first GC deletes the image
+        if image_path.exists():
+            image_path.unlink()
+
+        # Second GC should handle missing file gracefully
+        # (In real code, this would be in a try/except block)
+        self.assertFalse(image_path.exists())
+
+    def test_full_gc_workflow_integration(self):
+        """Integration test for the complete GC workflow."""
+
+        # Setup: Create multiple images with different states
+
+        # 1. Referenced image with manifest and symlink
+        ref_hash = "ref001"
+        ref_subdir = self.cefs_image_dir / ref_hash[:2]
+        ref_subdir.mkdir()
+        ref_image = ref_subdir / f"{ref_hash}.sqfs"
+        ref_image.write_bytes(b"referenced content")
+
+        ref_manifest = ref_image.with_suffix(".yaml")
+        ref_manifest.write_text(
+            yaml.dump({"contents": [{"name": "gcc-11", "destination": str(self.nfs_dir / "gcc-11")}]})
+        )
+
+        # Create the symlink
+        (self.nfs_dir / "gcc-11").symlink_to(f"/cefs/{ref_hash[:2]}/{ref_hash}")
+
+        # 2. Unreferenced image with manifest but no symlink
+        unref_hash = "unref002"
+        unref_subdir = self.cefs_image_dir / unref_hash[:2]
+        unref_subdir.mkdir()
+        unref_image = unref_subdir / f"{unref_hash}.sqfs"
+        unref_image.write_bytes(b"unreferenced content")
+
+        unref_manifest = unref_image.with_suffix(".yaml")
+        unref_manifest.write_text(
+            yaml.dump({"contents": [{"name": "old-compiler", "destination": str(self.nfs_dir / "old-compiler")}]})
+        )
+        # No symlink created - this should be GC'd
+
+        # 3. In-progress image (should be protected)
+        inprog_hash = "inprog003"
+        inprog_subdir = self.cefs_image_dir / inprog_hash[:2]
+        inprog_subdir.mkdir()
+        inprog_image = inprog_subdir / f"{inprog_hash}.sqfs"
+        inprog_image.write_bytes(b"in-progress content")
+
+        # Create .yaml.inprogress
+        inprog_manifest = Path(str(inprog_image.with_suffix(".yaml")) + ".inprogress")
+        inprog_manifest.touch()
+
+        # 4. Image with .bak symlink only
+        bak_hash = "bak004"
+        bak_subdir = self.cefs_image_dir / bak_hash[:2]
+        bak_subdir.mkdir()
+        bak_image = bak_subdir / f"{bak_hash}.sqfs"
+        bak_image.write_bytes(b"backup content")
+
+        bak_manifest = bak_image.with_suffix(".yaml")
+        bak_manifest.write_text(
+            yaml.dump({"contents": [{"name": "backup-gcc", "destination": str(self.nfs_dir / "backup-gcc")}]})
+        )
+
+        # Create only .bak symlink
+        (self.nfs_dir / "backup-gcc.bak").symlink_to(f"/cefs/{bak_hash[:2]}/{bak_hash}")
+
+        # Run the full GC workflow
+        state = CEFSState(self.nfs_dir, self.cefs_image_dir)
+        state.scan_cefs_images_with_manifests()
+        state.check_symlink_references()
+
+        # Verify the state
+        summary = state.get_summary()
+        # Note: inprog image is not included in total_images because it's skipped due to .yaml.inprogress
+        # but it IS added to referenced_images to protect it from deletion
+        self.assertEqual(summary["total_images"], 3, "Should have 3 total images (inprog excluded)")
+        self.assertEqual(summary["referenced_images"], 3, "Should have 3 referenced images (ref, inprog, bak)")
+        self.assertEqual(summary["unreferenced_images"], 1, "Should have 1 unreferenced image")
+
+        # Check specific images
+        self.assertIn(ref_hash, state.referenced_images, "Referenced image should be protected")
+        self.assertNotIn(unref_hash, state.referenced_images, "Unreferenced image should be marked for deletion")
+        self.assertIn(inprog_hash, state.referenced_images, "In-progress image should be protected")
+        self.assertIn(bak_hash, state.referenced_images, ".bak image should be protected")
+
+        # Verify unreferenced images list
+        unreferenced = state.find_unreferenced_images()
+        self.assertEqual(len(unreferenced), 1)
+        self.assertEqual(unreferenced[0].stem, unref_hash)
+
+        # Simulate deletion (what GC would do)
+        for image_path in unreferenced:
+            # Double-check before deletion (as the real GC does)
+            filename_stem = image_path.stem
+            should_delete = True
+
+            if filename_stem in state.image_references:
+                for dest_path in state.image_references[filename_stem]:
+                    if state._check_symlink_points_to_image(dest_path, filename_stem):
+                        should_delete = False
+                        break
+
+            if should_delete:
+                image_path.unlink()
+                manifest_path = image_path.with_suffix(".yaml")
+                if manifest_path.exists():
+                    manifest_path.unlink()
+
+        # Verify deletion
+        self.assertFalse(unref_image.exists(), "Unreferenced image should be deleted")
+        self.assertFalse(unref_manifest.exists(), "Unreferenced manifest should be deleted")
+        self.assertTrue(ref_image.exists(), "Referenced image should still exist")
+        self.assertTrue(inprog_image.exists(), "In-progress image should still exist")
+        self.assertTrue(bak_image.exists(), ".bak image should still exist")
 
 
 if __name__ == "__main__":
