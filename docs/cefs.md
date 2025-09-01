@@ -110,6 +110,10 @@ This is implemented in the `ce cefs convert`.
 
 Once a few of these have been done and we're happy with the results, we set the `/opt/compiler-explorer/config.yaml` to start installing the new way.
 
+## Implementation Notes on Timestamp Preservation
+
+**Modification Time Preservation**: CEFS images preserve original file modification times (mtimes) from the source tar archives. This enables effective caching based on file timestamps, particularly important for compiler executables where the mtime indicates when the binary was actually built. While this means squashfs images are no longer byte-for-byte deterministic (the same content extracted at different times will produce different image bytes), the functional content remains deterministic. The trade-off prioritizes cache effectiveness over strict binary reproducibility, as the ability to detect unchanged compiler binaries via mtime is more valuable for Compiler Explorer's use case.
+
 ## Future Work
 
 **Consolidation**: Combine multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits.
