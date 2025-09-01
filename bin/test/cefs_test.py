@@ -28,7 +28,17 @@ from lib.cefs import (
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
 )
-from lib.cefs_manifest import finalize_manifest, write_manifest_inprogress
+from lib.cefs_manifest import (
+    create_installable_manifest_entry,
+    create_manifest,
+    finalize_manifest,
+    generate_cefs_filename,
+    get_git_sha,
+    read_manifest_from_alongside,
+    sanitize_path_for_filename,
+    write_manifest_alongside_image,
+    write_manifest_inprogress,
+)
 from pytest import approx
 
 # CEFS Consolidation Tests
@@ -418,7 +428,6 @@ def test_check_symlink_protects_bak():
 @patch("pathlib.Path.is_symlink")
 @patch("pathlib.Path.readlink")
 def test_check_single_symlink(mock_readlink, mock_is_symlink):
-    """Test _check_single_symlink correctly parses CEFS paths."""
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
     state = CEFSState(nfs_dir, cefs_image_dir)
@@ -436,7 +445,6 @@ def test_check_single_symlink(mock_readlink, mock_is_symlink):
 
 
 def test_scan_with_inprogress_files(tmp_path):
-    """Test that scan_cefs_images_with_manifests handles .yaml.inprogress files."""
     cefs_dir = tmp_path / "cefs-images"
     nfs_dir = tmp_path / "nfs"
     cefs_dir.mkdir()
@@ -473,7 +481,6 @@ def test_scan_with_inprogress_files(tmp_path):
 
 
 def test_write_and_finalize_manifest(tmp_path):
-    """Test write_manifest_inprogress and finalize_manifest workflow."""
     image_path = tmp_path / "test.sqfs"
     image_path.touch()
 
@@ -494,7 +501,6 @@ def test_write_and_finalize_manifest(tmp_path):
 
 
 def test_finalize_missing_inprogress(tmp_path):
-    """Test finalize_manifest raises error when .yaml.inprogress doesn't exist."""
     image_path = tmp_path / "test.sqfs"
     image_path.touch()
 
@@ -502,11 +508,168 @@ def test_finalize_missing_inprogress(tmp_path):
         finalize_manifest(image_path)
 
 
+@pytest.mark.parametrize(
+    "input_path,expected",
+    [
+        (Path("/opt/compiler-explorer/gcc-15.1.0"), "opt_compiler-explorer_gcc-15.1.0"),
+        (Path("libs/fusedkernellibrary/Beta-0.1.9/"), "libs_fusedkernellibrary_Beta-0.1.9"),
+        (Path("arm/gcc-10.2.0"), "arm_gcc-10.2.0"),
+        (Path("path with spaces"), "path_with_spaces"),
+        (Path("path:with:colons"), "path_with_colons"),
+    ],
+)
+def test_sanitize_path_for_filename(input_path, expected):
+    assert sanitize_path_for_filename(input_path) == expected
+
+
+@pytest.mark.parametrize(
+    "operation,path,expected",
+    [
+        (
+            "install",
+            Path("/opt/compiler-explorer/gcc-15.1.0"),
+            "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0.sqfs",
+        ),
+        ("consolidate", None, "9da642f654bc890a12345678_consolidated.sqfs"),
+        ("convert", Path("arm/gcc-10.2.0.img"), "9da642f654bc890a12345678_converted_arm_gcc-10.2.0.sqfs"),
+        ("unknown", Path("test"), "9da642f654bc890a12345678_test.sqfs"),
+    ],
+)
+def test_generate_cefs_filename(operation, path, expected):
+    hash_value = "9da642f654bc890a12345678"
+    result = generate_cefs_filename(hash_value, operation, path)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "installable_name,destination_path,expected",
+    [
+        (
+            "compilers/c++/x86/gcc 10.1.0",
+            Path("/opt/compiler-explorer/gcc-10.1.0"),
+            {
+                "name": "compilers/c++/x86/gcc 10.1.0",
+                "destination": "/opt/compiler-explorer/gcc-10.1.0",
+            },
+        ),
+        (
+            "libraries/boost 1.84.0",
+            Path("/opt/compiler-explorer/libs/boost_1_84_0"),
+            {
+                "name": "libraries/boost 1.84.0",
+                "destination": "/opt/compiler-explorer/libs/boost_1_84_0",
+            },
+        ),
+        (
+            "tools/cmake 3.25.1",
+            Path("/opt/compiler-explorer/cmake-3.25.1"),
+            {
+                "name": "tools/cmake 3.25.1",
+                "destination": "/opt/compiler-explorer/cmake-3.25.1",
+            },
+        ),
+    ],
+)
+def test_create_installable_manifest_entry(installable_name, destination_path, expected):
+    result = create_installable_manifest_entry(installable_name, destination_path)
+    assert result == expected
+
+
+@patch("lib.cefs_manifest.subprocess.run")
+def test_get_git_sha_success(mock_run):
+    mock_result = Mock()
+    mock_result.returncode = 0
+    mock_result.stdout = "d8c0bd74f9e5ef47e89d6eefe67414bf6b99e3dd\n"
+    mock_run.return_value = mock_result
+
+    # Clear the cache first
+    get_git_sha.cache_clear()
+
+    result = get_git_sha()
+    assert result == "d8c0bd74f9e5ef47e89d6eefe67414bf6b99e3dd"
+
+    # Test caching - should not call subprocess again
+    result2 = get_git_sha()
+    assert result2 == "d8c0bd74f9e5ef47e89d6eefe67414bf6b99e3dd"
+    mock_run.assert_called_once()
+
+
+@patch("lib.cefs_manifest.subprocess.run")
+def test_get_git_sha_failure(mock_run):
+    mock_result = Mock()
+    mock_result.returncode = 1
+    mock_result.stderr = "Not a git repository"
+    mock_run.return_value = mock_result
+
+    # Clear the cache first
+    get_git_sha.cache_clear()
+
+    result = get_git_sha()
+    assert result == "unknown"
+
+
+def test_create_manifest():
+    contents = [{"name": "compilers/c++/x86/gcc 15.1.0", "destination": "/opt/compiler-explorer/gcc-15.1.0"}]
+
+    with patch("lib.cefs_manifest.get_git_sha", return_value="test_sha"):
+        manifest = create_manifest(
+            operation="install",
+            description="Test installation",
+            contents=contents,
+            command=["ce_install", "install", "gcc-15.1.0"],
+        )
+
+    assert manifest["version"] == 1
+    assert manifest["operation"] == "install"
+    assert manifest["description"] == "Test installation"
+    assert manifest["contents"] == contents
+    assert manifest["command"] == ["ce_install", "install", "gcc-15.1.0"]
+    assert manifest["git_sha"] == "test_sha"
+    assert "created_at" in manifest
+
+    # Verify created_at is a valid ISO format timestamp
+    datetime.datetime.fromisoformat(manifest["created_at"])
+
+
+def test_write_and_read_manifest_alongside_image(tmp_path):
+    image_path = tmp_path / "test_image.sqfs"
+
+    # Create dummy image file
+    image_path.touch()
+
+    manifest = {"version": 1, "operation": "test", "description": "Test manifest", "contents": []}
+
+    # Write manifest alongside
+    write_manifest_alongside_image(manifest, image_path)
+
+    # Read manifest back
+    loaded_manifest = read_manifest_from_alongside(image_path)
+
+    assert loaded_manifest == manifest
+
+
+def test_read_manifest_from_alongside_nonexistent(tmp_path):
+    image_path = tmp_path / "nonexistent.sqfs"
+
+    result = read_manifest_from_alongside(image_path)
+    assert result is None
+
+
+def test_read_manifest_from_alongside_invalid_yaml(tmp_path):
+    image_path = tmp_path / "test_image.sqfs"
+    manifest_path = image_path.with_suffix(".yaml")
+
+    # Write invalid YAML
+    manifest_path.write_text("invalid: yaml: content: [")
+
+    with pytest.raises(yaml.YAMLError):
+        read_manifest_from_alongside(image_path)
+
+
 # CEFS Garbage Collection Tests
 
 
 def test_double_check_prevents_deletion_race(tmp_path):
-    """Test that double-check prevents deletion when symlink is created after initial scan."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -543,7 +706,6 @@ def test_double_check_prevents_deletion_race(tmp_path):
 
 
 def test_bak_symlink_protection(tmp_path):
-    """Test that .bak symlinks protect images from deletion."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -575,7 +737,6 @@ def test_bak_symlink_protection(tmp_path):
 
 
 def test_inprogress_manifest_protection(tmp_path):
-    """Test that images with .yaml.inprogress are never deleted."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -602,7 +763,6 @@ def test_inprogress_manifest_protection(tmp_path):
 
 
 def test_age_filtering_logic(tmp_path):
-    """Test that age filtering correctly excludes recent images from deletion."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -656,7 +816,6 @@ def test_age_filtering_logic(tmp_path):
 
 
 def test_images_without_manifests_are_broken(tmp_path):
-    """Test that images without manifests are marked as broken."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -687,7 +846,6 @@ def test_images_without_manifests_are_broken(tmp_path):
 
 
 def test_concurrent_gc_safety(tmp_path):
-    """Test that concurrent GC executions are safe."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -730,7 +888,6 @@ def test_concurrent_gc_safety(tmp_path):
 
 
 def test_full_gc_workflow_integration(tmp_path):
-    """Integration test for the complete GC workflow."""
     nfs_dir = tmp_path / "nfs"
     cefs_image_dir = tmp_path / "cefs-images"
     nfs_dir.mkdir()
@@ -844,7 +1001,6 @@ def test_full_gc_workflow_integration(tmp_path):
 
 
 def test_filter_images_by_age(tmp_path):
-    """Test filtering images by age."""
     # Create images with different ages
     old_image = tmp_path / "old.sqfs"
     recent_image = tmp_path / "recent.sqfs"
