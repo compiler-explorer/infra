@@ -8,6 +8,56 @@ We do this as the access times via the cacheable, compressed SquashFS images are
 
 We've tried [many](https://github.com/compiler-explorer/cefs) [different](https://github.com/compiler-explorer/infra/pull/798) [approaches](https://github.com/compiler-explorer/infra/pull/1741) to improve this but all hit issues.
 
+## System Constraints and Assumptions
+
+**CRITICAL**: These constraints fundamentally shape the CEFS design and safety mechanisms.
+
+### Multi-Machine NFS Environment
+- **Constraint**: Multiple EC2 instances share the same NFS filesystem (`/opt/compiler-explorer/` and `/efs/`)
+- **Implication**: Any instance can read/write/delete files at any time
+- **Design Impact**: Cannot use file locking (NFS locking is unreliable and not available)
+- **Solution**: Use atomic operations and careful ordering of operations
+
+### No Distributed Locking
+- **Constraint**: No distributed locking mechanism available (no Redis, no DynamoDB locks, etc.)
+- **Implication**: Cannot prevent concurrent operations on the same resources
+- **Design Impact**: Must be safe even if multiple machines run GC, install, or convert simultaneously
+- **Solution**: Idempotent operations, atomic renames, and marker files (`.yaml.inprogress`)
+
+### Atomic Operations Available
+- **Available**:
+  - File creation is atomic (O_CREAT | O_EXCL)
+  - Rename within same filesystem is atomic
+  - Symlink creation is atomic
+- **Not Atomic**:
+  - Multi-step operations (copy + write manifest + create symlink)
+  - Reading directory + making decisions based on contents
+- **Design Impact**: Use rename for state transitions, use marker files for incomplete operations
+
+### Content-Addressable Storage
+- **Assumption**: Files with same hash have identical contents
+- **Implication**: Safe to skip copying if file with same hash already exists
+- **Risk**: Hash collision would cause wrong content to be served
+- **Mitigation**: Use SHA256 (collision probability negligible)
+
+### Autofs Behavior
+- **Assumption**: Autofs will mount images on first access to `/cefs/XX/HASH`
+- **Implication**: Can have "dangling" symlinks that work when accessed
+- **Risk**: Autofs failure would make symlinks broken
+- **Mitigation**: Test autofs is working in `ce cefs setup`
+
+### Rollback Mechanism
+- **Implementation**: `.bak` symlinks created during installation/conversion
+- **Assumption**: Users rely on `.bak` for rollback via `ce cefs rollback`
+- **Implication**: GC must NEVER delete images referenced by `.bak` symlinks
+- **Design Impact**: Always check both main and `.bak` symlinks
+
+### Eventually Consistent Operations
+- **Reality**: Between writing image and creating symlink, system is inconsistent
+- **Risk**: GC during this window could delete in-use image
+- **Solution**: `.yaml.inprogress` pattern - mark operation incomplete until symlink exists
+- **Cleanup**: Orphaned `.yaml.inprogress` files indicate failed operations (require manual review)
+
 ## CEFS v2 Approach
 
 Short version - symlink dirs from NFS to `/cefs/HASH`
@@ -153,4 +203,208 @@ Examples:
 3. If no symlinks reference the image, it can be safely removed
 4. The manifest provides full traceability for debugging and validation
 
-**Re-consolidation of Sparse Consolidated Images**: As items are updated/reinstalled, consolidated images may become sparse (e.g., if we consolidate X, Y, Z but later Y and Z are reinstalled individually, the consolidated image only serves X). The manifest system enables detecting such cases and re-consolidating remaining items to maintain efficiency. This ties into the garbage collection process as the old consolidated image would need cleanup after re-consolidation.
+### Garbage Collection Algorithm
+
+#### Design Principles
+
+1. **Manifest-Based Discovery**: Use manifest files to determine where symlinks *should* exist, rather than scanning entire filesystem
+   - **Rationale**: Scanning 3.8M+ files is expensive and slow
+   - **Trade-off**: Only works for images with manifests (newer images)
+   - **Fallback**: For images without manifests, scan common locations
+
+2. **Conservative Deletion**: When in doubt, keep the image
+   - **Rationale**: Storage is cheap, data loss is expensive
+   - **Implementation**: Multiple safety checks before deletion
+
+3. **No Assumptions About Exclusivity**: GC can run on multiple machines simultaneously
+   - **Rationale**: No way to prevent concurrent execution
+   - **Implementation**: Operations must be safe even if racing with other GC instances
+
+#### Algorithm Steps
+
+1. **Discovery Phase**:
+   - Scan `/efs/cefs-images/` for all `.sqfs` files
+   - For each image, check for `.yaml` manifest (complete) or `.yaml.inprogress` (incomplete)
+   - Read manifests to determine expected symlink locations
+
+2. **Reference Checking Phase**:
+   - For each image with manifest: check if expected symlinks exist and point to this image
+   - For each image without manifest: scan common locations for any symlinks
+   - **CRITICAL**: Always check both main path and `.bak` path
+
+3. **Filtering Phase**:
+   - Skip images with `.yaml.inprogress` (never delete incomplete operations)
+   - Skip images newer than `--min-age` threshold
+   - Skip images that have valid references
+
+4. **Deletion Phase**:
+   - Double-check each image is still unreferenced (guard against concurrent operations)
+   - Delete image file
+   - Delete manifest file if it exists
+
+### Garbage Collection Safety Requirements
+
+**Critical**: The GC implementation must handle concurrent operations safely in a multi-machine NFS environment without file locking.
+
+#### Race Condition Prevention
+
+To prevent deletion of in-progress installations, the system uses `.yaml.inprogress` markers:
+
+1. **Installation/Conversion Order**:
+   - Create and copy squashfs image to `/efs/cefs-images/`
+   - Write `manifest.yaml.inprogress` (operation incomplete)
+   - Create symlink(s) in `/opt/compiler-explorer/`
+   - Atomically rename `.yaml.inprogress` → `.yaml` (operation complete)
+
+2. **Consolidation Order**:
+   - Create consolidated image with subdirectories
+   - Write `manifest.yaml.inprogress`
+   - Update ALL symlinks one by one
+   - Only after all succeed: rename `.yaml.inprogress` → `.yaml`
+
+3. **GC Behavior**:
+   - ONLY process images with `.yaml` files (proven complete)
+   - NEVER delete images with `.yaml.inprogress` (in-progress or failed)
+   - Report `.yaml.inprogress` files for manual investigation
+
+#### Backup Protection
+
+**Critical**: GC must protect `.bak` symlinks to preserve rollback capability.
+
+When checking if an image is referenced:
+1. Check the primary destination from the manifest
+2. **Always** also check the `.bak` version of that destination
+3. Image is considered referenced if either symlink points to it
+
+Example: After `ce install gcc-15`, we have:
+- `/opt/compiler-explorer/gcc-15` → `/cefs/aa/new_hash` (new)
+- `/opt/compiler-explorer/gcc-15.bak` → `/cefs/bb/old_hash` (backup)
+
+Both `new_hash` and `old_hash` images must be preserved.
+
+#### Additional Safety Measures
+
+1. **Age Threshold**: Add `--min-age` option (default 1 hour) to skip recently created images
+2. **Double-Check**: Re-verify images are unreferenced immediately before deletion
+3. **Manual Investigation**: Provide tools to analyze `.yaml.inprogress` files:
+   - Show age of incomplete operations
+   - Compare expected vs actual symlinks
+   - Suggest remediation actions
+
+#### Handling Failed Operations
+
+Images with `.yaml.inprogress` markers indicate incomplete or failed operations:
+- **DO NOT** auto-delete these images (may be partially in use)
+- For consolidations: Some symlinks may already point to the image
+- Require manual investigation and decision
+- Future tool: `ce cefs check-failed` to analyze and remediate
+
+#### Re-consolidation of Sparse Consolidated Images
+
+As items are updated or reinstalled, consolidated images may become sparse. For example, if we consolidate X, Y, and Z into a single image, but later Y and Z are reinstalled individually, the consolidated image only serves X.
+
+The manifest system enables detecting such cases and re-consolidating the remaining items to maintain efficiency. This process ties into garbage collection, as the old consolidated image will need to be cleaned up after re-consolidation.
+### Edge Cases and Failure Scenarios
+
+#### What if GC runs during installation?
+- **Scenario**: Instance A is installing gcc-15 while Instance B runs GC
+- **Timeline**:
+  1. A: Copies image to `/efs/cefs-images/`
+  2. A: Writes `.yaml.inprogress`
+  3. B: GC scans and finds image with `.yaml.inprogress`
+  4. B: Skips image (never deletes `.yaml.inprogress`)
+  5. A: Creates symlink
+  6. A: Renames `.yaml.inprogress` → `.yaml`
+- **Result**: Image protected throughout installation
+
+#### What if installation fails after creating image?
+- **Scenario**: Installation crashes after copying image but before creating symlink
+- **State**: Image exists with `.yaml.inprogress` but no symlink
+- **GC Behavior**: Will never delete (has `.yaml.inprogress`)
+- **Resolution**: Manual cleanup required (intentional - failed operations need investigation)
+
+#### What if two GCs run simultaneously?
+- **Scenario**: Instance A and B both run `ce cefs gc` at same time
+- **Behavior**:
+  - Both scan same images
+  - Both check same symlinks
+  - Both identify same unreferenced images
+  - Both try to delete same files
+- **Result**: One succeeds, other gets "file not found" (harmless)
+- **Safety**: Double-check before deletion prevents race conditions
+
+#### What if symlink is created during GC?
+- **Scenario**: GC identifies image as unreferenced, then user installs something using that image
+- **Protection 1**: `--min-age` prevents deletion of recent images (default 1 hour)
+- **Protection 2**: Double-check immediately before deletion
+- **Timeline**:
+  1. GC: Identifies image X as unreferenced
+  2. User: Creates symlink to image X
+  3. GC: Double-checks image X
+  4. GC: Finds new symlink, skips deletion
+- **Result**: Image protected
+
+#### What if rollback happens during GC?
+- **Scenario**: User runs `ce cefs rollback` while GC is running
+- **Behavior**:
+  - Rollback swaps `.bak` symlink with main symlink
+  - GC always checks both main and `.bak`
+  - Both old and new images remain protected
+- **Result**: Safe - both images preserved
+
+#### What if manifest is corrupted?
+- **Scenario**: Manifest file exists but contains invalid YAML or missing fields
+- **Behavior**:
+  - Warning logged
+  - Image treated as having no manifest
+  - Falls back to filesystem scanning
+- **Result**: Conservative - image only deleted if no symlinks found anywhere
+
+#### What if NFS has split-brain?
+- **Scenario**: Network partition causes different instances to see different NFS state
+- **Reality**: This would break everything, not just GC
+- **Mitigation**: AWS EFS has strong consistency guarantees
+- **Design**: Even with inconsistency, operations remain safe (might keep extra images)
+
+### Safety Review Summary
+
+#### Key Safety Principles
+- **Conservative deletion**: When in doubt, keep the image
+- **Multiple protection layers**: No single point of failure
+- **No assumptions about exclusivity**: Safe even with concurrent operations
+- **Failed operations require human review**: Not automatic cleanup
+
+#### Protection Mechanisms and Their Tests
+1. **`.bak` symlink protection**
+   - Code: `_check_symlink_points_to_image()` always checks both main and `.bak`
+   - Test: `test_check_symlink_protects_bak()`
+   - Purpose: Preserves rollback capability
+
+2. **`.yaml.inprogress` pattern**
+   - Code: `scan_cefs_images_with_manifests()` skips incomplete operations
+   - Test: `test_scan_with_inprogress_files()`
+   - Purpose: Prevents deletion during installation/conversion
+
+3. **Age filtering**
+   - Code: `--min-age` option (default 1 hour)
+   - Purpose: Additional safety margin for recent operations
+
+4. **Double-check verification**
+   - Code: Re-verify each image before deletion (lines 851-872 in cli/cefs.py)
+   - Purpose: Guard against races between scan and deletion
+
+#### Why Not Use File Locking?
+- NFS file locking is unreliable and not available in our environment
+- Would require distributed lock service (adds complexity/failure modes)
+- Our solution: Order of operations + atomic operations + marker files
+
+#### Monitoring and Manual Intervention
+The GC provides detailed logging for troubleshooting:
+- Reports `.yaml.inprogress` files with age
+- Shows images skipped due to age threshold
+- Logs double-check saves
+
+Manual intervention required for:
+- `.yaml.inprogress` files older than expected (investigate failed operations)
+- Consistently growing image count (review if GC is too conservative)
+- Disk space concerns (can reduce `--min-age` if needed)
