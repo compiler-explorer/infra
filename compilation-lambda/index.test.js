@@ -5,7 +5,7 @@ jest.mock('./lib/websocket-client');
 jest.mock('./lib/http-forwarder');
 jest.mock('./lib/utils', () => ({
     ...jest.requireActual('./lib/utils'),
-    generateGuid: () => 'test-uuid-1234'
+    generateGuid: () => 'test-uuid-1234',
 }));
 
 // Set environment variables before importing the handler
@@ -15,12 +15,16 @@ process.env.WEBSOCKET_URL = 'wss://test.example.com/websocket';
 process.env.TIMEOUT_SECONDS = '1';
 
 // Import the handler after mocks are set up
-const { handler } = require('./index');
+const {handler} = require('./index');
 
 // Import the mocked modules to set up expectations
-const { lookupCompilerRouting, sendToSqs } = require('./lib/routing');
-const { subscribePersistent, waitForCompilationResultPersistent, getPersistentWebSocket } = require('./lib/websocket-client');
-const { forwardToEnvironmentUrl } = require('./lib/http-forwarder');
+const {lookupCompilerRouting, sendToSqs} = require('./lib/routing');
+const {
+    subscribePersistent,
+    waitForCompilationResultPersistent,
+    // getPersistentWebSocket, // Currently unused in tests
+} = require('./lib/websocket-client');
+const {forwardToEnvironmentUrl} = require('./lib/http-forwarder');
 
 describe('Compilation Lambda Handler', () => {
     let originalConsoleError;
@@ -46,7 +50,7 @@ describe('Compilation Lambda Handler', () => {
         test('should reject non-POST methods', async () => {
             const event = {
                 httpMethod: 'GET',
-                path: '/api/compiler/gcc/compile'
+                path: '/api/compiler/gcc/compile',
             };
 
             const response = await handler(event, {});
@@ -58,7 +62,7 @@ describe('Compilation Lambda Handler', () => {
         test('should reject invalid paths', async () => {
             const event = {
                 httpMethod: 'POST',
-                path: '/invalid/path'
+                path: '/invalid/path',
             };
 
             const response = await handler(event, {});
@@ -74,21 +78,21 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/gcc/compile',
-                environment: 'test'
+                environment: 'test',
             });
 
             // Mock HTTP forwarding
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
-                headers: { 'content-type': 'application/json' },
-                body: { asm: [{ text: 'mov eax, 0' }] }
+                headers: {'content-type': 'application/json'},
+                body: {asm: [{text: 'mov eax, 0'}]},
             });
 
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
-                headers: { 'content-type': 'application/json' }
+                headers: {'content-type': 'application/json'},
             };
 
             const response = await handler(event, {});
@@ -100,7 +104,7 @@ describe('Compilation Lambda Handler', () => {
                 'https://example.com/api/compiler/gcc/compile',
                 '{"source": "int main() {}"}',
                 false,
-                { 'content-type': 'application/json' }
+                {'content-type': 'application/json'},
             );
             expect(sendToSqs).not.toHaveBeenCalled();
         });
@@ -109,7 +113,7 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/gcc/compile',
-                environment: 'test'
+                environment: 'test',
             });
 
             forwardToEnvironmentUrl.mockRejectedValue(new Error('Network error'));
@@ -118,7 +122,7 @@ describe('Compilation Lambda Handler', () => {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
-                headers: { 'content-type': 'application/json' }
+                headers: {'content-type': 'application/json'},
             };
 
             const response = await handler(event, {});
@@ -134,7 +138,7 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'queue',
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo',
-                environment: 'test'
+                environment: 'test',
             });
 
             // Mock WebSocket subscription to fail
@@ -144,7 +148,7 @@ describe('Compilation Lambda Handler', () => {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
-                headers: { 'content-type': 'application/json' }
+                headers: {'content-type': 'application/json'},
             };
 
             const response = await handler(event, {});
@@ -158,7 +162,7 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'queue',
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/custom-queue.fifo',
-                environment: 'test'
+                environment: 'test',
             });
 
             // Mock SQS sending
@@ -168,15 +172,15 @@ describe('Compilation Lambda Handler', () => {
             subscribePersistent.mockResolvedValue();
             waitForCompilationResultPersistent.mockResolvedValue({
                 guid: 'test-uuid-1234',
-                asm: [{ text: 'mov eax, 0' }],
-                code: 0
+                asm: [{text: 'mov eax, 0'}],
+                code: 0,
             });
 
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
-                headers: { 'content-type': 'application/json' }
+                headers: {'content-type': 'application/json'},
             };
 
             const response = await handler(event, {});
@@ -188,8 +192,9 @@ describe('Compilation Lambda Handler', () => {
                 'gcc',
                 '{"source": "int main() {}"}',
                 false,
-                { 'content-type': 'application/json' },
-                'https://sqs.us-east-1.amazonaws.com/123456789/custom-queue.fifo'
+                {'content-type': 'application/json'},
+                {},
+                'https://sqs.us-east-1.amazonaws.com/123456789/custom-queue.fifo',
             );
             expect(waitForCompilationResultPersistent).toHaveBeenCalledWith('test-uuid-1234', 1); // TIMEOUT_SECONDS
         });
@@ -200,20 +205,20 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/gcc-12/compile',
-                environment: 'test'
+                environment: 'test',
             });
 
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: {},
-                body: 'success'
+                body: 'success',
             });
 
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc-12/compile',
                 body: 'int main() {}',
-                headers: {}
+                headers: {},
             };
 
             await handler(event, {});
@@ -224,7 +229,7 @@ describe('Compilation Lambda Handler', () => {
                 'https://example.com/api/compiler/gcc-12/compile',
                 'int main() {}',
                 false,
-                {}
+                {},
             );
         });
 
@@ -232,20 +237,20 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/clang-trunk/compile',
-                environment: 'test'
+                environment: 'test',
             });
 
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: {},
-                body: 'success'
+                body: 'success',
             });
 
             const event = {
                 httpMethod: 'POST',
                 path: '/beta/api/compiler/clang-trunk/compile',
                 body: 'int main() {}',
-                headers: {}
+                headers: {},
             };
 
             await handler(event, {});
@@ -257,20 +262,20 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'url',
                 target: 'https://example.com/api/compiler/gcc/compile',
-                environment: 'test'
+                environment: 'test',
             });
 
             forwardToEnvironmentUrl.mockResolvedValue({
                 statusCode: 200,
                 headers: {},
-                body: 'success'
+                body: 'success',
             });
 
             const event = {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/cmake',
                 body: 'project(test)',
-                headers: {}
+                headers: {},
             };
 
             await handler(event, {});
@@ -281,7 +286,7 @@ describe('Compilation Lambda Handler', () => {
                 'https://example.com/api/compiler/gcc/compile',
                 'project(test)',
                 true, // isCmake should be true
-                {}
+                {},
             );
         });
     });
@@ -294,7 +299,7 @@ describe('Compilation Lambda Handler', () => {
                 httpMethod: 'POST',
                 path: '/api/compiler/unknown/compile',
                 body: 'int main() {}',
-                headers: {}
+                headers: {},
             };
 
             const response = await handler(event, {});
@@ -309,7 +314,7 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'queue',
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo',
-                environment: 'test'
+                environment: 'test',
             });
 
             subscribePersistent.mockResolvedValue();
@@ -320,7 +325,7 @@ describe('Compilation Lambda Handler', () => {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
-                headers: { 'content-type': 'application/json' }
+                headers: {'content-type': 'application/json'},
             };
 
             const response = await handler(event, {});
@@ -333,7 +338,7 @@ describe('Compilation Lambda Handler', () => {
             lookupCompilerRouting.mockResolvedValue({
                 type: 'queue',
                 target: 'https://sqs.us-east-1.amazonaws.com/123456789/test-queue.fifo',
-                environment: 'test'
+                environment: 'test',
             });
 
             sendToSqs.mockResolvedValue();
@@ -345,7 +350,7 @@ describe('Compilation Lambda Handler', () => {
                 httpMethod: 'POST',
                 path: '/api/compiler/gcc/compile',
                 body: '{"source": "int main() {}"}',
-                headers: { 'content-type': 'application/json' }
+                headers: {'content-type': 'application/json'},
             };
 
             const response = await handler(event, {});

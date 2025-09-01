@@ -88,14 +88,17 @@ export class EventsConnections {
         // eslint-disable-next-line no-console
         if (cachedConnections.length > 0 || result.Count > 0) {
             // eslint-disable-next-line no-console
-            console.info(`Cache: ${cachedConnections.length} items, DynamoDB: ${result.Count || 0} items, Merged: ${mergedItems.length} items for ${subscription}`);
+            console.info(
+                `Cache: ${cachedConnections.length} items, DynamoDB: ${result.Count || 0} items, ` +
+                    `Merged: ${mergedItems.length} items for ${subscription}`,
+            );
         }
 
         // Return a result object with merged items
         return {
             Items: mergedItems,
             Count: mergedItems.length,
-            ScannedCount: result.ScannedCount || 0
+            ScannedCount: result.ScannedCount || 0,
         };
     }
 

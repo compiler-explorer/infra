@@ -185,8 +185,16 @@ compilation-lambda-package: $(COMPILATION_LAMBDA_PACKAGE) $(COMPILATION_LAMBDA_P
 test-compilation-lambda:
 	cd compilation-lambda && npm install && npm test
 
+.PHONY: lint-compilation-lambda  ## runs compilation lambda linter
+lint-compilation-lambda:
+	cd compilation-lambda && npm install && npm run lint
+
 .PHONY: events-lambda-package  ## Builds events-lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
+
+.PHONY: lint-events-lambda  ## runs events lambda linter
+lint-events-lambda:
+	cd events-lambda && npm install && npm run lint
 
 .PHONY: check-events-lambda-changed
 check-events-lambda-changed: events-lambda-package

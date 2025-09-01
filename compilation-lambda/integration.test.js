@@ -13,19 +13,19 @@ process.env.SQS_QUEUE_URL_BLUE = 'https://sqs.us-east-1.amazonaws.com/0527302423
 process.env.SQS_QUEUE_URL_GREEN = 'https://sqs.us-east-1.amazonaws.com/052730242331/test-compilation-queue-green.fifo';
 process.env.WEBSOCKET_URL = 'wss://test.example.com/websocket';
 
-const { lookupCompilerRouting, sendToSqs, parseRequestBody } = require('./lib/routing');
-const { AWS_ACCOUNT_ID, sqs, ssm } = require('./lib/aws-clients');
-const { generateGuid, extractCompilerId, isCmakeRequest, createSuccessResponse } = require('./lib/utils');
-const routing = require('./lib/routing');
+const {lookupCompilerRouting, sendToSqs, parseRequestBody} = require('./lib/routing');
+const {AWS_ACCOUNT_ID, sqs, ssm} = require('./lib/aws-clients');
+const {generateGuid, extractCompilerId, isCmakeRequest, createSuccessResponse} = require('./lib/utils');
+// const routing = require('./lib/routing'); // Currently unused, kept for future use
 
 // Mock SSM for testing - return 'blue' as default active color
 const originalSsmSend = ssm.send;
-ssm.send = jest.fn().mockImplementation((command) => {
+ssm.send = jest.fn().mockImplementation(command => {
     if (command.constructor.name === 'GetParameterCommand') {
         return Promise.resolve({
             Parameter: {
-                Value: 'blue'
-            }
+                Value: 'blue',
+            },
         });
     }
     return originalSsmSend.call(ssm, command);
@@ -118,7 +118,8 @@ describe('Integration Tests - Real AWS Services', () => {
             // Should fallback to color-specific queue
             expect(result).toBeDefined();
             expect(result.type).toBe('queue');
-            expect(result.target).toBe(process.env.SQS_QUEUE_URL_BLUE); // Should use blue queue (our mock returns 'blue')
+            // Should use blue queue (our mock returns 'blue')
+            expect(result.target).toBe(process.env.SQS_QUEUE_URL_BLUE);
             expect(result.environment).toBe('unknown');
         }, 10000);
 
@@ -132,7 +133,9 @@ describe('Integration Tests - Real AWS Services', () => {
 
                 expect(result).toBeDefined();
                 expect(result.type).toBe('queue');
-                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo');
+                expect(result.target).toBe(
+                    'https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo',
+                );
                 expect(result.environment).toBe('prod');
             } finally {
                 process.env.ENVIRONMENT_NAME = originalEnv;
@@ -147,7 +150,9 @@ describe('Integration Tests - Real AWS Services', () => {
                 const result = await lookupCompilerRouting('gimpleesp32g20230208');
 
                 expect(result.type).toBe('queue');
-                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo');
+                expect(result.target).toBe(
+                    'https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo',
+                );
             } finally {
                 process.env.ENVIRONMENT_NAME = originalEnv;
             }
@@ -161,7 +166,7 @@ describe('Integration Tests - Real AWS Services', () => {
 
             expect(result).toEqual({
                 source: 'int main() { return 0; }',
-                options: ['-O2']
+                options: ['-O2'],
             });
         });
 
@@ -170,7 +175,7 @@ describe('Integration Tests - Real AWS Services', () => {
             const result = parseRequestBody(plainBody, 'text/plain');
 
             expect(result).toEqual({
-                source: 'int main() { return 0; }'
+                source: 'int main() { return 0; }',
             });
         });
 
@@ -180,7 +185,7 @@ describe('Integration Tests - Real AWS Services', () => {
 
             // Should treat as plain text when JSON parsing fails
             expect(result).toEqual({
-                source: malformedJson
+                source: malformedJson,
             });
         });
 
@@ -217,14 +222,13 @@ describe('Integration Tests - Real AWS Services', () => {
         });
 
         test('should create properly formatted ALB response', () => {
-            const response = createSuccessResponse({ result: 'success' });
+            const response = createSuccessResponse({result: 'success'});
 
             expect(response.statusCode).toBe(200);
             expect(response.headers['Content-Type']).toBe('application/json; charset=utf-8');
             expect(response.body).toBe('{"result":"success"}');
         });
     });
-
 
     describe('SQS Integration (Dry Run)', () => {
         test('should construct valid SQS message without actually sending', async () => {
@@ -233,7 +237,7 @@ describe('Integration Tests - Real AWS Services', () => {
             const compilerId = 'gcc';
             const body = '{"source": "int main() { return 0; }", "options": ["-O2"]}';
             const isCmake = false;
-            const headers = { 'content-type': 'application/json' };
+            const headers = {'content-type': 'application/json'};
 
             // Mock the SQS send to capture the message that would be sent
             const originalSqsSend = sqs.send;
@@ -267,7 +271,6 @@ describe('Integration Tests - Real AWS Services', () => {
                 expect(messageBody.libraries).toEqual([]);
                 expect(messageBody.files).toEqual([]);
                 expect(messageBody.executeParameters).toEqual({});
-
             } finally {
                 // Restore original SQS client
                 sqs.send = originalSqsSend;
@@ -277,7 +280,7 @@ describe('Integration Tests - Real AWS Services', () => {
         test('should handle plain text body in SQS message', async () => {
             const guid = generateGuid();
             const body = 'int main() { return 0; }';
-            const headers = { 'content-type': 'text/plain' };
+            const headers = {'content-type': 'text/plain'};
 
             const originalSqsSend2 = sqs.send;
             const mockSend = jest.fn();
@@ -294,16 +297,14 @@ describe('Integration Tests - Real AWS Services', () => {
         });
 
         test('should handle missing queue URL error', async () => {
-            await expect(sendToSqs('test-guid', 'gcc', '{}', false, {}, '')).rejects.toThrow(
-                'No queue URL available'
-            );
+            await expect(sendToSqs('test-guid', 'gcc', '{}', false, {}, '')).rejects.toThrow('No queue URL available');
         });
     });
 
     describe('Error Handling', () => {
         test('should handle DynamoDB access errors gracefully', async () => {
             // Temporarily break the table name to simulate an error
-            const originalTableName = 'CompilerRouting';
+            // const originalTableName = 'CompilerRouting'; // Kept for future test implementation
 
             // We can't easily mock this in integration test, but we can test with invalid compiler
             // The function should handle errors gracefully and return default routing
@@ -327,11 +328,13 @@ describe('Integration Tests - Real AWS Services', () => {
 
                 // Should find the prod routing
                 expect(result.type).toBe('queue');
-                expect(result.target).toBe('https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo');
+                expect(result.target).toBe(
+                    'https://sqs.us-east-1.amazonaws.com/052730242331/prod-compilation-queue-blue.fifo',
+                );
                 expect(result.environment).toBe('prod');
 
                 // Verify queue URL format is correct for SQS usage
-                expect(result.target).toMatch(/^https:\/\/sqs\.[a-z0-9-]+\.amazonaws\.com\/\d{12}\/[\w-]+/);
+                expect(result.target).toMatch(/^https:\/\/sqs\.[\da-z-]+\.amazonaws\.com\/\d{12}\/[\w-]+/);
 
                 console.log(`✓ Compiler ${compilerId} routed to: ${result.target}`);
             } finally {

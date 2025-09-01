@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const {v4: uuidv4} = require('uuid');
 
 // Regular expression to trim leading and trailing slashes
 const TRIM_SLASHES_REGEX = /^\/+|\/+$/g;
@@ -18,7 +18,7 @@ function generateGuid() {
  */
 function extractCompilerId(path) {
     try {
-        const pathParts = path.replace(TRIM_SLASHES_REGEX, '').split('/');
+        const pathParts = path.replaceAll(TRIM_SLASHES_REGEX, '').split('/');
 
         // Production format: /api/compiler/{compiler_id}/compile
         if (pathParts.length >= 4 && pathParts[0] === 'api' && pathParts[1] === 'compiler') {
@@ -52,28 +52,65 @@ function createErrorResponse(statusCode, message) {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'POST',
-            'Access-Control-Allow-Headers': 'Content-Type'
+            'Access-Control-Allow-Headers': 'Content-Type',
         },
-        body: JSON.stringify({ error: message })
+        body: JSON.stringify({error: message}),
     };
+}
+
+function textify(array, filterAnsi) {
+    const text = (array || []).map(line => line.text).join('\n');
+    if (filterAnsi) {
+        // Remove ANSI escape sequences
+        // Ref: https://stackoverflow.com/questions/14693701
+        return text.replaceAll(/(\x9B|\x1B\[)[\d:;<=>?]*[ -/]*[@-~]/g, '');
+    }
+    return text;
+}
+
+function isEmpty(value) {
+    return (
+        value === null ||
+        value === undefined ||
+        (typeof value === 'string' && value.trim() === '') ||
+        (Array.isArray(value) && value.length === 0) ||
+        (typeof value === 'object' && Object.keys(value).length === 0)
+    );
 }
 
 /**
  * Create an ALB-compatible success response
  * Response format depends on Accept header
  */
-function createSuccessResponse(result, acceptHeader) {
+function createSuccessResponse(result, filterAnsi, acceptHeader) {
+    delete result.guid;
+    delete result.s3Key;
+
     // Determine response format based on Accept header
     if (acceptHeader && acceptHeader.toLowerCase().includes('text/plain')) {
         // Plain text response - typically just the assembly output
         let body = '';
-        if (result.asm) {
-            // Join assembly lines
-            body = result.asm.map(line => line.text || '').join('\n');
-        } else if (result.stdout) {
-            // Fallback to stdout if no asm
-            body = result.stdout.join('\n');
+
+        try {
+            if (!isEmpty(this.textBanner)) body += '# ' + this.textBanner + '\n';
+            body += textify(result.asm, filterAnsi);
+            if (result.code !== 0) body += '\n# Compiler exited with result code ' + result.code;
+            if (!isEmpty(result.stdout)) body += '\nStandard out:\n' + textify(result.stdout, filterAnsi);
+            if (!isEmpty(result.stderr)) body += '\nStandard error:\n' + textify(result.stderr, filterAnsi);
+
+            if (result.execResult) {
+                body += '\n\n# Execution result with exit code ' + result.execResult.code + '\n';
+                if (!isEmpty(result.execResult.stdout)) {
+                    body += '# Standard out:\n' + textify(result.execResult.stdout, filterAnsi);
+                }
+                if (!isEmpty(result.execResult.stderr)) {
+                    body += '\n# Standard error:\n' + textify(result.execResult.stderr, filterAnsi);
+                }
+            }
+        } catch (ex) {
+            body += `Error handling request: ${ex}`;
         }
+        body += '\n';
 
         return {
             statusCode: 200,
@@ -81,23 +118,21 @@ function createSuccessResponse(result, acceptHeader) {
                 'Content-Type': 'text/plain; charset=utf-8',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST',
-                'Access-Control-Allow-Headers': 'Content-Type, Accept'
+                'Access-Control-Allow-Headers': 'Content-Type, Accept',
             },
-            body
+            body,
         };
     } else {
         // Default to JSON response
-        // Remove internal guid from response
-        delete result.guid;
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST',
-                'Access-Control-Allow-Headers': 'Content-Type, Accept'
+                'Access-Control-Allow-Headers': 'Content-Type, Accept',
             },
-            body: JSON.stringify(result)
+            body: JSON.stringify(result),
         };
     }
 }
@@ -107,5 +142,5 @@ module.exports = {
     extractCompilerId,
     isCmakeRequest,
     createErrorResponse,
-    createSuccessResponse
+    createSuccessResponse,
 };

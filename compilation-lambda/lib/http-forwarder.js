@@ -47,7 +47,7 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
         const response = await axios.post(url, body, {
             headers: forwardHeaders,
             timeout: 60000, // 60 second timeout
-            validateStatus: null // Don't throw on HTTP error status
+            validateStatus: null, // Don't throw on HTTP error status
         });
 
         console.info(`HTTP forwarding end to ${url}, status: ${response.status}`);
@@ -56,9 +56,8 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
         return {
             statusCode: response.status,
             headers: response.headers,
-            body: response.data
+            body: response.data,
         };
-
     } catch (error) {
         if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
             console.error(`HTTP forwarding timeout to ${url}:`, error);
@@ -70,5 +69,5 @@ async function forwardToEnvironmentUrl(compilerId, url, body, isCmake, headers) 
 }
 
 module.exports = {
-    forwardToEnvironmentUrl
+    forwardToEnvironmentUrl,
 };

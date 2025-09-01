@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
-const { getS3Client } = require('./aws-clients');
-const { GetObjectCommand } = require('@aws-sdk/client-s3');
+const {getS3Client} = require('./aws-clients');
+const {GetObjectCommand} = require('@aws-sdk/client-s3');
 
 // Environment variables
 const WEBSOCKET_URL = process.env.WEBSOCKET_URL || '';
@@ -9,16 +9,16 @@ const COMPILATION_RESULTS_PREFIX = process.env.COMPILATION_RESULTS_PREFIX || 'ca
 
 // WebSocket connection options for performance
 const WS_OPTIONS = {
-    perMessageDeflate: false,  // Disable compression for faster connection
-    handshakeTimeout: 2000,    // 2 seconds - balanced for cold starts
+    perMessageDeflate: false, // Disable compression for faster connection
+    handshakeTimeout: 2000, // 2 seconds - balanced for cold starts
     keepAlive: true,
     keepAliveInitialDelay: 300000, // 5 minutes
     rejectUnauthorized: true,
     headers: {
-        'Connection': 'Upgrade',
-        'Upgrade': 'websocket',
-        'User-Agent': 'CE-Lambda/1.0'
-    }
+        Connection: 'Upgrade',
+        Upgrade: 'websocket',
+        'User-Agent': 'CE-Lambda/1.0',
+    },
 };
 
 /**
@@ -66,7 +66,7 @@ class PersistentWebSocketManager {
 
             this.ws = new WebSocket(this.url, [], WS_OPTIONS);
 
-            this.ws.on('message', async (data) => {
+            this.ws.on('message', async data => {
                 const messageText = data.toString();
 
                 // Try to parse as JSON for result messages
@@ -96,16 +96,21 @@ class PersistentWebSocketManager {
                         }
                     }
                 } catch (error) {
-                    console.warn('Failed to parse WebSocket message:', messageText.substring(0, 100), '...', error.message);
+                    console.warn(
+                        'Failed to parse WebSocket message:',
+                        messageText.substring(0, 100),
+                        '...',
+                        error.message,
+                    );
                 }
             });
 
-            this.ws.on('error', (error) => {
+            this.ws.on('error', error => {
                 console.error(`Persistent WebSocket error:`, error);
                 this.connected = false;
 
                 // Reject all pending subscriptions
-                for (const [guid, subscription] of this.subscriptions) {
+                for (const [, subscription] of this.subscriptions) {
                     clearTimeout(subscription.timeout);
                     subscription.rejecter(error);
                 }
@@ -119,7 +124,7 @@ class PersistentWebSocketManager {
                 this.connected = false;
 
                 // Reject all pending subscriptions with close error
-                for (const [guid, subscription] of this.subscriptions) {
+                for (const [, subscription] of this.subscriptions) {
                     clearTimeout(subscription.timeout);
                     subscription.rejecter(new Error('WebSocket connection closed'));
                 }
@@ -130,7 +135,9 @@ class PersistentWebSocketManager {
                     this.reconnectAttempts++;
                     setTimeout(() => {
                         if (!this.connected && !this.connecting) {
-                            console.info(`Attempting WebSocket reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+                            console.info(
+                                `Attempting WebSocket reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts}`,
+                            );
                             this.connect().catch(err => console.warn('Reconnect failed:', err));
                         }
                     }, 1000 * this.reconnectAttempts);
@@ -188,7 +195,7 @@ class PersistentWebSocketManager {
             }, timeoutSeconds * 1000);
 
             // Store subscription
-            this.subscriptions.set(guid, { resolver: resolve, rejecter: reject, timeout });
+            this.subscriptions.set(guid, {resolver: resolve, rejecter: reject, timeout});
         });
     }
 
@@ -197,7 +204,7 @@ class PersistentWebSocketManager {
         this.connecting = false;
 
         // Clear all subscriptions
-        for (const [guid, subscription] of this.subscriptions) {
+        for (const [, subscription] of this.subscriptions) {
             clearTimeout(subscription.timeout);
             subscription.rejecter(new Error('WebSocket manager closing'));
         }
@@ -228,8 +235,13 @@ async function resolveS3FileIfNeeded(message) {
     }
 
     // Check if this is a lightweight message missing typical result data
-    const hasTypicalResultData = message.asm || message.stdout || message.stderr ||
-                                 message.code !== undefined || message.output || message.result;
+    const hasTypicalResultData =
+        message.asm ||
+        message.stdout ||
+        message.stderr ||
+        message.code !== undefined ||
+        message.output ||
+        message.result;
 
     if (hasTypicalResultData) {
         // Message already has result data, no need to fetch from S3
@@ -245,7 +257,7 @@ async function resolveS3FileIfNeeded(message) {
         const s3Client = getS3Client();
         const command = new GetObjectCommand({
             Bucket: COMPILATION_RESULTS_BUCKET,
-            Key: s3Key
+            Key: s3Key,
         });
 
         const response = await s3Client.send(command);
@@ -254,13 +266,10 @@ async function resolveS3FileIfNeeded(message) {
         const s3Content = JSON.parse(bodyString);
         console.info(`Successfully fetched and parsed S3 compilation result for ${message.s3Key}`);
 
-        const mergedResult = {
+        return {
             ...s3Content,
             ...message,
         };
-
-        return mergedResult;
-
     } catch (error) {
         console.error(`Failed to fetch S3 compilation result for ${message.s3Key}:`, error);
 
@@ -272,7 +281,7 @@ async function resolveS3FileIfNeeded(message) {
             stderr: [{text: 'An internal error has occurred while retrieving the compilation result'}],
             execTime: 0,
             timedOut: false,
-            guid: message.guid
+            guid: message.guid,
         };
     }
 }
@@ -301,12 +310,7 @@ async function subscribePersistent(guid) {
 async function waitForCompilationResultPersistent(guid, timeout = 60) {
     const wsManager = getPersistentWebSocket();
 
-    try {
-        const result = await wsManager.waitForResult(guid, timeout);
-        return result;
-    } catch (error) {
-        throw error;
-    }
+    return await wsManager.waitForResult(guid, timeout);
 }
 
 module.exports = {
@@ -314,5 +318,5 @@ module.exports = {
     getPersistentWebSocket,
     subscribePersistent,
     waitForCompilationResultPersistent,
-    resolveS3FileIfNeeded
+    resolveS3FileIfNeeded,
 };

@@ -1,13 +1,13 @@
-const { dynamodb, sqs, ssm, GetItemCommand, SendMessageCommand, GetParameterCommand } = require('./aws-clients');
+const {dynamodb, sqs, ssm, GetItemCommand, SendMessageCommand, GetParameterCommand} = require('./aws-clients');
 
 // Environment variables - read dynamically to support environment switching in tests
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+// const AWS_REGION = process.env.AWS_REGION || 'us-east-1'; // Currently unused, kept for future use
 
 // Cache for active color (with TTL)
 let activeColorCache = {
     color: null,
     timestamp: 0,
-    TTL: 30000 // 30 seconds TTL
+    TTL: 30000, // 30 seconds TTL
 };
 
 function getEnvironmentName() {
@@ -30,7 +30,7 @@ async function getActiveColor() {
     const now = Date.now();
 
     // Check cache
-    if (activeColorCache.color && (now - activeColorCache.timestamp) < activeColorCache.TTL) {
+    if (activeColorCache.color && now - activeColorCache.timestamp < activeColorCache.TTL) {
         console.info(`Active color cache hit: ${activeColorCache.color}`);
         return activeColorCache.color;
     }
@@ -40,9 +40,11 @@ async function getActiveColor() {
 
     try {
         console.info(`Fetching active color from SSM: ${paramName}`);
-        const response = await ssm.send(new GetParameterCommand({
-            Name: paramName
-        }));
+        const response = await ssm.send(
+            new GetParameterCommand({
+                Name: paramName,
+            }),
+        );
 
         const color = response.Parameter?.Value || 'blue';
 
@@ -50,7 +52,7 @@ async function getActiveColor() {
         activeColorCache = {
             color: color,
             timestamp: now,
-            TTL: activeColorCache.TTL
+            TTL: activeColorCache.TTL,
         };
 
         console.info(`Active color from SSM: ${color}`);
@@ -132,11 +134,11 @@ function parseRequestBody(body, contentType) {
             return JSON.parse(body);
         } catch (error) {
             console.warn('Failed to parse JSON body, treating as plain text');
-            return { source: body };
+            return {source: body};
         }
     } else {
         // Plain text body - treat as source code
-        return { source: body };
+        return {source: body};
     }
 }
 
@@ -146,7 +148,7 @@ function parseRequestBody(body, contentType) {
  * Uses environment-prefixed composite key for isolation
  */
 async function lookupCompilerRouting(compilerId) {
-    const lookupStart = Date.now();
+    // const lookupStart = Date.now(); // Timing measurement currently unused
     try {
         // Create composite key with environment prefix for isolation
         const environmentName = getEnvironmentName();
@@ -162,24 +164,30 @@ async function lookupCompilerRouting(compilerId) {
 
         // Look up compiler in DynamoDB routing table using composite key
         console.info(`DynamoDB routing lookup start for compiler: ${compilerId}`);
-        const response = await dynamodb.send(new GetItemCommand({
-            TableName: COMPILER_ROUTING_TABLE,
-            Key: {
-                compilerId: { S: compositeKey }
-            }
-        }));
+        const response = await dynamodb.send(
+            new GetItemCommand({
+                TableName: COMPILER_ROUTING_TABLE,
+                Key: {
+                    compilerId: {S: compositeKey},
+                },
+            }),
+        );
 
         let item = response.Item;
 
-        if (!item) {
+        if (item) {
+            console.info(`DynamoDB routing lookup end for compiler: ${compilerId}, using composite key`);
+        } else {
             // Fallback: try old format (without environment prefix) for backward compatibility
             console.info(`Composite key not found for ${compositeKey}, trying legacy format`);
-            const fallbackResponse = await dynamodb.send(new GetItemCommand({
-                TableName: COMPILER_ROUTING_TABLE,
-                Key: {
-                    compilerId: { S: compilerId }
-                }
-            }));
+            const fallbackResponse = await dynamodb.send(
+                new GetItemCommand({
+                    TableName: COMPILER_ROUTING_TABLE,
+                    Key: {
+                        compilerId: {S: compilerId},
+                    },
+                }),
+            );
 
             item = fallbackResponse.Item;
             if (item) {
@@ -188,8 +196,6 @@ async function lookupCompilerRouting(compilerId) {
             } else {
                 console.info(`DynamoDB routing lookup end for compiler: ${compilerId}, using fallback: not found`);
             }
-        } else {
-            console.info(`DynamoDB routing lookup end for compiler: ${compilerId}, using composite key`);
         }
 
         if (item) {
@@ -201,7 +207,7 @@ async function lookupCompilerRouting(compilerId) {
                     const result = {
                         type: 'url',
                         target: targetUrl,
-                        environment: item.environment?.S || ''
+                        environment: item.environment?.S || '',
                     };
                     // Cache the result
                     routingCache.set(cacheKey, result);
@@ -218,7 +224,7 @@ async function lookupCompilerRouting(compilerId) {
                     const result = {
                         type: 'queue',
                         target: queueUrl,
-                        environment: item.environment?.S || ''
+                        environment: item.environment?.S || '',
                     };
                     // Cache the result
                     routingCache.set(cacheKey, result);
@@ -231,7 +237,7 @@ async function lookupCompilerRouting(compilerId) {
                     const result = {
                         type: 'queue',
                         target: queueUrl,
-                        environment: item.environment?.S || ''
+                        environment: item.environment?.S || '',
                     };
                     // Cache the result
                     routingCache.set(cacheKey, result);
@@ -248,13 +254,12 @@ async function lookupCompilerRouting(compilerId) {
         const result = {
             type: 'queue',
             target: queueUrl,
-            environment: 'unknown'
+            environment: 'unknown',
         };
         // Cache the result
         routingCache.set(cacheKey, result);
         console.info(`Routing lookup complete for compiler: ${compilerId}, using colored queue`);
         return result;
-
     } catch (error) {
         // On any error, fall back to colored queue
         console.warn(`Failed to lookup routing for compiler ${compilerId}:`, error);
@@ -262,7 +267,7 @@ async function lookupCompilerRouting(compilerId) {
         return {
             type: 'queue',
             target: queueUrl,
-            environment: 'unknown'
+            environment: 'unknown',
         };
     }
 }
@@ -270,7 +275,7 @@ async function lookupCompilerRouting(compilerId) {
 /**
  * Send compilation request to SQS queue as RemoteCompilationRequest
  */
-async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
+async function sendToSqs(guid, compilerId, body, isCmake, headers, queryStringParameters, queueUrl) {
     if (!queueUrl) {
         throw new Error('No queue URL available (neither DynamoDB lookup nor SQS_QUEUE_URL env var set)');
     }
@@ -289,7 +294,8 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
         compilerId,
         isCMake: isCmake,
         headers, // Preserve original headers for response formatting
-        ...requestData // Merge all fields from the original request first (preserves original values)
+        queryStringParameters,
+        ...requestData, // Merge all fields from the original request first (preserves original values)
     };
 
     // Add defaults for fields that are required by the consumer but might be missing
@@ -306,14 +312,15 @@ async function sendToSqs(guid, compilerId, body, isCmake, headers, queueUrl) {
         const messageJson = JSON.stringify(messageBody);
 
         console.info(`SQS send start for GUID: ${guid} to queue`);
-        await sqs.send(new SendMessageCommand({
-            QueueUrl: queueUrl,
-            MessageBody: messageJson,
-            MessageGroupId: 'default',
-            MessageDeduplicationId: guid
-        }));
+        await sqs.send(
+            new SendMessageCommand({
+                QueueUrl: queueUrl,
+                MessageBody: messageJson,
+                MessageGroupId: 'default',
+                MessageDeduplicationId: guid,
+            }),
+        );
         console.info(`SQS send end for GUID: ${guid}`);
-
     } catch (error) {
         console.error(`Failed to send message to SQS (${queueUrl}):`, error);
         throw new Error(`Failed to send message to SQS (${queueUrl}): ${error.message}`);
@@ -324,5 +331,5 @@ module.exports = {
     lookupCompilerRouting,
     sendToSqs,
     parseRequestBody,
-    buildQueueUrl
+    buildQueueUrl,
 };
