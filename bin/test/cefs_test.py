@@ -845,9 +845,6 @@ def test_full_gc_workflow_integration(tmp_path):
 
 def test_filter_images_by_age(tmp_path):
     """Test filtering images by age."""
-    import os
-    import time
-
     # Create images with different ages
     old_image = tmp_path / "old.sqfs"
     recent_image = tmp_path / "recent.sqfs"
@@ -885,14 +882,12 @@ def test_get_image_description_from_manifest(tmp_path):
 
     # Test with valid manifest
     manifest_path.write_text(
-        yaml.dump(
-            {
-                "contents": [
-                    {"name": "gcc-11", "destination": "/opt/gcc-11"},
-                    {"name": "boost-1.75", "destination": "/opt/boost"},
-                ]
-            }
-        )
+        yaml.dump({
+            "contents": [
+                {"name": "gcc-11", "destination": "/opt/gcc-11"},
+                {"name": "boost-1.75", "destination": "/opt/boost"},
+            ]
+        })
     )
 
     assert get_image_description_from_manifest(image_path) == ["gcc-11", "boost-1.75"]
@@ -912,10 +907,10 @@ def test_get_image_description_from_manifest(tmp_path):
 
 def test_format_image_contents_string():
     # Test with None
-    assert format_image_contents_string(None, 3) == ""
+    assert not format_image_contents_string(None, 3)
 
     # Test with empty list
-    assert format_image_contents_string([], 3) == ""
+    assert not format_image_contents_string([], 3)
 
     # Test with items <= max_items
     assert format_image_contents_string(["gcc-11", "boost"], 3) == " [contains: gcc-11, boost]"
@@ -1020,9 +1015,6 @@ def test_is_image_referenced(tmp_path):
 
 
 def test_filter_images_by_age_with_specific_times(tmp_path):
-    import os
-    import time
-
     image1 = tmp_path / "image1.sqfs"
     image2 = tmp_path / "image2.sqfs"
     image3 = tmp_path / "image3.sqfs"
