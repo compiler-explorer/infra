@@ -199,7 +199,7 @@ class FortranLibraryBuilder:
         fullenv = os.environ
         fullenv["LD_LIBRARY_PATH"] = ldPath
 
-        if compilerType == "":
+        if not compilerType:
             try:
                 output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
             except subprocess.CalledProcessError as e:
@@ -223,7 +223,7 @@ class FortranLibraryBuilder:
     def replace_optional_arg(self, arg, name, value):
         optional = "%" + name + "?%"
         if optional in arg:
-            if value != "":
+            if value:
                 return arg.replace(optional, value)
             else:
                 return ""
@@ -330,10 +330,7 @@ class FortranLibraryBuilder:
 
             extraflags = " ".join(x for x in flagscombination)
 
-            if compilerType == "":
-                compilerTypeOrGcc = "fortran"
-            else:
-                compilerTypeOrGcc = compilerType
+            compilerTypeOrGcc = compilerType or "fortran"
 
             fortran_flags = f"{compileroptions} {rpathflags} {extraflags}"
 
@@ -523,9 +520,15 @@ class FortranLibraryBuilder:
 
     def get_commit_hash(self) -> str:
         if os.path.exists(f"{self.sourcefolder}/.git"):
-            lastcommitinfo = subprocess.check_output(
-                ["git", "-C", self.sourcefolder, "log", "-1", "--oneline", "--no-color"]
-            ).decode("utf-8", "ignore")
+            lastcommitinfo = subprocess.check_output([
+                "git",
+                "-C",
+                self.sourcefolder,
+                "log",
+                "-1",
+                "--oneline",
+                "--no-color",
+            ]).decode("utf-8", "ignore")
             self.logger.debug(lastcommitinfo)
             match = GITCOMMITHASH_RE.match(lastcommitinfo)
             if match:
@@ -672,9 +675,14 @@ class FortranLibraryBuilder:
         if self.needs_uploading > 0:
             if not self.install_context.dry_run:
                 self.logger.info("Uploading cached builds")
-                subprocess.check_call(
-                    ["conan", "upload", f"{self.libname}/{self.target_name}", "--all", "-r=ceserver", "-c"]
-                )
+                subprocess.check_call([
+                    "conan",
+                    "upload",
+                    f"{self.libname}/{self.target_name}",
+                    "--all",
+                    "-r=ceserver",
+                    "-c",
+                ])
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
@@ -721,7 +729,7 @@ class FortranLibraryBuilder:
         return True
 
     def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
-        if checkcompiler != "" and compiler != checkcompiler:
+        if checkcompiler and compiler != checkcompiler:
             return False
 
         if compiler in self.buildconfig.skip_compilers:
@@ -735,7 +743,7 @@ class FortranLibraryBuilder:
             return False
         elif buildfor == "allicc" and "/icc" not in exe:
             return False
-        elif buildfor == "allgcc" and compilerType != "":
+        elif buildfor == "allgcc" and compilerType:
             return False
 
         if self.check_compiler_popularity:
@@ -751,7 +759,7 @@ class FortranLibraryBuilder:
         builds_skipped = 0
         checkcompiler = ""
 
-        if buildfor != "":
+        if buildfor:
             self.forcebuild = True
 
         if self.buildconfig.lib_type == "cshared":
@@ -766,7 +774,7 @@ class FortranLibraryBuilder:
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
             self.forcebuild = True
             checkcompiler = ""
-        elif buildfor != "":
+        elif buildfor:
             checkcompiler = buildfor
             if checkcompiler not in self.compilerprops:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
@@ -790,7 +798,7 @@ class FortranLibraryBuilder:
                 toolchain = os.path.realpath(os.path.join(os.path.dirname(exe), ".."))
 
             if (
-                self.buildconfig.build_fixed_stdlib != ""
+                self.buildconfig.build_fixed_stdlib
                 and fixedStdlib
                 and self.buildconfig.build_fixed_stdlib != fixedStdlib
             ):
@@ -804,11 +812,11 @@ class FortranLibraryBuilder:
                     self.logger.debug(f"Fixed stdlib {fixedStdlib}")
                     stdlibs = [fixedStdlib]
                 else:
-                    if self.buildconfig.build_fixed_stdlib != "":
+                    if self.buildconfig.build_fixed_stdlib:
                         if self.buildconfig.build_fixed_stdlib != "libstdc++":
                             stdlibs = [self.buildconfig.build_fixed_stdlib]
                     else:
-                        if compilerType == "":
+                        if not compilerType:
                             self.logger.debug("Gcc-like compiler")
                         elif compilerType == "clang":
                             self.logger.debug("Clang-like compiler")
@@ -818,7 +826,7 @@ class FortranLibraryBuilder:
 
             archs = build_supported_arch
 
-            if self.buildconfig.build_fixed_arch != "":
+            if self.buildconfig.build_fixed_arch:
                 if not self.does_compiler_support(
                     exe,
                     compilerType,
@@ -838,7 +846,7 @@ class FortranLibraryBuilder:
             ):
                 archs = [""]
 
-            if buildfor == "nonx86" and archs[0] != "":
+            if buildfor == "nonx86" and archs[0]:
                 continue
 
             stdvers = build_supported_stdver

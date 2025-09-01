@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import logging
 import os
@@ -225,8 +226,6 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
         dry_run: If True, only log what would be done
         defer_cleanup: If True, rename old .bak to .DELETE_ME_<timestamp> instead of deleting
     """
-    import datetime
-
     backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
     if dry_run:

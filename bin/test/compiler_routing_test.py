@@ -20,6 +20,7 @@ from lib.compiler_routing import (
     lookup_compiler_routing,
     update_compiler_routing_table,
 )
+from requests.exceptions import HTTPError
 
 
 class TestCompilerRouting(unittest.TestCase):
@@ -117,8 +118,6 @@ class TestCompilerRouting(unittest.TestCase):
     @patch("lib.compiler_routing.requests")
     def test_fetch_discovery_compilers_not_found(self, mock_requests):
         """Test API not found."""
-        from requests.exceptions import HTTPError
-
         mock_requests.get.side_effect = HTTPError("404 Not Found")
         mock_requests.exceptions.RequestException = Exception
         mock_requests.exceptions.HTTPError = HTTPError

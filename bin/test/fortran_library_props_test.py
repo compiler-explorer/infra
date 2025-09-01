@@ -141,7 +141,7 @@ def test_generate_standalone_fortran_library_properties():
 
     lines = result.split("\n")
     assert lines[0] == "libs=json_fortran"
-    assert lines[1] == ""
+    assert not lines[1]
     assert "libs.json_fortran.packagedheaders=true" in lines
     assert "libs.json_fortran.staticliblink=json_fortran" in lines
     assert "libs.json_fortran.versions.830.version=8.3.0" in lines

@@ -88,9 +88,9 @@ class Installable:
         def resolve_deps(s: str) -> str:
             return _DEP_RE.sub(dep_n, s)
 
-        self.check_env = dict(
-            [x.replace("%PATH%", self.install_path).split("=", 1) for x in self.config_get("check_env", [])]
-        )
+        self.check_env = dict([
+            x.replace("%PATH%", self.install_path).split("=", 1) for x in self.config_get("check_env", [])
+        ])
         self.check_env = {key: resolve_deps(value) for key, value in self.check_env.items()}
 
         self.after_stage_script = [resolve_deps(line) for line in self.after_stage_script]
@@ -260,7 +260,7 @@ class Installable:
         if not self.is_library:
             raise RuntimeError("Nothing to build")
 
-        if self.build_config.build_type == "":
+        if not self.build_config.build_type:
             raise RuntimeError("No build_type")
 
         if self.build_config.build_type in ["cmake", "make"]:
@@ -325,19 +325,17 @@ class Installable:
         temp_image = destination_image.with_suffix(".tmp")
         temp_image.unlink(missing_ok=True)
         self._logger.info("Squashing %s...", source_folder)
-        self.install_context.check_call(
-            [
-                squashfs_config.mksquashfs_path,
-                str(source_folder),
-                str(temp_image),
-                "-all-root",
-                "-progress",
-                "-comp",
-                squashfs_config.compression,
-                "-Xcompression-level",
-                str(squashfs_config.compression_level),
-            ]
-        )
+        self.install_context.check_call([
+            squashfs_config.mksquashfs_path,
+            str(source_folder),
+            str(temp_image),
+            "-all-root",
+            "-progress",
+            "-comp",
+            squashfs_config.compression,
+            "-Xcompression-level",
+            str(squashfs_config.compression_level),
+        ])
         temp_image.replace(destination_image)
 
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Tests for squashfs utilities."""
 
+import pytest
 from lib.squashfs import SquashfsEntry, parse_unsquashfs_line
 
 
@@ -120,8 +121,6 @@ class TestUnsquashfsParser:
 
     def test_invalid_line(self):
         """Test that invalid lines raise ValueError."""
-        import pytest
-
         with pytest.raises(ValueError, match="Cannot parse unsquashfs line"):
             parse_unsquashfs_line("invalid line")
 

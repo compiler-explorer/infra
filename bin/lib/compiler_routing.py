@@ -444,20 +444,18 @@ def batch_write_items(items_to_write: dict[str, dict[str, Any]]) -> None:
 
             for _compiler_id, routing_data in batch:
                 # Convert to DynamoDB item format
-                put_requests.append(
-                    {
-                        "PutRequest": {
-                            "Item": {
-                                "compilerId": {"S": routing_data["compilerId"]},
-                                "queueName": {"S": routing_data["queueName"]},
-                                "environment": {"S": routing_data["environment"]},
-                                "lastUpdated": {"S": routing_data["lastUpdated"]},
-                                "routingType": {"S": routing_data["routingType"]},
-                                "targetUrl": {"S": routing_data["targetUrl"]},
-                            }
+                put_requests.append({
+                    "PutRequest": {
+                        "Item": {
+                            "compilerId": {"S": routing_data["compilerId"]},
+                            "queueName": {"S": routing_data["queueName"]},
+                            "environment": {"S": routing_data["environment"]},
+                            "lastUpdated": {"S": routing_data["lastUpdated"]},
+                            "routingType": {"S": routing_data["routingType"]},
+                            "targetUrl": {"S": routing_data["targetUrl"]},
                         }
                     }
-                )
+                })
 
             LOGGER.info(f"Writing batch of {len(put_requests)} items to {COMPILER_ROUTING_TABLE}")
 

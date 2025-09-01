@@ -3,7 +3,10 @@
 import unittest
 from unittest.mock import patch
 
-from lib.notify import handle_notify, post, send_live_message
+from lib.cli.blue_green import get_commit_hash_for_version
+from lib.env import Config, Environment
+from lib.notify import handle_notify, post, send_live_message, should_notify_issue
+from lib.releases import Hash, Release, Version
 
 
 class TestNotify(unittest.TestCase):
@@ -65,8 +68,6 @@ class TestNotify(unittest.TestCase):
 
     def test_should_notify_issue_filters_external_repos(self):
         """Test that should_notify_issue filters out external repository issues."""
-        from lib.notify import should_notify_issue
-
         # External repository issue (should be filtered out)
         external_edge = {
             "repository": {"owner": {"login": "sinonjs"}, "name": "samsam"},
@@ -186,10 +187,6 @@ class TestBlueGreenVersionHelpers(unittest.TestCase):
 
     def test_get_commit_hash_for_version(self):
         """Test that we can convert version keys to commit hashes."""
-        from lib.cli.blue_green import _get_commit_hash_for_version
-        from lib.env import Config, Environment
-        from lib.releases import Hash, Release, Version
-
         cfg = Config(env=Environment.PROD)
 
         # Mock releases data
@@ -207,21 +204,18 @@ class TestBlueGreenVersionHelpers(unittest.TestCase):
             patch("lib.cli.blue_green.get_releases", return_value=[mock_release]),
             patch("lib.cli.blue_green.release_for", return_value=mock_release),
         ):
-            result = _get_commit_hash_for_version(cfg, "dist/gh/main/12345.tar.xz")
+            result = get_commit_hash_for_version(cfg, "dist/gh/main/12345.tar.xz")
             self.assertEqual(result, "abc123def456")
 
     def test_get_commit_hash_for_version_not_found(self):
         """Test that we handle missing versions gracefully."""
-        from lib.cli.blue_green import _get_commit_hash_for_version
-        from lib.env import Config, Environment
-
         cfg = Config(env=Environment.PROD)
 
         with (
             patch("lib.cli.blue_green.get_releases", return_value=[]),
             patch("lib.cli.blue_green.release_for", return_value=None),
         ):
-            result = _get_commit_hash_for_version(cfg, "nonexistent.tar.xz")
+            result = get_commit_hash_for_version(cfg, "nonexistent.tar.xz")
             self.assertIsNone(result)
 
 

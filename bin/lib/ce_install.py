@@ -91,7 +91,7 @@ def _context_match(context_query: str, installable: Installable) -> bool:
         return fnmatch.fnmatch(full_path, context_query.lstrip("/"))
 
     context = context_query.split("/")
-    root_only = context[0] == ""
+    root_only = not context[0]
     if root_only:
         context = context[1:]
         return installable.context[: len(context)] == context
@@ -256,7 +256,7 @@ def squash_mount_check(rootfolder: Path, subdir: str, context: CliContext) -> in
                 _LOGGER.error("Missing mount point %s", checkdir)
                 error_count += 1
         else:
-            if subdir == "":
+            if not subdir:
                 error_count += squash_mount_check(rootfolder, filename, context)
             else:
                 error_count += squash_mount_check(rootfolder, f"{subdir}/{filename}", context)
@@ -707,7 +707,7 @@ def install(context: CliContext, filter_: list[str], force: bool):
         f"{'(apparently; this was a dry-run) ' if context.installation_context.dry_run else ''}OK, "
         f"{num_skipped} skipped, and {len(failed)} failed installation"
     )
-    if len(failed):
+    if failed:
         print("Failed:")
         for f in sorted(failed):
             print(f"  {f}")

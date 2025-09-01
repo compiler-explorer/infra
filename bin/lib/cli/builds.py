@@ -89,7 +89,7 @@ def check_hashes(cfg: Config, branch: str | None, version: str, raw: bool):
         )
         if not release:
             print("Unable to find version " + version)
-            if setting_latest and branch != "":
+            if setting_latest and branch:
                 print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
             sys.exit(1)
         else:
@@ -140,7 +140,7 @@ def builds_set_current(
         )
         if not release:
             print("Unable to find version " + version)
-            if setting_latest and branch != "":
+            if setting_latest and branch:
                 print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
             sys.exit(1)
         elif confirm:
