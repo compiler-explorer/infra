@@ -227,10 +227,6 @@ def create_squashfs_image(
         "-Xcompression-level",
         str(compression_level or config_squashfs.compression_level),
         "-noappend",  # Don't append, create new
-        "-mkfs-time",
-        "0",  # Set filesystem creation time to epoch for deterministic builds
-        "-all-time",
-        "0",  # Set all file timestamps to epoch for deterministic builds
     ]
 
     if additional_args:
