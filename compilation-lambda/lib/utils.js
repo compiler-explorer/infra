@@ -2,6 +2,7 @@ const {v4: uuidv4} = require('uuid');
 
 // Regular expression to trim leading and trailing slashes
 const TRIM_SLASHES_REGEX = /^\/+|\/+$/g;
+const textBanner = 'Compilation provided by Compiler Explorer at https://godbolt.org/';
 
 /**
  * Generate a unique GUID for request tracking
@@ -92,7 +93,7 @@ function createSuccessResponse(result, filterAnsi, acceptHeader) {
         let body = '';
 
         try {
-            if (!isEmpty(this.textBanner)) body += '# ' + this.textBanner + '\n';
+            if (!isEmpty(textBanner)) body += '# ' + textBanner + '\n';
             body += textify(result.asm, filterAnsi);
             if (result.code !== 0) body += '\n# Compiler exited with result code ' + result.code;
             if (!isEmpty(result.stdout)) body += '\nStandard out:\n' + textify(result.stdout, filterAnsi);
