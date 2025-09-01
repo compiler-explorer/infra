@@ -1154,6 +1154,8 @@ compilers:
           - assertions-19.1.0
           - 20.1.0
           - assertions-20.1.0
+          - 21.1.0
+          - assertions-21.1.0
     clang-hexagon:
       - type: tarballs
         check_exe: x86_64-linux-gnu/bin/clang++ --version
@@ -1189,13 +1191,14 @@ compilers:
           - 1.9-clang-19.1.0
           - 1.10-clang-20.1.0
           - 2.0-clang-20.1.0
+          - 2.0-clang-21.1.0
         nightly:
           if: nightly
           subdir: clang-plugins
           compiler_name: clad-{{name}}
           type: nightly
           targets:
-          - trunk-clang-20.1.0
+          - trunk-clang-21.1.0
     qnx:
       if: non-free
       compression: xz
