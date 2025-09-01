@@ -1191,14 +1191,13 @@ compilers:
           - 1.9-clang-19.1.0
           - 1.10-clang-20.1.0
           - 2.0-clang-20.1.0
-          - 2.0-clang-21.1.0
         nightly:
           if: nightly
           subdir: clang-plugins
           compiler_name: clad-{{name}}
           type: nightly
           targets:
-          - trunk-clang-21.1.0
+          - trunk-clang-20.1.0
     qnx:
       if: non-free
       compression: xz
