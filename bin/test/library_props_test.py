@@ -174,7 +174,7 @@ def test_generate_standalone_library_properties():
 
     lines = result.split("\n")
     assert lines[0] == "libs=fmt"
-    assert lines[1] == ""
+    assert not lines[1]
     assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in lines
     assert "libs.fmt.versions.1021.version=10.2.1" in lines
 

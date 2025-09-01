@@ -608,9 +608,14 @@ class RustLibraryBuilder:
         if self.needs_uploading > 0:
             if not self.install_context.dry_run:
                 self.logger.info("Uploading cached builds")
-                subprocess.check_call(
-                    ["conan", "upload", f"{self.libname}/{self.target_name}", "--all", "-r=ceserver", "-c"]
-                )
+                subprocess.check_call([
+                    "conan",
+                    "upload",
+                    f"{self.libname}/{self.target_name}",
+                    "--all",
+                    "-r=ceserver",
+                    "-c",
+                ])
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
@@ -620,7 +625,7 @@ class RustLibraryBuilder:
         builds_succeeded = 0
         builds_skipped = 0
 
-        if buildfor != "":
+        if buildfor:
             self.forcebuild = True
 
         if buildfor == "forceall":
@@ -633,7 +638,7 @@ class RustLibraryBuilder:
 
         with self.install_context.new_staging_dir() as source_staging:
             for compiler in self.compilerprops:
-                if checkcompiler != "" and compiler != checkcompiler:
+                if checkcompiler and compiler != checkcompiler:
                     continue
 
                 if compiler in self.buildconfig.skip_compilers:

@@ -104,8 +104,7 @@ class NightlyVersions:
         return exe
 
     def collect_compiler_ids_for(self, ids: set, exe: str, compilers: dict[str, dict[str, Any]]):
-        for compiler_id in compilers:
-            compiler = compilers[compiler_id]
+        for compiler_id, compiler in compilers.items():
             if "exe" in compiler and exe == compiler["exe"]:
                 ids.add(compiler_id)
 

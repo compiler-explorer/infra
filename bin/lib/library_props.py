@@ -109,11 +109,11 @@ def update_library_in_properties(existing_content, library_name, library_propert
     # Find where the tools section starts
     for i, line in enumerate(lines):
         if line.strip().startswith("tools=") or (
-            line.strip().startswith("#") and "tools" in line.lower() and i > 0 and lines[i - 1].strip() == ""
+            line.strip().startswith("#") and "tools" in line.lower() and i > 0 and not lines[i - 1].strip()
         ):
             tools_section_start = i
             # Look backwards to find a good insertion point before any comment block
-            while i > 0 and (lines[i - 1].strip() == "" or lines[i - 1].strip().startswith("#")):
+            while i > 0 and (not lines[i - 1].strip() or lines[i - 1].strip().startswith("#")):
                 i -= 1
             tools_section_start = i
             break
@@ -180,7 +180,7 @@ def update_library_in_properties(existing_content, library_name, library_propert
             if tools_section_start > 0:
                 insert_idx = tools_section_start
                 # Add empty line before our properties if needed
-                if insert_idx > 0 and result_lines[insert_idx - 1].strip() != "":
+                if insert_idx > 0 and result_lines[insert_idx - 1].strip():
                     result_lines.insert(insert_idx, "")
                     insert_idx += 1
 
@@ -192,11 +192,11 @@ def update_library_in_properties(existing_content, library_name, library_propert
                     insert_idx += 1
 
                 # Add empty line after our properties if needed
-                if insert_idx < len(result_lines) and result_lines[insert_idx].strip() != "":
+                if insert_idx < len(result_lines) and result_lines[insert_idx].strip():
                     result_lines.insert(insert_idx, "")
             else:
                 # Fallback to appending at the end
-                if result_lines and result_lines[-1].strip() != "":
+                if result_lines and result_lines[-1].strip():
                     result_lines.append("")
 
                 props_to_add.sort(key=sort_key)
@@ -265,7 +265,7 @@ def merge_properties(existing_content, new_content):
     cleaned_lines = []
     prev_empty = False
     for line in lines:
-        if line.strip() == "":
+        if not line.strip():
             if not prev_empty:
                 cleaned_lines.append(line)
             prev_empty = True

@@ -46,6 +46,7 @@ select = [
     "B", # flake8-bugbear
     "I", # isort
     "UP", # pyupgrade
+    "PLC", # Pylint Convention rules
 ]
 ignore = [
     "E501" # line length

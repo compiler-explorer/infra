@@ -49,13 +49,11 @@ def respond_with_version(version: Dict, jsonp: str):
             headers={"content-type": "application/javascript"},
             body=jsonp
             + "("
-            + json.dumps(
-                {
-                    "version": version["version"]["S"],
-                    "full_version": version["full_version"]["S"],
-                    "modified": modified_iso,
-                }
-            )
+            + json.dumps({
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+                "modified": modified_iso,
+            })
             + ");",
         )
     else:
@@ -67,13 +65,11 @@ def respond_with_version(version: Dict, jsonp: str):
                 "max-age": "3600",
                 "s-maxage": "3600",
             },
-            body=json.dumps(
-                {
-                    "version": version["version"]["S"],
-                    "full_version": version["full_version"]["S"],
-                    "modified": modified_iso,
-                }
-            ),
+            body=json.dumps({
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+                "modified": modified_iso,
+            }),
         )
 
 

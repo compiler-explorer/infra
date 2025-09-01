@@ -142,7 +142,7 @@ class NightlyInstallable(Installable):
 
         destination = self.install_context.destination
         if self.subdir:
-            if exe.split("/")[0] == self.subdir:
+            if exe.split("/", maxsplit=1)[0] == self.subdir:
                 destination = destination / self.subdir
                 relative_exe = "/".join(exe.split("/")[2:])
             else:

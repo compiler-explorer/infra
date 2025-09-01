@@ -334,14 +334,12 @@ def rollback(context: CliContext, filter_: list[str]):
                 symlink_target_str,
                 backup_path,
             )
-            rollback_details.append(
-                {
-                    "name": installable.name,
-                    "status": "would_rollback",
-                    "symlink_target": symlink_target_str,
-                    "nfs_path": str(nfs_path),
-                }
-            )
+            rollback_details.append({
+                "name": installable.name,
+                "status": "would_rollback",
+                "symlink_target": symlink_target_str,
+                "nfs_path": str(nfs_path),
+            })
             successful += 1
             continue
 
@@ -357,38 +355,32 @@ def rollback(context: CliContext, filter_: list[str]):
             # Verify restoration
             if installable.is_installed():
                 _LOGGER.info("Successfully rolled back %s", installable.name)
-                rollback_details.append(
-                    {
-                        "name": installable.name,
-                        "status": "success",
-                        "symlink_target": symlink_target_str,
-                        "nfs_path": str(nfs_path),
-                    }
-                )
+                rollback_details.append({
+                    "name": installable.name,
+                    "status": "success",
+                    "symlink_target": symlink_target_str,
+                    "nfs_path": str(nfs_path),
+                })
                 successful += 1
             else:
                 _LOGGER.error("Rollback validation failed for %s", installable.name)
-                rollback_details.append(
-                    {
-                        "name": installable.name,
-                        "status": "validation_failed",
-                        "symlink_target": symlink_target_str,
-                        "nfs_path": str(nfs_path),
-                    }
-                )
+                rollback_details.append({
+                    "name": installable.name,
+                    "status": "validation_failed",
+                    "symlink_target": symlink_target_str,
+                    "nfs_path": str(nfs_path),
+                })
                 failed += 1
 
         except OSError as e:
             _LOGGER.error("Failed to rollback %s: %s", installable.name, e)
-            rollback_details.append(
-                {
-                    "name": installable.name,
-                    "status": "failed",
-                    "symlink_target": symlink_target_str,
-                    "nfs_path": str(nfs_path),
-                    "error": str(e),
-                }
-            )
+            rollback_details.append({
+                "name": installable.name,
+                "status": "failed",
+                "symlink_target": symlink_target_str,
+                "nfs_path": str(nfs_path),
+                "error": str(e),
+            })
             failed += 1
 
     # Detailed summary
@@ -496,14 +488,12 @@ def consolidate(
                 _LOGGER.warning("CEFS image not found for %s: %s", installable.name, cefs_image_path)
                 continue
             size = cefs_image_path.stat().st_size
-            cefs_items.append(
-                {
-                    "installable": installable,
-                    "nfs_path": nfs_path,
-                    "squashfs_path": cefs_image_path,  # Use CEFS image
-                    "size": size,
-                }
-            )
+            cefs_items.append({
+                "installable": installable,
+                "nfs_path": nfs_path,
+                "squashfs_path": cefs_image_path,  # Use CEFS image
+                "size": size,
+            })
             _LOGGER.debug(
                 "Found CEFS item %s -> %s (%s)",
                 installable.name,

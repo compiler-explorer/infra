@@ -60,12 +60,10 @@ class TestInstanceIsolation(unittest.TestCase):
             result = runner.invoke(instances, ["isolate"], obj=self.cfg)
 
         # Verify EC2 protection calls
-        mock_ec2_client.modify_instance_attribute.assert_has_calls(
-            [
-                call(InstanceId="i-1234567890abcdef0", DisableApiStop={"Value": False}),
-                call(InstanceId="i-1234567890abcdef0", DisableApiTermination={"Value": True}),
-            ]
-        )
+        mock_ec2_client.modify_instance_attribute.assert_has_calls([
+            call(InstanceId="i-1234567890abcdef0", DisableApiStop={"Value": False}),
+            call(InstanceId="i-1234567890abcdef0", DisableApiTermination={"Value": True}),
+        ])
 
         # Verify ASG protection
         mock_as_client.set_instance_protection.assert_called_once_with(
@@ -131,12 +129,10 @@ class TestInstanceIsolation(unittest.TestCase):
             result = runner.invoke(instances, ["terminate-isolated"], obj=self.cfg)
 
         # Verify protection removal
-        mock_ec2_client.modify_instance_attribute.assert_has_calls(
-            [
-                call(InstanceId="i-1234567890abcdef0", DisableApiTermination={"Value": False}),
-                call(InstanceId="i-1234567890abcdef0", DisableApiStop={"Value": False}),
-            ]
-        )
+        mock_ec2_client.modify_instance_attribute.assert_has_calls([
+            call(InstanceId="i-1234567890abcdef0", DisableApiTermination={"Value": False}),
+            call(InstanceId="i-1234567890abcdef0", DisableApiStop={"Value": False}),
+        ])
 
         # Verify termination
         mock_ec2_client.terminate_instances.assert_called_once_with(InstanceIds=["i-1234567890abcdef0"])

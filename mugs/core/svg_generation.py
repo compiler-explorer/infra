@@ -257,7 +257,7 @@ def create_info_table(
         # Move down by appropriate spacing for next row - look ahead
         if row_idx < len(rows) - 1:  # Not the last row
             next_label, _ = rows[row_idx + 1]
-            if next_label.strip() == "":
+            if not next_label.strip():
                 # Next row is continuation - use less spacing
                 current_y += int(row_height * CONTINUATION_LINE_SPACING)
             else:

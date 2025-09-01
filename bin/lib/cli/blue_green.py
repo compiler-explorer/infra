@@ -22,7 +22,7 @@ from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config, Environment
 from lib.notify import handle_notify
 
 
-def _get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | None:
+def get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | None:
     """Convert a version key to its commit hash."""
     if not version_key:
         return None
@@ -35,7 +35,7 @@ def _get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | 
         return None
 
 
-def _get_commit_hash_for_version_param(cfg: Config, version: str | None, branch: str | None = None) -> str | None:
+def get_commit_hash_for_version_param(cfg: Config, version: str | None, branch: str | None = None) -> str | None:
     """Convert a version parameter (from CLI) to its commit hash."""
     if not version:
         return None
@@ -252,11 +252,11 @@ def blue_green_deploy(
     if cfg.env == Environment.PROD:
         # Get original commit hash (what's currently deployed)
         original_version_key = get_current_key(cfg)
-        original_commit_hash = _get_commit_hash_for_version(cfg, original_version_key)
+        original_commit_hash = get_commit_hash_for_version(cfg, original_version_key)
 
         # Get target commit hash (what we're deploying to)
         if version:
-            target_commit_hash = _get_commit_hash_for_version_param(cfg, version, branch)
+            target_commit_hash = get_commit_hash_for_version_param(cfg, version, branch)
         else:
             # No version specified means no change, use current
             target_commit_hash = original_commit_hash

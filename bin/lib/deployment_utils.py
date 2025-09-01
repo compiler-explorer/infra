@@ -126,13 +126,11 @@ def wait_for_targets_healthy(target_group_arn: str, instance_ids: list[str], tim
             if target["TargetHealth"]["State"] == "healthy":
                 healthy.append(target["Target"]["Id"])
             else:
-                unhealthy.append(
-                    {
-                        "id": target["Target"]["Id"],
-                        "state": target["TargetHealth"]["State"],
-                        "reason": target["TargetHealth"].get("Reason", "Unknown"),
-                    }
-                )
+                unhealthy.append({
+                    "id": target["Target"]["Id"],
+                    "state": target["TargetHealth"]["State"],
+                    "reason": target["TargetHealth"].get("Reason", "Unknown"),
+                })
 
         current_time = time.time()
 
@@ -193,13 +191,11 @@ def wait_for_http_health(instance_ids: list[str], timeout: int = 300) -> list[st
             if health_result["status"] == "healthy":
                 healthy_instances.append(instance_id)
             else:
-                unhealthy_instances.append(
-                    {
-                        "id": instance_id,
-                        "status": health_result["status"],
-                        "message": health_result.get("message", "Unknown error"),
-                    }
-                )
+                unhealthy_instances.append({
+                    "id": instance_id,
+                    "status": health_result["status"],
+                    "message": health_result.get("message", "Unknown error"),
+                })
 
         current_time = time.time()
 
@@ -376,14 +372,12 @@ def wait_for_compiler_registration(instance_ids: list[str], environment: str, ti
             if result["status"] == "registered":
                 registered_instances.append(instance_id)
             else:
-                pending_instances.append(
-                    {
-                        "id": instance_id,
-                        "status": result["status"],
-                        "compiler_count": result.get("compiler_count", 0),
-                        "message": result.get("message", "Unknown"),
-                    }
-                )
+                pending_instances.append({
+                    "id": instance_id,
+                    "status": result["status"],
+                    "compiler_count": result.get("compiler_count", 0),
+                    "message": result.get("message", "Unknown"),
+                })
 
         current_time = time.time()
 
