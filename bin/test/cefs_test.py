@@ -498,71 +498,41 @@ class TestCEFSState(unittest.TestCase):
         result = self.state._check_single_symlink(Path("/test/path"), "def456_gcc15")
         self.assertFalse(result)
 
-    @patch("pathlib.Path.exists")
-    @patch("pathlib.Path.iterdir")
-    @patch("pathlib.Path.is_dir")
-    @patch("pathlib.Path.glob")
-    def test_scan_with_inprogress_files(self, mock_glob, mock_is_dir, mock_iterdir, mock_exists):
+    def test_scan_with_inprogress_files(self):
         """Test that scan_cefs_images_with_manifests handles .yaml.inprogress files."""
-        mock_exists.return_value = True
-        mock_is_dir.return_value = True
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cefs_dir = Path(tmpdir) / "cefs-images"
+            nfs_dir = Path(tmpdir) / "nfs"
+            cefs_dir.mkdir()
+            nfs_dir.mkdir()
 
-        # Mock directory structure
-        subdir = Mock()
-        subdir.is_dir.return_value = True
-        mock_iterdir.return_value = [subdir]
+            subdir = cefs_dir / "ab"
+            subdir.mkdir()
 
-        # Mock files: one regular image and one with inprogress manifest
-        regular_image = Mock(spec=Path)
-        regular_image.stem = "abc123_test"
-        regular_image.with_suffix.return_value.exists.return_value = False  # No .yaml.inprogress
+            regular_image = subdir / "abc123_test.sqfs"
+            regular_image.touch()
+            regular_manifest = subdir / "abc123_test.yaml"
+            regular_manifest.write_text(
+                yaml.dump({"contents": [{"name": "test", "destination": str(nfs_dir / "test")}]})
+            )
 
-        inprogress_image = Mock(spec=Path)
-        inprogress_image.stem = "def456_test"
+            inprogress_image = subdir / "def456_test.sqfs"
+            inprogress_image.touch()
+            inprogress_manifest = subdir / "def456_test.yaml.inprogress"
+            inprogress_manifest.write_text(
+                yaml.dump({"contents": [{"name": "inprog", "destination": str(nfs_dir / "inprog")}]})
+            )
 
-        # Mock the .yaml.inprogress check
-        inprogress_path = Mock()
-        inprogress_path.exists.return_value = True
+            state = CEFSState(nfs_dir, cefs_dir)
+            state.scan_cefs_images_with_manifests()
 
-        def with_suffix_side_effect(suffix):
-            if suffix == ".yaml":
-                result = Mock()
-                # This creates the path that will have .inprogress appended
-                return result
-            return Mock()
-
-        regular_image.with_suffix.side_effect = with_suffix_side_effect
-        inprogress_image.with_suffix.side_effect = with_suffix_side_effect
-
-        # Set up glob returns
-        def glob_side_effect(pattern):
-            if pattern == "*.yaml.inprogress":
-                return [Path("/test/def456_test.yaml.inprogress")]
-            elif pattern == "*.sqfs":
-                return [regular_image, inprogress_image]
-            return []
-
-        subdir.glob.side_effect = glob_side_effect
-
-        # Mock Path constructor for the inprogress check
-        with patch("lib.cefs.Path") as mock_path_class:
-            mock_inprogress = Mock()
-            mock_inprogress.exists.return_value = True
-
-            def path_constructor(path_str):
-                if ".inprogress" in str(path_str):
-                    return mock_inprogress
-                return Path(path_str)
-
-            mock_path_class.side_effect = path_constructor
-
-            # Run the scan
-            self.state.scan_cefs_images_with_manifests()
-
-        # Image with inprogress should be marked as referenced
-        self.assertIn("def456_test", self.state.referenced_images)
-        # Should have found the inprogress file
-        self.assertEqual(len(self.state.inprogress_images), 1)
+            # Image with inprogress should be marked as referenced (protected)
+            self.assertIn("def456_test", state.referenced_images)
+            # Regular image should be in all_cefs_images
+            self.assertIn("abc123_test", state.all_cefs_images)
+            # Should have found the inprogress file
+            self.assertEqual(len(state.inprogress_images), 1)
+            self.assertEqual(state.inprogress_images[0], inprogress_manifest)
 
 
 class TestCEFSManifest(unittest.TestCase):
