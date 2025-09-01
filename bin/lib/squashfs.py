@@ -227,7 +227,6 @@ def create_squashfs_image(
         "-Xcompression-level",
         str(compression_level or config_squashfs.compression_level),
         "-noappend",  # Don't append, create new
-        # Note: We preserve file timestamps to enable mtime-based caching
     ]
 
     if additional_args:
