@@ -12,13 +12,10 @@ import tempfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import humanfriendly
 import yaml
-
-if TYPE_CHECKING:
-    from lib.installable.installable import Installable
 
 from .cefs_manifest import (
     generate_cefs_filename,
@@ -764,8 +761,13 @@ class CEFSState:
         """Check if expected symlinks exist and point to the correct CEFS images."""
         for filename_stem, expected_destinations in self.image_references.items():
             if not expected_destinations:
-                # Image has empty manifest - this is an error condition
-                _LOGGER.warning("Image %s has empty manifest - skipping reference check", filename_stem)
+                # Image has empty manifest - this is an error condition like missing manifest
+                image_path = self.all_cefs_images.get(filename_stem)
+                if image_path:
+                    self.broken_images.append(image_path)
+                    # Mark as referenced so it won't be deleted
+                    self.referenced_images.add(filename_stem)
+                    _LOGGER.error("BROKEN IMAGE: %s has empty manifest - needs investigation", image_path)
                 continue
 
             # Check if any expected symlink points to this image
@@ -827,7 +829,12 @@ class CEFSState:
                             _LOGGER.debug("Found valid symlink: %s -> %s", symlink_path, target)
                             return True
             except OSError as e:
-                _LOGGER.debug("Could not read symlink %s: %s", symlink_path, e)
+                _LOGGER.error(
+                    "Could not read symlink %s: %s - assuming it references the image to be safe",
+                    symlink_path,
+                    e,
+                )
+                return True  # When in doubt, keep the image
         return False
 
     def is_image_referenced(self, filename_stem: str) -> bool:
@@ -850,13 +857,6 @@ class CEFSState:
             if self._check_symlink_points_to_image(dest_path, filename_stem):
                 return True
         return False
-
-    def scan_installables(self, installables: list[Installable]) -> None:
-        """Legacy method kept for compatibility - now just logs a warning.
-
-        The new implementation uses manifests instead of scanning installables.
-        """
-        _LOGGER.warning("scan_installables called but manifest-based GC doesn't use it")
 
     def find_unreferenced_images(self) -> list[Path]:
         """Find all CEFS images that are not referenced by any symlink.
