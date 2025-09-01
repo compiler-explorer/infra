@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 import os
 import shutil
@@ -15,14 +16,19 @@ import humanfriendly
 
 from lib.ce_install import CliContext, cli
 from lib.cefs import (
+    CEFSState,
     backup_and_symlink,
     check_temp_space_available,
     create_consolidated_image,
+    delete_image_with_manifest,
     deploy_to_cefs_with_manifest,
     detect_nfs_state,
+    filter_images_by_age,
+    format_image_contents_string,
     get_cefs_filename_for_image,
     get_cefs_paths,
     get_extraction_path_from_symlink,
+    get_image_description,
     parse_cefs_target,
     snapshot_symlink_targets,
     update_symlinks_for_consolidation,
@@ -32,6 +38,7 @@ from lib.cefs import (
 from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
+    finalize_manifest,
 )
 from lib.installable.installable import Installable
 
@@ -80,18 +87,17 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool, 
 
     # Copy squashfs to CEFS images directory if not already there
     # Never overwrite - hash ensures content is identical
-    if not cefs_paths.image_path.exists():
-        if context.installation_context.dry_run:
-            _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_paths.image_path)
-            _LOGGER.info("Would write manifest alongside image")
-        else:
-            try:
-                deploy_to_cefs_with_manifest(squashfs_image_path, cefs_paths.image_path, manifest)
-            except Exception as e:
-                _LOGGER.error("Failed to deploy image for %s: %s", installable.name, e)
-                return False
-    else:
+    if image_already_existed := cefs_paths.image_path.exists():
         _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
+    elif context.installation_context.dry_run:
+        _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_paths.image_path)
+        _LOGGER.info("Would write manifest alongside image")
+    else:
+        try:
+            deploy_to_cefs_with_manifest(squashfs_image_path, cefs_paths.image_path, manifest)
+        except RuntimeError as e:
+            _LOGGER.error("Failed to deploy image for %s: %s", installable.name, e)
+            return False
 
     # Backup NFS directory and create symlink
     try:
@@ -99,6 +105,15 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool, 
     except RuntimeError as e:
         _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
         return False
+
+    # Finalize the manifest now that symlink is created (critical for GC safety), but only if we just created the image.
+    if not context.installation_context.dry_run and not image_already_existed:
+        try:
+            finalize_manifest(cefs_paths.image_path)
+            _LOGGER.debug("Finalized manifest for %s", installable.name)
+        except RuntimeError as e:
+            _LOGGER.error("Failed to finalize manifest for %s: %s", installable.name, e)
+            return False
 
     # Post-migration validation (skip in dry-run)
     if not context.installation_context.dry_run:
@@ -683,3 +698,148 @@ def consolidate(
 
     if failed_groups > 0:
         raise click.ClickException(f"Failed to consolidate {failed_groups} groups")
+
+
+@cefs.command()
+@click.pass_obj
+@click.option("--force", is_flag=True, help="Skip confirmation prompt")
+@click.option("--min-age", default="1h", help="Minimum age of images to consider for deletion (e.g., 1h, 30m, 1d)")
+def gc(context: CliContext, force: bool, min_age: str):
+    """Garbage collect unreferenced CEFS images using manifests.
+
+    Reads manifest files from CEFS images to determine expected symlink locations,
+    then checks if those symlinks exist and point back to the images.
+    Images without valid references are marked for deletion.
+
+    Images with .yaml.inprogress manifests are NEVER deleted (incomplete operations).
+    """
+    _LOGGER.info("Starting CEFS garbage collection using manifest system...")
+
+    try:
+        min_age_seconds = humanfriendly.parse_timespan(min_age)
+        min_age_delta = datetime.timedelta(seconds=min_age_seconds)
+        _LOGGER.info("Minimum age for deletion: %s", min_age)
+    except humanfriendly.InvalidTimespan as e:
+        raise click.ClickException(f"Invalid min-age: {e}") from e
+
+    now = datetime.datetime.now()
+    error_count = 0
+
+    state = CEFSState(
+        nfs_dir=context.installation_context.destination,
+        cefs_image_dir=context.config.cefs.image_dir,
+    )
+
+    _LOGGER.info("Scanning CEFS images directory and reading manifests...")
+    state.scan_cefs_images_with_manifests()
+
+    _LOGGER.info("Checking symlink references...")
+    state.check_symlink_references()
+
+    if state.inprogress_images:
+        _LOGGER.warning("Found %d in-progress operations (these will NOT be deleted):", len(state.inprogress_images))
+        for inprogress_path in state.inprogress_images:
+            try:
+                mtime = datetime.datetime.fromtimestamp(inprogress_path.stat().st_mtime)
+                age = now - mtime
+                age_str = humanfriendly.format_timespan(age.total_seconds())
+                _LOGGER.warning("  %s (age: %s)", inprogress_path, age_str)
+            except OSError as e:
+                _LOGGER.warning("  %s (could not get age: %s)", inprogress_path, e)
+
+    # Report broken images that need investigation
+    if state.broken_images:
+        _LOGGER.error("")
+        _LOGGER.error("=" * 60)
+        _LOGGER.error("CRITICAL: Found %d broken images without manifests", len(state.broken_images))
+        _LOGGER.error("These require manual investigation:")
+        for broken_image in state.broken_images:
+            _LOGGER.error("  - %s", broken_image)
+        _LOGGER.error("=" * 60)
+        _LOGGER.error("")
+
+    summary = state.get_summary()
+    _LOGGER.info("CEFS GC Summary:")
+    _LOGGER.info("  Total CEFS images: %d", summary.total_images)
+    _LOGGER.info("  Referenced images: %d", summary.referenced_images)
+    _LOGGER.info("  Unreferenced images: %d", summary.unreferenced_images)
+    _LOGGER.info("  Space to reclaim: %s", humanfriendly.format_size(summary.space_to_reclaim, binary=True))
+
+    filter_result = filter_images_by_age(state.find_unreferenced_images(), min_age_delta, now)
+    unreferenced = filter_result.old_enough
+
+    for image_path, age in filter_result.too_recent:
+        _LOGGER.info(
+            "Skipping recent image (age %s): %s", humanfriendly.format_timespan(age.total_seconds()), image_path
+        )
+
+    if not unreferenced:
+        _LOGGER.info("No unreferenced CEFS images found. Nothing to clean up.")
+        if error_count > 0:
+            raise click.ClickException(f"GC completed with {error_count} errors during analysis")
+        return
+
+    _LOGGER.info("Unreferenced CEFS images to delete:")
+    for image_path in unreferenced:
+        try:
+            size_str = humanfriendly.format_size(image_path.stat().st_size, binary=True)
+        except OSError:
+            size_str = "size unknown"
+            error_count += 1
+            _LOGGER.error("Could not stat image: %s", image_path)
+        _LOGGER.info(
+            "  %s (%s)%s",
+            image_path,
+            size_str,
+            format_image_contents_string(get_image_description(image_path, context.config.cefs.mount_point), 3)
+            or " [contents unknown]",
+        )
+
+    if context.installation_context.dry_run:
+        _LOGGER.info("DRY RUN: Would delete %d unreferenced images", len(unreferenced))
+        if error_count > 0:
+            raise click.ClickException(f"GC completed with {error_count} errors during analysis")
+        return
+
+    if not force and not click.confirm(f"Delete {len(unreferenced)} unreferenced CEFS images?"):
+        _LOGGER.info("Garbage collection cancelled by user")
+        return
+
+    deleted_count = 0
+    deleted_size = 0
+    _LOGGER.info("Performing double-check before deletion...")
+
+    for image_path in unreferenced:
+        # SAFETY: Double-check - Re-verify the image is still unreferenced immediately before deletion, by
+        # checking no symlinks now point to this image. This guards against race conditions where another
+        # process creates a symlink between our initial scan and the deletion attempt. Since we have no locking,
+        # this is our last line of defense against deleting an image that just became referenced.
+        try:
+            if state.is_image_referenced(image_path.stem):
+                _LOGGER.warning("Double-check: Image %s is now referenced, skipping deletion", image_path)
+                continue
+        except ValueError as e:
+            # This shouldn't happen - unreferenced images should all be in image_references
+            _LOGGER.error("Error during double-check for %s: %s", image_path, e)
+            continue  # Skip deletion to be safe
+
+        result = delete_image_with_manifest(image_path)
+        if result.success:
+            deleted_count += 1
+            deleted_size += result.deleted_size
+            _LOGGER.info("Deleted: %s", image_path)
+            for error in result.errors:
+                _LOGGER.warning(error)
+        else:
+            error_count += 1
+            for error in result.errors:
+                _LOGGER.error(error)
+
+    _LOGGER.info(
+        "Garbage collection complete: deleted %d images, freed %s",
+        deleted_count,
+        humanfriendly.format_size(deleted_size, binary=True),
+    )
+
+    if error_count > 0:
+        raise click.ClickException(f"GC completed with {error_count} errors")

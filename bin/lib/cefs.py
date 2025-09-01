@@ -10,13 +10,18 @@ import os
 import shutil
 import tempfile
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import humanfriendly
+import yaml
 
-from .cefs_manifest import generate_cefs_filename, write_manifest_alongside_image
+from .cefs_manifest import (
+    generate_cefs_filename,
+    read_manifest_from_alongside,
+    write_manifest_inprogress,
+)
 from .config import SquashfsConfig
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
@@ -31,7 +36,7 @@ class CEFSPaths:
     mount_path: Path
 
 
-def get_cefs_image_path(image_dir: Path, filename: Path) -> Path:
+def get_cefs_image_path(image_dir: Path, filename: str) -> Path:
     """Get the full CEFS image path for a given filename.
 
     Args:
@@ -41,10 +46,10 @@ def get_cefs_image_path(image_dir: Path, filename: Path) -> Path:
     Returns:
         Full path to the CEFS image file (e.g., /efs/cefs-images/a1/a1b2c3d4....sqfs)
     """
-    return image_dir / str(filename)[:2] / filename
+    return image_dir / filename[:2] / filename
 
 
-def get_cefs_mount_path(mount_point: Path, filename: Path) -> Path:
+def get_cefs_mount_path(mount_point: Path, filename: str) -> Path:
     """Get the full CEFS mount target path for a given hash.
 
     Args:
@@ -54,10 +59,10 @@ def get_cefs_mount_path(mount_point: Path, filename: Path) -> Path:
     Returns:
         Full path to the CEFS mount target (e.g., /cefs/a1/a1b2c3d4...)
     """
-    return mount_point / str(filename)[:2] / filename.with_suffix("")
+    return mount_point / filename[:2] / Path(filename).with_suffix("")
 
 
-def get_cefs_paths(image_dir: Path, mount_point: Path, filename: Path) -> CEFSPaths:
+def get_cefs_paths(image_dir: Path, mount_point: Path, filename: str) -> CEFSPaths:
     """Get both CEFS image path and mount path for a given filename.
 
     Args:
@@ -88,7 +93,7 @@ def calculate_squashfs_hash(squashfs_path: Path) -> str:
     return truncated_hash
 
 
-def get_cefs_filename_for_image(squashfs_path: Path, operation: str, path: Path | None = None) -> Path:
+def get_cefs_filename_for_image(squashfs_path: Path, operation: str, path: Path | None = None) -> str:
     """Generate CEFS filename by calculating hash and adding suffix.
 
     Combines hash calculation and filename generation into a single operation.
@@ -184,7 +189,9 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
     _LOGGER.info("Copying %s to %s", source_path, cefs_image_path)
     cefs_image_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Create uniquely named temp file in same directory for atomic rename
+    # SAFETY: Create uniquely named temp file in same directory for atomic rename
+    # This ensures that partially copied files never have the .sqfs extension
+    # and thus can never be mistaken for complete images by GC or other operations
     with tempfile.NamedTemporaryFile(
         dir=cefs_image_path.parent, suffix=".tmp", prefix="cefs_", delete=False
     ) as temp_file:
@@ -193,6 +200,7 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
             shutil.copyfileobj(source_file, temp_file, length=1024 * 1024)
     try:
         # Atomic rename - only complete files get .sqfs extension
+        # On Linux, rename() is atomic within the same filesystem
         temp_path.replace(cefs_image_path)
     except Exception:
         # Clean up temp file on any failure
@@ -203,7 +211,11 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
 def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manifest: dict) -> None:
     """Deploy an image to CEFS with its manifest.
 
-    Atomically copies the squashfs image and writes its manifest alongside.
+    Uses .yaml.inprogress pattern to prevent race conditions:
+    1. Copy squashfs image atomically
+    2. Write manifest as .yaml.inprogress (operation incomplete)
+    3. Caller creates symlinks
+    4. Caller must call finalize_manifest() after symlinks are created
 
     Args:
         source_path: Source squashfs image to deploy
@@ -214,7 +226,7 @@ def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manif
         Exception: If deployment fails (all files are cleaned up)
     """
     copy_to_cefs_atomically(source_path, cefs_image_path)
-    write_manifest_alongside_image(manifest, cefs_image_path)
+    write_manifest_inprogress(manifest, cefs_image_path)
 
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_cleanup: bool) -> None:
@@ -267,6 +279,19 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
         raise RuntimeError(f"Failed to create symlink: {e}") from e
 
 
+def has_enough_space(available_bytes: int, required_bytes: int) -> bool:
+    """Pure function to check if available space meets requirements.
+
+    Args:
+        available_bytes: Available space in bytes
+        required_bytes: Required space in bytes
+
+    Returns:
+        True if enough space is available
+    """
+    return available_bytes >= required_bytes
+
+
 def check_temp_space_available(temp_dir: Path, required_bytes: int) -> bool:
     """Check if temp directory has enough space for consolidation.
 
@@ -281,7 +306,7 @@ def check_temp_space_available(temp_dir: Path, required_bytes: int) -> bool:
         stat = os.statvfs(temp_dir)
         available_bytes = stat.f_bavail * stat.f_frsize
         _LOGGER.debug("Available space: %d bytes, required: %d bytes", available_bytes, required_bytes)
-        return available_bytes >= required_bytes
+        return has_enough_space(available_bytes, required_bytes)
     except OSError as e:
         _LOGGER.error("Failed to check disk space for %s: %s", temp_dir, e)
         return False
@@ -554,7 +579,7 @@ def create_consolidated_image(
 
 def update_symlinks_for_consolidation(
     unchanged_symlinks: list[Path],
-    consolidated_filename: Path,
+    consolidated_filename: str,
     mount_point: Path,
     subdir_mapping: dict[Path, str],
     defer_cleanup: bool,
@@ -633,6 +658,241 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bo
     return cefs_image_path, is_already_consolidated
 
 
+def describe_cefs_image(filename: str, cefs_mount_point: Path) -> list[str]:
+    """Get top-level entries from a CEFS image by triggering autofs mount.
+
+    Args:
+        filename: The CEFS hash filename to describe
+        cefs_mount_point: Base CEFS mount point
+
+    Returns:
+        List of top-level entry names in the CEFS image
+    """
+    cefs_path = get_cefs_mount_path(cefs_mount_point, filename)
+    try:
+        return [entry.name for entry in cefs_path.iterdir()]
+    except OSError as e:
+        _LOGGER.warning("Could not list contents of %s: %s", cefs_path, e)
+        return []
+
+
+class CEFSState:
+    """Track CEFS images and their references for garbage collection using manifests."""
+
+    def __init__(self, nfs_dir: Path, cefs_image_dir: Path):
+        """Initialize CEFS state tracker.
+
+        Args:
+            nfs_dir: Base NFS directory (e.g., /opt/compiler-explorer)
+            cefs_image_dir: CEFS images directory (e.g., /efs/cefs-images)
+        """
+        self.nfs_dir = nfs_dir
+        self.cefs_image_dir = cefs_image_dir
+        self.all_cefs_images: dict[str, Path] = {}  # filename_stem -> image_path
+        self.image_references: dict[str, list[Path]] = {}  # filename_stem -> list of expected symlink destinations
+        self.referenced_images: set[str] = set()  # Set of filename_stems that have valid symlinks
+        self.inprogress_images: list[Path] = []  # List of .yaml.inprogress files found
+        self.broken_images: list[Path] = []  # Images without .yaml or .yaml.inprogress
+
+    def scan_cefs_images_with_manifests(self) -> None:
+        """Scan all CEFS images and read their manifests to determine expected references.
+
+        CRITICAL: Images with .yaml.inprogress manifests are tracked but NEVER eligible for GC.
+        """
+        if not self.cefs_image_dir.exists():
+            _LOGGER.warning("CEFS images directory does not exist: %s", self.cefs_image_dir)
+            return
+
+        for subdir in self.cefs_image_dir.iterdir():
+            if subdir.is_dir():
+                # First check for .yaml.inprogress files (incomplete operations)
+                for inprogress_file in subdir.glob("*.yaml.inprogress"):
+                    self.inprogress_images.append(inprogress_file)
+                    _LOGGER.warning("Found in-progress manifest: %s", inprogress_file)
+
+                for image_file in subdir.glob("*.sqfs"):
+                    # Store by filename stem (includes hash and suffix)
+                    filename_stem = image_file.stem
+
+                    # SAFETY: Check if this image has an .yaml.inprogress file indicating incomplete operation
+                    # This prevents deletion of images that are being installed/converted/consolidated
+                    # even if the operation is taking a long time or has failed partway through
+                    inprogress_path = Path(str(image_file.with_suffix(".yaml")) + ".inprogress")
+                    if inprogress_path.exists():
+                        # Skip this image - it has an incomplete operation
+                        _LOGGER.info("Skipping image with in-progress operation: %s", image_file)
+                        # Mark it as referenced so it won't be deleted
+                        self.referenced_images.add(filename_stem)
+                        continue
+
+                    # Check for .yaml manifest
+                    manifest_path = image_file.with_suffix(".yaml")
+                    if not manifest_path.exists():
+                        # No .yaml and no .yaml.inprogress - this is a broken image
+                        self.broken_images.append(image_file)
+                        _LOGGER.error(
+                            "BROKEN IMAGE: %s has no manifest or inprogress marker - needs investigation", image_file
+                        )
+                        # Do NOT add to all_cefs_images or image_references
+                        continue
+
+                    self.all_cefs_images[filename_stem] = image_file
+
+                    # Try to read manifest to get expected destinations
+                    try:
+                        manifest = read_manifest_from_alongside(image_file)
+                        if manifest and "contents" in manifest:
+                            destinations = []
+                            for content in manifest["contents"]:
+                                if "destination" in content:
+                                    dest_path = Path(content["destination"])
+                                    destinations.append(dest_path)
+                            self.image_references[filename_stem] = destinations
+                            _LOGGER.debug("Image %s expects %d symlinks", filename_stem, len(destinations))
+                        else:
+                            # Manifest exists but has no contents or is malformed
+                            self.image_references[filename_stem] = []
+                            _LOGGER.warning("Manifest for %s has no contents", filename_stem)
+                    except Exception as e:
+                        _LOGGER.warning("Failed to read manifest for %s: %s", image_file, e)
+                        self.image_references[filename_stem] = []
+
+    def check_symlink_references(self) -> None:
+        """Check if expected symlinks exist and point to the correct CEFS images."""
+        for filename_stem, expected_destinations in self.image_references.items():
+            if not expected_destinations:
+                # Image has empty manifest - this is an error condition like missing manifest
+                image_path = self.all_cefs_images.get(filename_stem)
+                if image_path:
+                    self.broken_images.append(image_path)
+                    # Mark as referenced so it won't be deleted
+                    self.referenced_images.add(filename_stem)
+                    _LOGGER.error("BROKEN IMAGE: %s has empty manifest - needs investigation", image_path)
+                continue
+
+            # Check if any expected symlink points to this image
+            for dest_path in expected_destinations:
+                if self._check_symlink_points_to_image(dest_path, filename_stem):
+                    self.referenced_images.add(filename_stem)
+                    break  # At least one valid reference found
+
+    def _check_symlink_points_to_image(self, dest_path: Path, filename_stem: str) -> bool:
+        """Check if a symlink at dest_path points to the given CEFS image.
+
+        CRITICAL: Also checks .bak symlinks to protect rollback capability.
+
+        Args:
+            dest_path: Expected destination path for symlink
+            filename_stem: The filename stem (hash + suffix) of the CEFS image
+
+        Returns:
+            True if symlink exists and points to this image (either main or .bak)
+        """
+        full_path = dest_path if dest_path.is_absolute() else self.nfs_dir / dest_path.relative_to(Path("/"))
+
+        # Check main symlink
+        if self._check_single_symlink(full_path, filename_stem):
+            return True
+
+        # CRITICAL: Also check .bak symlink to protect rollback capability
+        # Users rely on 'ce cefs rollback' which swaps .bak with main symlink
+        # If we deleted the image referenced by .bak, rollback would fail catastrophically
+        bak_path = full_path.with_name(full_path.name + ".bak")
+        if self._check_single_symlink(bak_path, filename_stem):
+            _LOGGER.debug("Found reference via .bak symlink: %s", bak_path)
+            return True
+
+        return False
+
+    def _check_single_symlink(self, symlink_path: Path, filename_stem: str) -> bool:
+        """Check if a single symlink points to the given CEFS image.
+
+        Args:
+            symlink_path: Path to check
+            filename_stem: The filename stem (hash + suffix) of the CEFS image
+
+        Returns:
+            True if symlink exists and points to this image
+        """
+        if symlink_path.is_symlink():
+            try:
+                target = symlink_path.readlink()
+                if str(target).startswith("/cefs/"):
+                    # Extract the hash/filename from the symlink target
+                    # Format: /cefs/XX/HASH_suffix or /cefs/XX/HASH_suffix/subdir
+                    parts = str(target).split("/")
+                    if len(parts) >= 4:
+                        # The filename part is at index 3
+                        target_filename = parts[3]
+                        # Check if this matches our image's filename stem
+                        if target_filename == filename_stem:
+                            _LOGGER.debug("Found valid symlink: %s -> %s", symlink_path, target)
+                            return True
+            except OSError as e:
+                _LOGGER.error(
+                    "Could not read symlink %s: %s - assuming it references the image to be safe",
+                    symlink_path,
+                    e,
+                )
+                return True  # When in doubt, keep the image
+        return False
+
+    def is_image_referenced(self, filename_stem: str) -> bool:
+        """Check if an image is referenced by any symlink.
+
+        Args:
+            filename_stem: The image filename stem
+
+        Returns:
+            True if any symlink references this image
+
+        Raises:
+            ValueError: If image has no manifest data (shouldn't happen for valid images)
+        """
+        if filename_stem not in self.image_references:
+            # This is an error - all valid images should have manifest data
+            raise ValueError(f"Image {filename_stem} has no manifest data - this should not happen")
+
+        for dest_path in self.image_references[filename_stem]:
+            if self._check_symlink_points_to_image(dest_path, filename_stem):
+                return True
+        return False
+
+    def find_unreferenced_images(self) -> list[Path]:
+        """Find all CEFS images that are not referenced by any symlink.
+
+        Returns:
+            List of Path objects for unreferenced CEFS images
+        """
+        unreferenced = []
+        for filename_stem, image_path in self.all_cefs_images.items():
+            if filename_stem not in self.referenced_images:
+                unreferenced.append(image_path)
+        return unreferenced
+
+    def get_summary(self) -> GCSummary:
+        """Get summary statistics for reporting.
+
+        Returns:
+            GCSummary with statistics
+        """
+        unreferenced_images = self.find_unreferenced_images()
+        space_to_reclaim = 0
+
+        for image_path in unreferenced_images:
+            try:
+                space_to_reclaim += image_path.stat().st_size
+            except OSError:
+                _LOGGER.warning("Could not stat unreferenced image: %s", image_path)
+
+        return GCSummary(
+            total_images=len(self.all_cefs_images),
+            referenced_images=len(self.referenced_images),
+            unreferenced_images=len(unreferenced_images),
+            space_to_reclaim=space_to_reclaim,
+        )
+
+
 def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
     """Determine what to extract from a CEFS image based on symlink target.
 
@@ -650,3 +910,169 @@ def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
 
     relative_parts = parts[4:]
     return Path(*relative_parts)
+
+
+@dataclass(frozen=True)
+class ImageAgeFilterResult:
+    """Result of filtering images by age."""
+
+    old_enough: list[Path]
+    too_recent: list[tuple[Path, datetime.timedelta]]
+
+
+@dataclass(frozen=True)
+class ImageDeletionResult:
+    """Result of deleting a CEFS image with its manifest."""
+
+    success: bool
+    deleted_size: int
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class GCSummary:
+    """Summary statistics for garbage collection."""
+
+    total_images: int
+    referenced_images: int
+    unreferenced_images: int
+    space_to_reclaim: int
+
+
+def filter_images_by_age(
+    images: list[Path], min_age_delta: datetime.timedelta, now: datetime.datetime
+) -> ImageAgeFilterResult:
+    """Filter images by age, separating old enough from too recent.
+
+    Args:
+        images: List of image paths to filter
+        min_age_delta: Minimum age for deletion
+        now: Current time to use for age calculation
+
+    Returns:
+        ImageAgeFilterResult with old_enough and too_recent lists
+    """
+    old_enough = []
+    too_recent = []
+
+    for image_path in images:
+        try:
+            mtime = datetime.datetime.fromtimestamp(image_path.stat().st_mtime)
+            age = now - mtime
+            if age >= min_age_delta:
+                old_enough.append(image_path)
+            else:
+                too_recent.append((image_path, age))
+        except OSError:
+            # If we can't stat it, include it as potentially broken
+            old_enough.append(image_path)
+
+    return ImageAgeFilterResult(old_enough=old_enough, too_recent=too_recent)
+
+
+def get_image_description_from_manifest(image_path: Path) -> list[str] | None:
+    """Extract content names from an image's manifest file.
+
+    Args:
+        image_path: Path to the CEFS image
+
+    Returns:
+        List of content names or None if manifest unavailable/invalid
+    """
+    try:
+        manifest = read_manifest_from_alongside(image_path)
+        if manifest and "contents" in manifest:
+            names = []
+            for content in manifest["contents"]:
+                if "name" in content:
+                    names.append(content["name"])
+            return names if names else None
+        return None
+    except (OSError, yaml.YAMLError):
+        return None
+
+
+def get_image_description(image_path: Path, cefs_mount_point: Path) -> list[str] | None:
+    """Get description of image contents from manifest or by mounting.
+
+    First tries to read from manifest, then falls back to mounting the image.
+
+    Args:
+        image_path: Path to the CEFS image
+        cefs_mount_point: Base mount point for CEFS
+
+    Returns:
+        List of content names or None if unable to determine
+    """
+    # Try manifest first
+    names = get_image_description_from_manifest(image_path)
+    if names:
+        return names
+
+    # Fallback to mounting
+    filename_stem = image_path.stem
+    # Extract just the hash part for describe_cefs_image
+    hash_part = filename_stem.split("_")[0] if "_" in filename_stem else filename_stem
+    try:
+        contents = describe_cefs_image(hash_part, cefs_mount_point)
+        return contents if contents else None
+    except OSError:
+        return None
+
+
+def format_image_contents_string(names: list[str] | None, max_items: int) -> str:
+    """Format a list of content names for display.
+
+    Args:
+        names: List of content names or None
+        max_items: Maximum number of items to show before truncating
+
+    Returns:
+        Formatted string like "[contains: name1, name2, ...]" or empty string
+    """
+    if not names:
+        return ""
+
+    if len(names) <= max_items:
+        return f" [contains: {', '.join(names)}]"
+    else:
+        shown = names[:max_items]
+        return f" [contains: {', '.join(shown)}...]"
+
+
+def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
+    """Delete a CEFS image and its associated manifest file.
+
+    Args:
+        image_path: Path to the CEFS image to delete
+
+    Returns:
+        ImageDeletionResult with success status, size, and any errors
+    """
+    errors = []
+    deleted_size = 0
+
+    # Get size before deletion
+    try:
+        deleted_size = image_path.stat().st_size
+    except OSError as e:
+        errors.append(f"Could not stat {image_path}: {e}")
+        # Try to delete anyway
+
+    # Delete the image
+    try:
+        image_path.unlink()
+    except OSError as e:
+        errors.append(f"Failed to delete {image_path}: {e}")
+        return ImageDeletionResult(success=False, deleted_size=0, errors=errors)
+
+    # Delete the manifest if it exists
+    manifest_path = image_path.with_suffix(".yaml")
+    if manifest_path.exists():
+        try:
+            manifest_path.unlink()
+        except OSError as e:
+            errors.append(f"Failed to delete manifest {manifest_path}: {e}")
+            # This is non-fatal - image was deleted
+
+    return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)

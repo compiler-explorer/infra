@@ -50,12 +50,18 @@ class CliContext:
         signal.signal(signal.SIGINT, original_sigint_handler)
         return pool
 
-    def get_installables(self, args_filter: list[str]) -> list[Installable]:
+    def get_installables(self, args_filter: list[str], bypass_enable_check: bool = False) -> list[Installable]:
+        """Get installables matching the filter.
+
+        Args:
+            args_filter: Filter strings to match installables
+            bypass_enable_check: If True, bypass all 'if:' conditions (nightly, non-free, etc.)
+        """
         installables = []
         for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
             with yaml_path.open(encoding="utf-8") as yaml_file:
                 yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
-            for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
+            for installer in installers_for(self.installation_context, yaml_doc, bypass_enable_check or self.enabled):
                 installables.append(installer)
         Installable.resolve(installables)
         installables = sorted(
