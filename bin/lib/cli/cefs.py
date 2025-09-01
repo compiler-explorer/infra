@@ -747,6 +747,17 @@ def gc(context: CliContext, force: bool, min_age: str):
             except OSError as e:
                 _LOGGER.warning("  %s (could not get age: %s)", inprogress_path, e)
 
+    # Report broken images that need investigation
+    if state.broken_images:
+        _LOGGER.error("")
+        _LOGGER.error("=" * 60)
+        _LOGGER.error("CRITICAL: Found %d broken images without manifests", len(state.broken_images))
+        _LOGGER.error("These require manual investigation:")
+        for broken_image in state.broken_images:
+            _LOGGER.error("  - %s", broken_image)
+        _LOGGER.error("=" * 60)
+        _LOGGER.error("")
+
     summary = state.get_summary()
     _LOGGER.info("CEFS GC Summary:")
     _LOGGER.info("  Total CEFS images: %d", summary.total_images)
@@ -812,22 +823,15 @@ def gc(context: CliContext, force: bool, min_age: str):
         # this is our last line of defense against deleting an image that just became referenced.
         filename_stem = image_path.stem
 
-        skip_deletion = False
-        if filename_stem in state.image_references:
-            for dest_path in state.image_references[filename_stem]:
-                if state._check_symlink_points_to_image(dest_path, filename_stem):
-                    _LOGGER.warning("Double-check: Image %s is now referenced, skipping deletion", image_path)
-                    skip_deletion = True
-                    break
-        else:
-            if state._find_any_symlink_to_image(filename_stem):
-                _LOGGER.warning(
-                    "Double-check: Image %s is now referenced (fallback check), skipping deletion", image_path
-                )
-                skip_deletion = True
-
-        if skip_deletion:
-            continue
+        # Double-check: re-verify no symlinks now point to this image
+        try:
+            if state.is_image_referenced(filename_stem):
+                _LOGGER.warning("Double-check: Image %s is now referenced, skipping deletion", image_path)
+                continue
+        except ValueError as e:
+            # This shouldn't happen - unreferenced images should all be in image_references
+            _LOGGER.error("Error during double-check for %s: %s", image_path, e)
+            continue  # Skip deletion to be safe
 
         result = delete_image_with_manifest(image_path)
         if result.success:

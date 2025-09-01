@@ -710,6 +710,13 @@ class TestCEFSGarbageCollection(unittest.TestCase):
             image_path = subdir / f"{hash_val}.sqfs"
             image_path.touch()
 
+            # Create manifest so image is valid
+            manifest_path = image_path.with_suffix(".yaml")
+            manifest_content = {
+                "contents": [{"name": f"test-{hash_val}", "destination": str(self.nfs_dir / f"test-{hash_val}")}]
+            }
+            manifest_path.write_text(yaml.dump(manifest_content))
+
             # Set modification time
             if hash_val == old_hash:
                 # Make this image 2 hours old
@@ -739,16 +746,16 @@ class TestCEFSGarbageCollection(unittest.TestCase):
         self.assertEqual(len(eligible_for_deletion), 1, "Only old image should be eligible for deletion")
         self.assertEqual(eligible_for_deletion[0].stem, old_hash)
 
-    def test_fallback_for_images_without_manifests(self):
-        """Test that GC uses fallback checking for images without manifests."""
+    def test_images_without_manifests_are_broken(self):
+        """Test that images without manifests are marked as broken."""
 
-        # Create test image WITHOUT manifest
+        # Create test image WITHOUT manifest or inprogress marker
         image_hash = "jkl012"
         subdir = self.cefs_image_dir / image_hash[:2]
         subdir.mkdir()
         image_path = subdir / f"{image_hash}.sqfs"
         image_path.touch()
-        # No manifest created
+        # No manifest created - this is a broken image
 
         # Create a symlink pointing to this image
         symlink_path = self.nfs_dir / "legacy-compiler"
@@ -759,18 +766,26 @@ class TestCEFSGarbageCollection(unittest.TestCase):
         state.scan_cefs_images_with_manifests()
         state.check_symlink_references()
 
-        # Image should be found via fallback scanning
-        self.assertIn(image_hash, state.referenced_images, "Fallback should find symlink for image without manifest")
+        # Image should be marked as broken, not in all_cefs_images
+        self.assertNotIn(image_hash, state.all_cefs_images, "Broken image should not be in all_cefs_images")
+        self.assertNotIn(image_hash, state.referenced_images, "Broken image should not be in referenced_images")
+        self.assertEqual(len(state.broken_images), 1, "Should have one broken image")
+        self.assertEqual(state.broken_images[0], image_path, "Should track the broken image path")
 
     def test_concurrent_gc_safety(self):
         """Test that concurrent GC executions are safe."""
 
-        # Create test image
+        # Create test image with manifest
         image_hash = "mno345"
         subdir = self.cefs_image_dir / image_hash[:2]
         subdir.mkdir()
         image_path = subdir / f"{image_hash}.sqfs"
         image_path.touch()
+
+        # Create manifest so image is valid
+        manifest_path = image_path.with_suffix(".yaml")
+        manifest_content = {"contents": [{"name": "test-compiler", "destination": str(self.nfs_dir / "test-compiler")}]}
+        manifest_path.write_text(yaml.dump(manifest_content))
 
         # Create two independent state objects (simulating concurrent GC runs)
         state1 = CEFSState(self.nfs_dir, self.cefs_image_dir)
@@ -1069,6 +1084,45 @@ class TestExtractedGCFunctions(unittest.TestCase):
             manifest_path.unlink()
             names = get_image_description(image_path, cefs_mount)
             self.assertIsNone(names)  # Falls back to mounting which fails in test
+
+    def test_is_image_referenced(self):
+        """Test the is_image_referenced member function of CEFSState."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            nfs_dir = Path(tmpdir) / "nfs"
+            cefs_dir = Path(tmpdir) / "cefs"
+            nfs_dir.mkdir()
+            cefs_dir.mkdir()
+
+            state = CEFSState(nfs_dir, cefs_dir)
+
+            # Set up test data
+            state.image_references = {
+                "abc123_test": [Path("/opt/gcc-11"), Path("/opt/gcc-12")],
+                "def456_test": [Path("/opt/boost")],
+                "ghi789_test": [],  # Empty manifest
+            }
+
+            # Mock the check method
+            with patch.object(state, "_check_symlink_points_to_image") as mock_check:
+                # Simulate that /opt/gcc-11 exists for abc123_test
+                def check_side_effect(dest_path, filename_stem):
+                    return dest_path == Path("/opt/gcc-11") and filename_stem == "abc123_test"
+
+                mock_check.side_effect = check_side_effect
+
+                # Test: Image with valid reference
+                self.assertTrue(state.is_image_referenced("abc123_test"), "Should find reference for abc123_test")
+
+                # Test: Image with no valid references
+                self.assertFalse(state.is_image_referenced("def456_test"), "Should not find reference for def456_test")
+
+                # Test: Image with empty manifest
+                self.assertFalse(state.is_image_referenced("ghi789_test"), "Should return False for empty manifest")
+
+                # Test: Image not in references at all - should raise ValueError
+                with self.assertRaises(ValueError) as cm:
+                    state.is_image_referenced("missing_image")
+                self.assertIn("has no manifest data", str(cm.exception))
 
     def test_filter_images_by_age_with_specific_times(self):
         """Test age filtering with controlled timestamps."""

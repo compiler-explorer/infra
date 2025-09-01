@@ -575,6 +575,7 @@ class CEFSState:
         self.image_references: dict[str, list[Path]] = {}  # filename_stem -> list of expected symlink destinations
         self.referenced_images: set[str] = set()  # Set of filename_stems that have valid symlinks
         self.inprogress_images: list[Path] = []  # List of .yaml.inprogress files found
+        self.broken_images: list[Path] = []  # Images without .yaml or .yaml.inprogress
 
     def scan_cefs_images_with_manifests(self) -> None:
         """Scan all CEFS images and read their manifests to determine expected references.
@@ -607,6 +608,17 @@ class CEFSState:
                         self.referenced_images.add(filename_stem)
                         continue
 
+                    # Check for .yaml manifest
+                    manifest_path = image_file.with_suffix(".yaml")
+                    if not manifest_path.exists():
+                        # No .yaml and no .yaml.inprogress - this is a broken image
+                        self.broken_images.append(image_file)
+                        _LOGGER.error(
+                            "BROKEN IMAGE: %s has no manifest or inprogress marker - needs investigation", image_file
+                        )
+                        # Do NOT add to all_cefs_images or image_references
+                        continue
+
                     self.all_cefs_images[filename_stem] = image_file
 
                     # Try to read manifest to get expected destinations
@@ -621,9 +633,9 @@ class CEFSState:
                             self.image_references[filename_stem] = destinations
                             _LOGGER.debug("Image %s expects %d symlinks", filename_stem, len(destinations))
                         else:
-                            # No manifest or no contents - fallback to old-style checking
+                            # Manifest exists but has no contents or is malformed
                             self.image_references[filename_stem] = []
-                            _LOGGER.debug("No manifest for %s, will check with fallback", filename_stem)
+                            _LOGGER.warning("Manifest for %s has no contents", filename_stem)
                     except Exception as e:
                         _LOGGER.warning("Failed to read manifest for %s: %s", image_file, e)
                         self.image_references[filename_stem] = []
@@ -631,16 +643,16 @@ class CEFSState:
     def check_symlink_references(self) -> None:
         """Check if expected symlinks exist and point to the correct CEFS images."""
         for filename_stem, expected_destinations in self.image_references.items():
-            # For images with manifests, check if symlinks exist at expected destinations
-            if expected_destinations:
-                for dest_path in expected_destinations:
-                    if self._check_symlink_points_to_image(dest_path, filename_stem):
-                        self.referenced_images.add(filename_stem)
-                        break  # At least one valid reference found
-            else:
-                # Fallback: scan for any symlinks pointing to this image (for older images without manifests)
-                if self._find_any_symlink_to_image(filename_stem):
+            if not expected_destinations:
+                # Image has empty manifest - this is an error condition
+                _LOGGER.warning("Image %s has empty manifest - skipping reference check", filename_stem)
+                continue
+
+            # Check if any expected symlink points to this image
+            for dest_path in expected_destinations:
+                if self._check_symlink_points_to_image(dest_path, filename_stem):
                     self.referenced_images.add(filename_stem)
+                    break  # At least one valid reference found
 
     def _check_symlink_points_to_image(self, dest_path: Path, filename_stem: str) -> bool:
         """Check if a symlink at dest_path points to the given CEFS image.
@@ -698,37 +710,25 @@ class CEFSState:
                 _LOGGER.debug("Could not read symlink %s: %s", symlink_path, e)
         return False
 
-    def _find_any_symlink_to_image(self, filename_stem: str) -> bool:
-        """Fallback method: scan filesystem for any symlink pointing to this image.
-
-        This is used for images without manifests.
+    def is_image_referenced(self, filename_stem: str) -> bool:
+        """Check if an image is referenced by any symlink.
 
         Args:
-            filename_stem: The filename stem to search for
+            filename_stem: The image filename stem
 
         Returns:
-            True if any symlink points to this image
-        """
-        # This is expensive but only used for images without manifests
-        # Check common locations first
-        for subdir in self.nfs_dir.iterdir():
-            if subdir.is_symlink():
-                try:
-                    target = str(subdir.readlink())
-                    if "/cefs/" in target and filename_stem in target:
-                        return True
-                except OSError:
-                    continue
+            True if any symlink references this image
 
-            # Check .bak versions too
-            bak_path = subdir.with_name(subdir.name + ".bak")
-            if bak_path.is_symlink():
-                try:
-                    target = str(bak_path.readlink())
-                    if "/cefs/" in target and filename_stem in target:
-                        return True
-                except OSError:
-                    continue
+        Raises:
+            ValueError: If image has no manifest data (shouldn't happen for valid images)
+        """
+        if filename_stem not in self.image_references:
+            # This is an error - all valid images should have manifest data
+            raise ValueError(f"Image {filename_stem} has no manifest data - this should not happen")
+
+        for dest_path in self.image_references[filename_stem]:
+            if self._check_symlink_points_to_image(dest_path, filename_stem):
+                return True
         return False
 
     def scan_installables(self, installables: list[Installable]) -> None:
