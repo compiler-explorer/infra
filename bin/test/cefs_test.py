@@ -120,7 +120,7 @@ class TestCEFSConsolidation(unittest.TestCase):
     def test_get_cefs_image_path_with_filename(self):
         """Test CEFS image path generation with filename."""
         image_dir = Path("/efs/cefs-images")
-        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+        filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
 
         result = get_cefs_image_path(image_dir, filename)
         expected = Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc-15.1.0.sqfs")
@@ -129,7 +129,7 @@ class TestCEFSConsolidation(unittest.TestCase):
 
     def test_get_cefs_mount_path_with_filename(self):
         """Test CEFS image path generation with new filename."""
-        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+        filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
 
         result = get_cefs_mount_path(Path("/cefs"), filename)
         expected = Path("/cefs/9d/9da642f654bc890a12345678_gcc-15.1.0")
@@ -185,7 +185,7 @@ class TestCEFSConsolidation(unittest.TestCase):
         """Test the combined get_cefs_paths function."""
         image_dir = Path("/efs/cefs-images")
         mount_point = Path("/cefs")
-        filename = Path("9da642f654bc890a12345678_gcc-15.1.0.sqfs")
+        filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
 
         result = get_cefs_paths(image_dir, mount_point, filename)
 
@@ -379,7 +379,7 @@ class TestDescribeCefsImage(unittest.TestCase):
         result = describe_cefs_image("abc123", Path("/cefs"))
 
         self.assertEqual(result, ["compilers_c++_x86_gcc_11.1.0", "compilers_c++_x86_gcc_11.2.0"])
-        mock_get_mount_path.assert_called_once_with(Path("/cefs"), Path("abc123"))
+        mock_get_mount_path.assert_called_once_with(Path("/cefs"), "abc123")
 
     @patch("lib.cefs.get_cefs_mount_path")
     @patch("pathlib.Path.iterdir")
@@ -409,7 +409,7 @@ class TestDescribeCefsImage(unittest.TestCase):
         result = describe_cefs_image("abc123", custom_mount)
 
         self.assertEqual(result, ["test_entry"])
-        mock_get_mount_path.assert_called_once_with(custom_mount, Path("abc123"))
+        mock_get_mount_path.assert_called_once_with(custom_mount, "abc123")
 
 
 class TestCEFSState(unittest.TestCase):

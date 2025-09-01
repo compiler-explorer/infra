@@ -44,11 +44,11 @@ class TestCEFSManifest(unittest.TestCase):
             (
                 "install",
                 Path("/opt/compiler-explorer/gcc-15.1.0"),
-                Path("9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0.sqfs"),
+                "9da642f654bc890a12345678_opt_compiler-explorer_gcc-15.1.0.sqfs",
             ),
-            ("consolidate", None, Path("9da642f654bc890a12345678_consolidated.sqfs")),
-            ("convert", Path("arm/gcc-10.2.0.img"), Path("9da642f654bc890a12345678_converted_arm_gcc-10.2.0.sqfs")),
-            ("unknown", Path("test"), Path("9da642f654bc890a12345678_test.sqfs")),
+            ("consolidate", None, "9da642f654bc890a12345678_consolidated.sqfs"),
+            ("convert", Path("arm/gcc-10.2.0.img"), "9da642f654bc890a12345678_converted_arm_gcc-10.2.0.sqfs"),
+            ("unknown", Path("test"), "9da642f654bc890a12345678_test.sqfs"),
         ]
 
         for operation, path, expected in test_cases:

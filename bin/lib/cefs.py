@@ -38,7 +38,7 @@ class CEFSPaths:
     mount_path: Path
 
 
-def get_cefs_image_path(image_dir: Path, filename: Path) -> Path:
+def get_cefs_image_path(image_dir: Path, filename: str) -> Path:
     """Get the full CEFS image path for a given filename.
 
     Args:
@@ -48,10 +48,10 @@ def get_cefs_image_path(image_dir: Path, filename: Path) -> Path:
     Returns:
         Full path to the CEFS image file (e.g., /efs/cefs-images/a1/a1b2c3d4....sqfs)
     """
-    return image_dir / str(filename)[:2] / filename
+    return image_dir / filename[:2] / filename
 
 
-def get_cefs_mount_path(mount_point: Path, filename: Path) -> Path:
+def get_cefs_mount_path(mount_point: Path, filename: str) -> Path:
     """Get the full CEFS mount target path for a given hash.
 
     Args:
@@ -61,10 +61,10 @@ def get_cefs_mount_path(mount_point: Path, filename: Path) -> Path:
     Returns:
         Full path to the CEFS mount target (e.g., /cefs/a1/a1b2c3d4...)
     """
-    return mount_point / str(filename)[:2] / filename.with_suffix("")
+    return mount_point / filename[:2] / Path(filename).with_suffix("")
 
 
-def get_cefs_paths(image_dir: Path, mount_point: Path, filename: Path) -> CEFSPaths:
+def get_cefs_paths(image_dir: Path, mount_point: Path, filename: str) -> CEFSPaths:
     """Get both CEFS image path and mount path for a given filename.
 
     Args:
@@ -95,7 +95,7 @@ def calculate_squashfs_hash(squashfs_path: Path) -> str:
     return truncated_hash
 
 
-def get_cefs_filename_for_image(squashfs_path: Path, operation: str, path: Path | None = None) -> Path:
+def get_cefs_filename_for_image(squashfs_path: Path, operation: str, path: Path | None = None) -> str:
     """Generate CEFS filename by calculating hash and adding suffix.
 
     Combines hash calculation and filename generation into a single operation.
@@ -460,7 +460,7 @@ def create_consolidated_image(
 
 def update_symlinks_for_consolidation(
     unchanged_symlinks: list[Path],
-    consolidated_filename: Path,
+    consolidated_filename: str,
     mount_point: Path,
     subdir_mapping: dict[Path, str],
     defer_cleanup: bool,
@@ -539,21 +539,19 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bo
     return cefs_image_path, is_already_consolidated
 
 
-def describe_cefs_image(hash_value: str, cefs_mount_point: Path) -> list[str]:
+def describe_cefs_image(filename: str, cefs_mount_point: Path) -> list[str]:
     """Get top-level entries from a CEFS image by triggering autofs mount.
 
     Args:
-        hash_value: The CEFS hash to describe
+        filename: The CEFS hash filename to describe
         cefs_mount_point: Base CEFS mount point
 
     Returns:
         List of top-level entry names in the CEFS image
     """
-    cefs_path = get_cefs_mount_path(cefs_mount_point, Path(hash_value))
+    cefs_path = get_cefs_mount_path(cefs_mount_point, filename)
     try:
-        # This will trigger autofs mount
-        entries = list(cefs_path.iterdir())
-        return [entry.name for entry in entries]
+        return [entry.name for entry in cefs_path.iterdir()]
     except OSError as e:
         _LOGGER.warning("Could not list contents of %s: %s", cefs_path, e)
         return []
