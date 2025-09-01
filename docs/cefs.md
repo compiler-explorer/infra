@@ -295,8 +295,11 @@ Images with `.yaml.inprogress` markers indicate incomplete or failed operations:
 - Require manual investigation and decision
 - Future tool: `ce cefs check-failed` to analyze and remediate
 
-**Re-consolidation of Sparse Consolidated Images**: As items are updated/reinstalled, consolidated images may become sparse (e.g., if we consolidate X, Y, Z but later Y and Z are reinstalled individually, the consolidated image only serves X). The manifest system enables detecting such cases and re-consolidating remaining items to maintain efficiency. This ties into the garbage collection process as the old consolidated image would need cleanup after re-consolidation.
+#### Re-consolidation of Sparse Consolidated Images
 
+As items are updated or reinstalled, consolidated images may become sparse. For example, if we consolidate X, Y, and Z into a single image, but later Y and Z are reinstalled individually, the consolidated image only serves X.
+
+The manifest system enables detecting such cases and re-consolidating the remaining items to maintain efficiency. This process ties into garbage collection, as the old consolidated image will need to be cleaned up after re-consolidation.
 ### Edge Cases and Failure Scenarios
 
 #### What if GC runs during installation?
