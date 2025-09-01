@@ -18,6 +18,7 @@ from lib.cefs import (
     get_cefs_mount_path,
     get_cefs_paths,
     get_extraction_path_from_symlink,
+    has_enough_space,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
@@ -27,9 +28,26 @@ from lib.cefs_manifest import finalize_manifest, write_manifest_inprogress
 # CEFS Consolidation Tests
 
 
+def test_has_enough_space():
+    """Test pure space checking logic."""
+    # Test with enough space
+    assert has_enough_space(1000 * 1024 * 1024, 500 * 1024 * 1024) is True  # 1000MB available, 500MB required
+
+    # Test with exactly enough space
+    assert has_enough_space(1000 * 1024 * 1024, 1000 * 1024 * 1024) is True  # 1000MB = 1000MB
+
+    # Test with not enough space
+    assert has_enough_space(500 * 1024 * 1024, 1000 * 1024 * 1024) is False  # 500MB < 1000MB required
+
+    # Test edge cases
+    assert has_enough_space(0, 0) is True  # No space needed
+    assert has_enough_space(1, 0) is True  # No space needed
+    assert has_enough_space(0, 1) is False  # Need space but have none
+
+
 @patch("os.statvfs")
 def test_check_temp_space_available(mock_statvfs):
-    """Test temp space checking."""
+    """Test temp space checking with OS interaction."""
     # Mock filesystem stats
     mock_stat = Mock()
     mock_stat.f_bavail = 1000  # Available blocks
@@ -205,74 +223,6 @@ def test_get_cefs_paths():
     assert result.mount_path == expected_mount_path
 
 
-# CEFS Consolidation Integration Tests
-
-
-def test_consolidation_grouping_algorithm():
-    """Test the grouping algorithm used in consolidation."""
-    # Simulate the grouping logic from the consolidate command
-    items = [
-        {"name": "gcc-4.5", "size": 100 * 1024 * 1024},  # 100MB
-        {"name": "gcc-4.6", "size": 150 * 1024 * 1024},  # 150MB
-        {"name": "gcc-5.1", "size": 200 * 1024 * 1024},  # 200MB
-        {"name": "boost-1.82", "size": 300 * 1024 * 1024},  # 300MB
-        {"name": "fmt-8.1", "size": 50 * 1024 * 1024},  # 50MB
-    ]
-
-    max_size_bytes = 400 * 1024 * 1024  # 400MB max per group
-    min_items = 2
-
-    # Sort by name (as in real implementation)
-    items.sort(key=lambda x: x["name"])
-
-    # Pack items into groups
-    groups = []
-    current_group = []
-    current_size = 0
-
-    for item in items:
-        if current_size + item["size"] > max_size_bytes and len(current_group) >= min_items:
-            groups.append(current_group)
-            current_group = [item]
-            current_size = item["size"]
-        else:
-            current_group.append(item)
-            current_size += item["size"]
-
-    if len(current_group) >= min_items:
-        groups.append(current_group)
-
-    # Verify grouping results
-    assert len(groups) == 2  # Should create 2 groups
-
-    # First group: boost-1.82 (300MB) + fmt-8.1 (50MB) = 350MB
-    assert len(groups[0]) == 2
-    assert "boost-1.82" in [item["name"] for item in groups[0]]
-    assert "fmt-8.1" in [item["name"] for item in groups[0]]
-
-    # Second group: gcc-4.5 (100MB) + gcc-4.6 (150MB) = 250MB
-    # gcc-5.1 (200MB) would exceed 400MB limit, so it starts new group
-    assert len(groups[1]) == 2
-    assert "gcc-4.5" in [item["name"] for item in groups[1]]
-    assert "gcc-4.6" in [item["name"] for item in groups[1]]
-
-
-def test_subdirectory_name_generation():
-    """Test generation of safe subdirectory names."""
-    # Test the subdirectory name logic from consolidate command
-    test_cases = [
-        ("gcc 4.5.4", "gcc_4.5.4"),
-        ("compilers/c++/gcc", "compilers_c++_gcc"),
-        ("cross/arm/gcc", "cross_arm_gcc"),
-        ("boost-1.82.0", "boost-1.82.0"),
-    ]
-
-    for input_name, expected_output in test_cases:
-        # This is the logic from the consolidate command
-        subdir_name = input_name.replace("/", "_").replace(" ", "_")
-        assert subdir_name == expected_output
-
-
 # CEFS Path Parsing Tests
 
 
@@ -344,57 +294,54 @@ def test_parse_cefs_target_errors(tmp_path):
 # CEFS Image Description Tests
 
 
-@patch("lib.cefs.get_cefs_mount_path")
-@patch("pathlib.Path.iterdir")
-def test_describe_cefs_image_success(mock_iterdir, mock_get_mount_path):
-    """Test successful CEFS image description."""
-    mock_mount_path = Path("/cefs/ab/abc123")
-    mock_get_mount_path.return_value = mock_mount_path
+def test_describe_cefs_image_with_real_filesystem(tmp_path):
+    """Test CEFS image description using real filesystem."""
+    # Create a mock CEFS mount structure
+    cefs_mount = tmp_path / "cefs"
+    image_dir = cefs_mount / "ab" / "abc123"
+    image_dir.mkdir(parents=True)
 
-    # Mock directory entries
-    entry1 = Mock()
-    entry1.name = "compilers_c++_x86_gcc_11.1.0"
-    entry2 = Mock()
-    entry2.name = "compilers_c++_x86_gcc_11.2.0"
+    # Create some test entries in the image
+    (image_dir / "compilers_c++_x86_gcc_11.1.0").mkdir()
+    (image_dir / "compilers_c++_x86_gcc_11.2.0").mkdir()
+    (image_dir / "boost-1.82").mkdir()
 
-    mock_iterdir.return_value = [entry1, entry2]
+    # Test the actual function (it uses get_cefs_mount_path internally)
+    # We need to mock get_cefs_mount_path to return our test directory
+    with patch("lib.cefs.get_cefs_mount_path") as mock_get_mount:
+        mock_get_mount.return_value = image_dir
+        result = describe_cefs_image("abc123", cefs_mount)
 
-    result = describe_cefs_image("abc123", Path("/cefs"))
+    # Should list all directories we created
+    assert sorted(result) == ["boost-1.82", "compilers_c++_x86_gcc_11.1.0", "compilers_c++_x86_gcc_11.2.0"]
+    mock_get_mount.assert_called_once_with(cefs_mount, "abc123")
 
-    assert result == ["compilers_c++_x86_gcc_11.1.0", "compilers_c++_x86_gcc_11.2.0"]
-    mock_get_mount_path.assert_called_once_with(Path("/cefs"), "abc123")
 
+def test_describe_cefs_image_empty_directory(tmp_path):
+    """Test CEFS image description with empty directory."""
+    cefs_mount = tmp_path / "cefs"
+    image_dir = cefs_mount / "de" / "def456"
+    image_dir.mkdir(parents=True)
 
-@patch("lib.cefs.get_cefs_mount_path")
-@patch("pathlib.Path.iterdir")
-def test_describe_cefs_image_os_error(mock_iterdir, mock_get_mount_path):
-    """Test CEFS image description with OS error."""
-    mock_mount_path = Path("/cefs/ab/abc123")
-    mock_get_mount_path.return_value = mock_mount_path
-
-    mock_iterdir.side_effect = OSError("Permission denied")
-
-    result = describe_cefs_image("abc123", Path("/cefs"))
+    with patch("lib.cefs.get_cefs_mount_path") as mock_get_mount:
+        mock_get_mount.return_value = image_dir
+        result = describe_cefs_image("def456", cefs_mount)
 
     assert result == []
 
 
-@patch("lib.cefs.get_cefs_mount_path")
-@patch("pathlib.Path.iterdir")
-def test_describe_cefs_image_custom_mount_point(mock_iterdir, mock_get_mount_path):
-    """Test CEFS image description with custom mount point."""
-    custom_mount = Path("/custom/cefs")
-    mock_mount_path = Path("/custom/cefs/ab/abc123")
-    mock_get_mount_path.return_value = mock_mount_path
+def test_describe_cefs_image_nonexistent_directory(tmp_path):
+    """Test CEFS image description when directory doesn't exist."""
+    cefs_mount = tmp_path / "cefs"
+    # Don't create the directory - it doesn't exist
+    nonexistent_dir = cefs_mount / "gh" / "ghi789"
 
-    entry = Mock()
-    entry.name = "test_entry"
-    mock_iterdir.return_value = [entry]
+    with patch("lib.cefs.get_cefs_mount_path") as mock_get_mount:
+        mock_get_mount.return_value = nonexistent_dir
+        result = describe_cefs_image("ghi789", cefs_mount)
 
-    result = describe_cefs_image("abc123", custom_mount)
-
-    assert result == ["test_entry"]
-    mock_get_mount_path.assert_called_once_with(custom_mount, "abc123")
+    # Should return empty list when directory doesn't exist (OSError)
+    assert result == []
 
 
 # CEFS State Tests

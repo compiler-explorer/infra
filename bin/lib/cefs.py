@@ -284,6 +284,19 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
         raise RuntimeError(f"Failed to create symlink: {e}") from e
 
 
+def has_enough_space(available_bytes: int, required_bytes: int) -> bool:
+    """Pure function to check if available space meets requirements.
+
+    Args:
+        available_bytes: Available space in bytes
+        required_bytes: Required space in bytes
+
+    Returns:
+        True if enough space is available
+    """
+    return available_bytes >= required_bytes
+
+
 def check_temp_space_available(temp_dir: Path, required_bytes: int) -> bool:
     """Check if temp directory has enough space for consolidation.
 
@@ -298,7 +311,7 @@ def check_temp_space_available(temp_dir: Path, required_bytes: int) -> bool:
         stat = os.statvfs(temp_dir)
         available_bytes = stat.f_bavail * stat.f_frsize
         _LOGGER.debug("Available space: %d bytes, required: %d bytes", available_bytes, required_bytes)
-        return available_bytes >= required_bytes
+        return has_enough_space(available_bytes, required_bytes)
     except OSError as e:
         _LOGGER.error("Failed to check disk space for %s: %s", temp_dir, e)
         return False
