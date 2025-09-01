@@ -9,15 +9,16 @@ import logging
 import os
 import shutil
 import tempfile
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
+import humanfriendly
 import yaml
 
 if TYPE_CHECKING:
     from lib.installable.installable import Installable
-import humanfriendly
 
 from .cefs_manifest import (
     generate_cefs_filename,
@@ -359,11 +360,89 @@ def verify_symlinks_unchanged(snapshot: dict[Path, Path]) -> tuple[list[Path], l
     return unchanged, changed
 
 
+def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -> dict[str, Any]:
+    """Worker function to extract a single squashfs image.
+
+    Args are serialized as strings for pickling:
+        unsquashfs_path, squashfs_path, subdir_path, extraction_path, subdir_name, nfs_path
+
+    Returns:
+        Dictionary with extraction metrics and status
+    """
+    # Set up logging for worker process
+    logger = logging.getLogger(__name__)
+
+    # Unpack and convert arguments back from strings
+    unsquashfs_path, squashfs_path_str, subdir_path_str, extraction_path_str, subdir_name, nfs_path_str = args
+
+    squashfs_path = Path(squashfs_path_str)
+    subdir_path = Path(subdir_path_str)
+    extraction_path = Path(extraction_path_str) if extraction_path_str else None
+
+    # Create minimal config for extraction
+    config = SquashfsConfig(
+        mksquashfs_path="",  # Not needed for extraction
+        unsquashfs_path=unsquashfs_path,
+        compression="",  # Not needed for extraction
+        compression_level=0,  # Not needed for extraction
+    )
+
+    try:
+        compressed_size = squashfs_path.stat().st_size
+
+        logger.info(
+            "Extracting %s (%s) from %s to %s",
+            squashfs_path,
+            humanfriendly.format_size(compressed_size, binary=True),
+            extraction_path,
+            subdir_path,
+        )
+
+        extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
+
+        # Measure extracted size - need to reimplement get_directory_size here
+        total_size = 0
+        try:
+            for item in subdir_path.rglob("*"):
+                if item.is_file() and not item.is_symlink():
+                    total_size += item.stat().st_size
+        except OSError as e:
+            logger.warning("Error calculating directory size for %s: %s", subdir_path, e)
+        extracted_size = total_size
+
+        compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
+
+        logger.info(
+            "Extracted %s -> %s (%.1fx compression)",
+            humanfriendly.format_size(compressed_size, binary=True),
+            humanfriendly.format_size(extracted_size, binary=True),
+            compression_ratio,
+        )
+
+        return {
+            "success": True,
+            "nfs_path": nfs_path_str,
+            "subdir_name": subdir_name,
+            "compressed_size": compressed_size,
+            "extracted_size": extracted_size,
+            "compression_ratio": compression_ratio,
+        }
+    except Exception as e:
+        logger.error("Failed to extract %s: %s", squashfs_path, e)
+        return {
+            "success": False,
+            "nfs_path": nfs_path_str,
+            "subdir_name": subdir_name,
+            "error": str(e),
+        }
+
+
 def create_consolidated_image(
     squashfs_config: SquashfsConfig,
     items: list[tuple[Path, Path, str, Path]],
     temp_dir: Path,
     output_path: Path,
+    max_parallel_extractions: int | None = None,
 ) -> None:
     """Create a consolidated squashfs image from multiple CEFS items.
 
@@ -372,6 +451,7 @@ def create_consolidated_image(
         items: List of (nfs_path, squashfs_path, subdirectory_name, extraction_path) tuples
         temp_dir: Temporary directory for extraction
         output_path: Path for the consolidated squashfs image
+        max_parallel_extractions: Maximum number of parallel extractions (default: CPU count)
 
     Raises:
         RuntimeError: If consolidation fails
@@ -379,36 +459,67 @@ def create_consolidated_image(
     extraction_dir = temp_dir / "extract"
     extraction_dir.mkdir(parents=True, exist_ok=True)
 
+    # Determine number of workers
+    if max_parallel_extractions is None:
+        max_parallel_extractions = os.cpu_count() or 1
+    num_workers = min(max_parallel_extractions, len(items))
+
+    _LOGGER.info("Starting parallel extraction with %d workers for %d items", num_workers, len(items))
+
     try:
-        # Extract each squashfs image to its subdirectory
+        # Prepare extraction tasks (serialize paths as strings for pickling)
+        extraction_tasks = []
+        for nfs_path, squashfs_path, subdir_name, extraction_path in items:
+            subdir_path = extraction_dir / subdir_name
+            args = (
+                squashfs_config.unsquashfs_path,
+                str(squashfs_path),
+                str(subdir_path),
+                str(extraction_path) if extraction_path else None,
+                subdir_name,
+                str(nfs_path),
+            )
+            extraction_tasks.append(args)
+
+        # Extract squashfs images in parallel
         total_compressed_size = 0
         total_extracted_size = 0
+        failed_extractions = []
 
-        for _nfs_path, squashfs_path, subdir_name, extraction_path in items:
-            subdir_path = extraction_dir / subdir_name
-            compressed_size = squashfs_path.stat().st_size
-            total_compressed_size += compressed_size
+        with ProcessPoolExecutor(max_workers=num_workers) as executor:
+            # Submit all extraction tasks
+            future_to_args = {executor.submit(_extract_single_squashfs, args): args for args in extraction_tasks}
 
-            _LOGGER.info(
-                "Extracting %s (%s) from %s to %s",
-                squashfs_path,
-                humanfriendly.format_size(compressed_size, binary=True),
-                extraction_path,
-                subdir_path,
-            )
+            # Process results as they complete
+            completed = 0
+            for future in as_completed(future_to_args):
+                completed += 1
+                result = future.result()
 
-            extract_squashfs_image(squashfs_config, squashfs_path, subdir_path, extraction_path)
+                if result["success"]:
+                    total_compressed_size += result["compressed_size"]
+                    total_extracted_size += result["extracted_size"]
+                    _LOGGER.info(
+                        "[%d/%d] Completed extraction of %s",
+                        completed,
+                        len(items),
+                        result["subdir_name"],
+                    )
+                else:
+                    failed_extractions.append(result)
+                    _LOGGER.error(
+                        "[%d/%d] Failed to extract %s: %s",
+                        completed,
+                        len(items),
+                        result["subdir_name"],
+                        result.get("error", "Unknown error"),
+                    )
 
-            # Measure extracted size and calculate compression ratio
-            extracted_size = get_directory_size(subdir_path)
-            total_extracted_size += extracted_size
-            compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
-
-            _LOGGER.info(
-                "Extracted %s -> %s (%.1fx compression)",
-                humanfriendly.format_size(compressed_size, binary=True),
-                humanfriendly.format_size(extracted_size, binary=True),
-                compression_ratio,
+        # Check for failures
+        if failed_extractions:
+            raise RuntimeError(
+                f"Failed to extract {len(failed_extractions)} of {len(items)} squashfs images: "
+                + ", ".join(f["subdir_name"] for f in failed_extractions)
             )
 
         # Log total extraction summary
