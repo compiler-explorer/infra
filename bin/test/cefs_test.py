@@ -13,23 +13,28 @@ from lib.cefs import (
     CEFSPaths,
     CEFSState,
     check_temp_space_available,
+    delete_image_with_manifest,
     describe_cefs_image,
+    filter_images_by_age,
+    format_image_contents_string,
     get_cefs_image_path,
     get_cefs_mount_path,
     get_cefs_paths,
     get_extraction_path_from_symlink,
+    get_image_description,
+    get_image_description_from_manifest,
     has_enough_space,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
 )
 from lib.cefs_manifest import finalize_manifest, write_manifest_inprogress
+from pytest import approx
 
 # CEFS Consolidation Tests
 
 
 def test_has_enough_space():
-    """Test pure space checking logic."""
     # Test with enough space
     assert has_enough_space(1000 * 1024 * 1024, 500 * 1024 * 1024) is True  # 1000MB available, 500MB required
 
@@ -47,7 +52,6 @@ def test_has_enough_space():
 
 @patch("os.statvfs")
 def test_check_temp_space_available(mock_statvfs):
-    """Test temp space checking with OS interaction."""
     # Mock filesystem stats
     mock_stat = Mock()
     mock_stat.f_bavail = 1000  # Available blocks
@@ -65,7 +69,6 @@ def test_check_temp_space_available(mock_statvfs):
 
 @patch("os.statvfs")
 def test_check_temp_space_os_error(mock_statvfs):
-    """Test temp space checking with OS error."""
     mock_statvfs.side_effect = OSError("Permission denied")
 
     temp_dir = Path("/invalid/path")
@@ -73,7 +76,6 @@ def test_check_temp_space_os_error(mock_statvfs):
 
 
 def test_snapshot_symlink_targets(tmp_path):
-    """Test snapshotting of symlink targets."""
     # Create symlinks pointing to (non-existent) CEFS paths
     # This is fine - symlinks can point to non-existent targets
     link1 = tmp_path / "gcc-4.5"
@@ -88,7 +90,6 @@ def test_snapshot_symlink_targets(tmp_path):
 
 
 def test_snapshot_symlink_targets_with_errors(tmp_path):
-    """Test snapshotting with some symlinks having errors."""
     link1 = tmp_path / "gcc-4.5"
     link2 = tmp_path / "boost-1.82"
     regular_file = tmp_path / "not-a-symlink"
@@ -105,7 +106,6 @@ def test_snapshot_symlink_targets_with_errors(tmp_path):
 
 
 def test_verify_symlinks_unchanged(tmp_path):
-    """Test verification of unchanged symlinks."""
     link1 = tmp_path / "gcc-4.5"
     link2 = tmp_path / "boost-1.82"
 
@@ -127,7 +127,6 @@ def test_verify_symlinks_unchanged(tmp_path):
 
 
 def test_verify_symlinks_nonexistent(tmp_path):
-    """Test verification when symlink no longer exists."""
     link = tmp_path / "gcc-4.5"
     link.symlink_to("/cefs/ab/abc123")
 
@@ -144,7 +143,6 @@ def test_verify_symlinks_nonexistent(tmp_path):
 
 
 def test_get_cefs_image_path_with_filename():
-    """Test CEFS image path generation with filename."""
     image_dir = Path("/efs/cefs-images")
     filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
 
@@ -155,7 +153,6 @@ def test_get_cefs_image_path_with_filename():
 
 
 def test_get_cefs_mount_path_with_filename():
-    """Test CEFS image path generation with new filename."""
     filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
 
     result = get_cefs_mount_path(Path("/cefs"), filename)
@@ -165,7 +162,6 @@ def test_get_cefs_mount_path_with_filename():
 
 
 def test_parse_cefs_target_variations(tmp_path):
-    """Test parsing various CEFS target formats using real filesystem."""
     cefs_image_dir = tmp_path / "cefs-images"
 
     test_cases = [
@@ -190,7 +186,6 @@ def test_parse_cefs_target_variations(tmp_path):
 
 
 def test_get_extraction_path_from_symlink():
-    """Test extraction path determination from symlink targets."""
     test_cases = [
         (Path("/cefs/ab/abcdef1234567890abcdef12"), Path(".")),
         (Path("/cefs/ab/abcdef1234567890abcdef12/content"), Path("content")),
@@ -205,7 +200,6 @@ def test_get_extraction_path_from_symlink():
 
 
 def test_get_cefs_paths():
-    """Test the combined get_cefs_paths function."""
     image_dir = Path("/efs/cefs-images")
     mount_point = Path("/cefs")
     filename = "9da642f654bc890a12345678_gcc-15.1.0.sqfs"
@@ -227,7 +221,6 @@ def test_get_cefs_paths():
 
 
 def test_parse_cefs_target_with_real_filesystem(tmp_path):
-    """Test parsing various CEFS target formats using real filesystem."""
     cefs_image_dir = tmp_path / "cefs-images"
 
     test_cases = [
@@ -274,7 +267,6 @@ def test_parse_cefs_target_with_real_filesystem(tmp_path):
 
 
 def test_parse_cefs_target_errors(tmp_path):
-    """Test parsing errors for invalid CEFS targets."""
     cefs_image_dir = tmp_path / "cefs-images"
 
     # Test invalid format with too few components
@@ -295,7 +287,6 @@ def test_parse_cefs_target_errors(tmp_path):
 
 
 def test_describe_cefs_image_with_real_filesystem(tmp_path):
-    """Test CEFS image description using real filesystem."""
     # Create a mock CEFS mount structure
     cefs_mount = tmp_path / "cefs"
     image_dir = cefs_mount / "ab" / "abc123"
@@ -318,7 +309,6 @@ def test_describe_cefs_image_with_real_filesystem(tmp_path):
 
 
 def test_describe_cefs_image_empty_directory(tmp_path):
-    """Test CEFS image description with empty directory."""
     cefs_mount = tmp_path / "cefs"
     image_dir = cefs_mount / "de" / "def456"
     image_dir.mkdir(parents=True)
@@ -331,7 +321,6 @@ def test_describe_cefs_image_empty_directory(tmp_path):
 
 
 def test_describe_cefs_image_nonexistent_directory(tmp_path):
-    """Test CEFS image description when directory doesn't exist."""
     cefs_mount = tmp_path / "cefs"
     # Don't create the directory - it doesn't exist
     nonexistent_dir = cefs_mount / "gh" / "ghi789"
@@ -348,19 +337,17 @@ def test_describe_cefs_image_nonexistent_directory(tmp_path):
 
 
 def test_cefs_state_init():
-    """Test CEFSState initialization."""
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
     state = CEFSState(nfs_dir, cefs_image_dir)
 
     assert state.nfs_dir == nfs_dir
     assert state.cefs_image_dir == cefs_image_dir
-    assert len(state.referenced_images) == 0
-    assert len(state.all_cefs_images) == 0
+    assert not state.referenced_images
+    assert not state.all_cefs_images
 
 
 def test_find_unreferenced_images():
-    """Test finding unreferenced CEFS images."""
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
     state = CEFSState(nfs_dir, cefs_image_dir)
@@ -381,7 +368,6 @@ def test_find_unreferenced_images():
 
 @patch("pathlib.Path.stat")
 def test_get_summary(mock_stat):
-    """Test getting summary statistics."""
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
     state = CEFSState(nfs_dir, cefs_image_dir)
@@ -862,8 +848,6 @@ def test_filter_images_by_age(tmp_path):
     import os
     import time
 
-    from lib.cefs import filter_images_by_age
-
     # Create images with different ages
     old_image = tmp_path / "old.sqfs"
     recent_image = tmp_path / "recent.sqfs"
@@ -887,9 +871,7 @@ def test_filter_images_by_age(tmp_path):
     result = filter_images_by_age(images, min_age_delta, test_now)
 
     # Old image and broken (non-existent) should be in old_enough
-    assert len(result.old_enough) == 2
-    assert old_image in result.old_enough
-    assert broken_image in result.old_enough  # Can't stat = assume broken = old enough
+    assert set(result.old_enough) == {old_image, broken_image}  # Can't stat = assume broken = old enough
 
     # Recent image should be in too_recent with its age
     assert len(result.too_recent) == 1
@@ -898,9 +880,6 @@ def test_filter_images_by_age(tmp_path):
 
 
 def test_get_image_description_from_manifest(tmp_path):
-    """Test extracting description from manifest."""
-    from lib.cefs import get_image_description_from_manifest
-
     image_path = tmp_path / "test.sqfs"
     manifest_path = image_path.with_suffix(".yaml")
 
@@ -916,29 +895,22 @@ def test_get_image_description_from_manifest(tmp_path):
         )
     )
 
-    names = get_image_description_from_manifest(image_path)
-    assert names == ["gcc-11", "boost-1.75"]
+    assert get_image_description_from_manifest(image_path) == ["gcc-11", "boost-1.75"]
 
     # Test with empty contents
     manifest_path.write_text(yaml.dump({"contents": []}))
-    names = get_image_description_from_manifest(image_path)
-    assert names is None
+    assert get_image_description_from_manifest(image_path) is None
 
     # Test with missing manifest
     manifest_path.unlink()
-    names = get_image_description_from_manifest(image_path)
-    assert names is None
+    assert get_image_description_from_manifest(image_path) is None
 
     # Test with invalid YAML
     manifest_path.write_text("invalid: yaml: content: {")
-    names = get_image_description_from_manifest(image_path)
-    assert names is None
+    assert get_image_description_from_manifest(image_path) is None
 
 
 def test_format_image_contents_string():
-    """Test formatting image contents for display."""
-    from lib.cefs import format_image_contents_string
-
     # Test with None
     assert format_image_contents_string(None, 3) == ""
 
@@ -946,25 +918,19 @@ def test_format_image_contents_string():
     assert format_image_contents_string([], 3) == ""
 
     # Test with items <= max_items
-    names = ["gcc-11", "boost"]
-    result = format_image_contents_string(names, 3)
-    assert result == " [contains: gcc-11, boost]"
+    assert format_image_contents_string(["gcc-11", "boost"], 3) == " [contains: gcc-11, boost]"
 
     # Test with items > max_items
-    names = ["gcc-11", "boost", "cmake", "ninja", "python"]
-    result = format_image_contents_string(names, 3)
-    assert result == " [contains: gcc-11, boost, cmake...]"
+    assert (
+        format_image_contents_string(["gcc-11", "boost", "cmake", "ninja", "python"], 3)
+        == " [contains: gcc-11, boost, cmake...]"
+    )
 
     # Test with max_items = 1
-    names = ["gcc-11", "boost"]
-    result = format_image_contents_string(names, 1)
-    assert result == " [contains: gcc-11...]"
+    assert format_image_contents_string(["gcc-11", "boost"], 1) == " [contains: gcc-11...]"
 
 
 def test_delete_image_with_manifest(tmp_path):
-    """Test deleting image and manifest."""
-    from lib.cefs import delete_image_with_manifest
-
     image_path = tmp_path / "test.sqfs"
     manifest_path = image_path.with_suffix(".yaml")
 
@@ -974,8 +940,8 @@ def test_delete_image_with_manifest(tmp_path):
 
     result = delete_image_with_manifest(image_path)
     assert result.success
-    assert result.deleted_size == 13  # len(b"image content")
-    assert result.errors == []
+    assert result.deleted_size == len(b"image content")
+    assert not result.errors
     assert not image_path.exists()
     assert not manifest_path.exists()
 
@@ -983,8 +949,8 @@ def test_delete_image_with_manifest(tmp_path):
     image_path.write_bytes(b"image")
     result = delete_image_with_manifest(image_path)
     assert result.success
-    assert result.deleted_size == 5  # len(b"image")
-    assert result.errors == []
+    assert result.deleted_size == len(b"image")
+    assert not result.errors
 
     # Test deletion of non-existent image
     result = delete_image_with_manifest(image_path)
@@ -997,32 +963,26 @@ def test_delete_image_with_manifest(tmp_path):
     # No manifest created this time
     result = delete_image_with_manifest(image_path)
     assert result.success  # Image was deleted successfully
-    assert result.deleted_size == 7
-    assert len(result.errors) == 0  # No errors
+    assert result.deleted_size == len(b"content")
+    assert not result.errors
     assert not image_path.exists()
 
 
 def test_get_image_description_integration(tmp_path):
-    """Test getting image description with fallback."""
-    from lib.cefs import get_image_description
-
     image_path = tmp_path / "test.sqfs"
     manifest_path = image_path.with_suffix(".yaml")
     cefs_mount = Path("/fake/cefs")  # Won't be used if manifest exists
 
     # Test with manifest
     manifest_path.write_text(yaml.dump({"contents": [{"name": "gcc-11", "destination": "/opt/gcc-11"}]}))
-    names = get_image_description(image_path, cefs_mount)
-    assert names == ["gcc-11"]
+    assert get_image_description(image_path, cefs_mount) == ["gcc-11"]
 
     # Test without manifest (will try to mount, which will fail)
     manifest_path.unlink()
-    names = get_image_description(image_path, cefs_mount)
-    assert names is None  # Falls back to mounting which fails in test
+    assert get_image_description(image_path, cefs_mount) is None  # Falls back to mounting which fails in test
 
 
 def test_is_image_referenced(tmp_path):
-    """Test the is_image_referenced member function of CEFSState."""
     nfs_dir = tmp_path / "nfs"
     cefs_dir = tmp_path / "cefs"
     nfs_dir.mkdir()
@@ -1060,11 +1020,8 @@ def test_is_image_referenced(tmp_path):
 
 
 def test_filter_images_by_age_with_specific_times(tmp_path):
-    """Test age filtering with controlled timestamps."""
     import os
     import time
-
-    from lib.cefs import filter_images_by_age
 
     image1 = tmp_path / "image1.sqfs"
     image2 = tmp_path / "image2.sqfs"
@@ -1088,13 +1045,10 @@ def test_filter_images_by_age_with_specific_times(tmp_path):
     result = filter_images_by_age(images, min_age_delta, test_now)
 
     # image1 and image2 should be old enough
-    assert len(result.old_enough) == 2
-    assert image1 in result.old_enough
-    assert image2 in result.old_enough
+    assert set(result.old_enough) == {image1, image2}
 
     # image3 should be too recent
     assert len(result.too_recent) == 1
     assert result.too_recent[0][0] == image3
     # Check the age is approximately 30 minutes
-    age_minutes = result.too_recent[0][1].total_seconds() / 60
-    assert abs(age_minutes - 30) < 1
+    assert result.too_recent[0][1].total_seconds() / 60 == approx(30, abs=1)
