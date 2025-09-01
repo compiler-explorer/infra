@@ -150,6 +150,48 @@ def write_manifest_alongside_image(manifest: dict[str, Any], image_path: Path) -
         yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
 
 
+def write_manifest_inprogress(manifest: dict[str, Any], image_path: Path) -> None:
+    """Write manifest as .yaml.inprogress to indicate incomplete operation.
+
+    This creates a temporary manifest file that signals an in-progress operation.
+    The file should be renamed to .yaml after all operations complete successfully.
+
+    Args:
+        manifest: Manifest dictionary
+        image_path: Path to the .sqfs image file
+    """
+    inprogress_path = Path(str(image_path.with_suffix(".yaml")) + ".inprogress")
+
+    _LOGGER.debug("Writing in-progress manifest: %s", inprogress_path)
+    inprogress_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(inprogress_path, "w", encoding="utf-8") as f:
+        yaml.dump(manifest, f, default_flow_style=False, sort_keys=False)
+
+
+def finalize_manifest(image_path: Path) -> None:
+    """Finalize manifest by renaming .yaml.inprogress to .yaml.
+
+    This atomic rename indicates that all operations have completed successfully
+    and the image is safe to use (and safe from GC).
+
+    Args:
+        image_path: Path to the .sqfs image file
+
+    Raises:
+        FileNotFoundError: If .yaml.inprogress file doesn't exist
+        OSError: If rename fails
+    """
+    inprogress_path = Path(str(image_path.with_suffix(".yaml")) + ".inprogress")
+    final_path = image_path.with_suffix(".yaml")
+
+    if not inprogress_path.exists():
+        raise FileNotFoundError(f"In-progress manifest not found: {inprogress_path}")
+
+    _LOGGER.debug("Finalizing manifest: %s -> %s", inprogress_path, final_path)
+    inprogress_path.rename(final_path)
+
+
 def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
     """Read manifest from the .yaml file alongside a CEFS image.
 

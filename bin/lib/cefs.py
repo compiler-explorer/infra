@@ -16,7 +16,11 @@ if TYPE_CHECKING:
     from lib.installable.installable import Installable
 import humanfriendly
 
-from .cefs_manifest import generate_cefs_filename, write_manifest_alongside_image
+from .cefs_manifest import (
+    generate_cefs_filename,
+    read_manifest_from_alongside,
+    write_manifest_inprogress,
+)
 from .config import SquashfsConfig
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
@@ -184,7 +188,9 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
     _LOGGER.info("Copying %s to %s", source_path, cefs_image_path)
     cefs_image_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Create uniquely named temp file in same directory for atomic rename
+    # SAFETY: Create uniquely named temp file in same directory for atomic rename
+    # This ensures that partially copied files never have the .sqfs extension
+    # and thus can never be mistaken for complete images by GC or other operations
     with tempfile.NamedTemporaryFile(
         dir=cefs_image_path.parent, suffix=".tmp", prefix="cefs_", delete=False
     ) as temp_file:
@@ -193,6 +199,7 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
             shutil.copyfileobj(source_file, temp_file, length=1024 * 1024)
     try:
         # Atomic rename - only complete files get .sqfs extension
+        # On Linux, rename() is atomic within the same filesystem
         temp_path.replace(cefs_image_path)
     except Exception:
         # Clean up temp file on any failure
@@ -203,7 +210,11 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
 def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manifest: dict) -> None:
     """Deploy an image to CEFS with its manifest.
 
-    Atomically copies the squashfs image and writes its manifest alongside.
+    Uses .yaml.inprogress pattern to prevent race conditions:
+    1. Copy squashfs image atomically
+    2. Write manifest as .yaml.inprogress (operation incomplete)
+    3. Caller creates symlinks
+    4. Caller must call finalize_manifest() after symlinks are created
 
     Args:
         source_path: Source squashfs image to deploy
@@ -214,7 +225,7 @@ def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manif
         Exception: If deployment fails (all files are cleaned up)
     """
     copy_to_cefs_atomically(source_path, cefs_image_path)
-    write_manifest_alongside_image(manifest, cefs_image_path)
+    write_manifest_inprogress(manifest, cefs_image_path)
 
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_cleanup: bool) -> None:
@@ -560,20 +571,39 @@ class CEFSState:
         self.all_cefs_images: dict[str, Path] = {}  # filename_stem -> image_path
         self.image_references: dict[str, list[Path]] = {}  # filename_stem -> list of expected symlink destinations
         self.referenced_images: set[str] = set()  # Set of filename_stems that have valid symlinks
+        self.inprogress_images: list[Path] = []  # List of .yaml.inprogress files found
 
     def scan_cefs_images_with_manifests(self) -> None:
-        """Scan all CEFS images and read their manifests to determine expected references."""
-        from .cefs_manifest import read_manifest_from_alongside
+        """Scan all CEFS images and read their manifests to determine expected references.
 
+        CRITICAL: Images with .yaml.inprogress manifests are tracked but NEVER eligible for GC.
+        """
         if not self.cefs_image_dir.exists():
             _LOGGER.warning("CEFS images directory does not exist: %s", self.cefs_image_dir)
             return
 
         for subdir in self.cefs_image_dir.iterdir():
             if subdir.is_dir():
+                # First check for .yaml.inprogress files (incomplete operations)
+                for inprogress_file in subdir.glob("*.yaml.inprogress"):
+                    self.inprogress_images.append(inprogress_file)
+                    _LOGGER.warning("Found in-progress manifest: %s", inprogress_file)
+
                 for image_file in subdir.glob("*.sqfs"):
                     # Store by filename stem (includes hash and suffix)
                     filename_stem = image_file.stem
+
+                    # SAFETY: Check if this image has an .yaml.inprogress file indicating incomplete operation
+                    # This prevents deletion of images that are being installed/converted/consolidated
+                    # even if the operation is taking a long time or has failed partway through
+                    inprogress_path = Path(str(image_file.with_suffix(".yaml")) + ".inprogress")
+                    if inprogress_path.exists():
+                        # Skip this image - it has an incomplete operation
+                        _LOGGER.info("Skipping image with in-progress operation: %s", image_file)
+                        # Mark it as referenced so it won't be deleted
+                        self.referenced_images.add(filename_stem)
+                        continue
+
                     self.all_cefs_images[filename_stem] = image_file
 
                     # Try to read manifest to get expected destinations
@@ -612,18 +642,44 @@ class CEFSState:
     def _check_symlink_points_to_image(self, dest_path: Path, filename_stem: str) -> bool:
         """Check if a symlink at dest_path points to the given CEFS image.
 
+        CRITICAL: Also checks .bak symlinks to protect rollback capability.
+
         Args:
             dest_path: Expected destination path for symlink
             filename_stem: The filename stem (hash + suffix) of the CEFS image
 
         Returns:
-            True if symlink exists and points to this image
+            True if symlink exists and points to this image (either main or .bak)
         """
         full_path = dest_path if dest_path.is_absolute() else self.nfs_dir / dest_path.relative_to(Path("/"))
 
-        if full_path.is_symlink():
+        # Check main symlink
+        if self._check_single_symlink(full_path, filename_stem):
+            return True
+
+        # CRITICAL: Also check .bak symlink to protect rollback capability
+        # Users rely on 'ce cefs rollback' which swaps .bak with main symlink
+        # If we deleted the image referenced by .bak, rollback would fail catastrophically
+        bak_path = full_path.with_name(full_path.name + ".bak")
+        if self._check_single_symlink(bak_path, filename_stem):
+            _LOGGER.debug("Found reference via .bak symlink: %s", bak_path)
+            return True
+
+        return False
+
+    def _check_single_symlink(self, symlink_path: Path, filename_stem: str) -> bool:
+        """Check if a single symlink points to the given CEFS image.
+
+        Args:
+            symlink_path: Path to check
+            filename_stem: The filename stem (hash + suffix) of the CEFS image
+
+        Returns:
+            True if symlink exists and points to this image
+        """
+        if symlink_path.is_symlink():
             try:
-                target = full_path.readlink()
+                target = symlink_path.readlink()
                 if str(target).startswith("/cefs/"):
                     # Extract the hash/filename from the symlink target
                     # Format: /cefs/XX/HASH_suffix or /cefs/XX/HASH_suffix/subdir
@@ -633,10 +689,10 @@ class CEFSState:
                         target_filename = parts[3]
                         # Check if this matches our image's filename stem
                         if target_filename == filename_stem:
-                            _LOGGER.debug("Found valid symlink: %s -> %s", full_path, target)
+                            _LOGGER.debug("Found valid symlink: %s -> %s", symlink_path, target)
                             return True
             except OSError as e:
-                _LOGGER.debug("Could not read symlink %s: %s", full_path, e)
+                _LOGGER.debug("Could not read symlink %s: %s", symlink_path, e)
         return False
 
     def _find_any_symlink_to_image(self, filename_stem: str) -> bool:
