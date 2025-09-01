@@ -160,7 +160,7 @@ class BlueGreenDeployment:
             return None
 
         # For production, we return the listener ARN itself (to modify default action)
-        if self.cfg.env.path_pattern == "":
+        if not self.cfg.env.path_pattern:
             return https_listeners[0]["ListenerArn"]
 
         # For other environments, find the specific rule for their path pattern
@@ -288,17 +288,15 @@ class BlueGreenDeployment:
         version_was_changed = False
 
         # Update deployment state for signal handler
-        self._deployment_state.update(
-            {
-                "active_asg": active_asg,
-                "inactive_asg": inactive_asg,
-                "active_original_min": None,  # Will be set after protection
-                "active_original_max": None,  # Will be set after protection
-                "in_deployment": True,
-                "original_version_key": None,
-                "version_was_changed": False,
-            }
-        )
+        self._deployment_state.update({
+            "active_asg": active_asg,
+            "inactive_asg": inactive_asg,
+            "active_original_min": None,  # Will be set after protection
+            "active_original_max": None,  # Will be set after protection
+            "in_deployment": True,
+            "original_version_key": None,
+            "version_was_changed": False,
+        })
 
         # Install signal handlers for cleanup
         old_sigint = signal.signal(signal.SIGINT, self._cleanup_on_signal)

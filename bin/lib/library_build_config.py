@@ -39,7 +39,7 @@ class LibraryBuildConfig:
         self.copy_files = self.config_get("copy_files", [])
         self.package_install = self.config_get("package_install", False)
         self.use_compiler = self.config_get("use_compiler", "")
-        if self.lib_type == "cshared" and self.use_compiler == "":
+        if self.lib_type == "cshared" and not self.use_compiler:
             raise RuntimeError(
                 "When lib_type is cshared, it is required to supply a (cross)compiler with property use_compiler"
             )

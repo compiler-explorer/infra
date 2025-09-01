@@ -181,7 +181,7 @@ class LibraryYaml:
             logger.debug(f"Mapping {linux_libid} to {lookupname}")
             reorganised_libs[lookupname].add(linux_libid)
 
-        for linux_libid in reorganised_libs:
+        for linux_libid, yamllibids in reorganised_libs.items():
             all_ids.append(linux_libid)
             linux_lib = linux_libraries[linux_libid]
 
@@ -201,7 +201,7 @@ class LibraryYaml:
             libverprops += f"{packagedheaders_property_key}=true\n"
 
             all_libver_ids: list[str] = []
-            for yamllibid in reorganised_libs[linux_libid]:
+            for yamllibid in yamllibids:
                 if yamllibid in libraries_for_language:
                     if "targets" in libraries_for_language[yamllibid]:
                         for libver in libraries_for_language[yamllibid]["targets"]:
@@ -221,7 +221,7 @@ class LibraryYaml:
             prefix = prefix.rstrip(".")
             libverprops += self.get_link_props(linux_lib, prefix)
 
-            for yamllibid in reorganised_libs[linux_libid]:
+            for yamllibid in yamllibids:
                 if yamllibid in libraries_for_language:
                     if "targets" in libraries_for_language[yamllibid]:
                         for libver in libraries_for_language[yamllibid]["targets"]:

@@ -114,8 +114,6 @@ def _assert_git_repo_isolation(repo_path, expected_repo_path):
     Assert that git operations are happening in the expected repository.
     This prevents tests from accidentally operating on the main repository.
     """
-    import subprocess
-
     # Create isolated environment for this check
     env = _create_completely_isolated_git_env(Path(expected_repo_path).parent.parent)
 

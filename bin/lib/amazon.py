@@ -218,7 +218,7 @@ def find_release(cfg: Config, version: Version) -> Release | None:
 
 
 def find_latest_release(cfg: Config, branch: str) -> Release | None:
-    releases = [release for release in get_releases(cfg) if branch == "" or release.branch == branch]
+    releases = [release for release in get_releases(cfg) if not branch or release.branch == branch]
     return max(releases, key=attrgetter("version")) if len(releases) > 0 else None
 
 

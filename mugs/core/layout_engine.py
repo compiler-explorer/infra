@@ -145,7 +145,7 @@ class LayoutEngine:
         spacing_height = 0
         for i in range(len(layout.info_items) - 1):  # N-1 gaps between N rows
             next_label, _ = layout.info_items[i + 1]
-            if next_label.strip() == "":
+            if not next_label.strip():
                 spacing_height += int(INFO_TABLE_ROW_HEIGHT * CONTINUATION_LINE_SPACING)
             else:
                 spacing_height += INFO_TABLE_ROW_HEIGHT
