@@ -12,6 +12,7 @@ import yaml
 from lib.cefs import (
     CEFSPaths,
     CEFSState,
+    calculate_image_usage,
     check_temp_space_available,
     delete_image_with_manifest,
     describe_cefs_image,
@@ -20,10 +21,12 @@ from lib.cefs import (
     get_cefs_image_path,
     get_cefs_mount_path,
     get_cefs_paths,
+    get_current_symlink_target,
     get_extraction_path_from_symlink,
     get_image_description,
     get_image_description_from_manifest,
     has_enough_space,
+    is_consolidated_image,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
@@ -646,6 +649,123 @@ def test_write_and_read_manifest_alongside_image(tmp_path):
     loaded_manifest = read_manifest_from_alongside(image_path)
 
     assert loaded_manifest == manifest
+
+
+def test_is_consolidated_image(tmp_path):
+    """Test is_consolidated_image function."""
+    # Test with filename pattern
+    consolidated_path = tmp_path / "abc123_consolidated.sqfs"
+    consolidated_path.touch()
+    assert is_consolidated_image(consolidated_path) is True
+
+    # Test with non-consolidated filename
+    individual_path = tmp_path / "abc123_gcc-15.1.0.sqfs"
+    individual_path.touch()
+    assert is_consolidated_image(individual_path) is False
+
+    # Test with manifest containing multiple contents
+    multi_content_path = tmp_path / "def456_something.sqfs"
+    multi_content_path.touch()
+    manifest = {
+        "version": 1,
+        "contents": [
+            {"name": "gcc", "destination": "/opt/gcc"},
+            {"name": "clang", "destination": "/opt/clang"},
+        ],
+    }
+    write_manifest_alongside_image(manifest, multi_content_path)
+    assert is_consolidated_image(multi_content_path) is True
+
+    # Test with manifest containing single content
+    single_content_path = tmp_path / "ghi789_single.sqfs"
+    single_content_path.touch()
+    manifest = {
+        "version": 1,
+        "contents": [
+            {"name": "gcc", "destination": "/opt/gcc"},
+        ],
+    }
+    write_manifest_alongside_image(manifest, single_content_path)
+    assert is_consolidated_image(single_content_path) is False
+
+
+def test_get_current_symlink_target(tmp_path):
+    """Test get_current_symlink_target function."""
+    nfs_dir = tmp_path / "nfs"
+    nfs_dir.mkdir()
+
+    # Test with existing symlink
+    dest_path = Path("/opt/gcc")
+    symlink_path = nfs_dir / "opt" / "gcc"
+    symlink_path.parent.mkdir(parents=True)
+    symlink_path.symlink_to("/cefs/ab/abc123_consolidated/gcc")
+
+    target = get_current_symlink_target(dest_path, nfs_dir)
+    assert target == Path("/cefs/ab/abc123_consolidated/gcc")
+
+    # Test with .bak symlink
+    dest_path2 = Path("/opt/clang")
+    symlink_path2 = nfs_dir / "opt" / "clang.bak"
+    symlink_path2.symlink_to("/cefs/cd/def456_clang")
+
+    target2 = get_current_symlink_target(dest_path2, nfs_dir)
+    assert target2 == Path("/cefs/cd/def456_clang")
+
+    # Test with non-existent symlink
+    dest_path3 = Path("/opt/rust")
+    target3 = get_current_symlink_target(dest_path3, nfs_dir)
+    assert target3 is None
+
+
+def test_calculate_image_usage(tmp_path):
+    """Test calculate_image_usage function."""
+    nfs_dir = tmp_path / "nfs"
+    nfs_dir.mkdir()
+
+    # Create an individual image
+    individual_image = tmp_path / "abc123_gcc.sqfs"
+    individual_image.touch()
+
+    # Test individual image with reference
+    image_references = {"abc123_gcc": [Path("/opt/gcc")]}
+
+    # Create symlink pointing to this image
+    gcc_path = nfs_dir / "opt" / "gcc"
+    gcc_path.parent.mkdir(parents=True)
+    gcc_path.symlink_to("/cefs/ab/abc123_gcc")
+
+    usage = calculate_image_usage(individual_image, image_references, nfs_dir)
+    assert usage == 100.0
+
+    # Test individual image without reference (symlink points elsewhere)
+    gcc_path.unlink()
+    gcc_path.symlink_to("/cefs/de/def456_gcc")
+
+    usage = calculate_image_usage(individual_image, image_references, nfs_dir)
+    assert usage == 0.0
+
+    # Test consolidated image with partial usage
+    consolidated_image = tmp_path / "xyz789_consolidated.sqfs"
+    consolidated_image.touch()
+
+    image_references["xyz789_consolidated"] = [
+        Path("/opt/tool1"),
+        Path("/opt/tool2"),
+        Path("/opt/tool3"),
+    ]
+
+    # Create symlinks - only 2 of 3 point to this image
+    tool1_path = nfs_dir / "opt" / "tool1"
+    tool1_path.symlink_to("/cefs/xy/xyz789_consolidated/tool1")
+
+    tool2_path = nfs_dir / "opt" / "tool2"
+    tool2_path.symlink_to("/cefs/xy/xyz789_consolidated/tool2")
+
+    tool3_path = nfs_dir / "opt" / "tool3"
+    tool3_path.symlink_to("/cefs/ab/different_image/tool3")
+
+    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir)
+    assert pytest.approx(usage, 0.1) == 66.7  # 2/3 = 66.7%
 
 
 def test_read_manifest_from_alongside_nonexistent(tmp_path):

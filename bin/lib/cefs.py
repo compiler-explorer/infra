@@ -408,15 +408,8 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
 
         extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
 
-        # Measure extracted size - need to reimplement get_directory_size here
-        total_size = 0
-        try:
-            for item in subdir_path.rglob("*"):
-                if item.is_file() and not item.is_symlink():
-                    total_size += item.stat().st_size
-        except OSError as e:
-            logger.warning("Error calculating directory size for %s: %s", subdir_path, e)
-        extracted_size = total_size
+        # Measure extracted size
+        extracted_size = get_directory_size(subdir_path)
 
         compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
 
@@ -892,6 +885,14 @@ class CEFSState:
             space_to_reclaim=space_to_reclaim,
         )
 
+    def get_usage_stats(self) -> ImageUsageStats:
+        """Get detailed usage statistics for all CEFS images.
+
+        Returns:
+            ImageUsageStats with detailed usage breakdown
+        """
+        return get_consolidated_image_usage_stats(self)
+
 
 def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
     """Determine what to extract from a CEFS image based on symlink target.
@@ -1076,3 +1077,228 @@ def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
             # This is non-fatal - image was deleted
 
     return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)
+
+
+def is_consolidated_image(image_path: Path) -> bool:
+    """Check if a CEFS image is a consolidated image.
+
+    Consolidated images have 'consolidated' in their filename or contain
+    multiple subdirectories when mounted.
+
+    Args:
+        image_path: Path to the CEFS image
+
+    Returns:
+        True if this is a consolidated image, False otherwise
+    """
+    # Check filename pattern first (fast)
+    if "_consolidated" in image_path.name:
+        return True
+
+    # Check manifest for multiple contents (also fast)
+    try:
+        manifest = read_manifest_from_alongside(image_path)
+        if manifest and "contents" in manifest:
+            return len(manifest["contents"]) > 1
+    except (OSError, yaml.YAMLError):
+        pass
+
+    return False
+
+
+def calculate_image_usage(image_path: Path, image_references: dict[str, list[Path]], nfs_dir: Path) -> float:
+    """Calculate usage percentage for a CEFS image.
+
+    For individual images: 100% if referenced, 0% if not
+    For consolidated images: percentage of subdirectories still referenced
+
+    Args:
+        image_path: Path to the CEFS image
+        image_references: Dict mapping image stems to expected destinations
+        nfs_dir: Base NFS directory
+
+    Returns:
+        Usage percentage (0.0 to 100.0)
+    """
+    filename_stem = image_path.stem
+
+    # Get expected destinations from image_references
+    expected_destinations = image_references.get(filename_stem, [])
+    if not expected_destinations:
+        return 0.0
+
+    # For individual images (single destination), it's binary
+    if len(expected_destinations) == 1:
+        dest_path = expected_destinations[0]
+        # Convert absolute path like /opt/gcc to be relative to nfs_dir
+        if dest_path.is_absolute():
+            # Strip leading slash to make it relative
+            relative_path = Path(str(dest_path).lstrip("/"))
+            full_path = nfs_dir / relative_path
+        else:
+            full_path = nfs_dir / dest_path
+
+        # Check if either main or .bak symlink points to this image
+        if _check_if_symlink_references_image(full_path, filename_stem) or _check_if_symlink_references_image(
+            full_path.with_name(full_path.name + ".bak"), filename_stem
+        ):
+            return 100.0
+        return 0.0
+
+    # For consolidated images, check each subdirectory
+    referenced_count = 0
+    for dest_path in expected_destinations:
+        # Convert absolute path like /opt/gcc to be relative to nfs_dir
+        if dest_path.is_absolute():
+            # Strip leading slash to make it relative
+            relative_path = Path(str(dest_path).lstrip("/"))
+            full_path = nfs_dir / relative_path
+        else:
+            full_path = nfs_dir / dest_path
+
+        # Check if either main or .bak symlink points to this image
+        if _check_if_symlink_references_image(full_path, filename_stem) or _check_if_symlink_references_image(
+            full_path.with_name(full_path.name + ".bak"), filename_stem
+        ):
+            referenced_count += 1
+
+    usage_percentage = (referenced_count / len(expected_destinations)) * 100.0
+    return usage_percentage
+
+
+def _check_if_symlink_references_image(symlink_path: Path, image_stem: str) -> bool:
+    """Check if a symlink references a specific CEFS image.
+
+    Args:
+        symlink_path: Path to check
+        image_stem: Stem of the image file to check against
+
+    Returns:
+        True if the symlink points to the image
+    """
+    if not symlink_path.is_symlink():
+        return False
+
+    try:
+        target = symlink_path.readlink()
+        # Check if target is a CEFS path and contains the image stem
+        if target.is_absolute() and str(target).startswith("/cefs/"):
+            # Extract hash from path (e.g., /cefs/ab/abcd1234... -> abcd1234...)
+            parts = target.parts
+            if len(parts) >= 4:
+                target_hash = parts[3]
+                # The image stem starts with the hash
+                return image_stem.startswith(target_hash.split("_")[0])
+    except (OSError, IndexError):
+        pass
+
+    return False
+
+
+@dataclass
+class ImageUsageStats:
+    """Statistics about CEFS image usage."""
+
+    total_images: int
+    individual_images: int
+    consolidated_images: int
+    fully_used_consolidated: int
+    partially_used_consolidated: list[tuple[Path, float]]  # (path, usage_percentage)
+    unused_images: list[Path]
+    total_space: int
+    wasted_space_estimate: int
+
+
+def get_current_symlink_target(dest_path: Path, nfs_dir: Path) -> Path | None:
+    """Get the current target of a symlink if it exists.
+
+    Args:
+        dest_path: The destination path to check
+        nfs_dir: Base NFS directory
+
+    Returns:
+        The symlink target Path, or None if not a symlink
+    """
+    # Convert absolute path like /opt/gcc to be relative to nfs_dir
+    if dest_path.is_absolute():
+        # Strip leading slash to make it relative
+        relative_path = Path(str(dest_path).lstrip("/"))
+        full_path = nfs_dir / relative_path
+    else:
+        full_path = nfs_dir / dest_path
+
+    if full_path.is_symlink():
+        try:
+            return full_path.readlink()
+        except OSError:
+            pass
+
+    # Also check .bak
+    bak_path = full_path.with_name(full_path.name + ".bak")
+    if bak_path.is_symlink():
+        try:
+            return bak_path.readlink()
+        except OSError:
+            pass
+
+    return None
+
+
+def get_consolidated_image_usage_stats(
+    state: CEFSState,
+) -> ImageUsageStats:
+    """Calculate detailed usage statistics for CEFS images.
+
+    Args:
+        state: CEFSState object with image information
+
+    Returns:
+        ImageUsageStats with detailed breakdown
+    """
+    individual_images = 0
+    consolidated_images = 0
+    fully_used_consolidated = 0
+    partially_used_consolidated = []
+    unused_images = []
+    total_space = 0
+    wasted_space_estimate = 0
+
+    for _filename_stem, image_path in state.all_cefs_images.items():
+        try:
+            size = image_path.stat().st_size
+            total_space += size
+        except OSError:
+            size = 0
+
+        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir)
+
+        if is_consolidated_image(image_path):
+            consolidated_images += 1
+            if usage == 100.0:
+                fully_used_consolidated += 1
+            elif usage > 0:
+                partially_used_consolidated.append((image_path, usage))
+                # Estimate wasted space as the unused portion
+                wasted_space_estimate += int(size * (100 - usage) / 100)
+            else:
+                unused_images.append(image_path)
+                wasted_space_estimate += size
+        else:
+            individual_images += 1
+            if usage == 0:
+                unused_images.append(image_path)
+                wasted_space_estimate += size
+
+    # Sort partially used by usage percentage
+    partially_used_consolidated.sort(key=lambda x: x[1])
+
+    return ImageUsageStats(
+        total_images=len(state.all_cefs_images),
+        individual_images=individual_images,
+        consolidated_images=consolidated_images,
+        fully_used_consolidated=fully_used_consolidated,
+        partially_used_consolidated=partially_used_consolidated,
+        unused_images=unused_images,
+        total_space=total_space,
+        wasted_space_estimate=wasted_space_estimate,
+    )
