@@ -29,6 +29,7 @@ from lib.cefs import (
     format_image_contents_string,
     get_cefs_filename_for_image,
     get_cefs_paths,
+    get_current_symlink_target,
     get_extraction_path_from_symlink,
     get_image_description,
     is_consolidated_image,
@@ -206,8 +207,6 @@ def _format_verbose_image_details(
     image_path: Path, usage: float, items_info: list[str] | None, manifest: dict | None, nfs_dir: Path
 ) -> list[str]:
     """Format verbose details for a partially used consolidated image."""
-    from lib.cefs import get_current_symlink_target  # noqa: PLC0415
-
     lines = []
 
     if not items_info:
@@ -633,8 +632,6 @@ def _extract_candidates_from_manifest(
     Returns:
         List of consolidation candidates from this image
     """
-    from lib.cefs import get_current_symlink_target  # noqa: PLC0415
-
     candidates = []
     contents = manifest.get("contents", [])
 
