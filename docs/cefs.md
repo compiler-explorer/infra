@@ -345,7 +345,7 @@ The `ce cefs consolidate` command automatically detects and handles reconsolidat
 
 ```bash
 # Consolidate with automatic reconsolidation
-ce --env prod cefs consolidate FILTER --optimal-size 5G
+ce --env prod cefs consolidate --include-reconsolidation --max-size 5G FILTER
 
 # The command will:
 # 1. Find regular candidates for consolidation

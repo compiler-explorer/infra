@@ -1079,6 +1079,26 @@ def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
     return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)
 
 
+def normalize_dest_path(dest_path: Path, nfs_dir: Path) -> Path:
+    """Normalize a destination path to be relative to the NFS directory.
+
+    Converts absolute paths like /opt/gcc to be relative to nfs_dir.
+    For example, /opt/gcc becomes nfs_dir/opt/gcc.
+
+    Args:
+        dest_path: The destination path (may be absolute or relative)
+        nfs_dir: Base NFS directory
+
+    Returns:
+        Path object relative to nfs_dir
+    """
+    if dest_path.is_absolute():
+        # Strip leading slash to make it relative
+        relative_path = Path(str(dest_path).lstrip("/"))
+        return nfs_dir / relative_path
+    return nfs_dir / dest_path
+
+
 def is_consolidated_image(image_path: Path) -> bool:
     """Check if a CEFS image is a consolidated image.
 
@@ -1130,36 +1150,24 @@ def calculate_image_usage(image_path: Path, image_references: dict[str, list[Pat
     # For individual images (single destination), it's binary
     if len(expected_destinations) == 1:
         dest_path = expected_destinations[0]
-        # Convert absolute path like /opt/gcc to be relative to nfs_dir
-        if dest_path.is_absolute():
-            # Strip leading slash to make it relative
-            relative_path = Path(str(dest_path).lstrip("/"))
-            full_path = nfs_dir / relative_path
-        else:
-            full_path = nfs_dir / dest_path
+        full_path = normalize_dest_path(dest_path, nfs_dir)
 
         # Check if either main or .bak symlink points to this image
-        if _check_if_symlink_references_image(full_path, filename_stem) or _check_if_symlink_references_image(
-            full_path.with_name(full_path.name + ".bak"), filename_stem
-        ):
+        main_ref = _check_if_symlink_references_image(full_path, filename_stem)
+        bak_ref = _check_if_symlink_references_image(full_path.with_name(full_path.name + ".bak"), filename_stem)
+        if main_ref or bak_ref:
             return 100.0
         return 0.0
 
     # For consolidated images, check each subdirectory
     referenced_count = 0
     for dest_path in expected_destinations:
-        # Convert absolute path like /opt/gcc to be relative to nfs_dir
-        if dest_path.is_absolute():
-            # Strip leading slash to make it relative
-            relative_path = Path(str(dest_path).lstrip("/"))
-            full_path = nfs_dir / relative_path
-        else:
-            full_path = nfs_dir / dest_path
+        full_path = normalize_dest_path(dest_path, nfs_dir)
 
         # Check if either main or .bak symlink points to this image
-        if _check_if_symlink_references_image(full_path, filename_stem) or _check_if_symlink_references_image(
-            full_path.with_name(full_path.name + ".bak"), filename_stem
-        ):
+        main_ref = _check_if_symlink_references_image(full_path, filename_stem)
+        bak_ref = _check_if_symlink_references_image(full_path.with_name(full_path.name + ".bak"), filename_stem)
+        if main_ref or bak_ref:
             referenced_count += 1
 
     usage_percentage = (referenced_count / len(expected_destinations)) * 100.0
@@ -1219,13 +1227,7 @@ def get_current_symlink_target(dest_path: Path, nfs_dir: Path) -> Path | None:
     Returns:
         The symlink target Path, or None if not a symlink
     """
-    # Convert absolute path like /opt/gcc to be relative to nfs_dir
-    if dest_path.is_absolute():
-        # Strip leading slash to make it relative
-        relative_path = Path(str(dest_path).lstrip("/"))
-        full_path = nfs_dir / relative_path
-    else:
-        full_path = nfs_dir / dest_path
+    full_path = normalize_dest_path(dest_path, nfs_dir)
 
     if full_path.is_symlink():
         try:

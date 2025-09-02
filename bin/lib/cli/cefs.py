@@ -171,8 +171,8 @@ def _group_images_by_usage(partially_used: list[tuple[Path, float]]) -> dict[str
     return ranges
 
 
-def _check_item_still_referenced(current_target: Path | None, image_path: Path) -> bool:
-    """Check if a consolidated item is still referenced to its original image."""
+def _is_item_still_using_image(current_target: Path | None, image_path: Path) -> bool:
+    """Check if a consolidated item is still using its original image."""
     if not current_target or not str(current_target).startswith("/cefs/"):
         return False
 
@@ -193,7 +193,7 @@ def _get_consolidated_item_status(content: dict, image_path: Path, current_targe
     if "name" not in content:
         return ""
 
-    if _check_item_still_referenced(current_target, image_path):
+    if _is_item_still_using_image(current_target, image_path):
         return f"          ✓ {content['name']}"
     else:
         if current_target and str(current_target).startswith("/cefs/"):
@@ -267,8 +267,7 @@ def _format_usage_statistics(
             f"  Wasted in partial images: ~{humanfriendly.format_size(stats.wasted_space_estimate, binary=True)} (estimated)"
         )
 
-    # Check for reconsolidation opportunities
-    small_consolidated = _find_small_consolidated_images(state)
+    small_consolidated = _find_small_consolidated_images(state, 5 * 1024 * 1024 * 1024)
     if small_consolidated:
         lines.append(f"  Potential consolidation: {len(small_consolidated)} small consolidated images could be merged")
 
@@ -278,7 +277,7 @@ def _format_usage_statistics(
     return lines
 
 
-def _find_small_consolidated_images(state: CEFSState, size_threshold: int = 5 * 1024 * 1024 * 1024) -> list[Path]:
+def _find_small_consolidated_images(state: CEFSState, size_threshold: int) -> list[Path]:
     """Find consolidated images smaller than the threshold."""
     small_consolidated = []
     for image_path in state.all_cefs_images.values():
@@ -590,7 +589,7 @@ class ConsolidationCandidate:
 
 
 def _should_reconsolidate_image(
-    usage: float, size: int, efficiency_threshold: float, max_size_bytes: int
+    usage: float, size: int, efficiency_threshold: float, max_size_bytes: int, undersized_ratio: float
 ) -> tuple[bool, str]:
     """Determine if a consolidated image should be reconsolidated.
 
@@ -599,16 +598,16 @@ def _should_reconsolidate_image(
         size: Image size in bytes
         efficiency_threshold: Minimum efficiency to keep (0.0-1.0)
         max_size_bytes: Maximum size for consolidated images
+        undersized_ratio: Ratio to determine undersized images
 
     Returns:
         Tuple of (should_reconsolidate, reason_string)
     """
     if usage == 0:
-        # Completely unused - skip (will be handled by GC)
         return False, ""
     elif usage / 100.0 < efficiency_threshold:
         return True, f"low efficiency ({usage:.1f}%)"
-    elif size < max_size_bytes / 4:
+    elif size < max_size_bytes * undersized_ratio:
         return True, f"undersized ({humanfriendly.format_size(size, binary=True)})"
     return False, ""
 
@@ -637,14 +636,14 @@ def _extract_candidates_from_manifest(
 
     for content in contents:
         if "destination" not in content or "name" not in content:
-            continue
+            raise ValueError(f"Malformed manifest entry missing required fields: {content}")
 
         dest_path = Path(content["destination"])
 
         # Check if this specific item is still referenced to this image
         current_target = get_current_symlink_target(dest_path, state.nfs_dir)
 
-        if not _check_item_still_referenced(current_target, image_path):
+        if not _is_item_still_using_image(current_target, image_path):
             # This item has been replaced, skip it
             continue
 
@@ -677,6 +676,7 @@ def _gather_reconsolidation_candidates(
     context: CliContext,
     efficiency_threshold: float,
     max_size_bytes: int,
+    undersized_ratio: float,
     filter_: list[str],
 ) -> list[ConsolidationCandidate]:
     """Gather candidates from existing consolidated images for reconsolidation.
@@ -716,7 +716,9 @@ def _gather_reconsolidation_candidates(
             continue
 
         # Determine if this image should be reconsolidated
-        should_reconsolidate, reason = _should_reconsolidate_image(usage, size, efficiency_threshold, max_size_bytes)
+        should_reconsolidate, reason = _should_reconsolidate_image(
+            usage, size, efficiency_threshold, max_size_bytes, undersized_ratio
+        )
 
         if not should_reconsolidate:
             continue
@@ -773,6 +775,7 @@ def consolidate(
     max_parallel_extractions: int | None,
     include_reconsolidation: bool,
     efficiency_threshold: float,
+    undersized_ratio: float,
     filter_: list[str],
 ):
     """Consolidate multiple CEFS images into larger consolidated images to reduce mount overhead.
@@ -856,7 +859,9 @@ def consolidate(
     # Add reconsolidation candidates if enabled
     if include_reconsolidation:
         _LOGGER.info("Gathering reconsolidation candidates...")
-        recon_candidates = _gather_reconsolidation_candidates(context, efficiency_threshold, max_size_bytes, filter_)
+        recon_candidates = _gather_reconsolidation_candidates(
+            context, efficiency_threshold, max_size_bytes, undersized_ratio, filter_
+        )
 
         if recon_candidates:
             _LOGGER.info("Found %d items from consolidated images for reconsolidation", len(recon_candidates))

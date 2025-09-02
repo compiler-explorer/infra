@@ -27,6 +27,7 @@ from lib.cefs import (
     get_image_description_from_manifest,
     has_enough_space,
     is_consolidated_image,
+    normalize_dest_path,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
@@ -649,6 +650,24 @@ def test_write_and_read_manifest_alongside_image(tmp_path):
     loaded_manifest = read_manifest_from_alongside(image_path)
 
     assert loaded_manifest == manifest
+
+
+@pytest.mark.parametrize(
+    "input_path,expected_suffix",
+    [
+        ("/opt/gcc", "opt/gcc"),
+        ("//opt//gcc", "opt/gcc"),
+        ("opt/gcc", "opt/gcc"),
+        ("/", ""),
+        ("/usr/local/bin/compiler", "usr/local/bin/compiler"),
+    ],
+)
+def test_normalize_dest_path(tmp_path, input_path, expected_suffix):
+    """Test normalize_dest_path function."""
+    nfs_dir = tmp_path / "nfs"
+    nfs_dir.mkdir()
+    expected = nfs_dir / expected_suffix if expected_suffix else nfs_dir
+    assert normalize_dest_path(Path(input_path), nfs_dir) == expected
 
 
 def test_is_consolidated_image(tmp_path):
