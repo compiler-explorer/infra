@@ -874,6 +874,7 @@ def consolidate(
                     _LOGGER.debug("Item %s already consolidated at %s", installable.name, cefs_target)
                     continue
                 # For reconsolidation, we'll handle this separately below
+                continue
 
             if not cefs_image_path.exists():
                 _LOGGER.warning("CEFS image not found for %s: %s", installable.name, cefs_image_path)
