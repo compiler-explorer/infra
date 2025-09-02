@@ -226,9 +226,14 @@ def setup(context: CliContext, dry_run: bool):
         # Step 1: Create CEFS mount point
         run_cmd(["sudo", "mkdir", "-p", cefs_mount_point], f"Creating CEFS mount point: {cefs_mount_point}")
 
-        # Step 2: Create first-level autofs map file (handles /cefs/XX -> nested autofs)
-        auto_cefs_content = "* -fstype=autofs program:/etc/auto.cefs.sub"
-        run_cmd(["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > /etc/auto.cefs"], "Creating /etc/auto.cefs")
+        # Step 2: Create first-level autofs map file (handles {mount_point}/XX -> nested autofs)
+        # Use the mount point name for autofs config files (e.g., /cefs -> auto.cefs, /test/mount -> auto.mount)
+        auto_config_base = f"/etc/auto.{cefs_mount_point.name}"
+        auto_cefs_content = f"* -fstype=autofs program:{auto_config_base}.sub"
+        run_cmd(
+            ["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > {auto_config_base}"],
+            f"Creating {auto_config_base}",
+        )
 
         # Step 2b: Create second-level autofs executable script (handles HASH -> squashfs mount)
         auto_cefs_sub_script = f"""#!/bin/bash
@@ -237,17 +242,17 @@ subdir="${{key:0:2}}"
 echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key}}.sqfs"
 """
         run_cmd(
-            ["sudo", "bash", "-c", f"cat > /etc/auto.cefs.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
-            "Creating /etc/auto.cefs.sub script",
+            ["sudo", "bash", "-c", f"cat > {auto_config_base}.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
+            f"Creating {auto_config_base}.sub script",
         )
-        run_cmd(["sudo", "chmod", "+x", "/etc/auto.cefs.sub"], "Making /etc/auto.cefs.sub executable")
+        run_cmd(["sudo", "chmod", "+x", f"{auto_config_base}.sub"], f"Making {auto_config_base}.sub executable")
 
         # Step 3: Create autofs master entry
-        auto_master_content = f"{cefs_mount_point} /etc/auto.cefs --negative-timeout 1"
+        auto_master_content = f"{cefs_mount_point} {auto_config_base} --negative-timeout 1"
         run_cmd(["sudo", "mkdir", "-p", "/etc/auto.master.d"], "Creating /etc/auto.master.d directory")
         run_cmd(
-            ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/cefs.autofs"],
-            "Creating /etc/auto.master.d/cefs.autofs",
+            ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/{cefs_mount_point.name}.autofs"],
+            f"Creating /etc/auto.master.d/{cefs_mount_point.name}.autofs",
         )
 
         # Step 4: Restart autofs service
@@ -475,7 +480,9 @@ def consolidate(
                 _LOGGER.warning("Symlink %s does not point to CEFS mount: skipping", nfs_path)
                 continue
             try:
-                cefs_image_path, is_already_consolidated = parse_cefs_target(cefs_target, context.config.cefs.image_dir)
+                cefs_image_path, is_already_consolidated = parse_cefs_target(
+                    cefs_target, context.config.cefs.image_dir, context.config.cefs.mount_point
+                )
             except ValueError as e:
                 _LOGGER.warning("Invalid CEFS target format for %s: %s", installable.name, e)
                 continue
@@ -614,7 +621,7 @@ def consolidate(
                 subdir_name = item["installable"].name.replace("/", "_").replace(" ", "_")
 
                 symlink_target = item["nfs_path"].readlink()
-                extraction_path = get_extraction_path_from_symlink(symlink_target)
+                extraction_path = get_extraction_path_from_symlink(symlink_target, context.config.cefs.mount_point)
                 _LOGGER.debug(
                     "For %s: symlink %s -> %s, extracting %s",
                     item["installable"].name,
@@ -728,6 +735,7 @@ def gc(context: CliContext, force: bool, min_age: str):
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
+        mount_point=context.config.cefs.mount_point,
     )
 
     _LOGGER.info("Scanning CEFS images directory and reading manifests...")

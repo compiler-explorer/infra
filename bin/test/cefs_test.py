@@ -173,6 +173,7 @@ def test_get_cefs_mount_path_with_filename():
 
 def test_parse_cefs_target_variations(tmp_path):
     cefs_image_dir = tmp_path / "cefs-images"
+    mount_point = Path("/cefs")
 
     test_cases = [
         # (cefs_target, filename_to_create, expected_is_consolidated)
@@ -182,20 +183,22 @@ def test_parse_cefs_target_variations(tmp_path):
 
     for cefs_target_str, filename, expected_consolidated in test_cases:
         cefs_target = Path(cefs_target_str)
-        hash_prefix = cefs_target.parts[2]
+        mount_parts_len = len(mount_point.parts)
+        hash_prefix = cefs_target.parts[mount_parts_len]
 
         subdir = cefs_image_dir / hash_prefix
         subdir.mkdir(parents=True, exist_ok=True)
         image_file = subdir / filename
         image_file.touch()
 
-        image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir)
+        image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir, mount_point)
 
         assert image_path == image_file
         assert is_consolidated == expected_consolidated
 
 
 def test_get_extraction_path_from_symlink():
+    mount_point = Path("/cefs")
     test_cases = [
         (Path("/cefs/ab/abcdef1234567890abcdef12"), Path(".")),
         (Path("/cefs/ab/abcdef1234567890abcdef12/content"), Path("content")),
@@ -205,7 +208,7 @@ def test_get_extraction_path_from_symlink():
     ]
 
     for symlink_target, expected in test_cases:
-        result = get_extraction_path_from_symlink(symlink_target)
+        result = get_extraction_path_from_symlink(symlink_target, mount_point)
         assert result == expected
 
 
@@ -232,6 +235,7 @@ def test_get_cefs_paths():
 
 def test_parse_cefs_target_with_real_filesystem(tmp_path):
     cefs_image_dir = tmp_path / "cefs-images"
+    mount_point = Path("/cefs")
 
     test_cases = [
         # (cefs_target, filename_to_create, expected_is_consolidated, description)
@@ -263,14 +267,15 @@ def test_parse_cefs_target_with_real_filesystem(tmp_path):
 
     for cefs_target_str, filename, expected_consolidated, description in test_cases:
         cefs_target = Path(cefs_target_str)
-        hash_prefix = cefs_target.parts[2][:2]  # Get first 2 chars of hash
+        mount_parts_len = len(mount_point.parts)
+        hash_prefix = cefs_target.parts[mount_parts_len][:2]  # Get first 2 chars of hash
 
         subdir = cefs_image_dir / hash_prefix
         subdir.mkdir(parents=True, exist_ok=True)
         image_file = subdir / filename
         image_file.touch()
 
-        image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir)
+        image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir, mount_point)
 
         assert image_path == image_file, f"Failed for {description}"
         assert is_consolidated == expected_consolidated, f"Failed for {description}"
@@ -278,19 +283,65 @@ def test_parse_cefs_target_with_real_filesystem(tmp_path):
 
 def test_parse_cefs_target_errors(tmp_path):
     cefs_image_dir = tmp_path / "cefs-images"
+    mount_point = Path("/cefs")
 
     # Test invalid format with too few components
     with pytest.raises(ValueError, match="Invalid CEFS target format"):
-        parse_cefs_target(Path("/cefs/9d"), cefs_image_dir)
+        parse_cefs_target(Path("/cefs/9d"), cefs_image_dir, mount_point)
 
     # Test invalid format with wrong prefix
-    with pytest.raises(ValueError, match="CEFS target must start with /cefs"):
-        parse_cefs_target(Path("/invalid/9d/hash123"), cefs_image_dir)
+    with pytest.raises(ValueError, match="CEFS target must start with"):
+        parse_cefs_target(Path("/invalid/9d/hash123"), cefs_image_dir, mount_point)
 
     # Test when no matching image file exists
     cefs_image_dir.mkdir(parents=True, exist_ok=True)
     with pytest.raises(ValueError, match="No CEFS image found"):
-        parse_cefs_target(Path("/cefs/ab/abc123"), cefs_image_dir)
+        parse_cefs_target(Path("/cefs/ab/abc123"), cefs_image_dir, mount_point)
+
+
+def test_parse_cefs_target_with_custom_mount_point(tmp_path):
+    """Test that parse_cefs_target works with custom mount points."""
+    cefs_image_dir = tmp_path / "cefs-images"
+    custom_mount = Path("/custom/mount")
+
+    # Create test image
+    hash_prefix = "9d"
+    hash_val = "9da642f654bc890a12345678"
+    filename = f"{hash_val}_test.sqfs"
+
+    subdir = cefs_image_dir / hash_prefix
+    subdir.mkdir(parents=True, exist_ok=True)
+    image_file = subdir / filename
+    image_file.touch()
+
+    # Test with custom mount point
+    cefs_target = custom_mount / hash_prefix / hash_val
+    image_path, is_consolidated = parse_cefs_target(cefs_target, cefs_image_dir, custom_mount)
+
+    assert image_path == image_file
+    assert is_consolidated is False
+
+    # Test consolidated with custom mount
+    cefs_target_consolidated = custom_mount / hash_prefix / hash_val / "subdir"
+    image_path, is_consolidated = parse_cefs_target(cefs_target_consolidated, cefs_image_dir, custom_mount)
+
+    assert image_path == image_file
+    assert is_consolidated is True
+
+
+def test_get_extraction_path_with_custom_mount():
+    """Test extraction path calculation with custom mount points."""
+    custom_mount = Path("/test/cefs")
+
+    test_cases = [
+        (custom_mount / "ab" / "abcd1234", Path(".")),
+        (custom_mount / "ab" / "abcd1234" / "content", Path("content")),
+        (custom_mount / "ab" / "abcd1234" / "deep" / "path", Path("deep/path")),
+    ]
+
+    for symlink_target, expected in test_cases:
+        result = get_extraction_path_from_symlink(symlink_target, custom_mount)
+        assert result == expected
 
 
 # CEFS Image Description Tests
@@ -349,7 +400,7 @@ def test_describe_cefs_image_nonexistent_directory(tmp_path):
 def test_cefs_state_init():
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
 
     assert state.nfs_dir == nfs_dir
     assert state.cefs_image_dir == cefs_image_dir
@@ -360,7 +411,7 @@ def test_cefs_state_init():
 def test_find_unreferenced_images():
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
 
     # Set up test data
     state.all_cefs_images = {
@@ -380,7 +431,7 @@ def test_find_unreferenced_images():
 def test_get_summary(mock_stat):
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
 
     # Set up test data
     state.all_cefs_images = {
@@ -409,7 +460,7 @@ def test_check_symlink_protects_bak():
     """
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
 
     # Use _check_single_symlink directly to test the logic
     # Test case 1: .bak symlink points to the image
@@ -430,7 +481,7 @@ def test_check_symlink_protects_bak():
 def test_check_single_symlink(mock_readlink, mock_is_symlink):
     nfs_dir = Path("/opt/compiler-explorer")
     cefs_image_dir = Path("/efs/cefs-images")
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
 
     mock_is_symlink.return_value = True
     mock_readlink.return_value = Path("/cefs/ab/abc123_gcc15")
@@ -465,7 +516,7 @@ def test_scan_with_inprogress_files(tmp_path):
         yaml.dump({"contents": [{"name": "inprog", "destination": str(nfs_dir / "inprog")}]})
     )
 
-    state = CEFSState(nfs_dir, cefs_dir)
+    state = CEFSState(nfs_dir, cefs_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
 
     # Image with inprogress should be marked as referenced (protected)
@@ -688,7 +739,7 @@ def test_double_check_prevents_deletion_race(tmp_path):
     manifest_path.write_text(yaml.dump(manifest_content))
 
     # Create state and do initial scan
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
     state.check_symlink_references()
 
@@ -728,7 +779,7 @@ def test_bak_symlink_protection(tmp_path):
     bak_symlink.symlink_to(f"/cefs/{image_hash[:2]}/{image_hash}")
 
     # Create state and scan
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
     state.check_symlink_references()
 
@@ -754,7 +805,7 @@ def test_inprogress_manifest_protection(tmp_path):
     inprogress_path.touch()
 
     # Create state and scan
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
 
     # Image should be in referenced set (protected from deletion)
@@ -792,7 +843,7 @@ def test_age_filtering_logic(tmp_path):
             os.utime(image_path, (old_time, old_time))
 
     # Create state and scan
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
     state.check_symlink_references()
 
@@ -834,7 +885,7 @@ def test_images_without_manifests_are_broken(tmp_path):
     symlink_path.symlink_to(f"/cefs/{image_hash[:2]}/{image_hash}")
 
     # Create state and scan
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
     state.check_symlink_references()
 
@@ -864,8 +915,8 @@ def test_concurrent_gc_safety(tmp_path):
     manifest_path.write_text(yaml.dump(manifest_content))
 
     # Create two independent state objects (simulating concurrent GC runs)
-    state1 = CEFSState(nfs_dir, cefs_image_dir)
-    state2 = CEFSState(nfs_dir, cefs_image_dir)
+    state1 = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
+    state2 = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
 
     # Both scan at the same time
     state1.scan_cefs_images_with_manifests()
@@ -948,7 +999,7 @@ def test_full_gc_workflow_integration(tmp_path):
     (nfs_dir / "backup-gcc.bak").symlink_to(f"/cefs/{bak_hash[:2]}/{bak_hash}")
 
     # Run the full GC workflow
-    state = CEFSState(nfs_dir, cefs_image_dir)
+    state = CEFSState(nfs_dir, cefs_image_dir, Path("/cefs"))
     state.scan_cefs_images_with_manifests()
     state.check_symlink_references()
 
@@ -1139,7 +1190,7 @@ def test_is_image_referenced(tmp_path):
     nfs_dir.mkdir()
     cefs_dir.mkdir()
 
-    state = CEFSState(nfs_dir, cefs_dir)
+    state = CEFSState(nfs_dir, cefs_dir, Path("/cefs"))
 
     # Set up test data
     state.image_references = {
