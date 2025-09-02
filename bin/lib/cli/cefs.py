@@ -29,7 +29,7 @@ from lib.cefs import (
     format_image_contents_string,
     get_cefs_filename_for_image,
     get_cefs_paths,
-    get_current_symlink_target,
+    get_current_symlink_targets,
     get_extraction_path_from_symlink,
     get_image_description,
     is_consolidated_image,
@@ -223,7 +223,11 @@ def _format_verbose_image_details(
         for content in manifest["contents"]:
             if "destination" in content:
                 dest_path = Path(content["destination"])
-                current_target = get_current_symlink_target(dest_path, nfs_dir)
+                targets = get_current_symlink_targets(dest_path)
+                # Find which target (if any) points to this image for status reporting
+                current_target = next(
+                    (t for t in targets if _is_item_still_using_image(t, image_path, mount_point)), None
+                )
                 status = _get_consolidated_item_status(content, image_path, current_target, mount_point)
                 if status:
                     lines.append(status)
@@ -650,10 +654,9 @@ def _extract_candidates_from_manifest(
 
         dest_path = Path(content["destination"])
 
-        # Check if this specific item is still referenced to this image
-        current_target = get_current_symlink_target(dest_path, state.nfs_dir)
-
-        if not _is_item_still_using_image(current_target, image_path, mount_point):
+        # Check if this item is still referenced to this image
+        targets = get_current_symlink_targets(dest_path)
+        if not any(_is_item_still_using_image(target, image_path, mount_point) for target in targets):
             # This item has been replaced, skip it
             continue
 
@@ -662,8 +665,10 @@ def _extract_candidates_from_manifest(
             continue
 
         # Determine extraction path within the consolidated image
-        if current_target and len(current_target.parts) > 4:
-            extraction_path = Path(*current_target.parts[4:])
+        # Find a target that points to this image to get the extraction path
+        image_target = next((t for t in targets if _is_item_still_using_image(t, image_path, mount_point)), None)
+        if image_target and len(image_target.parts) > 4:
+            extraction_path = Path(*image_target.parts[4:])
         else:
             extraction_path = Path(".")
 

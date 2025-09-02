@@ -23,13 +23,12 @@ from lib.cefs import (
     get_cefs_image_path,
     get_cefs_mount_path,
     get_cefs_paths,
-    get_current_symlink_target,
+    get_current_symlink_targets,
     get_extraction_path_from_symlink,
     get_image_description,
     get_image_description_from_manifest,
     has_enough_space,
     is_consolidated_image,
-    normalize_dest_path,
     parse_cefs_target,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
@@ -792,24 +791,6 @@ def test_write_and_read_manifest_alongside_image(tmp_path):
     assert loaded_manifest == manifest
 
 
-@pytest.mark.parametrize(
-    "input_path,expected_suffix",
-    [
-        ("/opt/gcc", "opt/gcc"),
-        ("//opt//gcc", "opt/gcc"),
-        ("opt/gcc", "opt/gcc"),
-        ("/", ""),
-        ("/usr/local/bin/compiler", "usr/local/bin/compiler"),
-    ],
-)
-def test_normalize_dest_path(tmp_path, input_path, expected_suffix):
-    """Test normalize_dest_path function."""
-    nfs_dir = tmp_path / "nfs"
-    nfs_dir.mkdir()
-    expected = nfs_dir / expected_suffix if expected_suffix else nfs_dir
-    assert normalize_dest_path(Path(input_path), nfs_dir) == expected
-
-
 def test_is_consolidated_image(tmp_path):
     """Test is_consolidated_image function."""
     # Test with filename pattern
@@ -848,32 +829,40 @@ def test_is_consolidated_image(tmp_path):
     assert is_consolidated_image(single_content_path) is False
 
 
-def test_get_current_symlink_target(tmp_path):
-    """Test get_current_symlink_target function."""
-    nfs_dir = tmp_path / "nfs"
-    nfs_dir.mkdir()
+def test_get_current_symlink_targets(tmp_path):
+    """Test get_current_symlink_targets function."""
+    # Test with existing symlink at main path
+    gcc_path = tmp_path / "gcc"
+    gcc_path.symlink_to("/cefs/ab/abc123_consolidated/gcc")
 
-    # Test with existing symlink
-    dest_path = Path("/opt/gcc")
-    symlink_path = nfs_dir / "opt" / "gcc"
-    symlink_path.parent.mkdir(parents=True)
-    symlink_path.symlink_to("/cefs/ab/abc123_consolidated/gcc")
+    targets = get_current_symlink_targets(gcc_path)
+    assert len(targets) == 1
+    assert targets[0] == Path("/cefs/ab/abc123_consolidated/gcc")
 
-    target = get_current_symlink_target(dest_path, nfs_dir)
-    assert target == Path("/cefs/ab/abc123_consolidated/gcc")
+    # Test with both main and .bak symlinks
+    clang_path = tmp_path / "clang"
+    clang_bak_path = tmp_path / "clang.bak"
+    clang_path.symlink_to("/cefs/cd/def456_clang_new")
+    clang_bak_path.symlink_to("/cefs/cd/def456_clang_old")
 
-    # Test with .bak symlink
-    dest_path2 = Path("/opt/clang")
-    symlink_path2 = nfs_dir / "opt" / "clang.bak"
-    symlink_path2.symlink_to("/cefs/cd/def456_clang")
+    targets2 = get_current_symlink_targets(clang_path)
+    assert len(targets2) == 2
+    assert Path("/cefs/cd/def456_clang_new") in targets2
+    assert Path("/cefs/cd/def456_clang_old") in targets2
 
-    target2 = get_current_symlink_target(dest_path2, nfs_dir)
-    assert target2 == Path("/cefs/cd/def456_clang")
+    # Test with only .bak symlink
+    rust_path = tmp_path / "rust"
+    rust_bak_path = tmp_path / "rust.bak"
+    rust_bak_path.symlink_to("/cefs/ef/ghi789_rust")
 
-    # Test with non-existent symlink
-    dest_path3 = Path("/opt/rust")
-    target3 = get_current_symlink_target(dest_path3, nfs_dir)
-    assert target3 is None
+    targets3 = get_current_symlink_targets(rust_path)
+    assert len(targets3) == 1
+    assert targets3[0] == Path("/cefs/ef/ghi789_rust")
+
+    # Test with non-existent paths
+    nonexistent_path = tmp_path / "nonexistent"
+    targets4 = get_current_symlink_targets(nonexistent_path)
+    assert targets4 == []
 
 
 def test_calculate_image_usage(tmp_path):

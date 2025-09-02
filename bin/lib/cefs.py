@@ -1135,26 +1135,6 @@ def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
     return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)
 
 
-def normalize_dest_path(dest_path: Path, nfs_dir: Path) -> Path:
-    """Normalize a destination path to be relative to the NFS directory.
-
-    Converts absolute paths like /opt/gcc to be relative to nfs_dir.
-    For example, /opt/gcc becomes nfs_dir/opt/gcc.
-
-    Args:
-        dest_path: The destination path (may be absolute or relative)
-        nfs_dir: Base NFS directory
-
-    Returns:
-        Path object relative to nfs_dir
-    """
-    if dest_path.is_absolute():
-        # Strip leading slash to make it relative
-        relative_path = Path(str(dest_path).lstrip("/"))
-        return nfs_dir / relative_path
-    return nfs_dir / dest_path
-
-
 def is_consolidated_image(image_path: Path) -> bool:
     """Check if a CEFS image is a consolidated image.
 
@@ -1273,33 +1253,30 @@ class ImageUsageStats:
     wasted_space_estimate: int
 
 
-def get_current_symlink_target(dest_path: Path, nfs_dir: Path) -> Path | None:
-    """Get the current target of a symlink if it exists.
+def get_current_symlink_targets(path: Path) -> list[Path]:
+    """Get symlink targets for a path and its .bak backup if they exist.
+
+    During CEFS operations, directories are moved to .bak before creating symlinks.
+    Both the main path and backup could reference CEFS images, especially after
+    re-conversions or with deferred cleanup.
 
     Args:
-        dest_path: The destination path to check
-        nfs_dir: Base NFS directory
+        path: The path to check
 
     Returns:
-        The symlink target Path, or None if not a symlink
+        List of symlink targets (empty if no symlinks exist)
     """
-    full_path = normalize_dest_path(dest_path, nfs_dir)
 
-    if full_path.is_symlink():
-        try:
-            return full_path.readlink()
-        except OSError:
-            pass
+    def read_target(p: Path) -> Path | None:
+        if p.is_symlink():
+            try:
+                return p.readlink()
+            except OSError:
+                pass
+        return None
 
-    # Also check .bak
-    bak_path = full_path.with_name(full_path.name + ".bak")
-    if bak_path.is_symlink():
-        try:
-            return bak_path.readlink()
-        except OSError:
-            pass
-
-    return None
+    paths_to_check = [path, path.with_name(path.name + ".bak")]
+    return [target for p in paths_to_check if (target := read_target(p)) is not None]
 
 
 def get_consolidated_image_usage_stats(
