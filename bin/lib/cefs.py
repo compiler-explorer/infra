@@ -57,7 +57,7 @@ def get_cefs_mount_path(mount_point: Path, filename: str) -> Path:
         filename: Complete filename with descriptive suffix
 
     Returns:
-        Full path to the CEFS mount target (e.g., /cefs/a1/a1b2c3d4...)
+        Full path to the CEFS mount target (e.g., {mount_point}/a1/a1b2c3d4...)
     """
     return mount_point / filename[:2] / Path(filename).with_suffix("")
 
@@ -595,7 +595,7 @@ def update_symlinks_for_consolidation(
             continue
 
         subdir_name = subdir_mapping[symlink_path]
-        # New target: /cefs/XX/HASH_consolidated/subdir_name
+        # New target: {mount_point}/XX/HASH_consolidated/subdir_name
         new_target = get_cefs_mount_path(mount_point, consolidated_filename) / subdir_name
 
         try:
@@ -605,12 +605,13 @@ def update_symlinks_for_consolidation(
             raise RuntimeError(f"Failed to update symlink {symlink_path}: {e}") from e
 
 
-def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bool]:
+def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path, mount_point: Path) -> tuple[Path, bool]:
     """Parse CEFS symlink target and return image path and consolidation status.
 
     Args:
-        cefs_target: The symlink target (e.g., /cefs/XX/HASH or /cefs/XX/HASH/subdir)
+        cefs_target: The symlink target (e.g., {mount_point}/XX/HASH or {mount_point}/XX/HASH/subdir)
         cefs_image_dir: Base directory for CEFS images (e.g., /efs/cefs-images)
+        mount_point: CEFS mount point (e.g., /cefs)
 
     Returns:
         Tuple of (cefs_image_path, is_already_consolidated)
@@ -619,23 +620,27 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bo
         ValueError: If the CEFS target format is invalid
 
     Examples:
-        >>> parse_cefs_target(Path("/cefs/9d/9da642f654bc890a12345678"), Path("/efs/cefs-images"))
+        >>> parse_cefs_target(Path("/cefs/9d/9da642f654bc890a12345678"), Path("/efs/cefs-images"), Path("/cefs"))
         (Path("/efs/cefs-images/9d/9da642f654bc890a12345678_gcc.sqfs"), False)
 
-        >>> parse_cefs_target(Path("/cefs/ab/abcdef1234567890abcdef12/gcc-4.5"), Path("/efs/cefs-images"))
+        >>> parse_cefs_target(Path("/cefs/ab/abcdef1234567890abcdef12/gcc-4.5"), Path("/efs/cefs-images"), Path("/cefs"))
         (Path("/efs/cefs-images/ab/abcdef1234567890abcdef12_consolidated.sqfs"), True)
     """
     parts = cefs_target.parts
-    # Expected: ('', 'cefs', 'XX', 'HASH', ...) for /cefs/XX/HASH/...
+    mount_parts = mount_point.parts
+    # Expected: mount_point parts + ('XX', 'HASH', ...) for {mount_point}/XX/HASH/...
 
-    if len(parts) < 4:  # Need at least '', 'cefs', 'XX', 'HASH'
+    # Check that target starts with mount_point
+    if len(parts) < len(mount_parts) + 2:  # Need at least mount_point + XX + HASH
         raise ValueError(f"Invalid CEFS target format: {cefs_target}")
 
-    if parts[1] != "cefs":
-        raise ValueError(f"CEFS target must start with /cefs: {cefs_target}")
+    # Verify the target starts with the mount point
+    if parts[: len(mount_parts)] != mount_parts:
+        raise ValueError(f"CEFS target must start with {mount_point}: {cefs_target}")
 
-    hash_prefix = parts[2]  # XX
-    hash = parts[3]  # 24-char hash
+    # Get XX and HASH parts after the mount point
+    hash_prefix = parts[len(mount_parts)]  # XX
+    hash = parts[len(mount_parts) + 1]  # 24-char hash
 
     image_dir_subdir = cefs_image_dir / hash_prefix
     matching_files = list(image_dir_subdir.glob(f"{hash}*.sqfs"))
@@ -646,7 +651,7 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path) -> tuple[Path, bo
     cefs_image_path = matching_files[0]
 
     # If there are more parts after the hash, it's already consolidated
-    is_already_consolidated = len(parts) > 4
+    is_already_consolidated = len(parts) > len(mount_parts) + 2
 
     return cefs_image_path, is_already_consolidated
 
@@ -672,15 +677,17 @@ def describe_cefs_image(filename: str, cefs_mount_point: Path) -> list[str]:
 class CEFSState:
     """Track CEFS images and their references for garbage collection using manifests."""
 
-    def __init__(self, nfs_dir: Path, cefs_image_dir: Path):
+    def __init__(self, nfs_dir: Path, cefs_image_dir: Path, mount_point: Path):
         """Initialize CEFS state tracker.
 
         Args:
             nfs_dir: Base NFS directory (e.g., /opt/compiler-explorer)
             cefs_image_dir: CEFS images directory (e.g., /efs/cefs-images)
+            mount_point: CEFS mount point (e.g., /cefs)
         """
         self.nfs_dir = nfs_dir
         self.cefs_image_dir = cefs_image_dir
+        self.mount_point = mount_point
         self.all_cefs_images: dict[str, Path] = {}  # filename_stem -> image_path
         self.image_references: dict[str, list[Path]] = {}  # filename_stem -> list of expected symlink destinations
         self.referenced_images: set[str] = set()  # Set of filename_stems that have valid symlinks
@@ -810,13 +817,15 @@ class CEFSState:
         if symlink_path.is_symlink():
             try:
                 target = symlink_path.readlink()
-                if str(target).startswith("/cefs/"):
+                if str(target).startswith(str(self.mount_point) + "/"):
                     # Extract the hash/filename from the symlink target
-                    # Format: /cefs/XX/HASH_suffix or /cefs/XX/HASH_suffix/subdir
-                    parts = str(target).split("/")
-                    if len(parts) >= 4:
-                        # The filename part is at index 3
-                        target_filename = parts[3]
+                    # Format: {mount_point}/XX/HASH_suffix or {mount_point}/XX/HASH_suffix/subdir
+                    target_path = Path(target)
+                    mount_parts = self.mount_point.parts
+                    target_parts = target_path.parts
+                    if len(target_parts) >= len(mount_parts) + 2:
+                        # The filename part is at the position after mount_point + XX
+                        target_filename = target_parts[len(mount_parts) + 1]
                         # Check if this matches our image's filename stem
                         if target_filename == filename_stem:
                             _LOGGER.debug("Found valid symlink: %s -> %s", symlink_path, target)
@@ -894,22 +903,28 @@ class CEFSState:
         return get_consolidated_image_usage_stats(self)
 
 
-def get_extraction_path_from_symlink(symlink_target: Path) -> Path:
+def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) -> Path:
     """Determine what to extract from a CEFS image based on symlink target.
 
-    Returns the relative path after /cefs/XX/HASH/ or Path(".") if at root.
+    Returns the relative path after {mount_point}/XX/HASH/ or Path(".") if at root.
 
-    Examples:
+    Args:
+        symlink_target: The symlink target path
+        mount_point: CEFS mount point (e.g., /cefs)
+
+    Examples (assuming mount_point=/cefs):
         /cefs/ab/abcd1234567890abcdef12/content → Path("content")
         /cefs/ab/abcd1234567890abcdef12 → Path(".")
         /cefs/ab/abcd1234567890abcdef12/gcc-4.5 → Path("gcc-4.5")
         /cefs/ab/abcd1234567890abcdef12/libs/boost → Path("libs/boost")
     """
     parts = symlink_target.parts
-    if len(parts) <= 4:
+    mount_parts = mount_point.parts
+    # Need at least mount_point + XX + HASH to have any relative path
+    if len(parts) <= len(mount_parts) + 2:
         return Path(".")
 
-    relative_parts = parts[4:]
+    relative_parts = parts[len(mount_parts) + 2 :]
     return Path(*relative_parts)
 
 

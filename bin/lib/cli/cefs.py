@@ -171,9 +171,10 @@ def _group_images_by_usage(partially_used: list[tuple[Path, float]]) -> dict[str
     return ranges
 
 
-def _is_item_still_using_image(current_target: Path | None, image_path: Path) -> bool:
+def _is_item_still_using_image(current_target: Path | None, image_path: Path, mount_point: Path) -> bool:
     """Check if a consolidated item is still using its original image."""
-    if not current_target or not str(current_target).startswith("/cefs/"):
+    mount_str = str(mount_point) + "/"
+    if not current_target or not str(current_target).startswith(mount_str):
         return False
 
     # Get the filename stem from the symlink target
@@ -188,23 +189,31 @@ def _is_item_still_using_image(current_target: Path | None, image_path: Path) ->
     return target_filename_stem == image_filename_stem
 
 
-def _get_consolidated_item_status(content: dict, image_path: Path, current_target: Path | None) -> str:
+def _get_consolidated_item_status(
+    content: dict, image_path: Path, current_target: Path | None, mount_point: Path
+) -> str:
     """Get the status string for a single item in a consolidated image."""
     if "name" not in content:
         return ""
 
-    if _is_item_still_using_image(current_target, image_path):
+    if _is_item_still_using_image(current_target, image_path, mount_point):
         return f"          ✓ {content['name']}"
     else:
-        if current_target and str(current_target).startswith("/cefs/"):
-            replacement_info = str(current_target).replace("/cefs/", "")
+        mount_str = str(mount_point) + "/"
+        if current_target and str(current_target).startswith(mount_str):
+            replacement_info = str(current_target).replace(mount_str, "")
             return f"          ✗ {content['name']} → replaced by {replacement_info}"
         else:
             return f"          ✗ {content['name']} → not in CEFS"
 
 
 def _format_verbose_image_details(
-    image_path: Path, usage: float, items_info: list[str] | None, manifest: dict | None, nfs_dir: Path
+    image_path: Path,
+    usage: float,
+    items_info: list[str] | None,
+    manifest: dict | None,
+    nfs_dir: Path,
+    mount_point: Path,
 ) -> list[str]:
     """Format verbose details for a partially used consolidated image."""
     lines = []
@@ -223,7 +232,7 @@ def _format_verbose_image_details(
             if "destination" in content:
                 dest_path = Path(content["destination"])
                 current_target = get_current_symlink_target(dest_path, nfs_dir)
-                status = _get_consolidated_item_status(content, image_path, current_target)
+                status = _get_consolidated_item_status(content, image_path, current_target, mount_point)
                 if status:
                     lines.append(status)
 
@@ -253,7 +262,9 @@ def _format_usage_statistics(
                     for image_path, usage in images:
                         items_info = get_image_description(image_path, cefs_mount_point)
                         manifest = read_manifest_from_alongside(image_path)
-                        detail_lines = _format_verbose_image_details(image_path, usage, items_info, manifest, nfs_dir)
+                        detail_lines = _format_verbose_image_details(
+                            image_path, usage, items_info, manifest, nfs_dir, cefs_mount_point
+                        )
                         lines.extend(detail_lines)
 
         # Count unused consolidated images
@@ -308,6 +319,7 @@ def status(context, show_usage: bool, verbose: bool):
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
+        mount_point=context.config.cefs.mount_point,
     )
 
     state.scan_cefs_images_with_manifests()
@@ -397,9 +409,14 @@ def setup(context: CliContext, dry_run: bool):
         # Step 1: Create CEFS mount point
         run_cmd(["sudo", "mkdir", "-p", cefs_mount_point], f"Creating CEFS mount point: {cefs_mount_point}")
 
-        # Step 2: Create first-level autofs map file (handles /cefs/XX -> nested autofs)
-        auto_cefs_content = "* -fstype=autofs program:/etc/auto.cefs.sub"
-        run_cmd(["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > /etc/auto.cefs"], "Creating /etc/auto.cefs")
+        # Step 2: Create first-level autofs map file (handles {mount_point}/XX -> nested autofs)
+        # Use the mount point name for autofs config files (e.g., /cefs -> auto.cefs, /test/mount -> auto.mount)
+        auto_config_base = f"/etc/auto.{cefs_mount_point.name}"
+        auto_cefs_content = f"* -fstype=autofs program:{auto_config_base}.sub"
+        run_cmd(
+            ["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > {auto_config_base}"],
+            f"Creating {auto_config_base}",
+        )
 
         # Step 2b: Create second-level autofs executable script (handles HASH -> squashfs mount)
         auto_cefs_sub_script = f"""#!/bin/bash
@@ -408,17 +425,17 @@ subdir="${{key:0:2}}"
 echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key}}.sqfs"
 """
         run_cmd(
-            ["sudo", "bash", "-c", f"cat > /etc/auto.cefs.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
-            "Creating /etc/auto.cefs.sub script",
+            ["sudo", "bash", "-c", f"cat > {auto_config_base}.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
+            f"Creating {auto_config_base}.sub script",
         )
-        run_cmd(["sudo", "chmod", "+x", "/etc/auto.cefs.sub"], "Making /etc/auto.cefs.sub executable")
+        run_cmd(["sudo", "chmod", "+x", f"{auto_config_base}.sub"], f"Making {auto_config_base}.sub executable")
 
         # Step 3: Create autofs master entry
-        auto_master_content = f"{cefs_mount_point} /etc/auto.cefs --negative-timeout 1"
+        auto_master_content = f"{cefs_mount_point} {auto_config_base} --negative-timeout 1"
         run_cmd(["sudo", "mkdir", "-p", "/etc/auto.master.d"], "Creating /etc/auto.master.d directory")
         run_cmd(
-            ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/cefs.autofs"],
-            "Creating /etc/auto.master.d/cefs.autofs",
+            ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/{cefs_mount_point.name}.autofs"],
+            f"Creating /etc/auto.master.d/{cefs_mount_point.name}.autofs",
         )
 
         # Step 4: Restart autofs service
@@ -618,6 +635,7 @@ def _extract_candidates_from_manifest(
     state: CEFSState,
     filter_: list[str],
     size: int,
+    mount_point: Path,
 ) -> list[ConsolidationCandidate]:
     """Extract reconsolidation candidates from a consolidated image manifest.
 
@@ -643,7 +661,7 @@ def _extract_candidates_from_manifest(
         # Check if this specific item is still referenced to this image
         current_target = get_current_symlink_target(dest_path, state.nfs_dir)
 
-        if not _is_item_still_using_image(current_target, image_path):
+        if not _is_item_still_using_image(current_target, image_path, mount_point):
             # This item has been replaced, skip it
             continue
 
@@ -696,6 +714,7 @@ def _gather_reconsolidation_candidates(
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
+        mount_point=context.config.cefs.mount_point,
     )
 
     state.scan_cefs_images_with_manifests()
@@ -732,7 +751,9 @@ def _gather_reconsolidation_candidates(
             continue
 
         # Extract candidates from this image's manifest
-        image_candidates = _extract_candidates_from_manifest(manifest, image_path, state, filter_, size)
+        image_candidates = _extract_candidates_from_manifest(
+            manifest, image_path, state, filter_, size, context.config.cefs.mount_point
+        )
         candidates.extend(image_candidates)
 
     return candidates
@@ -826,7 +847,9 @@ def consolidate(
                 _LOGGER.warning("Symlink %s does not point to CEFS mount: skipping", nfs_path)
                 continue
             try:
-                cefs_image_path, is_already_consolidated = parse_cefs_target(cefs_target, context.config.cefs.image_dir)
+                cefs_image_path, is_already_consolidated = parse_cefs_target(
+                    cefs_target, context.config.cefs.image_dir, context.config.cefs.mount_point
+                )
             except ValueError as e:
                 _LOGGER.warning("Invalid CEFS target format for %s: %s", installable.name, e)
                 continue
@@ -988,7 +1011,7 @@ def consolidate(
                     )
                 else:
                     symlink_target = item.nfs_path.readlink()
-                    extraction_path = get_extraction_path_from_symlink(symlink_target)
+                    extraction_path = get_extraction_path_from_symlink(symlink_target, context.config.cefs.mount_point)
                     _LOGGER.debug(
                         "For %s: symlink %s -> %s, extracting %s",
                         item.name,
@@ -1102,6 +1125,7 @@ def gc(context: CliContext, force: bool, min_age: str):
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
+        mount_point=context.config.cefs.mount_point,
     )
 
     _LOGGER.info("Scanning CEFS images directory and reading manifests...")
