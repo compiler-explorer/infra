@@ -23,7 +23,7 @@ from lib.cefs import (
     check_temp_space_available,
     create_consolidated_image,
     delete_image_with_manifest,
-    deploy_to_cefs_with_manifest,
+    deploy_to_cefs_transactional,
     detect_nfs_state,
     filter_images_by_age,
     format_image_contents_string,
@@ -42,7 +42,6 @@ from lib.cefs import (
 from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
-    finalize_manifest,
     read_manifest_from_alongside,
     sanitize_path_for_filename,
 )
@@ -93,32 +92,25 @@ def convert_to_cefs(context: CliContext, installable: Installable, force: bool, 
 
     # Copy squashfs to CEFS images directory if not already there
     # Never overwrite - hash ensures content is identical
-    if image_already_existed := cefs_paths.image_path.exists():
+    if cefs_paths.image_path.exists():
         _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
-    elif context.installation_context.dry_run:
-        _LOGGER.info("Would copy %s to %s", squashfs_image_path, cefs_paths.image_path)
-        _LOGGER.info("Would write manifest alongside image")
-    else:
+        # Still need to create symlink even if image exists
         try:
-            deploy_to_cefs_with_manifest(squashfs_image_path, cefs_paths.image_path, manifest)
+            backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run, defer_cleanup)
         except RuntimeError as e:
-            _LOGGER.error("Failed to deploy image for %s: %s", installable.name, e)
+            _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
             return False
-
-    # Backup NFS directory and create symlink
-    try:
-        backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run, defer_cleanup)
-    except RuntimeError as e:
-        _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
-        return False
-
-    # Finalize the manifest now that symlink is created (critical for GC safety), but only if we just created the image.
-    if not context.installation_context.dry_run and not image_already_existed:
+    else:
+        # Deploy image and create symlink within transaction
         try:
-            finalize_manifest(cefs_paths.image_path)
-            _LOGGER.debug("Finalized manifest for %s", installable.name)
+            with deploy_to_cefs_transactional(
+                squashfs_image_path, cefs_paths.image_path, manifest, context.installation_context.dry_run
+            ):
+                # Create symlink while transaction is active
+                backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run, defer_cleanup)
+                # Manifest will be automatically finalized on successful exit
         except RuntimeError as e:
-            _LOGGER.error("Failed to finalize manifest for %s: %s", installable.name, e)
+            _LOGGER.error("Failed to convert %s to CEFS: %s", installable.name, e)
             return False
 
     # Post-migration validation (skip in dry-run)
@@ -1072,26 +1064,59 @@ def consolidate(
 
             if cefs_paths.image_path.exists():
                 _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
+                # Still need to update symlinks even if image exists
+                group_symlinks = [item.nfs_path for item in group]
+                group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
+                unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
+
+                if changed_symlinks:
+                    _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
+                    for symlink in changed_symlinks:
+                        _LOGGER.warning("  - %s", symlink)
+                    total_skipped_symlinks += len(changed_symlinks)
+
+                if unchanged_symlinks:
+                    update_symlinks_for_consolidation(
+                        unchanged_symlinks,
+                        filename,
+                        context.config.cefs.mount_point,
+                        subdir_mapping,
+                        defer_backup_cleanup,
+                    )
+                    total_updated_symlinks += len(unchanged_symlinks)
+                    _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
             else:
-                deploy_to_cefs_with_manifest(temp_consolidated_path, cefs_paths.image_path, manifest)
+                # Deploy image and update symlinks within transaction
+                with deploy_to_cefs_transactional(
+                    temp_consolidated_path,
+                    cefs_paths.image_path,
+                    manifest,
+                    context.installation_context.dry_run,
+                ):
+                    # Verify symlinks haven't changed and update them
+                    group_symlinks = [item.nfs_path for item in group]
+                    group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
+                    unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
 
-            # Verify symlinks haven't changed and update them
-            group_symlinks = [item.nfs_path for item in group]
-            group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
-            unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
+                    if changed_symlinks:
+                        _LOGGER.warning(
+                            "Skipping %d symlinks that changed during consolidation:", len(changed_symlinks)
+                        )
+                        for symlink in changed_symlinks:
+                            _LOGGER.warning("  - %s", symlink)
+                        total_skipped_symlinks += len(changed_symlinks)
 
-            if changed_symlinks:
-                _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
-                for symlink in changed_symlinks:
-                    _LOGGER.warning("  - %s", symlink)
-                total_skipped_symlinks += len(changed_symlinks)
-
-            if unchanged_symlinks:
-                update_symlinks_for_consolidation(
-                    unchanged_symlinks, filename, context.config.cefs.mount_point, subdir_mapping, defer_backup_cleanup
-                )
-                total_updated_symlinks += len(unchanged_symlinks)
-                _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
+                    if unchanged_symlinks:
+                        update_symlinks_for_consolidation(
+                            unchanged_symlinks,
+                            filename,
+                            context.config.cefs.mount_point,
+                            subdir_mapping,
+                            defer_backup_cleanup,
+                        )
+                        total_updated_symlinks += len(unchanged_symlinks)
+                        _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
+                    # Manifest will be automatically finalized on successful exit
 
             successful_groups += 1
 

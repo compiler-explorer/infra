@@ -9,7 +9,9 @@ import logging
 import os
 import shutil
 import tempfile
+from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -18,6 +20,7 @@ import humanfriendly
 import yaml
 
 from .cefs_manifest import (
+    finalize_manifest,
     generate_cefs_filename,
     read_manifest_from_alongside,
     write_manifest_inprogress,
@@ -208,25 +211,63 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
         raise
 
 
-def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manifest: dict) -> None:
-    """Deploy an image to CEFS with its manifest.
+@contextmanager
+def deploy_to_cefs_transactional(
+    source_path: Path, cefs_image_path: Path, manifest: dict, dry_run: bool = False
+) -> Generator[Path, None, None]:
+    """Deploy an image to CEFS with automatic manifest finalization.
+
+    This context manager ensures the manifest is properly finalized on success,
+    or left as .inprogress on failure for debugging. This prevents the common
+    mistake of forgetting to call finalize_manifest().
 
     Uses .yaml.inprogress pattern to prevent race conditions:
     1. Copy squashfs image atomically
     2. Write manifest as .yaml.inprogress (operation incomplete)
-    3. Caller creates symlinks
-    4. Caller must call finalize_manifest() after symlinks are created
+    3. Caller creates symlinks within the context
+    4. Manifest is automatically finalized on successful exit
 
     Args:
         source_path: Source squashfs image to deploy
         cefs_image_path: Target path in CEFS images directory
         manifest: Manifest dictionary to write alongside the image
+        dry_run: If True, skip actual deployment (for testing)
+
+    Yields:
+        Path to the deployed CEFS image
 
     Raises:
-        Exception: If deployment fails (all files are cleaned up)
+        Exception: If deployment fails (manifest remains .inprogress)
+
+    Example:
+        with deploy_to_cefs_transactional(source, target, manifest, dry_run) as image_path:
+            create_symlinks(...)
+            # Manifest is automatically finalized here on success
     """
+    if dry_run:
+        _LOGGER.info("DRY RUN: Would deploy %s to %s", source_path, cefs_image_path)
+        yield cefs_image_path
+        return
+
+    # Deploy the image and write .inprogress manifest
     copy_to_cefs_atomically(source_path, cefs_image_path)
     write_manifest_inprogress(manifest, cefs_image_path)
+
+    finalized = False
+    try:
+        yield cefs_image_path
+        # If we get here, the context block completed successfully
+        finalized = True
+    finally:
+        if finalized:
+            try:
+                finalize_manifest(cefs_image_path)
+                _LOGGER.debug("Finalized manifest for %s", cefs_image_path)
+            except Exception as e:
+                _LOGGER.error("Failed to finalize manifest for %s: %s", cefs_image_path, e)
+                # Note: We don't re-raise here because the main operation succeeded
+        else:
+            _LOGGER.warning("Leaving manifest as .inprogress for debugging: %s", cefs_image_path)
 
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_cleanup: bool) -> None:

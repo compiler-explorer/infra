@@ -16,6 +16,7 @@ from lib.cefs import (
     check_if_symlink_references_image,
     check_temp_space_available,
     delete_image_with_manifest,
+    deploy_to_cefs_transactional,
     describe_cefs_image,
     filter_images_by_age,
     format_image_contents_string,
@@ -562,6 +563,93 @@ def test_finalize_missing_inprogress(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         finalize_manifest(image_path)
+
+
+def test_deploy_to_cefs_transactional_success(tmp_path):
+    """Test that transactional deployment finalizes manifest on success."""
+    source_path = tmp_path / "source.sqfs"
+    source_path.write_bytes(b"test content")
+
+    cefs_dir = tmp_path / "cefs"
+    cefs_dir.mkdir()
+    subdir = cefs_dir / "ab"
+    subdir.mkdir()
+    target_path = subdir / "abc123.sqfs"
+
+    manifest = {"version": 1, "operation": "test", "contents": []}
+
+    # Deploy with successful transaction
+    with deploy_to_cefs_transactional(source_path, target_path, manifest, dry_run=False):
+        # Simulate work done within the transaction
+        pass
+
+    # Verify image was copied
+    assert target_path.exists()
+    assert target_path.read_bytes() == b"test content"
+
+    # Verify manifest was finalized
+    final_manifest = target_path.with_suffix(".yaml")
+    assert final_manifest.exists()
+
+    # Verify .inprogress was removed
+    inprogress_path = Path(str(target_path.with_suffix(".yaml")) + ".inprogress")
+    assert not inprogress_path.exists()
+
+
+def test_deploy_to_cefs_transactional_failure(tmp_path):
+    """Test that transactional deployment leaves .inprogress on failure."""
+    source_path = tmp_path / "source.sqfs"
+    source_path.write_bytes(b"test content")
+
+    cefs_dir = tmp_path / "cefs"
+    cefs_dir.mkdir()
+    subdir = cefs_dir / "ab"
+    subdir.mkdir()
+    target_path = subdir / "abc123.sqfs"
+
+    manifest = {"version": 1, "operation": "test", "contents": []}
+
+    # Deploy with failing transaction
+    try:
+        with deploy_to_cefs_transactional(source_path, target_path, manifest, dry_run=False):
+            # Simulate failure within the transaction
+            raise RuntimeError("Simulated failure")
+    except RuntimeError:
+        pass  # Expected
+
+    # Verify image was copied
+    assert target_path.exists()
+
+    # Verify manifest was NOT finalized
+    final_manifest = target_path.with_suffix(".yaml")
+    assert not final_manifest.exists()
+
+    # Verify .inprogress was kept for debugging
+    inprogress_path = Path(str(target_path.with_suffix(".yaml")) + ".inprogress")
+    assert inprogress_path.exists()
+
+
+def test_deploy_to_cefs_transactional_dry_run(tmp_path):
+    """Test that dry run doesn't create any files."""
+    source_path = tmp_path / "source.sqfs"
+    source_path.write_bytes(b"test content")
+
+    cefs_dir = tmp_path / "cefs"
+    cefs_dir.mkdir()
+    subdir = cefs_dir / "ab"
+    subdir.mkdir()
+    target_path = subdir / "abc123.sqfs"
+
+    manifest = {"version": 1, "operation": "test", "contents": []}
+
+    # Deploy in dry-run mode
+    with deploy_to_cefs_transactional(source_path, target_path, manifest, dry_run=True):
+        pass
+
+    # Verify nothing was created
+    assert not target_path.exists()
+    assert not target_path.with_suffix(".yaml").exists()
+    assert not Path(str(target_path.with_suffix(".yaml")) + ".inprogress").exists()
 
 
 @pytest.mark.parametrize(
