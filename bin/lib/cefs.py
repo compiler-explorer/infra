@@ -958,6 +958,82 @@ class CEFSState:
         """
         return get_consolidated_image_usage_stats(self)
 
+    def gather_reconsolidation_candidates(
+        self,
+        efficiency_threshold: float,
+        max_size_bytes: int,
+        undersized_ratio: float,
+        filter_: list[str],
+    ) -> list[ConsolidationCandidate]:
+        """Gather candidates from existing consolidated images for reconsolidation.
+
+        This method analyzes all consolidated images and identifies items that should
+        be repacked based on efficiency and size criteria.
+
+        Args:
+            efficiency_threshold: Minimum efficiency to keep consolidated image (0.0-1.0)
+            max_size_bytes: Maximum size for consolidated images in bytes
+            undersized_ratio: Ratio to determine undersized images
+            filter_: Optional filter for selecting items
+
+        Returns:
+            List of candidate items from consolidated images that should be repacked
+        """
+        candidates = []
+
+        # Check each consolidated image
+        for _filename_stem, image_path in self.all_cefs_images.items():
+            if not is_consolidated_image(image_path):
+                continue
+
+            _LOGGER.debug("Checking consolidated image: %s", image_path.name)
+
+            # Calculate usage for this consolidated image
+            usage = calculate_image_usage(image_path, self.image_references, self.nfs_dir, self.mount_point)
+
+            # Get image size
+            try:
+                size = image_path.stat().st_size
+            except OSError:
+                continue
+
+            _LOGGER.debug(
+                "Image %s: usage=%.1f%%, size=%s (undersized threshold=%s)",
+                image_path.name,
+                usage,
+                humanfriendly.format_size(size, binary=True),
+                humanfriendly.format_size(max_size_bytes * undersized_ratio, binary=True),
+            )
+
+            # Determine if this image should be reconsolidated
+            should_reconsolidate, reason = should_reconsolidate_image(
+                usage=usage,
+                size=size,
+                efficiency_threshold=efficiency_threshold,
+                max_size_bytes=max_size_bytes,
+                undersized_ratio=undersized_ratio,
+            )
+
+            if not should_reconsolidate:
+                _LOGGER.debug("Image %s not marked for reconsolidation", image_path.name)
+                continue
+
+            _LOGGER.info("Consolidated image %s marked for reconsolidation: %s", image_path.name, reason)
+
+            # Get manifest to extract individual items
+            manifest = read_manifest_from_alongside(image_path)
+            if not manifest or "contents" not in manifest:
+                _LOGGER.warning("Cannot reconsolidate %s: no manifest", image_path.name)
+                continue
+
+            # Extract candidates from this image's manifest
+            image_candidates = extract_candidates_from_manifest(
+                manifest, image_path, self, filter_, size, self.mount_point
+            )
+            candidates.extend(image_candidates)
+
+        return candidates
+
 
 def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) -> Path:
     """Determine what to extract from a CEFS image based on symlink target.
@@ -1372,12 +1448,17 @@ def is_item_still_using_image(current_target: Path | None, image_path: Path, mou
         return False
 
     # Get the filename stem from the symlink target
-    # Format: /cefs/XX/FILENAME_STEM/... where FILENAME_STEM is like "abc123_consolidated"
+    # Format: {mount_point}/XX/FILENAME_STEM/... where FILENAME_STEM is like "abc123_consolidated"
     parts = current_target.parts
-    if len(parts) < 4:
+    mount_parts = mount_point.parts
+
+    # Need at least: mount_point parts + hash_prefix + filename_stem
+    if len(parts) < len(mount_parts) + 2:
         return False
 
-    return parts[3] == image_path.stem
+    # The filename stem is at position: len(mount_parts) + 1
+    # e.g., /cefs/ab/abc123_consolidated/tool1 -> abc123_consolidated is at index 3 when mount is /cefs (2 parts)
+    return parts[len(mount_parts) + 1] == image_path.stem
 
 
 def get_consolidated_item_status(

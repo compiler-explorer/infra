@@ -2192,3 +2192,128 @@ def test_validate_space_requirements(tmp_path):
     required, largest = validate_space_requirements([], temp_dir)
     assert required == 0
     assert largest == 0
+
+
+def test_gather_reconsolidation_candidates(tmp_path):
+    """Test gather_reconsolidation_candidates method in CEFSState."""
+    # Create test directory structure
+    nfs_dir = tmp_path / "nfs"
+    nfs_dir.mkdir()
+    cefs_image_dir = tmp_path / "cefs-images"
+    cefs_image_dir.mkdir()
+    mount_point = tmp_path / "cefs"
+    mount_point.mkdir()
+
+    # Create a consolidated image that should be reconsolidated (low efficiency)
+    subdir1 = cefs_image_dir / "ab"
+    subdir1.mkdir()
+    consolidated_image = subdir1 / "abc123_consolidated.sqfs"
+    consolidated_image.write_bytes(b"x" * (100 * 1024 * 1024))  # 100MB
+
+    # Create manifest for the consolidated image
+    manifest = {
+        "version": 1,
+        "operation": "consolidate",
+        "contents": [
+            {"name": "tool1", "destination": str(nfs_dir / "tool1")},
+            {"name": "tool2", "destination": str(nfs_dir / "tool2")},
+            {"name": "tool3", "destination": str(nfs_dir / "tool3")},
+        ],
+    }
+    write_manifest_alongside_image(manifest, consolidated_image)
+
+    # Create symlinks - only 1 of 3 still pointing to the consolidated image
+    # This gives us 33% efficiency, below our 50% threshold
+    tool1_path = nfs_dir / "tool1"
+    tool1_path.symlink_to(mount_point / "ab" / "abc123_consolidated" / "tool1")
+
+    # These were originally in the consolidated image but have been replaced
+    tool2_path = nfs_dir / "tool2"
+    tool2_path.symlink_to(mount_point / "de" / "different_image")
+
+    tool3_path = nfs_dir / "tool3"
+    tool3_path.symlink_to(mount_point / "fg" / "another_image")
+
+    # Create an undersized consolidated image that should be reconsolidated
+    subdir2 = cefs_image_dir / "cd"
+    subdir2.mkdir()
+    undersized_image = subdir2 / "def456_consolidated.sqfs"
+    undersized_image.write_bytes(b"x" * (10 * 1024 * 1024))  # 10MB - undersized
+
+    # Create manifest for the undersized image
+    manifest2 = {
+        "version": 1,
+        "operation": "consolidate",
+        "contents": [
+            {"name": "small1", "destination": str(nfs_dir / "small1")},
+            {"name": "small2", "destination": str(nfs_dir / "small2")},
+        ],
+    }
+    write_manifest_alongside_image(manifest2, undersized_image)
+
+    # Both point to the undersized image (100% efficiency but still undersized)
+    small1_path = nfs_dir / "small1"
+    small1_path.symlink_to(mount_point / "cd" / "def456_consolidated" / "small1")
+    small2_path = nfs_dir / "small2"
+    small2_path.symlink_to(mount_point / "cd" / "def456_consolidated" / "small2")
+
+    # Create a good consolidated image that should NOT be reconsolidated
+    subdir3 = cefs_image_dir / "ef"
+    subdir3.mkdir()
+    good_image = subdir3 / "ghi789_consolidated.sqfs"
+    good_image.write_bytes(b"x" * (200 * 1024 * 1024))  # 200MB
+
+    manifest3 = {
+        "version": 1,
+        "operation": "consolidate",
+        "contents": [
+            {"name": "good1", "destination": str(nfs_dir / "good1")},
+            {"name": "good2", "destination": str(nfs_dir / "good2")},
+        ],
+    }
+    write_manifest_alongside_image(manifest3, good_image)
+
+    # Both point to the good image (100% efficiency and good size)
+    good1_path = nfs_dir / "good1"
+    good1_path.symlink_to(mount_point / "ef" / "ghi789_consolidated" / "good1")
+    good2_path = nfs_dir / "good2"
+    good2_path.symlink_to(mount_point / "ef" / "ghi789_consolidated" / "good2")
+
+    # Create CEFSState and test gather_reconsolidation_candidates
+    state = CEFSState(nfs_dir, cefs_image_dir, mount_point)
+    state.scan_cefs_images_with_manifests()
+    state.check_symlink_references()
+
+    # Gather candidates with 50% efficiency threshold, 500MB max size, 0.25 undersized ratio
+    candidates = state.gather_reconsolidation_candidates(
+        efficiency_threshold=0.5,
+        max_size_bytes=500 * 1024 * 1024,
+        undersized_ratio=0.25,  # Images < 125MB are undersized
+        filter_=[],
+    )
+
+    # We should get candidates from:
+    # - abc123_consolidated (low efficiency: 33%)
+    # - def456_consolidated (undersized: 10MB < 125MB)
+    # But NOT from ghi789_consolidated (100% efficiency, good size)
+
+    assert len(candidates) == 3  # tool1 from low-efficiency, small1 and small2 from undersized
+
+    candidate_names = {c.name for c in candidates}
+    assert "tool1" in candidate_names  # From low-efficiency image
+    assert "small1" in candidate_names  # From undersized image
+    assert "small2" in candidate_names  # From undersized image
+    assert "good1" not in candidate_names  # Good image should not be reconsolidated
+    assert "good2" not in candidate_names  # Good image should not be reconsolidated
+
+    # Test with filter
+    candidates_filtered = state.gather_reconsolidation_candidates(
+        efficiency_threshold=0.5,
+        max_size_bytes=500 * 1024 * 1024,
+        undersized_ratio=0.25,
+        filter_=["small"],  # Only get items with "small" in the name
+    )
+
+    assert len(candidates_filtered) == 2
+    filtered_names = {c.name for c in candidates_filtered}
+    assert filtered_names == {"small1", "small2"}

@@ -18,11 +18,9 @@ from lib.cefs import (
     CEFSState,
     ConsolidationCandidate,
     backup_and_symlink,
-    calculate_image_usage,
     delete_image_with_manifest,
     deploy_to_cefs_transactional,
     detect_nfs_state,
-    extract_candidates_from_manifest,
     filter_images_by_age,
     find_small_consolidated_images,
     format_image_contents_string,
@@ -37,7 +35,6 @@ from lib.cefs import (
     pack_items_into_groups,
     parse_cefs_target,
     process_consolidation_group,
-    should_reconsolidate_image,
     snapshot_symlink_targets,
     validate_cefs_mount_point,
     validate_space_requirements,
@@ -542,8 +539,6 @@ def _gather_reconsolidation_candidates(
     Returns:
         List of candidate items from consolidated images that should be repacked
     """
-    candidates = []
-
     # Initialize CEFS state to analyze existing images
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
@@ -554,60 +549,13 @@ def _gather_reconsolidation_candidates(
     state.scan_cefs_images_with_manifests()
     state.check_symlink_references()
 
-    # Check each consolidated image
-    for _filename_stem, image_path in state.all_cefs_images.items():
-        if not is_consolidated_image(image_path):
-            continue
-
-        _LOGGER.debug("Checking consolidated image: %s", image_path.name)
-
-        # Calculate usage for this consolidated image
-        usage = calculate_image_usage(
-            image_path, state.image_references, state.nfs_dir, context.config.cefs.mount_point
-        )
-
-        # Get image size
-        try:
-            size = image_path.stat().st_size
-        except OSError:
-            continue
-
-        _LOGGER.debug(
-            "Image %s: usage=%.1f%%, size=%s (undersized threshold=%s)",
-            image_path.name,
-            usage,
-            humanfriendly.format_size(size, binary=True),
-            humanfriendly.format_size(max_size_bytes * undersized_ratio, binary=True),
-        )
-
-        # Determine if this image should be reconsolidated
-        should_reconsolidate, reason = should_reconsolidate_image(
-            usage=usage,
-            size=size,
-            efficiency_threshold=efficiency_threshold,
-            max_size_bytes=max_size_bytes,
-            undersized_ratio=undersized_ratio,
-        )
-
-        if not should_reconsolidate:
-            _LOGGER.debug("Image %s not marked for reconsolidation", image_path.name)
-            continue
-
-        _LOGGER.info("Consolidated image %s marked for reconsolidation: %s", image_path.name, reason)
-
-        # Get manifest to extract individual items
-        manifest = read_manifest_from_alongside(image_path)
-        if not manifest or "contents" not in manifest:
-            _LOGGER.warning("Cannot reconsolidate %s: no manifest", image_path.name)
-            continue
-
-        # Extract candidates from this image's manifest
-        image_candidates = extract_candidates_from_manifest(
-            manifest, image_path, state, filter_, size, context.config.cefs.mount_point
-        )
-        candidates.extend(image_candidates)
-
-    return candidates
+    # Use the library method to gather candidates
+    return state.gather_reconsolidation_candidates(
+        efficiency_threshold=efficiency_threshold,
+        max_size_bytes=max_size_bytes,
+        undersized_ratio=undersized_ratio,
+        filter_=filter_,
+    )
 
 
 @cefs.command()
