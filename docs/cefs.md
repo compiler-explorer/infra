@@ -308,59 +308,33 @@ Images with `.yaml.inprogress` markers indicate incomplete or failed operations:
 - Require manual investigation and decision
 - Future tool: `ce cefs check-failed` to analyze and remediate
 
-#### Reconsolidation of Inefficient Consolidated Images
+#### Reconsolidation
 
-**Status**: Implemented in `ce cefs consolidate`
+The `ce cefs consolidate --reconsolidate` command optimizes inefficient consolidated images that accumulate over time.
 
-As the system evolves, consolidated images can become inefficient in two ways:
+**Problem**: Consolidated images become inefficient when:
+- Items are reinstalled individually, leaving images partially used (e.g., only 1 of 3 items still referenced)
+- Multiple undersized consolidated images exist that could be combined
 
-1. **Partially-used images**: When items are updated or reinstalled individually, consolidated images become sparse. For example, if we consolidate X, Y, and Z into a single image, but later Y and Z are reinstalled individually, the consolidated image only serves X.
+**Solution**: The reconsolidation process:
+1. Identifies consolidated images with <50% usage or undersized images (<25% of max size)
+2. Extracts still-referenced items from inefficient images
+3. Repacks them with new consolidation candidates into optimally-sized images
+4. Old images become unreferenced and eligible for GC
 
-2. **Undersized images**: Multiple small consolidated images that could be combined into larger, more efficient packages.
-
-##### Reconsolidation Process
-
-The `ce cefs consolidate` command automatically detects and handles reconsolidation:
-
-1. **Detection Phase**:
-   - Identifies consolidated images with <50% usage (items no longer referenced by symlinks)
-   - Finds undersized consolidated images (below optimal size threshold)
-   - Shows detailed status including what replaced unused items
-
-2. **Extraction Phase**:
-   - Extracts still-referenced items from inefficient consolidated images
-   - Preserves directory structure and permissions
-   - Maintains atomic operations for NFS safety
-
-3. **Repackaging Phase**:
-   - Combines extracted items with new consolidation candidates
-   - Creates optimally-sized consolidated images
-   - Updates symlinks atomically
-
-4. **Cleanup Phase**:
-   - Old inefficient images become unreferenced
-   - Garbage collection (`ce cefs gc`) will clean them up after the minimum age threshold
-
-##### Usage Example
-
+Example:
 ```bash
-# Consolidate with automatic reconsolidation
-ce --env prod cefs consolidate --include-reconsolidation --max-size 5G FILTER
+# Consolidate with reconsolidation (repacks inefficient images)
+ce --env prod cefs consolidate --reconsolidate --max-size 5G FILTER
 
-# The command will:
-# 1. Find regular candidates for consolidation
-# 2. Identify inefficient consolidated images
-# 3. Extract and repackage items optimally
-# 4. Show detailed status of the operation
+# Fine-tune thresholds if needed
+ce --env prod cefs consolidate --reconsolidate \
+  --efficiency-threshold 0.3 \  # Repack images with <30% usage
+  --undersized-ratio 0.2 \       # Consider images <20% of max-size undersized
+  --max-size 10G FILTER
 ```
 
-##### Safety Considerations
-
-- Reconsolidation respects the same safety mechanisms as regular consolidation
-- Uses `.yaml.inprogress` markers during operations
-- Performs atomic symlink updates
-- Safe for concurrent operations in multi-machine NFS environment
-- Old consolidated images remain valid until GC cleanup
+Safety: Uses same `.yaml.inprogress` pattern and atomic operations as regular consolidation.
 ### Edge Cases and Failure Scenarios
 
 #### What if GC runs during installation?
