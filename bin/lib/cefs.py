@@ -958,6 +958,44 @@ class CEFSState:
         """
         return get_consolidated_image_usage_stats(self)
 
+    def _analyze_consolidated_image(self, image_path: Path) -> tuple[float, int] | None:
+        """Analyze a consolidated image to get its usage and size.
+
+        Args:
+            image_path: Path to the consolidated image
+
+        Returns:
+            Tuple of (usage_percentage, size_bytes) or None if analysis fails
+        """
+        _LOGGER.debug("Checking consolidated image: %s", image_path.name)
+
+        usage = calculate_image_usage(image_path, self.image_references, self.nfs_dir, self.mount_point)
+
+        try:
+            size = image_path.stat().st_size
+        except OSError:
+            return None
+
+        return usage, size
+
+    def _process_image_manifest(self, image_path: Path, size: int, filter_: list[str]) -> list[ConsolidationCandidate]:
+        """Process manifest for a consolidated image and extract candidates.
+
+        Args:
+            image_path: Path to the consolidated image
+            size: Size of the image in bytes
+            filter_: Optional filter for selecting items
+
+        Returns:
+            List of candidates from this image, or empty list if processing fails
+        """
+        manifest = read_manifest_from_alongside(image_path)
+        if not manifest or "contents" not in manifest:
+            _LOGGER.warning("Cannot reconsolidate %s: no manifest", image_path.name)
+            return []
+
+        return extract_candidates_from_manifest(manifest, image_path, self, filter_, size, self.mount_point)
+
     def gather_reconsolidation_candidates(
         self,
         efficiency_threshold: float,
@@ -981,21 +1019,14 @@ class CEFSState:
         """
         candidates = []
 
-        # Check each consolidated image
         for _filename_stem, image_path in self.all_cefs_images.items():
             if not is_consolidated_image(image_path):
                 continue
 
-            _LOGGER.debug("Checking consolidated image: %s", image_path.name)
-
-            # Calculate usage for this consolidated image
-            usage = calculate_image_usage(image_path, self.image_references, self.nfs_dir, self.mount_point)
-
-            # Get image size
-            try:
-                size = image_path.stat().st_size
-            except OSError:
+            analysis = self._analyze_consolidated_image(image_path)
+            if not analysis:
                 continue
+            usage, size = analysis
 
             _LOGGER.debug(
                 "Image %s: usage=%.1f%%, size=%s (undersized threshold=%s)",
@@ -1005,7 +1036,6 @@ class CEFSState:
                 humanfriendly.format_size(max_size_bytes * undersized_ratio, binary=True),
             )
 
-            # Determine if this image should be reconsolidated
             should_reconsolidate, reason = should_reconsolidate_image(
                 usage=usage,
                 size=size,
@@ -1020,16 +1050,7 @@ class CEFSState:
 
             _LOGGER.info("Consolidated image %s marked for reconsolidation: %s", image_path.name, reason)
 
-            # Get manifest to extract individual items
-            manifest = read_manifest_from_alongside(image_path)
-            if not manifest or "contents" not in manifest:
-                _LOGGER.warning("Cannot reconsolidate %s: no manifest", image_path.name)
-                continue
-
-            # Extract candidates from this image's manifest
-            image_candidates = extract_candidates_from_manifest(
-                manifest, image_path, self, filter_, size, self.mount_point
-            )
+            image_candidates = self._process_image_manifest(image_path, size, filter_)
             candidates.extend(image_candidates)
 
         return candidates
