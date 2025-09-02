@@ -39,6 +39,18 @@ class CEFSPaths:
     mount_path: Path
 
 
+@dataclass
+class ConsolidationCandidate:
+    """Represents an item that can be consolidated."""
+
+    name: str
+    nfs_path: Path
+    squashfs_path: Path
+    size: int
+    extraction_path: Path = Path(".")
+    from_reconsolidation: bool = False
+
+
 def get_cefs_image_path(image_dir: Path, filename: str) -> Path:
     """Get the full CEFS image path for a given filename.
 
@@ -1337,3 +1349,192 @@ def get_consolidated_image_usage_stats(
         total_space=total_space,
         wasted_space_estimate=wasted_space_estimate,
     )
+
+
+def group_images_by_usage(partially_used: list[tuple[Path, float]]) -> dict[str, list[tuple[Path, float]]]:
+    """Group partially used images by usage percentage ranges.
+
+    Args:
+        partially_used: List of (image_path, usage_percentage) tuples
+
+    Returns:
+        Dictionary mapping usage ranges to list of images in that range
+    """
+    ranges: dict[str, list[tuple[Path, float]]] = {"75-99%": [], "50-74%": [], "25-49%": [], "<25%": []}
+
+    for image_path, usage in partially_used:
+        if usage >= 75:
+            ranges["75-99%"].append((image_path, usage))
+        elif usage >= 50:
+            ranges["50-74%"].append((image_path, usage))
+        elif usage >= 25:
+            ranges["25-49%"].append((image_path, usage))
+        else:
+            ranges["<25%"].append((image_path, usage))
+
+    return ranges
+
+
+def is_item_still_using_image(current_target: Path | None, image_path: Path, mount_point: Path) -> bool:
+    """Check if a consolidated item is still using its original image.
+
+    Args:
+        current_target: The symlink target path (or None if not a symlink)
+        image_path: Path to the CEFS image file
+        mount_point: CEFS mount point (e.g., /cefs)
+
+    Returns:
+        True if the target points to this specific image
+    """
+    mount_str = str(mount_point) + "/"
+    if not current_target or not str(current_target).startswith(mount_str):
+        return False
+
+    # Get the filename stem from the symlink target
+    # Format: /cefs/XX/FILENAME_STEM/... where FILENAME_STEM is like "abc123_consolidated"
+    parts = current_target.parts
+    if len(parts) < 4:
+        return False
+
+    target_filename_stem = parts[3]
+    image_filename_stem = image_path.stem
+
+    return target_filename_stem == image_filename_stem
+
+
+def get_consolidated_item_status(
+    content: dict, image_path: Path, current_target: Path | None, mount_point: Path
+) -> str:
+    """Get the status string for a single item in a consolidated image.
+
+    Args:
+        content: Manifest entry for the item
+        image_path: Path to the consolidated image
+        current_target: Current symlink target (or None)
+        mount_point: CEFS mount point
+
+    Returns:
+        Formatted status string showing if item is still using the image
+    """
+    if "name" not in content:
+        return ""
+
+    if is_item_still_using_image(current_target, image_path, mount_point):
+        return f"          ✓ {content['name']}"
+    else:
+        mount_str = str(mount_point) + "/"
+        if current_target and str(current_target).startswith(mount_str):
+            replacement_info = str(current_target).replace(mount_str, "")
+            return f"          ✗ {content['name']} → replaced by {replacement_info}"
+        else:
+            return f"          ✗ {content['name']} → not in CEFS"
+
+
+def should_reconsolidate_image(
+    usage: float, size: int, efficiency_threshold: float, max_size_bytes: int, undersized_ratio: float
+) -> tuple[bool, str]:
+    """Determine if a consolidated image should be reconsolidated.
+
+    Args:
+        usage: Usage percentage (0-100)
+        size: Image size in bytes
+        efficiency_threshold: Minimum efficiency to keep (0.0-1.0)
+        max_size_bytes: Maximum size for consolidated images
+        undersized_ratio: Ratio to determine undersized images
+
+    Returns:
+        Tuple of (should_reconsolidate, reason_string)
+    """
+    if usage == 0:
+        return False, ""
+    elif usage / 100.0 < efficiency_threshold:
+        return True, f"low efficiency ({usage:.1f}%)"
+    elif size < max_size_bytes * undersized_ratio:
+        return True, f"undersized ({humanfriendly.format_size(size, binary=True)})"
+    return False, ""
+
+
+def find_small_consolidated_images(state: CEFSState, size_threshold: int) -> list[Path]:
+    """Find consolidated images that are candidates for reconsolidation.
+
+    Args:
+        state: CEFS state object with image information
+        size_threshold: Size threshold in bytes
+
+    Returns:
+        List of paths to small consolidated images
+    """
+    small_images = []
+    for _filename_stem, image_path in state.all_cefs_images.items():
+        if not is_consolidated_image(image_path):
+            continue
+        try:
+            size = image_path.stat().st_size
+            if size < size_threshold:
+                small_images.append(image_path)
+        except OSError:
+            continue
+    return small_images
+
+
+def extract_candidates_from_manifest(
+    manifest: dict,
+    image_path: Path,
+    state: CEFSState,
+    filter_: list[str],
+    size: int,
+    mount_point: Path,
+) -> list[ConsolidationCandidate]:
+    """Extract reconsolidation candidates from a consolidated image manifest.
+
+    Args:
+        manifest: Image manifest dictionary
+        image_path: Path to the consolidated image
+        state: CEFS state object
+        filter_: Optional filter for selecting items
+        size: Total size of the consolidated image
+        mount_point: CEFS mount point
+
+    Returns:
+        List of consolidation candidates from this image
+    """
+    candidates = []
+    contents = manifest.get("contents", [])
+
+    for content in contents:
+        if "destination" not in content or "name" not in content:
+            raise ValueError(f"Malformed manifest entry missing required fields: {content}")
+
+        dest_path = Path(content["destination"])
+
+        # Check if this item is still referenced to this image
+        targets = get_current_symlink_targets(dest_path)
+        if not any(is_item_still_using_image(target, image_path, mount_point) for target in targets):
+            # This item has been replaced, skip it
+            continue
+
+        # Apply filter if provided
+        if filter_ and not any(f in content["name"] for f in filter_):
+            continue
+
+        # Determine extraction path within the consolidated image
+        # Find a target that points to this image to get the extraction path
+        image_target = next((t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None)
+        if image_target and len(image_target.parts) > 4:
+            extraction_path = Path(*image_target.parts[4:])
+        else:
+            extraction_path = Path(".")
+
+        # Add as candidate for reconsolidation
+        candidates.append(
+            ConsolidationCandidate(
+                name=content["name"],
+                nfs_path=dest_path if dest_path.is_absolute() else state.nfs_dir / dest_path,
+                squashfs_path=image_path,
+                extraction_path=extraction_path,
+                size=size // len(contents),  # Estimate size per item
+                from_reconsolidation=True,
+            )
+        )
+
+    return candidates

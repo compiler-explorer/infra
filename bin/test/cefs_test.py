@@ -18,18 +18,24 @@ from lib.cefs import (
     delete_image_with_manifest,
     deploy_to_cefs_transactional,
     describe_cefs_image,
+    extract_candidates_from_manifest,
     filter_images_by_age,
+    find_small_consolidated_images,
     format_image_contents_string,
     get_cefs_image_path,
     get_cefs_mount_path,
     get_cefs_paths,
+    get_consolidated_item_status,
     get_current_symlink_targets,
     get_extraction_path_from_symlink,
     get_image_description,
     get_image_description_from_manifest,
+    group_images_by_usage,
     has_enough_space,
     is_consolidated_image,
+    is_item_still_using_image,
     parse_cefs_target,
+    should_reconsolidate_image,
     snapshot_symlink_targets,
     verify_symlinks_unchanged,
 )
@@ -1617,3 +1623,246 @@ def test_filter_images_by_age_with_specific_times(tmp_path):
     assert result.too_recent[0][0] == image3
     # Check the age is approximately 30 minutes
     assert result.too_recent[0][1].total_seconds() / 60 == approx(30, abs=1)
+
+
+def test_should_reconsolidate_image():
+    """Test should_reconsolidate_image function."""
+    # Test low efficiency
+    should_recon, reason = should_reconsolidate_image(
+        usage=30.0, size=10 * 1024**3, efficiency_threshold=0.5, max_size_bytes=20 * 1024**3, undersized_ratio=0.25
+    )
+    assert should_recon is True
+    assert "low efficiency" in reason
+    assert "30.0%" in reason
+
+    # Test undersized
+    should_recon, reason = should_reconsolidate_image(
+        usage=80.0, size=3 * 1024**3, efficiency_threshold=0.5, max_size_bytes=20 * 1024**3, undersized_ratio=0.25
+    )
+    assert should_recon is True
+    assert "undersized" in reason
+
+    # Test good image (should not reconsolidate)
+    should_recon, reason = should_reconsolidate_image(
+        usage=80.0, size=10 * 1024**3, efficiency_threshold=0.5, max_size_bytes=20 * 1024**3, undersized_ratio=0.25
+    )
+    assert should_recon is False
+    assert not reason
+
+    # Test zero usage
+    should_recon, reason = should_reconsolidate_image(
+        usage=0.0, size=10 * 1024**3, efficiency_threshold=0.5, max_size_bytes=20 * 1024**3, undersized_ratio=0.25
+    )
+    assert should_recon is False
+    assert not reason
+
+
+def test_group_images_by_usage():
+    """Test group_images_by_usage function."""
+    test_data = [
+        (Path("/image1"), 90.0),  # 75-99%
+        (Path("/image2"), 60.0),  # 50-74%
+        (Path("/image3"), 30.0),  # 25-49%
+        (Path("/image4"), 10.0),  # <25%
+        (Path("/image5"), 75.0),  # 75-99%
+    ]
+
+    grouped = group_images_by_usage(test_data)
+
+    assert len(grouped["75-99%"]) == 2
+    assert len(grouped["50-74%"]) == 1
+    assert len(grouped["25-49%"]) == 1
+    assert len(grouped["<25%"]) == 1
+
+    assert (Path("/image1"), 90.0) in grouped["75-99%"]
+    assert (Path("/image5"), 75.0) in grouped["75-99%"]
+    assert (Path("/image2"), 60.0) in grouped["50-74%"]
+    assert (Path("/image3"), 30.0) in grouped["25-49%"]
+    assert (Path("/image4"), 10.0) in grouped["<25%"]
+
+
+def test_is_item_still_using_image(tmp_path):
+    """Test is_item_still_using_image function."""
+    mount_point = Path("/cefs")
+    image_path = tmp_path / "abc123_consolidated.sqfs"
+    image_path.touch()
+
+    # Test valid target pointing to image
+    target = Path("/cefs/ab/abc123_consolidated/subdir/item")
+    assert is_item_still_using_image(target, image_path, mount_point) is True
+
+    # Test target pointing to different image
+    target = Path("/cefs/de/def456_consolidated/subdir/item")
+    assert is_item_still_using_image(target, image_path, mount_point) is False
+
+    # Test non-CEFS target
+    target = Path("/opt/compiler/gcc")
+    assert is_item_still_using_image(target, image_path, mount_point) is False
+
+    # Test None target
+    assert is_item_still_using_image(None, image_path, mount_point) is False
+
+    # Test target with too few parts
+    target = Path("/cefs/ab")
+    assert is_item_still_using_image(target, image_path, mount_point) is False
+
+
+def test_get_consolidated_item_status():
+    """Test get_consolidated_item_status function."""
+    mount_point = Path("/cefs")
+    image_path = Path("/efs/cefs-images/ab/abc123.sqfs")
+
+    # Test when content has no 'name' field - should return empty string
+    content = {"dest_path": "/opt/compiler-explorer/gcc-15.0.0"}
+    current_target = Path("/cefs/ab/abc123/gcc-15.0.0")
+    status = get_consolidated_item_status(content, image_path, current_target, mount_point)
+    assert not status
+
+    # Test when current target matches image
+    content = {"dest_path": "/opt/compiler-explorer/gcc-15.0.0", "name": "gcc-15.0.0"}
+    current_target = Path("/cefs/ab/abc123/gcc-15.0.0")
+    status = get_consolidated_item_status(content, image_path, current_target, mount_point)
+    assert "✓ gcc-15.0.0" in status
+
+    # Test when current target is different
+    current_target = Path("/cefs/de/def456/gcc-15.0.0")
+    status = get_consolidated_item_status(content, image_path, current_target, mount_point)
+    assert "✗ gcc-15.0.0" in status
+    assert "de/def456/gcc-15.0.0" in status
+
+    # Test when no current target (missing)
+    status = get_consolidated_item_status(content, image_path, None, mount_point)
+    assert "✗ gcc-15.0.0" in status
+    assert "not in CEFS" in status
+
+
+def test_find_small_consolidated_images(tmp_path):
+    """Test find_small_consolidated_images function."""
+    state = CEFSState(Path("/opt"), tmp_path / "cefs-images", Path("/cefs"))
+
+    # Create mock image files
+    cefs_dir = tmp_path / "cefs-images"
+
+    # Small consolidated image (100MB)
+    small_dir = cefs_dir / "ab"
+    small_dir.mkdir(parents=True)
+    small_image = small_dir / "abc123_consolidated.sqfs"
+    small_image.touch()
+
+    # Large consolidated image (2GB)
+    large_dir = cefs_dir / "de"
+    large_dir.mkdir(parents=True)
+    large_image = large_dir / "def456_consolidated.sqfs"
+    large_image.touch()
+
+    # Medium consolidated image (500MB)
+    medium_dir = cefs_dir / "gh"
+    medium_dir.mkdir(parents=True)
+    medium_image = medium_dir / "ghi789_consolidated.sqfs"
+    medium_image.touch()
+
+    # Non-consolidated image (should be ignored)
+    non_consol = small_dir / "xyz999.sqfs"
+    non_consol.touch()
+
+    # Set up state's all_cefs_images
+    state.all_cefs_images = {
+        "abc123_consolidated": small_image,
+        "def456_consolidated": large_image,
+        "ghi789_consolidated": medium_image,
+        "xyz999": non_consol,
+    }
+
+    # Mock the stat calls to return specific sizes
+    def mock_stat_method(self, **kwargs):
+        # Handle .yaml files for manifest checks
+        if str(self).endswith(".yaml"):
+            # Raise FileNotFoundError for manifest files (they don't exist)
+            raise FileNotFoundError(f"No such file: {self}")
+
+        result = Mock()
+        if "abc123" in str(self):
+            result.st_size = 100 * 1024 * 1024  # 100MB
+        elif "def456" in str(self):
+            result.st_size = 2 * 1024 * 1024 * 1024  # 2GB
+        elif "ghi789" in str(self):
+            result.st_size = 500 * 1024 * 1024  # 500MB
+        else:
+            result.st_size = 50 * 1024 * 1024  # 50MB
+        return result
+
+    with patch.object(Path, "stat", mock_stat_method):
+        # Find images smaller than 1GB
+        small_images = find_small_consolidated_images(state, 1024 * 1024 * 1024)
+    assert len(small_images) == 2
+    assert small_image in small_images
+    assert medium_image in small_images
+    assert large_image not in small_images
+    assert non_consol not in small_images
+
+
+def test_extract_candidates_from_manifest(tmp_path):
+    """Test extract_candidates_from_manifest function."""
+
+    # Set up test paths
+    mount_point = Path("/cefs")
+    image_path = Path("/efs/cefs-images/ab/abc123_consolidated.sqfs")
+    nfs_dir = tmp_path / "nfs"
+    nfs_dir.mkdir()
+
+    # Create test state
+    state = CEFSState(nfs_dir, Path("/efs/cefs-images"), mount_point)
+
+    # Create test manifest
+    manifest = {
+        "contents": [
+            {
+                "size": 100 * 1024 * 1024,  # 100MB
+                "destination": str(nfs_dir / "gcc-15.0.0"),
+                "name": "gcc-15.0.0",
+                "source_path": "gcc-15.0.0",
+            },
+            {
+                "size": 50 * 1024 * 1024,  # 50MB
+                "destination": str(nfs_dir / "clang-18.0.0"),
+                "name": "clang-18.0.0",
+                "source_path": "clang-18.0.0",
+            },
+            {
+                "size": 200 * 1024 * 1024,  # 200MB
+                "destination": str(nfs_dir / "rust-1.80.0"),
+                "name": "rust-1.80.0",
+                "source_path": "rust-1.80.0",
+            },
+        ]
+    }
+
+    # Create symlinks for testing
+    gcc_link = nfs_dir / "gcc-15.0.0"
+    gcc_link.symlink_to(mount_point / "ab" / "abc123_consolidated" / "gcc-15.0.0")
+
+    clang_link = nfs_dir / "clang-18.0.0"
+    clang_link.symlink_to(mount_point / "de" / "def456_consolidated" / "clang-18.0.0")  # Different image
+
+    rust_link = nfs_dir / "rust-1.80.0"
+    rust_link.symlink_to(mount_point / "ab" / "abc123_consolidated" / "rust-1.80.0")
+
+    # Test with no filter - should get items still using this image
+    candidates = extract_candidates_from_manifest(manifest, image_path, state, [], 1024 * 1024 * 1024, mount_point)
+
+    # Should have 2 candidates (gcc and rust still pointing to abc123)
+    assert len(candidates) == 2
+    candidate_names = {c.name for c in candidates}
+    assert "gcc-15.0.0" in candidate_names
+    assert "rust-1.80.0" in candidate_names
+    assert "clang-18.0.0" not in candidate_names  # Points to different image
+
+    # Test with filter
+    candidates = extract_candidates_from_manifest(manifest, image_path, state, ["gcc"], 1024 * 1024 * 1024, mount_point)
+    assert len(candidates) == 1
+    assert candidates[0].name == "gcc-15.0.0"
+
+    # Size should be total size divided by number of contents (3 items)
+    # Since it's estimated as size // len(contents)
+    expected_size_per_item = 1024 * 1024 * 1024 // 3
+    assert candidates[0].size == expected_size_per_item
