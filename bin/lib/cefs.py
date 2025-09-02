@@ -274,15 +274,15 @@ def deploy_to_cefs_transactional(
         # If we get here, the context block completed successfully
         finalized = True
     finally:
-        if finalized:
+        if not finalized:
+            _LOGGER.warning("Leaving manifest as .inprogress for debugging: %s", cefs_image_path)
+        else:
             try:
                 finalize_manifest(cefs_image_path)
                 _LOGGER.debug("Finalized manifest for %s", cefs_image_path)
             except Exception as e:
                 _LOGGER.error("Failed to finalize manifest for %s: %s", cefs_image_path, e)
                 # Note: We don't re-raise here because the main operation succeeded
-        else:
-            _LOGGER.warning("Leaving manifest as .inprogress for debugging: %s", cefs_image_path)
 
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_cleanup: bool) -> None:
@@ -1194,43 +1194,25 @@ def calculate_image_usage(
         Usage percentage (0.0 to 100.0)
     """
     filename_stem = image_path.stem
-
-    # Get expected destinations from image_references
     expected_destinations = image_references.get(filename_stem, [])
     if not expected_destinations:
         return 0.0
 
-    # For individual images (single destination), it's binary
-    if len(expected_destinations) == 1:
-        dest_path = expected_destinations[0]
-        # Use the path directly - it's already an absolute path from the manifest
+    # Helper function to check if destination is referenced
+    def is_destination_referenced(dest_path: Path) -> bool:
         full_path = Path(dest_path)
-
-        # Check if either main or .bak symlink points to this image
         main_ref = check_if_symlink_references_image(full_path, filename_stem, mount_point)
-        bak_ref = check_if_symlink_references_image(
-            full_path.with_name(full_path.name + ".bak"), filename_stem, mount_point
-        )
-        if main_ref or bak_ref:
-            return 100.0
-        return 0.0
+        bak_path = full_path.with_name(full_path.name + ".bak")
+        bak_ref = check_if_symlink_references_image(bak_path, filename_stem, mount_point)
+        return main_ref or bak_ref
+
+    # For individual images, it's binary
+    if len(expected_destinations) == 1:
+        return 100.0 if is_destination_referenced(expected_destinations[0]) else 0.0
 
     # For consolidated images, check each subdirectory
-    referenced_count = 0
-    for dest_path in expected_destinations:
-        # Use the path directly - it's already an absolute path from the manifest
-        full_path = Path(dest_path)
-
-        # Check if either main or .bak symlink points to this image
-        main_ref = check_if_symlink_references_image(full_path, filename_stem, mount_point)
-        bak_ref = check_if_symlink_references_image(
-            full_path.with_name(full_path.name + ".bak"), filename_stem, mount_point
-        )
-        if main_ref or bak_ref:
-            referenced_count += 1
-
-    usage_percentage = (referenced_count / len(expected_destinations)) * 100.0
-    return usage_percentage
+    referenced_count = sum(1 for dest in expected_destinations if is_destination_referenced(dest))
+    return (referenced_count / len(expected_destinations)) * 100.0
 
 
 def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount_point: Path) -> bool:
@@ -1281,17 +1263,14 @@ def get_current_symlink_targets(path: Path) -> list[Path]:
     Returns:
         List of symlink targets (empty if no symlinks exist)
     """
-
-    def read_target(p: Path) -> Path | None:
+    targets = []
+    for p in [path, path.with_name(path.name + ".bak")]:
         if p.is_symlink():
             try:
-                return p.readlink()
+                targets.append(p.readlink())
             except OSError:
                 pass
-        return None
-
-    paths_to_check = [path, path.with_name(path.name + ".bak")]
-    return [target for p in paths_to_check if (target := read_target(p)) is not None]
+    return targets
 
 
 def get_consolidated_image_usage_stats(
@@ -1389,8 +1368,7 @@ def is_item_still_using_image(current_target: Path | None, image_path: Path, mou
     Returns:
         True if the target points to this specific image
     """
-    mount_str = str(mount_point) + "/"
-    if not current_target or not str(current_target).startswith(mount_str):
+    if not current_target or not str(current_target).startswith(str(mount_point) + "/"):
         return False
 
     # Get the filename stem from the symlink target
@@ -1399,10 +1377,7 @@ def is_item_still_using_image(current_target: Path | None, image_path: Path, mou
     if len(parts) < 4:
         return False
 
-    target_filename_stem = parts[3]
-    image_filename_stem = image_path.stem
-
-    return target_filename_stem == image_filename_stem
+    return parts[3] == image_path.stem
 
 
 def get_consolidated_item_status(
@@ -1522,10 +1497,11 @@ def determine_extraction_path(targets: list[Path], image_path: Path, mount_point
     Returns:
         Path within the consolidated image to extract from
     """
-    # Find a target that points to this image to get the extraction path
-    image_target = next((t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None)
-    if image_target and len(image_target.parts) > 4:
-        return Path(*image_target.parts[4:])
+    for target in targets:
+        if is_item_still_using_image(target, image_path, mount_point):
+            if len(target.parts) > 4:
+                return Path(*target.parts[4:])
+            break
     return Path(".")
 
 
@@ -1660,26 +1636,25 @@ def validate_space_requirements(groups: list[list[ConsolidationCandidate]], temp
     if not groups:
         return 0, 0
 
-    # Calculate space requirements (5x largest group size since we process sequentially)
-    # The 5x multiplier is a heuristic to account for conservative compression ratios
-    # during extraction and re-compression
+    # Calculate space requirements
     largest_group_size = max(sum(item.size for item in group) for group in groups)
-    required_temp_space = largest_group_size * 5
+    required_temp_space = largest_group_size * 5  # Conservative multiplier for extraction/compression
 
     # Check available space
     temp_dir.mkdir(parents=True, exist_ok=True)
-    if not check_temp_space_available(temp_dir, required_temp_space):
-        if temp_dir.exists():
-            stat = os.statvfs(temp_dir)
-            available = stat.f_bavail * stat.f_frsize
-            raise RuntimeError(
-                f"Insufficient temp space. Required: {humanfriendly.format_size(required_temp_space, binary=True)}, "
-                f"Available: {humanfriendly.format_size(available, binary=True)}"
-            )
-        else:
-            raise RuntimeError(f"Temp directory does not exist: {temp_dir}")
+    if check_temp_space_available(temp_dir, required_temp_space):
+        return required_temp_space, largest_group_size
 
-    return required_temp_space, largest_group_size
+    # Handle insufficient space
+    if not temp_dir.exists():
+        raise RuntimeError(f"Temp directory does not exist: {temp_dir}")
+
+    stat = os.statvfs(temp_dir)
+    available = stat.f_bavail * stat.f_frsize
+    raise RuntimeError(
+        f"Insufficient temp space. Required: {humanfriendly.format_size(required_temp_space, binary=True)}, "
+        f"Available: {humanfriendly.format_size(available, binary=True)}"
+    )
 
 
 def prepare_consolidation_items(
@@ -1798,6 +1773,57 @@ def handle_symlink_updates(
     return updated_symlinks, skipped_symlinks
 
 
+def _deploy_consolidated_image(
+    temp_consolidated_path: Path,
+    cefs_paths: CEFSPaths,
+    manifest: dict,
+    group: list[ConsolidationCandidate],
+    symlink_snapshot: dict[Path, Path],
+    filename: str,
+    mount_point: Path,
+    subdir_mapping: dict[Path, str],
+    defer_backup_cleanup: bool,
+    group_idx: int,
+    dry_run: bool,
+) -> tuple[int, int]:
+    """Deploy consolidated image and update symlinks.
+
+    Args:
+        temp_consolidated_path: Path to temporary consolidated image
+        cefs_paths: CEFS paths for the image
+        manifest: Manifest for the consolidated image
+        group: List of items in the group
+        symlink_snapshot: Snapshot of symlink states
+        filename: CEFS image filename
+        mount_point: CEFS mount point
+        subdir_mapping: Mapping of NFS paths to subdirectories
+        defer_backup_cleanup: Whether to defer cleanup
+        group_idx: Group index for logging
+        dry_run: Whether this is a dry run
+
+    Returns:
+        Tuple of (updated_symlinks, skipped_symlinks)
+    """
+    if cefs_paths.image_path.exists():
+        _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
+        return handle_symlink_updates(
+            group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
+        )
+
+    with deploy_to_cefs_transactional(
+        temp_consolidated_path,
+        cefs_paths.image_path,
+        manifest,
+        dry_run,
+    ):
+        updated, skipped = handle_symlink_updates(
+            group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
+        )
+        if updated:
+            _LOGGER.info("Updated %d symlinks for group %d", updated, group_idx + 1)
+        return updated, skipped
+
+
 def process_consolidation_group(
     group: list[ConsolidationCandidate],
     group_idx: int,
@@ -1861,30 +1887,20 @@ def process_consolidation_group(
         filename = get_cefs_filename_for_image(temp_consolidated_path, "consolidate")
         cefs_paths = get_cefs_paths(image_dir, mount_point, filename)
 
-        # Check if image already exists
-        if cefs_paths.image_path.exists():
-            _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
-            # Still need to update symlinks even if image exists
-            updated_symlinks, skipped_symlinks = handle_symlink_updates(
-                group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
-            )
-            if updated_symlinks:
-                _LOGGER.info("Updated %d symlinks for group %d", updated_symlinks, group_idx + 1)
-        else:
-            # Deploy image and update symlinks within transaction
-            with deploy_to_cefs_transactional(
-                temp_consolidated_path,
-                cefs_paths.image_path,
-                manifest,
-                dry_run,
-            ):
-                # Verify symlinks haven't changed and update them
-                updated_symlinks, skipped_symlinks = handle_symlink_updates(
-                    group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
-                )
-                if updated_symlinks:
-                    _LOGGER.info("Updated %d symlinks for group %d", updated_symlinks, group_idx + 1)
-                # Manifest will be automatically finalized on successful exit
+        # Deploy image and update symlinks
+        updated_symlinks, skipped_symlinks = _deploy_consolidated_image(
+            temp_consolidated_path,
+            cefs_paths,
+            manifest,
+            group,
+            symlink_snapshot,
+            filename,
+            mount_point,
+            subdir_mapping,
+            defer_backup_cleanup,
+            group_idx,
+            dry_run,
+        )
 
         return True, updated_symlinks, skipped_symlinks
 
