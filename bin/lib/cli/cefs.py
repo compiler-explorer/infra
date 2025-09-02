@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-import os
 import shutil
 import subprocess
 import uuid
@@ -20,8 +19,6 @@ from lib.cefs import (
     ConsolidationCandidate,
     backup_and_symlink,
     calculate_image_usage,
-    check_temp_space_available,
-    create_consolidated_image,
     delete_image_with_manifest,
     deploy_to_cefs_transactional,
     detect_nfs_state,
@@ -33,23 +30,22 @@ from lib.cefs import (
     get_cefs_paths,
     get_consolidated_item_status,
     get_current_symlink_targets,
-    get_extraction_path_from_symlink,
     get_image_description,
     group_images_by_usage,
     is_consolidated_image,
     is_item_still_using_image,
+    pack_items_into_groups,
     parse_cefs_target,
+    process_consolidation_group,
     should_reconsolidate_image,
     snapshot_symlink_targets,
-    update_symlinks_for_consolidation,
     validate_cefs_mount_point,
-    verify_symlinks_unchanged,
+    validate_space_requirements,
 )
 from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
     read_manifest_from_alongside,
-    sanitize_path_for_filename,
 )
 from lib.installable.installable import Installable
 
@@ -141,15 +137,15 @@ def cefs():
 
 def _print_basic_config(context: CliContext) -> None:
     """Print basic CEFS and Squashfs configuration."""
-    print("CEFS Configuration:")
-    print(f"  Enabled: {context.config.cefs.enabled}")
-    print(f"  Mount Point: {context.config.cefs.mount_point}")
-    print(f"  Image Directory: {context.config.cefs.image_dir}")
-    print(f"  Local Temp Directory: {context.config.cefs.local_temp_dir}")
-    print("Squashfs Configuration:")
-    print(f"  Traditional Enabled: {context.config.squashfs.traditional_enabled}")
-    print(f"  Compression: {context.config.squashfs.compression}")
-    print(f"  Compression Level: {context.config.squashfs.compression_level}")
+    click.echo("CEFS Configuration:")
+    click.echo(f"  Enabled: {context.config.cefs.enabled}")
+    click.echo(f"  Mount Point: {context.config.cefs.mount_point}")
+    click.echo(f"  Image Directory: {context.config.cefs.image_dir}")
+    click.echo(f"  Local Temp Directory: {context.config.cefs.local_temp_dir}")
+    click.echo("Squashfs Configuration:")
+    click.echo(f"  Traditional Enabled: {context.config.squashfs.traditional_enabled}")
+    click.echo(f"  Compression: {context.config.squashfs.compression}")
+    click.echo(f"  Compression Level: {context.config.squashfs.compression_level}")
 
 
 def _format_verbose_image_details(
@@ -248,8 +244,8 @@ def status(context, show_usage: bool, verbose: bool):
     if not show_usage:
         return
 
-    print("\nCEFS Image Usage Statistics:")
-    print("  Scanning images and checking references...")
+    click.echo("\nCEFS Image Usage Statistics:")
+    click.echo("  Scanning images and checking references...")
 
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
@@ -265,7 +261,7 @@ def status(context, show_usage: bool, verbose: bool):
         stats, state, verbose, context.installation_context.destination, context.config.cefs.mount_point
     )
     for line in output_lines:
-        print(line)
+        click.echo(line)
 
 
 @cefs.command()
@@ -672,12 +668,6 @@ def consolidate(
 
     FILTER can be used to select which items to consolidate (e.g., 'arm' for ARM compilers).
     """
-    # TODO: Future work needed:
-    # 1. Garbage collection of unused CEFS images (images no longer referenced by any symlinks)
-    # 2. Re-consolidation of sparse consolidated images - if we consolidate X,Y,Z but later
-    #    Y and Z are reinstalled individually, the consolidated image only serves X and should
-    #    be considered for re-consolidation with other single-use images.
-    # 3. Refactor this gargantuan function into testable functions.
     if not validate_cefs_mount_point(context.config.cefs.mount_point):
         _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
         raise click.ClickException("CEFS not properly configured")
@@ -759,29 +749,8 @@ def consolidate(
 
     _LOGGER.info("Found %d total CEFS items for consolidation", len(cefs_items))
 
-    # Sort by name for deterministic packing
-    cefs_items.sort(key=lambda x: x.name)
-
     # Pack items into groups
-    groups: list[list[ConsolidationCandidate]] = []
-    current_group: list[ConsolidationCandidate] = []
-    current_size = 0
-
-    for item in cefs_items:
-        if current_size + item.size > max_size_bytes and len(current_group) >= min_items:
-            # Start new group
-            groups.append(current_group)
-            current_group = [item]
-            current_size = item.size
-        else:
-            current_group.append(item)
-            current_size += item.size
-
-    # Add final group if it meets minimum criteria
-    if len(current_group) >= min_items:
-        groups.append(current_group)
-    else:
-        _LOGGER.info("Final group has only %d items (< %d minimum), not consolidating", len(current_group), min_items)
+    groups = pack_items_into_groups(cefs_items, max_size_bytes, min_items)
 
     if not groups:
         _LOGGER.warning("No groups meet consolidation criteria (min %d items, max %s per group)", min_items, max_size)
@@ -789,12 +758,15 @@ def consolidate(
 
     _LOGGER.info("Created %d consolidation groups", len(groups))
 
-    # Calculate space requirements (5x largest group size since we process sequentially)
-    largest_group_size = max(sum(item.size for item in group) for group in groups)
-    total_compressed_size = sum(sum(item.size for item in group) for group in groups)
-    required_temp_space = largest_group_size * 5
+    # Validate space requirements
+    temp_dir = context.config.cefs.local_temp_dir
+    try:
+        required_temp_space, largest_group_size = validate_space_requirements(groups, temp_dir)
+    except RuntimeError as e:
+        raise click.ClickException(str(e)) from e
 
     # Show consolidation plan
+    total_compressed_size = sum(sum(item.size for item in group) for group in groups)
     for i, group in enumerate(groups):
         group_size = sum(item.size for item in group)
         _LOGGER.info(
@@ -810,23 +782,6 @@ def consolidate(
         humanfriendly.format_size(required_temp_space, binary=True),
         humanfriendly.format_size(largest_group_size, binary=True),
     )
-
-    # Check available space
-    temp_dir = context.config.cefs.local_temp_dir
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    if not check_temp_space_available(temp_dir, required_temp_space):
-        available_stat = temp_dir.stat() if temp_dir.exists() else None
-        if available_stat:
-            stat = os.statvfs(temp_dir)
-            available = stat.f_bavail * stat.f_frsize
-            _LOGGER.error(
-                "Insufficient temp space. Required: %s, Available: %s",
-                humanfriendly.format_size(required_temp_space, binary=True),
-                humanfriendly.format_size(available, binary=True),
-            )
-        else:
-            _LOGGER.error("Temp directory does not exist: %s", temp_dir)
-        raise click.ClickException("Insufficient disk space for consolidation")
 
     if context.installation_context.dry_run:
         _LOGGER.info("DRY RUN: Would consolidate %d groups", len(groups))
@@ -850,133 +805,26 @@ def consolidate(
     for group_idx, group in enumerate(groups):
         _LOGGER.info("Processing group %d/%d (%d items)", group_idx + 1, len(groups), len(group))
 
-        try:
-            # Create temp directory for this group
-            group_temp_dir = consolidation_dir / "extract"
-            group_temp_dir.mkdir(parents=True, exist_ok=True)
+        success, updated, skipped = process_consolidation_group(
+            group,
+            group_idx,
+            context.config.squashfs,
+            context.config.cefs,
+            context.config.cefs.mount_point,
+            context.config.cefs.image_dir,
+            symlink_snapshot,
+            consolidation_dir,
+            defer_backup_cleanup,
+            max_parallel_extractions,
+            context.installation_context.dry_run,
+        )
 
-            # Prepare items for consolidation - follow symlinks to determine extraction paths
-            items_for_consolidation = []
-            subdir_mapping = {}
-
-            for item in group:
-                # Use the installable name as subdirectory name (sanitized for filesystem)
-                subdir_name = sanitize_path_for_filename(Path(item.name))
-
-                # For reconsolidation items, we already have the extraction path
-                if item.from_reconsolidation:
-                    extraction_path = item.extraction_path
-                    _LOGGER.debug(
-                        "For reconsolidation item %s: using extraction path %s",
-                        item.name,
-                        extraction_path,
-                    )
-                else:
-                    symlink_target = item.nfs_path.readlink()
-                    extraction_path = get_extraction_path_from_symlink(symlink_target, context.config.cefs.mount_point)
-                    _LOGGER.debug(
-                        "For %s: symlink %s -> %s, extracting %s",
-                        item.name,
-                        item.nfs_path,
-                        symlink_target,
-                        extraction_path,
-                    )
-
-                items_for_consolidation.append((item.nfs_path, item.squashfs_path, subdir_name, extraction_path))
-                subdir_mapping[item.nfs_path] = subdir_name
-
-            contents = [create_installable_manifest_entry(item.name, item.nfs_path) for item in group]
-
-            manifest = create_manifest(
-                operation="consolidate",
-                description=f"Created through consolidation of {len(group)} items: "
-                + ", ".join(item.name for item in group),
-                contents=contents,
-            )
-
-            # Create temporary consolidated image with manifest
-            temp_consolidated_path = group_temp_dir / "consolidated.sqfs"
-
-            # First create basic consolidated image, then add manifest
-            create_consolidated_image(
-                context.config.squashfs,
-                items_for_consolidation,
-                group_temp_dir,
-                temp_consolidated_path,
-                max_parallel_extractions,
-            )
-
-            filename = get_cefs_filename_for_image(temp_consolidated_path, "consolidate")
-            cefs_paths = get_cefs_paths(context.config.cefs.image_dir, context.config.cefs.mount_point, filename)
-
-            if cefs_paths.image_path.exists():
-                _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
-                # Still need to update symlinks even if image exists
-                group_symlinks = [item.nfs_path for item in group]
-                group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
-                unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
-
-                if changed_symlinks:
-                    _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
-                    for symlink in changed_symlinks:
-                        _LOGGER.warning("  - %s", symlink)
-                    total_skipped_symlinks += len(changed_symlinks)
-
-                if unchanged_symlinks:
-                    update_symlinks_for_consolidation(
-                        unchanged_symlinks,
-                        filename,
-                        context.config.cefs.mount_point,
-                        subdir_mapping,
-                        defer_backup_cleanup,
-                    )
-                    total_updated_symlinks += len(unchanged_symlinks)
-                    _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
-            else:
-                # Deploy image and update symlinks within transaction
-                with deploy_to_cefs_transactional(
-                    temp_consolidated_path,
-                    cefs_paths.image_path,
-                    manifest,
-                    context.installation_context.dry_run,
-                ):
-                    # Verify symlinks haven't changed and update them
-                    group_symlinks = [item.nfs_path for item in group]
-                    group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
-                    unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
-
-                    if changed_symlinks:
-                        _LOGGER.warning(
-                            "Skipping %d symlinks that changed during consolidation:", len(changed_symlinks)
-                        )
-                        for symlink in changed_symlinks:
-                            _LOGGER.warning("  - %s", symlink)
-                        total_skipped_symlinks += len(changed_symlinks)
-
-                    if unchanged_symlinks:
-                        update_symlinks_for_consolidation(
-                            unchanged_symlinks,
-                            filename,
-                            context.config.cefs.mount_point,
-                            subdir_mapping,
-                            defer_backup_cleanup,
-                        )
-                        total_updated_symlinks += len(unchanged_symlinks)
-                        _LOGGER.info("Updated %d symlinks for group %d", len(unchanged_symlinks), group_idx + 1)
-                    # Manifest will be automatically finalized on successful exit
-
+        if success:
             successful_groups += 1
-
-        except RuntimeError as e:
-            group_items = ", ".join(item.name for item in group)
-            _LOGGER.error("Failed to consolidate group %d (%s): %s", group_idx + 1, group_items, e)
-            _LOGGER.debug("Full error details:", exc_info=True)
+            total_updated_symlinks += updated
+            total_skipped_symlinks += skipped
+        else:
             failed_groups += 1
-
-        finally:
-            # Clean up group temp directory
-            if group_temp_dir.exists():
-                shutil.rmtree(group_temp_dir)
 
     _LOGGER.info("Consolidation complete:")
     _LOGGER.info("  Successful groups: %d", successful_groups)

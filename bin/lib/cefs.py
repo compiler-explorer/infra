@@ -20,9 +20,12 @@ import humanfriendly
 import yaml
 
 from .cefs_manifest import (
+    create_installable_manifest_entry,
+    create_manifest,
     finalize_manifest,
     generate_cefs_filename,
     read_manifest_from_alongside,
+    sanitize_path_for_filename,
     write_manifest_inprogress,
 )
 from .config import SquashfsConfig
@@ -1538,3 +1541,253 @@ def extract_candidates_from_manifest(
         )
 
     return candidates
+
+
+def pack_items_into_groups(
+    items: list[ConsolidationCandidate], max_size_bytes: int, min_items: int
+) -> list[list[ConsolidationCandidate]]:
+    """Pack consolidation candidates into groups based on size and count constraints.
+
+    Args:
+        items: List of items to pack into groups
+        max_size_bytes: Maximum size per group in bytes
+        min_items: Minimum number of items per group
+
+    Returns:
+        List of groups, where each group is a list of ConsolidationCandidate
+    """
+    # Sort by name for deterministic packing
+    sorted_items = sorted(items, key=lambda x: x.name)
+
+    groups: list[list[ConsolidationCandidate]] = []
+    current_group: list[ConsolidationCandidate] = []
+    current_size = 0
+
+    for item in sorted_items:
+        if current_size + item.size > max_size_bytes and len(current_group) >= min_items:
+            # Start new group
+            groups.append(current_group)
+            current_group = [item]
+            current_size = item.size
+        else:
+            current_group.append(item)
+            current_size += item.size
+
+    # Add final group if it meets minimum criteria
+    if len(current_group) >= min_items:
+        groups.append(current_group)
+    elif current_group:
+        _LOGGER.info(
+            "Final group has only %d items (< %d minimum), not consolidating",
+            len(current_group),
+            min_items,
+        )
+
+    return groups
+
+
+def validate_space_requirements(groups: list[list[ConsolidationCandidate]], temp_dir: Path) -> tuple[int, int]:
+    """Validate that there's enough space for consolidation.
+
+    Args:
+        groups: List of consolidation groups
+        temp_dir: Temporary directory to check space for
+
+    Returns:
+        Tuple of (required_space, largest_group_size)
+
+    Raises:
+        RuntimeError: If insufficient space is available
+    """
+    if not groups:
+        return 0, 0
+
+    # Calculate space requirements (5x largest group size since we process sequentially)
+    largest_group_size = max(sum(item.size for item in group) for group in groups)
+    required_temp_space = largest_group_size * 5
+
+    # Check available space
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    if not check_temp_space_available(temp_dir, required_temp_space):
+        if temp_dir.exists():
+            stat = os.statvfs(temp_dir)
+            available = stat.f_bavail * stat.f_frsize
+            raise RuntimeError(
+                f"Insufficient temp space. Required: {humanfriendly.format_size(required_temp_space, binary=True)}, "
+                f"Available: {humanfriendly.format_size(available, binary=True)}"
+            )
+        else:
+            raise RuntimeError(f"Temp directory does not exist: {temp_dir}")
+
+    return required_temp_space, largest_group_size
+
+
+def process_consolidation_group(
+    group: list[ConsolidationCandidate],
+    group_idx: int,
+    squashfs_config: Any,
+    cefs_config: Any,
+    mount_point: Path,
+    image_dir: Path,
+    symlink_snapshot: dict[Path, Path],
+    consolidation_dir: Path,
+    defer_backup_cleanup: bool,
+    max_parallel_extractions: int | None,
+    dry_run: bool = False,
+) -> tuple[bool, int, int]:
+    """Process a single consolidation group.
+
+    Args:
+        group: List of items to consolidate
+        group_idx: Index of this group (for logging)
+        squashfs_config: Squashfs configuration object
+        cefs_config: CEFS configuration object
+        mount_point: CEFS mount point
+        image_dir: CEFS image directory
+        symlink_snapshot: Snapshot of symlink states before consolidation
+        consolidation_dir: Directory for consolidation temp files
+        defer_backup_cleanup: Whether to defer cleanup of .bak symlinks
+        max_parallel_extractions: Maximum parallel extractions
+        dry_run: Whether this is a dry run
+
+    Returns:
+        Tuple of (success, updated_symlinks, skipped_symlinks)
+    """
+    _LOGGER.info("Processing group %d (%d items)", group_idx + 1, len(group))
+
+    updated_symlinks = 0
+    skipped_symlinks = 0
+    group_temp_dir = consolidation_dir / "extract"
+
+    try:
+        # Create temp directory for this group
+        group_temp_dir.mkdir(parents=True, exist_ok=True)
+
+        # Prepare items for consolidation
+        items_for_consolidation = []
+        subdir_mapping = {}
+
+        for item in group:
+            # Use the installable name as subdirectory name (sanitized for filesystem)
+            subdir_name = sanitize_path_for_filename(Path(item.name))
+
+            # For reconsolidation items, we already have the extraction path
+            if item.from_reconsolidation:
+                extraction_path = item.extraction_path
+                _LOGGER.debug(
+                    "For reconsolidation item %s: using extraction path %s",
+                    item.name,
+                    extraction_path,
+                )
+            else:
+                try:
+                    symlink_target = item.nfs_path.readlink()
+                    extraction_path = get_extraction_path_from_symlink(symlink_target, mount_point)
+                    _LOGGER.debug(
+                        "For %s: symlink %s -> %s, extracting %s",
+                        item.name,
+                        item.nfs_path,
+                        symlink_target,
+                        extraction_path,
+                    )
+                except OSError as e:
+                    _LOGGER.warning("Failed to read symlink %s: %s", item.nfs_path, e)
+                    continue
+
+            items_for_consolidation.append((item.nfs_path, item.squashfs_path, subdir_name, extraction_path))
+            subdir_mapping[item.nfs_path] = subdir_name
+
+        if not items_for_consolidation:
+            _LOGGER.warning("No valid items to consolidate in group %d", group_idx + 1)
+            return False, 0, 0
+
+        # Create manifest
+        contents = [create_installable_manifest_entry(item.name, item.nfs_path) for item in group]
+        manifest = create_manifest(
+            operation="consolidate",
+            description=f"Created through consolidation of {len(group)} items: "
+            + ", ".join(item.name for item in group),
+            contents=contents,
+        )
+
+        # Create temporary consolidated image
+        temp_consolidated_path = group_temp_dir / "consolidated.sqfs"
+        create_consolidated_image(
+            squashfs_config,
+            items_for_consolidation,
+            group_temp_dir,
+            temp_consolidated_path,
+            max_parallel_extractions,
+        )
+
+        # Get CEFS paths for the image
+        filename = get_cefs_filename_for_image(temp_consolidated_path, "consolidate")
+        cefs_paths = get_cefs_paths(image_dir, mount_point, filename)
+
+        # Check if image already exists
+        if cefs_paths.image_path.exists():
+            _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
+            # Still need to update symlinks even if image exists
+            group_symlinks = [item.nfs_path for item in group]
+            group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
+            unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
+
+            if changed_symlinks:
+                _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
+                for symlink in changed_symlinks:
+                    _LOGGER.warning("  - %s", symlink)
+                skipped_symlinks = len(changed_symlinks)
+
+            if unchanged_symlinks:
+                update_symlinks_for_consolidation(
+                    unchanged_symlinks,
+                    filename,
+                    mount_point,
+                    subdir_mapping,
+                    defer_backup_cleanup,
+                )
+                updated_symlinks = len(unchanged_symlinks)
+                _LOGGER.info("Updated %d symlinks for group %d", updated_symlinks, group_idx + 1)
+        else:
+            # Deploy image and update symlinks within transaction
+            with deploy_to_cefs_transactional(
+                temp_consolidated_path,
+                cefs_paths.image_path,
+                manifest,
+                dry_run,
+            ):
+                # Verify symlinks haven't changed and update them
+                group_symlinks = [item.nfs_path for item in group]
+                group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
+                unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
+
+                if changed_symlinks:
+                    _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
+                    for symlink in changed_symlinks:
+                        _LOGGER.warning("  - %s", symlink)
+                    skipped_symlinks = len(changed_symlinks)
+
+                if unchanged_symlinks:
+                    update_symlinks_for_consolidation(
+                        unchanged_symlinks,
+                        filename,
+                        mount_point,
+                        subdir_mapping,
+                        defer_backup_cleanup,
+                    )
+                    updated_symlinks = len(unchanged_symlinks)
+                    _LOGGER.info("Updated %d symlinks for group %d", updated_symlinks, group_idx + 1)
+                # Manifest will be automatically finalized on successful exit
+
+        return True, updated_symlinks, skipped_symlinks
+
+    except RuntimeError as e:
+        group_items = ", ".join(item.name for item in group)
+        _LOGGER.error("Failed to consolidate group %d (%s): %s", group_idx + 1, group_items, e)
+        _LOGGER.debug("Full error details:", exc_info=True)
+        return False, 0, 0
+
+    finally:
+        # Clean up group temp directory
+        if group_temp_dir.exists():
+            shutil.rmtree(group_temp_dir)

@@ -12,6 +12,7 @@ import yaml
 from lib.cefs import (
     CEFSPaths,
     CEFSState,
+    ConsolidationCandidate,
     calculate_image_usage,
     check_if_symlink_references_image,
     check_temp_space_available,
@@ -34,9 +35,11 @@ from lib.cefs import (
     has_enough_space,
     is_consolidated_image,
     is_item_still_using_image,
+    pack_items_into_groups,
     parse_cefs_target,
     should_reconsolidate_image,
     snapshot_symlink_targets,
+    validate_space_requirements,
     verify_symlinks_unchanged,
 )
 from lib.cefs_manifest import (
@@ -1866,3 +1869,137 @@ def test_extract_candidates_from_manifest(tmp_path):
     # Since it's estimated as size // len(contents)
     expected_size_per_item = 1024 * 1024 * 1024 // 3
     assert candidates[0].size == expected_size_per_item
+
+
+def test_pack_items_into_groups():
+    """Test pack_items_into_groups function."""
+    # Create test candidates with varying sizes
+    candidates = [
+        ConsolidationCandidate(
+            name="gcc-15.0.0",
+            nfs_path=Path("/opt/gcc-15.0.0"),
+            squashfs_path=Path("/efs/gcc.sqfs"),
+            size=500 * 1024 * 1024,  # 500MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+        ConsolidationCandidate(
+            name="clang-18.0.0",
+            nfs_path=Path("/opt/clang-18.0.0"),
+            squashfs_path=Path("/efs/clang.sqfs"),
+            size=400 * 1024 * 1024,  # 400MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+        ConsolidationCandidate(
+            name="rust-1.80.0",
+            nfs_path=Path("/opt/rust-1.80.0"),
+            squashfs_path=Path("/efs/rust.sqfs"),
+            size=300 * 1024 * 1024,  # 300MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+        ConsolidationCandidate(
+            name="go-1.21.0",
+            nfs_path=Path("/opt/go-1.21.0"),
+            squashfs_path=Path("/efs/go.sqfs"),
+            size=200 * 1024 * 1024,  # 200MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+    ]
+
+    # Test packing with 1GB max size and min 2 items
+    groups = pack_items_into_groups(candidates, 1024 * 1024 * 1024, 2)
+
+    # Should create 2 groups: [clang, gcc] and [go, rust]
+    # Items are sorted by name, so order is: clang, gcc, go, rust
+    assert len(groups) == 2
+
+    # First group: clang (400MB) + gcc (500MB) = 900MB
+    assert len(groups[0]) == 2
+    assert groups[0][0].name == "clang-18.0.0"
+    assert groups[0][1].name == "gcc-15.0.0"
+
+    # Second group: go (200MB) + rust (300MB) = 500MB
+    assert len(groups[1]) == 2
+    assert groups[1][0].name == "go-1.21.0"
+    assert groups[1][1].name == "rust-1.80.0"
+
+    # Test with higher minimum - with 3 min items and 1GB limit
+    groups = pack_items_into_groups(candidates, 1024 * 1024 * 1024, 3)
+    # clang (400) + gcc (500) + go (200) = 1100MB > 1024MB
+    # But the algorithm tries: clang + gcc = 900MB, then adds go = 1100MB > limit
+    # So it starts new group with go, but go + rust = 500MB < 3 items minimum
+    # Actually, clang + gcc + go fits just over 1GB, but clang + go + rust = 900MB works
+    assert len(groups) == 1  # Only one group meets the 3-item minimum
+    assert len(groups[0]) == 3
+
+    # Test with smaller max size
+    groups = pack_items_into_groups(candidates, 600 * 1024 * 1024, 1)
+    # Each item except go+rust can form its own group
+    assert len(groups) >= 3
+
+
+def test_validate_space_requirements(tmp_path):
+    """Test validate_space_requirements function."""
+    # Create test groups
+    group1 = [
+        ConsolidationCandidate(
+            name="item1",
+            nfs_path=Path("/opt/item1"),
+            squashfs_path=Path("/efs/item1.sqfs"),
+            size=100 * 1024 * 1024,  # 100MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+        ConsolidationCandidate(
+            name="item2",
+            nfs_path=Path("/opt/item2"),
+            squashfs_path=Path("/efs/item2.sqfs"),
+            size=200 * 1024 * 1024,  # 200MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+    ]
+
+    group2 = [
+        ConsolidationCandidate(
+            name="item3",
+            nfs_path=Path("/opt/item3"),
+            squashfs_path=Path("/efs/item3.sqfs"),
+            size=150 * 1024 * 1024,  # 150MB
+            extraction_path=Path("."),
+            from_reconsolidation=False,
+        ),
+    ]
+
+    groups = [group1, group2]
+
+    # Test with sufficient space
+    temp_dir = tmp_path / "temp"
+    temp_dir.mkdir()
+
+    # Mock the space check to succeed
+    with patch("lib.cefs.check_temp_space_available", return_value=True):
+        required, largest = validate_space_requirements(groups, temp_dir)
+        # Group1 is largest: 300MB, so required = 300MB * 5 = 1.5GB
+        assert largest == 300 * 1024 * 1024
+        assert required == 300 * 1024 * 1024 * 5
+
+    # Test with insufficient space
+    with patch("lib.cefs.check_temp_space_available", return_value=False):
+        with patch("os.statvfs") as mock_statvfs:
+            mock_stat = Mock()
+            mock_stat.f_bavail = 1024  # blocks available
+            mock_stat.f_frsize = 1024  # block size
+            mock_statvfs.return_value = mock_stat
+
+            with pytest.raises(RuntimeError) as exc_info:
+                validate_space_requirements(groups, temp_dir)
+            assert "Insufficient temp space" in str(exc_info.value)
+
+    # Test with empty groups
+    required, largest = validate_space_requirements([], temp_dir)
+    assert required == 0
+    assert largest == 0
