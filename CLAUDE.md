@@ -32,6 +32,7 @@ When writing, especially PRs and commit messages:
 - For comprehensive validation, run `make static-checks` before committing (includes all linting and type checking)
 - If static checks fail, fix the issues before committing to avoid CI failures
 - **Critical**: After fixing any issues, run `make static-checks` AGAIN. Repeat until it passes completely. Only commit when `make static-checks` runs with zero errors.
+- If a python lint fails **DO NOT DISABLE IT**. The lint rules are there for a reason. You **MUST NOT** override them with `noqa` or similar. If you have no choice **YOU MUST GET EXPLICIT APPROVAL FROM THE USER**.
 
 ### Correct Commit Workflow
 
