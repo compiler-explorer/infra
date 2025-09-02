@@ -9,7 +9,9 @@ import logging
 import os
 import shutil
 import tempfile
+from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -18,8 +20,12 @@ import humanfriendly
 import yaml
 
 from .cefs_manifest import (
+    create_installable_manifest_entry,
+    create_manifest,
+    finalize_manifest,
     generate_cefs_filename,
     read_manifest_from_alongside,
+    sanitize_path_for_filename,
     write_manifest_inprogress,
 )
 from .config import SquashfsConfig
@@ -34,6 +40,18 @@ class CEFSPaths:
 
     image_path: Path
     mount_path: Path
+
+
+@dataclass
+class ConsolidationCandidate:
+    """Represents an item that can be consolidated."""
+
+    name: str
+    nfs_path: Path
+    squashfs_path: Path
+    size: int
+    extraction_path: Path = Path(".")
+    from_reconsolidation: bool = False
 
 
 def get_cefs_image_path(image_dir: Path, filename: str) -> Path:
@@ -208,25 +226,63 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
         raise
 
 
-def deploy_to_cefs_with_manifest(source_path: Path, cefs_image_path: Path, manifest: dict) -> None:
-    """Deploy an image to CEFS with its manifest.
+@contextmanager
+def deploy_to_cefs_transactional(
+    source_path: Path, cefs_image_path: Path, manifest: dict, dry_run: bool = False
+) -> Generator[Path, None, None]:
+    """Deploy an image to CEFS with automatic manifest finalization.
+
+    This context manager ensures the manifest is properly finalized on success,
+    or left as .inprogress on failure for debugging. This prevents the common
+    mistake of forgetting to call finalize_manifest().
 
     Uses .yaml.inprogress pattern to prevent race conditions:
     1. Copy squashfs image atomically
     2. Write manifest as .yaml.inprogress (operation incomplete)
-    3. Caller creates symlinks
-    4. Caller must call finalize_manifest() after symlinks are created
+    3. Caller creates symlinks within the context
+    4. Manifest is automatically finalized on successful exit
 
     Args:
         source_path: Source squashfs image to deploy
         cefs_image_path: Target path in CEFS images directory
         manifest: Manifest dictionary to write alongside the image
+        dry_run: If True, skip actual deployment (for testing)
+
+    Yields:
+        Path to the deployed CEFS image
 
     Raises:
-        Exception: If deployment fails (all files are cleaned up)
+        Exception: If deployment fails (manifest remains .inprogress)
+
+    Example:
+        with deploy_to_cefs_transactional(source, target, manifest, dry_run) as image_path:
+            create_symlinks(...)
+            # Manifest is automatically finalized here on success
     """
+    if dry_run:
+        _LOGGER.info("DRY RUN: Would deploy %s to %s", source_path, cefs_image_path)
+        yield cefs_image_path
+        return
+
+    # Deploy the image and write .inprogress manifest
     copy_to_cefs_atomically(source_path, cefs_image_path)
     write_manifest_inprogress(manifest, cefs_image_path)
+
+    finalized = False
+    try:
+        yield cefs_image_path
+        # If we get here, the context block completed successfully
+        finalized = True
+    finally:
+        if not finalized:
+            _LOGGER.warning("Leaving manifest as .inprogress for debugging: %s", cefs_image_path)
+        else:
+            try:
+                finalize_manifest(cefs_image_path)
+                _LOGGER.debug("Finalized manifest for %s", cefs_image_path)
+            except Exception as e:
+                _LOGGER.error("Failed to finalize manifest for %s: %s", cefs_image_path, e)
+                # Note: We don't re-raise here because the main operation succeeded
 
 
 def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_cleanup: bool) -> None:
@@ -408,15 +464,8 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
 
         extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
 
-        # Measure extracted size - need to reimplement get_directory_size here
-        total_size = 0
-        try:
-            for item in subdir_path.rglob("*"):
-                if item.is_file() and not item.is_symlink():
-                    total_size += item.stat().st_size
-        except OSError as e:
-            logger.warning("Error calculating directory size for %s: %s", subdir_path, e)
-        extracted_size = total_size
+        # Measure extracted size
+        extracted_size = get_directory_size(subdir_path)
 
         compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
 
@@ -901,6 +950,111 @@ class CEFSState:
             space_to_reclaim=space_to_reclaim,
         )
 
+    def get_usage_stats(self) -> ImageUsageStats:
+        """Get detailed usage statistics for all CEFS images.
+
+        Returns:
+            ImageUsageStats with detailed usage breakdown
+        """
+        return get_consolidated_image_usage_stats(self)
+
+    def _analyze_consolidated_image(self, image_path: Path) -> tuple[float, int] | None:
+        """Analyze a consolidated image to get its usage and size.
+
+        Args:
+            image_path: Path to the consolidated image
+
+        Returns:
+            Tuple of (usage_percentage, size_bytes) or None if analysis fails
+        """
+        _LOGGER.debug("Checking consolidated image: %s", image_path.name)
+
+        usage = calculate_image_usage(image_path, self.image_references, self.nfs_dir, self.mount_point)
+
+        try:
+            size = image_path.stat().st_size
+        except OSError:
+            return None
+
+        return usage, size
+
+    def _process_image_manifest(self, image_path: Path, size: int, filter_: list[str]) -> list[ConsolidationCandidate]:
+        """Process manifest for a consolidated image and extract candidates.
+
+        Args:
+            image_path: Path to the consolidated image
+            size: Size of the image in bytes
+            filter_: Optional filter for selecting items
+
+        Returns:
+            List of candidates from this image, or empty list if processing fails
+        """
+        manifest = read_manifest_from_alongside(image_path)
+        if not manifest or "contents" not in manifest:
+            _LOGGER.warning("Cannot reconsolidate %s: no manifest", image_path.name)
+            return []
+
+        return extract_candidates_from_manifest(manifest, image_path, self, filter_, size, self.mount_point)
+
+    def gather_reconsolidation_candidates(
+        self,
+        efficiency_threshold: float,
+        max_size_bytes: int,
+        undersized_ratio: float,
+        filter_: list[str],
+    ) -> list[ConsolidationCandidate]:
+        """Gather candidates from existing consolidated images for reconsolidation.
+
+        This method analyzes all consolidated images and identifies items that should
+        be repacked based on efficiency and size criteria.
+
+        Args:
+            efficiency_threshold: Minimum efficiency to keep consolidated image (0.0-1.0)
+            max_size_bytes: Maximum size for consolidated images in bytes
+            undersized_ratio: Ratio to determine undersized images
+            filter_: Optional filter for selecting items
+
+        Returns:
+            List of candidate items from consolidated images that should be repacked
+        """
+        candidates = []
+
+        for _filename_stem, image_path in self.all_cefs_images.items():
+            if not is_consolidated_image(image_path):
+                continue
+
+            analysis = self._analyze_consolidated_image(image_path)
+            if not analysis:
+                continue
+            usage, size = analysis
+
+            _LOGGER.debug(
+                "Image %s: usage=%.1f%%, size=%s (undersized threshold=%s)",
+                image_path.name,
+                usage,
+                humanfriendly.format_size(size, binary=True),
+                humanfriendly.format_size(max_size_bytes * undersized_ratio, binary=True),
+            )
+
+            should_reconsolidate, reason = should_reconsolidate_image(
+                usage=usage,
+                size=size,
+                efficiency_threshold=efficiency_threshold,
+                max_size_bytes=max_size_bytes,
+                undersized_ratio=undersized_ratio,
+            )
+
+            if not should_reconsolidate:
+                _LOGGER.debug("Image %s not marked for reconsolidation", image_path.name)
+                continue
+
+            _LOGGER.info("Consolidated image %s marked for reconsolidation: %s", image_path.name, reason)
+
+            image_candidates = self._process_image_manifest(image_path, size, filter_)
+            candidates.extend(image_candidates)
+
+        return candidates
+
 
 def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) -> Path:
     """Determine what to extract from a CEFS image based on symlink target.
@@ -1091,3 +1245,774 @@ def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
             # This is non-fatal - image was deleted
 
     return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)
+
+
+def is_consolidated_image(image_path: Path) -> bool:
+    """Check if a CEFS image is a consolidated image.
+
+    Consolidated images have 'consolidated' in their filename or contain
+    multiple subdirectories when mounted.
+
+    Args:
+        image_path: Path to the CEFS image
+
+    Returns:
+        True if this is a consolidated image, False otherwise
+    """
+    # Check filename pattern first (fast)
+    if "_consolidated" in image_path.name:
+        return True
+
+    # Check manifest for multiple contents (also fast)
+    try:
+        manifest = read_manifest_from_alongside(image_path)
+        if manifest and "contents" in manifest:
+            return len(manifest["contents"]) > 1
+    except (OSError, yaml.YAMLError):
+        pass
+
+    return False
+
+
+def calculate_image_usage(
+    image_path: Path, image_references: dict[str, list[Path]], nfs_dir: Path, mount_point: Path
+) -> float:
+    """Calculate usage percentage for a CEFS image.
+
+    For individual images: 100% if referenced, 0% if not
+    For consolidated images: percentage of subdirectories still referenced
+
+    Args:
+        image_path: Path to the CEFS image
+        image_references: Dict mapping image stems to expected destinations
+        nfs_dir: Base NFS directory
+
+    Returns:
+        Usage percentage (0.0 to 100.0)
+    """
+    filename_stem = image_path.stem
+    expected_destinations = image_references.get(filename_stem, [])
+    if not expected_destinations:
+        return 0.0
+
+    # Helper function to check if destination is referenced
+    def is_destination_referenced(dest_path: Path) -> bool:
+        full_path = Path(dest_path)
+        main_ref = check_if_symlink_references_image(full_path, filename_stem, mount_point)
+        bak_path = full_path.with_name(full_path.name + ".bak")
+        bak_ref = check_if_symlink_references_image(bak_path, filename_stem, mount_point)
+        return main_ref or bak_ref
+
+    # For individual images, it's binary
+    if len(expected_destinations) == 1:
+        return 100.0 if is_destination_referenced(expected_destinations[0]) else 0.0
+
+    # For consolidated images, check each subdirectory
+    referenced_count = sum(1 for dest in expected_destinations if is_destination_referenced(dest))
+    return (referenced_count / len(expected_destinations)) * 100.0
+
+
+def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount_point: Path) -> bool:
+    if not symlink_path.is_symlink():
+        return False
+
+    try:
+        target = symlink_path.readlink()
+        if target.is_absolute() and target.is_relative_to(mount_point):
+            mount_parts_len = len(mount_point.parts)
+            parts = target.parts
+            if len(parts) >= mount_parts_len + 2:
+                # The directory name is at index mount_parts_len + 1
+                # e.g., for /cefs/0d/0d163f7f3ee984e50fd7d14f_consolidated/subdir
+                # parts[mount_parts_len + 1] is "0d163f7f3ee984e50fd7d14f_consolidated"
+                target_dir = parts[mount_parts_len + 1]
+                return target_dir == image_stem
+    except (OSError, IndexError):
+        pass
+
+    return False
+
+
+@dataclass
+class ImageUsageStats:
+    """Statistics about CEFS image usage."""
+
+    total_images: int
+    individual_images: int
+    consolidated_images: int
+    fully_used_consolidated: int
+    partially_used_consolidated: list[tuple[Path, float]]  # (path, usage_percentage)
+    unused_images: list[Path]
+    total_space: int
+    wasted_space_estimate: int
+
+
+def get_current_symlink_targets(path: Path) -> list[Path]:
+    """Get symlink targets for a path and its .bak backup if they exist.
+
+    During CEFS operations, directories are moved to .bak before creating symlinks.
+    Both the main path and backup could reference CEFS images, especially after
+    re-conversions or with deferred cleanup.
+
+    Args:
+        path: The path to check
+
+    Returns:
+        List of symlink targets (empty if no symlinks exist)
+    """
+    targets = []
+    for p in [path, path.with_name(path.name + ".bak")]:
+        if p.is_symlink():
+            try:
+                targets.append(p.readlink())
+            except OSError:
+                pass
+    return targets
+
+
+def get_consolidated_image_usage_stats(
+    state: CEFSState,
+) -> ImageUsageStats:
+    """Calculate detailed usage statistics for CEFS images.
+
+    Args:
+        state: CEFSState object with image information
+
+    Returns:
+        ImageUsageStats with detailed breakdown
+    """
+    individual_images = 0
+    consolidated_images = 0
+    fully_used_consolidated = 0
+    partially_used_consolidated = []
+    unused_images = []
+    total_space = 0
+    wasted_space_estimate = 0
+
+    for _filename_stem, image_path in state.all_cefs_images.items():
+        try:
+            size = image_path.stat().st_size
+            total_space += size
+        except OSError:
+            size = 0
+
+        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir, state.mount_point)
+
+        if is_consolidated_image(image_path):
+            consolidated_images += 1
+            if usage == 100.0:
+                fully_used_consolidated += 1
+            elif usage > 0:
+                partially_used_consolidated.append((image_path, usage))
+                # Estimate wasted space as the unused portion
+                wasted_space_estimate += int(size * (100 - usage) / 100)
+            else:
+                unused_images.append(image_path)
+                wasted_space_estimate += size
+        else:
+            individual_images += 1
+            if usage == 0:
+                unused_images.append(image_path)
+                wasted_space_estimate += size
+
+    # Sort partially used by usage percentage
+    partially_used_consolidated.sort(key=lambda x: x[1])
+
+    return ImageUsageStats(
+        total_images=len(state.all_cefs_images),
+        individual_images=individual_images,
+        consolidated_images=consolidated_images,
+        fully_used_consolidated=fully_used_consolidated,
+        partially_used_consolidated=partially_used_consolidated,
+        unused_images=unused_images,
+        total_space=total_space,
+        wasted_space_estimate=wasted_space_estimate,
+    )
+
+
+def group_images_by_usage(partially_used: list[tuple[Path, float]]) -> dict[str, list[tuple[Path, float]]]:
+    """Group partially used images by usage percentage ranges.
+
+    Args:
+        partially_used: List of (image_path, usage_percentage) tuples
+
+    Returns:
+        Dictionary mapping usage ranges to list of images in that range
+    """
+    ranges: dict[str, list[tuple[Path, float]]] = {"75-99%": [], "50-74%": [], "25-49%": [], "<25%": []}
+
+    for image_path, usage in partially_used:
+        if usage >= 75:
+            ranges["75-99%"].append((image_path, usage))
+        elif usage >= 50:
+            ranges["50-74%"].append((image_path, usage))
+        elif usage >= 25:
+            ranges["25-49%"].append((image_path, usage))
+        else:
+            ranges["<25%"].append((image_path, usage))
+
+    return ranges
+
+
+def is_item_still_using_image(current_target: Path | None, image_path: Path, mount_point: Path) -> bool:
+    """Check if a consolidated item is still using its original image.
+
+    Args:
+        current_target: The symlink target path (or None if not a symlink)
+        image_path: Path to the CEFS image file
+        mount_point: CEFS mount point (e.g., /cefs)
+
+    Returns:
+        True if the target points to this specific image
+    """
+    if not current_target or not str(current_target).startswith(str(mount_point) + "/"):
+        return False
+
+    # Get the filename stem from the symlink target
+    # Format: {mount_point}/XX/FILENAME_STEM/... where FILENAME_STEM is like "abc123_consolidated"
+    parts = current_target.parts
+    mount_parts = mount_point.parts
+
+    # Need at least: mount_point parts + hash_prefix + filename_stem
+    if len(parts) < len(mount_parts) + 2:
+        return False
+
+    # The filename stem is at position: len(mount_parts) + 1
+    # e.g., /cefs/ab/abc123_consolidated/tool1 -> abc123_consolidated is at index 3 when mount is /cefs (2 parts)
+    return parts[len(mount_parts) + 1] == image_path.stem
+
+
+def get_consolidated_item_status(
+    content: dict, image_path: Path, current_target: Path | None, mount_point: Path
+) -> str:
+    """Get the status string for a single item in a consolidated image.
+
+    Args:
+        content: Manifest entry for the item
+        image_path: Path to the consolidated image
+        current_target: Current symlink target (or None)
+        mount_point: CEFS mount point
+
+    Returns:
+        Formatted status string showing if item is still using the image
+    """
+    if "name" not in content:
+        return ""
+
+    if is_item_still_using_image(current_target, image_path, mount_point):
+        return f"          ✓ {content['name']}"
+    else:
+        mount_str = str(mount_point) + "/"
+        if current_target and str(current_target).startswith(mount_str):
+            replacement_info = str(current_target).replace(mount_str, "")
+            return f"          ✗ {content['name']} → replaced by {replacement_info}"
+        else:
+            return f"          ✗ {content['name']} → not in CEFS"
+
+
+def should_reconsolidate_image(
+    usage: float, size: int, efficiency_threshold: float, max_size_bytes: int, undersized_ratio: float
+) -> tuple[bool, str]:
+    """Determine if a consolidated image should be reconsolidated.
+
+    Args:
+        usage: Usage percentage (0-100)
+        size: Image size in bytes
+        efficiency_threshold: Minimum efficiency to keep (0.0-1.0)
+        max_size_bytes: Maximum size for consolidated images
+        undersized_ratio: Ratio to determine undersized images
+
+    Returns:
+        Tuple of (should_reconsolidate, reason_string)
+    """
+    if usage == 0:
+        return False, ""
+    elif usage / 100.0 < efficiency_threshold:
+        return True, f"low efficiency ({usage:.1f}%)"
+    elif size < max_size_bytes * undersized_ratio:
+        return True, f"undersized ({humanfriendly.format_size(size, binary=True)})"
+    return False, ""
+
+
+def find_small_consolidated_images(state: CEFSState, size_threshold: int) -> list[Path]:
+    """Find consolidated images that are candidates for reconsolidation.
+
+    Args:
+        state: CEFS state object with image information
+        size_threshold: Size threshold in bytes
+
+    Returns:
+        List of paths to small consolidated images
+    """
+    small_images = []
+    for _filename_stem, image_path in state.all_cefs_images.items():
+        if not is_consolidated_image(image_path):
+            continue
+        try:
+            size = image_path.stat().st_size
+            if size < size_threshold:
+                small_images.append(image_path)
+        except OSError:
+            continue
+    return small_images
+
+
+def should_include_manifest_item(
+    content: dict, image_path: Path, mount_point: Path, filter_: list[str]
+) -> tuple[bool, list[Path]]:
+    """Check if a manifest item should be included for reconsolidation.
+
+    Args:
+        content: Manifest entry to check
+        image_path: Path to the consolidated image
+        mount_point: CEFS mount point
+        filter_: Optional filter for selecting items
+
+    Returns:
+        Tuple of (should_include, targets) where targets are the current symlink targets
+    """
+    if "destination" not in content or "name" not in content:
+        raise ValueError(f"Malformed manifest entry missing required fields: {content}")
+
+    dest_path = Path(content["destination"])
+    targets = get_current_symlink_targets(dest_path)
+
+    # Check if this item is still referenced to this image
+    if not any(is_item_still_using_image(target, image_path, mount_point) for target in targets):
+        return False, targets
+
+    # Apply filter if provided
+    if filter_ and not any(f in content["name"] for f in filter_):
+        return False, targets
+
+    return True, targets
+
+
+def determine_extraction_path(targets: list[Path], image_path: Path, mount_point: Path) -> Path:
+    """Determine the extraction path from symlink targets.
+
+    Args:
+        targets: List of symlink targets
+        image_path: Path to the consolidated image
+        mount_point: CEFS mount point
+
+    Returns:
+        Path within the consolidated image to extract from
+    """
+    for target in targets:
+        if is_item_still_using_image(target, image_path, mount_point):
+            if len(target.parts) > 4:
+                return Path(*target.parts[4:])
+            break
+    return Path(".")
+
+
+def create_candidate_from_entry(
+    content: dict,
+    dest_path: Path,
+    image_path: Path,
+    extraction_path: Path,
+    state: CEFSState,
+    item_size: int,
+) -> ConsolidationCandidate:
+    """Create a ConsolidationCandidate from a manifest entry.
+
+    Args:
+        content: Manifest entry
+        dest_path: Destination path from manifest
+        image_path: Path to the consolidated image
+        extraction_path: Path within the image to extract
+        state: CEFS state object
+        item_size: Estimated size per item
+
+    Returns:
+        ConsolidationCandidate object
+    """
+    # Fix redundant Path construction - dest_path is already a Path
+    nfs_path = dest_path if dest_path.is_absolute() else state.nfs_dir / dest_path
+
+    return ConsolidationCandidate(
+        name=content["name"],
+        nfs_path=nfs_path,
+        squashfs_path=image_path,
+        extraction_path=extraction_path,
+        size=item_size,
+        from_reconsolidation=True,
+    )
+
+
+def extract_candidates_from_manifest(
+    manifest: dict,
+    image_path: Path,
+    state: CEFSState,
+    filter_: list[str],
+    size: int,
+    mount_point: Path,
+) -> list[ConsolidationCandidate]:
+    """Extract reconsolidation candidates from a consolidated image manifest.
+
+    Args:
+        manifest: Image manifest dictionary
+        image_path: Path to the consolidated image
+        state: CEFS state object
+        filter_: Optional filter for selecting items
+        size: Total size of the consolidated image
+        mount_point: CEFS mount point
+
+    Returns:
+        List of consolidation candidates from this image
+    """
+    candidates = []
+    contents = manifest.get("contents", [])
+    item_size = size // len(contents) if contents else 0  # Estimate size per item
+
+    for content in contents:
+        should_include, targets = should_include_manifest_item(content, image_path, mount_point, filter_)
+        if not should_include:
+            continue
+
+        dest_path = Path(content["destination"])
+        extraction_path = determine_extraction_path(targets, image_path, mount_point)
+        candidate = create_candidate_from_entry(content, dest_path, image_path, extraction_path, state, item_size)
+        candidates.append(candidate)
+
+    return candidates
+
+
+def pack_items_into_groups(
+    items: list[ConsolidationCandidate], max_size_bytes: int, min_items: int
+) -> list[list[ConsolidationCandidate]]:
+    """Pack consolidation candidates into groups based on size and count constraints.
+
+    Args:
+        items: List of items to pack into groups
+        max_size_bytes: Maximum size per group in bytes
+        min_items: Minimum number of items per group
+
+    Returns:
+        List of groups, where each group is a list of ConsolidationCandidate
+    """
+    # Sort by name for deterministic packing
+    sorted_items = sorted(items, key=lambda x: x.name)
+
+    groups: list[list[ConsolidationCandidate]] = []
+    current_group: list[ConsolidationCandidate] = []
+    current_size = 0
+
+    for item in sorted_items:
+        if current_size + item.size > max_size_bytes and len(current_group) >= min_items:
+            # Start new group
+            groups.append(current_group)
+            current_group = [item]
+            current_size = item.size
+        else:
+            current_group.append(item)
+            current_size += item.size
+
+    # Add final group if it meets minimum criteria
+    if len(current_group) >= min_items:
+        groups.append(current_group)
+    elif current_group:
+        _LOGGER.info(
+            "Final group has only %d items (< %d minimum), not consolidating",
+            len(current_group),
+            min_items,
+        )
+
+    return groups
+
+
+def validate_space_requirements(groups: list[list[ConsolidationCandidate]], temp_dir: Path) -> tuple[int, int]:
+    """Validate that there's enough space for consolidation.
+
+    Args:
+        groups: List of consolidation groups
+        temp_dir: Temporary directory to check space for
+
+    Returns:
+        Tuple of (required_space, largest_group_size)
+
+    Raises:
+        RuntimeError: If insufficient space is available
+    """
+    if not groups:
+        return 0, 0
+
+    # Calculate space requirements
+    largest_group_size = max(sum(item.size for item in group) for group in groups)
+    required_temp_space = largest_group_size * 5  # Conservative multiplier for extraction/compression
+
+    # Check available space
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    if check_temp_space_available(temp_dir, required_temp_space):
+        return required_temp_space, largest_group_size
+
+    # Handle insufficient space
+    if not temp_dir.exists():
+        raise RuntimeError(f"Temp directory does not exist: {temp_dir}")
+
+    stat = os.statvfs(temp_dir)
+    available = stat.f_bavail * stat.f_frsize
+    raise RuntimeError(
+        f"Insufficient temp space. Required: {humanfriendly.format_size(required_temp_space, binary=True)}, "
+        f"Available: {humanfriendly.format_size(available, binary=True)}"
+    )
+
+
+def prepare_consolidation_items(
+    group: list[ConsolidationCandidate], mount_point: Path
+) -> tuple[list[tuple[Path, Path, str, Path]], dict[Path, str]]:
+    """Prepare items for consolidation by determining extraction paths and subdirectory names.
+
+    Args:
+        group: List of consolidation candidates
+        mount_point: CEFS mount point
+
+    Returns:
+        Tuple of (items_for_consolidation, subdir_mapping)
+        where items_for_consolidation is a list of (nfs_path, squashfs_path, subdir_name, extraction_path)
+        and subdir_mapping maps nfs_path to subdir_name
+    """
+    items_for_consolidation = []
+    subdir_mapping = {}
+
+    for item in group:
+        # Use the installable name as subdirectory name (sanitized for filesystem)
+        subdir_name = sanitize_path_for_filename(Path(item.name))
+
+        # For reconsolidation items, we already have the extraction path
+        if item.from_reconsolidation:
+            extraction_path = item.extraction_path
+            _LOGGER.debug(
+                "For reconsolidation item %s: using extraction path %s",
+                item.name,
+                extraction_path,
+            )
+        else:
+            try:
+                symlink_target = item.nfs_path.readlink()
+                extraction_path = get_extraction_path_from_symlink(symlink_target, mount_point)
+                _LOGGER.debug(
+                    "For %s: symlink %s -> %s, extracting %s",
+                    item.name,
+                    item.nfs_path,
+                    symlink_target,
+                    extraction_path,
+                )
+            except OSError as e:
+                _LOGGER.warning("Failed to read symlink %s: %s", item.nfs_path, e)
+                continue
+
+        items_for_consolidation.append((item.nfs_path, item.squashfs_path, subdir_name, extraction_path))
+        subdir_mapping[item.nfs_path] = subdir_name
+
+    return items_for_consolidation, subdir_mapping
+
+
+def create_group_manifest(group: list[ConsolidationCandidate]) -> dict:
+    """Create a manifest for a consolidation group.
+
+    Args:
+        group: List of consolidation candidates
+
+    Returns:
+        Manifest dictionary
+    """
+    contents = [create_installable_manifest_entry(item.name, item.nfs_path) for item in group]
+    return create_manifest(
+        operation="consolidate",
+        description=f"Created through consolidation of {len(group)} items: " + ", ".join(item.name for item in group),
+        contents=contents,
+    )
+
+
+def handle_symlink_updates(
+    group: list[ConsolidationCandidate],
+    symlink_snapshot: dict[Path, Path],
+    filename: str,
+    mount_point: Path,
+    subdir_mapping: dict[Path, str],
+    defer_backup_cleanup: bool,
+) -> tuple[int, int]:
+    """Handle symlink verification and updates for a consolidation group.
+
+    Args:
+        group: List of consolidation candidates
+        symlink_snapshot: Snapshot of symlink states before consolidation
+        filename: CEFS image filename
+        mount_point: CEFS mount point
+        subdir_mapping: Mapping of nfs_path to subdirectory name
+        defer_backup_cleanup: Whether to defer cleanup of .bak symlinks
+
+    Returns:
+        Tuple of (updated_symlinks, skipped_symlinks)
+    """
+    # Verify symlinks haven't changed and update them
+    group_symlinks = [item.nfs_path for item in group]
+    group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
+    unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
+
+    skipped_symlinks = 0
+    updated_symlinks = 0
+
+    if changed_symlinks:
+        _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
+        for symlink in changed_symlinks:
+            _LOGGER.warning("  - %s", symlink)
+        skipped_symlinks = len(changed_symlinks)
+
+    if unchanged_symlinks:
+        update_symlinks_for_consolidation(
+            unchanged_symlinks,
+            filename,
+            mount_point,
+            subdir_mapping,
+            defer_backup_cleanup,
+        )
+        updated_symlinks = len(unchanged_symlinks)
+        _LOGGER.info("Updated %d symlinks", updated_symlinks)
+
+    return updated_symlinks, skipped_symlinks
+
+
+def _deploy_consolidated_image(
+    temp_consolidated_path: Path,
+    cefs_paths: CEFSPaths,
+    manifest: dict,
+    group: list[ConsolidationCandidate],
+    symlink_snapshot: dict[Path, Path],
+    filename: str,
+    mount_point: Path,
+    subdir_mapping: dict[Path, str],
+    defer_backup_cleanup: bool,
+    group_idx: int,
+    dry_run: bool,
+) -> tuple[int, int]:
+    """Deploy consolidated image and update symlinks.
+
+    Args:
+        temp_consolidated_path: Path to temporary consolidated image
+        cefs_paths: CEFS paths for the image
+        manifest: Manifest for the consolidated image
+        group: List of items in the group
+        symlink_snapshot: Snapshot of symlink states
+        filename: CEFS image filename
+        mount_point: CEFS mount point
+        subdir_mapping: Mapping of NFS paths to subdirectories
+        defer_backup_cleanup: Whether to defer cleanup
+        group_idx: Group index for logging
+        dry_run: Whether this is a dry run
+
+    Returns:
+        Tuple of (updated_symlinks, skipped_symlinks)
+    """
+    if cefs_paths.image_path.exists():
+        _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
+        return handle_symlink_updates(
+            group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
+        )
+
+    with deploy_to_cefs_transactional(
+        temp_consolidated_path,
+        cefs_paths.image_path,
+        manifest,
+        dry_run,
+    ):
+        updated, skipped = handle_symlink_updates(
+            group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
+        )
+        if updated:
+            _LOGGER.info("Updated %d symlinks for group %d", updated, group_idx + 1)
+        return updated, skipped
+
+
+def process_consolidation_group(
+    group: list[ConsolidationCandidate],
+    group_idx: int,
+    squashfs_config: Any,
+    cefs_config: Any,
+    mount_point: Path,
+    image_dir: Path,
+    symlink_snapshot: dict[Path, Path],
+    consolidation_dir: Path,
+    defer_backup_cleanup: bool,
+    max_parallel_extractions: int | None,
+    dry_run: bool = False,
+) -> tuple[bool, int, int]:
+    """Process a single consolidation group.
+
+    Args:
+        group: List of items to consolidate
+        group_idx: Index of this group (for logging)
+        squashfs_config: Squashfs configuration object
+        cefs_config: CEFS configuration object
+        mount_point: CEFS mount point
+        image_dir: CEFS image directory
+        symlink_snapshot: Snapshot of symlink states before consolidation
+        consolidation_dir: Directory for consolidation temp files
+        defer_backup_cleanup: Whether to defer cleanup of .bak symlinks
+        max_parallel_extractions: Maximum parallel extractions
+        dry_run: Whether this is a dry run
+
+    Returns:
+        Tuple of (success, updated_symlinks, skipped_symlinks)
+    """
+    _LOGGER.info("Processing group %d (%d items)", group_idx + 1, len(group))
+
+    group_temp_dir = consolidation_dir / "extract"
+
+    try:
+        # Create temp directory for this group
+        group_temp_dir.mkdir(parents=True, exist_ok=True)
+
+        # Prepare items for consolidation
+        items_for_consolidation, subdir_mapping = prepare_consolidation_items(group, mount_point)
+
+        if not items_for_consolidation:
+            _LOGGER.warning("No valid items to consolidate in group %d", group_idx + 1)
+            return False, 0, 0
+
+        # Create manifest
+        manifest = create_group_manifest(group)
+
+        # Create temporary consolidated image
+        temp_consolidated_path = group_temp_dir / "consolidated.sqfs"
+        create_consolidated_image(
+            squashfs_config,
+            items_for_consolidation,
+            group_temp_dir,
+            temp_consolidated_path,
+            max_parallel_extractions,
+        )
+
+        # Get CEFS paths for the image
+        filename = get_cefs_filename_for_image(temp_consolidated_path, "consolidate")
+        cefs_paths = get_cefs_paths(image_dir, mount_point, filename)
+
+        # Deploy image and update symlinks
+        updated_symlinks, skipped_symlinks = _deploy_consolidated_image(
+            temp_consolidated_path,
+            cefs_paths,
+            manifest,
+            group,
+            symlink_snapshot,
+            filename,
+            mount_point,
+            subdir_mapping,
+            defer_backup_cleanup,
+            group_idx,
+            dry_run,
+        )
+
+        return True, updated_symlinks, skipped_symlinks
+
+    except RuntimeError as e:
+        group_items = ", ".join(item.name for item in group)
+        _LOGGER.error("Failed to consolidate group %d (%s): %s", group_idx + 1, group_items, e)
+        _LOGGER.debug("Full error details:", exc_info=True)
+        return False, 0, 0
+
+    finally:
+        # Clean up group temp directory
+        if group_temp_dir.exists():
+            shutil.rmtree(group_temp_dir)

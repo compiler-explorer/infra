@@ -132,7 +132,7 @@ The modified script now skips mounting when the destination is already a symlink
 - [x] Test with a single compiler or library
 - [ ] Disable squashing and enable the cefs install
 - [ ] Slowly move older things over
-- [ ] Write consolidation tooling and run it
+- [x] Write consolidation tooling and run it
 - [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
 
 ## Implementation Notes
@@ -164,11 +164,15 @@ Once a few of these have been done and we're happy with the results, we set the 
 
 **Modification Time Preservation**: CEFS images preserve original file modification times (mtimes) from the source tar archives. This enables effective caching based on file timestamps, particularly important for compiler executables where the mtime indicates when the binary was actually built. While this means squashfs images are no longer byte-for-byte deterministic (the same content extracted at different times will produce different image bytes), the functional content remains deterministic. The trade-off prioritizes cache effectiveness over strict binary reproducibility, as the ability to detect unchanged compiler binaries via mtime is more valuable for Compiler Explorer's use case.
 
-## Future Work
+## Implemented Features
 
-**Consolidation**: Combine multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits.
+### Consolidation
 
-**Manifest System**: All CEFS images have a YAML manifest containing:
+CEFS supports combining multiple individual squashfs images into consolidated images with subdirectories to reduce mount overhead while maintaining content-addressable benefits. This is implemented via the `ce cefs consolidate` command.
+
+### Manifest System
+
+All CEFS images have a YAML manifest containing:
 - List of all installables with their full name and destination paths
 - Git SHA of the producing `ce_install`
 - Command-line that created the image
@@ -182,12 +186,15 @@ Each installable entry in the manifest contains:
 
 The manifest enables robust garbage collection by checking if symlinks at each destination still point back to the image. Manifests are written alongside the `.sqfs` file for easy access without mounting.
 
-**Image Structure**:
+### Image Structure
+
 - **New installations**: Symlinks point directly to `/cefs/HASH`.
 - **Conversions**: Manifest is written alongside the image file.
 - **Consolidations**: Subdirectories for each consolidated item. Symlinks point to `/cefs/HASH/subdir_name`.
 
-**Improved Naming Convention**: CEFS images use a 24 hexadecimal character (96 bits) hash plus descriptive suffix format:
+### Naming Convention
+
+CEFS images use a 24 hexadecimal character (96 bits) hash plus descriptive suffix format:
 - `HASH24_consolidated.sqfs` - for consolidated images
 - `HASH24_converted_path_to_img.sqfs` - for conversions (path components joined with underscores)
 - `HASH24_path_to_root.sqfs` - for regular installs (destination path components joined with underscores)
@@ -197,7 +204,9 @@ Examples:
 - `abcdef1234567890abcdef12_consolidated.sqfs`
 - `123456789abcdef012345678_converted_arm_gcc-10.2.0.sqfs`
 
-**Garbage Collection**: Implement automated cleanup of unused CEFS images using the manifest system. The process:
+### Garbage Collection
+
+CEFS includes automated cleanup of unused images via `ce cefs gc`. The process:
 1. Read `manifest.yaml` from each image directory
 2. For each destination in the manifest contents, check if the symlink points back to this image
 3. If no symlinks reference the image, it can be safely removed
@@ -299,11 +308,33 @@ Images with `.yaml.inprogress` markers indicate incomplete or failed operations:
 - Require manual investigation and decision
 - Future tool: `ce cefs check-failed` to analyze and remediate
 
-#### Re-consolidation of Sparse Consolidated Images
+#### Reconsolidation
 
-As items are updated or reinstalled, consolidated images may become sparse. For example, if we consolidate X, Y, and Z into a single image, but later Y and Z are reinstalled individually, the consolidated image only serves X.
+The `ce cefs consolidate --reconsolidate` command optimizes inefficient consolidated images that accumulate over time.
 
-The manifest system enables detecting such cases and re-consolidating the remaining items to maintain efficiency. This process ties into garbage collection, as the old consolidated image will need to be cleaned up after re-consolidation.
+**Problem**: Consolidated images become inefficient when:
+- Items are reinstalled individually, leaving images partially used (e.g., only 1 of 3 items still referenced)
+- Multiple undersized consolidated images exist that could be combined
+
+**Solution**: The reconsolidation process:
+1. Identifies consolidated images with <50% usage or undersized images (<25% of max size)
+2. Extracts still-referenced items from inefficient images
+3. Repacks them with new consolidation candidates into optimally-sized images
+4. Old images become unreferenced and eligible for GC
+
+Example:
+```bash
+# Consolidate with reconsolidation (repacks inefficient images)
+ce --env prod cefs consolidate --reconsolidate --max-size 5G FILTER
+
+# Fine-tune thresholds if needed
+ce --env prod cefs consolidate --reconsolidate \
+  --efficiency-threshold 0.3 \  # Repack images with <30% usage
+  --undersized-ratio 0.2 \       # Consider images <20% of max-size undersized
+  --max-size 10G FILTER
+```
+
+Safety: Uses same `.yaml.inprogress` pattern and atomic operations as regular consolidation.
 ### Edge Cases and Failure Scenarios
 
 #### What if GC runs during installation?
@@ -408,3 +439,21 @@ Manual intervention required for:
 - `.yaml.inprogress` files older than expected (investigate failed operations)
 - Consistently growing image count (review if GC is too conservative)
 - Disk space concerns (can reduce `--min-age` if needed)
+
+## Future Work
+
+### Unpack Tool
+Implement `ce cefs unpack` command that allows unpacking a mountpoint and replacing the symlink with the "real" data for patching. This would enable in-place modifications of CEFS-managed content when necessary.
+
+### Automated Failed Operation Recovery
+Develop `ce cefs check-failed` tool to analyze `.yaml.inprogress` files and provide automated remediation options for failed operations.
+
+### Performance Optimizations
+- Parallel processing for consolidation operations
+- Batch symlink updates with rollback capability
+- Optimized extraction for large consolidated images
+
+### Enhanced Monitoring
+- Metrics for consolidation efficiency over time
+- Alerts for degraded consolidated images
+- Dashboard for CEFS storage utilization

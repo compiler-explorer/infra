@@ -22,7 +22,7 @@ import yaml
 
 from lib.cefs import (
     backup_and_symlink,
-    deploy_to_cefs_with_manifest,
+    deploy_to_cefs_transactional,
     get_cefs_filename_for_image,
     get_cefs_paths,
 )
@@ -515,15 +515,18 @@ class InstallationContext:
             cefs_paths = get_cefs_paths(self.config.cefs.image_dir, self.config.cefs.mount_point, filename)
 
             # Copy to CEFS images directory if not already there
-            if not cefs_paths.image_path.exists():
-                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_paths.image_path)
-                deploy_to_cefs_with_manifest(temp_squash_file, cefs_paths.image_path, manifest)
-            else:
+            if cefs_paths.image_path.exists():
                 _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
-
-            # Create symlink in NFS
-            # TODO: Add defer_cleanup parameter to install command to speed up bulk installations
-            backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
+                # Still need to create symlink even if image exists
+                backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
+            else:
+                # Deploy image and create symlink within transaction
+                _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_paths.image_path)
+                with deploy_to_cefs_transactional(temp_squash_file, cefs_paths.image_path, manifest, self.dry_run):
+                    # Create symlink in NFS
+                    # TODO: Add defer_cleanup parameter to install command to speed up bulk installations
+                    backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
+                    # Manifest will be automatically finalized on successful exit
 
         finally:
             # Clean up temporary files
