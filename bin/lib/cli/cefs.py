@@ -205,9 +205,6 @@ def setup(context: CliContext, dry_run: bool):
     cefs_mount_point = context.config.cefs.mount_point
     cefs_image_dir = context.config.cefs.image_dir
 
-    # Extract the mount name from the path (e.g., /cefs -> cefs, /test/cefs -> cefs)
-    mount_name = cefs_mount_point.name
-
     def run_cmd(cmd, description):
         """Run command or show what would be run in dry-run mode."""
         if dry_run:
@@ -230,10 +227,12 @@ def setup(context: CliContext, dry_run: bool):
         run_cmd(["sudo", "mkdir", "-p", cefs_mount_point], f"Creating CEFS mount point: {cefs_mount_point}")
 
         # Step 2: Create first-level autofs map file (handles {mount_point}/XX -> nested autofs)
-        auto_cefs_content = f"* -fstype=autofs program:/etc/auto.{mount_name}.sub"
+        # Use the mount point name for autofs config files (e.g., /cefs -> auto.cefs, /test/mount -> auto.mount)
+        auto_config_base = f"/etc/auto.{cefs_mount_point.name}"
+        auto_cefs_content = f"* -fstype=autofs program:{auto_config_base}.sub"
         run_cmd(
-            ["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > /etc/auto.{mount_name}"],
-            f"Creating /etc/auto.{mount_name}",
+            ["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > {auto_config_base}"],
+            f"Creating {auto_config_base}",
         )
 
         # Step 2b: Create second-level autofs executable script (handles HASH -> squashfs mount)
@@ -243,17 +242,17 @@ subdir="${{key:0:2}}"
 echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key}}.sqfs"
 """
         run_cmd(
-            ["sudo", "bash", "-c", f"cat > /etc/auto.{mount_name}.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
-            f"Creating /etc/auto.{mount_name}.sub script",
+            ["sudo", "bash", "-c", f"cat > {auto_config_base}.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
+            f"Creating {auto_config_base}.sub script",
         )
-        run_cmd(["sudo", "chmod", "+x", f"/etc/auto.{mount_name}.sub"], f"Making /etc/auto.{mount_name}.sub executable")
+        run_cmd(["sudo", "chmod", "+x", f"{auto_config_base}.sub"], f"Making {auto_config_base}.sub executable")
 
         # Step 3: Create autofs master entry
-        auto_master_content = f"{cefs_mount_point} /etc/auto.{mount_name} --negative-timeout 1"
+        auto_master_content = f"{cefs_mount_point} {auto_config_base} --negative-timeout 1"
         run_cmd(["sudo", "mkdir", "-p", "/etc/auto.master.d"], "Creating /etc/auto.master.d directory")
         run_cmd(
-            ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/{mount_name}.autofs"],
-            f"Creating /etc/auto.master.d/{mount_name}.autofs",
+            ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/{cefs_mount_point.name}.autofs"],
+            f"Creating /etc/auto.master.d/{cefs_mount_point.name}.autofs",
         )
 
         # Step 4: Restart autofs service
