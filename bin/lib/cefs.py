@@ -1480,6 +1480,89 @@ def find_small_consolidated_images(state: CEFSState, size_threshold: int) -> lis
     return small_images
 
 
+def should_include_manifest_item(
+    content: dict, image_path: Path, mount_point: Path, filter_: list[str]
+) -> tuple[bool, list[Path]]:
+    """Check if a manifest item should be included for reconsolidation.
+
+    Args:
+        content: Manifest entry to check
+        image_path: Path to the consolidated image
+        mount_point: CEFS mount point
+        filter_: Optional filter for selecting items
+
+    Returns:
+        Tuple of (should_include, targets) where targets are the current symlink targets
+    """
+    if "destination" not in content or "name" not in content:
+        raise ValueError(f"Malformed manifest entry missing required fields: {content}")
+
+    dest_path = Path(content["destination"])
+    targets = get_current_symlink_targets(dest_path)
+
+    # Check if this item is still referenced to this image
+    if not any(is_item_still_using_image(target, image_path, mount_point) for target in targets):
+        return False, targets
+
+    # Apply filter if provided
+    if filter_ and not any(f in content["name"] for f in filter_):
+        return False, targets
+
+    return True, targets
+
+
+def determine_extraction_path(targets: list[Path], image_path: Path, mount_point: Path) -> Path:
+    """Determine the extraction path from symlink targets.
+
+    Args:
+        targets: List of symlink targets
+        image_path: Path to the consolidated image
+        mount_point: CEFS mount point
+
+    Returns:
+        Path within the consolidated image to extract from
+    """
+    # Find a target that points to this image to get the extraction path
+    image_target = next((t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None)
+    if image_target and len(image_target.parts) > 4:
+        return Path(*image_target.parts[4:])
+    return Path(".")
+
+
+def create_candidate_from_entry(
+    content: dict,
+    dest_path: Path,
+    image_path: Path,
+    extraction_path: Path,
+    state: CEFSState,
+    item_size: int,
+) -> ConsolidationCandidate:
+    """Create a ConsolidationCandidate from a manifest entry.
+
+    Args:
+        content: Manifest entry
+        dest_path: Destination path from manifest
+        image_path: Path to the consolidated image
+        extraction_path: Path within the image to extract
+        state: CEFS state object
+        item_size: Estimated size per item
+
+    Returns:
+        ConsolidationCandidate object
+    """
+    # Fix redundant Path construction - dest_path is already a Path
+    nfs_path = dest_path if dest_path.is_absolute() else state.nfs_dir / dest_path
+
+    return ConsolidationCandidate(
+        name=content["name"],
+        nfs_path=nfs_path,
+        squashfs_path=image_path,
+        extraction_path=extraction_path,
+        size=item_size,
+        from_reconsolidation=True,
+    )
+
+
 def extract_candidates_from_manifest(
     manifest: dict,
     image_path: Path,
@@ -1503,42 +1586,17 @@ def extract_candidates_from_manifest(
     """
     candidates = []
     contents = manifest.get("contents", [])
+    item_size = size // len(contents) if contents else 0  # Estimate size per item
 
     for content in contents:
-        if "destination" not in content or "name" not in content:
-            raise ValueError(f"Malformed manifest entry missing required fields: {content}")
+        should_include, targets = should_include_manifest_item(content, image_path, mount_point, filter_)
+        if not should_include:
+            continue
 
         dest_path = Path(content["destination"])
-
-        # Check if this item is still referenced to this image
-        targets = get_current_symlink_targets(dest_path)
-        if not any(is_item_still_using_image(target, image_path, mount_point) for target in targets):
-            # This item has been replaced, skip it
-            continue
-
-        # Apply filter if provided
-        if filter_ and not any(f in content["name"] for f in filter_):
-            continue
-
-        # Determine extraction path within the consolidated image
-        # Find a target that points to this image to get the extraction path
-        image_target = next((t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None)
-        if image_target and len(image_target.parts) > 4:
-            extraction_path = Path(*image_target.parts[4:])
-        else:
-            extraction_path = Path(".")
-
-        # Add as candidate for reconsolidation
-        candidates.append(
-            ConsolidationCandidate(
-                name=content["name"],
-                nfs_path=dest_path if dest_path.is_absolute() else state.nfs_dir / dest_path,
-                squashfs_path=image_path,
-                extraction_path=extraction_path,
-                size=size // len(contents),  # Estimate size per item
-                from_reconsolidation=True,
-            )
-        )
+        extraction_path = determine_extraction_path(targets, image_path, mount_point)
+        candidate = create_candidate_from_entry(content, dest_path, image_path, extraction_path, state, item_size)
+        candidates.append(candidate)
 
     return candidates
 
@@ -1603,6 +1661,8 @@ def validate_space_requirements(groups: list[list[ConsolidationCandidate]], temp
         return 0, 0
 
     # Calculate space requirements (5x largest group size since we process sequentially)
+    # The 5x multiplier is a heuristic to account for conservative compression ratios
+    # during extraction and re-compression
     largest_group_size = max(sum(item.size for item in group) for group in groups)
     required_temp_space = largest_group_size * 5
 
@@ -1620,6 +1680,122 @@ def validate_space_requirements(groups: list[list[ConsolidationCandidate]], temp
             raise RuntimeError(f"Temp directory does not exist: {temp_dir}")
 
     return required_temp_space, largest_group_size
+
+
+def prepare_consolidation_items(
+    group: list[ConsolidationCandidate], mount_point: Path
+) -> tuple[list[tuple[Path, Path, str, Path]], dict[Path, str]]:
+    """Prepare items for consolidation by determining extraction paths and subdirectory names.
+
+    Args:
+        group: List of consolidation candidates
+        mount_point: CEFS mount point
+
+    Returns:
+        Tuple of (items_for_consolidation, subdir_mapping)
+        where items_for_consolidation is a list of (nfs_path, squashfs_path, subdir_name, extraction_path)
+        and subdir_mapping maps nfs_path to subdir_name
+    """
+    items_for_consolidation = []
+    subdir_mapping = {}
+
+    for item in group:
+        # Use the installable name as subdirectory name (sanitized for filesystem)
+        subdir_name = sanitize_path_for_filename(Path(item.name))
+
+        # For reconsolidation items, we already have the extraction path
+        if item.from_reconsolidation:
+            extraction_path = item.extraction_path
+            _LOGGER.debug(
+                "For reconsolidation item %s: using extraction path %s",
+                item.name,
+                extraction_path,
+            )
+        else:
+            try:
+                symlink_target = item.nfs_path.readlink()
+                extraction_path = get_extraction_path_from_symlink(symlink_target, mount_point)
+                _LOGGER.debug(
+                    "For %s: symlink %s -> %s, extracting %s",
+                    item.name,
+                    item.nfs_path,
+                    symlink_target,
+                    extraction_path,
+                )
+            except OSError as e:
+                _LOGGER.warning("Failed to read symlink %s: %s", item.nfs_path, e)
+                continue
+
+        items_for_consolidation.append((item.nfs_path, item.squashfs_path, subdir_name, extraction_path))
+        subdir_mapping[item.nfs_path] = subdir_name
+
+    return items_for_consolidation, subdir_mapping
+
+
+def create_group_manifest(group: list[ConsolidationCandidate]) -> dict:
+    """Create a manifest for a consolidation group.
+
+    Args:
+        group: List of consolidation candidates
+
+    Returns:
+        Manifest dictionary
+    """
+    contents = [create_installable_manifest_entry(item.name, item.nfs_path) for item in group]
+    return create_manifest(
+        operation="consolidate",
+        description=f"Created through consolidation of {len(group)} items: " + ", ".join(item.name for item in group),
+        contents=contents,
+    )
+
+
+def handle_symlink_updates(
+    group: list[ConsolidationCandidate],
+    symlink_snapshot: dict[Path, Path],
+    filename: str,
+    mount_point: Path,
+    subdir_mapping: dict[Path, str],
+    defer_backup_cleanup: bool,
+) -> tuple[int, int]:
+    """Handle symlink verification and updates for a consolidation group.
+
+    Args:
+        group: List of consolidation candidates
+        symlink_snapshot: Snapshot of symlink states before consolidation
+        filename: CEFS image filename
+        mount_point: CEFS mount point
+        subdir_mapping: Mapping of nfs_path to subdirectory name
+        defer_backup_cleanup: Whether to defer cleanup of .bak symlinks
+
+    Returns:
+        Tuple of (updated_symlinks, skipped_symlinks)
+    """
+    # Verify symlinks haven't changed and update them
+    group_symlinks = [item.nfs_path for item in group]
+    group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
+    unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
+
+    skipped_symlinks = 0
+    updated_symlinks = 0
+
+    if changed_symlinks:
+        _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
+        for symlink in changed_symlinks:
+            _LOGGER.warning("  - %s", symlink)
+        skipped_symlinks = len(changed_symlinks)
+
+    if unchanged_symlinks:
+        update_symlinks_for_consolidation(
+            unchanged_symlinks,
+            filename,
+            mount_point,
+            subdir_mapping,
+            defer_backup_cleanup,
+        )
+        updated_symlinks = len(unchanged_symlinks)
+        _LOGGER.info("Updated %d symlinks", updated_symlinks)
+
+    return updated_symlinks, skipped_symlinks
 
 
 def process_consolidation_group(
@@ -1655,8 +1831,6 @@ def process_consolidation_group(
     """
     _LOGGER.info("Processing group %d (%d items)", group_idx + 1, len(group))
 
-    updated_symlinks = 0
-    skipped_symlinks = 0
     group_temp_dir = consolidation_dir / "extract"
 
     try:
@@ -1664,51 +1838,14 @@ def process_consolidation_group(
         group_temp_dir.mkdir(parents=True, exist_ok=True)
 
         # Prepare items for consolidation
-        items_for_consolidation = []
-        subdir_mapping = {}
-
-        for item in group:
-            # Use the installable name as subdirectory name (sanitized for filesystem)
-            subdir_name = sanitize_path_for_filename(Path(item.name))
-
-            # For reconsolidation items, we already have the extraction path
-            if item.from_reconsolidation:
-                extraction_path = item.extraction_path
-                _LOGGER.debug(
-                    "For reconsolidation item %s: using extraction path %s",
-                    item.name,
-                    extraction_path,
-                )
-            else:
-                try:
-                    symlink_target = item.nfs_path.readlink()
-                    extraction_path = get_extraction_path_from_symlink(symlink_target, mount_point)
-                    _LOGGER.debug(
-                        "For %s: symlink %s -> %s, extracting %s",
-                        item.name,
-                        item.nfs_path,
-                        symlink_target,
-                        extraction_path,
-                    )
-                except OSError as e:
-                    _LOGGER.warning("Failed to read symlink %s: %s", item.nfs_path, e)
-                    continue
-
-            items_for_consolidation.append((item.nfs_path, item.squashfs_path, subdir_name, extraction_path))
-            subdir_mapping[item.nfs_path] = subdir_name
+        items_for_consolidation, subdir_mapping = prepare_consolidation_items(group, mount_point)
 
         if not items_for_consolidation:
             _LOGGER.warning("No valid items to consolidate in group %d", group_idx + 1)
             return False, 0, 0
 
         # Create manifest
-        contents = [create_installable_manifest_entry(item.name, item.nfs_path) for item in group]
-        manifest = create_manifest(
-            operation="consolidate",
-            description=f"Created through consolidation of {len(group)} items: "
-            + ", ".join(item.name for item in group),
-            contents=contents,
-        )
+        manifest = create_group_manifest(group)
 
         # Create temporary consolidated image
         temp_consolidated_path = group_temp_dir / "consolidated.sqfs"
@@ -1728,25 +1865,10 @@ def process_consolidation_group(
         if cefs_paths.image_path.exists():
             _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
             # Still need to update symlinks even if image exists
-            group_symlinks = [item.nfs_path for item in group]
-            group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
-            unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
-
-            if changed_symlinks:
-                _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
-                for symlink in changed_symlinks:
-                    _LOGGER.warning("  - %s", symlink)
-                skipped_symlinks = len(changed_symlinks)
-
-            if unchanged_symlinks:
-                update_symlinks_for_consolidation(
-                    unchanged_symlinks,
-                    filename,
-                    mount_point,
-                    subdir_mapping,
-                    defer_backup_cleanup,
-                )
-                updated_symlinks = len(unchanged_symlinks)
+            updated_symlinks, skipped_symlinks = handle_symlink_updates(
+                group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
+            )
+            if updated_symlinks:
                 _LOGGER.info("Updated %d symlinks for group %d", updated_symlinks, group_idx + 1)
         else:
             # Deploy image and update symlinks within transaction
@@ -1757,25 +1879,10 @@ def process_consolidation_group(
                 dry_run,
             ):
                 # Verify symlinks haven't changed and update them
-                group_symlinks = [item.nfs_path for item in group]
-                group_snapshot = {k: v for k, v in symlink_snapshot.items() if k in group_symlinks}
-                unchanged_symlinks, changed_symlinks = verify_symlinks_unchanged(group_snapshot)
-
-                if changed_symlinks:
-                    _LOGGER.warning("Skipping %d symlinks that changed during consolidation:", len(changed_symlinks))
-                    for symlink in changed_symlinks:
-                        _LOGGER.warning("  - %s", symlink)
-                    skipped_symlinks = len(changed_symlinks)
-
-                if unchanged_symlinks:
-                    update_symlinks_for_consolidation(
-                        unchanged_symlinks,
-                        filename,
-                        mount_point,
-                        subdir_mapping,
-                        defer_backup_cleanup,
-                    )
-                    updated_symlinks = len(unchanged_symlinks)
+                updated_symlinks, skipped_symlinks = handle_symlink_updates(
+                    group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
+                )
+                if updated_symlinks:
                     _LOGGER.info("Updated %d symlinks for group %d", updated_symlinks, group_idx + 1)
                 # Manifest will be automatically finalized on successful exit
 
