@@ -275,7 +275,7 @@ def _format_usage_statistics(
         lines.append(f"  Potential consolidation: {len(small_consolidated)} small consolidated images could be merged")
 
     if verbose:
-        lines.append("\nRun 'ce cefs consolidate --include-reconsolidation' to optimize partially used images")
+        lines.append("\nRun 'ce cefs consolidate --reconsolidate' to optimize partially used images")
 
     return lines
 
@@ -786,7 +786,7 @@ def _gather_reconsolidation_candidates(
     help="Maximum parallel extractions (default: CPU count)",
 )
 @click.option(
-    "--include-reconsolidation/--no-reconsolidation",
+    "--reconsolidate/--no-reconsolidate",
     default=False,
     help="Include existing consolidated images for repacking (default: False)",
 )
@@ -809,7 +809,7 @@ def consolidate(
     min_items: int,
     defer_backup_cleanup: bool,
     max_parallel_extractions: int | None,
-    include_reconsolidation: bool,
+    reconsolidate: bool,
     efficiency_threshold: float,
     undersized_ratio: float,
     filter_: list[str],
@@ -820,7 +820,7 @@ def consolidate(
     with subdirectories, reducing the total number of autofs mounts while maintaining
     content-addressable benefits.
 
-    When --include-reconsolidation is used, also repacks:
+    When --reconsolidate is used, also repacks:
     - Undersized consolidated images (smaller than max-size/4)
     - Partially used consolidated images (below efficiency threshold)
 
@@ -870,7 +870,7 @@ def consolidate(
                 continue
 
             if is_already_consolidated:
-                if not include_reconsolidation:
+                if not reconsolidate:
                     _LOGGER.debug("Item %s already consolidated at %s", installable.name, cefs_target)
                     continue
                 # For reconsolidation, we'll handle this separately below
@@ -895,7 +895,7 @@ def consolidate(
             )
 
     # Add reconsolidation candidates if enabled
-    if include_reconsolidation:
+    if reconsolidate:
         _LOGGER.info("Gathering reconsolidation candidates...")
         recon_candidates = _gather_reconsolidation_candidates(
             context, efficiency_threshold, max_size_bytes, undersized_ratio, filter_
