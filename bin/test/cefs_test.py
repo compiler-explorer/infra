@@ -13,6 +13,7 @@ from lib.cefs import (
     CEFSPaths,
     CEFSState,
     calculate_image_usage,
+    check_if_symlink_references_image,
     check_temp_space_available,
     delete_image_with_manifest,
     describe_cefs_image,
@@ -791,50 +792,54 @@ def test_calculate_image_usage(tmp_path):
     """Test calculate_image_usage function."""
     nfs_dir = tmp_path / "nfs"
     nfs_dir.mkdir()
+    mount_point = tmp_path / "test_mount"
+    mount_point.mkdir()
 
     # Create an individual image
     individual_image = tmp_path / "abc123_gcc.sqfs"
     individual_image.touch()
 
     # Test individual image with reference
-    image_references = {"abc123_gcc": [Path("/opt/gcc")]}
+    # Image references should contain full absolute paths as they come from manifests
+    gcc_full_path = nfs_dir / "opt" / "gcc"
+    gcc_full_path.parent.mkdir(parents=True)
+    image_references = {"abc123_gcc": [gcc_full_path]}
 
     # Create symlink pointing to this image
-    gcc_path = nfs_dir / "opt" / "gcc"
-    gcc_path.parent.mkdir(parents=True)
-    gcc_path.symlink_to("/cefs/ab/abc123_gcc")
+    gcc_full_path.symlink_to(mount_point / "ab" / "abc123_gcc")
 
-    usage = calculate_image_usage(individual_image, image_references, nfs_dir)
+    usage = calculate_image_usage(individual_image, image_references, nfs_dir, mount_point)
     assert usage == 100.0
 
     # Test individual image without reference (symlink points elsewhere)
-    gcc_path.unlink()
-    gcc_path.symlink_to("/cefs/de/def456_gcc")
+    gcc_full_path.unlink()
+    gcc_full_path.symlink_to(mount_point / "de" / "def456_gcc")
 
-    usage = calculate_image_usage(individual_image, image_references, nfs_dir)
+    usage = calculate_image_usage(individual_image, image_references, nfs_dir, mount_point)
     assert usage == 0.0
 
     # Test consolidated image with partial usage
     consolidated_image = tmp_path / "xyz789_consolidated.sqfs"
     consolidated_image.touch()
 
-    image_references["xyz789_consolidated"] = [
-        Path("/opt/tool1"),
-        Path("/opt/tool2"),
-        Path("/opt/tool3"),
-    ]
-
     # Create symlinks - only 2 of 3 point to this image
     tool1_path = nfs_dir / "opt" / "tool1"
-    tool1_path.symlink_to("/cefs/xy/xyz789_consolidated/tool1")
+    tool1_path.symlink_to(mount_point / "xy" / "xyz789_consolidated" / "tool1")
 
     tool2_path = nfs_dir / "opt" / "tool2"
-    tool2_path.symlink_to("/cefs/xy/xyz789_consolidated/tool2")
+    tool2_path.symlink_to(mount_point / "xy" / "xyz789_consolidated" / "tool2")
 
     tool3_path = nfs_dir / "opt" / "tool3"
-    tool3_path.symlink_to("/cefs/ab/different_image/tool3")
+    tool3_path.symlink_to(mount_point / "ab" / "different_image" / "tool3")
 
-    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir)
+    # Image references should contain full absolute paths
+    image_references["xyz789_consolidated"] = [
+        tool1_path,
+        tool2_path,
+        tool3_path,
+    ]
+
+    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir, mount_point)
     assert pytest.approx(usage, 0.1) == 66.7  # 2/3 = 66.7%
 
 
@@ -1033,6 +1038,82 @@ def test_images_without_manifests_are_broken(tmp_path):
     assert image_hash not in state.referenced_images, "Broken image should not be in referenced_images"
     assert len(state.broken_images) == 1, "Should have one broken image"
     assert state.broken_images[0] == image_path, "Should track the broken image path"
+
+
+def test_check_if_symlink_references_consolidated_image(tmp_path):
+    test_mount = tmp_path / "test_cefs"
+    test_mount.mkdir()
+
+    # Test case 1: Normal consolidated image
+    hash_dir = test_mount / "0d"
+    hash_dir.mkdir()
+    image_dir = hash_dir / "0d163f7f3ee984e50fd7d14f_consolidated"
+    image_dir.mkdir()
+    subdir = image_dir / "compilers_c++_x86_gcc_15.1.0"
+    subdir.mkdir()
+
+    symlink = tmp_path / "gcc-15.1.0"
+    symlink.symlink_to(subdir)
+
+    image_stem = "0d163f7f3ee984e50fd7d14f_consolidated"
+    result = check_if_symlink_references_image(symlink, image_stem, test_mount)
+    assert result is True, "Should detect symlink pointing to consolidated image"
+
+    # Test case 2: Edge case - similar image names
+    hash_dir2 = test_mount / "ab"
+    hash_dir2.mkdir()
+    image_dir2 = hash_dir2 / "abc_def"
+    image_dir2.mkdir()
+    subdir2 = image_dir2 / "some_compiler"
+    subdir2.mkdir()
+
+    symlink2 = tmp_path / "some-compiler"
+    symlink2.symlink_to(subdir2)
+
+    # Test that similar names don't match
+    wrong_stem = "abc_def_xyz"
+    result = check_if_symlink_references_image(symlink2, wrong_stem, test_mount)
+    assert result is False, "Should NOT match - symlink points to 'abc_def' not 'abc_def_xyz'"
+
+    # Test case 3: Wrong image
+    other_stem = "deadbeef_consolidated"
+    result = check_if_symlink_references_image(symlink, other_stem, test_mount)
+    assert result is False, "Should not match different image"
+
+
+def test_calculate_image_usage_with_absolute_paths(tmp_path):
+    """Test that calculate_image_usage handles absolute paths correctly."""
+    test_mount = tmp_path / "test_cefs"
+    test_mount.mkdir()
+
+    # Create a consolidated image structure
+    hash_dir = test_mount / "0d"
+    hash_dir.mkdir()
+    image_path = hash_dir / "0d163f7f3ee984e50fd7d14f_consolidated.sqfs"
+    image_path.touch()
+
+    # Create actual symlinks at the expected locations
+    # We need to use tmp_path as our fake /opt/compiler-explorer for testing
+    fake_nfs = tmp_path / "fake_opt_compiler_explorer"
+    fake_nfs.mkdir()
+
+    # Create the symlinks
+    gcc_link = fake_nfs / "gcc-15.1.0"
+    gcc_target = test_mount / "0d" / "0d163f7f3ee984e50fd7d14f_consolidated" / "compilers_c++_x86_gcc_15.1.0"
+    gcc_target.parent.mkdir(parents=True, exist_ok=True)
+    gcc_target.mkdir()
+    gcc_link.symlink_to(gcc_target)
+
+    wasmtime_link = fake_nfs / "wasmtime-20.0.1"
+    wasmtime_target = test_mount / "0d" / "0d163f7f3ee984e50fd7d14f_consolidated" / "compilers_wasm_wasmtime_20.0.1"
+    wasmtime_target.mkdir()
+    wasmtime_link.symlink_to(wasmtime_target)
+
+    # Test with our fake paths instead of real /opt/compiler-explorer
+    test_references = {"0d163f7f3ee984e50fd7d14f_consolidated": [fake_nfs / "gcc-15.1.0", fake_nfs / "wasmtime-20.0.1"]}
+
+    usage = calculate_image_usage(image_path, test_references, fake_nfs, test_mount)
+    assert usage == 100.0, f"Expected 100% usage, got {usage}%"
 
 
 def test_concurrent_gc_safety(tmp_path):
@@ -1358,6 +1439,75 @@ def test_is_image_referenced(tmp_path):
         # Test: Image not in references at all - should raise ValueError
         with pytest.raises(ValueError, match="has no manifest data"):
             state.is_image_referenced("missing_image")
+
+
+def testcheck_if_symlink_references_image(tmp_path):
+    """Test check_if_symlink_references_image with real-world paths."""
+    mount_point = Path("/cefs")
+
+    # Test consolidated image reference
+    symlink = tmp_path / "gcc-15.1.0"
+    symlink.symlink_to("/cefs/0d/0d163f7f3ee984e50fd7d14f_consolidated/compilers_c++_x86_gcc_15.1.0")
+
+    # This should return True - the symlink points to this consolidated image
+    assert check_if_symlink_references_image(symlink, "0d163f7f3ee984e50fd7d14f_consolidated", mount_point)
+
+    # Test individual image reference
+    symlink2 = tmp_path / "gcc-14.2.0"
+    symlink2.symlink_to("/cefs/1b/1ba0b52e8da6a83656e36877_gcc-14.2.0")
+
+    # This should return True - the symlink points to this individual image
+    assert check_if_symlink_references_image(symlink2, "1ba0b52e8da6a83656e36877_gcc-14.2.0", mount_point)
+
+    # Test non-matching reference
+    symlink3 = tmp_path / "gcc-13.2.0"
+    symlink3.symlink_to("/cefs/50/508034febfc3395b191a5782_gcc-13.2.0")
+
+    # This should return False - the symlink points to a different image
+    assert not check_if_symlink_references_image(symlink3, "0d163f7f3ee984e50fd7d14f_consolidated", mount_point)
+
+
+def test_calculate_consolidated_image_usage(tmp_path):
+    """Test that calculate_image_usage correctly calculates usage for consolidated images."""
+    # Set up test directories
+    nfs_dir = tmp_path / "nfs"
+    nfs_dir.mkdir()
+    test_mount = tmp_path / "test_mount"
+    test_mount.mkdir()
+
+    # Create a mock consolidated image with actual naming convention
+    cefs_dir = tmp_path / "cefs-images" / "0d"
+    cefs_dir.mkdir(parents=True)
+    consolidated_image = cefs_dir / "0d163f7f3ee984e50fd7d14f_consolidated.sqfs"
+    consolidated_image.touch()
+
+    # Set up symlinks pointing to consolidated image subdirectories
+    # Using actual naming patterns from the real system
+    gcc_15 = nfs_dir / "opt" / "compiler-explorer" / "gcc-15.1.0"
+    gcc_15.parent.mkdir(parents=True)
+    wasmtime = nfs_dir / "opt" / "compiler-explorer" / "wasmtime-20.0.1"
+
+    # Create symlinks with actual subdirectory naming convention
+    # Using test_mount instead of /cefs to avoid real filesystem
+    target_base = test_mount / "0d" / "0d163f7f3ee984e50fd7d14f_consolidated"
+    target_base.mkdir(parents=True)
+    gcc_15.symlink_to(target_base / "compilers_c++_x86_gcc_15.1.0")
+    wasmtime.symlink_to(target_base / "compilers_wasm_wasmtime_20.0.1")
+
+    # Set up image_references as would be populated by CEFSState from manifest
+    # These should be the actual full paths where the symlinks exist
+    image_references = {
+        "0d163f7f3ee984e50fd7d14f_consolidated": [
+            gcc_15,
+            wasmtime,
+        ]
+    }
+
+    # Calculate usage
+    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir, test_mount)
+
+    # Should be 100% since both items are still referenced
+    assert usage == 100.0, f"Expected 100% usage, got {usage}%"
 
 
 def test_filter_images_by_age_with_specific_times(tmp_path):

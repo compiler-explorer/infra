@@ -1141,7 +1141,9 @@ def is_consolidated_image(image_path: Path) -> bool:
     return False
 
 
-def calculate_image_usage(image_path: Path, image_references: dict[str, list[Path]], nfs_dir: Path) -> float:
+def calculate_image_usage(
+    image_path: Path, image_references: dict[str, list[Path]], nfs_dir: Path, mount_point: Path
+) -> float:
     """Calculate usage percentage for a CEFS image.
 
     For individual images: 100% if referenced, 0% if not
@@ -1165,11 +1167,14 @@ def calculate_image_usage(image_path: Path, image_references: dict[str, list[Pat
     # For individual images (single destination), it's binary
     if len(expected_destinations) == 1:
         dest_path = expected_destinations[0]
-        full_path = normalize_dest_path(dest_path, nfs_dir)
+        # Use the path directly - it's already an absolute path from the manifest
+        full_path = Path(dest_path)
 
         # Check if either main or .bak symlink points to this image
-        main_ref = _check_if_symlink_references_image(full_path, filename_stem)
-        bak_ref = _check_if_symlink_references_image(full_path.with_name(full_path.name + ".bak"), filename_stem)
+        main_ref = check_if_symlink_references_image(full_path, filename_stem, mount_point)
+        bak_ref = check_if_symlink_references_image(
+            full_path.with_name(full_path.name + ".bak"), filename_stem, mount_point
+        )
         if main_ref or bak_ref:
             return 100.0
         return 0.0
@@ -1177,11 +1182,14 @@ def calculate_image_usage(image_path: Path, image_references: dict[str, list[Pat
     # For consolidated images, check each subdirectory
     referenced_count = 0
     for dest_path in expected_destinations:
-        full_path = normalize_dest_path(dest_path, nfs_dir)
+        # Use the path directly - it's already an absolute path from the manifest
+        full_path = Path(dest_path)
 
         # Check if either main or .bak symlink points to this image
-        main_ref = _check_if_symlink_references_image(full_path, filename_stem)
-        bak_ref = _check_if_symlink_references_image(full_path.with_name(full_path.name + ".bak"), filename_stem)
+        main_ref = check_if_symlink_references_image(full_path, filename_stem, mount_point)
+        bak_ref = check_if_symlink_references_image(
+            full_path.with_name(full_path.name + ".bak"), filename_stem, mount_point
+        )
         if main_ref or bak_ref:
             referenced_count += 1
 
@@ -1189,29 +1197,21 @@ def calculate_image_usage(image_path: Path, image_references: dict[str, list[Pat
     return usage_percentage
 
 
-def _check_if_symlink_references_image(symlink_path: Path, image_stem: str) -> bool:
-    """Check if a symlink references a specific CEFS image.
-
-    Args:
-        symlink_path: Path to check
-        image_stem: Stem of the image file to check against
-
-    Returns:
-        True if the symlink points to the image
-    """
+def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount_point: Path) -> bool:
     if not symlink_path.is_symlink():
         return False
 
     try:
         target = symlink_path.readlink()
-        # Check if target is a CEFS path and contains the image stem
-        if target.is_absolute() and str(target).startswith("/cefs/"):
-            # Extract hash from path (e.g., /cefs/ab/abcd1234... -> abcd1234...)
+        if target.is_absolute() and target.is_relative_to(mount_point):
+            mount_parts_len = len(mount_point.parts)
             parts = target.parts
-            if len(parts) >= 4:
-                target_hash = parts[3]
-                # The image stem starts with the hash
-                return image_stem.startswith(target_hash.split("_")[0])
+            if len(parts) >= mount_parts_len + 2:
+                # The directory name is at index mount_parts_len + 1
+                # e.g., for /cefs/0d/0d163f7f3ee984e50fd7d14f_consolidated/subdir
+                # parts[mount_parts_len + 1] is "0d163f7f3ee984e50fd7d14f_consolidated"
+                target_dir = parts[mount_parts_len + 1]
+                return target_dir == image_stem
     except (OSError, IndexError):
         pass
 
@@ -1287,7 +1287,7 @@ def get_consolidated_image_usage_stats(
         except OSError:
             size = 0
 
-        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir)
+        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir, state.mount_point)
 
         if is_consolidated_image(image_path):
             consolidated_images += 1

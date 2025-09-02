@@ -725,8 +725,12 @@ def _gather_reconsolidation_candidates(
         if not is_consolidated_image(image_path):
             continue
 
+        _LOGGER.debug("Checking consolidated image: %s", image_path.name)
+
         # Calculate usage for this consolidated image
-        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir)
+        usage = calculate_image_usage(
+            image_path, state.image_references, state.nfs_dir, context.config.cefs.mount_point
+        )
 
         # Get image size
         try:
@@ -734,12 +738,25 @@ def _gather_reconsolidation_candidates(
         except OSError:
             continue
 
+        _LOGGER.debug(
+            "Image %s: usage=%.1f%%, size=%s (undersized threshold=%s)",
+            image_path.name,
+            usage,
+            humanfriendly.format_size(size, binary=True),
+            humanfriendly.format_size(max_size_bytes * undersized_ratio, binary=True),
+        )
+
         # Determine if this image should be reconsolidated
         should_reconsolidate, reason = _should_reconsolidate_image(
-            usage, size, efficiency_threshold, max_size_bytes, undersized_ratio
+            usage=usage,
+            size=size,
+            efficiency_threshold=efficiency_threshold,
+            max_size_bytes=max_size_bytes,
+            undersized_ratio=undersized_ratio,
         )
 
         if not should_reconsolidate:
+            _LOGGER.debug("Image %s not marked for reconsolidation", image_path.name)
             continue
 
         _LOGGER.info("Consolidated image %s marked for reconsolidation: %s", image_path.name, reason)
@@ -786,6 +803,12 @@ def _gather_reconsolidation_candidates(
     default=0.5,
     type=float,
     help="Only repack consolidated images below this efficiency (0.0-1.0, default: 0.5)",
+)
+@click.option(
+    "--undersized-ratio",
+    default=0.25,
+    type=float,
+    help="Consider consolidated images undersized if smaller than max-size * this ratio (default: 0.25)",
 )
 @click.argument("filter_", metavar="[FILTER]", nargs=-1, required=False)
 def consolidate(
