@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,6 +103,74 @@ def get_git_sha() -> str:
     except (subprocess.TimeoutExpired, OSError) as e:
         _LOGGER.warning("Failed to get git SHA: %s", e)
         return "unknown"
+
+
+def simplify_validation_error(error: ValidationError) -> str:
+    """Extract a simplified, human-readable message from a Pydantic ValidationError.
+
+    Args:
+        error: The ValidationError to simplify
+
+    Returns:
+        A concise summary of the validation issues
+
+    Examples:
+        >>> simplify_validation_error(error)
+        "21 invalid names ('gcc'), 1 invalid name ('zig')"
+    """
+    error_counts: dict[str, int] = {}
+    invalid_names: dict[str, int] = {}
+    field_errors: list[str] = []
+
+    for err in error.errors():
+        # Check for invalid name errors
+        if "name" in err.get("loc", []) and "Invalid installable name" in err.get("msg", ""):
+            # Extract the invalid name from the input value
+            invalid_value = err.get("input", "")
+            if invalid_value:
+                invalid_names[invalid_value] = invalid_names.get(invalid_value, 0) + 1
+        # Check for missing required fields
+        elif err.get("type") == "missing":
+            field = ".".join(str(x) for x in err.get("loc", []))
+            field_errors.append(f"missing {field}")
+        # Check for extra/forbidden fields
+        elif err.get("type") == "extra_forbidden":
+            field = ".".join(str(x) for x in err.get("loc", []))
+            field_errors.append(f"unexpected field '{field}'")
+        else:
+            # Generic error counting
+            error_type = err.get("type", "unknown")
+            error_counts[error_type] = error_counts.get(error_type, 0) + 1
+
+    # Build summary message
+    parts = []
+
+    # Add invalid name summary
+    if invalid_names:
+        name_parts = []
+        for name, count in invalid_names.items():
+            if count > 1:
+                name_parts.append(f"{count} entries with invalid name '{name}'")
+            else:
+                name_parts.append(f"invalid name '{name}'")
+        parts.append(", ".join(name_parts))
+
+    # Add field errors
+    if field_errors:
+        # Limit to first 3 field errors to avoid verbosity
+        if len(field_errors) > 3:
+            parts.append(
+                f"{field_errors[0]}, {field_errors[1]}, {field_errors[2]} and {len(field_errors) - 3} more field errors"
+            )
+        else:
+            parts.append(", ".join(field_errors))
+
+    # Add generic error counts if no specific errors captured
+    if not parts and error_counts:
+        for error_type, count in error_counts.items():
+            parts.append(f"{count} {error_type} error(s)")
+
+    return "; ".join(parts) if parts else f"{len(error.errors())} validation error(s)"
 
 
 def sanitize_path_for_filename(path: Path) -> str:
@@ -268,6 +336,10 @@ def validate_manifest(manifest_dict: dict[str, Any]) -> CEFSManifest:
     """
     try:
         return CEFSManifest(**manifest_dict)
+    except ValidationError as e:
+        # Use simplified error message for ValueError
+        simplified = simplify_validation_error(e)
+        raise ValueError(f"Invalid manifest: {simplified}") from e
     except Exception as e:
         raise ValueError(f"Invalid manifest: {e}") from e
 
