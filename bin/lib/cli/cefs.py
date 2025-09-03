@@ -38,9 +38,6 @@ from lib.cefs import (
 _LOGGER = logging.getLogger(__name__)
 
 
-# convert_to_cefs function has been moved to lib/cefs.py
-
-
 @cli.group()
 def cefs():
     """CEFS (Compiler Explorer FileSystem) v2 commands."""
@@ -57,9 +54,6 @@ def _print_basic_config(context: CliContext) -> None:
     click.echo(f"  Traditional Enabled: {context.config.squashfs.traditional_enabled}")
     click.echo(f"  Compression: {context.config.squashfs.compression}")
     click.echo(f"  Compression Level: {context.config.squashfs.compression_level}")
-
-
-# _format_verbose_image_details and _format_usage_statistics have been moved to lib/cefs.py
 
 
 @cefs.command()
@@ -283,7 +277,6 @@ def rollback(context: CliContext, filter_: list[str]):
 
         _LOGGER.info("Rolling back %s...", installable.name)
 
-        # Check if there's anything to rollback
         if not nfs_path.is_symlink():
             _LOGGER.info("Skipping %s - not a CEFS symlink", installable.name)
             skipped += 1
@@ -379,9 +372,6 @@ def rollback(context: CliContext, filter_: list[str]):
         raise click.ClickException(f"Failed to rollback {failed} installables")
 
 
-# _gather_reconsolidation_candidates has been moved to lib/cefs.py
-
-
 @cefs.command()
 @click.pass_obj
 @click.option(
@@ -449,7 +439,6 @@ def consolidate(
     except humanfriendly.InvalidSize as e:
         raise click.ClickException(str(e)) from e
 
-    # Get all installables and filter for CEFS-converted ones
     all_installables = context.get_installables(filter_)
     cefs_items: list[ConsolidationCandidate] = []
 
@@ -459,7 +448,6 @@ def consolidate(
 
         nfs_path = context.installation_context.destination / installable.install_path
 
-        # Check if item is already CEFS-converted (symlink to /cefs/)
         if nfs_path.is_symlink():
             try:
                 cefs_target = nfs_path.readlink()
@@ -506,7 +494,6 @@ def consolidate(
     # Add reconsolidation candidates if enabled
     if reconsolidate:
         _LOGGER.info("Gathering reconsolidation candidates...")
-        # Initialize state for reconsolidation
         recon_state = CEFSState(
             nfs_dir=context.installation_context.destination,
             cefs_image_dir=context.config.cefs.image_dir,
@@ -539,7 +526,6 @@ def consolidate(
 
     _LOGGER.info("Created %d consolidation groups", len(groups))
 
-    # Validate space requirements
     temp_dir = context.config.cefs.local_temp_dir
     try:
         required_temp_space, largest_group_size = validate_space_requirements(groups, temp_dir)
@@ -573,11 +559,9 @@ def consolidate(
     symlink_snapshot = snapshot_symlink_targets(all_symlinks)
     _LOGGER.info("Snapshotted %d symlinks", len(symlink_snapshot))
 
-    # Create unique directory for this consolidation run
     consolidation_dir = temp_dir / str(uuid.uuid4())
     consolidation_dir.mkdir(parents=True, exist_ok=True)
 
-    # Process each group
     successful_groups = 0
     failed_groups = 0
     total_updated_symlinks = 0
@@ -767,7 +751,69 @@ def gc(context: CliContext, force: bool, min_age: str):
         raise click.ClickException(f"GC completed with {error_count} errors")
 
 
-# Helper functions have been moved to lib/cefs.py
+def display_verbose_fsck_logs(
+    state: CEFSState,
+    results: FSCKResults,
+    filter_list: list[str] | None,
+    check_reverse_orphans: bool,
+) -> None:
+    """Display verbose logging for fsck validation.
+
+    Args:
+        state: CEFS state with image information
+        results: Validation results
+        filter_list: Optional filters for image paths
+        check_reverse_orphans: Whether to log reverse orphans
+    """
+    for _stem, image_path in state.all_cefs_images.items():
+        if filter_list and not any(f in str(image_path) for f in filter_list):
+            continue
+        manifest_path = image_path.with_suffix(".yaml")
+        if (
+            manifest_path not in results.missing_manifests
+            and manifest_path not in results.old_format_manifests
+            and not any(m[0] == manifest_path for m in results.invalid_name_manifests)
+            and not any(m[0] == manifest_path for m in results.other_invalid_manifests)
+            and not any(m[0] == manifest_path for m in results.unreadable_manifests)
+        ):
+            click.echo(f"✅ Valid manifest: {manifest_path}")
+        elif manifest_path in results.missing_manifests:
+            click.echo(f"❌ Missing manifest for {image_path}")
+        elif manifest_path in results.old_format_manifests:
+            click.echo(f"❌ Old manifest format (has 'target' field): {manifest_path}")
+        else:
+            for m_path, error in results.invalid_name_manifests:
+                if m_path == manifest_path:
+                    click.echo(f"❌ Invalid manifest: {manifest_path}")
+                    click.echo(f"   Reason: {error}")
+                    break
+            for m_path, error in results.other_invalid_manifests:
+                if m_path == manifest_path:
+                    click.echo(f"❌ Invalid manifest: {manifest_path}")
+                    click.echo(f"   Reason: {error}")
+                    break
+            for m_path, error in results.unreadable_manifests:
+                if m_path == manifest_path:
+                    click.echo(f"❌ Cannot read manifest: {manifest_path}: {error}")
+                    break
+
+    for symlink_path, _target_path in results.symlink_issues:
+        click.echo(f"  ❌ Broken symlink: {symlink_path}")
+
+    for file, age, _ in results.inprogress_files:
+        click.echo(f"  Found .inprogress file: {file} (age: {age})")
+
+    for item, age, _ in results.pending_backups:
+        item_type = "symlink" if item.is_symlink() else "directory"
+        click.echo(f"  Found .bak {item_type}: {item} (age: {age})")
+    for item, age, _ in results.pending_deletes:
+        item_type = "symlink" if item.is_symlink() else "directory"
+        click.echo(f"  Found .DELETE_ME {item_type}: {item} (age: {age})")
+
+    if check_reverse_orphans:
+        click.echo("\n🔍 Checking for reverse orphans (images with manifests but no working symlinks)...")
+        for image_path, _, example_dest in results.reverse_orphans:
+            click.echo(f"  Reverse orphan: {image_path} (expected: {example_dest})")
 
 
 def format_cleanup_item(item: tuple | Path) -> str:
@@ -843,7 +889,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.old_format_manifests) > 3:
             click.echo(f"    ... and {len(results.old_format_manifests) - 3} more")
 
-    # Missing manifests
     if results.missing_manifests:
         click.echo(
             f"\n  Missing Manifests ({len(results.missing_manifests)} image{'s' if len(results.missing_manifests) > 1 else ''}):"
@@ -854,7 +899,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.missing_manifests) > 3:
             click.echo(f"    ... and {len(results.missing_manifests) - 3} more")
 
-    # Other validation errors
     if results.other_invalid_manifests:
         click.echo(
             f"\n  Other Validation Errors ({len(results.other_invalid_manifests)} manifest{'s' if len(results.other_invalid_manifests) > 1 else ''}):"
@@ -867,7 +911,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.other_invalid_manifests) > 3:
             click.echo(f"    ... and {len(results.other_invalid_manifests) - 3} more")
 
-    # Unreadable manifests
     if results.unreadable_manifests:
         click.echo(
             f"\n  Unreadable Manifests ({len(results.unreadable_manifests)} file{'s' if len(results.unreadable_manifests) > 1 else ''}):"
@@ -880,7 +923,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.unreadable_manifests) > 3:
             click.echo(f"    ... and {len(results.unreadable_manifests) - 3} more")
 
-    # Broken symlinks
     if results.symlink_issues:
         click.echo(
             f"\n  Broken Symlinks ({len(results.symlink_issues)} symlink{'s' if len(results.symlink_issues) > 1 else ''}):"
@@ -892,7 +934,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.symlink_issues) > 3:
             click.echo(f"    ... and {len(results.symlink_issues) - 3} more")
 
-    # In-progress files
     if results.inprogress_files:
         click.echo(
             f"\n  In-Progress Files ({len(results.inprogress_files)} file{'s' if len(results.inprogress_files) > 1 else ''}):"
@@ -903,7 +944,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.inprogress_files) > 3:
             click.echo(f"    ... and {len(results.inprogress_files) - 3} more")
 
-    # Pending cleanup
     if results.pending_backups or results.pending_deletes:
         click.echo(
             f"\n  Pending Cleanup ({len(results.pending_backups) + len(results.pending_deletes)} item{'s' if len(results.pending_backups) + len(results.pending_deletes) > 1 else ''}):"
@@ -921,7 +961,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
             if len(results.pending_deletes) > 2:
                 click.echo(f"    ... and {len(results.pending_deletes) - 2} more")
 
-    # Reverse orphans (if checked)
     if check_reverse_orphans and results.reverse_orphans:
         click.echo(
             f"\n  Reverse Orphans ({len(results.reverse_orphans)} image{'s' if len(results.reverse_orphans) > 1 else ''}):"
@@ -936,7 +975,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         if len(results.reverse_orphans) > 3:
             click.echo(f"    ... and {len(results.reverse_orphans) - 3} more")
 
-    # Recommendations
     click.echo("\n💡 Recommendations:")
 
     if results.invalid_name_manifests or results.old_format_manifests:
@@ -1031,14 +1069,12 @@ def fsck(
         click.echo("--fix is not yet implemented")
         return
 
-    # Check for orphaned symlinks (if requested - VERY SLOW)
     if check_orphaned_symlinks:
         click.echo("\n⚠️  WARNING: Scanning for orphaned symlinks is SLOW on large NFS mounts...")
         click.echo("  This may take several hours to complete...")
         click.echo("  (Not implemented in this version to prevent accidental long runs)")
         return
 
-    # Initialize state and scan images
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
@@ -1046,11 +1082,9 @@ def fsck(
     )
     state.scan_cefs_images_with_manifests()
 
-    # Verbose output for scanning
     if verbose:
         click.echo("\n🔍 Scanning CEFS images and validating manifests...")
 
-    # Run the validation
     results = run_fsck_validation(
         state,
         context.config.cefs.mount_point,
@@ -1058,66 +1092,14 @@ def fsck(
         check_reverse_orphans_flag=check_reverse_orphans_flag,
     )
 
-    # Verbose logging for individual issues
     if verbose:
-        # Log valid manifests
-        for _stem, image_path in state.all_cefs_images.items():
-            if filter and not any(f in str(image_path) for f in filter):
-                continue
-            manifest_path = image_path.with_suffix(".yaml")
-            # Check if this was valid
-            if (
-                manifest_path not in results.missing_manifests
-                and manifest_path not in results.old_format_manifests
-                and not any(m[0] == manifest_path for m in results.invalid_name_manifests)
-                and not any(m[0] == manifest_path for m in results.other_invalid_manifests)
-                and not any(m[0] == manifest_path for m in results.unreadable_manifests)
-            ):
-                click.echo(f"✅ Valid manifest: {manifest_path}")
-            elif manifest_path in results.missing_manifests:
-                click.echo(f"❌ Missing manifest for {image_path}")
-            elif manifest_path in results.old_format_manifests:
-                click.echo(f"❌ Old manifest format (has 'target' field): {manifest_path}")
-            else:
-                # Find specific error
-                for m_path, error in results.invalid_name_manifests:
-                    if m_path == manifest_path:
-                        click.echo(f"❌ Invalid manifest: {manifest_path}")
-                        click.echo(f"   Reason: {error}")
-                        break
-                for m_path, error in results.other_invalid_manifests:
-                    if m_path == manifest_path:
-                        click.echo(f"❌ Invalid manifest: {manifest_path}")
-                        click.echo(f"   Reason: {error}")
-                        break
-                for m_path, error in results.unreadable_manifests:
-                    if m_path == manifest_path:
-                        click.echo(f"❌ Cannot read manifest: {manifest_path}: {error}")
-                        break
+        display_verbose_fsck_logs(
+            state,
+            results,
+            filter_list=list(filter) if filter else None,
+            check_reverse_orphans=check_reverse_orphans_flag,
+        )
 
-        # Log symlink issues
-        for symlink_path, _target_path in results.symlink_issues:
-            click.echo(f"  ❌ Broken symlink: {symlink_path}")
-
-        # Log in-progress files
-        for file, age, _ in results.inprogress_files:
-            click.echo(f"  Found .inprogress file: {file} (age: {age})")
-
-        # Log pending cleanup
-        for item, age, _ in results.pending_backups:
-            item_type = "symlink" if item.is_symlink() else "directory"
-            click.echo(f"  Found .bak {item_type}: {item} (age: {age})")
-        for item, age, _ in results.pending_deletes:
-            item_type = "symlink" if item.is_symlink() else "directory"
-            click.echo(f"  Found .DELETE_ME {item_type}: {item} (age: {age})")
-
-        # Log reverse orphans
-        if check_reverse_orphans_flag:
-            click.echo("\n🔍 Checking for reverse orphans (images with manifests but no working symlinks)...")
-            for image_path, _, example_dest in results.reverse_orphans:
-                click.echo(f"  Reverse orphan: {image_path} (expected: {example_dest})")
-
-    # Display the formatted results
     display_fsck_results(results, verbose, check_reverse_orphans_flag)
 
     # Exit with appropriate code
