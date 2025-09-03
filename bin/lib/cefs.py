@@ -2457,7 +2457,6 @@ class FSCKResults:
     inprogress_files: list[tuple[Path, str, float]] = field(default_factory=list)
     pending_backups: list[tuple[Path, str, float]] = field(default_factory=list)
     pending_deletes: list[tuple[Path, str, float]] = field(default_factory=list)
-    reverse_orphans: list[tuple[Path, int, str]] = field(default_factory=list)
 
     @property
     def total_invalid(self) -> int:
@@ -2479,7 +2478,6 @@ class FSCKResults:
             or len(self.inprogress_files) > 0
             or len(self.pending_backups) > 0
             or len(self.pending_deletes) > 0
-            or len(self.reverse_orphans) > 0
         )
 
 
@@ -2565,73 +2563,6 @@ def check_pending_cleanup(
     return bak_dirs, delete_me_dirs
 
 
-def check_reverse_orphans(
-    cefs_image_dir: Path, nfs_dir: Path, all_cefs_images: dict[str, Path]
-) -> list[tuple[Path, int, str]]:
-    """Check for images with manifests but no working symlinks (reverse orphans).
-
-    Args:
-        cefs_image_dir: CEFS image directory
-        nfs_dir: NFS directory to check for symlinks
-        all_cefs_images: Dictionary of stem to image path
-
-    Returns:
-        List of (image_path, broken_symlink_count, example_dest) for orphaned images
-    """
-    orphaned_images: list[tuple[Path, int, str]] = []
-
-    # Check each image with a manifest
-    for stem, image_path in all_cefs_images.items():
-        manifest_path = image_path.with_suffix(".yaml")
-
-        # Skip if no manifest
-        if not manifest_path.exists():
-            continue
-
-        has_working_symlink = False
-        broken_symlink_count = 0
-        example_dest = ""
-
-        # Read manifest to check destinations
-        try:
-            with manifest_path.open(encoding="utf-8") as f:
-                manifest_dict = yaml.safe_load(f)
-
-            if manifest_dict and "contents" in manifest_dict:
-                for content in manifest_dict["contents"]:
-                    if "destination" in content:
-                        dest_str = content["destination"]
-                        if not example_dest:
-                            example_dest = dest_str
-                        # Convert destination to actual path on NFS
-                        if dest_str.startswith("/opt/compiler-explorer/"):
-                            relative_path = dest_str[len("/opt/compiler-explorer/") :]
-                            dest_path = nfs_dir / relative_path
-                        else:
-                            dest_path = Path(dest_str)
-
-                        # Check if this destination has a symlink
-                        if dest_path.exists() and dest_path.is_symlink():
-                            try:
-                                target = dest_path.readlink()
-                                # Check if target exists and points to this image
-                                if target.exists() and stem in str(target):
-                                    has_working_symlink = True
-                                    break
-                                else:
-                                    broken_symlink_count += 1
-                            except OSError:
-                                broken_symlink_count += 1
-        except (OSError, yaml.YAMLError):
-            continue
-
-        # If no working symlinks found, it's a reverse orphan
-        if not has_working_symlink:
-            orphaned_images.append((image_path, broken_symlink_count, example_dest))
-
-    return orphaned_images
-
-
 def validate_single_manifest(
     image_path: Path, manifest_path: Path, mount_point: Path, filename_stem: str
 ) -> tuple[bool, str | None, list[tuple[Path, Path]]]:
@@ -2709,7 +2640,6 @@ def run_fsck_validation(
     state: CEFSState,
     mount_point: Path,
     filter_list: list[str] | None = None,
-    check_reverse_orphans_flag: bool = False,
 ) -> FSCKResults:
     """Run CEFS filesystem validation checks.
 
@@ -2717,7 +2647,6 @@ def run_fsck_validation(
         state: CEFSState with scanned images
         mount_point: CEFS mount point
         filter_list: Optional filter for selecting images
-        check_reverse_orphans_flag: Whether to check for reverse orphans
 
     Returns:
         FSCKResults containing all validation results
@@ -2770,9 +2699,5 @@ def run_fsck_validation(
 
     # Check for pending cleanup
     results.pending_backups, results.pending_deletes = check_pending_cleanup(state.nfs_dir, state.cefs_image_dir)
-
-    # Check for reverse orphans (if requested)
-    if check_reverse_orphans_flag:
-        results.reverse_orphans = check_reverse_orphans(state.cefs_image_dir, state.nfs_dir, state.all_cefs_images)
 
     return results

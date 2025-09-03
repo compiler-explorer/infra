@@ -756,7 +756,6 @@ def display_verbose_fsck_logs(
     state: CEFSState,
     results: FSCKResults,
     filter_list: list[str] | None,
-    check_reverse_orphans: bool,
 ) -> None:
     """Display verbose logging for fsck validation.
 
@@ -764,7 +763,6 @@ def display_verbose_fsck_logs(
         state: CEFS state with image information
         results: Validation results
         filter_list: Optional filters for image paths
-        check_reverse_orphans: Whether to log reverse orphans
     """
     for _stem, image_path in state.all_cefs_images.items():
         if filter_list and not any(f in str(image_path) for f in filter_list):
@@ -811,11 +809,6 @@ def display_verbose_fsck_logs(
         item_type = "symlink" if item.is_symlink() else "directory"
         click.echo(f"  Found .DELETE_ME {item_type}: {item} (age: {age})")
 
-    if check_reverse_orphans:
-        click.echo("\n🔍 Checking for reverse orphans (images with manifests but no working symlinks)...")
-        for image_path, _, example_dest in results.reverse_orphans:
-            click.echo(f"  Reverse orphan: {image_path} (expected: {example_dest})")
-
 
 def format_cleanup_item(item: tuple | Path) -> str:
     """Format a cleanup item for display.
@@ -832,13 +825,12 @@ def format_cleanup_item(item: tuple | Path) -> str:
     return f"    • {item}"
 
 
-def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orphans: bool) -> None:
+def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
     """Display FSCK results in a structured format.
 
     Args:
         results: FSCKResults object containing all validation results
         verbose: Whether to show verbose output
-        check_reverse_orphans: Whether reverse orphan check was performed
     """
     # Print organized summary
     click.echo("\n" + "=" * 60)
@@ -853,8 +845,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
     click.echo(f"  ⚠️  Broken symlinks: {len(results.symlink_issues)}")
     click.echo(f"  🔄 In-progress files: {len(results.inprogress_files)}")
     click.echo(f"  🗑️  Pending cleanup: {len(results.pending_backups) + len(results.pending_deletes)}")
-    if check_reverse_orphans:
-        click.echo(f"  👻 Reverse orphans: {len(results.reverse_orphans)}")
 
     if not results.has_issues:
         click.echo("\n✅ All manifests are valid and symlinks are intact!")
@@ -962,20 +952,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
             if len(results.pending_deletes) > 2:
                 click.echo(f"    ... and {len(results.pending_deletes) - 2} more")
 
-    if check_reverse_orphans and results.reverse_orphans:
-        click.echo(
-            f"\n  Reverse Orphans ({len(results.reverse_orphans)} image{'s' if len(results.reverse_orphans) > 1 else ''}):"
-        )
-        click.echo("  These images have manifests but no working symlinks pointing to them.")
-        for image, ref_count, example_dest in results.reverse_orphans[:3]:
-            click.echo(f"    • {image}")
-            if ref_count > 0:
-                click.echo(f"      Has {ref_count} broken symlink{'s' if ref_count > 1 else ''}")
-            else:
-                click.echo(f"      Expected symlink: {example_dest}")
-        if len(results.reverse_orphans) > 3:
-            click.echo(f"    ... and {len(results.reverse_orphans) - 3} more")
-
     click.echo("\n💡 Recommendations:")
 
     if results.invalid_name_manifests or results.old_format_manifests:
@@ -1008,11 +984,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
         click.echo("  • These require manual cleanup (e.g., rm -rf *.bak *.DELETE_ME_*)")
         click.echo("  • Note: 'ce cefs gc' only removes unreferenced CEFS images, not these items")
 
-    if check_reverse_orphans and results.reverse_orphans:
-        click.echo("  • Reverse orphans are images with manifests but no working symlinks")
-        click.echo("  • These may be leftover from failed operations or manual interventions")
-        click.echo("  • Review and consider removing if not needed")
-
     if not verbose:
         click.echo("\n📝 Run with --verbose for detailed file-by-file output")
 
@@ -1030,30 +1001,11 @@ def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orph
     is_flag=True,
     help="Show detailed information for each check",
 )
-@click.option(
-    "--fix",
-    is_flag=True,
-    help="Attempt to fix issues (currently not implemented)",
-)
-@click.option(
-    "--check-orphaned-symlinks",
-    is_flag=True,
-    help="Check for orphaned symlinks (SLOW - scans entire NFS mount)",
-)
-@click.option(
-    "--check-reverse-orphans",
-    "check_reverse_orphans_flag",
-    is_flag=True,
-    help="Check for images with manifests but no working symlinks (moderately slow)",
-)
 @click.pass_obj
 def fsck(
     context: CliContext,
     filter: list[str],
     verbose: bool,
-    fix: bool,
-    check_orphaned_symlinks: bool,
-    check_reverse_orphans_flag: bool,
 ) -> None:
     """Check CEFS filesystem integrity.
 
@@ -1064,18 +1016,7 @@ def fsck(
     - No broken manifest formats (e.g., old 'target' field)
     - In-progress files indicating incomplete operations
     - Pending cleanup tasks (.bak, .DELETE_ME directories)
-    - Optional: Orphaned symlinks and reverse orphans
     """
-    if fix:
-        click.echo("--fix is not yet implemented")
-        return
-
-    if check_orphaned_symlinks:
-        click.echo("\n⚠️  WARNING: Scanning for orphaned symlinks is SLOW on large NFS mounts...")
-        click.echo("  This may take several hours to complete...")
-        click.echo("  (Not implemented in this version to prevent accidental long runs)")
-        return
-
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
@@ -1090,7 +1031,6 @@ def fsck(
         state,
         context.config.cefs.mount_point,
         filter_list=list(filter) if filter else None,
-        check_reverse_orphans_flag=check_reverse_orphans_flag,
     )
 
     if verbose:
@@ -1098,10 +1038,9 @@ def fsck(
             state,
             results,
             filter_list=list(filter) if filter else None,
-            check_reverse_orphans=check_reverse_orphans_flag,
         )
 
-    display_fsck_results(results, verbose, check_reverse_orphans_flag)
+    display_fsck_results(results, verbose)
 
     # Exit with appropriate code
     if results.has_issues:
