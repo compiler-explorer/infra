@@ -82,17 +82,7 @@ class CliContext:
         Raises:
             ValueError: If exactly one installable is not found (0 or 2+ matches)
         """
-        # Get all installables without filtering
-        all_installables = []
-        for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
-            with yaml_path.open(encoding="utf-8") as yaml_file:
-                yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
-            for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
-                all_installables.append(installer)
-        Installable.resolve(all_installables)
-
-        # Find exact matches
-        matches = [inst for inst in all_installables if inst.name == name]
+        matches = [inst for inst in self.get_installables([]) if inst.name == name]
 
         if len(matches) == 0:
             raise ValueError(f"No installable found with exact name: {name}")
