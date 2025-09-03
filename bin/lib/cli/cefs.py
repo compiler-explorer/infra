@@ -974,7 +974,7 @@ def check_inprogress_files(cefs_image_dir: Path, verbose: bool) -> tuple[list[Pa
     # Combine both types of inprogress files
     all_inprogress = yaml_inprogress + sqfs_inprogress
     # Sort by age (oldest first)
-    all_inprogress.sort(key=lambda x: -x[2])  # Sort by age_seconds descending
+    all_inprogress.sort(key=lambda x: x[2], reverse=True)  # Sort by age_seconds descending
 
     # Split into separate lists for files and ages
     inprogress_files = [item[0] for item in all_inprogress]
@@ -1030,6 +1030,21 @@ def check_pending_cleanup(nfs_dir: Path, cefs_image_dir: Path, verbose: bool) ->
                 pass
 
     return bak_dirs, delete_me_dirs
+
+
+def format_cleanup_item(item: tuple | Path) -> str:
+    """Format a cleanup item for display.
+
+    Args:
+        item: Either a tuple (path, age_str, age_hours) or a Path
+
+    Returns:
+        Formatted string for display
+    """
+    if isinstance(item, tuple):
+        path, age_str, _ = item
+        return f"    • {path} (age: {age_str})"
+    return f"    • {item}"
 
 
 def check_reverse_orphans(
@@ -1397,7 +1412,7 @@ def fsck(
                 f"\n  In-Progress Files ({len(inprogress_files)} file{'s' if len(inprogress_files) > 1 else ''}):"
             )
             click.echo("  These .inprogress files indicate incomplete operations.")
-            for _, (file, age) in enumerate(zip(inprogress_files[:3], inprogress_ages[:3], strict=False)):
+            for file, age in zip(inprogress_files[:3], inprogress_ages[:3], strict=True):
                 click.echo(f"    • {file} (age: {age})")
             if len(inprogress_files) > 3:
                 click.echo(f"    ... and {len(inprogress_files) - 3} more")
@@ -1410,23 +1425,13 @@ def fsck(
             if pending_backups:
                 click.echo(f"  .bak items ({len(pending_backups)}):")
                 for item in pending_backups[:2]:
-                    # Handle both tuple (path, age_str, age_hours) and plain Path
-                    if isinstance(item, tuple):
-                        path, age_str, _ = item
-                        click.echo(f"    • {path} (age: {age_str})")
-                    else:
-                        click.echo(f"    • {item}")
+                    click.echo(format_cleanup_item(item))
                 if len(pending_backups) > 2:
                     click.echo(f"    ... and {len(pending_backups) - 2} more")
             if pending_deletes:
                 click.echo(f"  .DELETE_ME items ({len(pending_deletes)}):")
                 for item in pending_deletes[:2]:
-                    # Handle both tuple (path, age_str, age_hours) and plain Path
-                    if isinstance(item, tuple):
-                        path, age_str, _ = item
-                        click.echo(f"    • {path} (age: {age_str})")
-                    else:
-                        click.echo(f"    • {item}")
+                    click.echo(format_cleanup_item(item))
                 if len(pending_deletes) > 2:
                     click.echo(f"    ... and {len(pending_deletes) - 2} more")
 
