@@ -8,127 +8,37 @@ import logging
 import shutil
 import subprocess
 import sys
-import time
 import uuid
 from pathlib import Path
 
 import click
 import humanfriendly
-import yaml
 
 from lib.ce_install import CliContext, cli
 from lib.cefs import (
     CEFSState,
     ConsolidationCandidate,
-    backup_and_symlink,
+    FSCKResults,
+    convert_to_cefs,
     delete_image_with_manifest,
-    deploy_to_cefs_transactional,
-    detect_nfs_state,
     filter_images_by_age,
-    find_small_consolidated_images,
     format_image_contents_string,
-    get_cefs_filename_for_image,
-    get_cefs_paths,
-    get_consolidated_item_status,
-    get_current_symlink_targets,
+    format_usage_statistics,
+    gather_reconsolidation_candidates,
     get_image_description,
-    group_images_by_usage,
-    is_consolidated_image,
-    is_item_still_using_image,
     pack_items_into_groups,
     parse_cefs_target,
     process_consolidation_group,
+    run_fsck_validation,
     snapshot_symlink_targets,
     validate_cefs_mount_point,
     validate_space_requirements,
 )
-from lib.cefs_manifest import (
-    create_installable_manifest_entry,
-    create_manifest,
-    read_manifest_from_alongside,
-    validate_manifest,
-)
-from lib.installable.installable import Installable
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def convert_to_cefs(context: CliContext, installable: Installable, force: bool, defer_cleanup: bool) -> bool:
-    """Convert a single installable from squashfs to CEFS.
-
-    Returns True if conversion was successful or already converted.
-    """
-    squashfs_image_path = context.config.squashfs.image_dir / f"{installable.install_path}.img"
-    nfs_path = context.installation_context.destination / installable.install_path
-
-    if not squashfs_image_path.exists():
-        _LOGGER.error("No squashfs image found for %s at %s", installable.name, squashfs_image_path)
-        return False
-
-    match detect_nfs_state(nfs_path):
-        case "symlink":
-            if not force:
-                _LOGGER.info("Already converted to CEFS: %s", installable.name)
-                return True
-        case "missing":
-            _LOGGER.error("NFS directory missing for %s: %s", installable.name, nfs_path)
-            return False
-
-    # Generate CEFS filename and paths
-    try:
-        _LOGGER.info("Calculating hash for %s...", squashfs_image_path)
-        relative_path = squashfs_image_path.relative_to(context.config.squashfs.image_dir)
-        filename = get_cefs_filename_for_image(squashfs_image_path, "convert", relative_path)
-        _LOGGER.info("Filename: %s", filename)
-    except OSError as e:
-        _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
-        return False
-
-    cefs_paths = get_cefs_paths(context.config.cefs.image_dir, context.config.cefs.mount_point, filename)
-
-    installable_info = create_installable_manifest_entry(installable.name, nfs_path)
-    manifest = create_manifest(
-        operation="convert",
-        description=f"Created through conversion of {installable.name}",
-        contents=[installable_info],
-    )
-
-    # Copy squashfs to CEFS images directory if not already there
-    # Never overwrite - hash ensures content is identical
-    if cefs_paths.image_path.exists():
-        _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
-        # Still need to create symlink even if image exists
-        try:
-            backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run, defer_cleanup)
-        except RuntimeError as e:
-            _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
-            return False
-    else:
-        # Deploy image and create symlink within transaction
-        try:
-            with deploy_to_cefs_transactional(
-                squashfs_image_path, cefs_paths.image_path, manifest, context.installation_context.dry_run
-            ):
-                # Create symlink while transaction is active
-                backup_and_symlink(nfs_path, cefs_paths.mount_path, context.installation_context.dry_run, defer_cleanup)
-                # Manifest will be automatically finalized on successful exit
-        except RuntimeError as e:
-            _LOGGER.error("Failed to convert %s to CEFS: %s", installable.name, e)
-            return False
-
-    # Post-migration validation (skip in dry-run)
-    if not context.installation_context.dry_run:
-        if not nfs_path.is_symlink():
-            _LOGGER.error("Post-migration check failed: %s is not a symlink", nfs_path)
-            return False
-
-        if not installable.is_installed():
-            _LOGGER.error("Post-migration check: %s reports not installed", installable.name)
-            return False
-        _LOGGER.info("Post-migration check: %s still installed", installable.name)
-
-    _LOGGER.info("Successfully converted %s to CEFS", installable.name)
-    return True
+# convert_to_cefs function has been moved to lib/cefs.py
 
 
 @cli.group()
@@ -149,89 +59,7 @@ def _print_basic_config(context: CliContext) -> None:
     click.echo(f"  Compression Level: {context.config.squashfs.compression_level}")
 
 
-def _format_verbose_image_details(
-    image_path: Path,
-    usage: float,
-    items_info: list[str] | None,
-    manifest: dict | None,
-    nfs_dir: Path,
-    mount_point: Path,
-) -> list[str]:
-    """Format verbose details for a partially used consolidated image."""
-    lines = []
-
-    if not items_info:
-        lines.append(f"        {image_path.name} ({usage:.1f}%)")
-        return lines
-
-    total_items = len(items_info)
-    used_items = int(total_items * usage / 100)
-    lines.append(f"        {image_path.name} ({usage:.1f}% - {used_items}/{total_items} items)")
-
-    # Show what replaced each item if partially used
-    if manifest and "contents" in manifest and usage < 100:
-        for content in manifest["contents"]:
-            if "destination" in content:
-                dest_path = Path(content["destination"])
-                targets = get_current_symlink_targets(dest_path)
-                # Find which target (if any) points to this image for status reporting
-                current_target = next(
-                    (t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None
-                )
-                status = get_consolidated_item_status(content, image_path, current_target, mount_point)
-                if status:
-                    lines.append(status)
-
-    return lines
-
-
-def _format_usage_statistics(
-    stats, state: CEFSState, verbose: bool, nfs_dir: Path, cefs_mount_point: Path
-) -> list[str]:
-    """Format detailed usage statistics."""
-    lines = []
-    lines.append("\nImage Statistics:")
-    lines.append(f"  Total images: {stats.total_images}")
-    lines.append(f"  Individual images: {stats.individual_images}")
-    lines.append(f"  Consolidated images: {stats.consolidated_images}")
-
-    if stats.consolidated_images > 0:
-        lines.append(f"    - Fully used (100%): {stats.fully_used_consolidated}")
-
-        ranges = group_images_by_usage(stats.partially_used_consolidated)
-
-        lines.append(f"    - Partially used: {len(stats.partially_used_consolidated)}")
-        for range_name, images in ranges.items():
-            if images:
-                lines.append(f"      * {range_name} used: {len(images)} images")
-                if verbose:
-                    for image_path, usage in images:
-                        items_info = get_image_description(image_path, cefs_mount_point)
-                        manifest = read_manifest_from_alongside(image_path)
-                        detail_lines = _format_verbose_image_details(
-                            image_path, usage, items_info, manifest, nfs_dir, cefs_mount_point
-                        )
-                        lines.extend(detail_lines)
-
-        # Count unused consolidated images
-        unused_consolidated = len([p for p in stats.unused_images if is_consolidated_image(p)])
-        lines.append(f"    - Unused (0%): {unused_consolidated}")
-
-    lines.append("\nSpace Analysis:")
-    lines.append(f"  Total CEFS space: {humanfriendly.format_size(stats.total_space, binary=True)}")
-    if stats.wasted_space_estimate > 0:
-        lines.append(
-            f"  Wasted in partial images: ~{humanfriendly.format_size(stats.wasted_space_estimate, binary=True)} (estimated)"
-        )
-
-    small_consolidated = find_small_consolidated_images(state, 5 * 1024 * 1024 * 1024)
-    if small_consolidated:
-        lines.append(f"  Potential consolidation: {len(small_consolidated)} small consolidated images could be merged")
-
-    if verbose:
-        lines.append("\nRun 'ce cefs consolidate --reconsolidate' to optimize partially used images")
-
-    return lines
+# _format_verbose_image_details and _format_usage_statistics have been moved to lib/cefs.py
 
 
 @cefs.command()
@@ -258,7 +86,7 @@ def status(context, show_usage: bool, verbose: bool):
     state.check_symlink_references()
 
     stats = state.get_usage_stats()
-    output_lines = _format_usage_statistics(
+    output_lines = format_usage_statistics(
         stats, state, verbose, context.installation_context.destination, context.config.cefs.mount_point
     )
     for line in output_lines:
@@ -297,7 +125,17 @@ def convert(context: CliContext, filter_: list[str], force: bool, defer_backup_c
             continue
 
         _LOGGER.info("Converting %s...", installable.name)
-        if convert_to_cefs(context, installable, force, defer_backup_cleanup):
+        squashfs_image_path = context.config.squashfs.image_dir / f"{installable.install_path}.img"
+        if convert_to_cefs(
+            installable,
+            context.installation_context.destination,
+            squashfs_image_path,
+            context.config.squashfs,
+            context.config.cefs,
+            force,
+            defer_backup_cleanup,
+            context.installation_context.dry_run,
+        ):
             successful += 1
         else:
             failed += 1
@@ -306,6 +144,21 @@ def convert(context: CliContext, filter_: list[str], force: bool, defer_backup_c
 
     if failed > 0:
         raise click.ClickException(f"Failed to convert {failed} installables")
+
+
+def _run_setup_command(cmd: list[str], description: str, dry_run: bool) -> None:
+    """Run command or show what would be run in dry-run mode.
+
+    Args:
+        cmd: Command to run
+        description: Description of what the command does
+        dry_run: If True, just log what would be run
+    """
+    if dry_run:
+        _LOGGER.info("Would run: %s", " ".join(cmd))
+    else:
+        _LOGGER.info("%s", description)
+        subprocess.check_call(cmd)
 
 
 @cefs.command()
@@ -320,14 +173,6 @@ def setup(context: CliContext, dry_run: bool):
     cefs_mount_point = context.config.cefs.mount_point
     cefs_image_dir = context.config.cefs.image_dir
 
-    def run_cmd(cmd, description):
-        """Run command or show what would be run in dry-run mode."""
-        if dry_run:
-            _LOGGER.info("Would run: %s", " ".join(cmd))
-        else:
-            _LOGGER.info("%s", description)
-            subprocess.check_call(cmd)
-
     _LOGGER.info("Setting up CEFS autofs configuration")
     _LOGGER.info("Mount point: %s", cefs_mount_point)
     _LOGGER.info("Image directory: %s", cefs_image_dir)
@@ -339,15 +184,18 @@ def setup(context: CliContext, dry_run: bool):
     # bash script in setup-common.sh (and vice versa).
     try:
         # Step 1: Create CEFS mount point
-        run_cmd(["sudo", "mkdir", "-p", cefs_mount_point], f"Creating CEFS mount point: {cefs_mount_point}")
+        _run_setup_command(
+            ["sudo", "mkdir", "-p", str(cefs_mount_point)], f"Creating CEFS mount point: {cefs_mount_point}", dry_run
+        )
 
         # Step 2: Create first-level autofs map file (handles {mount_point}/XX -> nested autofs)
         # Use the mount point name for autofs config files (e.g., /cefs -> auto.cefs, /test/mount -> auto.mount)
         auto_config_base = f"/etc/auto.{cefs_mount_point.name}"
         auto_cefs_content = f"* -fstype=autofs program:{auto_config_base}.sub"
-        run_cmd(
+        _run_setup_command(
             ["sudo", "bash", "-c", f"echo '{auto_cefs_content}' > {auto_config_base}"],
             f"Creating {auto_config_base}",
+            dry_run,
         )
 
         # Step 2b: Create second-level autofs executable script (handles HASH -> squashfs mount)
@@ -356,22 +204,28 @@ key="$1"
 subdir="${{key:0:2}}"
 echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key}}.sqfs"
 """
-        run_cmd(
+        _run_setup_command(
             ["sudo", "bash", "-c", f"cat > {auto_config_base}.sub << 'EOF'\n{auto_cefs_sub_script}EOF"],
             f"Creating {auto_config_base}.sub script",
+            dry_run,
         )
-        run_cmd(["sudo", "chmod", "+x", f"{auto_config_base}.sub"], f"Making {auto_config_base}.sub executable")
+        _run_setup_command(
+            ["sudo", "chmod", "+x", f"{auto_config_base}.sub"], f"Making {auto_config_base}.sub executable", dry_run
+        )
 
         # Step 3: Create autofs master entry
         auto_master_content = f"{cefs_mount_point} {auto_config_base} --negative-timeout 1"
-        run_cmd(["sudo", "mkdir", "-p", "/etc/auto.master.d"], "Creating /etc/auto.master.d directory")
-        run_cmd(
+        _run_setup_command(
+            ["sudo", "mkdir", "-p", "/etc/auto.master.d"], "Creating /etc/auto.master.d directory", dry_run
+        )
+        _run_setup_command(
             ["sudo", "bash", "-c", f"echo '{auto_master_content}' > /etc/auto.master.d/{cefs_mount_point.name}.autofs"],
             f"Creating /etc/auto.master.d/{cefs_mount_point.name}.autofs",
+            dry_run,
         )
 
         # Step 4: Restart autofs service
-        run_cmd(["sudo", "service", "autofs", "restart"], "Restarting autofs service")
+        _run_setup_command(["sudo", "service", "autofs", "restart"], "Restarting autofs service", dry_run)
 
         # Step 5: Validate setup (only in real mode)
         if not dry_run:
@@ -525,41 +379,7 @@ def rollback(context: CliContext, filter_: list[str]):
         raise click.ClickException(f"Failed to rollback {failed} installables")
 
 
-def _gather_reconsolidation_candidates(
-    context: CliContext,
-    efficiency_threshold: float,
-    max_size_bytes: int,
-    undersized_ratio: float,
-    filter_: list[str],
-) -> list[ConsolidationCandidate]:
-    """Gather candidates from existing consolidated images for reconsolidation.
-
-    Args:
-        context: CLI context
-        efficiency_threshold: Minimum efficiency to keep consolidated image (0.0-1.0)
-        max_size_bytes: Maximum size for consolidated images
-        filter_: Optional filter for selecting items
-
-    Returns:
-        List of candidate items from consolidated images that should be repacked
-    """
-    # Initialize CEFS state to analyze existing images
-    state = CEFSState(
-        nfs_dir=context.installation_context.destination,
-        cefs_image_dir=context.config.cefs.image_dir,
-        mount_point=context.config.cefs.mount_point,
-    )
-
-    state.scan_cefs_images_with_manifests()
-    state.check_symlink_references()
-
-    # Use the library method to gather candidates
-    return state.gather_reconsolidation_candidates(
-        efficiency_threshold=efficiency_threshold,
-        max_size_bytes=max_size_bytes,
-        undersized_ratio=undersized_ratio,
-        filter_=filter_,
-    )
+# _gather_reconsolidation_candidates has been moved to lib/cefs.py
 
 
 @cefs.command()
@@ -686,8 +506,17 @@ def consolidate(
     # Add reconsolidation candidates if enabled
     if reconsolidate:
         _LOGGER.info("Gathering reconsolidation candidates...")
-        recon_candidates = _gather_reconsolidation_candidates(
-            context, efficiency_threshold, max_size_bytes, undersized_ratio, filter_
+        # Initialize state for reconsolidation
+        recon_state = CEFSState(
+            nfs_dir=context.installation_context.destination,
+            cefs_image_dir=context.config.cefs.image_dir,
+            mount_point=context.config.cefs.mount_point,
+        )
+        recon_state.scan_cefs_images_with_manifests()
+        recon_state.check_symlink_references()
+
+        recon_candidates = gather_reconsolidation_candidates(
+            recon_state, efficiency_threshold, max_size_bytes, undersized_ratio, filter_
         )
 
         if recon_candidates:
@@ -938,98 +767,7 @@ def gc(context: CliContext, force: bool, min_age: str):
         raise click.ClickException(f"GC completed with {error_count} errors")
 
 
-def check_inprogress_files(cefs_image_dir: Path, verbose: bool) -> tuple[list[Path], list[str]]:
-    """Check for in-progress files that indicate incomplete operations.
-
-    Args:
-        cefs_image_dir: Path to CEFS images directory
-        verbose: Whether to show detailed output
-
-    Returns:
-        Tuple of (inprogress_files, inprogress_ages) where files are Paths and ages are strings
-    """
-    yaml_inprogress: list[tuple[Path, str, float]] = []
-    sqfs_inprogress: list[tuple[Path, str, float]] = []
-    current_time = time.time()
-
-    # Recursively find all .inprogress files
-    for inprogress_file in cefs_image_dir.glob("**/*.inprogress"):
-        # Get file age
-        try:
-            mtime = inprogress_file.stat().st_mtime
-            age_seconds = current_time - mtime
-            age_str = humanfriendly.format_timespan(age_seconds)
-
-            if inprogress_file.suffix == ".inprogress" and ".yaml" in str(inprogress_file):
-                yaml_inprogress.append((inprogress_file, age_str, age_seconds))
-                if verbose:
-                    click.echo(f"  Found yaml.inprogress: {inprogress_file} (age: {age_str})")
-            elif inprogress_file.suffix == ".inprogress" and ".sqfs" in str(inprogress_file):
-                sqfs_inprogress.append((inprogress_file, age_str, age_seconds))
-                if verbose:
-                    click.echo(f"  Found sqfs.inprogress: {inprogress_file} (age: {age_str})")
-        except OSError:
-            pass  # Skip files we can't stat
-
-    # Combine both types of inprogress files
-    all_inprogress = yaml_inprogress + sqfs_inprogress
-    # Sort by age (oldest first)
-    all_inprogress.sort(key=lambda x: x[2], reverse=True)  # Sort by age_seconds descending
-
-    # Split into separate lists for files and ages
-    inprogress_files = [item[0] for item in all_inprogress]
-    inprogress_ages = [item[1] for item in all_inprogress]
-
-    return inprogress_files, inprogress_ages
-
-
-def check_pending_cleanup(nfs_dir: Path, cefs_image_dir: Path, verbose: bool) -> tuple[list[tuple], list[tuple]]:
-    """Check for pending cleanup tasks (.bak and .DELETE_ME directories).
-
-    Args:
-        nfs_dir: NFS directory to check for cleanup tasks
-        cefs_image_dir: CEFS images directory
-        verbose: Whether to show detailed output
-
-    Returns:
-        Tuple of (bak_dirs, delete_me_dirs)
-    """
-    bak_dirs = []
-    delete_me_dirs = []
-    current_time = time.time()
-
-    # Check for .bak items (can be directories or symlinks)
-    for bak_item in nfs_dir.glob("*.bak"):
-        try:
-            # Use lstat to get the modification time of the item itself (not following symlinks)
-            stat_info = bak_item.lstat()
-            mtime = stat_info.st_mtime
-            age_seconds = current_time - mtime
-            age_str = humanfriendly.format_timespan(age_seconds)
-            bak_dirs.append((bak_item, age_str, age_seconds))
-            if verbose:
-                item_type = "symlink" if bak_item.is_symlink() else "directory"
-                click.echo(f"  Found .bak {item_type}: {bak_item} (age: {age_str})")
-        except OSError:
-            pass
-
-    # Check for .DELETE_ME items in both locations (can be directories or symlinks)
-    for base_dir in [nfs_dir, cefs_image_dir]:
-        for delete_item in base_dir.glob("*.DELETE_ME_*"):
-            try:
-                # Use lstat to get the modification time of the item itself (not following symlinks)
-                stat_info = delete_item.lstat()
-                mtime = stat_info.st_mtime
-                age_seconds = current_time - mtime
-                age_str = humanfriendly.format_timespan(age_seconds)
-                delete_me_dirs.append((delete_item, age_str, age_seconds))
-                if verbose:
-                    item_type = "symlink" if delete_item.is_symlink() else "directory"
-                    click.echo(f"  Found .DELETE_ME {item_type}: {delete_item} (age: {age_str})")
-            except OSError:
-                pass
-
-    return bak_dirs, delete_me_dirs
+# Helper functions have been moved to lib/cefs.py
 
 
 def format_cleanup_item(item: tuple | Path) -> str:
@@ -1047,74 +785,197 @@ def format_cleanup_item(item: tuple | Path) -> str:
     return f"    • {item}"
 
 
-def check_reverse_orphans(
-    cefs_image_dir: Path, nfs_dir: Path, all_cefs_images: dict[str, Path], verbose: bool
-) -> list[tuple[Path, int, str]]:
-    """Check for images with manifests but no working symlinks (reverse orphans).
+def display_fsck_results(results: FSCKResults, verbose: bool, check_reverse_orphans: bool) -> None:
+    """Display FSCK results in a structured format.
 
     Args:
-        cefs_image_dir: CEFS image directory
-        nfs_dir: NFS directory to check for symlinks
-        all_cefs_images: Dictionary of stem to image path
-        verbose: Whether to show detailed output
-
-    Returns:
-        List of (image_path, ref_count, example_dest) for orphaned images
+        results: FSCKResults object containing all validation results
+        verbose: Whether to show verbose output
+        check_reverse_orphans: Whether reverse orphan check was performed
     """
-    orphaned_images = []
+    # Print organized summary
+    click.echo("\n" + "=" * 60)
+    click.echo("CEFS Filesystem Check Results")
+    click.echo("=" * 60)
 
-    # Check each image with a manifest
-    for stem, image_path in all_cefs_images.items():
-        manifest_path = image_path.with_suffix(".yaml")
+    # Quick summary
+    click.echo("\n📊 Summary:")
+    click.echo(f"  Total images scanned: {results.total_images}")
+    click.echo(f"  ✅ Valid manifests: {results.valid_manifests}")
+    click.echo(f"  ❌ Invalid/problematic: {results.total_invalid}")
+    click.echo(f"  ⚠️  Broken symlinks: {len(results.symlink_issues)}")
+    click.echo(f"  🔄 In-progress files: {len(results.inprogress_files)}")
+    click.echo(f"  🗑️  Pending cleanup: {len(results.pending_backups) + len(results.pending_deletes)}")
+    if check_reverse_orphans:
+        click.echo(f"  👻 Reverse orphans: {len(results.reverse_orphans)}")
 
-        # Skip if no manifest
-        if not manifest_path.exists():
-            continue
+    if not results.has_issues:
+        click.echo("\n✅ All manifests are valid and symlinks are intact!")
+        return
 
-        has_working_symlink = False
-        broken_symlink_count = 0
-        example_dest = ""
+    # Detailed issues by category
+    click.echo("\n📋 Issues by Category:")
 
-        # Read manifest to check destinations
-        try:
-            with open(manifest_path, encoding="utf-8") as f:
-                manifest_dict = yaml.safe_load(f)
+    # Invalid names (most common issue)
+    if results.invalid_name_manifests:
+        click.echo(
+            f"\n  Invalid Installable Names ({len(results.invalid_name_manifests)} manifest{'s' if len(results.invalid_name_manifests) > 1 else ''}):"
+        )
+        click.echo("  These manifests contain entries with improper naming format.")
+        click.echo("  Expected format: 'category/subcategory/name version' (e.g., 'compilers/c++/x86/gcc 12.4.0')")
+        for manifest_path, error in results.invalid_name_manifests[:3]:
+            # Extract just the error details
+            if "Invalid manifest:" in error:
+                error = error.split("Invalid manifest:")[-1].strip()
+            click.echo(f"    • {manifest_path}")
+            click.echo(f"      Issue: {error}")
+        if len(results.invalid_name_manifests) > 3:
+            click.echo(f"    ... and {len(results.invalid_name_manifests) - 3} more")
 
-            if manifest_dict and "contents" in manifest_dict:
-                for content in manifest_dict["contents"]:
-                    if "destination" in content:
-                        dest_str = content["destination"]
-                        if not example_dest:
-                            example_dest = dest_str
-                        # Convert destination to actual path on NFS
-                        if dest_str.startswith("/opt/compiler-explorer/"):
-                            relative_path = dest_str[len("/opt/compiler-explorer/") :]
-                            dest_path = nfs_dir / relative_path
-                        else:
-                            dest_path = Path(dest_str)
+    # Old format manifests
+    if results.old_format_manifests:
+        click.echo(
+            f"\n  Old Manifest Format ({len(results.old_format_manifests)} manifest{'s' if len(results.old_format_manifests) > 1 else ''}):"
+        )
+        click.echo("  These manifests use deprecated 'target' field instead of 'destination'.")
+        for manifest_path in results.old_format_manifests[:3]:
+            click.echo(f"    • {manifest_path}")
+        if len(results.old_format_manifests) > 3:
+            click.echo(f"    ... and {len(results.old_format_manifests) - 3} more")
 
-                        # Check if this destination has a symlink
-                        if dest_path.exists() and dest_path.is_symlink():
-                            try:
-                                target = dest_path.readlink()
-                                # Check if target exists and points to this image
-                                if target.exists() and stem in str(target):
-                                    has_working_symlink = True
-                                    break
-                                else:
-                                    broken_symlink_count += 1
-                            except OSError:
-                                broken_symlink_count += 1
-        except (OSError, yaml.YAMLError):
-            continue
+    # Missing manifests
+    if results.missing_manifests:
+        click.echo(
+            f"\n  Missing Manifests ({len(results.missing_manifests)} image{'s' if len(results.missing_manifests) > 1 else ''}):"
+        )
+        click.echo("  These CEFS images have no accompanying manifest file.")
+        for manifest_path in results.missing_manifests[:3]:
+            click.echo(f"    • {manifest_path}")
+        if len(results.missing_manifests) > 3:
+            click.echo(f"    ... and {len(results.missing_manifests) - 3} more")
 
-        # If no working symlinks found, it's a reverse orphan
-        if not has_working_symlink:
-            orphaned_images.append((image_path, broken_symlink_count, example_dest))
+    # Other validation errors
+    if results.other_invalid_manifests:
+        click.echo(
+            f"\n  Other Validation Errors ({len(results.other_invalid_manifests)} manifest{'s' if len(results.other_invalid_manifests) > 1 else ''}):"
+        )
+        for manifest_path, error in results.other_invalid_manifests[:3]:
+            if "Invalid manifest:" in error:
+                error = error.split("Invalid manifest:")[-1].strip()
+            click.echo(f"    • {manifest_path}")
+            click.echo(f"      Issue: {error}")
+        if len(results.other_invalid_manifests) > 3:
+            click.echo(f"    ... and {len(results.other_invalid_manifests) - 3} more")
+
+    # Unreadable manifests
+    if results.unreadable_manifests:
+        click.echo(
+            f"\n  Unreadable Manifests ({len(results.unreadable_manifests)} file{'s' if len(results.unreadable_manifests) > 1 else ''}):"
+        )
+        click.echo("  These manifest files could not be read (corrupt or invalid YAML).")
+        for manifest_path, error in results.unreadable_manifests[:3]:
+            click.echo(f"    • {manifest_path}")
             if verbose:
-                click.echo(f"  Reverse orphan: {image_path} (expected: {example_dest})")
+                click.echo(f"      Error: {error}")
+        if len(results.unreadable_manifests) > 3:
+            click.echo(f"    ... and {len(results.unreadable_manifests) - 3} more")
 
-    return orphaned_images
+    # Broken symlinks
+    if results.symlink_issues:
+        click.echo(
+            f"\n  Broken Symlinks ({len(results.symlink_issues)} symlink{'s' if len(results.symlink_issues) > 1 else ''}):"
+        )
+        click.echo("  These symlinks point to non-existent CEFS targets.")
+        for dest_path, target in results.symlink_issues[:3]:
+            click.echo(f"    • {dest_path}")
+            click.echo(f"      → {target} (does not exist)")
+        if len(results.symlink_issues) > 3:
+            click.echo(f"    ... and {len(results.symlink_issues) - 3} more")
+
+    # In-progress files
+    if results.inprogress_files:
+        click.echo(
+            f"\n  In-Progress Files ({len(results.inprogress_files)} file{'s' if len(results.inprogress_files) > 1 else ''}):"
+        )
+        click.echo("  These .inprogress files indicate incomplete operations.")
+        for file, age, _ in results.inprogress_files[:3]:
+            click.echo(f"    • {file} (age: {age})")
+        if len(results.inprogress_files) > 3:
+            click.echo(f"    ... and {len(results.inprogress_files) - 3} more")
+
+    # Pending cleanup
+    if results.pending_backups or results.pending_deletes:
+        click.echo(
+            f"\n  Pending Cleanup ({len(results.pending_backups) + len(results.pending_deletes)} item{'s' if len(results.pending_backups) + len(results.pending_deletes) > 1 else ''}):"
+        )
+        if results.pending_backups:
+            click.echo(f"  .bak items ({len(results.pending_backups)}):")
+            for item in results.pending_backups[:2]:
+                click.echo(format_cleanup_item(item))
+            if len(results.pending_backups) > 2:
+                click.echo(f"    ... and {len(results.pending_backups) - 2} more")
+        if results.pending_deletes:
+            click.echo(f"  .DELETE_ME items ({len(results.pending_deletes)}):")
+            for item in results.pending_deletes[:2]:
+                click.echo(format_cleanup_item(item))
+            if len(results.pending_deletes) > 2:
+                click.echo(f"    ... and {len(results.pending_deletes) - 2} more")
+
+    # Reverse orphans (if checked)
+    if check_reverse_orphans and results.reverse_orphans:
+        click.echo(
+            f"\n  Reverse Orphans ({len(results.reverse_orphans)} image{'s' if len(results.reverse_orphans) > 1 else ''}):"
+        )
+        click.echo("  These images have manifests but no working symlinks pointing to them.")
+        for image, ref_count, example_dest in results.reverse_orphans[:3]:
+            click.echo(f"    • {image}")
+            if ref_count > 0:
+                click.echo(f"      Has {ref_count} broken symlink{'s' if ref_count > 1 else ''}")
+            else:
+                click.echo(f"      Expected symlink: {example_dest}")
+        if len(results.reverse_orphans) > 3:
+            click.echo(f"    ... and {len(results.reverse_orphans) - 3} more")
+
+    # Recommendations
+    click.echo("\n💡 Recommendations:")
+
+    if results.invalid_name_manifests or results.old_format_manifests:
+        click.echo("  • WARNING: These consolidated images contain active compilers but have broken manifests")
+        click.echo("  • Items in these images CANNOT be included in reconsolidation operations")
+        click.echo("  • To recover these items:")
+        click.echo("    1. Identify which compilers are affected (check symlinks pointing to these images)")
+        click.echo("    2. Consider re-installing affected compilers to create proper manifests")
+        click.echo("    3. Once reinstalled, the old broken images can be garbage collected")
+        click.echo("  • Until fixed, these compilers work normally but cannot be reconsolidated")
+
+    if results.missing_manifests:
+        click.echo("  • Images without manifests cannot be reconsolidated")
+        click.echo("  • Consider identifying and removing obsolete images")
+
+    if results.symlink_issues:
+        click.echo("  • Broken symlinks indicate failed deployments or reconsolidation issues")
+        click.echo("  • To fix: Re-deploy affected compilers or remove broken symlinks")
+        click.echo("  • Check if CEFS mount is properly mounted at /cefs")
+
+    if results.inprogress_files:
+        click.echo("  • In-progress files indicate operations that didn't complete")
+        click.echo("  • Review these files to determine if operations should be retried")
+        click.echo("  • Safe to remove .inprogress files older than 24 hours")
+
+    if results.pending_backups or results.pending_deletes:
+        click.echo("  • Pending cleanup items can be safely removed to free disk space")
+        click.echo("  • .bak items: remnants from CEFS conversions (can be directories or symlinks)")
+        click.echo("  • .DELETE_ME items: marked for deletion by previous operations")
+        click.echo("  • These require manual cleanup (e.g., rm -rf *.bak *.DELETE_ME_*)")
+        click.echo("  • Note: 'ce cefs gc' only removes unreferenced CEFS images, not these items")
+
+    if check_reverse_orphans and results.reverse_orphans:
+        click.echo("  • Reverse orphans are images with manifests but no working symlinks")
+        click.echo("  • These may be leftover from failed operations or manual interventions")
+        click.echo("  • Review and consider removing if not needed")
+
+    if not verbose:
+        click.echo("\n📝 Run with --verbose for detailed file-by-file output")
 
 
 @cefs.command()
@@ -1164,334 +1025,101 @@ def fsck(
     - No broken manifest formats (e.g., old 'target' field)
     - In-progress files indicating incomplete operations
     - Pending cleanup tasks (.bak, .DELETE_ME directories)
-    - Mount health status
     - Optional: Orphaned symlinks and reverse orphans
     """
     if fix:
         click.echo("--fix is not yet implemented")
         return
 
+    # Check for orphaned symlinks (if requested - VERY SLOW)
+    if check_orphaned_symlinks:
+        click.echo("\n⚠️  WARNING: Scanning for orphaned symlinks is SLOW on large NFS mounts...")
+        click.echo("  This may take several hours to complete...")
+        click.echo("  (Not implemented in this version to prevent accidental long runs)")
+        return
+
+    # Initialize state and scan images
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
         mount_point=context.config.cefs.mount_point,
     )
     state.scan_cefs_images_with_manifests()
-    mount_point = context.config.cefs.mount_point
 
-    # Track statistics and group issues by type
-    total_images = 0
-    valid_manifests = 0
+    # Verbose output for scanning
+    if verbose:
+        click.echo("\n🔍 Scanning CEFS images and validating manifests...")
 
-    # Group issues by type for better organization
-    missing_manifests_list = []
-    old_format_manifests = []
-    invalid_name_manifests = []
-    other_invalid_manifests = []
-    symlink_issues_list = []
-    unreadable_manifests = []
+    # Run the validation
+    results = run_fsck_validation(
+        state,
+        context.config.cefs.mount_point,
+        filter_list=list(filter) if filter else None,
+        check_reverse_orphans_flag=check_reverse_orphans_flag,
+    )
 
-    # Check all CEFS images
-    for filename_stem, image_path in state.all_cefs_images.items():
-        # Apply filter if provided
-        if filter and not any(f in str(image_path) for f in filter):
-            continue
-
-        total_images += 1
-
-        # Check manifest
-        manifest_path = image_path.with_suffix(".yaml")
-        if not manifest_path.exists():
-            missing_manifests_list.append(manifest_path)
-            if verbose:
+    # Verbose logging for individual issues
+    if verbose:
+        # Log valid manifests
+        for _stem, image_path in state.all_cefs_images.items():
+            if filter and not any(f in str(image_path) for f in filter):
+                continue
+            manifest_path = image_path.with_suffix(".yaml")
+            # Check if this was valid
+            if (
+                manifest_path not in results.missing_manifests
+                and manifest_path not in results.old_format_manifests
+                and not any(m[0] == manifest_path for m in results.invalid_name_manifests)
+                and not any(m[0] == manifest_path for m in results.other_invalid_manifests)
+                and not any(m[0] == manifest_path for m in results.unreadable_manifests)
+            ):
+                click.echo(f"✅ Valid manifest: {manifest_path}")
+            elif manifest_path in results.missing_manifests:
                 click.echo(f"❌ Missing manifest for {image_path}")
-            continue
-
-        # Try to read and validate manifest
-        try:
-            with open(manifest_path, encoding="utf-8") as f:
-                manifest_dict = yaml.safe_load(f)
-
-            # Check for old broken format with 'target' field
-            has_target_field = False
-            if manifest_dict and "contents" in manifest_dict:
-                for content in manifest_dict["contents"]:
-                    if "target" in content:
-                        has_target_field = True
+            elif manifest_path in results.old_format_manifests:
+                click.echo(f"❌ Old manifest format (has 'target' field): {manifest_path}")
+            else:
+                # Find specific error
+                for m_path, error in results.invalid_name_manifests:
+                    if m_path == manifest_path:
+                        click.echo(f"❌ Invalid manifest: {manifest_path}")
+                        click.echo(f"   Reason: {error}")
+                        break
+                for m_path, error in results.other_invalid_manifests:
+                    if m_path == manifest_path:
+                        click.echo(f"❌ Invalid manifest: {manifest_path}")
+                        click.echo(f"   Reason: {error}")
+                        break
+                for m_path, error in results.unreadable_manifests:
+                    if m_path == manifest_path:
+                        click.echo(f"❌ Cannot read manifest: {manifest_path}: {error}")
                         break
 
-            if has_target_field:
-                old_format_manifests.append(manifest_path)
-                if verbose:
-                    click.echo(f"❌ Old manifest format (has 'target' field): {manifest_path}")
-            else:
-                # Validate with Pydantic
-                try:
-                    validate_manifest(manifest_dict)
-                    valid_manifests += 1
-                    if verbose:
-                        click.echo(f"✅ Valid manifest: {manifest_path}")
+        # Log symlink issues
+        for symlink_path, _target_path in results.symlink_issues:
+            click.echo(f"  ❌ Broken symlink: {symlink_path}")
 
-                    # Check symlinks for this image (only if manifest is valid)
-                    if manifest_dict and "contents" in manifest_dict:
-                        for content in manifest_dict["contents"]:
-                            if "destination" in content:
-                                dest_path = Path(content["destination"])
-                                if dest_path.exists() and dest_path.is_symlink():
-                                    target = dest_path.readlink()
-                                    # Check if symlink points to something in this image
-                                    if str(mount_point) in str(target) and filename_stem in str(target):
-                                        # Verify the target exists
-                                        if not target.exists():
-                                            symlink_issues_list.append((dest_path, target))
-                                            if verbose:
-                                                click.echo(f"  ❌ Broken symlink: {dest_path}")
-                                        elif verbose:
-                                            click.echo(f"  ✅ Valid symlink: {dest_path}")
+        # Log in-progress files
+        for file, age, _ in results.inprogress_files:
+            click.echo(f"  Found .inprogress file: {file} (age: {age})")
 
-                except ValueError as e:
-                    error_msg = str(e)
-                    # Categorize the validation error
-                    if "invalid name" in error_msg.lower() or "entries with invalid name" in error_msg:
-                        invalid_name_manifests.append((manifest_path, error_msg))
-                    else:
-                        other_invalid_manifests.append((manifest_path, error_msg))
+        # Log pending cleanup
+        for item, age, _ in results.pending_backups:
+            item_type = "symlink" if item.is_symlink() else "directory"
+            click.echo(f"  Found .bak {item_type}: {item} (age: {age})")
+        for item, age, _ in results.pending_deletes:
+            item_type = "symlink" if item.is_symlink() else "directory"
+            click.echo(f"  Found .DELETE_ME {item_type}: {item} (age: {age})")
 
-                    if verbose:
-                        click.echo(f"❌ Invalid manifest: {manifest_path}")
-                        click.echo(f"   Reason: {error_msg}")
-
-        except (OSError, yaml.YAMLError) as e:
-            unreadable_manifests.append((manifest_path, str(e)))
-            if verbose:
-                click.echo(f"❌ Cannot read manifest: {manifest_path}: {e}")
-
-    # Run additional filesystem checks
-
-    # Check for in-progress files
-    inprogress_files, inprogress_ages = check_inprogress_files(context.config.cefs.image_dir, verbose)
-
-    # Check for pending cleanup
-    pending_backups, pending_deletes = check_pending_cleanup(
-        context.installation_context.destination, context.config.cefs.image_dir, verbose
-    )
-
-    # Check for reverse orphans (if requested)
-    reverse_orphans_list = []
-    if check_reverse_orphans_flag:
-        if verbose:
+        # Log reverse orphans
+        if check_reverse_orphans_flag:
             click.echo("\n🔍 Checking for reverse orphans (images with manifests but no working symlinks)...")
-        reverse_orphans_list = check_reverse_orphans(
-            context.config.cefs.image_dir, context.installation_context.destination, state.all_cefs_images, verbose
-        )
+            for image_path, _, example_dest in results.reverse_orphans:
+                click.echo(f"  Reverse orphan: {image_path} (expected: {example_dest})")
 
-    # Check for orphaned symlinks (if requested - VERY SLOW)
-    if check_orphaned_symlinks:
-        click.echo("\n⚠️  WARNING: Scanning for orphaned symlinks is SLOW on large NFS mounts...")
-        click.echo("  This may take several hours to complete...")
-        # Implementation would go here - not implemented to avoid accidental long runs
-        click.echo("  (Not implemented in this version to prevent accidental long runs)")
+    # Display the formatted results
+    display_fsck_results(results, verbose, check_reverse_orphans_flag)
 
-    # Calculate totals
-    total_invalid = (
-        len(missing_manifests_list)
-        + len(old_format_manifests)
-        + len(invalid_name_manifests)
-        + len(other_invalid_manifests)
-        + len(unreadable_manifests)
-    )
-
-    # Print organized summary
-    click.echo("\n" + "=" * 60)
-    click.echo("CEFS Filesystem Check Results")
-    click.echo("=" * 60)
-
-    # Quick summary
-    click.echo("\n📊 Summary:")
-    click.echo(f"  Total images scanned: {total_images}")
-    click.echo(f"  ✅ Valid manifests: {valid_manifests}")
-    click.echo(f"  ❌ Invalid/problematic: {total_invalid}")
-    click.echo(f"  ⚠️  Broken symlinks: {len(symlink_issues_list)}")
-    click.echo(f"  🔄 In-progress files: {len(inprogress_files)}")
-    click.echo(f"  🗑️  Pending cleanup: {len(pending_backups) + len(pending_deletes)}")
-    if check_reverse_orphans_flag:
-        click.echo(f"  👻 Reverse orphans: {len(reverse_orphans_list)}")
-
-    # Detailed issues by category
-    has_issues = (
-        total_invalid > 0
-        or len(symlink_issues_list) > 0
-        or len(inprogress_files) > 0
-        or len(pending_backups) > 0
-        or len(pending_deletes) > 0
-        or (check_reverse_orphans_flag and len(reverse_orphans_list) > 0)
-    )
-
-    if has_issues:
-        click.echo("\n📋 Issues by Category:")
-
-        # Invalid names (most common issue)
-        if invalid_name_manifests:
-            click.echo(
-                f"\n  Invalid Installable Names ({len(invalid_name_manifests)} manifest{'s' if len(invalid_name_manifests) > 1 else ''}):"
-            )
-            click.echo("  These manifests contain entries with improper naming format.")
-            click.echo("  Expected format: 'category/subcategory/name version' (e.g., 'compilers/c++/x86/gcc 12.4.0')")
-            for manifest_path, error in invalid_name_manifests[:3]:
-                # Extract just the error details
-                if "Invalid manifest:" in error:
-                    error = error.split("Invalid manifest:")[-1].strip()
-                click.echo(f"    • {manifest_path}")
-                click.echo(f"      Issue: {error}")
-            if len(invalid_name_manifests) > 3:
-                click.echo(f"    ... and {len(invalid_name_manifests) - 3} more")
-
-        # Old format manifests
-        if old_format_manifests:
-            click.echo(
-                f"\n  Old Manifest Format ({len(old_format_manifests)} manifest{'s' if len(old_format_manifests) > 1 else ''}):"
-            )
-            click.echo("  These manifests use deprecated 'target' field instead of 'destination'.")
-            for manifest_path in old_format_manifests[:3]:
-                click.echo(f"    • {manifest_path}")
-            if len(old_format_manifests) > 3:
-                click.echo(f"    ... and {len(old_format_manifests) - 3} more")
-
-        # Missing manifests
-        if missing_manifests_list:
-            click.echo(
-                f"\n  Missing Manifests ({len(missing_manifests_list)} image{'s' if len(missing_manifests_list) > 1 else ''}):"
-            )
-            click.echo("  These CEFS images have no accompanying manifest file.")
-            for manifest_path in missing_manifests_list[:3]:
-                click.echo(f"    • {manifest_path}")
-            if len(missing_manifests_list) > 3:
-                click.echo(f"    ... and {len(missing_manifests_list) - 3} more")
-
-        # Other validation errors
-        if other_invalid_manifests:
-            click.echo(
-                f"\n  Other Validation Errors ({len(other_invalid_manifests)} manifest{'s' if len(other_invalid_manifests) > 1 else ''}):"
-            )
-            for manifest_path, error in other_invalid_manifests[:3]:
-                if "Invalid manifest:" in error:
-                    error = error.split("Invalid manifest:")[-1].strip()
-                click.echo(f"    • {manifest_path}")
-                click.echo(f"      Issue: {error}")
-            if len(other_invalid_manifests) > 3:
-                click.echo(f"    ... and {len(other_invalid_manifests) - 3} more")
-
-        # Unreadable manifests
-        if unreadable_manifests:
-            click.echo(
-                f"\n  Unreadable Manifests ({len(unreadable_manifests)} file{'s' if len(unreadable_manifests) > 1 else ''}):"
-            )
-            click.echo("  These manifest files could not be read (corrupt or invalid YAML).")
-            for manifest_path, error in unreadable_manifests[:3]:
-                click.echo(f"    • {manifest_path}")
-                if verbose:
-                    click.echo(f"      Error: {error}")
-            if len(unreadable_manifests) > 3:
-                click.echo(f"    ... and {len(unreadable_manifests) - 3} more")
-
-        # Broken symlinks
-        if symlink_issues_list:
-            click.echo(
-                f"\n  Broken Symlinks ({len(symlink_issues_list)} symlink{'s' if len(symlink_issues_list) > 1 else ''}):"
-            )
-            click.echo("  These symlinks point to non-existent CEFS targets.")
-            for dest_path, target in symlink_issues_list[:3]:
-                click.echo(f"    • {dest_path}")
-                click.echo(f"      → {target} (does not exist)")
-            if len(symlink_issues_list) > 3:
-                click.echo(f"    ... and {len(symlink_issues_list) - 3} more")
-
-        # In-progress files
-        if inprogress_files:
-            click.echo(
-                f"\n  In-Progress Files ({len(inprogress_files)} file{'s' if len(inprogress_files) > 1 else ''}):"
-            )
-            click.echo("  These .inprogress files indicate incomplete operations.")
-            for file, age in zip(inprogress_files[:3], inprogress_ages[:3], strict=True):
-                click.echo(f"    • {file} (age: {age})")
-            if len(inprogress_files) > 3:
-                click.echo(f"    ... and {len(inprogress_files) - 3} more")
-
-        # Pending cleanup
-        if pending_backups or pending_deletes:
-            click.echo(
-                f"\n  Pending Cleanup ({len(pending_backups) + len(pending_deletes)} item{'s' if len(pending_backups) + len(pending_deletes) > 1 else ''}):"
-            )
-            if pending_backups:
-                click.echo(f"  .bak items ({len(pending_backups)}):")
-                for item in pending_backups[:2]:
-                    click.echo(format_cleanup_item(item))
-                if len(pending_backups) > 2:
-                    click.echo(f"    ... and {len(pending_backups) - 2} more")
-            if pending_deletes:
-                click.echo(f"  .DELETE_ME items ({len(pending_deletes)}):")
-                for item in pending_deletes[:2]:
-                    click.echo(format_cleanup_item(item))
-                if len(pending_deletes) > 2:
-                    click.echo(f"    ... and {len(pending_deletes) - 2} more")
-
-        # Reverse orphans (if checked)
-        if check_reverse_orphans_flag and reverse_orphans_list:
-            click.echo(
-                f"\n  Reverse Orphans ({len(reverse_orphans_list)} image{'s' if len(reverse_orphans_list) > 1 else ''}):"
-            )
-            click.echo("  These images have manifests but no working symlinks pointing to them.")
-            for image, ref_count, example_dest in reverse_orphans_list[:3]:
-                click.echo(f"    • {image}")
-                if ref_count > 0:
-                    click.echo(f"      Has {ref_count} broken symlink{'s' if ref_count > 1 else ''}")
-                else:
-                    click.echo(f"      Expected symlink: {example_dest}")
-            if len(reverse_orphans_list) > 3:
-                click.echo(f"    ... and {len(reverse_orphans_list) - 3} more")
-
-        # Recommendations
-        click.echo("\n💡 Recommendations:")
-
-        if invalid_name_manifests or old_format_manifests:
-            click.echo("  • WARNING: These consolidated images contain active compilers but have broken manifests")
-            click.echo("  • Items in these images CANNOT be included in reconsolidation operations")
-            click.echo("  • To recover these items:")
-            click.echo("    1. Identify which compilers are affected (check symlinks pointing to these images)")
-            click.echo("    2. Consider re-installing affected compilers to create proper manifests")
-            click.echo("    3. Once reinstalled, the old broken images can be garbage collected")
-            click.echo("  • Until fixed, these compilers work normally but cannot be reconsolidated")
-
-        if missing_manifests_list:
-            click.echo("  • Images without manifests cannot be reconsolidated")
-            click.echo("  • Consider identifying and removing obsolete images")
-
-        if symlink_issues_list:
-            click.echo("  • Broken symlinks indicate failed deployments or reconsolidation issues")
-            click.echo("  • To fix: Re-deploy affected compilers or remove broken symlinks")
-            click.echo("  • Check if CEFS mount is properly mounted at /cefs")
-
-        if inprogress_files:
-            click.echo("  • In-progress files indicate operations that didn't complete")
-            click.echo("  • Review these files to determine if operations should be retried")
-            click.echo("  • Safe to remove .inprogress files older than 24 hours")
-
-        if pending_backups or pending_deletes:
-            click.echo("  • Pending cleanup items can be safely removed to free disk space")
-            click.echo("  • .bak items: remnants from CEFS conversions (can be directories or symlinks)")
-            click.echo("  • .DELETE_ME items: marked for deletion by previous operations")
-            click.echo("  • These require manual cleanup (e.g., rm -rf *.bak *.DELETE_ME_*)")
-            click.echo("  • Note: 'ce cefs gc' only removes unreferenced CEFS images, not these items")
-
-        if check_reverse_orphans_flag and reverse_orphans_list:
-            click.echo("  • Reverse orphans are images with manifests but no working symlinks")
-            click.echo("  • These may be leftover from failed operations or manual interventions")
-            click.echo("  • Review and consider removing if not needed")
-
-        if not verbose:
-            click.echo("\n📝 Run with --verbose for detailed file-by-file output")
-
-        # Exit with error code if issues found
+    # Exit with appropriate code
+    if results.has_issues:
         sys.exit(1)
-    else:
-        click.echo("\n✅ All manifests are valid and symlinks are intact!")

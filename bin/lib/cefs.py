@@ -9,6 +9,7 @@ import logging
 import os
 import shutil
 import tempfile
+import time
 from collections.abc import Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import contextmanager
@@ -2161,3 +2162,578 @@ def process_consolidation_group(
         # Clean up group temp directory
         if group_temp_dir.exists():
             shutil.rmtree(group_temp_dir)
+
+
+# ============================================================================
+# CEFS Operations Functions
+# ============================================================================
+
+
+def convert_to_cefs(
+    installable,
+    destination_path: Path,
+    squashfs_image_path: Path,
+    config_squashfs,
+    config_cefs,
+    force: bool,
+    defer_cleanup: bool,
+    dry_run: bool,
+) -> bool:
+    """Convert a single installable from squashfs to CEFS.
+
+    Args:
+        installable: The installable object to convert
+        destination_path: NFS destination path
+        squashfs_image_path: Path to the squashfs image
+        config_squashfs: Squashfs configuration
+        config_cefs: CEFS configuration
+        force: Force conversion even if already converted
+        defer_cleanup: Defer cleanup of backup directories
+        dry_run: Whether this is a dry run
+
+    Returns:
+        True if conversion was successful or already converted.
+    """
+    nfs_path = destination_path / installable.install_path
+
+    if not squashfs_image_path.exists():
+        _LOGGER.error("No squashfs image found for %s at %s", installable.name, squashfs_image_path)
+        return False
+
+    match detect_nfs_state(nfs_path):
+        case "symlink":
+            if not force:
+                _LOGGER.info("Already converted to CEFS: %s", installable.name)
+                return True
+        case "missing":
+            _LOGGER.error("NFS directory missing for %s: %s", installable.name, nfs_path)
+            return False
+
+    # Generate CEFS filename and paths
+    try:
+        _LOGGER.info("Calculating hash for %s...", squashfs_image_path)
+        relative_path = squashfs_image_path.relative_to(config_squashfs.image_dir)
+        filename = get_cefs_filename_for_image(squashfs_image_path, "convert", relative_path)
+        _LOGGER.info("Filename: %s", filename)
+    except OSError as e:
+        _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
+        return False
+
+    cefs_paths = get_cefs_paths(config_cefs.image_dir, config_cefs.mount_point, filename)
+
+    installable_info = create_installable_manifest_entry(installable.name, nfs_path)
+    manifest = create_manifest(
+        operation="convert",
+        description=f"Created through conversion of {installable.name}",
+        contents=[installable_info],
+    )
+
+    # Copy squashfs to CEFS images directory if not already there
+    # Never overwrite - hash ensures content is identical
+    if cefs_paths.image_path.exists():
+        _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
+        # Still need to create symlink even if image exists
+        try:
+            backup_and_symlink(nfs_path, cefs_paths.mount_path, dry_run, defer_cleanup)
+        except RuntimeError as e:
+            _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
+            return False
+    else:
+        # Deploy image and create symlink within transaction
+        try:
+            with deploy_to_cefs_transactional(squashfs_image_path, cefs_paths.image_path, manifest, dry_run):
+                # Create symlink while transaction is active
+                backup_and_symlink(nfs_path, cefs_paths.mount_path, dry_run, defer_cleanup)
+                # Manifest will be automatically finalized on successful exit
+        except RuntimeError as e:
+            _LOGGER.error("Failed to convert %s to CEFS: %s", installable.name, e)
+            return False
+
+    # Post-migration validation (skip in dry-run)
+    if not dry_run:
+        if not nfs_path.is_symlink():
+            _LOGGER.error("Post-migration check failed: %s is not a symlink", nfs_path)
+            return False
+
+        if not installable.is_installed():
+            _LOGGER.error("Post-migration check: %s reports not installed", installable.name)
+            return False
+        _LOGGER.info("Post-migration check: %s still installed", installable.name)
+
+    _LOGGER.info("Successfully converted %s to CEFS", installable.name)
+    return True
+
+
+def format_verbose_image_details(
+    image_path: Path,
+    usage: float,
+    items_info: list[str] | None,
+    manifest: dict | None,
+    nfs_dir: Path,
+    mount_point: Path,
+) -> list[str]:
+    """Format verbose details for a partially used consolidated image.
+
+    Args:
+        image_path: Path to the image
+        usage: Usage percentage
+        items_info: List of item descriptions
+        manifest: Manifest dictionary
+        nfs_dir: NFS directory
+        mount_point: CEFS mount point
+
+    Returns:
+        List of formatted lines
+    """
+    lines = []
+
+    if not items_info:
+        lines.append(f"        {image_path.name} ({usage:.1f}%)")
+        return lines
+
+    total_items = len(items_info)
+    used_items = int(total_items * usage / 100)
+    lines.append(f"        {image_path.name} ({usage:.1f}% - {used_items}/{total_items} items)")
+
+    # Show what replaced each item if partially used
+    if manifest and "contents" in manifest and usage < 100:
+        for content in manifest["contents"]:
+            if "destination" in content:
+                dest_path = Path(content["destination"])
+                targets = get_current_symlink_targets(dest_path)
+                # Find which target (if any) points to this image for status reporting
+                current_target = next(
+                    (t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None
+                )
+                status = get_consolidated_item_status(content, image_path, current_target, mount_point)
+                if status:
+                    lines.append(status)
+
+    return lines
+
+
+def format_usage_statistics(stats, state: CEFSState, verbose: bool, nfs_dir: Path, cefs_mount_point: Path) -> list[str]:
+    """Format detailed usage statistics.
+
+    Args:
+        stats: Usage statistics object
+        state: CEFSState object
+        verbose: Whether to show verbose output
+        nfs_dir: NFS directory
+        cefs_mount_point: CEFS mount point
+
+    Returns:
+        List of formatted output lines
+    """
+    lines = []
+    lines.append("\nImage Statistics:")
+    lines.append(f"  Total images: {stats.total_images}")
+    lines.append(f"  Individual images: {stats.individual_images}")
+    lines.append(f"  Consolidated images: {stats.consolidated_images}")
+
+    if stats.consolidated_images > 0:
+        lines.append(f"    - Fully used (100%): {stats.fully_used_consolidated}")
+
+        ranges = group_images_by_usage(stats.partially_used_consolidated)
+
+        lines.append(f"    - Partially used: {len(stats.partially_used_consolidated)}")
+        for range_name, images in ranges.items():
+            if images:
+                lines.append(f"      * {range_name} used: {len(images)} images")
+                if verbose:
+                    for image_path, usage in images:
+                        items_info = get_image_description(image_path, cefs_mount_point)
+                        manifest = read_manifest_from_alongside(image_path)
+                        detail_lines = format_verbose_image_details(
+                            image_path, usage, items_info, manifest, nfs_dir, cefs_mount_point
+                        )
+                        lines.extend(detail_lines)
+
+        # Count unused consolidated images
+        unused_consolidated = len([p for p in stats.unused_images if is_consolidated_image(p)])
+        lines.append(f"    - Unused (0%): {unused_consolidated}")
+
+    lines.append("\nSpace Analysis:")
+    lines.append(f"  Total CEFS space: {humanfriendly.format_size(stats.total_space, binary=True)}")
+    if stats.wasted_space_estimate > 0:
+        lines.append(
+            f"  Wasted in partial images: ~{humanfriendly.format_size(stats.wasted_space_estimate, binary=True)} (estimated)"
+        )
+
+    small_consolidated = find_small_consolidated_images(state, 5 * 1024 * 1024 * 1024)
+    if small_consolidated:
+        lines.append(f"  Potential consolidation: {len(small_consolidated)} small consolidated images could be merged")
+
+    if verbose:
+        lines.append("\nRun 'ce cefs consolidate --reconsolidate' to optimize partially used images")
+
+    return lines
+
+
+def gather_reconsolidation_candidates(
+    state: CEFSState,
+    efficiency_threshold: float,
+    max_size_bytes: int,
+    undersized_ratio: float,
+    filter_: list[str] | None = None,
+) -> list[ConsolidationCandidate]:
+    """Gather candidates from existing consolidated images for reconsolidation.
+
+    Args:
+        state: CEFSState object
+        efficiency_threshold: Minimum efficiency to keep consolidated image (0.0-1.0)
+        max_size_bytes: Maximum size for consolidated images
+        undersized_ratio: Ratio for determining undersized images
+        filter_: Optional filter for selecting items
+
+    Returns:
+        List of candidate items from consolidated images that should be repacked
+    """
+    # Use the CEFSState's method to gather candidates
+    return state.gather_reconsolidation_candidates(
+        efficiency_threshold=efficiency_threshold,
+        max_size_bytes=max_size_bytes,
+        undersized_ratio=undersized_ratio,
+        filter_=filter_ or [],
+    )
+
+
+# ============================================================================
+# FSCK Helper Functions
+# ============================================================================
+
+
+@dataclass
+class FSCKResults:
+    """Results from CEFS filesystem check."""
+
+    total_images: int = 0
+    valid_manifests: int = 0
+    missing_manifests: list[Path] = field(default_factory=list)
+    old_format_manifests: list[Path] = field(default_factory=list)
+    invalid_name_manifests: list[tuple[Path, str]] = field(default_factory=list)
+    other_invalid_manifests: list[tuple[Path, str]] = field(default_factory=list)
+    unreadable_manifests: list[tuple[Path, str]] = field(default_factory=list)
+    symlink_issues: list[tuple[Path, Path]] = field(default_factory=list)
+    inprogress_files: list[tuple[Path, str, float]] = field(default_factory=list)
+    pending_backups: list[tuple[Path, str, float]] = field(default_factory=list)
+    pending_deletes: list[tuple[Path, str, float]] = field(default_factory=list)
+    reverse_orphans: list[tuple[Path, int, str]] = field(default_factory=list)
+
+    @property
+    def total_invalid(self) -> int:
+        """Total number of invalid manifests."""
+        return (
+            len(self.missing_manifests)
+            + len(self.old_format_manifests)
+            + len(self.invalid_name_manifests)
+            + len(self.other_invalid_manifests)
+            + len(self.unreadable_manifests)
+        )
+
+    @property
+    def has_issues(self) -> bool:
+        """Check if any issues were found."""
+        return (
+            self.total_invalid > 0
+            or len(self.symlink_issues) > 0
+            or len(self.inprogress_files) > 0
+            or len(self.pending_backups) > 0
+            or len(self.pending_deletes) > 0
+            or len(self.reverse_orphans) > 0
+        )
+
+
+def check_inprogress_files(cefs_image_dir: Path) -> list[tuple[Path, str, float]]:
+    """Check for in-progress files that indicate incomplete operations.
+
+    Args:
+        cefs_image_dir: Path to CEFS images directory
+
+    Returns:
+        List of (inprogress_file, age_str, age_seconds) sorted by age (oldest first)
+    """
+
+    yaml_inprogress: list[tuple[Path, str, float]] = []
+    sqfs_inprogress: list[tuple[Path, str, float]] = []
+    current_time = time.time()
+
+    # Recursively find all .inprogress files
+    for inprogress_file in cefs_image_dir.glob("**/*.inprogress"):
+        # Get file age
+        try:
+            mtime = inprogress_file.stat().st_mtime
+            age_seconds = current_time - mtime
+            age_str = humanfriendly.format_timespan(age_seconds)
+
+            if inprogress_file.suffix == ".inprogress" and ".yaml" in str(inprogress_file):
+                yaml_inprogress.append((inprogress_file, age_str, age_seconds))
+            elif inprogress_file.suffix == ".inprogress" and ".sqfs" in str(inprogress_file):
+                sqfs_inprogress.append((inprogress_file, age_str, age_seconds))
+        except OSError:
+            pass  # Skip files we can't stat
+
+    # Combine both types of inprogress files
+    all_inprogress = yaml_inprogress + sqfs_inprogress
+    # Sort by age (oldest first)
+    all_inprogress.sort(key=lambda x: x[2], reverse=True)  # Sort by age_seconds descending
+
+    return all_inprogress
+
+
+def check_pending_cleanup(
+    nfs_dir: Path, cefs_image_dir: Path
+) -> tuple[list[tuple[Path, str, float]], list[tuple[Path, str, float]]]:
+    """Check for pending cleanup tasks (.bak and .DELETE_ME directories).
+
+    Args:
+        nfs_dir: NFS directory to check for cleanup tasks
+        cefs_image_dir: CEFS images directory
+
+    Returns:
+        Tuple of (bak_dirs, delete_me_dirs) where each item is (path, age_str, age_seconds)
+    """
+
+    bak_dirs: list[tuple[Path, str, float]] = []
+    delete_me_dirs: list[tuple[Path, str, float]] = []
+    current_time = time.time()
+
+    # Check for .bak items (can be directories or symlinks)
+    for bak_item in nfs_dir.glob("*.bak"):
+        try:
+            # Use lstat to get the modification time of the item itself (not following symlinks)
+            stat_info = bak_item.lstat()
+            mtime = stat_info.st_mtime
+            age_seconds = current_time - mtime
+            age_str = humanfriendly.format_timespan(age_seconds)
+            bak_dirs.append((bak_item, age_str, age_seconds))
+        except OSError:
+            pass
+
+    # Check for .DELETE_ME items in both locations (can be directories or symlinks)
+    for base_dir in [nfs_dir, cefs_image_dir]:
+        for delete_item in base_dir.glob("*.DELETE_ME_*"):
+            try:
+                # Use lstat to get the modification time of the item itself (not following symlinks)
+                stat_info = delete_item.lstat()
+                mtime = stat_info.st_mtime
+                age_seconds = current_time - mtime
+                age_str = humanfriendly.format_timespan(age_seconds)
+                delete_me_dirs.append((delete_item, age_str, age_seconds))
+            except OSError:
+                pass
+
+    return bak_dirs, delete_me_dirs
+
+
+def check_reverse_orphans(
+    cefs_image_dir: Path, nfs_dir: Path, all_cefs_images: dict[str, Path]
+) -> list[tuple[Path, int, str]]:
+    """Check for images with manifests but no working symlinks (reverse orphans).
+
+    Args:
+        cefs_image_dir: CEFS image directory
+        nfs_dir: NFS directory to check for symlinks
+        all_cefs_images: Dictionary of stem to image path
+
+    Returns:
+        List of (image_path, broken_symlink_count, example_dest) for orphaned images
+    """
+    orphaned_images: list[tuple[Path, int, str]] = []
+
+    # Check each image with a manifest
+    for stem, image_path in all_cefs_images.items():
+        manifest_path = image_path.with_suffix(".yaml")
+
+        # Skip if no manifest
+        if not manifest_path.exists():
+            continue
+
+        has_working_symlink = False
+        broken_symlink_count = 0
+        example_dest = ""
+
+        # Read manifest to check destinations
+        try:
+            with manifest_path.open(encoding="utf-8") as f:
+                manifest_dict = yaml.safe_load(f)
+
+            if manifest_dict and "contents" in manifest_dict:
+                for content in manifest_dict["contents"]:
+                    if "destination" in content:
+                        dest_str = content["destination"]
+                        if not example_dest:
+                            example_dest = dest_str
+                        # Convert destination to actual path on NFS
+                        if dest_str.startswith("/opt/compiler-explorer/"):
+                            relative_path = dest_str[len("/opt/compiler-explorer/") :]
+                            dest_path = nfs_dir / relative_path
+                        else:
+                            dest_path = Path(dest_str)
+
+                        # Check if this destination has a symlink
+                        if dest_path.exists() and dest_path.is_symlink():
+                            try:
+                                target = dest_path.readlink()
+                                # Check if target exists and points to this image
+                                if target.exists() and stem in str(target):
+                                    has_working_symlink = True
+                                    break
+                                else:
+                                    broken_symlink_count += 1
+                            except OSError:
+                                broken_symlink_count += 1
+        except (OSError, yaml.YAMLError):
+            continue
+
+        # If no working symlinks found, it's a reverse orphan
+        if not has_working_symlink:
+            orphaned_images.append((image_path, broken_symlink_count, example_dest))
+
+    return orphaned_images
+
+
+def validate_single_manifest(
+    image_path: Path, manifest_path: Path, mount_point: Path, filename_stem: str
+) -> tuple[bool, str | None, list[tuple[Path, Path]]]:
+    """Validate a single manifest file and its associated symlinks.
+
+    Args:
+        image_path: Path to the CEFS image
+        manifest_path: Path to the manifest file
+        mount_point: CEFS mount point
+        filename_stem: Stem of the image filename
+
+    Returns:
+        Tuple of (is_valid, error_type, symlink_issues)
+        where error_type is None if valid, or one of:
+        - "missing": manifest file doesn't exist
+        - "unreadable": file exists but can't be read
+        - "old_format": uses deprecated 'target' field
+        - "invalid_name": has invalid installable names
+        - "other": other validation errors
+        symlink_issues is a list of (symlink_path, target_path) for broken symlinks
+    """
+    symlink_issues: list[tuple[Path, Path]] = []
+
+    if not manifest_path.exists():
+        return False, "missing", symlink_issues
+
+    # Try to read and validate manifest
+    try:
+        with manifest_path.open(encoding="utf-8") as f:
+            manifest_dict = yaml.safe_load(f)
+
+        # Check for old broken format with 'target' field
+        has_target_field = False
+        if manifest_dict and "contents" in manifest_dict:
+            for content in manifest_dict["contents"]:
+                if "target" in content:
+                    has_target_field = True
+                    break
+
+        if has_target_field:
+            return False, "old_format", symlink_issues
+
+        # Validate with Pydantic
+        try:
+            validate_manifest(manifest_dict)
+
+            # Check symlinks for this image (only if manifest is valid)
+            if manifest_dict and "contents" in manifest_dict:
+                for content in manifest_dict["contents"]:
+                    if "destination" in content:
+                        dest_path = Path(content["destination"])
+                        if dest_path.exists() and dest_path.is_symlink():
+                            target = dest_path.readlink()
+                            # Check if symlink points to something in this image
+                            if str(mount_point) in str(target) and filename_stem in str(target):
+                                # Verify the target exists
+                                if not target.exists():
+                                    symlink_issues.append((dest_path, target))
+
+            return True, None, symlink_issues
+
+        except ValueError as e:
+            error_msg = str(e)
+            # Categorize the validation error
+            if "invalid name" in error_msg.lower() or "entries with invalid name" in error_msg:
+                return False, "invalid_name", symlink_issues
+            else:
+                return False, "other", symlink_issues
+
+    except (OSError, yaml.YAMLError):
+        return False, "unreadable", symlink_issues
+
+
+def run_fsck_validation(
+    state: CEFSState,
+    mount_point: Path,
+    filter_list: list[str] | None = None,
+    check_reverse_orphans_flag: bool = False,
+) -> FSCKResults:
+    """Run CEFS filesystem validation checks.
+
+    Args:
+        state: CEFSState with scanned images
+        mount_point: CEFS mount point
+        filter_list: Optional filter for selecting images
+        check_reverse_orphans_flag: Whether to check for reverse orphans
+
+    Returns:
+        FSCKResults containing all validation results
+    """
+    results = FSCKResults()
+
+    # Check all CEFS images
+    for filename_stem, image_path in state.all_cefs_images.items():
+        # Apply filter if provided
+        if filter_list and not any(f in str(image_path) for f in filter_list):
+            continue
+
+        results.total_images += 1
+
+        # Check manifest
+        manifest_path = image_path.with_suffix(".yaml")
+        is_valid, error_type, symlink_issues = validate_single_manifest(
+            image_path, manifest_path, mount_point, filename_stem
+        )
+
+        if is_valid:
+            results.valid_manifests += 1
+            results.symlink_issues.extend(symlink_issues)
+        else:
+            if error_type == "missing":
+                results.missing_manifests.append(manifest_path)
+            elif error_type == "old_format":
+                results.old_format_manifests.append(manifest_path)
+            elif error_type == "invalid_name":
+                # Get full error message for invalid name errors
+                try:
+                    with manifest_path.open(encoding="utf-8") as f:
+                        manifest_dict = yaml.safe_load(f)
+                    validate_manifest(manifest_dict)
+                except ValueError as e:
+                    results.invalid_name_manifests.append((manifest_path, str(e)))
+            elif error_type == "other":
+                # Get full error message for other errors
+                try:
+                    with manifest_path.open(encoding="utf-8") as f:
+                        manifest_dict = yaml.safe_load(f)
+                    validate_manifest(manifest_dict)
+                except ValueError as e:
+                    results.other_invalid_manifests.append((manifest_path, str(e)))
+            elif error_type == "unreadable":
+                results.unreadable_manifests.append((manifest_path, "Cannot read manifest file"))
+
+    # Check for in-progress files
+    results.inprogress_files = check_inprogress_files(state.cefs_image_dir)
+
+    # Check for pending cleanup
+    results.pending_backups, results.pending_deletes = check_pending_cleanup(state.nfs_dir, state.cefs_image_dir)
+
+    # Check for reverse orphans (if requested)
+    if check_reverse_orphans_flag:
+        results.reverse_orphans = check_reverse_orphans(state.cefs_image_dir, state.nfs_dir, state.all_cefs_images)
+
+    return results
