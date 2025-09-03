@@ -581,6 +581,7 @@ def consolidate(
             consolidation_dir,
             defer_backup_cleanup,
             max_parallel_extractions,
+            lambda name: context.find_installable_by_exact_name(name),
             context.installation_context.dry_run,
         )
 

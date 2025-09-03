@@ -10,7 +10,7 @@ import os
 import shutil
 import tempfile
 import time
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -1943,60 +1943,6 @@ def handle_symlink_updates(
     return updated_symlinks, skipped_symlinks
 
 
-def verify_symlink_validity(symlink_path: Path) -> bool:
-    """Verify that a symlink points to a valid target.
-
-    Args:
-        symlink_path: Path to the symlink to verify
-
-    Returns:
-        True if symlink is valid, False otherwise
-    """
-    try:
-        if not symlink_path.is_symlink():
-            return False
-        target = symlink_path.readlink()
-        # Check if target exists
-        if not target.exists():
-            _LOGGER.error("Symlink target does not exist: %s -> %s", symlink_path, target)
-            return False
-        # Check if it's a directory (all compiler installations should be directories)
-        if not target.is_dir():
-            _LOGGER.error("Symlink target is not a directory: %s -> %s", symlink_path, target)
-            return False
-        return True
-    except OSError as e:
-        _LOGGER.error("Failed to verify symlink %s: %s", symlink_path, e)
-        return False
-
-
-def rollback_failed_symlink(symlink_path: Path) -> bool:
-    """Rollback a failed symlink by restoring the backup if it exists.
-
-    Args:
-        symlink_path: Path to the symlink to rollback
-
-    Returns:
-        True if rollback succeeded, False otherwise
-    """
-    backup_path = Path(str(symlink_path) + ".bak")
-    if backup_path.exists():
-        try:
-            # Remove the broken symlink
-            if symlink_path.exists() or symlink_path.is_symlink():
-                symlink_path.unlink()
-            # Restore the backup
-            backup_path.rename(symlink_path)
-            _LOGGER.info("Rolled back symlink %s from backup", symlink_path)
-            return True
-        except OSError as e:
-            _LOGGER.error("Failed to rollback symlink %s: %s", symlink_path, e)
-            return False
-    else:
-        _LOGGER.warning("No backup found for symlink %s, cannot rollback", symlink_path)
-        return False
-
-
 def _deploy_consolidated_image(
     temp_consolidated_path: Path,
     cefs_paths: CEFSPaths,
@@ -2008,6 +1954,7 @@ def _deploy_consolidated_image(
     subdir_mapping: dict[Path, str],
     defer_backup_cleanup: bool,
     group_idx: int,
+    find_installable_func: Callable[[str], Any],
     dry_run: bool,
 ) -> tuple[int, int]:
     """Deploy consolidated image and update symlinks.
@@ -2023,6 +1970,7 @@ def _deploy_consolidated_image(
         subdir_mapping: Mapping of NFS paths to subdirectories
         defer_backup_cleanup: Whether to defer cleanup
         group_idx: Group index for logging
+        find_installable_func: Function to find installables by exact name
         dry_run: Whether this is a dry run
 
     Returns:
@@ -2030,9 +1978,58 @@ def _deploy_consolidated_image(
     """
     if cefs_paths.image_path.exists():
         _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
-        return handle_symlink_updates(
+        updated, skipped = handle_symlink_updates(
             group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
         )
+
+        # Post-consolidation safety check even for existing images
+        # Skip this check in dry-run mode
+        if not dry_run and updated > 0:
+            _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
+            failed_items = []
+
+            for item in group:
+                try:
+                    # Find the installable by exact name
+                    installable = find_installable_func(item.name)
+
+                    # Check if it reports as installed using the canonical check
+                    if not installable.is_installed():
+                        failed_items.append((item.name, item.nfs_path))
+                        _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
+                except ValueError as e:
+                    # This is a hard error - we can't find the installable or found multiple
+                    _LOGGER.error("Failed to find installable for validation: %s", e)
+                    failed_items.append((item.name, item.nfs_path))
+
+            # Rollback failed items individually
+            if failed_items:
+                _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
+                rollback_count = 0
+                for name, symlink_path in failed_items:
+                    # Try to restore from backup
+                    backup_path = Path(str(symlink_path) + ".bak")
+                    if backup_path.exists():
+                        try:
+                            # Remove the broken symlink
+                            if symlink_path.exists() or symlink_path.is_symlink():
+                                symlink_path.unlink()
+                            # Restore the backup
+                            backup_path.rename(symlink_path)
+                            _LOGGER.info("Rolled back symlink for %s from backup", name)
+                            rollback_count += 1
+                            updated -= 1  # Decrement the updated count
+                        except OSError as e:
+                            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
+                    else:
+                        _LOGGER.warning("No backup found for %s, cannot rollback", name)
+
+                if rollback_count < len(failed_items):
+                    _LOGGER.error(
+                        "Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1
+                    )
+
+        return updated, skipped
 
     with deploy_to_cefs_transactional(
         temp_consolidated_path,
@@ -2046,28 +2043,53 @@ def _deploy_consolidated_image(
         if updated:
             _LOGGER.info("Updated %d symlinks for group %d", updated, group_idx + 1)
 
-        # Post-consolidation safety check: verify all symlinks are valid
-        _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
-        failed_symlinks = []
-        for item in group:
-            if not verify_symlink_validity(item.nfs_path):
-                failed_symlinks.append(item.nfs_path)
-                _LOGGER.error("Post-consolidation check failed for %s", item.nfs_path)
+        # Post-consolidation safety check: verify all installables report as installed
+        # Skip this check in dry-run mode
+        if not dry_run:
+            _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
+            failed_items = []
 
-        # Rollback failed symlinks individually
-        if failed_symlinks:
-            _LOGGER.warning("Found %d invalid symlinks, attempting rollback", len(failed_symlinks))
-            rollback_count = 0
-            for symlink_path in failed_symlinks:
-                if rollback_failed_symlink(symlink_path):
-                    rollback_count += 1
-                    updated -= 1  # Decrement the updated count
+            for item in group:
+                try:
+                    # Find the installable by exact name
+                    installable = find_installable_func(item.name)
 
-            if rollback_count < len(failed_symlinks):
-                _LOGGER.error(
-                    "Failed to rollback %d symlinks for group %d", len(failed_symlinks) - rollback_count, group_idx + 1
-                )
-                # Don't fail the entire consolidation, but log the issue prominently
+                    # Check if it reports as installed using the canonical check
+                    if not installable.is_installed():
+                        failed_items.append((item.name, item.nfs_path))
+                        _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
+                except ValueError as e:
+                    # This is a hard error - we can't find the installable or found multiple
+                    _LOGGER.error("Failed to find installable for validation: %s", e)
+                    failed_items.append((item.name, item.nfs_path))
+
+            # Rollback failed items individually
+            if failed_items:
+                _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
+                rollback_count = 0
+                for name, symlink_path in failed_items:
+                    # Try to restore from backup
+                    backup_path = Path(str(symlink_path) + ".bak")
+                    if backup_path.exists():
+                        try:
+                            # Remove the broken symlink
+                            if symlink_path.exists() or symlink_path.is_symlink():
+                                symlink_path.unlink()
+                            # Restore the backup
+                            backup_path.rename(symlink_path)
+                            _LOGGER.info("Rolled back symlink for %s from backup", name)
+                            rollback_count += 1
+                            updated -= 1  # Decrement the updated count
+                        except OSError as e:
+                            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
+                    else:
+                        _LOGGER.warning("No backup found for %s, cannot rollback", name)
+
+                if rollback_count < len(failed_items):
+                    _LOGGER.error(
+                        "Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1
+                    )
+                    # Don't fail the entire consolidation, but log the issue prominently
 
         return updated, skipped
 
@@ -2083,6 +2105,7 @@ def process_consolidation_group(
     consolidation_dir: Path,
     defer_backup_cleanup: bool,
     max_parallel_extractions: int | None,
+    find_installable_func: Callable[[str], Any],
     dry_run: bool = False,
 ) -> tuple[bool, int, int]:
     """Process a single consolidation group.
@@ -2098,6 +2121,7 @@ def process_consolidation_group(
         consolidation_dir: Directory for consolidation temp files
         defer_backup_cleanup: Whether to defer cleanup of .bak symlinks
         max_parallel_extractions: Maximum parallel extractions
+        find_installable_func: Function to find installables by exact name
         dry_run: Whether this is a dry run
 
     Returns:
@@ -2147,6 +2171,7 @@ def process_consolidation_group(
             subdir_mapping,
             defer_backup_cleanup,
             group_idx,
+            find_installable_func,
             dry_run,
         )
 

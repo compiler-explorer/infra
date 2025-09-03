@@ -70,6 +70,37 @@ class CliContext:
         )
         return installables
 
+    def find_installable_by_exact_name(self, name: str) -> Installable:
+        """Find an installable by its exact name.
+
+        Args:
+            name: The exact name to search for (e.g., "compilers/c++/x86/gcc 14.1.0")
+
+        Returns:
+            The matching Installable object
+
+        Raises:
+            ValueError: If exactly one installable is not found (0 or 2+ matches)
+        """
+        # Get all installables without filtering
+        all_installables = []
+        for yaml_path in Path(self.installation_context.yaml_dir).glob("*.yaml"):
+            with yaml_path.open(encoding="utf-8") as yaml_file:
+                yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+            for installer in installers_for(self.installation_context, yaml_doc, self.enabled):
+                all_installables.append(installer)
+        Installable.resolve(all_installables)
+
+        # Find exact matches
+        matches = [inst for inst in all_installables if inst.name == name]
+
+        if len(matches) == 0:
+            raise ValueError(f"No installable found with exact name: {name}")
+        elif len(matches) > 1:
+            raise ValueError(f"Ambiguous: found {len(matches)} installables with name: {name}")
+
+        return matches[0]
+
 
 def _context_match(context_query: str, installable: Installable) -> bool:
     """Match context query against installable's context path.
