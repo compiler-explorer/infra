@@ -56,6 +56,20 @@ class ConsolidationCandidate:
     from_reconsolidation: bool = False
 
 
+@dataclass(frozen=True)
+class ExtractionResult:
+    """Result of extracting a single squashfs image."""
+
+    success: bool
+    nfs_path: str
+    subdir_name: str
+    extracted_size: int = 0
+    compressed_size: int = 0
+    compression_ratio: float = 0.0
+    is_partial: bool = False
+    error: str | None = None
+
+
 def get_cefs_image_path(image_dir: Path, filename: str) -> Path:
     """Get the full CEFS image path for a given filename.
 
@@ -426,7 +440,7 @@ def verify_symlinks_unchanged(snapshot: dict[Path, Path]) -> tuple[list[Path], l
     return unchanged, changed
 
 
-def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -> dict[str, Any]:
+def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -> ExtractionResult:
     """Worker function to extract a single squashfs image.
 
     Args are serialized as strings for pickling:
@@ -489,15 +503,15 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
                 humanfriendly.format_size(compressed_size, binary=True),
             )
             # Don't include compressed_size in stats for partial extractions
-            return {
-                "success": True,
-                "nfs_path": nfs_path_str,
-                "subdir_name": subdir_name,
-                "compressed_size": 0,  # Don't count for partial extractions
-                "extracted_size": extracted_size,
-                "compression_ratio": 0,
-                "is_partial": True,
-            }
+            return ExtractionResult(
+                success=True,
+                nfs_path=nfs_path_str,
+                subdir_name=subdir_name,
+                compressed_size=0,  # Don't count for partial extractions
+                extracted_size=extracted_size,
+                compression_ratio=0.0,
+                is_partial=True,
+            )
         else:
             compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
             logger.info(
@@ -506,23 +520,23 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
                 humanfriendly.format_size(extracted_size, binary=True),
                 compression_ratio,
             )
-            return {
-                "success": True,
-                "nfs_path": nfs_path_str,
-                "subdir_name": subdir_name,
-                "compressed_size": compressed_size,
-                "extracted_size": extracted_size,
-                "compression_ratio": compression_ratio,
-                "is_partial": False,
-            }
+            return ExtractionResult(
+                success=True,
+                nfs_path=nfs_path_str,
+                subdir_name=subdir_name,
+                compressed_size=compressed_size,
+                extracted_size=extracted_size,
+                compression_ratio=compression_ratio,
+                is_partial=False,
+            )
     except Exception as e:
         logger.error("Failed to extract %s: %s", squashfs_path, e)
-        return {
-            "success": False,
-            "nfs_path": nfs_path_str,
-            "subdir_name": subdir_name,
-            "error": str(e),
-        }
+        return ExtractionResult(
+            success=False,
+            nfs_path=nfs_path_str,
+            subdir_name=subdir_name,
+            error=str(e),
+        )
 
 
 def create_consolidated_image(
@@ -586,23 +600,23 @@ def create_consolidated_image(
                 completed += 1
                 result = future.result()
 
-                if result["success"]:
-                    if result.get("is_partial", False):
+                if result.success:
+                    if result.is_partial:
                         # Track partial extractions separately
                         partial_extractions_count += 1
-                        partial_extracted_size += result["extracted_size"]
+                        partial_extracted_size += result.extracted_size
                     else:
                         # Only count full extractions for compression stats
-                        total_compressed_size += result["compressed_size"]
+                        total_compressed_size += result.compressed_size
 
                     # Always add extracted size for total
-                    total_extracted_size += result["extracted_size"]
+                    total_extracted_size += result.extracted_size
 
                     _LOGGER.info(
                         "[%d/%d] Completed extraction of %s",
                         completed,
                         len(items),
-                        result["subdir_name"],
+                        result.subdir_name,
                     )
                 else:
                     failed_extractions.append(result)
@@ -610,15 +624,15 @@ def create_consolidated_image(
                         "[%d/%d] Failed to extract %s: %s",
                         completed,
                         len(items),
-                        result["subdir_name"],
-                        result.get("error", "Unknown error"),
+                        result.subdir_name,
+                        result.error or "Unknown error",
                     )
 
         # Check for failures
         if failed_extractions:
             raise RuntimeError(
                 f"Failed to extract {len(failed_extractions)} of {len(items)} squashfs images: "
-                + ", ".join(f["subdir_name"] for f in failed_extractions)
+                + ", ".join(f.subdir_name for f in failed_extractions)
             )
 
         # Log total extraction summary
