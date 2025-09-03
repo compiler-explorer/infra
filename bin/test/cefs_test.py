@@ -931,14 +931,14 @@ def test_calculate_image_usage(tmp_path):
     # Create symlink pointing to this image
     gcc_full_path.symlink_to(mount_point / "ab" / "abc123_gcc")
 
-    usage = calculate_image_usage(individual_image, image_references, nfs_dir, mount_point)
+    usage = calculate_image_usage(individual_image, image_references, mount_point)
     assert usage == 100.0
 
     # Test individual image without reference (symlink points elsewhere)
     gcc_full_path.unlink()
     gcc_full_path.symlink_to(mount_point / "de" / "def456_gcc")
 
-    usage = calculate_image_usage(individual_image, image_references, nfs_dir, mount_point)
+    usage = calculate_image_usage(individual_image, image_references, mount_point)
     assert usage == 0.0
 
     # Test consolidated image with partial usage
@@ -962,7 +962,7 @@ def test_calculate_image_usage(tmp_path):
         tool3_path,
     ]
 
-    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir, mount_point)
+    usage = calculate_image_usage(consolidated_image, image_references, mount_point)
     assert pytest.approx(usage, 0.1) == 66.7  # 2/3 = 66.7%
 
 
@@ -1239,7 +1239,7 @@ def test_calculate_image_usage_with_absolute_paths(tmp_path):
     # Test with our fake paths instead of real /opt/compiler-explorer
     test_references = {"0d163f7f3ee984e50fd7d14f_consolidated": [fake_nfs / "gcc-15.1.0", fake_nfs / "wasmtime-20.0.1"]}
 
-    usage = calculate_image_usage(image_path, test_references, fake_nfs, test_mount)
+    usage = calculate_image_usage(image_path, test_references, test_mount)
     assert usage == 100.0, f"Expected 100% usage, got {usage}%"
 
 
@@ -1838,7 +1838,7 @@ def test_calculate_consolidated_image_usage(tmp_path):
     }
 
     # Calculate usage
-    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir, test_mount)
+    usage = calculate_image_usage(consolidated_image, image_references, test_mount)
 
     # Should be 100% since both items are still referenced
     assert usage == 100.0, f"Expected 100% usage, got {usage}%"

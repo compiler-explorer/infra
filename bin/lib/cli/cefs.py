@@ -574,7 +574,6 @@ def consolidate(
             group,
             group_idx,
             context.config.squashfs,
-            context.config.cefs,
             context.config.cefs.mount_point,
             context.config.cefs.image_dir,
             symlink_snapshot,

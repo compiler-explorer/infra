@@ -1043,7 +1043,7 @@ class CEFSState:
         """
         _LOGGER.debug("Checking consolidated image: %s", image_path.name)
 
-        usage = calculate_image_usage(image_path, self.image_references, self.nfs_dir, self.mount_point)
+        usage = calculate_image_usage(image_path, self.image_references, self.mount_point)
 
         try:
             size = image_path.stat().st_size
@@ -1348,9 +1348,7 @@ def is_consolidated_image(image_path: Path) -> bool:
     return False
 
 
-def calculate_image_usage(
-    image_path: Path, image_references: dict[str, list[Path]], nfs_dir: Path, mount_point: Path
-) -> float:
+def calculate_image_usage(image_path: Path, image_references: dict[str, list[Path]], mount_point: Path) -> float:
     """Calculate usage percentage for a CEFS image.
 
     For individual images: 100% if referenced, 0% if not
@@ -1359,7 +1357,7 @@ def calculate_image_usage(
     Args:
         image_path: Path to the CEFS image
         image_references: Dict mapping image stems to expected destinations
-        nfs_dir: Base NFS directory
+        mount_point: CEFS mount point
 
     Returns:
         Usage percentage (0.0 to 100.0)
@@ -1470,7 +1468,7 @@ def get_consolidated_image_usage_stats(
         except OSError:
             size = 0
 
-        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir, state.mount_point)
+        usage = calculate_image_usage(image_path, state.image_references, state.mount_point)
 
         if is_consolidated_image(image_path):
             consolidated_images += 1
@@ -2112,7 +2110,6 @@ def process_consolidation_group(
     group: list[ConsolidationCandidate],
     group_idx: int,
     squashfs_config: Any,
-    cefs_config: Any,
     mount_point: Path,
     image_dir: Path,
     symlink_snapshot: dict[Path, Path],
@@ -2128,7 +2125,6 @@ def process_consolidation_group(
         group: List of items to consolidate
         group_idx: Index of this group (for logging)
         squashfs_config: Squashfs configuration object
-        cefs_config: CEFS configuration object
         mount_point: CEFS mount point
         image_dir: CEFS image directory
         symlink_snapshot: Snapshot of symlink states before consolidation
@@ -2564,12 +2560,11 @@ def check_pending_cleanup(
 
 
 def validate_single_manifest(
-    image_path: Path, manifest_path: Path, mount_point: Path, filename_stem: str
+    manifest_path: Path, mount_point: Path, filename_stem: str
 ) -> tuple[bool, str | None, list[tuple[Path, Path]]]:
     """Validate a single manifest file and its associated symlinks.
 
     Args:
-        image_path: Path to the CEFS image
         manifest_path: Path to the manifest file
         mount_point: CEFS mount point
         filename_stem: Stem of the image filename
@@ -2663,9 +2658,7 @@ def run_fsck_validation(
 
         # Check manifest
         manifest_path = image_path.with_suffix(".yaml")
-        is_valid, error_type, symlink_issues = validate_single_manifest(
-            image_path, manifest_path, mount_point, filename_stem
-        )
+        is_valid, error_type, symlink_issues = validate_single_manifest(manifest_path, mount_point, filename_stem)
 
         if is_valid:
             results.valid_manifests += 1
