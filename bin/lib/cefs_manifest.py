@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """CEFS manifest creation and management utilities."""
 
+from __future__ import annotations
+
 import datetime
 import logging
 import subprocess
@@ -10,8 +12,68 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class ManifestContentEntry(BaseModel):
+    """Represents a single entry in the manifest contents list."""
+
+    name: str = Field(..., description="Full installable name (e.g., 'compilers/c++/x86/gcc 12.4.0')")
+    destination: str = Field(..., description="NFS destination path")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_format(cls, v: str) -> str:
+        """Validate that name looks like a proper installable name."""
+        if not v or v.isspace():
+            raise ValueError("Name cannot be empty")
+
+        # Must have exactly one space (separating name from version)
+        if v.count(" ") != 1:
+            raise ValueError(f"Invalid installable name '{v}': must have exactly one space between name and version")
+
+        # Must have path structure (at least one /)
+        if "/" not in v:
+            raise ValueError(
+                f"Invalid installable name '{v}': must have path structure like 'compilers/c++/x86/gcc 12.4.0'"
+            )
+
+        return v
+
+    model_config = ConfigDict(extra="forbid")  # Reject unknown fields like 'target'
+
+
+class CEFSManifest(BaseModel):
+    """Represents a complete CEFS manifest."""
+
+    version: int = Field(..., description="Manifest version")
+    created_at: str = Field(..., description="ISO format creation timestamp")
+    git_sha: str = Field(..., description="Git SHA of the code that created this")
+    command: list[str] = Field(..., description="Command that created this image")
+    description: str = Field(..., description="Human-readable description")
+    operation: str = Field(..., description="Operation type: install, convert, or consolidate")
+    contents: list[ManifestContentEntry] = Field(..., description="List of contents in this image")
+
+    @field_validator("version")
+    @classmethod
+    def validate_version(cls, v: int) -> int:
+        """Validate manifest version."""
+        if v != 1:
+            raise ValueError(f"Unsupported manifest version: {v}")
+        return v
+
+    @field_validator("operation")
+    @classmethod
+    def validate_operation(cls, v: str) -> str:
+        """Validate operation type."""
+        valid_operations = {"install", "convert", "consolidate"}
+        if v not in valid_operations:
+            raise ValueError(f"Invalid operation '{v}': must be one of {valid_operations}")
+        return v
+
+    model_config = ConfigDict(extra="forbid")  # Reject unknown fields
 
 
 @lru_cache(maxsize=1)
@@ -192,6 +254,24 @@ def finalize_manifest(image_path: Path) -> None:
     inprogress_path.rename(final_path)
 
 
+def validate_manifest(manifest_dict: dict[str, Any]) -> CEFSManifest:
+    """Validate a manifest dictionary against the Pydantic model.
+
+    Args:
+        manifest_dict: Raw manifest dictionary
+
+    Returns:
+        Validated CEFSManifest object
+
+    Raises:
+        ValueError: If manifest is invalid
+    """
+    try:
+        return CEFSManifest(**manifest_dict)
+    except Exception as e:
+        raise ValueError(f"Invalid manifest: {e}") from e
+
+
 def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
     """Read manifest from the .yaml file alongside a CEFS image.
 
@@ -208,7 +288,14 @@ def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
 
     try:
         with open(manifest_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            manifest_dict = yaml.safe_load(f)
+
+        # Validate the manifest
+        validate_manifest(manifest_dict)
+        return manifest_dict
+    except ValueError as e:
+        _LOGGER.error("Invalid manifest in %s: %s", manifest_path, e)
+        raise
     except OSError as e:
         _LOGGER.error("Failed to read manifest file %s: %s", manifest_path, e)
         raise

@@ -26,6 +26,7 @@ from .cefs_manifest import (
     generate_cefs_filename,
     read_manifest_from_alongside,
     sanitize_path_for_filename,
+    validate_manifest,
     write_manifest_inprogress,
 )
 from .config import SquashfsConfig
@@ -454,36 +455,65 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
     try:
         compressed_size = squashfs_path.stat().st_size
 
-        logger.info(
-            "Extracting %s (%s) from %s to %s",
-            squashfs_path,
-            humanfriendly.format_size(compressed_size, binary=True),
-            extraction_path,
-            subdir_path,
-        )
+        # Check if this is a partial extraction
+        is_partial_extraction = extraction_path is not None and extraction_path != Path(".")
+
+        if is_partial_extraction:
+            logger.info(
+                "Partially extracting %s from %s (%s) to %s",
+                extraction_path,
+                squashfs_path,
+                humanfriendly.format_size(compressed_size, binary=True),
+                subdir_path,
+            )
+        else:
+            logger.info(
+                "Extracting %s (%s) to %s",
+                squashfs_path,
+                humanfriendly.format_size(compressed_size, binary=True),
+                subdir_path,
+            )
 
         extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
 
         # Measure extracted size
         extracted_size = get_directory_size(subdir_path)
 
-        compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
-
-        logger.info(
-            "Extracted %s -> %s (%.1fx compression)",
-            humanfriendly.format_size(compressed_size, binary=True),
-            humanfriendly.format_size(extracted_size, binary=True),
-            compression_ratio,
-        )
-
-        return {
-            "success": True,
-            "nfs_path": nfs_path_str,
-            "subdir_name": subdir_name,
-            "compressed_size": compressed_size,
-            "extracted_size": extracted_size,
-            "compression_ratio": compression_ratio,
-        }
+        if is_partial_extraction:
+            # For partial extractions, don't calculate misleading compression ratios
+            logger.info(
+                "Partially extracted %s (%s from %s total image)",
+                extraction_path,
+                humanfriendly.format_size(extracted_size, binary=True),
+                humanfriendly.format_size(compressed_size, binary=True),
+            )
+            # Don't include compressed_size in stats for partial extractions
+            return {
+                "success": True,
+                "nfs_path": nfs_path_str,
+                "subdir_name": subdir_name,
+                "compressed_size": 0,  # Don't count for partial extractions
+                "extracted_size": extracted_size,
+                "compression_ratio": 0,
+                "is_partial": True,
+            }
+        else:
+            compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
+            logger.info(
+                "Extracted %s -> %s (%.1fx compression)",
+                humanfriendly.format_size(compressed_size, binary=True),
+                humanfriendly.format_size(extracted_size, binary=True),
+                compression_ratio,
+            )
+            return {
+                "success": True,
+                "nfs_path": nfs_path_str,
+                "subdir_name": subdir_name,
+                "compressed_size": compressed_size,
+                "extracted_size": extracted_size,
+                "compression_ratio": compression_ratio,
+                "is_partial": False,
+            }
     except Exception as e:
         logger.error("Failed to extract %s: %s", squashfs_path, e)
         return {
@@ -541,6 +571,8 @@ def create_consolidated_image(
         # Extract squashfs images in parallel
         total_compressed_size = 0
         total_extracted_size = 0
+        partial_extractions_count = 0
+        partial_extracted_size = 0
         failed_extractions = []
 
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
@@ -554,8 +586,17 @@ def create_consolidated_image(
                 result = future.result()
 
                 if result["success"]:
-                    total_compressed_size += result["compressed_size"]
+                    if result.get("is_partial", False):
+                        # Track partial extractions separately
+                        partial_extractions_count += 1
+                        partial_extracted_size += result["extracted_size"]
+                    else:
+                        # Only count full extractions for compression stats
+                        total_compressed_size += result["compressed_size"]
+
+                    # Always add extracted size for total
                     total_extracted_size += result["extracted_size"]
+
                     _LOGGER.info(
                         "[%d/%d] Completed extraction of %s",
                         completed,
@@ -580,12 +621,28 @@ def create_consolidated_image(
             )
 
         # Log total extraction summary
-        total_compression_ratio = total_extracted_size / total_compressed_size if total_compressed_size > 0 else 0
+        if partial_extractions_count > 0:
+            _LOGGER.info(
+                "Extraction summary: %d partial extractions (%s), %d full extractions",
+                partial_extractions_count,
+                humanfriendly.format_size(partial_extracted_size, binary=True),
+                len(items) - partial_extractions_count,
+            )
+
+        if total_compressed_size > 0:
+            # Only show compression ratio for full extractions
+            full_extracted_size = total_extracted_size - partial_extracted_size
+            compression_ratio = full_extracted_size / total_compressed_size if total_compressed_size > 0 else 0
+            _LOGGER.info(
+                "Full extractions: %s -> %s (%.1fx compression)",
+                humanfriendly.format_size(total_compressed_size, binary=True),
+                humanfriendly.format_size(full_extracted_size, binary=True),
+                compression_ratio,
+            )
+
         _LOGGER.info(
-            "Total extraction: %s -> %s (%.1fx compression)",
-            humanfriendly.format_size(total_compressed_size, binary=True),
+            "Total extracted data: %s",
             humanfriendly.format_size(total_extracted_size, binary=True),
-            total_compression_ratio,
         )
 
         # Create consolidated squashfs image
@@ -594,30 +651,32 @@ def create_consolidated_image(
 
         # Log final consolidation compression ratio
         consolidated_size = output_path.stat().st_size
-        final_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
 
-        # Calculate space savings vs original and total compression
-        space_savings_ratio = total_compressed_size / consolidated_size if consolidated_size > 0 else 0
-        total_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
-
+        # Calculate meaningful compression ratios
         _LOGGER.info("Consolidation complete:")
         _LOGGER.info(
-            "  Final image: %s (%.1fx compression of extracted data)",
+            "  Final image size: %s",
             humanfriendly.format_size(consolidated_size, binary=True),
-            final_compression_ratio,
         )
+
+        # Compression of extracted data (this is the real compression achieved)
+        data_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
         _LOGGER.info(
-            "  Space comparison: %s -> %s (%.1fx space savings)",
-            humanfriendly.format_size(total_compressed_size, binary=True),
-            humanfriendly.format_size(consolidated_size, binary=True),
-            space_savings_ratio,
-        )
-        _LOGGER.info(
-            "  Total compression: %s -> %s (%.1fx overall compression)",
+            "  Data compression: %s -> %s (%.1fx)",
             humanfriendly.format_size(total_extracted_size, binary=True),
             humanfriendly.format_size(consolidated_size, binary=True),
-            total_compression_ratio,
+            data_compression_ratio,
         )
+
+        # If we have full extractions, show space savings
+        if total_compressed_size > 0:
+            space_savings_ratio = total_compressed_size / consolidated_size if consolidated_size > 0 else 0
+            _LOGGER.info(
+                "  Space savings (full extractions only): %s -> %s (%.1fx reduction)",
+                humanfriendly.format_size(total_compressed_size, binary=True),
+                humanfriendly.format_size(consolidated_size, binary=True),
+                space_savings_ratio,
+            )
 
     finally:
         # Clean up extraction directory
@@ -1662,6 +1721,13 @@ def extract_candidates_from_manifest(
     Returns:
         List of consolidation candidates from this image
     """
+    # Validate manifest before processing
+    try:
+        validate_manifest(manifest)
+    except ValueError as e:
+        _LOGGER.warning("Skipping reconsolidation from %s: %s", image_path, e)
+        return []
+
     candidates = []
     contents = manifest.get("contents", [])
     item_size = size // len(contents) if contents else 0  # Estimate size per item
@@ -1784,8 +1850,9 @@ def prepare_consolidation_items(
         if item.from_reconsolidation:
             extraction_path = item.extraction_path
             _LOGGER.debug(
-                "For reconsolidation item %s: using extraction path %s",
+                "Reconsolidation item '%s': subdir_name='%s', extraction_path='%s'",
                 item.name,
+                subdir_name,
                 extraction_path,
             )
         else:
@@ -1875,6 +1942,60 @@ def handle_symlink_updates(
     return updated_symlinks, skipped_symlinks
 
 
+def verify_symlink_validity(symlink_path: Path) -> bool:
+    """Verify that a symlink points to a valid target.
+
+    Args:
+        symlink_path: Path to the symlink to verify
+
+    Returns:
+        True if symlink is valid, False otherwise
+    """
+    try:
+        if not symlink_path.is_symlink():
+            return False
+        target = symlink_path.readlink()
+        # Check if target exists
+        if not target.exists():
+            _LOGGER.error("Symlink target does not exist: %s -> %s", symlink_path, target)
+            return False
+        # Check if it's a directory (all compiler installations should be directories)
+        if not target.is_dir():
+            _LOGGER.error("Symlink target is not a directory: %s -> %s", symlink_path, target)
+            return False
+        return True
+    except OSError as e:
+        _LOGGER.error("Failed to verify symlink %s: %s", symlink_path, e)
+        return False
+
+
+def rollback_failed_symlink(symlink_path: Path) -> bool:
+    """Rollback a failed symlink by restoring the backup if it exists.
+
+    Args:
+        symlink_path: Path to the symlink to rollback
+
+    Returns:
+        True if rollback succeeded, False otherwise
+    """
+    backup_path = Path(str(symlink_path) + ".bak")
+    if backup_path.exists():
+        try:
+            # Remove the broken symlink
+            if symlink_path.exists() or symlink_path.is_symlink():
+                symlink_path.unlink()
+            # Restore the backup
+            backup_path.rename(symlink_path)
+            _LOGGER.info("Rolled back symlink %s from backup", symlink_path)
+            return True
+        except OSError as e:
+            _LOGGER.error("Failed to rollback symlink %s: %s", symlink_path, e)
+            return False
+    else:
+        _LOGGER.warning("No backup found for symlink %s, cannot rollback", symlink_path)
+        return False
+
+
 def _deploy_consolidated_image(
     temp_consolidated_path: Path,
     cefs_paths: CEFSPaths,
@@ -1923,6 +2044,30 @@ def _deploy_consolidated_image(
         )
         if updated:
             _LOGGER.info("Updated %d symlinks for group %d", updated, group_idx + 1)
+
+        # Post-consolidation safety check: verify all symlinks are valid
+        _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
+        failed_symlinks = []
+        for item in group:
+            if not verify_symlink_validity(item.nfs_path):
+                failed_symlinks.append(item.nfs_path)
+                _LOGGER.error("Post-consolidation check failed for %s", item.nfs_path)
+
+        # Rollback failed symlinks individually
+        if failed_symlinks:
+            _LOGGER.warning("Found %d invalid symlinks, attempting rollback", len(failed_symlinks))
+            rollback_count = 0
+            for symlink_path in failed_symlinks:
+                if rollback_failed_symlink(symlink_path):
+                    rollback_count += 1
+                    updated -= 1  # Decrement the updated count
+
+            if rollback_count < len(failed_symlinks):
+                _LOGGER.error(
+                    "Failed to rollback %d symlinks for group %d", len(failed_symlinks) - rollback_count, group_idx + 1
+                )
+                # Don't fail the entire consolidation, but log the issue prominently
+
         return updated, skipped
 
 

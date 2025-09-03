@@ -7,11 +7,13 @@ import datetime
 import logging
 import shutil
 import subprocess
+import sys
 import uuid
 from pathlib import Path
 
 import click
 import humanfriendly
+import yaml
 
 from lib.ce_install import CliContext, cli
 from lib.cefs import (
@@ -43,6 +45,7 @@ from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
     read_manifest_from_alongside,
+    validate_manifest,
 )
 from lib.installable.installable import Installable
 
@@ -932,3 +935,138 @@ def gc(context: CliContext, force: bool, min_age: str):
 
     if error_count > 0:
         raise click.ClickException(f"GC completed with {error_count} errors")
+
+
+@cefs.command()
+@click.option(
+    "--filter",
+    "-f",
+    multiple=True,
+    help="Filter items (can be used multiple times)",
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    help="Show detailed information for each check",
+)
+@click.option(
+    "--fix",
+    is_flag=True,
+    help="Attempt to fix issues (currently not implemented)",
+)
+@click.pass_obj
+def fsck(context: CliContext, filter: list[str], verbose: bool, fix: bool) -> None:
+    """Check CEFS manifests and symlink integrity.
+
+    Validates:
+    - Manifest format and content validity
+    - Symlink targets exist and point to correct locations
+    - Installable names are properly formatted
+    - No broken manifest formats (e.g., old 'target' field)
+    """
+    if fix:
+        click.echo("--fix is not yet implemented")
+        return
+
+    state = CEFSState(
+        nfs_dir=context.installation_context.destination,
+        cefs_image_dir=context.config.cefs.image_dir,
+        mount_point=context.config.cefs.mount_point,
+    )
+    state.scan_cefs_images_with_manifests()
+    mount_point = context.config.cefs.mount_point
+
+    # Track statistics
+    total_images = 0
+    valid_manifests = 0
+    invalid_manifests = 0
+    missing_manifests = 0
+    symlink_issues = 0
+
+    issues = []
+
+    # Check all CEFS images
+    for filename_stem, image_path in state.all_cefs_images.items():
+        # Apply filter if provided
+        if filter and not any(f in str(image_path) for f in filter):
+            continue
+
+        total_images += 1
+
+        # Check manifest
+        manifest_path = image_path.with_suffix(".yaml")
+        if not manifest_path.exists():
+            missing_manifests += 1
+            issues.append(f"Missing manifest: {manifest_path}")
+            if verbose:
+                click.echo(f"❌ Missing manifest for {image_path}")
+            continue
+
+        # Try to read and validate manifest
+        try:
+            with open(manifest_path, encoding="utf-8") as f:
+                manifest_dict = yaml.safe_load(f)
+
+            # Check for old broken format
+            if manifest_dict and "contents" in manifest_dict:
+                for content in manifest_dict["contents"]:
+                    if "target" in content:
+                        invalid_manifests += 1
+                        issues.append(f"Old broken format (has 'target' field): {manifest_path}")
+                        if verbose:
+                            click.echo(f"❌ Old broken manifest format: {manifest_path}")
+                        break
+                else:
+                    # Validate with Pydantic
+                    try:
+                        validate_manifest(manifest_dict)
+                        valid_manifests += 1
+                        if verbose:
+                            click.echo(f"✅ Valid manifest: {manifest_path}")
+
+                        # Check symlinks for this image
+                        for content in manifest_dict["contents"]:
+                            dest_path = Path(content["destination"])
+                            if dest_path.exists() and dest_path.is_symlink():
+                                target = dest_path.readlink()
+                                # Check if symlink points to something in this image
+                                if str(mount_point) in str(target) and filename_stem in str(target):
+                                    # Verify the target exists
+                                    if not target.exists():
+                                        symlink_issues += 1
+                                        issues.append(f"Broken symlink: {dest_path} -> {target}")
+                                        if verbose:
+                                            click.echo(f"  ❌ Broken symlink: {dest_path}")
+                                    elif verbose:
+                                        click.echo(f"  ✅ Valid symlink: {dest_path}")
+
+                    except ValueError as e:
+                        invalid_manifests += 1
+                        issues.append(f"Invalid manifest: {manifest_path}: {e}")
+                        if verbose:
+                            click.echo(f"❌ Invalid manifest: {manifest_path}: {e}")
+
+        except (OSError, yaml.YAMLError) as e:
+            invalid_manifests += 1
+            issues.append(f"Cannot read manifest: {manifest_path}: {e}")
+            if verbose:
+                click.echo(f"❌ Cannot read manifest: {manifest_path}: {e}")
+
+    # Print summary
+    click.echo("\n=== CEFS Filesystem Check Summary ===")
+    click.echo(f"Total images checked: {total_images}")
+    click.echo(f"Valid manifests: {valid_manifests}")
+    click.echo(f"Invalid manifests: {invalid_manifests}")
+    click.echo(f"Missing manifests: {missing_manifests}")
+    click.echo(f"Symlink issues: {symlink_issues}")
+
+    if issues:
+        click.echo(f"\n⚠️  Found {len(issues)} issue(s):")
+        for issue in issues[:10]:  # Show first 10 issues
+            click.echo(f"  - {issue}")
+        if len(issues) > 10:
+            click.echo(f"  ... and {len(issues) - 10} more")
+        sys.exit(1)
+    else:
+        click.echo("\n✅ All checks passed!")
