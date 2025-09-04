@@ -2459,7 +2459,6 @@ class FSCKResults:
     invalid_name_manifests: list[tuple[Path, str]] = field(default_factory=list)
     other_invalid_manifests: list[tuple[Path, str]] = field(default_factory=list)
     unreadable_manifests: list[tuple[Path, str]] = field(default_factory=list)
-    symlink_issues: list[tuple[Path, Path]] = field(default_factory=list)
     inprogress_files: list[FileWithAge] = field(default_factory=list)
     pending_backups: list[FileWithAge] = field(default_factory=list)
     pending_deletes: list[FileWithAge] = field(default_factory=list)
@@ -2480,7 +2479,6 @@ class FSCKResults:
         """Check if any issues were found."""
         return (
             self.total_invalid > 0
-            or len(self.symlink_issues) > 0
             or len(self.inprogress_files) > 0
             or len(self.pending_backups) > 0
             or len(self.pending_deletes) > 0
@@ -2543,10 +2541,8 @@ def check_inprogress_files(cefs_image_dir: Path, current_time: float) -> list[Fi
     return sorted(files, key=lambda x: x.age_seconds, reverse=True)
 
 
-def validate_single_manifest(
-    manifest_path: Path, mount_point: Path, filename_stem: str
-) -> tuple[bool, str | None, list[tuple[Path, Path]]]:
-    """Validate a single manifest file and its associated symlinks.
+def validate_single_manifest(manifest_path: Path, mount_point: Path, filename_stem: str) -> tuple[bool, str | None]:
+    """Validate a single manifest file.
 
     Args:
         manifest_path: Path to the manifest file
@@ -2554,30 +2550,27 @@ def validate_single_manifest(
         filename_stem: Stem of the image filename
 
     Returns:
-        Tuple of (is_valid, error_type, symlink_issues)
+        Tuple of (is_valid, error_type)
         where error_type is None if valid, or one of:
         - "missing": manifest file doesn't exist
         - "unreadable": file exists but can't be read
         - "old_format": uses deprecated 'target' field
         - "invalid_name": has invalid installable names
         - "other": other validation errors
-        symlink_issues is a list of (symlink_path, target_path) for broken symlinks
     """
-    symlink_issues: list[tuple[Path, Path]] = []
-
     if not manifest_path.exists():
-        return False, "missing", symlink_issues
+        return False, "missing"
 
     try:
         with manifest_path.open(encoding="utf-8") as f:
             manifest_dict = yaml.safe_load(f)
     except (OSError, yaml.YAMLError):
-        return False, "unreadable", symlink_issues
+        return False, "unreadable"
 
     contents = manifest_dict.get("contents", []) if manifest_dict else []
 
     if any("target" in content for content in contents):
-        return False, "old_format", symlink_issues
+        return False, "old_format"
 
     try:
         validate_manifest(manifest_dict)
@@ -2586,21 +2579,9 @@ def validate_single_manifest(
         error_type = (
             "invalid_name" if "invalid name" in error_msg or "entries with invalid name" in error_msg else "other"
         )
-        return False, error_type, symlink_issues
+        return False, error_type
 
-    for content in contents:
-        if "destination" not in content:
-            continue
-
-        dest_path = Path(content["destination"])
-        if not (dest_path.exists() and dest_path.is_symlink()):
-            continue
-
-        target = dest_path.readlink()
-        if str(mount_point) in str(target) and filename_stem in str(target) and not target.exists():
-            symlink_issues.append((dest_path, target))
-
-    return True, None, symlink_issues
+    return True, None
 
 
 def run_fsck_validation(
@@ -2621,11 +2602,10 @@ def run_fsck_validation(
     for filename_stem, image_path in state.all_cefs_images.items():
         results.total_images += 1
         manifest_path = image_path.with_suffix(".yaml")
-        is_valid, error_type, symlink_issues = validate_single_manifest(manifest_path, mount_point, filename_stem)
+        is_valid, error_type = validate_single_manifest(manifest_path, mount_point, filename_stem)
 
         if is_valid:
             results.valid_manifests += 1
-            results.symlink_issues.extend(symlink_issues)
         else:
             match error_type:
                 case "missing":

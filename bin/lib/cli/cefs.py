@@ -792,9 +792,6 @@ def display_verbose_fsck_logs(
                     click.echo(f"❌ Cannot read manifest: {manifest_path}: {error}")
                     break
 
-    for symlink_path, _target_path in results.symlink_issues:
-        click.echo(f"  ❌ Broken symlink: {symlink_path}")
-
     for file_with_age in results.inprogress_files:
         age_str = humanfriendly.format_timespan(file_with_age.age_seconds)
         click.echo(f"  Found .inprogress file: {file_with_age.path} (age: {age_str})")
@@ -844,7 +841,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
     click.echo(f"  Total images scanned: {results.total_images}")
     click.echo(f"  ✅ Valid manifests: {results.valid_manifests}")
     click.echo(f"  ❌ Invalid/problematic: {results.total_invalid}")
-    click.echo(f"  ⚠️  Broken symlinks: {len(results.symlink_issues)}")
     click.echo(f"  🔄 In-progress files: {len(results.inprogress_files)}")
     click.echo(f"  🗑️  Pending cleanup: {len(results.pending_backups) + len(results.pending_deletes)}")
 
@@ -916,17 +912,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
         if len(results.unreadable_manifests) > 3:
             click.echo(f"    ... and {len(results.unreadable_manifests) - 3} more")
 
-    if results.symlink_issues:
-        click.echo(
-            f"\n  Broken Symlinks ({len(results.symlink_issues)} symlink{'s' if len(results.symlink_issues) > 1 else ''}):"
-        )
-        click.echo("  These symlinks point to non-existent CEFS targets.")
-        for dest_path, target in results.symlink_issues[:3]:
-            click.echo(f"    • {dest_path}")
-            click.echo(f"      → {target} (does not exist)")
-        if len(results.symlink_issues) > 3:
-            click.echo(f"    ... and {len(results.symlink_issues) - 3} more")
-
     if results.inprogress_files:
         click.echo(
             f"\n  In-Progress Files ({len(results.inprogress_files)} file{'s' if len(results.inprogress_files) > 1 else ''}):"
@@ -969,11 +954,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
     if results.missing_manifests:
         click.echo("  • Images without manifests cannot be reconsolidated")
         click.echo("  • Consider identifying and removing obsolete images")
-
-    if results.symlink_issues:
-        click.echo("  • Broken symlinks indicate failed deployments or reconsolidation issues")
-        click.echo("  • To fix: Re-deploy affected compilers or remove broken symlinks")
-        click.echo("  • Check if CEFS mount is properly mounted at /cefs")
 
     if results.inprogress_files:
         click.echo("  • In-progress files indicate operations that didn't complete")
