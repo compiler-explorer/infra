@@ -18,6 +18,7 @@ from lib.ce_install import CliContext, cli
 from lib.cefs import (
     CEFSState,
     ConsolidationCandidate,
+    FileWithAge,
     FSCKResults,
     convert_to_cefs,
     delete_image_with_manifest,
@@ -798,27 +799,33 @@ def display_verbose_fsck_logs(
     for symlink_path, _target_path in results.symlink_issues:
         click.echo(f"  ❌ Broken symlink: {symlink_path}")
 
-    for file, age, _ in results.inprogress_files:
-        click.echo(f"  Found .inprogress file: {file} (age: {age})")
+    for file_with_age in results.inprogress_files:
+        age_str = humanfriendly.format_timespan(file_with_age.age_seconds)
+        click.echo(f"  Found .inprogress file: {file_with_age.path} (age: {age_str})")
 
-    for item, age, _ in results.pending_backups:
-        item_type = "symlink" if item.is_symlink() else "directory"
-        click.echo(f"  Found .bak {item_type}: {item} (age: {age})")
-    for item, age, _ in results.pending_deletes:
-        item_type = "symlink" if item.is_symlink() else "directory"
-        click.echo(f"  Found .DELETE_ME {item_type}: {item} (age: {age})")
+    for item_with_age in results.pending_backups:
+        item_type = "symlink" if item_with_age.path.is_symlink() else "directory"
+        age_str = humanfriendly.format_timespan(item_with_age.age_seconds)
+        click.echo(f"  Found .bak {item_type}: {item_with_age.path} (age: {age_str})")
+    for item_with_age in results.pending_deletes:
+        item_type = "symlink" if item_with_age.path.is_symlink() else "directory"
+        age_str = humanfriendly.format_timespan(item_with_age.age_seconds)
+        click.echo(f"  Found .DELETE_ME {item_type}: {item_with_age.path} (age: {age_str})")
 
 
-def format_cleanup_item(item: tuple | Path) -> str:
+def format_cleanup_item(item: FileWithAge | tuple | Path) -> str:
     """Format a cleanup item for display.
 
     Args:
-        item: Either a tuple (path, age_str, age_hours) or a Path
+        item: Either a FileWithAge, tuple (path, age_str, age_hours), or a Path
 
     Returns:
         Formatted string for display
     """
-    if isinstance(item, tuple):
+    if isinstance(item, FileWithAge):
+        age_str = humanfriendly.format_timespan(item.age_seconds)
+        return f"    • {item.path} (age: {age_str})"
+    elif isinstance(item, tuple):
         path, age_str, _ = item
         return f"    • {path} (age: {age_str})"
     return f"    • {item}"
@@ -929,8 +936,9 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
             f"\n  In-Progress Files ({len(results.inprogress_files)} file{'s' if len(results.inprogress_files) > 1 else ''}):"
         )
         click.echo("  These .inprogress files indicate incomplete operations.")
-        for file, age, _ in results.inprogress_files[:3]:
-            click.echo(f"    • {file} (age: {age})")
+        for file_with_age in results.inprogress_files[:3]:
+            age_str = humanfriendly.format_timespan(file_with_age.age_seconds)
+            click.echo(f"    • {file_with_age.path} (age: {age_str})")
         if len(results.inprogress_files) > 3:
             click.echo(f"    ... and {len(results.inprogress_files) - 3} more")
 

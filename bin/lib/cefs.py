@@ -15,7 +15,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import humanfriendly
 import yaml
@@ -34,6 +34,16 @@ from .config import SquashfsConfig
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
 _LOGGER = logging.getLogger(__name__)
+
+# Constants for NFS performance tuning
+NFS_MAX_RECURSION_DEPTH = 3  # Limit depth when recursing on NFS to avoid performance issues
+
+
+class FileWithAge(NamedTuple):
+    """File path with age information."""
+
+    path: Path
+    age_seconds: float
 
 
 @dataclass(frozen=True)
@@ -2450,9 +2460,9 @@ class FSCKResults:
     other_invalid_manifests: list[tuple[Path, str]] = field(default_factory=list)
     unreadable_manifests: list[tuple[Path, str]] = field(default_factory=list)
     symlink_issues: list[tuple[Path, Path]] = field(default_factory=list)
-    inprogress_files: list[tuple[Path, str, float]] = field(default_factory=list)
-    pending_backups: list[tuple[Path, str, float]] = field(default_factory=list)
-    pending_deletes: list[tuple[Path, str, float]] = field(default_factory=list)
+    inprogress_files: list[FileWithAge] = field(default_factory=list)
+    pending_backups: list[FileWithAge] = field(default_factory=list)
+    pending_deletes: list[FileWithAge] = field(default_factory=list)
 
     @property
     def total_invalid(self) -> int:
@@ -2477,86 +2487,60 @@ class FSCKResults:
         )
 
 
-def check_inprogress_files(cefs_image_dir: Path) -> list[tuple[Path, str, float]]:
-    """Check for in-progress files that indicate incomplete operations.
+def find_files_by_pattern(
+    base_dir: Path,
+    pattern: str,
+    current_time: float,
+    max_depth: int | None = None,
+) -> list[FileWithAge]:
+    """Find files matching pattern and return with age.
+
+    Args:
+        base_dir: Directory to search
+        pattern: Glob pattern (e.g., "*.bak")
+        current_time: Current time for age calculation
+        max_depth: Maximum directory depth (None for unlimited)
+
+    Returns:
+        List of FileWithAge tuples
+    """
+    # Build list of glob patterns based on max_depth
+    if max_depth is None:
+        patterns = [f"**/{pattern}"]
+    else:
+        patterns = [
+            pattern if depth == 0 else "/".join(["*"] * depth) + "/" + pattern for depth in range(max_depth + 1)
+        ]
+
+    # Single loop to process all patterns
+    results = []
+    for glob_pattern in patterns:
+        for path in base_dir.glob(glob_pattern):
+            try:
+                # Use lstat to get the modification time of the item itself (not following symlinks)
+                mtime = path.lstat().st_mtime
+                results.append(FileWithAge(path, current_time - mtime))
+            except OSError:
+                # File disappeared or permission denied - skip silently
+                continue
+
+    return results
+
+
+def check_inprogress_files(cefs_image_dir: Path, current_time: float) -> list[FileWithAge]:
+    """Check for yaml.inprogress files only (no sqfs checks).
 
     Args:
         cefs_image_dir: Path to CEFS images directory
+        current_time: Current time for age calculation
 
     Returns:
-        List of (inprogress_file, age_str, age_seconds) sorted by age (oldest first)
+        List of FileWithAge tuples sorted by age (oldest first)
     """
-
-    yaml_inprogress: list[tuple[Path, str, float]] = []
-    sqfs_inprogress: list[tuple[Path, str, float]] = []
-    current_time = time.time()
-
-    # Recursively find all .inprogress files
-    for inprogress_file in cefs_image_dir.glob("**/*.inprogress"):
-        # Get file age
-        try:
-            mtime = inprogress_file.stat().st_mtime
-            age_seconds = current_time - mtime
-            age_str = humanfriendly.format_timespan(age_seconds)
-
-            if inprogress_file.suffix == ".inprogress" and ".yaml" in str(inprogress_file):
-                yaml_inprogress.append((inprogress_file, age_str, age_seconds))
-            elif inprogress_file.suffix == ".inprogress" and ".sqfs" in str(inprogress_file):
-                sqfs_inprogress.append((inprogress_file, age_str, age_seconds))
-        except OSError:
-            pass  # Skip files we can't stat
-
-    # Combine both types of inprogress files
-    all_inprogress = yaml_inprogress + sqfs_inprogress
+    # CEFS dir uses unlimited depth (it's local, not NFS)
+    files = find_files_by_pattern(cefs_image_dir, "*.yaml.inprogress", current_time, max_depth=None)
     # Sort by age (oldest first)
-    all_inprogress.sort(key=lambda x: x[2], reverse=True)  # Sort by age_seconds descending
-
-    return all_inprogress
-
-
-def check_pending_cleanup(
-    nfs_dir: Path, cefs_image_dir: Path
-) -> tuple[list[tuple[Path, str, float]], list[tuple[Path, str, float]]]:
-    """Check for pending cleanup tasks (.bak and .DELETE_ME directories).
-
-    Args:
-        nfs_dir: NFS directory to check for cleanup tasks
-        cefs_image_dir: CEFS images directory
-
-    Returns:
-        Tuple of (bak_dirs, delete_me_dirs) where each item is (path, age_str, age_seconds)
-    """
-
-    bak_dirs: list[tuple[Path, str, float]] = []
-    delete_me_dirs: list[tuple[Path, str, float]] = []
-    current_time = time.time()
-
-    # Check for .bak items (can be directories or symlinks)
-    for bak_item in nfs_dir.glob("*.bak"):
-        try:
-            # Use lstat to get the modification time of the item itself (not following symlinks)
-            stat_info = bak_item.lstat()
-            mtime = stat_info.st_mtime
-            age_seconds = current_time - mtime
-            age_str = humanfriendly.format_timespan(age_seconds)
-            bak_dirs.append((bak_item, age_str, age_seconds))
-        except OSError:
-            pass
-
-    # Check for .DELETE_ME items in both locations (can be directories or symlinks)
-    for base_dir in [nfs_dir, cefs_image_dir]:
-        for delete_item in base_dir.glob("*.DELETE_ME_*"):
-            try:
-                # Use lstat to get the modification time of the item itself (not following symlinks)
-                stat_info = delete_item.lstat()
-                mtime = stat_info.st_mtime
-                age_seconds = current_time - mtime
-                age_str = humanfriendly.format_timespan(age_seconds)
-                delete_me_dirs.append((delete_item, age_str, age_seconds))
-            except OSError:
-                pass
-
-    return bak_dirs, delete_me_dirs
+    return sorted(files, key=lambda x: x.age_seconds, reverse=True)
 
 
 def validate_single_manifest(
@@ -2687,10 +2671,18 @@ def run_fsck_validation(
             elif error_type == "unreadable":
                 results.unreadable_manifests.append((manifest_path, "Cannot read manifest file"))
 
-    # Check for in-progress files
-    results.inprogress_files = check_inprogress_files(state.cefs_image_dir)
+    # Get current time once for consistency
+    current_time = time.time()
 
-    # Check for pending cleanup
-    results.pending_backups, results.pending_deletes = check_pending_cleanup(state.nfs_dir, state.cefs_image_dir)
+    # Check for in-progress files
+    results.inprogress_files = check_inprogress_files(state.cefs_image_dir, current_time)
+
+    # Check for pending cleanup (inlined since it's just two calls)
+    results.pending_backups = find_files_by_pattern(
+        state.nfs_dir, "*.bak", current_time, max_depth=NFS_MAX_RECURSION_DEPTH
+    )
+    results.pending_deletes = find_files_by_pattern(
+        state.nfs_dir, "*.DELETE_ME_*", current_time, max_depth=NFS_MAX_RECURSION_DEPTH
+    )
 
     return results
