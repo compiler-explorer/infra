@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """CEFS manifest creation and management utilities."""
 
+from __future__ import annotations
+
 import datetime
 import logging
 import subprocess
@@ -10,8 +12,68 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 _LOGGER = logging.getLogger(__name__)
+
+
+class ManifestContentEntry(BaseModel):
+    """Represents a single entry in the manifest contents list."""
+
+    name: str = Field(..., description="Full installable name (e.g., 'compilers/c++/x86/gcc 12.4.0')")
+    destination: str = Field(..., description="NFS destination path")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name_format(cls, v: str) -> str:
+        """Validate that name looks like a proper installable name."""
+        if not v or v.isspace():
+            raise ValueError("Name cannot be empty")
+
+        # Must have exactly one space (separating name from version)
+        if v.count(" ") != 1:
+            raise ValueError(f"Invalid installable name '{v}': must have exactly one space between name and version")
+
+        # Must have path structure (at least one /)
+        if "/" not in v:
+            raise ValueError(
+                f"Invalid installable name '{v}': must have path structure like 'compilers/c++/x86/gcc 12.4.0'"
+            )
+
+        return v
+
+    model_config = ConfigDict(extra="forbid")  # Reject unknown fields like 'target'
+
+
+class CEFSManifest(BaseModel):
+    """Represents a complete CEFS manifest."""
+
+    version: int = Field(..., description="Manifest version")
+    created_at: str = Field(..., description="ISO format creation timestamp")
+    git_sha: str = Field(..., description="Git SHA of the code that created this")
+    command: list[str] = Field(..., description="Command that created this image")
+    description: str = Field(..., description="Human-readable description")
+    operation: str = Field(..., description="Operation type: install, convert, or consolidate")
+    contents: list[ManifestContentEntry] = Field(..., description="List of contents in this image")
+
+    @field_validator("version")
+    @classmethod
+    def validate_version(cls, v: int) -> int:
+        """Validate manifest version."""
+        if v != 1:
+            raise ValueError(f"Unsupported manifest version: {v}")
+        return v
+
+    @field_validator("operation")
+    @classmethod
+    def validate_operation(cls, v: str) -> str:
+        """Validate operation type."""
+        valid_operations = {"install", "convert", "consolidate"}
+        if v not in valid_operations:
+            raise ValueError(f"Invalid operation '{v}': must be one of {valid_operations}")
+        return v
+
+    model_config = ConfigDict(extra="forbid")  # Reject unknown fields
 
 
 @lru_cache(maxsize=1)
@@ -41,6 +103,74 @@ def get_git_sha() -> str:
     except (subprocess.TimeoutExpired, OSError) as e:
         _LOGGER.warning("Failed to get git SHA: %s", e)
         return "unknown"
+
+
+def simplify_validation_error(error: ValidationError) -> str:
+    """Extract a simplified, human-readable message from a Pydantic ValidationError.
+
+    Args:
+        error: The ValidationError to simplify
+
+    Returns:
+        A concise summary of the validation issues
+
+    Examples:
+        >>> simplify_validation_error(error)
+        "21 invalid names ('gcc'), 1 invalid name ('zig')"
+    """
+    error_counts: dict[str, int] = {}
+    invalid_names: dict[str, int] = {}
+    field_errors: list[str] = []
+
+    for err in error.errors():
+        # Check for invalid name errors
+        if "name" in err.get("loc", []) and "Invalid installable name" in err.get("msg", ""):
+            # Extract the invalid name from the input value
+            invalid_value = err.get("input", "")
+            if invalid_value:
+                invalid_names[invalid_value] = invalid_names.get(invalid_value, 0) + 1
+        # Check for missing required fields
+        elif err.get("type") == "missing":
+            field = ".".join(str(x) for x in err.get("loc", []))
+            field_errors.append(f"missing {field}")
+        # Check for extra/forbidden fields
+        elif err.get("type") == "extra_forbidden":
+            field = ".".join(str(x) for x in err.get("loc", []))
+            field_errors.append(f"unexpected field '{field}'")
+        else:
+            # Generic error counting
+            error_type = err.get("type", "unknown")
+            error_counts[error_type] = error_counts.get(error_type, 0) + 1
+
+    # Build summary message
+    parts = []
+
+    # Add invalid name summary
+    if invalid_names:
+        name_parts = []
+        for name, count in invalid_names.items():
+            if count > 1:
+                name_parts.append(f"{count} entries with invalid name '{name}'")
+            else:
+                name_parts.append(f"invalid name '{name}'")
+        parts.append(", ".join(name_parts))
+
+    # Add field errors
+    if field_errors:
+        # Limit to first 3 field errors to avoid verbosity
+        if len(field_errors) > 3:
+            parts.append(
+                f"{field_errors[0]}, {field_errors[1]}, {field_errors[2]} and {len(field_errors) - 3} more field errors"
+            )
+        else:
+            parts.append(", ".join(field_errors))
+
+    # Add generic error counts if no specific errors captured
+    if not parts and error_counts:
+        for error_type, count in error_counts.items():
+            parts.append(f"{count} {error_type} error(s)")
+
+    return "; ".join(parts) if parts else f"{len(error.errors())} validation error(s)"
 
 
 def sanitize_path_for_filename(path: Path) -> str:
@@ -192,6 +322,28 @@ def finalize_manifest(image_path: Path) -> None:
     inprogress_path.rename(final_path)
 
 
+def validate_manifest(manifest_dict: dict[str, Any]) -> CEFSManifest:
+    """Validate a manifest dictionary against the Pydantic model.
+
+    Args:
+        manifest_dict: Raw manifest dictionary
+
+    Returns:
+        Validated CEFSManifest object
+
+    Raises:
+        ValueError: If manifest is invalid
+    """
+    try:
+        return CEFSManifest(**manifest_dict)
+    except ValidationError as e:
+        # Use simplified error message for ValueError
+        simplified = simplify_validation_error(e)
+        raise ValueError(f"Invalid manifest: {simplified}") from e
+    except Exception as e:
+        raise ValueError(f"Invalid manifest: {e}") from e
+
+
 def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
     """Read manifest from the .yaml file alongside a CEFS image.
 
@@ -208,7 +360,14 @@ def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
 
     try:
         with open(manifest_path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            manifest_dict = yaml.safe_load(f)
+
+        # Validate the manifest
+        validate_manifest(manifest_dict)
+        return manifest_dict
+    except ValueError as e:
+        _LOGGER.error("Invalid manifest in %s: %s", manifest_path, e)
+        raise
     except OSError as e:
         _LOGGER.error("Failed to read manifest file %s: %s", manifest_path, e)
         raise

@@ -63,6 +63,32 @@ from pytest import approx
 # CEFS Consolidation Tests
 
 
+def make_test_manifest(
+    contents=None,
+    operation="install",
+    description="Test manifest",
+    version=1,
+    created_at="2025-01-01T00:00:00Z",
+    git_sha="test_sha",
+    command=None,
+):
+    """Helper to create a valid manifest for tests with sensible defaults."""
+    if command is None:
+        command = ["test"]
+    if contents is None:
+        contents = []
+
+    return {
+        "version": version,
+        "operation": operation,
+        "description": description,
+        "created_at": created_at,
+        "git_sha": git_sha,
+        "command": command,
+        "contents": contents,
+    }
+
+
 def test_has_enough_space():
     # Test with enough space
     assert has_enough_space(1000 * 1024 * 1024, 500 * 1024 * 1024) is True  # 1000MB available, 500MB required
@@ -526,13 +552,20 @@ def test_scan_with_inprogress_files(tmp_path):
     regular_image = subdir / "abc123_test.sqfs"
     regular_image.touch()
     regular_manifest = subdir / "abc123_test.yaml"
-    regular_manifest.write_text(yaml.dump({"contents": [{"name": "test", "destination": str(nfs_dir / "test")}]}))
+    regular_manifest.write_text(
+        yaml.dump(make_test_manifest(contents=[{"name": "tools/test 1.0.0", "destination": str(nfs_dir / "test")}]))
+    )
 
     inprogress_image = subdir / "def456_test.sqfs"
     inprogress_image.touch()
     inprogress_manifest = subdir / "def456_test.yaml.inprogress"
     inprogress_manifest.write_text(
-        yaml.dump({"contents": [{"name": "inprog", "destination": str(nfs_dir / "inprog")}]})
+        yaml.dump(
+            make_test_manifest(
+                contents=[{"name": "tools/inprog 1.0.0", "destination": str(nfs_dir / "inprog")}],
+                description="In progress manifest",
+            )
+        )
     )
 
     state = CEFSState(nfs_dir, cefs_dir, Path("/cefs"))
@@ -554,7 +587,7 @@ def test_write_and_finalize_manifest(tmp_path):
     image_path = tmp_path / "test.sqfs"
     image_path.touch()
 
-    manifest = {"version": 1, "operation": "test", "contents": []}
+    manifest = make_test_manifest()
 
     # Write in-progress manifest
     write_manifest_inprogress(manifest, image_path)
@@ -589,7 +622,7 @@ def test_deploy_to_cefs_transactional_success(tmp_path):
     subdir.mkdir()
     target_path = subdir / "abc123.sqfs"
 
-    manifest = {"version": 1, "operation": "test", "contents": []}
+    manifest = make_test_manifest()
 
     # Deploy with successful transaction
     with deploy_to_cefs_transactional(source_path, target_path, manifest, dry_run=False):
@@ -620,7 +653,7 @@ def test_deploy_to_cefs_transactional_failure(tmp_path):
     subdir.mkdir()
     target_path = subdir / "abc123.sqfs"
 
-    manifest = {"version": 1, "operation": "test", "contents": []}
+    manifest = make_test_manifest()
 
     # Deploy with failing transaction
     try:
@@ -653,7 +686,7 @@ def test_deploy_to_cefs_transactional_dry_run(tmp_path):
     subdir.mkdir()
     target_path = subdir / "abc123.sqfs"
 
-    manifest = {"version": 1, "operation": "test", "contents": []}
+    manifest = make_test_manifest()
 
     # Deploy in dry-run mode
     with deploy_to_cefs_transactional(source_path, target_path, manifest, dry_run=True):
@@ -794,7 +827,7 @@ def test_write_and_read_manifest_alongside_image(tmp_path):
     # Create dummy image file
     image_path.touch()
 
-    manifest = {"version": 1, "operation": "test", "description": "Test manifest", "contents": []}
+    manifest = make_test_manifest()
 
     # Write manifest alongside
     write_manifest_alongside_image(manifest, image_path)
@@ -820,25 +853,24 @@ def test_is_consolidated_image(tmp_path):
     # Test with manifest containing multiple contents
     multi_content_path = tmp_path / "def456_something.sqfs"
     multi_content_path.touch()
-    manifest = {
-        "version": 1,
-        "contents": [
-            {"name": "gcc", "destination": "/opt/gcc"},
-            {"name": "clang", "destination": "/opt/clang"},
+    manifest = make_test_manifest(
+        operation="consolidate",
+        description="Test consolidated image",
+        contents=[
+            {"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"},
+            {"name": "compilers/c++/x86/clang 15.0.0", "destination": "/opt/clang"},
         ],
-    }
+    )
     write_manifest_alongside_image(manifest, multi_content_path)
     assert is_consolidated_image(multi_content_path) is True
 
     # Test with manifest containing single content
     single_content_path = tmp_path / "ghi789_single.sqfs"
     single_content_path.touch()
-    manifest = {
-        "version": 1,
-        "contents": [
-            {"name": "gcc", "destination": "/opt/gcc"},
-        ],
-    }
+    manifest = make_test_manifest(
+        contents=[{"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"}],
+        description="Test single content",
+    )
     write_manifest_alongside_image(manifest, single_content_path)
     assert is_consolidated_image(single_content_path) is False
 
@@ -899,14 +931,14 @@ def test_calculate_image_usage(tmp_path):
     # Create symlink pointing to this image
     gcc_full_path.symlink_to(mount_point / "ab" / "abc123_gcc")
 
-    usage = calculate_image_usage(individual_image, image_references, nfs_dir, mount_point)
+    usage = calculate_image_usage(individual_image, image_references, mount_point)
     assert usage == 100.0
 
     # Test individual image without reference (symlink points elsewhere)
     gcc_full_path.unlink()
     gcc_full_path.symlink_to(mount_point / "de" / "def456_gcc")
 
-    usage = calculate_image_usage(individual_image, image_references, nfs_dir, mount_point)
+    usage = calculate_image_usage(individual_image, image_references, mount_point)
     assert usage == 0.0
 
     # Test consolidated image with partial usage
@@ -930,7 +962,7 @@ def test_calculate_image_usage(tmp_path):
         tool3_path,
     ]
 
-    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir, mount_point)
+    usage = calculate_image_usage(consolidated_image, image_references, mount_point)
     assert pytest.approx(usage, 0.1) == 66.7  # 2/3 = 66.7%
 
 
@@ -970,7 +1002,9 @@ def test_double_check_prevents_deletion_race(tmp_path):
 
     # Create manifest indicating where symlink should be
     manifest_path = image_path.with_suffix(".yaml")
-    manifest_content = {"contents": [{"name": "test-compiler", "destination": str(nfs_dir / "test-compiler")}]}
+    manifest_content = make_test_manifest(
+        contents=[{"name": "compilers/test/compiler 1.0.0", "destination": str(nfs_dir / "test-compiler")}]
+    )
     manifest_path.write_text(yaml.dump(manifest_content))
 
     # Create state and do initial scan
@@ -1006,7 +1040,9 @@ def test_bak_symlink_protection(tmp_path):
 
     # Create manifest
     manifest_path = image_path.with_suffix(".yaml")
-    manifest_content = {"contents": [{"name": "rollback-compiler", "destination": str(nfs_dir / "rollback-compiler")}]}
+    manifest_content = make_test_manifest(
+        contents=[{"name": "compilers/test/rollback 1.0.0", "destination": str(nfs_dir / "rollback-compiler")}]
+    )
     manifest_path.write_text(yaml.dump(manifest_content))
 
     # Create only .bak symlink (main symlink is missing/broken)
@@ -1066,9 +1102,9 @@ def test_age_filtering_logic(tmp_path):
 
         # Create manifest so image is valid
         manifest_path = image_path.with_suffix(".yaml")
-        manifest_content = {
-            "contents": [{"name": f"test-{hash_val}", "destination": str(nfs_dir / f"test-{hash_val}")}]
-        }
+        manifest_content = make_test_manifest(
+            contents=[{"name": f"tools/test/{hash_val} 1.0.0", "destination": str(nfs_dir / f"test-{hash_val}")}]
+        )
         manifest_path.write_text(yaml.dump(manifest_content))
 
         # Set modification time
@@ -1203,7 +1239,7 @@ def test_calculate_image_usage_with_absolute_paths(tmp_path):
     # Test with our fake paths instead of real /opt/compiler-explorer
     test_references = {"0d163f7f3ee984e50fd7d14f_consolidated": [fake_nfs / "gcc-15.1.0", fake_nfs / "wasmtime-20.0.1"]}
 
-    usage = calculate_image_usage(image_path, test_references, fake_nfs, test_mount)
+    usage = calculate_image_usage(image_path, test_references, test_mount)
     assert usage == 100.0, f"Expected 100% usage, got {usage}%"
 
 
@@ -1222,7 +1258,9 @@ def test_concurrent_gc_safety(tmp_path):
 
     # Create manifest so image is valid
     manifest_path = image_path.with_suffix(".yaml")
-    manifest_content = {"contents": [{"name": "test-compiler", "destination": str(nfs_dir / "test-compiler")}]}
+    manifest_content = make_test_manifest(
+        contents=[{"name": "compilers/test/compiler 1.0.0", "destination": str(nfs_dir / "test-compiler")}]
+    )
     manifest_path.write_text(yaml.dump(manifest_content))
 
     # Create two independent state objects (simulating concurrent GC runs)
@@ -1286,12 +1324,12 @@ def test_create_candidate_from_entry(tmp_path):
     extraction_path = Path("subdir")
 
     # Test with absolute path
-    content = {"name": "gcc-15.1.0", "destination": "/opt/compiler-explorer/gcc-15.1.0"}
+    content = {"name": "compilers/c++/x86/gcc 15.1.0", "destination": "/opt/compiler-explorer/gcc-15.1.0"}
     dest_path = Path(content["destination"])
 
     candidate = create_candidate_from_entry(content, dest_path, image_path, extraction_path, state, 1000)
 
-    assert candidate.name == "gcc-15.1.0"
+    assert candidate.name == "compilers/c++/x86/gcc 15.1.0"
     assert candidate.nfs_path == Path("/opt/compiler-explorer/gcc-15.1.0")
     assert candidate.squashfs_path == image_path
     assert candidate.extraction_path == extraction_path
@@ -1299,12 +1337,12 @@ def test_create_candidate_from_entry(tmp_path):
     assert candidate.from_reconsolidation is True
 
     # Test with relative path - should resolve relative to nfs_dir
-    content = {"name": "clang-19", "destination": "clang-19"}
+    content = {"name": "compilers/c++/x86/clang 19.0.0", "destination": "clang-19"}
     dest_path = Path(content["destination"])
 
     candidate = create_candidate_from_entry(content, dest_path, image_path, extraction_path, state, 2000)
 
-    assert candidate.name == "clang-19"
+    assert candidate.name == "compilers/c++/x86/clang 19.0.0"
     assert candidate.nfs_path == nfs_dir / "clang-19"
     assert candidate.size == 2000
 
@@ -1347,7 +1385,7 @@ def test_should_include_manifest_item(tmp_path):
     dest.symlink_to(cefs_target)
 
     # Valid entry that references the image
-    content = {"name": "gcc-15.1.0", "destination": str(dest)}
+    content = {"name": "compilers/c++/x86/gcc 15.1.0", "destination": str(dest)}
 
     should_include, targets = should_include_manifest_item(content, image_path, mount_point, [])
     # This checks if the symlink target contains the image stem in the right position
@@ -1449,7 +1487,13 @@ def test_full_gc_workflow_integration(tmp_path):
     ref_image.write_bytes(b"referenced content")
 
     ref_manifest = ref_image.with_suffix(".yaml")
-    ref_manifest.write_text(yaml.dump({"contents": [{"name": "gcc-11", "destination": str(nfs_dir / "gcc-11")}]}))
+    ref_manifest.write_text(
+        yaml.dump(
+            make_test_manifest(
+                contents=[{"name": "compilers/c++/x86/gcc 11.0.0", "destination": str(nfs_dir / "gcc-11")}]
+            )
+        )
+    )
 
     # Create the symlink
     (nfs_dir / "gcc-11").symlink_to(f"/cefs/{ref_hash[:2]}/{ref_hash}")
@@ -1463,7 +1507,11 @@ def test_full_gc_workflow_integration(tmp_path):
 
     unref_manifest = unref_image.with_suffix(".yaml")
     unref_manifest.write_text(
-        yaml.dump({"contents": [{"name": "old-compiler", "destination": str(nfs_dir / "old-compiler")}]})
+        yaml.dump(
+            make_test_manifest(
+                contents=[{"name": "compilers/test/old 1.0.0", "destination": str(nfs_dir / "old-compiler")}]
+            )
+        )
     )
     # No symlink created - this should be GC'd
 
@@ -1487,7 +1535,11 @@ def test_full_gc_workflow_integration(tmp_path):
 
     bak_manifest = bak_image.with_suffix(".yaml")
     bak_manifest.write_text(
-        yaml.dump({"contents": [{"name": "backup-gcc", "destination": str(nfs_dir / "backup-gcc")}]})
+        yaml.dump(
+            make_test_manifest(
+                contents=[{"name": "compilers/c++/x86/gcc 10.0.0", "destination": str(nfs_dir / "backup-gcc")}]
+            )
+        )
     )
 
     # Create only .bak symlink
@@ -1584,18 +1636,23 @@ def test_get_image_description_from_manifest(tmp_path):
 
     # Test with valid manifest
     manifest_path.write_text(
-        yaml.dump({
-            "contents": [
-                {"name": "gcc-11", "destination": "/opt/gcc-11"},
-                {"name": "boost-1.75", "destination": "/opt/boost"},
-            ]
-        })
+        yaml.dump(
+            make_test_manifest(
+                contents=[
+                    {"name": "compilers/c++/x86/gcc 11.0.0", "destination": "/opt/gcc-11"},
+                    {"name": "libraries/c++/boost 1.75.0", "destination": "/opt/boost"},
+                ]
+            )
+        )
     )
 
-    assert get_image_description_from_manifest(image_path) == ["gcc-11", "boost-1.75"]
+    assert get_image_description_from_manifest(image_path) == [
+        "compilers/c++/x86/gcc 11.0.0",
+        "libraries/c++/boost 1.75.0",
+    ]
 
     # Test with empty contents
-    manifest_path.write_text(yaml.dump({"contents": []}))
+    manifest_path.write_text(yaml.dump(make_test_manifest(contents=[])))
     assert get_image_description_from_manifest(image_path) is None
 
     # Test with missing manifest
@@ -1671,8 +1728,10 @@ def test_get_image_description_integration(tmp_path):
     cefs_mount = Path("/fake/cefs")  # Won't be used if manifest exists
 
     # Test with manifest
-    manifest_path.write_text(yaml.dump({"contents": [{"name": "gcc-11", "destination": "/opt/gcc-11"}]}))
-    assert get_image_description(image_path, cefs_mount) == ["gcc-11"]
+    manifest_path.write_text(
+        yaml.dump(make_test_manifest(contents=[{"name": "compilers/c++/x86/gcc 11.0.0", "destination": "/opt/gcc-11"}]))
+    )
+    assert get_image_description(image_path, cefs_mount) == ["compilers/c++/x86/gcc 11.0.0"]
 
     # Test without manifest (will try to mount, which will fail)
     manifest_path.unlink()
@@ -1779,7 +1838,7 @@ def test_calculate_consolidated_image_usage(tmp_path):
     }
 
     # Calculate usage
-    usage = calculate_image_usage(consolidated_image, image_references, nfs_dir, test_mount)
+    usage = calculate_image_usage(consolidated_image, image_references, test_mount)
 
     # Should be 100% since both items are still referenced
     assert usage == 100.0, f"Expected 100% usage, got {usage}%"
@@ -1849,6 +1908,65 @@ def test_should_reconsolidate_image():
     assert not reason
 
 
+def test_reconsolidation_symlink_mapping():
+    """Test that reconsolidated items get correct symlink mappings.
+
+    This test reproduces the critical bug where reconsolidated items
+    have their symlinks pointing to the wrong directory level.
+    """
+    mount_point = Path("/cefs")
+
+    # Simulate reconsolidation candidates from an old consolidated image
+    # These would come from an image with structure like:
+    # old_consolidated.sqfs/gcc/compilers_c++_x86_gcc_12.3.0/
+    candidates = [
+        ConsolidationCandidate(
+            name="compilers/c++/x86/gcc 12.3.0",
+            nfs_path=Path("/opt/compiler-explorer/gcc-12.3.0"),
+            squashfs_path=Path("/efs/cefs-images/f2/f2934b9a_consolidated.sqfs"),
+            size=100 * 1024 * 1024,
+            extraction_path=Path("gcc/compilers_c++_x86_gcc_12.3.0"),
+            from_reconsolidation=True,
+        ),
+        ConsolidationCandidate(
+            name="compilers/c++/x86/gcc 12.4.0",
+            nfs_path=Path("/opt/compiler-explorer/gcc-12.4.0"),
+            squashfs_path=Path("/efs/cefs-images/f2/f2934b9a_consolidated.sqfs"),
+            size=100 * 1024 * 1024,
+            extraction_path=Path("gcc/compilers_c++_x86_gcc_12.4.0"),
+            from_reconsolidation=True,
+        ),
+    ]
+
+    # Process consolidation items
+    items, subdir_mapping = prepare_consolidation_items(candidates, mount_point)
+
+    # The bug: subdir_mapping incorrectly maps to just "gcc" instead of the full path
+    # This assertion should FAIL with the current buggy code
+    for candidate in candidates:
+        mapped_subdir = subdir_mapping[candidate.nfs_path]
+
+        # The mapping should preserve the structure for proper symlink targeting
+        # For an extraction_path of "gcc/compilers_c++_x86_gcc_12.3.0",
+        # the symlink needs to point to the full path within the consolidated image
+        if candidate.extraction_path != Path("."):
+            # For reconsolidated items with nested paths, we need special handling
+            # The mapped subdir should indicate where the symlink should point
+            expected_name = sanitize_path_for_filename(Path(candidate.name))
+
+            # Current buggy behavior: mapped_subdir might be just "gcc"
+            # Correct behavior: should be something that results in the symlink
+            # pointing to the right subdirectory
+
+            # This assertion captures what SHOULD happen
+            # With the bug, this will fail because mapped_subdir is just "gcc"
+            assert mapped_subdir == expected_name, (
+                f"Subdir mapping incorrect for {candidate.nfs_path}: "
+                f"got '{mapped_subdir}', expected '{expected_name}' "
+                f"(extraction_path: {candidate.extraction_path})"
+            )
+
+
 def test_group_images_by_usage():
     """Test group_images_by_usage function."""
     test_data = [
@@ -1911,20 +2029,20 @@ def test_get_consolidated_item_status():
     assert not status
 
     # Test when current target matches image
-    content = {"dest_path": "/opt/compiler-explorer/gcc-15.0.0", "name": "gcc-15.0.0"}
+    content = {"dest_path": "/opt/compiler-explorer/gcc-15.0.0", "name": "compilers/c++/x86/gcc 15.0.0"}
     current_target = Path("/cefs/ab/abc123/gcc-15.0.0")
     status = get_consolidated_item_status(content, image_path, current_target, mount_point)
-    assert "✓ gcc-15.0.0" in status
+    assert "✓ compilers/c++/x86/gcc 15.0.0" in status
 
     # Test when current target is different
     current_target = Path("/cefs/de/def456/gcc-15.0.0")
     status = get_consolidated_item_status(content, image_path, current_target, mount_point)
-    assert "✗ gcc-15.0.0" in status
+    assert "✗ compilers/c++/x86/gcc 15.0.0" in status
     assert "de/def456/gcc-15.0.0" in status
 
     # Test when no current target (missing)
     status = get_consolidated_item_status(content, image_path, None, mount_point)
-    assert "✗ gcc-15.0.0" in status
+    assert "✗ compilers/c++/x86/gcc 15.0.0" in status
     assert "not in CEFS" in status
 
 
@@ -2006,28 +2124,23 @@ def test_extract_candidates_from_manifest(tmp_path):
     state = CEFSState(nfs_dir, Path("/efs/cefs-images"), mount_point)
 
     # Create test manifest
-    manifest = {
-        "contents": [
+    manifest = make_test_manifest(
+        operation="consolidate",
+        contents=[
             {
-                "size": 100 * 1024 * 1024,  # 100MB
                 "destination": str(nfs_dir / "gcc-15.0.0"),
-                "name": "gcc-15.0.0",
-                "source_path": "gcc-15.0.0",
+                "name": "compilers/c++/x86/gcc 15.0.0",
             },
             {
-                "size": 50 * 1024 * 1024,  # 50MB
                 "destination": str(nfs_dir / "clang-18.0.0"),
-                "name": "clang-18.0.0",
-                "source_path": "clang-18.0.0",
+                "name": "compilers/c++/x86/clang 18.0.0",
             },
             {
-                "size": 200 * 1024 * 1024,  # 200MB
                 "destination": str(nfs_dir / "rust-1.80.0"),
-                "name": "rust-1.80.0",
-                "source_path": "rust-1.80.0",
+                "name": "compilers/rust/rust 1.80.0",
             },
-        ]
-    }
+        ],
+    )
 
     # Create symlinks for testing
     gcc_link = nfs_dir / "gcc-15.0.0"
@@ -2045,14 +2158,14 @@ def test_extract_candidates_from_manifest(tmp_path):
     # Should have 2 candidates (gcc and rust still pointing to abc123)
     assert len(candidates) == 2
     candidate_names = {c.name for c in candidates}
-    assert "gcc-15.0.0" in candidate_names
-    assert "rust-1.80.0" in candidate_names
-    assert "clang-18.0.0" not in candidate_names  # Points to different image
+    assert "compilers/c++/x86/gcc 15.0.0" in candidate_names
+    assert "compilers/rust/rust 1.80.0" in candidate_names
+    assert "compilers/c++/x86/clang 18.0.0" not in candidate_names  # Points to different image
 
     # Test with filter
     candidates = extract_candidates_from_manifest(manifest, image_path, state, ["gcc"], 1024 * 1024 * 1024, mount_point)
     assert len(candidates) == 1
-    assert candidates[0].name == "gcc-15.0.0"
+    assert candidates[0].name == "compilers/c++/x86/gcc 15.0.0"
 
     # Size should be total size divided by number of contents (3 items)
     # Since it's estimated as size // len(contents)
@@ -2211,15 +2324,14 @@ def test_gather_reconsolidation_candidates(tmp_path):
     consolidated_image.write_bytes(b"x" * (100 * 1024 * 1024))  # 100MB
 
     # Create manifest for the consolidated image
-    manifest = {
-        "version": 1,
-        "operation": "consolidate",
-        "contents": [
-            {"name": "tool1", "destination": str(nfs_dir / "tool1")},
-            {"name": "tool2", "destination": str(nfs_dir / "tool2")},
-            {"name": "tool3", "destination": str(nfs_dir / "tool3")},
+    manifest = make_test_manifest(
+        operation="consolidate",
+        contents=[
+            {"name": "tools/test/tool 1.0.0", "destination": str(nfs_dir / "tool1")},
+            {"name": "tools/test/tool 2.0.0", "destination": str(nfs_dir / "tool2")},
+            {"name": "tools/test/tool 3.0.0", "destination": str(nfs_dir / "tool3")},
         ],
-    }
+    )
     write_manifest_alongside_image(manifest, consolidated_image)
 
     # Create symlinks - only 1 of 3 still pointing to the consolidated image
@@ -2241,14 +2353,13 @@ def test_gather_reconsolidation_candidates(tmp_path):
     undersized_image.write_bytes(b"x" * (10 * 1024 * 1024))  # 10MB - undersized
 
     # Create manifest for the undersized image
-    manifest2 = {
-        "version": 1,
-        "operation": "consolidate",
-        "contents": [
-            {"name": "small1", "destination": str(nfs_dir / "small1")},
-            {"name": "small2", "destination": str(nfs_dir / "small2")},
+    manifest2 = make_test_manifest(
+        operation="consolidate",
+        contents=[
+            {"name": "tools/small 1.0.0", "destination": str(nfs_dir / "small1")},
+            {"name": "tools/small 2.0.0", "destination": str(nfs_dir / "small2")},
         ],
-    }
+    )
     write_manifest_alongside_image(manifest2, undersized_image)
 
     # Both point to the undersized image (100% efficiency but still undersized)
@@ -2263,14 +2374,13 @@ def test_gather_reconsolidation_candidates(tmp_path):
     good_image = subdir3 / "ghi789_consolidated.sqfs"
     good_image.write_bytes(b"x" * (200 * 1024 * 1024))  # 200MB
 
-    manifest3 = {
-        "version": 1,
-        "operation": "consolidate",
-        "contents": [
-            {"name": "good1", "destination": str(nfs_dir / "good1")},
-            {"name": "good2", "destination": str(nfs_dir / "good2")},
+    manifest3 = make_test_manifest(
+        operation="consolidate",
+        contents=[
+            {"name": "tools/good 1.0.0", "destination": str(nfs_dir / "good1")},
+            {"name": "tools/good 2.0.0", "destination": str(nfs_dir / "good2")},
         ],
-    }
+    )
     write_manifest_alongside_image(manifest3, good_image)
 
     # Both point to the good image (100% efficiency and good size)
@@ -2300,11 +2410,11 @@ def test_gather_reconsolidation_candidates(tmp_path):
     assert len(candidates) == 3  # tool1 from low-efficiency, small1 and small2 from undersized
 
     candidate_names = {c.name for c in candidates}
-    assert "tool1" in candidate_names  # From low-efficiency image
-    assert "small1" in candidate_names  # From undersized image
-    assert "small2" in candidate_names  # From undersized image
-    assert "good1" not in candidate_names  # Good image should not be reconsolidated
-    assert "good2" not in candidate_names  # Good image should not be reconsolidated
+    assert "tools/test/tool 1.0.0" in candidate_names  # From low-efficiency image
+    assert "tools/small 1.0.0" in candidate_names  # From undersized image
+    assert "tools/small 2.0.0" in candidate_names  # From undersized image
+    assert "tools/good 1.0.0" not in candidate_names  # Good image should not be reconsolidated
+    assert "tools/good 2.0.0" not in candidate_names  # Good image should not be reconsolidated
 
     # Test with filter
     candidates_filtered = state.gather_reconsolidation_candidates(
@@ -2316,4 +2426,4 @@ def test_gather_reconsolidation_candidates(tmp_path):
 
     assert len(candidates_filtered) == 2
     filtered_names = {c.name for c in candidates_filtered}
-    assert filtered_names == {"small1", "small2"}
+    assert filtered_names == {"tools/small 1.0.0", "tools/small 2.0.0"}

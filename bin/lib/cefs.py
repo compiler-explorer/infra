@@ -9,12 +9,13 @@ import logging
 import os
 import shutil
 import tempfile
-from collections.abc import Generator
+import time
+from collections.abc import Callable, Generator
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 import humanfriendly
 import yaml
@@ -26,12 +27,23 @@ from .cefs_manifest import (
     generate_cefs_filename,
     read_manifest_from_alongside,
     sanitize_path_for_filename,
+    validate_manifest,
     write_manifest_inprogress,
 )
 from .config import SquashfsConfig
 from .squashfs import create_squashfs_image, extract_squashfs_image
 
 _LOGGER = logging.getLogger(__name__)
+
+# Constants for NFS performance tuning
+NFS_MAX_RECURSION_DEPTH = 3  # Limit depth when recursing on NFS to avoid performance issues
+
+
+class FileWithAge(NamedTuple):
+    """File path with age information."""
+
+    path: Path
+    age_seconds: float
 
 
 @dataclass(frozen=True)
@@ -52,6 +64,20 @@ class ConsolidationCandidate:
     size: int
     extraction_path: Path = Path(".")
     from_reconsolidation: bool = False
+
+
+@dataclass(frozen=True)
+class ExtractionResult:
+    """Result of extracting a single squashfs image."""
+
+    success: bool
+    nfs_path: str
+    subdir_name: str
+    extracted_size: int = 0
+    compressed_size: int = 0
+    compression_ratio: float = 0.0
+    is_partial: bool = False
+    error: str | None = None
 
 
 def get_cefs_image_path(image_dir: Path, filename: str) -> Path:
@@ -424,7 +450,7 @@ def verify_symlinks_unchanged(snapshot: dict[Path, Path]) -> tuple[list[Path], l
     return unchanged, changed
 
 
-def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -> dict[str, Any]:
+def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -> ExtractionResult:
     """Worker function to extract a single squashfs image.
 
     Args are serialized as strings for pickling:
@@ -454,44 +480,73 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
     try:
         compressed_size = squashfs_path.stat().st_size
 
-        logger.info(
-            "Extracting %s (%s) from %s to %s",
-            squashfs_path,
-            humanfriendly.format_size(compressed_size, binary=True),
-            extraction_path,
-            subdir_path,
-        )
+        # Check if this is a partial extraction
+        is_partial_extraction = extraction_path is not None and extraction_path != Path(".")
+
+        if is_partial_extraction:
+            logger.info(
+                "Partially extracting %s from %s (%s) to %s",
+                extraction_path,
+                squashfs_path,
+                humanfriendly.format_size(compressed_size, binary=True),
+                subdir_path,
+            )
+        else:
+            logger.info(
+                "Extracting %s (%s) to %s",
+                squashfs_path,
+                humanfriendly.format_size(compressed_size, binary=True),
+                subdir_path,
+            )
 
         extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
 
         # Measure extracted size
         extracted_size = get_directory_size(subdir_path)
 
-        compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
-
-        logger.info(
-            "Extracted %s -> %s (%.1fx compression)",
-            humanfriendly.format_size(compressed_size, binary=True),
-            humanfriendly.format_size(extracted_size, binary=True),
-            compression_ratio,
-        )
-
-        return {
-            "success": True,
-            "nfs_path": nfs_path_str,
-            "subdir_name": subdir_name,
-            "compressed_size": compressed_size,
-            "extracted_size": extracted_size,
-            "compression_ratio": compression_ratio,
-        }
+        if is_partial_extraction:
+            # For partial extractions, don't calculate misleading compression ratios
+            logger.info(
+                "Partially extracted %s (%s from %s total image)",
+                extraction_path,
+                humanfriendly.format_size(extracted_size, binary=True),
+                humanfriendly.format_size(compressed_size, binary=True),
+            )
+            # Don't include compressed_size in stats for partial extractions
+            return ExtractionResult(
+                success=True,
+                nfs_path=nfs_path_str,
+                subdir_name=subdir_name,
+                compressed_size=0,  # Don't count for partial extractions
+                extracted_size=extracted_size,
+                compression_ratio=0.0,
+                is_partial=True,
+            )
+        else:
+            compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
+            logger.info(
+                "Extracted %s -> %s (%.1fx compression)",
+                humanfriendly.format_size(compressed_size, binary=True),
+                humanfriendly.format_size(extracted_size, binary=True),
+                compression_ratio,
+            )
+            return ExtractionResult(
+                success=True,
+                nfs_path=nfs_path_str,
+                subdir_name=subdir_name,
+                compressed_size=compressed_size,
+                extracted_size=extracted_size,
+                compression_ratio=compression_ratio,
+                is_partial=False,
+            )
     except Exception as e:
         logger.error("Failed to extract %s: %s", squashfs_path, e)
-        return {
-            "success": False,
-            "nfs_path": nfs_path_str,
-            "subdir_name": subdir_name,
-            "error": str(e),
-        }
+        return ExtractionResult(
+            success=False,
+            nfs_path=nfs_path_str,
+            subdir_name=subdir_name,
+            error=str(e),
+        )
 
 
 def create_consolidated_image(
@@ -541,6 +596,8 @@ def create_consolidated_image(
         # Extract squashfs images in parallel
         total_compressed_size = 0
         total_extracted_size = 0
+        partial_extractions_count = 0
+        partial_extracted_size = 0
         failed_extractions = []
 
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
@@ -553,14 +610,23 @@ def create_consolidated_image(
                 completed += 1
                 result = future.result()
 
-                if result["success"]:
-                    total_compressed_size += result["compressed_size"]
-                    total_extracted_size += result["extracted_size"]
+                if result.success:
+                    if result.is_partial:
+                        # Track partial extractions separately
+                        partial_extractions_count += 1
+                        partial_extracted_size += result.extracted_size
+                    else:
+                        # Only count full extractions for compression stats
+                        total_compressed_size += result.compressed_size
+
+                    # Always add extracted size for total
+                    total_extracted_size += result.extracted_size
+
                     _LOGGER.info(
                         "[%d/%d] Completed extraction of %s",
                         completed,
                         len(items),
-                        result["subdir_name"],
+                        result.subdir_name,
                     )
                 else:
                     failed_extractions.append(result)
@@ -568,24 +634,40 @@ def create_consolidated_image(
                         "[%d/%d] Failed to extract %s: %s",
                         completed,
                         len(items),
-                        result["subdir_name"],
-                        result.get("error", "Unknown error"),
+                        result.subdir_name,
+                        result.error or "Unknown error",
                     )
 
         # Check for failures
         if failed_extractions:
             raise RuntimeError(
                 f"Failed to extract {len(failed_extractions)} of {len(items)} squashfs images: "
-                + ", ".join(f["subdir_name"] for f in failed_extractions)
+                + ", ".join(f.subdir_name for f in failed_extractions)
             )
 
         # Log total extraction summary
-        total_compression_ratio = total_extracted_size / total_compressed_size if total_compressed_size > 0 else 0
+        if partial_extractions_count > 0:
+            _LOGGER.info(
+                "Extraction summary: %d partial extractions (%s), %d full extractions",
+                partial_extractions_count,
+                humanfriendly.format_size(partial_extracted_size, binary=True),
+                len(items) - partial_extractions_count,
+            )
+
+        if total_compressed_size > 0:
+            # Only show compression ratio for full extractions
+            full_extracted_size = total_extracted_size - partial_extracted_size
+            compression_ratio = full_extracted_size / total_compressed_size if total_compressed_size > 0 else 0
+            _LOGGER.info(
+                "Full extractions: %s -> %s (%.1fx compression)",
+                humanfriendly.format_size(total_compressed_size, binary=True),
+                humanfriendly.format_size(full_extracted_size, binary=True),
+                compression_ratio,
+            )
+
         _LOGGER.info(
-            "Total extraction: %s -> %s (%.1fx compression)",
-            humanfriendly.format_size(total_compressed_size, binary=True),
+            "Total extracted data: %s",
             humanfriendly.format_size(total_extracted_size, binary=True),
-            total_compression_ratio,
         )
 
         # Create consolidated squashfs image
@@ -594,30 +676,32 @@ def create_consolidated_image(
 
         # Log final consolidation compression ratio
         consolidated_size = output_path.stat().st_size
-        final_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
 
-        # Calculate space savings vs original and total compression
-        space_savings_ratio = total_compressed_size / consolidated_size if consolidated_size > 0 else 0
-        total_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
-
+        # Calculate meaningful compression ratios
         _LOGGER.info("Consolidation complete:")
         _LOGGER.info(
-            "  Final image: %s (%.1fx compression of extracted data)",
+            "  Final image size: %s",
             humanfriendly.format_size(consolidated_size, binary=True),
-            final_compression_ratio,
         )
+
+        # Compression of extracted data (this is the real compression achieved)
+        data_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
         _LOGGER.info(
-            "  Space comparison: %s -> %s (%.1fx space savings)",
-            humanfriendly.format_size(total_compressed_size, binary=True),
-            humanfriendly.format_size(consolidated_size, binary=True),
-            space_savings_ratio,
-        )
-        _LOGGER.info(
-            "  Total compression: %s -> %s (%.1fx overall compression)",
+            "  Data compression: %s -> %s (%.1fx)",
             humanfriendly.format_size(total_extracted_size, binary=True),
             humanfriendly.format_size(consolidated_size, binary=True),
-            total_compression_ratio,
+            data_compression_ratio,
         )
+
+        # If we have full extractions, show space savings
+        if total_compressed_size > 0:
+            space_savings_ratio = total_compressed_size / consolidated_size if consolidated_size > 0 else 0
+            _LOGGER.info(
+                "  Space savings (full extractions only): %s -> %s (%.1fx reduction)",
+                humanfriendly.format_size(total_compressed_size, binary=True),
+                humanfriendly.format_size(consolidated_size, binary=True),
+                space_savings_ratio,
+            )
 
     finally:
         # Clean up extraction directory
@@ -969,7 +1053,7 @@ class CEFSState:
         """
         _LOGGER.debug("Checking consolidated image: %s", image_path.name)
 
-        usage = calculate_image_usage(image_path, self.image_references, self.nfs_dir, self.mount_point)
+        usage = calculate_image_usage(image_path, self.image_references, self.mount_point)
 
         try:
             size = image_path.stat().st_size
@@ -1274,9 +1358,7 @@ def is_consolidated_image(image_path: Path) -> bool:
     return False
 
 
-def calculate_image_usage(
-    image_path: Path, image_references: dict[str, list[Path]], nfs_dir: Path, mount_point: Path
-) -> float:
+def calculate_image_usage(image_path: Path, image_references: dict[str, list[Path]], mount_point: Path) -> float:
     """Calculate usage percentage for a CEFS image.
 
     For individual images: 100% if referenced, 0% if not
@@ -1285,7 +1367,7 @@ def calculate_image_usage(
     Args:
         image_path: Path to the CEFS image
         image_references: Dict mapping image stems to expected destinations
-        nfs_dir: Base NFS directory
+        mount_point: CEFS mount point
 
     Returns:
         Usage percentage (0.0 to 100.0)
@@ -1396,7 +1478,7 @@ def get_consolidated_image_usage_stats(
         except OSError:
             size = 0
 
-        usage = calculate_image_usage(image_path, state.image_references, state.nfs_dir, state.mount_point)
+        usage = calculate_image_usage(image_path, state.image_references, state.mount_point)
 
         if is_consolidated_image(image_path):
             consolidated_images += 1
@@ -1662,6 +1744,13 @@ def extract_candidates_from_manifest(
     Returns:
         List of consolidation candidates from this image
     """
+    # Validate manifest before processing
+    try:
+        validate_manifest(manifest)
+    except ValueError as e:
+        _LOGGER.warning("Skipping reconsolidation from %s: %s", image_path, e)
+        return []
+
     candidates = []
     contents = manifest.get("contents", [])
     item_size = size // len(contents) if contents else 0  # Estimate size per item
@@ -1784,8 +1873,9 @@ def prepare_consolidation_items(
         if item.from_reconsolidation:
             extraction_path = item.extraction_path
             _LOGGER.debug(
-                "For reconsolidation item %s: using extraction path %s",
+                "Reconsolidation item '%s': subdir_name='%s', extraction_path='%s'",
                 item.name,
+                subdir_name,
                 extraction_path,
             )
         else:
@@ -1886,6 +1976,7 @@ def _deploy_consolidated_image(
     subdir_mapping: dict[Path, str],
     defer_backup_cleanup: bool,
     group_idx: int,
+    find_installable_func: Callable[[str], Any],
     dry_run: bool,
 ) -> tuple[int, int]:
     """Deploy consolidated image and update symlinks.
@@ -1901,6 +1992,7 @@ def _deploy_consolidated_image(
         subdir_mapping: Mapping of NFS paths to subdirectories
         defer_backup_cleanup: Whether to defer cleanup
         group_idx: Group index for logging
+        find_installable_func: Function to find installables by exact name
         dry_run: Whether this is a dry run
 
     Returns:
@@ -1908,9 +2000,58 @@ def _deploy_consolidated_image(
     """
     if cefs_paths.image_path.exists():
         _LOGGER.info("Consolidated image already exists: %s", cefs_paths.image_path)
-        return handle_symlink_updates(
+        updated, skipped = handle_symlink_updates(
             group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
         )
+
+        # Post-consolidation safety check even for existing images
+        # Skip this check in dry-run mode
+        if not dry_run and updated > 0:
+            _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
+            failed_items = []
+
+            for item in group:
+                try:
+                    # Find the installable by exact name
+                    installable = find_installable_func(item.name)
+
+                    # Check if it reports as installed using the canonical check
+                    if not installable.is_installed():
+                        failed_items.append((item.name, item.nfs_path))
+                        _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
+                except ValueError as e:
+                    # This is a hard error - we can't find the installable or found multiple
+                    _LOGGER.error("Failed to find installable for validation: %s", e)
+                    failed_items.append((item.name, item.nfs_path))
+
+            # Rollback failed items individually
+            if failed_items:
+                _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
+                rollback_count = 0
+                for name, symlink_path in failed_items:
+                    # Try to restore from backup
+                    backup_path = Path(str(symlink_path) + ".bak")
+                    if backup_path.exists():
+                        try:
+                            # Remove the broken symlink
+                            if symlink_path.exists() or symlink_path.is_symlink():
+                                symlink_path.unlink()
+                            # Restore the backup
+                            backup_path.rename(symlink_path)
+                            _LOGGER.info("Rolled back symlink for %s from backup", name)
+                            rollback_count += 1
+                            updated -= 1  # Decrement the updated count
+                        except OSError as e:
+                            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
+                    else:
+                        _LOGGER.warning("No backup found for %s, cannot rollback", name)
+
+                if rollback_count < len(failed_items):
+                    _LOGGER.error(
+                        "Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1
+                    )
+
+        return updated, skipped
 
     with deploy_to_cefs_transactional(
         temp_consolidated_path,
@@ -1923,6 +2064,55 @@ def _deploy_consolidated_image(
         )
         if updated:
             _LOGGER.info("Updated %d symlinks for group %d", updated, group_idx + 1)
+
+        # Post-consolidation safety check: verify all installables report as installed
+        # Skip this check in dry-run mode
+        if not dry_run:
+            _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
+            failed_items = []
+
+            for item in group:
+                try:
+                    # Find the installable by exact name
+                    installable = find_installable_func(item.name)
+
+                    # Check if it reports as installed using the canonical check
+                    if not installable.is_installed():
+                        failed_items.append((item.name, item.nfs_path))
+                        _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
+                except ValueError as e:
+                    # This is a hard error - we can't find the installable or found multiple
+                    _LOGGER.error("Failed to find installable for validation: %s", e)
+                    failed_items.append((item.name, item.nfs_path))
+
+            # Rollback failed items individually
+            if failed_items:
+                _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
+                rollback_count = 0
+                for name, symlink_path in failed_items:
+                    # Try to restore from backup
+                    backup_path = Path(str(symlink_path) + ".bak")
+                    if backup_path.exists():
+                        try:
+                            # Remove the broken symlink
+                            if symlink_path.exists() or symlink_path.is_symlink():
+                                symlink_path.unlink()
+                            # Restore the backup
+                            backup_path.rename(symlink_path)
+                            _LOGGER.info("Rolled back symlink for %s from backup", name)
+                            rollback_count += 1
+                            updated -= 1  # Decrement the updated count
+                        except OSError as e:
+                            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
+                    else:
+                        _LOGGER.warning("No backup found for %s, cannot rollback", name)
+
+                if rollback_count < len(failed_items):
+                    _LOGGER.error(
+                        "Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1
+                    )
+                    # Don't fail the entire consolidation, but log the issue prominently
+
         return updated, skipped
 
 
@@ -1930,13 +2120,13 @@ def process_consolidation_group(
     group: list[ConsolidationCandidate],
     group_idx: int,
     squashfs_config: Any,
-    cefs_config: Any,
     mount_point: Path,
     image_dir: Path,
     symlink_snapshot: dict[Path, Path],
     consolidation_dir: Path,
     defer_backup_cleanup: bool,
     max_parallel_extractions: int | None,
+    find_installable_func: Callable[[str], Any],
     dry_run: bool = False,
 ) -> tuple[bool, int, int]:
     """Process a single consolidation group.
@@ -1945,13 +2135,13 @@ def process_consolidation_group(
         group: List of items to consolidate
         group_idx: Index of this group (for logging)
         squashfs_config: Squashfs configuration object
-        cefs_config: CEFS configuration object
         mount_point: CEFS mount point
         image_dir: CEFS image directory
         symlink_snapshot: Snapshot of symlink states before consolidation
         consolidation_dir: Directory for consolidation temp files
         defer_backup_cleanup: Whether to defer cleanup of .bak symlinks
         max_parallel_extractions: Maximum parallel extractions
+        find_installable_func: Function to find installables by exact name
         dry_run: Whether this is a dry run
 
     Returns:
@@ -2001,6 +2191,7 @@ def process_consolidation_group(
             subdir_mapping,
             defer_backup_cleanup,
             group_idx,
+            find_installable_func,
             dry_run,
         )
 
@@ -2016,3 +2207,429 @@ def process_consolidation_group(
         # Clean up group temp directory
         if group_temp_dir.exists():
             shutil.rmtree(group_temp_dir)
+
+
+# ============================================================================
+# CEFS Operations Functions
+# ============================================================================
+
+
+def convert_to_cefs(
+    installable,
+    destination_path: Path,
+    squashfs_image_path: Path,
+    config_squashfs,
+    config_cefs,
+    force: bool,
+    defer_cleanup: bool,
+    dry_run: bool,
+) -> bool:
+    """Convert a single installable from squashfs to CEFS.
+
+    Args:
+        installable: The installable object to convert
+        destination_path: NFS destination path
+        squashfs_image_path: Path to the squashfs image
+        config_squashfs: Squashfs configuration
+        config_cefs: CEFS configuration
+        force: Force conversion even if already converted
+        defer_cleanup: Defer cleanup of backup directories
+        dry_run: Whether this is a dry run
+
+    Returns:
+        True if conversion was successful or already converted.
+    """
+    nfs_path = destination_path / installable.install_path
+
+    if not squashfs_image_path.exists():
+        _LOGGER.error("No squashfs image found for %s at %s", installable.name, squashfs_image_path)
+        return False
+
+    match detect_nfs_state(nfs_path):
+        case "symlink":
+            if not force:
+                _LOGGER.info("Already converted to CEFS: %s", installable.name)
+                return True
+        case "missing":
+            _LOGGER.error("NFS directory missing for %s: %s", installable.name, nfs_path)
+            return False
+
+    # Generate CEFS filename and paths
+    try:
+        _LOGGER.info("Calculating hash for %s...", squashfs_image_path)
+        relative_path = squashfs_image_path.relative_to(config_squashfs.image_dir)
+        filename = get_cefs_filename_for_image(squashfs_image_path, "convert", relative_path)
+        _LOGGER.info("Filename: %s", filename)
+    except OSError as e:
+        _LOGGER.error("Failed to calculate hash for %s: %s", installable.name, e)
+        return False
+
+    cefs_paths = get_cefs_paths(config_cefs.image_dir, config_cefs.mount_point, filename)
+
+    installable_info = create_installable_manifest_entry(installable.name, nfs_path)
+    manifest = create_manifest(
+        operation="convert",
+        description=f"Created through conversion of {installable.name}",
+        contents=[installable_info],
+    )
+
+    # Copy squashfs to CEFS images directory if not already there
+    # Never overwrite - hash ensures content is identical
+    if cefs_paths.image_path.exists():
+        _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
+        # Still need to create symlink even if image exists
+        try:
+            backup_and_symlink(nfs_path, cefs_paths.mount_path, dry_run, defer_cleanup)
+        except RuntimeError as e:
+            _LOGGER.error("Failed to create symlink for %s: %s", installable.name, e)
+            return False
+    else:
+        # Deploy image and create symlink within transaction
+        try:
+            with deploy_to_cefs_transactional(squashfs_image_path, cefs_paths.image_path, manifest, dry_run):
+                # Create symlink while transaction is active
+                backup_and_symlink(nfs_path, cefs_paths.mount_path, dry_run, defer_cleanup)
+                # Manifest will be automatically finalized on successful exit
+        except RuntimeError as e:
+            _LOGGER.error("Failed to convert %s to CEFS: %s", installable.name, e)
+            return False
+
+    # Post-migration validation (skip in dry-run)
+    if not dry_run:
+        if not nfs_path.is_symlink():
+            _LOGGER.error("Post-migration check failed: %s is not a symlink", nfs_path)
+            return False
+
+        if not installable.is_installed():
+            _LOGGER.error("Post-migration check: %s reports not installed", installable.name)
+            return False
+        _LOGGER.info("Post-migration check: %s still installed", installable.name)
+
+    _LOGGER.info("Successfully converted %s to CEFS", installable.name)
+    return True
+
+
+def format_verbose_image_details(
+    image_path: Path,
+    usage: float,
+    items_info: list[str] | None,
+    manifest: dict | None,
+    mount_point: Path,
+) -> list[str]:
+    """Format verbose details for a partially used consolidated image.
+
+    Args:
+        image_path: Path to the image
+        usage: Usage percentage
+        items_info: List of item descriptions
+        manifest: Manifest dictionary
+        mount_point: CEFS mount point
+
+    Returns:
+        List of formatted lines
+    """
+    lines = []
+
+    if not items_info:
+        lines.append(f"        {image_path.name} ({usage:.1f}%)")
+        return lines
+
+    total_items = len(items_info)
+    used_items = int(total_items * usage / 100)
+    lines.append(f"        {image_path.name} ({usage:.1f}% - {used_items}/{total_items} items)")
+
+    # Show what replaced each item if partially used
+    if manifest and "contents" in manifest and usage < 100:
+        for content in manifest["contents"]:
+            if "destination" in content:
+                dest_path = Path(content["destination"])
+                targets = get_current_symlink_targets(dest_path)
+                # Find which target (if any) points to this image for status reporting
+                current_target = next(
+                    (t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None
+                )
+                status = get_consolidated_item_status(content, image_path, current_target, mount_point)
+                if status:
+                    lines.append(status)
+
+    return lines
+
+
+def format_usage_statistics(stats, state: CEFSState, verbose: bool, cefs_mount_point: Path) -> list[str]:
+    """Format detailed usage statistics.
+
+    Args:
+        stats: Usage statistics object
+        state: CEFSState object
+        verbose: Whether to show verbose output
+        cefs_mount_point: CEFS mount point
+
+    Returns:
+        List of formatted output lines
+    """
+    lines = []
+    lines.append("\nImage Statistics:")
+    lines.append(f"  Total images: {stats.total_images}")
+    lines.append(f"  Individual images: {stats.individual_images}")
+    lines.append(f"  Consolidated images: {stats.consolidated_images}")
+
+    if stats.consolidated_images > 0:
+        lines.append(f"    - Fully used (100%): {stats.fully_used_consolidated}")
+
+        ranges = group_images_by_usage(stats.partially_used_consolidated)
+
+        lines.append(f"    - Partially used: {len(stats.partially_used_consolidated)}")
+        for range_name, images in ranges.items():
+            if images:
+                lines.append(f"      * {range_name} used: {len(images)} images")
+                if verbose:
+                    for image_path, usage in images:
+                        items_info = get_image_description(image_path, cefs_mount_point)
+                        manifest = read_manifest_from_alongside(image_path)
+                        detail_lines = format_verbose_image_details(
+                            image_path, usage, items_info, manifest, cefs_mount_point
+                        )
+                        lines.extend(detail_lines)
+
+        # Count unused consolidated images
+        unused_consolidated = len([p for p in stats.unused_images if is_consolidated_image(p)])
+        lines.append(f"    - Unused (0%): {unused_consolidated}")
+
+    lines.append("\nSpace Analysis:")
+    lines.append(f"  Total CEFS space: {humanfriendly.format_size(stats.total_space, binary=True)}")
+    if stats.wasted_space_estimate > 0:
+        lines.append(
+            f"  Wasted in partial images: ~{humanfriendly.format_size(stats.wasted_space_estimate, binary=True)} (estimated)"
+        )
+
+    small_consolidated = find_small_consolidated_images(state, 5 * 1024 * 1024 * 1024)
+    if small_consolidated:
+        lines.append(f"  Potential consolidation: {len(small_consolidated)} small consolidated images could be merged")
+
+    if verbose:
+        lines.append("\nRun 'ce cefs consolidate --reconsolidate' to optimize partially used images")
+
+    return lines
+
+
+def gather_reconsolidation_candidates(
+    state: CEFSState,
+    efficiency_threshold: float,
+    max_size_bytes: int,
+    undersized_ratio: float,
+    filter_: list[str] | None = None,
+) -> list[ConsolidationCandidate]:
+    """Gather candidates from existing consolidated images for reconsolidation.
+
+    Args:
+        state: CEFSState object
+        efficiency_threshold: Minimum efficiency to keep consolidated image (0.0-1.0)
+        max_size_bytes: Maximum size for consolidated images
+        undersized_ratio: Ratio for determining undersized images
+        filter_: Optional filter for selecting items
+
+    Returns:
+        List of candidate items from consolidated images that should be repacked
+    """
+    # Use the CEFSState's method to gather candidates
+    return state.gather_reconsolidation_candidates(
+        efficiency_threshold=efficiency_threshold,
+        max_size_bytes=max_size_bytes,
+        undersized_ratio=undersized_ratio,
+        filter_=filter_ or [],
+    )
+
+
+# ============================================================================
+# FSCK Helper Functions
+# ============================================================================
+
+
+@dataclass
+class FSCKResults:
+    """Results from CEFS filesystem check."""
+
+    total_images: int = 0
+    valid_manifests: int = 0
+    missing_manifests: list[Path] = field(default_factory=list)
+    old_format_manifests: list[Path] = field(default_factory=list)
+    invalid_name_manifests: list[tuple[Path, str]] = field(default_factory=list)
+    other_invalid_manifests: list[tuple[Path, str]] = field(default_factory=list)
+    unreadable_manifests: list[tuple[Path, str]] = field(default_factory=list)
+    inprogress_files: list[FileWithAge] = field(default_factory=list)
+    pending_backups: list[FileWithAge] = field(default_factory=list)
+    pending_deletes: list[FileWithAge] = field(default_factory=list)
+
+    @property
+    def total_invalid(self) -> int:
+        """Total number of invalid manifests."""
+        return (
+            len(self.missing_manifests)
+            + len(self.old_format_manifests)
+            + len(self.invalid_name_manifests)
+            + len(self.other_invalid_manifests)
+            + len(self.unreadable_manifests)
+        )
+
+    @property
+    def has_issues(self) -> bool:
+        """Check if any issues were found."""
+        return (
+            self.total_invalid > 0
+            or len(self.inprogress_files) > 0
+            or len(self.pending_backups) > 0
+            or len(self.pending_deletes) > 0
+        )
+
+
+def find_files_by_pattern(
+    base_dir: Path,
+    pattern: str,
+    current_time: float,
+    max_depth: int | None = None,
+) -> list[FileWithAge]:
+    """Find files matching pattern and return with age.
+
+    Args:
+        base_dir: Directory to search
+        pattern: Glob pattern (e.g., "*.bak")
+        current_time: Current time for age calculation
+        max_depth: Maximum directory depth (None for unlimited)
+
+    Returns:
+        List of FileWithAge tuples
+    """
+    # Build list of glob patterns based on max_depth
+    if max_depth is None:
+        patterns = [f"**/{pattern}"]
+    else:
+        patterns = [
+            pattern if depth == 0 else "/".join(["*"] * depth) + "/" + pattern for depth in range(max_depth + 1)
+        ]
+
+    # Single loop to process all patterns
+    results = []
+    for glob_pattern in patterns:
+        for path in base_dir.glob(glob_pattern):
+            try:
+                # Use lstat to get the modification time of the item itself (not following symlinks)
+                mtime = path.lstat().st_mtime
+                results.append(FileWithAge(path, current_time - mtime))
+            except OSError:
+                # File disappeared or permission denied - skip silently
+                continue
+
+    return results
+
+
+def check_inprogress_files(cefs_image_dir: Path, current_time: float) -> list[FileWithAge]:
+    """Check for yaml.inprogress files only (no sqfs checks).
+
+    Args:
+        cefs_image_dir: Path to CEFS images directory
+        current_time: Current time for age calculation
+
+    Returns:
+        List of FileWithAge tuples sorted by age (oldest first)
+    """
+    # CEFS dir uses unlimited depth (it's local, not NFS)
+    files = find_files_by_pattern(cefs_image_dir, "*.yaml.inprogress", current_time, max_depth=None)
+    # Sort by age (oldest first)
+    return sorted(files, key=lambda x: x.age_seconds, reverse=True)
+
+
+def validate_single_manifest(manifest_path: Path, mount_point: Path, filename_stem: str) -> tuple[bool, str | None]:
+    """Validate a single manifest file.
+
+    Args:
+        manifest_path: Path to the manifest file
+        mount_point: CEFS mount point
+        filename_stem: Stem of the image filename
+
+    Returns:
+        Tuple of (is_valid, error_type)
+        where error_type is None if valid, or one of:
+        - "missing": manifest file doesn't exist
+        - "unreadable": file exists but can't be read
+        - "old_format": uses deprecated 'target' field
+        - "invalid_name": has invalid installable names
+        - "other": other validation errors
+    """
+    if not manifest_path.exists():
+        return False, "missing"
+
+    try:
+        with manifest_path.open(encoding="utf-8") as f:
+            manifest_dict = yaml.safe_load(f)
+    except (OSError, yaml.YAMLError):
+        return False, "unreadable"
+
+    contents = manifest_dict.get("contents", []) if manifest_dict else []
+
+    if any("target" in content for content in contents):
+        return False, "old_format"
+
+    try:
+        validate_manifest(manifest_dict)
+    except ValueError as e:
+        error_msg = str(e).lower()
+        error_type = (
+            "invalid_name" if "invalid name" in error_msg or "entries with invalid name" in error_msg else "other"
+        )
+        return False, error_type
+
+    return True, None
+
+
+def run_fsck_validation(
+    state: CEFSState,
+    mount_point: Path,
+) -> FSCKResults:
+    """Run CEFS filesystem validation checks.
+
+    Args:
+        state: CEFSState with scanned images
+        mount_point: CEFS mount point
+
+    Returns:
+        FSCKResults containing all validation results
+    """
+    results = FSCKResults()
+
+    for filename_stem, image_path in state.all_cefs_images.items():
+        results.total_images += 1
+        manifest_path = image_path.with_suffix(".yaml")
+        is_valid, error_type = validate_single_manifest(manifest_path, mount_point, filename_stem)
+
+        if is_valid:
+            results.valid_manifests += 1
+        else:
+            match error_type:
+                case "missing":
+                    results.missing_manifests.append(manifest_path)
+                case "old_format":
+                    results.old_format_manifests.append(manifest_path)
+                case "invalid_name" | "other":
+                    # Re-validate to capture the specific error message since we only got the type earlier
+                    try:
+                        with manifest_path.open(encoding="utf-8") as f:
+                            manifest_dict = yaml.safe_load(f)
+                        validate_manifest(manifest_dict)
+                    except ValueError as e:
+                        if error_type == "invalid_name":
+                            results.invalid_name_manifests.append((manifest_path, str(e)))
+                        else:
+                            results.other_invalid_manifests.append((manifest_path, str(e)))
+                case "unreadable":
+                    results.unreadable_manifests.append((manifest_path, "Cannot read manifest file"))
+
+    current_time = time.time()
+    results.inprogress_files = check_inprogress_files(state.cefs_image_dir, current_time)
+    results.pending_backups = find_files_by_pattern(
+        state.nfs_dir, "*.bak", current_time, max_depth=NFS_MAX_RECURSION_DEPTH
+    )
+    results.pending_deletes = find_files_by_pattern(
+        state.nfs_dir, "*.DELETE_ME_*", current_time, max_depth=NFS_MAX_RECURSION_DEPTH
+    )
+
+    return results

@@ -70,6 +70,27 @@ class CliContext:
         )
         return installables
 
+    def find_installable_by_exact_name(self, name: str) -> Installable:
+        """Find an installable by its exact name.
+
+        Args:
+            name: The exact name to search for (e.g., "compilers/c++/x86/gcc 14.1.0")
+
+        Returns:
+            The matching Installable object
+
+        Raises:
+            ValueError: If exactly one installable is not found (0 or 2+ matches)
+        """
+        matches = [inst for inst in self.get_installables([]) if inst.name == name]
+
+        if len(matches) == 0:
+            raise ValueError(f"No installable found with exact name: {name}")
+        elif len(matches) > 1:
+            raise ValueError(f"Ambiguous: found {len(matches)} installables with name: {name}")
+
+        return matches[0]
+
 
 def _context_match(context_query: str, installable: Installable) -> bool:
     """Match context query against installable's context path.
