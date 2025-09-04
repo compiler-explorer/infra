@@ -2314,7 +2314,6 @@ def format_verbose_image_details(
     usage: float,
     items_info: list[str] | None,
     manifest: dict | None,
-    nfs_dir: Path,
     mount_point: Path,
 ) -> list[str]:
     """Format verbose details for a partially used consolidated image.
@@ -2324,7 +2323,6 @@ def format_verbose_image_details(
         usage: Usage percentage
         items_info: List of item descriptions
         manifest: Manifest dictionary
-        nfs_dir: NFS directory
         mount_point: CEFS mount point
 
     Returns:
@@ -2357,14 +2355,13 @@ def format_verbose_image_details(
     return lines
 
 
-def format_usage_statistics(stats, state: CEFSState, verbose: bool, nfs_dir: Path, cefs_mount_point: Path) -> list[str]:
+def format_usage_statistics(stats, state: CEFSState, verbose: bool, cefs_mount_point: Path) -> list[str]:
     """Format detailed usage statistics.
 
     Args:
         stats: Usage statistics object
         state: CEFSState object
         verbose: Whether to show verbose output
-        nfs_dir: NFS directory
         cefs_mount_point: CEFS mount point
 
     Returns:
@@ -2390,7 +2387,7 @@ def format_usage_statistics(stats, state: CEFSState, verbose: bool, nfs_dir: Pat
                         items_info = get_image_description(image_path, cefs_mount_point)
                         manifest = read_manifest_from_alongside(image_path)
                         detail_lines = format_verbose_image_details(
-                            image_path, usage, items_info, manifest, nfs_dir, cefs_mount_point
+                            image_path, usage, items_info, manifest, cefs_mount_point
                         )
                         lines.extend(detail_lines)
 

@@ -81,9 +81,7 @@ def status(context, show_usage: bool, verbose: bool):
     state.check_symlink_references()
 
     stats = state.get_usage_stats()
-    output_lines = format_usage_statistics(
-        stats, state, verbose, context.installation_context.destination, context.config.cefs.mount_point
-    )
+    output_lines = format_usage_statistics(stats, state, verbose, context.config.cefs.mount_point)
     for line in output_lines:
         click.echo(line)
 
