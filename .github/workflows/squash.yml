@@ -11,6 +11,7 @@ on:
         required: false
 jobs:
   squash:
+    if: github.repository == 'compiler-explorer/infra'
     runs-on: [ 'self-hosted', 'ce', 'linux', 'x64' ]
     steps:
       - name: Start from a clean directory
