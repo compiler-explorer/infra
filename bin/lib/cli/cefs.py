@@ -755,18 +755,14 @@ def gc(context: CliContext, force: bool, min_age: str):
 def display_verbose_fsck_logs(
     state: CEFSState,
     results: FSCKResults,
-    filter_list: list[str] | None,
 ) -> None:
     """Display verbose logging for fsck validation.
 
     Args:
         state: CEFS state with image information
         results: Validation results
-        filter_list: Optional filters for image paths
     """
     for _stem, image_path in state.all_cefs_images.items():
-        if filter_list and not any(f in str(image_path) for f in filter_list):
-            continue
         manifest_path = image_path.with_suffix(".yaml")
         if (
             manifest_path not in results.missing_manifests
@@ -997,12 +993,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
 
 @cefs.command()
 @click.option(
-    "--filter",
-    "-f",
-    multiple=True,
-    help="Filter items (can be used multiple times)",
-)
-@click.option(
     "--verbose",
     "-v",
     is_flag=True,
@@ -1011,7 +1001,6 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
 @click.pass_obj
 def fsck(
     context: CliContext,
-    filter: list[str],
     verbose: bool,
 ) -> None:
     """Check CEFS filesystem integrity.
@@ -1037,14 +1026,12 @@ def fsck(
     results = run_fsck_validation(
         state,
         context.config.cefs.mount_point,
-        filter_list=list(filter) if filter else None,
     )
 
     if verbose:
         display_verbose_fsck_logs(
             state,
             results,
-            filter_list=list(filter) if filter else None,
         )
 
     display_fsck_results(results, verbose)

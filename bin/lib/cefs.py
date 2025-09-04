@@ -2568,79 +2568,58 @@ def validate_single_manifest(
     if not manifest_path.exists():
         return False, "missing", symlink_issues
 
-    # Try to read and validate manifest
     try:
         with manifest_path.open(encoding="utf-8") as f:
             manifest_dict = yaml.safe_load(f)
-
-        # Check for old broken format with 'target' field
-        has_target_field = False
-        if manifest_dict and "contents" in manifest_dict:
-            for content in manifest_dict["contents"]:
-                if "target" in content:
-                    has_target_field = True
-                    break
-
-        if has_target_field:
-            return False, "old_format", symlink_issues
-
-        # Validate with Pydantic
-        try:
-            validate_manifest(manifest_dict)
-
-            # Check symlinks for this image (only if manifest is valid)
-            if manifest_dict and "contents" in manifest_dict:
-                for content in manifest_dict["contents"]:
-                    if "destination" in content:
-                        dest_path = Path(content["destination"])
-                        if dest_path.exists() and dest_path.is_symlink():
-                            target = dest_path.readlink()
-                            # Check if symlink points to something in this image
-                            if str(mount_point) in str(target) and filename_stem in str(target):
-                                # Verify the target exists
-                                if not target.exists():
-                                    symlink_issues.append((dest_path, target))
-
-            return True, None, symlink_issues
-
-        except ValueError as e:
-            error_msg = str(e)
-            # Categorize the validation error
-            if "invalid name" in error_msg.lower() or "entries with invalid name" in error_msg:
-                return False, "invalid_name", symlink_issues
-            else:
-                return False, "other", symlink_issues
-
     except (OSError, yaml.YAMLError):
         return False, "unreadable", symlink_issues
+
+    contents = manifest_dict.get("contents", []) if manifest_dict else []
+
+    if any("target" in content for content in contents):
+        return False, "old_format", symlink_issues
+
+    try:
+        validate_manifest(manifest_dict)
+    except ValueError as e:
+        error_msg = str(e).lower()
+        error_type = (
+            "invalid_name" if "invalid name" in error_msg or "entries with invalid name" in error_msg else "other"
+        )
+        return False, error_type, symlink_issues
+
+    for content in contents:
+        if "destination" not in content:
+            continue
+
+        dest_path = Path(content["destination"])
+        if not (dest_path.exists() and dest_path.is_symlink()):
+            continue
+
+        target = dest_path.readlink()
+        if str(mount_point) in str(target) and filename_stem in str(target) and not target.exists():
+            symlink_issues.append((dest_path, target))
+
+    return True, None, symlink_issues
 
 
 def run_fsck_validation(
     state: CEFSState,
     mount_point: Path,
-    filter_list: list[str] | None = None,
 ) -> FSCKResults:
     """Run CEFS filesystem validation checks.
 
     Args:
         state: CEFSState with scanned images
         mount_point: CEFS mount point
-        filter_list: Optional filter for selecting images
 
     Returns:
         FSCKResults containing all validation results
     """
     results = FSCKResults()
 
-    # Check all CEFS images
     for filename_stem, image_path in state.all_cefs_images.items():
-        # Apply filter if provided
-        if filter_list and not any(f in str(image_path) for f in filter_list):
-            continue
-
         results.total_images += 1
-
-        # Check manifest
         manifest_path = image_path.with_suffix(".yaml")
         is_valid, error_type, symlink_issues = validate_single_manifest(manifest_path, mount_point, filename_stem)
 
@@ -2648,36 +2627,27 @@ def run_fsck_validation(
             results.valid_manifests += 1
             results.symlink_issues.extend(symlink_issues)
         else:
-            if error_type == "missing":
-                results.missing_manifests.append(manifest_path)
-            elif error_type == "old_format":
-                results.old_format_manifests.append(manifest_path)
-            elif error_type == "invalid_name":
-                # Get full error message for invalid name errors
-                try:
-                    with manifest_path.open(encoding="utf-8") as f:
-                        manifest_dict = yaml.safe_load(f)
-                    validate_manifest(manifest_dict)
-                except ValueError as e:
-                    results.invalid_name_manifests.append((manifest_path, str(e)))
-            elif error_type == "other":
-                # Get full error message for other errors
-                try:
-                    with manifest_path.open(encoding="utf-8") as f:
-                        manifest_dict = yaml.safe_load(f)
-                    validate_manifest(manifest_dict)
-                except ValueError as e:
-                    results.other_invalid_manifests.append((manifest_path, str(e)))
-            elif error_type == "unreadable":
-                results.unreadable_manifests.append((manifest_path, "Cannot read manifest file"))
+            match error_type:
+                case "missing":
+                    results.missing_manifests.append(manifest_path)
+                case "old_format":
+                    results.old_format_manifests.append(manifest_path)
+                case "invalid_name" | "other":
+                    # Re-validate to capture the specific error message since we only got the type earlier
+                    try:
+                        with manifest_path.open(encoding="utf-8") as f:
+                            manifest_dict = yaml.safe_load(f)
+                        validate_manifest(manifest_dict)
+                    except ValueError as e:
+                        if error_type == "invalid_name":
+                            results.invalid_name_manifests.append((manifest_path, str(e)))
+                        else:
+                            results.other_invalid_manifests.append((manifest_path, str(e)))
+                case "unreadable":
+                    results.unreadable_manifests.append((manifest_path, "Cannot read manifest file"))
 
-    # Get current time once for consistency
     current_time = time.time()
-
-    # Check for in-progress files
     results.inprogress_files = check_inprogress_files(state.cefs_image_dir, current_time)
-
-    # Check for pending cleanup (inlined since it's just two calls)
     results.pending_backups = find_files_by_pattern(
         state.nfs_dir, "*.bak", current_time, max_depth=NFS_MAX_RECURSION_DEPTH
     )
