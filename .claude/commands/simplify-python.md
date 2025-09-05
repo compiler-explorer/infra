@@ -13,7 +13,7 @@ Good:
 ```py
 try:
   bob = do_thing_that_might_throw()
-catch RuntimeError:
+except RuntimeError:
   LOGGER.error(...)
   raise
 if bob:
