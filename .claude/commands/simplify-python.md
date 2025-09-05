@@ -32,7 +32,7 @@ try:
   else: # bad, no need for else after a return
     do_other_thing()
     return 0
-catch Exception: # Bad - catching Exception
+except Exception: # Bad - catching Exception
   LOGGER.error(...)
   raise
 ```
