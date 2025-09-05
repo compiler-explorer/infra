@@ -4,9 +4,6 @@
 from __future__ import annotations
 
 import datetime
-from pathlib import Path
-
-import yaml
 
 
 def make_test_manifest(**kwargs) -> dict:
@@ -29,27 +26,3 @@ def make_test_manifest(**kwargs) -> dict:
     }
     defaults.update(kwargs)
     return defaults
-
-
-def write_manifest_alongside_image(manifest: dict, image_path: Path) -> None:
-    """Write a manifest file alongside an image file.
-
-    Args:
-        manifest: Manifest dictionary to write
-        image_path: Path to the image file
-    """
-    manifest_path = image_path.with_suffix(".yaml")
-    with open(manifest_path, "w") as f:
-        yaml.dump(manifest, f)
-
-
-def write_manifest_inprogress(manifest: dict, image_path: Path) -> None:
-    """Write an in-progress manifest file.
-
-    Args:
-        manifest: Manifest dictionary to write
-        image_path: Path to the image file
-    """
-    inprogress_path = Path(str(image_path.with_suffix(".yaml")) + ".inprogress")
-    with open(inprogress_path, "w") as f:
-        yaml.dump(manifest, f)

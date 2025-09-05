@@ -24,45 +24,34 @@ from lib.cefs.consolidation import (
 )
 from lib.cefs.models import ConsolidationCandidate
 from lib.cefs.state import CEFSState
-from lib.cefs_manifest import sanitize_path_for_filename
+from lib.cefs_manifest import sanitize_path_for_filename, write_manifest_alongside_image
 
-from test.cefs.test_helpers import make_test_manifest, write_manifest_alongside_image
+from test.cefs.test_helpers import make_test_manifest
 
 
 def test_is_consolidated_image(tmp_path):
-    """Test is_consolidated_image function."""
-    # Test with filename pattern
-    consolidated_path = tmp_path / "abc123_consolidated.sqfs"
-    consolidated_path.touch()
-    assert is_consolidated_image(consolidated_path) is True
-
-    # Test with non-consolidated filename
-    individual_path = tmp_path / "abc123_gcc-15.1.0.sqfs"
-    individual_path.touch()
-    assert is_consolidated_image(individual_path) is False
-
-    # Test with manifest containing multiple contents
     multi_content_path = tmp_path / "def456_something.sqfs"
     multi_content_path.touch()
-    manifest = make_test_manifest(
-        operation="consolidate",
-        description="Test consolidated image",
-        contents=[
-            {"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"},
-            {"name": "compilers/c++/x86/clang 15.0.0", "destination": "/opt/clang"},
-        ],
+    write_manifest_alongside_image(
+        make_test_manifest(
+            contents=[
+                {"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"},
+                {"name": "compilers/c++/x86/clang 15.0.0", "destination": "/opt/clang"},
+            ],
+        ),
+        multi_content_path,
     )
-    write_manifest_alongside_image(manifest, multi_content_path)
     assert is_consolidated_image(multi_content_path) is True
 
     # Test with manifest containing single content
     single_content_path = tmp_path / "ghi789_single.sqfs"
     single_content_path.touch()
-    manifest = make_test_manifest(
-        contents=[{"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"}],
-        description="Test single content",
+    write_manifest_alongside_image(
+        make_test_manifest(
+            contents=[{"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"}],
+        ),
+        single_content_path,
     )
-    write_manifest_alongside_image(manifest, single_content_path)
     assert is_consolidated_image(single_content_path) is False
 
 

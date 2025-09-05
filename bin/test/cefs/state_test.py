@@ -10,6 +10,7 @@ import pytest
 import yaml
 from lib.cefs.gc import check_if_symlink_references_image
 from lib.cefs.state import CEFSState
+from lib.cefs_manifest import write_manifest_alongside_image
 
 from test.cefs.test_helpers import make_test_manifest
 
@@ -326,19 +327,28 @@ def test_find_small_consolidated_images(tmp_path):
     small_dir = cefs_dir / "ab"
     small_dir.mkdir(parents=True)
     small_image = small_dir / "abc123_consolidated.sqfs"
-    small_image.touch()
+    small_image.write_bytes(b"\0" * (1024))
+    multi_manifest = make_test_manifest(
+        contents=[
+            {"name": "compilers/c++/x86/gcc 12.0.0", "destination": "/opt/gcc"},
+            {"name": "compilers/c++/x86/clang 15.0.0", "destination": "/opt/clang"},
+        ]
+    )
+    write_manifest_alongside_image(multi_manifest, small_image)
 
     # Large consolidated image (2GB)
     large_dir = cefs_dir / "de"
     large_dir.mkdir(parents=True)
     large_image = large_dir / "def456_consolidated.sqfs"
-    large_image.touch()
+    large_image.write_bytes(b"\0" * (1024 * 200))
+    write_manifest_alongside_image(multi_manifest, large_image)
 
     # Medium consolidated image (500MB)
     medium_dir = cefs_dir / "gh"
     medium_dir.mkdir(parents=True)
     medium_image = medium_dir / "ghi789_consolidated.sqfs"
-    medium_image.touch()
+    medium_image.write_bytes(b"\0" * (1024 * 99))
+    write_manifest_alongside_image(multi_manifest, medium_image)
 
     # Non-consolidated image (should be ignored)
     non_consol = small_dir / "xyz999.sqfs"
@@ -352,29 +362,6 @@ def test_find_small_consolidated_images(tmp_path):
         "xyz999": non_consol,
     }
 
-    # Mock the stat calls to return specific sizes
-    def mock_stat_method(self, **kwargs):
-        # Handle .yaml files for manifest checks
-        if str(self).endswith(".yaml"):
-            # Raise FileNotFoundError for manifest files (they don't exist)
-            raise FileNotFoundError(f"No such file: {self}")
-
-        result = Mock()
-        if "abc123" in str(self):
-            result.st_size = 100 * 1024 * 1024  # 100MB
-        elif "def456" in str(self):
-            result.st_size = 2 * 1024 * 1024 * 1024  # 2GB
-        elif "ghi789" in str(self):
-            result.st_size = 500 * 1024 * 1024  # 500MB
-        else:
-            result.st_size = 50 * 1024 * 1024  # 50MB
-        return result
-
-    with patch.object(Path, "stat", mock_stat_method):
-        # Find images smaller than 1GB
-        small_images = state.find_small_consolidated_images(1024 * 1024 * 1024)
-    assert len(small_images) == 2
-    assert small_image in small_images
-    assert medium_image in small_images
-    assert large_image not in small_images
-    assert non_consol not in small_images
+    # Find images smaller than 100KB
+    small_images = state.find_small_consolidated_images(1024 * 100)
+    assert set(small_images) == {small_image, medium_image}

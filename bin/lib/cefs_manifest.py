@@ -359,7 +359,7 @@ def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
         return None
 
     try:
-        with open(manifest_path, encoding="utf-8") as f:
+        with manifest_path.open(encoding="utf-8") as f:
             manifest_dict = yaml.safe_load(f)
 
         # Validate the manifest
