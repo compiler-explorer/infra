@@ -108,7 +108,7 @@ class CEFSState:
                 if image_path:
                     self.broken_images.append(image_path)
                     self.referenced_images.add(filename_stem)
-                    _LOGGER.error("BROKEN IMAGE: %s has empty manifest - needs investigation", image_path)
+                    _LOGGER.error("BROKEN IMAGE: %s has invalid manifest - needs investigation", image_path)
                 continue
 
             for dest_path in expected_destinations:

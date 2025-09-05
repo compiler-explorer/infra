@@ -653,7 +653,7 @@ def gc(context: CliContext, force: bool, min_age: str):
     if state.broken_images:
         _LOGGER.error("")
         _LOGGER.error("=" * 60)
-        _LOGGER.error("CRITICAL: Found %d broken images without manifests", len(state.broken_images))
+        _LOGGER.error("CRITICAL: Found %d broken images with missing or invalid manifests", len(state.broken_images))
         _LOGGER.error("These require manual investigation:")
         for broken_image in state.broken_images:
             _LOGGER.error("  - %s", broken_image)
