@@ -262,26 +262,29 @@ def rollback(context: CliContext, filter_: list[str]):
     rollback_details = []  # Track details for summary
 
     for installable in installables:
-        # Only process installed installables
-        if not installable.is_installed():
-            _LOGGER.debug("Skipping %s - not installed", installable.name)
-            skipped += 1
-            continue
-
         nfs_path = context.installation_context.destination / installable.install_path
         backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
-        _LOGGER.info("Rolling back %s...", installable.name)
+        _LOGGER.info("Checking %s for rollback...", installable.name)
 
-        if not nfs_path.is_symlink():
-            _LOGGER.info("Skipping %s - not a CEFS symlink", installable.name)
+        # Check if this is a CEFS installation (symlink exists)
+        if not nfs_path.exists():
+            _LOGGER.debug("Skipping %s - path does not exist", installable.name)
             skipped += 1
             continue
 
+        if not nfs_path.is_symlink():
+            _LOGGER.debug("Skipping %s - not a CEFS symlink (is a regular directory/file)", installable.name)
+            skipped += 1
+            continue
+
+        # Check if we can rollback (backup exists)
         if not backup_path.exists():
-            _LOGGER.error("No backup found for %s at %s", installable.name, backup_path)
+            _LOGGER.error("Cannot rollback %s - no backup found at %s", installable.name, backup_path)
             failed += 1
             continue
+
+        _LOGGER.info("Rolling back %s...", installable.name)
 
         # Track where the symlink points for reporting
         try:
@@ -315,8 +318,9 @@ def rollback(context: CliContext, filter_: list[str]):
             _LOGGER.info("Restoring from backup: %s -> %s", backup_path, nfs_path)
             backup_path.rename(nfs_path)
 
-            # Verify restoration
-            if installable.is_installed():
+            # Verify restoration - check that path exists (can be directory or symlink)
+            # and that backup no longer exists (was successfully renamed)
+            if nfs_path.exists() and not backup_path.exists():
                 _LOGGER.info("Successfully rolled back %s", installable.name)
                 rollback_details.append({
                     "name": installable.name,
@@ -326,7 +330,7 @@ def rollback(context: CliContext, filter_: list[str]):
                 })
                 successful += 1
             else:
-                _LOGGER.error("Rollback validation failed for %s", installable.name)
+                _LOGGER.error("Rollback validation failed for %s - restoration incomplete", installable.name)
                 rollback_details.append({
                     "name": installable.name,
                     "status": "validation_failed",

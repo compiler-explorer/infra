@@ -175,11 +175,24 @@ def test_read_manifest_from_alongside_nonexistent():
 
 
 def test_read_manifest_from_alongside_invalid_yaml(tmp_path):
+    """Test read_manifest_from_alongside with invalid YAML returns None."""
     image_path = tmp_path / "test_image.sqfs"
     manifest_path = image_path.with_suffix(".yaml")
 
-    # Write invalid YAML
     manifest_path.write_text("invalid: yaml: content: [")
 
-    with pytest.raises(yaml.YAMLError):
-        read_manifest_from_alongside(image_path)
+    assert read_manifest_from_alongside(image_path) is None
+
+
+def test_read_manifest_from_alongside_invalid_manifest(tmp_path):
+    """Test read_manifest_from_alongside with invalid manifest content returns None."""
+    image_path = tmp_path / "test_image.sqfs"
+    manifest_path = image_path.with_suffix(".yaml")
+
+    invalid_manifest = {
+        "version": 1,
+        "contents": [{"name": "gcc", "destination": "/opt/compiler-explorer/gcc-10.1.0"}],
+    }
+    manifest_path.write_text(yaml.dump(invalid_manifest))
+
+    assert read_manifest_from_alongside(image_path) is None

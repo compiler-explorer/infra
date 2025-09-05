@@ -362,18 +362,17 @@ def read_manifest_from_alongside(image_path: Path) -> dict[str, Any] | None:
         with manifest_path.open(encoding="utf-8") as f:
             manifest_dict = yaml.safe_load(f)
 
-        # Validate the manifest
         validate_manifest(manifest_dict)
         return manifest_dict
     except ValueError as e:
         _LOGGER.error("Invalid manifest in %s: %s", manifest_path, e)
-        raise
+        return None
     except OSError as e:
         _LOGGER.error("Failed to read manifest file %s: %s", manifest_path, e)
-        raise
+        return None
     except yaml.YAMLError as e:
         _LOGGER.error("Invalid YAML in manifest file %s: %s", manifest_path, e)
-        raise
+        return None
 
 
 def create_installable_manifest_entry(installable_name: str, destination_path: Path) -> dict[str, str]:
