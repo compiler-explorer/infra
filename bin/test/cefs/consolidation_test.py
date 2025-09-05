@@ -26,7 +26,7 @@ from lib.cefs.models import ConsolidationCandidate
 from lib.cefs.state import CEFSState
 from lib.cefs_manifest import sanitize_path_for_filename
 
-from test.cefs_test_helpers import make_test_manifest, write_manifest_alongside_image
+from test.cefs.test_helpers import make_test_manifest, write_manifest_alongside_image
 
 
 def test_is_consolidated_image(tmp_path):

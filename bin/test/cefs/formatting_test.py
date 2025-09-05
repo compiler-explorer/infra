@@ -12,7 +12,7 @@ from lib.cefs.formatting import (
     get_image_description_from_manifest,
 )
 
-from test.cefs_test_helpers import make_test_manifest
+from test.cefs.test_helpers import make_test_manifest
 
 
 def test_get_image_description_from_manifest(tmp_path):

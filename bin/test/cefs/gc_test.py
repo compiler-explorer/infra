@@ -17,7 +17,7 @@ from lib.cefs.gc import (
 from lib.cefs.state import CEFSState
 from pytest import approx
 
-from test.cefs_test_helpers import make_test_manifest
+from test.cefs.test_helpers import make_test_manifest
 
 
 def test_age_filtering_logic(tmp_path):

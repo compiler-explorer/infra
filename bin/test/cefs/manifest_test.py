@@ -21,7 +21,7 @@ from lib.cefs_manifest import (
     write_manifest_inprogress,
 )
 
-from test.cefs_test_helpers import make_test_manifest
+from test.cefs.test_helpers import make_test_manifest
 
 
 def test_write_and_finalize_manifest(tmp_path):

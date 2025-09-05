@@ -11,7 +11,7 @@ import yaml
 from lib.cefs.gc import check_if_symlink_references_image
 from lib.cefs.state import CEFSState
 
-from test.cefs_test_helpers import make_test_manifest
+from test.cefs.test_helpers import make_test_manifest
 
 
 def test_cefs_state_init():

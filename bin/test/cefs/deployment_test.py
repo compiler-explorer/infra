@@ -14,7 +14,7 @@ from lib.cefs.deployment import (
     verify_symlinks_unchanged,
 )
 
-from test.cefs_test_helpers import make_test_manifest
+from test.cefs.test_helpers import make_test_manifest
 
 
 def test_has_enough_space():
