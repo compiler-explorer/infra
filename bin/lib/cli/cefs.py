@@ -54,19 +54,80 @@ def _print_basic_config(context: CliContext) -> None:
     click.echo(f"  Compression Level: {context.config.squashfs.compression_level}")
 
 
+def _find_symlinks_for_broken_image(state: CEFSState, image_stem: str) -> list[tuple[Path, str]]:
+    """Find all symlinks pointing to a broken CEFS image."""
+    result = []
+    patterns = ["*" if d == 0 else "/".join(["*"] * d) + "/*" for d in range(4)]
+
+    for pattern in patterns:
+        for path in state.nfs_dir.glob(pattern):
+            if not path.is_symlink():
+                continue
+            try:
+                target = str(path.readlink())
+                if image_stem not in target:
+                    continue
+                # Extract subdirectory from target path
+                parts = target.split("/")
+                subdir = "/".join(parts[4:]) if len(parts) > 4 and "/cefs/" in target else "root"
+                result.append((path, subdir))
+            except (OSError, ValueError):
+                continue
+
+    return sorted(result)
+
+
+def _show_broken_installations(state: CEFSState, context: CliContext) -> None:
+    """Show installations using broken CEFS images."""
+    if not state.broken_images:
+        click.echo("\nNo broken CEFS images found.")
+        return
+
+    click.echo("\nBroken CEFS Images and Affected Installations:")
+    click.echo("=" * 60)
+
+    for broken_image in state.broken_images:
+        image_stem = broken_image.stem
+        is_referenced = image_stem in state.referenced_images
+
+        click.echo(f"\n{broken_image.name}")
+        click.echo(f"  Status: {'REFERENCED (in use)' if is_referenced else 'UNREFERENCED (can be deleted)'}")
+
+        if not is_referenced:
+            continue
+
+        symlinks = _find_symlinks_for_broken_image(state, image_stem)
+        if not symlinks:
+            continue
+
+        click.echo("  Affected installations:")
+        for symlink_path, subdir in symlinks:
+            suffix = " (backup)" if symlink_path.name.endswith(".bak") else ""
+            click.echo(f"    - {symlink_path}{suffix} -> {subdir}")
+
+            if not suffix:  # Only check for backups on main symlinks
+                backup_path = symlink_path.with_name(symlink_path.name + ".bak")
+                if backup_path.exists():
+                    click.echo(f"      [Has backup: {backup_path}]")
+
+    click.echo("\n" + "=" * 60)
+    click.echo("\nRecommendations:")
+    click.echo("  • For installations with backups: use 'ce cefs rollback FILTER' to restore")
+    click.echo("  • For installations without backups: reinstall with 'ce install FILTER'")
+    click.echo("  • After fixing all references, run 'ce cefs gc --include-broken' to clean up")
+
+
 @cefs.command()
 @click.pass_obj
 @click.option("--show-usage", is_flag=True, help="Show detailed usage statistics for CEFS images")
 @click.option("--verbose", is_flag=True, help="Show per-image details when using --show-usage")
-def status(context, show_usage: bool, verbose: bool):
+@click.option("--show-broken", is_flag=True, help="Show installations using broken CEFS images")
+def status(context, show_usage: bool, verbose: bool, show_broken: bool):
     """Show CEFS configuration status."""
     _print_basic_config(context)
 
-    if not show_usage:
+    if not show_usage and not show_broken:
         return
-
-    click.echo("\nCEFS Image Usage Statistics:")
-    click.echo("  Scanning images and checking references...")
 
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
@@ -75,12 +136,21 @@ def status(context, show_usage: bool, verbose: bool):
     )
 
     state.scan_cefs_images_with_manifests()
-    state.check_symlink_references()
 
-    stats = state.get_usage_stats()
-    output_lines = format_usage_statistics(stats, state, verbose, context.config.cefs.mount_point)
-    for line in output_lines:
-        click.echo(line)
+    if show_broken:
+        # Use include_broken=True to get actual references
+        state.check_symlink_references(include_broken=True)
+        _show_broken_installations(state, context)
+    else:
+        state.check_symlink_references()
+
+    if show_usage:
+        click.echo("\nCEFS Image Usage Statistics:")
+        click.echo("  Scanning images and checking references...")
+        stats = state.get_usage_stats()
+        output_lines = format_usage_statistics(stats, state, verbose, context.config.cefs.mount_point)
+        for line in output_lines:
+            click.echo(line)
 
 
 @cefs.command()
@@ -609,7 +679,8 @@ def consolidate(
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
 @click.option("--min-age", default="1h", help="Minimum age of images to consider for deletion (e.g., 1h, 30m, 1d)")
-def gc(context: CliContext, force: bool, min_age: str):
+@click.option("--include-broken", is_flag=True, help="Include unreferenced broken images in garbage collection")
+def gc(context: CliContext, force: bool, min_age: str, include_broken: bool):
     """Garbage collect unreferenced CEFS images using manifests.
 
     Reads manifest files from CEFS images to determine expected symlink locations,
@@ -639,8 +710,11 @@ def gc(context: CliContext, force: bool, min_age: str):
     _LOGGER.info("Scanning CEFS images directory and reading manifests...")
     state.scan_cefs_images_with_manifests()
 
-    _LOGGER.info("Checking symlink references...")
-    state.check_symlink_references()
+    if include_broken:
+        _LOGGER.info("Checking symlink references (--include-broken: will scan for actual usage of broken images)...")
+    else:
+        _LOGGER.info("Checking symlink references...")
+    state.check_symlink_references(include_broken=include_broken)
 
     if state.inprogress_images:
         _LOGGER.warning("Found %d in-progress operations (these will NOT be deleted):", len(state.inprogress_images))
@@ -658,7 +732,13 @@ def gc(context: CliContext, force: bool, min_age: str):
         _LOGGER.error("")
         _LOGGER.error("=" * 60)
         _LOGGER.error("CRITICAL: Found %d broken images with missing or invalid manifests", len(state.broken_images))
-        _LOGGER.error("These require manual investigation:")
+        if include_broken:
+            _LOGGER.error("With --include-broken: Unreferenced broken images WILL be deleted")
+        else:
+            _LOGGER.error(
+                "These are protected from deletion (use --include-broken to allow GC of unreferenced broken images)"
+            )
+        _LOGGER.error("Broken images:")
         for broken_image in state.broken_images:
             _LOGGER.error("  - %s", broken_image)
         _LOGGER.error("=" * 60)
@@ -823,12 +903,13 @@ def format_cleanup_item(item: FileWithAge | tuple | Path) -> str:
     return f"    • {item}"
 
 
-def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
+def display_fsck_results(results: FSCKResults, verbose: bool, state: CEFSState) -> None:
     """Display FSCK results in a structured format.
 
     Args:
         results: FSCKResults object containing all validation results
         verbose: Whether to show verbose output
+        state: CEFSState object for checking references
     """
     # Print organized summary
     click.echo("\n" + "=" * 60)
@@ -942,13 +1023,42 @@ def display_fsck_results(results: FSCKResults, verbose: bool) -> None:
     click.echo("\n💡 Recommendations:")
 
     if results.invalid_name_manifests or results.old_format_manifests:
-        click.echo("  • WARNING: These consolidated images contain active compilers but have broken manifests")
-        click.echo("  • Items in these images CANNOT be included in reconsolidation operations")
-        click.echo("  • To recover these items:")
-        click.echo("    1. Identify which compilers are affected (check symlinks pointing to these images)")
-        click.echo("    2. Consider re-installing affected compilers to create proper manifests")
-        click.echo("    3. Once reinstalled, the old broken images can be garbage collected")
-        click.echo("  • Until fixed, these compilers work normally but cannot be reconsolidated")
+        # Check if any broken images are actually referenced
+        broken_manifests = [m[0] for m in results.invalid_name_manifests] + results.old_format_manifests
+        referenced_broken = []
+        unreferenced_broken = []
+
+        for manifest_path in broken_manifests:
+            image_path = manifest_path.with_suffix(".sqfs")
+            if image_path.exists():
+                image_stem = image_path.stem
+                # Check if this image is referenced (similar to state.referenced_images)
+                try:
+                    if state.is_image_referenced(image_stem):
+                        referenced_broken.append(image_path.name)
+                    else:
+                        unreferenced_broken.append(image_path.name)
+                except ValueError:
+                    # Image has no manifest data, treat as unreferenced
+                    unreferenced_broken.append(image_path.name)
+
+        if referenced_broken:
+            click.echo("  • WARNING: These images have broken manifests and are currently in use:")
+            for image_name in referenced_broken[:3]:
+                click.echo(f"    - {image_name}")
+            if len(referenced_broken) > 3:
+                click.echo(f"    ... and {len(referenced_broken) - 3} more")
+            click.echo("  • Compilers using these images work normally but cannot be reconsolidated")
+            click.echo("  • To fix: reinstall affected compilers, then run 'ce cefs gc --include-broken'")
+
+        if unreferenced_broken:
+            click.echo("  • These images have broken manifests and are NOT currently referenced:")
+            for image_name in unreferenced_broken[:3]:
+                click.echo(f"    - {image_name}")
+            if len(unreferenced_broken) > 3:
+                click.echo(f"    ... and {len(unreferenced_broken) - 3} more")
+            click.echo("  • These images can be safely deleted")
+            click.echo("  • Run 'ce cefs gc --include-broken' to remove them")
 
     if results.missing_manifests:
         click.echo("  • Images without manifests cannot be reconsolidated")
@@ -998,6 +1108,7 @@ def fsck(
         mount_point=context.config.cefs.mount_point,
     )
     state.scan_cefs_images_with_manifests()
+    state.check_symlink_references()
 
     if verbose:
         click.echo("\n🔍 Scanning CEFS images and validating manifests...")
@@ -1013,7 +1124,7 @@ def fsck(
             results,
         )
 
-    display_fsck_results(results, verbose)
+    display_fsck_results(results, verbose, state)
 
     # Exit with appropriate code
     if results.has_issues:

@@ -138,10 +138,10 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
                 _LOGGER.info("Renamed old backup %s to %s for deferred cleanup", backup_path, delete_me_path)
             else:
                 # Original behavior: delete immediately
-                if backup_path.is_dir():
-                    shutil.rmtree(backup_path)
-                else:
+                if backup_path.is_symlink():
                     backup_path.unlink()
+                else:
+                    shutil.rmtree(backup_path)
 
         # Backup current directory (or symlink) if it exists. Follow symlinks=False here to account for broken symlinks
         if nfs_path.exists(follow_symlinks=False):
