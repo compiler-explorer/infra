@@ -15,26 +15,23 @@ import click
 import humanfriendly
 
 from lib.ce_install import CliContext, cli
-from lib.cefs import (
-    CEFSState,
+from lib.cefs.consolidation import (
     ConsolidationCandidate,
-    FileWithAge,
-    FSCKResults,
-    convert_to_cefs,
-    delete_image_with_manifest,
-    filter_images_by_age,
-    format_image_contents_string,
-    format_usage_statistics,
-    gather_reconsolidation_candidates,
-    get_image_description,
     pack_items_into_groups,
-    parse_cefs_target,
     process_consolidation_group,
-    run_fsck_validation,
-    snapshot_symlink_targets,
-    validate_cefs_mount_point,
     validate_space_requirements,
 )
+from lib.cefs.conversion import convert_to_cefs
+from lib.cefs.deployment import snapshot_symlink_targets
+from lib.cefs.formatting import (
+    format_image_contents_string,
+    format_usage_statistics,
+    get_image_description,
+)
+from lib.cefs.fsck import FSCKResults, run_fsck_validation
+from lib.cefs.gc import delete_image_with_manifest, filter_images_by_age
+from lib.cefs.paths import FileWithAge, parse_cefs_target, validate_cefs_mount_point
+from lib.cefs.state import CEFSState
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -501,8 +498,8 @@ def consolidate(
         recon_state.scan_cefs_images_with_manifests()
         recon_state.check_symlink_references()
 
-        recon_candidates = gather_reconsolidation_candidates(
-            recon_state, efficiency_threshold, max_size_bytes, undersized_ratio, filter_
+        recon_candidates = recon_state.gather_reconsolidation_candidates(
+            efficiency_threshold, max_size_bytes, undersized_ratio, filter_
         )
 
         if recon_candidates:

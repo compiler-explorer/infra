@@ -20,12 +20,8 @@ import requests.adapters
 import requests_cache
 import yaml
 
-from lib.cefs import (
-    backup_and_symlink,
-    deploy_to_cefs_transactional,
-    get_cefs_filename_for_image,
-    get_cefs_paths,
-)
+from lib.cefs.deployment import backup_and_symlink, deploy_to_cefs_transactional
+from lib.cefs.paths import get_cefs_filename_for_image, get_cefs_paths
 from lib.cefs_manifest import (
     create_installable_manifest_entry,
     create_manifest,
