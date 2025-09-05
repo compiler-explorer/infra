@@ -67,28 +67,22 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
     Returns:
         Dictionary with extraction metrics and status
     """
-    # Set up logging for worker process
     logger = logging.getLogger(__name__)
-
-    # Unpack and convert arguments back from strings
     unsquashfs_path, squashfs_path_str, subdir_path_str, extraction_path_str, subdir_name, nfs_path_str = args
 
     squashfs_path = Path(squashfs_path_str)
     subdir_path = Path(subdir_path_str)
     extraction_path = Path(extraction_path_str) if extraction_path_str else None
 
-    # Create minimal config for extraction
     config = SquashfsConfig(
-        mksquashfs_path="",  # Not needed for extraction
+        mksquashfs_path="",
         unsquashfs_path=unsquashfs_path,
-        compression="",  # Not needed for extraction
-        compression_level=0,  # Not needed for extraction
+        compression="",
+        compression_level=0,
     )
 
     try:
         compressed_size = squashfs_path.stat().st_size
-
-        # Check if this is a partial extraction
         is_partial_extraction = extraction_path is not None and extraction_path != Path(".")
 
         if is_partial_extraction:
@@ -108,19 +102,15 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
             )
 
         extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
-
-        # Measure extracted size
         extracted_size = get_directory_size(subdir_path)
 
         if is_partial_extraction:
-            # For partial extractions, don't calculate misleading compression ratios
             logger.info(
                 "Partially extracted %s (%s from %s total image)",
                 extraction_path,
                 humanfriendly.format_size(extracted_size, binary=True),
                 humanfriendly.format_size(compressed_size, binary=True),
             )
-            # Don't include compressed_size in stats for partial extractions
             return ExtractionResult(
                 success=True,
                 nfs_path=nfs_path_str,
@@ -130,24 +120,24 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
                 compression_ratio=0.0,
                 is_partial=True,
             )
-        else:
-            compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
-            logger.info(
-                "Extracted %s -> %s (%.1fx compression)",
-                humanfriendly.format_size(compressed_size, binary=True),
-                humanfriendly.format_size(extracted_size, binary=True),
-                compression_ratio,
-            )
-            return ExtractionResult(
-                success=True,
-                nfs_path=nfs_path_str,
-                subdir_name=subdir_name,
-                compressed_size=compressed_size,
-                extracted_size=extracted_size,
-                compression_ratio=compression_ratio,
-                is_partial=False,
-            )
-    except Exception as e:
+
+        compression_ratio = extracted_size / compressed_size if compressed_size > 0 else 0
+        logger.info(
+            "Extracted %s -> %s (%.1fx compression)",
+            humanfriendly.format_size(compressed_size, binary=True),
+            humanfriendly.format_size(extracted_size, binary=True),
+            compression_ratio,
+        )
+        return ExtractionResult(
+            success=True,
+            nfs_path=nfs_path_str,
+            subdir_name=subdir_name,
+            compressed_size=compressed_size,
+            extracted_size=extracted_size,
+            compression_ratio=compression_ratio,
+            is_partial=False,
+        )
+    except RuntimeError as e:
         logger.error("Failed to extract %s: %s", squashfs_path, e)
         return ExtractionResult(
             success=False,
@@ -179,7 +169,6 @@ def create_consolidated_image(
     extraction_dir = temp_dir / "extract"
     extraction_dir.mkdir(parents=True, exist_ok=True)
 
-    # Determine number of workers
     if max_parallel_extractions is None:
         max_parallel_extractions = os.cpu_count() or 1
     num_workers = min(max_parallel_extractions, len(items))
@@ -187,21 +176,18 @@ def create_consolidated_image(
     _LOGGER.info("Starting parallel extraction with %d workers for %d items", num_workers, len(items))
 
     try:
-        # Prepare extraction tasks (serialize paths as strings for pickling)
-        extraction_tasks = []
-        for nfs_path, squashfs_path, subdir_name, extraction_path in items:
-            subdir_path = extraction_dir / subdir_name
-            args = (
+        extraction_tasks = [
+            (
                 squashfs_config.unsquashfs_path,
                 str(squashfs_path),
-                str(subdir_path),
+                str(extraction_dir / subdir_name),
                 str(extraction_path) if extraction_path else None,
                 subdir_name,
                 str(nfs_path),
             )
-            extraction_tasks.append(args)
+            for nfs_path, squashfs_path, subdir_name, extraction_path in items
+        ]
 
-        # Extract squashfs images in parallel
         total_compressed_size = 0
         total_extracted_size = 0
         partial_extractions_count = 0
@@ -209,34 +195,14 @@ def create_consolidated_image(
         failed_extractions = []
 
         with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            # Submit all extraction tasks
             future_to_args = {executor.submit(_extract_single_squashfs, args): args for args in extraction_tasks}
 
-            # Process results as they complete
             completed = 0
             for future in as_completed(future_to_args):
                 completed += 1
                 result = future.result()
 
-                if result.success:
-                    if result.is_partial:
-                        # Track partial extractions separately
-                        partial_extractions_count += 1
-                        partial_extracted_size += result.extracted_size
-                    else:
-                        # Only count full extractions for compression stats
-                        total_compressed_size += result.compressed_size
-
-                    # Always add extracted size for total
-                    total_extracted_size += result.extracted_size
-
-                    _LOGGER.info(
-                        "[%d/%d] Completed extraction of %s",
-                        completed,
-                        len(items),
-                        result.subdir_name,
-                    )
-                else:
+                if not result.success:
                     failed_extractions.append(result)
                     _LOGGER.error(
                         "[%d/%d] Failed to extract %s: %s",
@@ -245,15 +211,29 @@ def create_consolidated_image(
                         result.subdir_name,
                         result.error or "Unknown error",
                     )
+                    continue
 
-        # Check for failures
+                if result.is_partial:
+                    partial_extractions_count += 1
+                    partial_extracted_size += result.extracted_size
+                else:
+                    total_compressed_size += result.compressed_size
+
+                total_extracted_size += result.extracted_size
+
+                _LOGGER.info(
+                    "[%d/%d] Completed extraction of %s",
+                    completed,
+                    len(items),
+                    result.subdir_name,
+                )
+
         if failed_extractions:
             raise RuntimeError(
                 f"Failed to extract {len(failed_extractions)} of {len(items)} squashfs images: "
                 + ", ".join(f.subdir_name for f in failed_extractions)
             )
 
-        # Log total extraction summary
         if partial_extractions_count > 0:
             _LOGGER.info(
                 "Extraction summary: %d partial extractions (%s), %d full extractions",
@@ -263,7 +243,6 @@ def create_consolidated_image(
             )
 
         if total_compressed_size > 0:
-            # Only show compression ratio for full extractions
             full_extracted_size = total_extracted_size - partial_extracted_size
             compression_ratio = full_extracted_size / total_compressed_size if total_compressed_size > 0 else 0
             _LOGGER.info(
@@ -278,21 +257,17 @@ def create_consolidated_image(
             humanfriendly.format_size(total_extracted_size, binary=True),
         )
 
-        # Create consolidated squashfs image
         _LOGGER.info("Creating consolidated squashfs image at %s", output_path)
         create_squashfs_image(squashfs_config, extraction_dir, output_path)
 
-        # Log final consolidation compression ratio
         consolidated_size = output_path.stat().st_size
 
-        # Calculate meaningful compression ratios
         _LOGGER.info("Consolidation complete:")
         _LOGGER.info(
             "  Final image size: %s",
             humanfriendly.format_size(consolidated_size, binary=True),
         )
 
-        # Compression of extracted data (this is the real compression achieved)
         data_compression_ratio = total_extracted_size / consolidated_size if consolidated_size > 0 else 0
         _LOGGER.info(
             "  Data compression: %s -> %s (%.1fx)",
@@ -301,7 +276,6 @@ def create_consolidated_image(
             data_compression_ratio,
         )
 
-        # If we have full extractions, show space savings
         if total_compressed_size > 0:
             space_savings_ratio = total_compressed_size / consolidated_size if consolidated_size > 0 else 0
             _LOGGER.info(
@@ -312,7 +286,6 @@ def create_consolidated_image(
             )
 
     finally:
-        # Clean up extraction directory
         if extraction_dir.exists():
             shutil.rmtree(extraction_dir)
             _LOGGER.debug("Cleaned up extraction directory: %s", extraction_dir)
@@ -343,7 +316,6 @@ def update_symlinks_for_consolidation(
             continue
 
         subdir_name = subdir_mapping[symlink_path]
-        # New target: {mount_point}/XX/HASH_consolidated/subdir_name
         new_target = get_cefs_mount_path(mount_point, consolidated_filename) / subdir_name
 
         try:
@@ -365,11 +337,10 @@ def is_consolidated_image(image_path: Path) -> bool:
     Returns:
         True if this is a consolidated image, False otherwise
     """
-    # Check filename pattern first (fast)
+    # TODO why are we checking this?
     if "_consolidated" in image_path.name:
         return True
 
-    # Check manifest for multiple contents (also fast)
     try:
         manifest = read_manifest_from_alongside(image_path)
         if manifest and "contents" in manifest:
@@ -399,7 +370,6 @@ def calculate_image_usage(image_path: Path, image_references: dict[str, list[Pat
     if not expected_destinations:
         return 0.0
 
-    # Helper function to check if destination is referenced
     def is_destination_referenced(dest_path: Path) -> bool:
         full_path = Path(dest_path)
         main_ref = check_if_symlink_references_image(full_path, filename_stem, mount_point)
@@ -407,11 +377,9 @@ def calculate_image_usage(image_path: Path, image_references: dict[str, list[Pat
         bak_ref = check_if_symlink_references_image(bak_path, filename_stem, mount_point)
         return main_ref or bak_ref
 
-    # For individual images, it's binary
     if len(expected_destinations) == 1:
         return 100.0 if is_destination_referenced(expected_destinations[0]) else 0.0
 
-    # For consolidated images, check each subdirectory
     referenced_count = sum(1 for dest in expected_destinations if is_destination_referenced(dest))
     return (referenced_count / len(expected_destinations)) * 100.0
 
@@ -487,13 +455,12 @@ def get_consolidated_item_status(
 
     if is_item_still_using_image(current_target, image_path, mount_point):
         return f"          ✓ {content['name']}"
-    else:
-        mount_str = str(mount_point) + "/"
-        if current_target and str(current_target).startswith(mount_str):
-            replacement_info = str(current_target).replace(mount_str, "")
-            return f"          ✗ {content['name']} → replaced by {replacement_info}"
-        else:
-            return f"          ✗ {content['name']} → not in CEFS"
+
+    mount_str = str(mount_point) + "/"
+    if current_target and str(current_target).startswith(mount_str):
+        replacement_info = str(current_target).replace(mount_str, "")
+        return f"          ✗ {content['name']} → replaced by {replacement_info}"
+    return f"          ✗ {content['name']} → not in CEFS"
 
 
 def should_reconsolidate_image(
@@ -513,9 +480,9 @@ def should_reconsolidate_image(
     """
     if usage == 0:
         return False, ""
-    elif usage / 100.0 < efficiency_threshold:
+    if usage / 100.0 < efficiency_threshold:
         return True, f"low efficiency ({usage:.1f}%)"
-    elif size < max_size_bytes * undersized_ratio:
+    if size < max_size_bytes * undersized_ratio:
         return True, f"undersized ({humanfriendly.format_size(size, binary=True)})"
     return False, ""
 
@@ -596,26 +563,25 @@ def extract_candidates_from_manifest(
         _LOGGER.warning("Skipping reconsolidation from %s: %s", image_path, e)
         return []
 
-    candidates = []
     contents = manifest.get("contents", [])
     item_size = size // len(contents) if contents else 0  # Estimate size per item
 
+    candidates = []
     for content in contents:
         should_include, targets = should_include_manifest_item(content, image_path, mount_point, filter_)
         if not should_include:
             continue
 
-        dest_path = Path(content["destination"])
-        extraction_path = determine_extraction_path(targets, image_path, mount_point)
-        candidate = ConsolidationCandidate(
-            name=content["name"],
-            nfs_path=dest_path,
-            squashfs_path=image_path,
-            extraction_path=extraction_path,
-            size=item_size,
-            from_reconsolidation=True,
+        candidates.append(
+            ConsolidationCandidate(
+                name=content["name"],
+                nfs_path=Path(content["destination"]),
+                squashfs_path=image_path,
+                extraction_path=determine_extraction_path(targets, image_path, mount_point),
+                size=item_size,
+                from_reconsolidation=True,
+            )
         )
-        candidates.append(candidate)
 
     return candidates
 
@@ -817,6 +783,57 @@ def handle_symlink_updates(
     return updated_symlinks, skipped_symlinks
 
 
+def _perform_safety_check_and_rollback(
+    group: list[ConsolidationCandidate],
+    group_idx: int,
+    find_installable_func: Callable[[str], Any],
+    updated: int,
+) -> int:
+    """Perform safety check and rollback if needed.
+
+    Returns:
+        Updated count after any rollbacks
+    """
+    _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
+    failed_items = []
+
+    for item in group:
+        try:
+            installable = find_installable_func(item.name)
+            if not installable.is_installed():
+                failed_items.append((item.name, item.nfs_path))
+                _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
+        except ValueError as e:
+            _LOGGER.error("Failed to find installable for validation: %s", e)
+            failed_items.append((item.name, item.nfs_path))
+
+    if not failed_items:
+        return updated
+
+    _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
+    rollback_count = 0
+    for name, symlink_path in failed_items:
+        backup_path = Path(str(symlink_path) + ".bak")
+        if not backup_path.exists():
+            _LOGGER.warning("No backup found for %s, cannot rollback", name)
+            continue
+
+        try:
+            if symlink_path.exists() or symlink_path.is_symlink():
+                symlink_path.unlink()
+            backup_path.rename(symlink_path)
+            _LOGGER.info("Rolled back symlink for %s from backup", name)
+            rollback_count += 1
+            updated -= 1
+        except OSError as e:
+            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
+
+    if rollback_count < len(failed_items):
+        _LOGGER.error("Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1)
+
+    return updated
+
+
 def _deploy_consolidated_image(
     temp_consolidated_path: Path,
     cefs_paths: CEFSPaths,
@@ -856,52 +873,8 @@ def _deploy_consolidated_image(
             group, symlink_snapshot, filename, mount_point, subdir_mapping, defer_backup_cleanup
         )
 
-        # Post-consolidation safety check even for existing images
-        # Skip this check in dry-run mode
         if not dry_run and updated > 0:
-            _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
-            failed_items = []
-
-            for item in group:
-                try:
-                    # Find the installable by exact name
-                    installable = find_installable_func(item.name)
-
-                    # Check if it reports as installed using the canonical check
-                    if not installable.is_installed():
-                        failed_items.append((item.name, item.nfs_path))
-                        _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
-                except ValueError as e:
-                    # This is a hard error - we can't find the installable or found multiple
-                    _LOGGER.error("Failed to find installable for validation: %s", e)
-                    failed_items.append((item.name, item.nfs_path))
-
-            # Rollback failed items individually
-            if failed_items:
-                _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
-                rollback_count = 0
-                for name, symlink_path in failed_items:
-                    # Try to restore from backup
-                    backup_path = Path(str(symlink_path) + ".bak")
-                    if backup_path.exists():
-                        try:
-                            # Remove the broken symlink
-                            if symlink_path.exists() or symlink_path.is_symlink():
-                                symlink_path.unlink()
-                            # Restore the backup
-                            backup_path.rename(symlink_path)
-                            _LOGGER.info("Rolled back symlink for %s from backup", name)
-                            rollback_count += 1
-                            updated -= 1  # Decrement the updated count
-                        except OSError as e:
-                            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
-                    else:
-                        _LOGGER.warning("No backup found for %s, cannot rollback", name)
-
-                if rollback_count < len(failed_items):
-                    _LOGGER.error(
-                        "Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1
-                    )
+            updated = _perform_safety_check_and_rollback(group, group_idx, find_installable_func, updated)
 
         return updated, skipped
 
@@ -917,53 +890,8 @@ def _deploy_consolidated_image(
         if updated:
             _LOGGER.info("Updated %d symlinks for group %d", updated, group_idx + 1)
 
-        # Post-consolidation safety check: verify all installables report as installed
-        # Skip this check in dry-run mode
         if not dry_run:
-            _LOGGER.info("Running post-consolidation safety checks for group %d", group_idx + 1)
-            failed_items = []
-
-            for item in group:
-                try:
-                    # Find the installable by exact name
-                    installable = find_installable_func(item.name)
-
-                    # Check if it reports as installed using the canonical check
-                    if not installable.is_installed():
-                        failed_items.append((item.name, item.nfs_path))
-                        _LOGGER.error("Post-consolidation check failed: %s reports not installed", item.name)
-                except ValueError as e:
-                    # This is a hard error - we can't find the installable or found multiple
-                    _LOGGER.error("Failed to find installable for validation: %s", e)
-                    failed_items.append((item.name, item.nfs_path))
-
-            # Rollback failed items individually
-            if failed_items:
-                _LOGGER.warning("Found %d items failing is_installed() check, attempting rollback", len(failed_items))
-                rollback_count = 0
-                for name, symlink_path in failed_items:
-                    # Try to restore from backup
-                    backup_path = Path(str(symlink_path) + ".bak")
-                    if backup_path.exists():
-                        try:
-                            # Remove the broken symlink
-                            if symlink_path.exists() or symlink_path.is_symlink():
-                                symlink_path.unlink()
-                            # Restore the backup
-                            backup_path.rename(symlink_path)
-                            _LOGGER.info("Rolled back symlink for %s from backup", name)
-                            rollback_count += 1
-                            updated -= 1  # Decrement the updated count
-                        except OSError as e:
-                            _LOGGER.error("Failed to rollback symlink for %s: %s", name, e)
-                    else:
-                        _LOGGER.warning("No backup found for %s, cannot rollback", name)
-
-                if rollback_count < len(failed_items):
-                    _LOGGER.error(
-                        "Failed to rollback %d items for group %d", len(failed_items) - rollback_count, group_idx + 1
-                    )
-                    # Don't fail the entire consolidation, but log the issue prominently
+            updated = _perform_safety_check_and_rollback(group, group_idx, find_installable_func, updated)
 
         return updated, skipped
 
