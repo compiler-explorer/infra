@@ -328,27 +328,16 @@ def update_symlinks_for_consolidation(
 def is_consolidated_image(image_path: Path) -> bool:
     """Check if a CEFS image is a consolidated image.
 
-    Consolidated images have 'consolidated' in their filename or contain
-    multiple subdirectories when mounted.
-
     Args:
         image_path: Path to the CEFS image
 
     Returns:
         True if this is a consolidated image, False otherwise
     """
-    # TODO why are we checking this?
-    if "_consolidated" in image_path.name:
-        return True
-
     try:
-        manifest = read_manifest_from_alongside(image_path)
-        if manifest and "contents" in manifest:
-            return len(manifest["contents"]) > 1
+        return bool((manifest := read_manifest_from_alongside(image_path)) and len(manifest["contents"]) > 1)
     except (OSError, yaml.YAMLError):
-        pass
-
-    return False
+        return False
 
 
 def calculate_image_usage(image_path: Path, image_references: dict[str, list[Path]], mount_point: Path) -> float:

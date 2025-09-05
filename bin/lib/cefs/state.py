@@ -348,10 +348,7 @@ class CEFSState:
         """
         candidates = []
 
-        for _filename_stem, image_path in self.all_cefs_images.items():
-            if not is_consolidated_image(image_path):
-                continue
-
+        for image_path in filter(is_consolidated_image, self.all_cefs_images.values()):
             analysis = self._analyze_consolidated_image(image_path)
             if not analysis:
                 continue
@@ -393,14 +390,13 @@ class CEFSState:
         Returns:
             List of paths to small consolidated images
         """
-        small_images = []
-        for _filename_stem, image_path in self.all_cefs_images.items():
-            if not is_consolidated_image(image_path):
-                continue
+
+        def _is_small_image(im_path: Path) -> bool:
             try:
-                size = image_path.stat().st_size
-                if size < size_threshold:
-                    small_images.append(image_path)
+                return im_path.stat().st_size < size_threshold
             except OSError:
-                continue
-        return small_images
+                return False
+
+        return [
+            image for image in self.all_cefs_images.values() if is_consolidated_image(image) and _is_small_image(image)
+        ]
