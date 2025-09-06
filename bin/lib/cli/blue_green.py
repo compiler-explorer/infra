@@ -13,7 +13,7 @@ from lib.amazon import (
     get_ssm_param,
     release_for,
 )
-from lib.aws_utils import get_asg_info, scale_asg
+from lib.aws_utils import get_asg_info, reset_asg_min_size, scale_asg
 from lib.blue_green_deploy import BlueGreenDeployment, DeploymentCancelledException
 from lib.builds_core import get_release_without_discovery_check
 from lib.ce_utils import are_you_sure, display_releases
@@ -528,6 +528,8 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
 
     try:
         print(f"Shutting down {cfg.env.value} environment: scaling {active_asg} from {current_capacity} to 0 instances")
+        # Need to set minimum size to 0 first, then scale down
+        reset_asg_min_size(active_asg, 0)
         scale_asg(active_asg, 0)
         print(f"✅ {cfg.env.value.capitalize()} environment shut down successfully")
         print(f"To restart: run 'ce --env {cfg.env.value} blue-green deploy' or scale up manually")
