@@ -1110,6 +1110,13 @@ libraries:
       - 0.6.0
       type: github
       untar_dir: mdspan-mdspan-{{name}}
+    med:
+      build_type: none
+      check_file: med/med.hpp
+      repo: cppden/med
+      targets:
+      - trunk
+      type: github
     mfem:
       build_type: cmake
       lib_type: static
