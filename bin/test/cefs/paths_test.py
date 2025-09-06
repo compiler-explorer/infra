@@ -10,11 +10,13 @@ import pytest
 from lib.cefs.paths import (
     CEFSPaths,
     describe_cefs_image,
+    generate_glob_patterns,
     get_cefs_image_path,
     get_cefs_mount_path,
     get_cefs_paths,
     get_current_symlink_targets,
     get_extraction_path_from_symlink,
+    glob_with_depth,
     parse_cefs_target,
 )
 
@@ -298,3 +300,133 @@ def test_get_current_symlink_targets(tmp_path):
     nonexistent_path = tmp_path / "nonexistent"
     targets4 = get_current_symlink_targets(nonexistent_path)
     assert targets4 == []
+
+
+# Tests for generate_glob_patterns
+
+
+def test_generate_glob_patterns_with_max_depth():
+    """Test generate_glob_patterns with various max_depth values."""
+    # Test with max_depth=0 (current directory only)
+    patterns = generate_glob_patterns("*.txt", max_depth=0)
+    assert patterns == ["*.txt"]
+
+    # Test with max_depth=1
+    patterns = generate_glob_patterns("*.txt", max_depth=1)
+    assert patterns == ["*.txt", "*/*.txt"]
+
+    # Test with max_depth=2
+    patterns = generate_glob_patterns("*.txt", max_depth=2)
+    assert patterns == ["*.txt", "*/*.txt", "*/*/*.txt"]
+
+    # Test with max_depth=3 (commonly used for NFS)
+    patterns = generate_glob_patterns("*.bak", max_depth=3)
+    assert patterns == ["*.bak", "*/*.bak", "*/*/*.bak", "*/*/*/*.bak"]
+
+    # Test with pattern="*" (all files)
+    patterns = generate_glob_patterns("*", max_depth=1)
+    assert patterns == ["*", "*/*"]
+
+
+def test_generate_glob_patterns_unlimited():
+    """Test generate_glob_patterns with unlimited depth."""
+    patterns = generate_glob_patterns("*.txt", max_depth=None)
+    assert patterns == ["**/*.txt"]
+
+    patterns = generate_glob_patterns("*.DELETE_ME_*", max_depth=None)
+    assert patterns == ["**/*.DELETE_ME_*"]
+
+
+# Tests for glob_with_depth
+
+
+def test_glob_with_depth_basic(tmp_path):
+    """Test glob_with_depth finds files at various depths."""
+    # Create test directory structure
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "dir1").mkdir()
+    (tmp_path / "dir1" / "file2.txt").touch()
+    (tmp_path / "dir1" / "dir2").mkdir()
+    (tmp_path / "dir1" / "dir2" / "file3.txt").touch()
+    (tmp_path / "dir1" / "dir2" / "file4.log").touch()
+
+    # Test with max_depth=0 (current directory only)
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=0))
+    assert len(results) == 1
+    assert tmp_path / "file1.txt" in results
+
+    # Test with max_depth=1 (current + one level down)
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=1))
+    assert len(results) == 2
+    assert tmp_path / "file1.txt" in results
+    assert tmp_path / "dir1" / "file2.txt" in results
+
+    # Test with max_depth=2 (all txt files in this structure)
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=2))
+    assert len(results) == 3
+    assert tmp_path / "file1.txt" in results
+    assert tmp_path / "dir1" / "file2.txt" in results
+    assert tmp_path / "dir1" / "dir2" / "file3.txt" in results
+
+
+def test_glob_with_depth_all_files(tmp_path):
+    """Test glob_with_depth with pattern '*' to find all files and directories."""
+    # Create test structure
+    (tmp_path / "file1.txt").touch()
+    dir1 = tmp_path / "dir1"
+    dir1.mkdir()
+    (dir1 / "file2.txt").touch()
+
+    # Test finding all items at depth 0
+    results = list(glob_with_depth(tmp_path, "*", max_depth=0))
+    assert len(results) == 2  # file1.txt and dir1
+    assert tmp_path / "file1.txt" in results
+    assert dir1 in results
+
+    # Test finding all items at depth 1
+    results = list(glob_with_depth(tmp_path, "*", max_depth=1))
+    assert len(results) == 3  # file1.txt, dir1, and dir1/file2.txt
+    assert tmp_path / "file1.txt" in results
+    assert dir1 in results
+    assert dir1 / "file2.txt" in results
+
+
+def test_glob_with_depth_unlimited(tmp_path):
+    """Test glob_with_depth with unlimited depth."""
+    # Create deep structure
+    deep_dir = tmp_path / "a" / "b" / "c" / "d"
+    deep_dir.mkdir(parents=True)
+    (deep_dir / "deep.txt").touch()
+    (tmp_path / "shallow.txt").touch()
+
+    # Test unlimited depth
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=None))
+    assert len(results) == 2
+    assert tmp_path / "shallow.txt" in results
+    assert deep_dir / "deep.txt" in results
+
+
+def test_glob_with_depth_no_matches(tmp_path):
+    """Test glob_with_depth when no files match the pattern."""
+    (tmp_path / "file.txt").touch()
+    (tmp_path / "file.log").touch()
+
+    # Search for non-existent pattern
+    results = list(glob_with_depth(tmp_path, "*.bak", max_depth=2))
+    assert results == []
+
+
+def test_glob_with_depth_symlinks(tmp_path):
+    """Test glob_with_depth behavior with symlinks."""
+    # Create files and symlinks
+    real_file = tmp_path / "real.txt"
+    real_file.touch()
+
+    link_file = tmp_path / "link.txt"
+    link_file.symlink_to(real_file)
+
+    # Both real file and symlink should be found
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=0))
+    assert len(results) == 2
+    assert real_file in results
+    assert link_file in results
