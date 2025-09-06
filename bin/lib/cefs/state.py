@@ -15,12 +15,10 @@ from lib.cefs.consolidation import (
 )
 from lib.cefs.gc import GCSummary
 from lib.cefs.models import ConsolidationCandidate, ImageUsageStats
+from lib.cefs.paths import NFS_MAX_RECURSION_DEPTH, glob_with_depth
 from lib.cefs_manifest import read_manifest_from_alongside
 
 _LOGGER = logging.getLogger(__name__)
-
-# Constants for NFS performance tuning
-NFS_MAX_RECURSION_DEPTH = 3  # Limit depth when recursing on NFS to avoid performance issues
 
 
 class CEFSState:
@@ -173,15 +171,9 @@ class CEFSState:
         Returns:
             True if any symlink points to this image
         """
-        # Build depth-limited glob patterns (same as find_files_by_pattern in fsck.py)
-        patterns = [
-            "*" if depth == 0 else "/".join(["*"] * depth) + "/*" for depth in range(NFS_MAX_RECURSION_DEPTH + 1)
-        ]
-
-        for pattern in patterns:
-            for path in self.nfs_dir.glob(pattern):
-                if self._check_single_symlink(path, filename_stem):
-                    return True
+        for path in glob_with_depth(self.nfs_dir, "*", NFS_MAX_RECURSION_DEPTH):
+            if self._check_single_symlink(path, filename_stem):
+                return True
 
         return False
 

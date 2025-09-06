@@ -30,7 +30,13 @@ from lib.cefs.formatting import (
 )
 from lib.cefs.fsck import FSCKResults, run_fsck_validation
 from lib.cefs.gc import delete_image_with_manifest, filter_images_by_age
-from lib.cefs.paths import FileWithAge, parse_cefs_target, validate_cefs_mount_point
+from lib.cefs.paths import (
+    FileWithAge,
+    get_cefs_mount_path,
+    glob_with_depth,
+    parse_cefs_target,
+    validate_cefs_mount_point,
+)
 from lib.cefs.state import CEFSState
 
 _LOGGER = logging.getLogger(__name__)
@@ -57,22 +63,22 @@ def _print_basic_config(context: CliContext) -> None:
 def _find_symlinks_for_broken_image(state: CEFSState, image_stem: str) -> list[tuple[Path, str]]:
     """Find all symlinks pointing to a broken CEFS image."""
     result = []
-    patterns = ["*" if d == 0 else "/".join(["*"] * d) + "/*" for d in range(4)]
+    image_mount_path = get_cefs_mount_path(state.mount_point, image_stem + ".sqfs")
 
-    for pattern in patterns:
-        for path in state.nfs_dir.glob(pattern):
-            if not path.is_symlink():
-                continue
-            try:
-                target = str(path.readlink())
-                if image_stem not in target:
-                    continue
-                # Extract subdirectory from target path
-                parts = target.split("/")
-                subdir = "/".join(parts[4:]) if len(parts) > 4 and "/cefs/" in target else "root"
-                result.append((path, subdir))
-            except (OSError, ValueError):
-                continue
+    for path in glob_with_depth(state.nfs_dir, "*", max_depth=3):
+        if not path.is_symlink():
+            continue
+
+        try:
+            target = path.readlink()
+        except OSError:
+            continue
+
+        if not target.is_relative_to(image_mount_path):
+            continue
+
+        subdir = target.relative_to(image_mount_path)
+        result.append((path, str(subdir)))
 
     return sorted(result)
 
