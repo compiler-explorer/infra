@@ -1735,6 +1735,14 @@ libraries:
         targets:
         - trunk
         type: github
+      med:
+        build_type: none
+        check_file: med/med.hpp
+        repo: cppden/med
+        targets:
+        - trunk
+        type: github
+        method: nightlyclone
       mimicpp:
         check_file: README.md
         method: nightlyclone
