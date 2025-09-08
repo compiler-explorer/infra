@@ -8,9 +8,9 @@ module "ce_router_prod" {
   subnet_ids         = local.subnets
   launch_template_id = aws_launch_template.ce["router"].id
 
-  min_size         = 0
+  min_size         = 1
   max_size         = 20
-  desired_capacity = 0
+  desired_capacity = 1
 }
 
 module "ce_router_staging" {
@@ -21,9 +21,9 @@ module "ce_router_staging" {
   subnet_ids         = local.subnets
   launch_template_id = aws_launch_template.ce["router"].id
 
-  min_size         = 0
+  min_size         = 1
   max_size         = 10
-  desired_capacity = 0
+  desired_capacity = 1
 }
 
 module "ce_router_beta" {
