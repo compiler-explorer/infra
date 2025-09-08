@@ -53,3 +53,24 @@ output "green_target_group_arn" {
   description = "Green target group ARN"
   value       = aws_alb_target_group.color["green"].arn
 }
+
+# SQS Queue outputs
+output "sqs_queue_blue_name" {
+  description = "Blue compilation queue name"
+  value       = aws_sqs_queue.compilation_queue["blue"].name
+}
+
+output "sqs_queue_green_name" {
+  description = "Green compilation queue name"
+  value       = aws_sqs_queue.compilation_queue["green"].name
+}
+
+output "sqs_queue_blue_arn" {
+  description = "Blue compilation queue ARN"
+  value       = aws_sqs_queue.compilation_queue["blue"].arn
+}
+
+output "sqs_queue_green_arn" {
+  description = "Green compilation queue ARN"
+  value       = aws_sqs_queue.compilation_queue["green"].arn
+}

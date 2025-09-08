@@ -157,3 +157,16 @@ mount_nosym() {
     # seems to need a remount to pick it up properly on our version of Ubuntu (but not 23.10)
     mount -oremount,nosymfollow --bind / /nosym
 }
+
+install_ce_router() {
+    local latest_version
+
+    latest_version=$(curl -s https://api.github.com/repos/compiler-explorer/ce-router/releases/latest | jq -r '.tag_name')
+
+    if ! curl -sL "https://github.com/compiler-explorer/ce-router/releases/download/${latest_version}/ce-router-${latest_version}.zip" -o /tmp/ce-router.zip; then
+        echo "Failed to download ce-router version ${latest_version}"
+        return
+    fi
+    unzip -o /tmp/ce-router.zip -d /infra/.deploy
+    rm -f /tmp/ce-router.zip
+}

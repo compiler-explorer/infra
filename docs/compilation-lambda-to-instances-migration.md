@@ -126,19 +126,19 @@ Create `bin/lib/cli/compilation.py`:
 @cli.group()
 def compilation():
     """Compilation instance management commands."""
-    
+
 @compilation.command()
 def status():
     """Show compilation ASG status and instance health"""
-    
+
 @compilation.command()
 def scale():
     """Manually scale compilation instances"""
-    
+
 @compilation.command()
 def isolate():
     """Isolate a compilation instance for debugging"""
-    
+
 @compilation.command()
 def logs():
     """Stream logs from compilation instances"""
@@ -181,7 +181,7 @@ def logs():
 ### Phase 3: Gradual Migration (Week 4-6)
 Use ALB weighted target groups for gradual traffic shift:
 - Week 4: 10% instances, 90% Lambda
-- Week 5: 50% instances, 50% Lambda  
+- Week 5: 50% instances, 50% Lambda
 - Week 6: 90% instances, 10% Lambda
 
 Monitor throughout:
@@ -257,7 +257,7 @@ Monitor throughout:
 
 ### New Files
 - `packer/compilation-node.pkr.hcl`
-- `setup-compilation-node.sh`  
+- `setup-compilation-node.sh`
 - `terraform/compilation-asg.tf`
 - `compilation-worker/index.js`
 - `compilation-worker/package.json`
