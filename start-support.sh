@@ -167,6 +167,6 @@ install_ce_router() {
         echo "Failed to download ce-router version ${latest_version}"
         return
     fi
-    unzip -o /tmp/ce-router.zip -d /infra/.deploy
+    unzip -q -o /tmp/ce-router.zip -d /infra/.deploy
     rm -f /tmp/ce-router.zip
 }

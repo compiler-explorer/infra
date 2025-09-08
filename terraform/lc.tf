@@ -8,7 +8,7 @@ locals {
   winprod_image_id        = "ami-0cf55c2532ef41565"
   winstaging_image_id     = "ami-0cf55c2532ef41565"
   wintest_image_id        = "ami-0807541f025aad832"
-  ce_router_image_id      = "ami-placeholder" # Will be updated after AMI build
+  ce_router_image_id      = "ami-0c8f298bc709054c3"
 
   launch_templates = {
     prod = {
@@ -52,10 +52,10 @@ locals {
     }
 
     // CE Router instances for compilation routing
-    # ce-router = {
-    #   image_id      = local.ce_router_image_id
-    #   instance_type = "a1.medium"
-    # }
+    ce-router = {
+      image_id      = local.ce_router_image_id
+      instance_type = "t4g.medium"
+    }
   }
 }
 
