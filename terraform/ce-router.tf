@@ -6,7 +6,7 @@ module "ce_router_prod" {
   environment         = "prod"
   vpc_id             = module.ce_network.vpc.id
   subnet_ids         = local.subnets
-  launch_template_id = aws_launch_template.ce["ce-router"].id
+  launch_template_id = aws_launch_template.ce["router"].id
 
   min_size         = 2
   max_size         = 20
@@ -19,7 +19,7 @@ module "ce_router_staging" {
   environment         = "staging"
   vpc_id             = module.ce_network.vpc.id
   subnet_ids         = local.subnets
-  launch_template_id = aws_launch_template.ce["ce-router"].id
+  launch_template_id = aws_launch_template.ce["router"].id
 
   min_size         = 1
   max_size         = 10
@@ -32,7 +32,7 @@ module "ce_router_beta" {
   environment         = "beta"
   vpc_id             = module.ce_network.vpc.id
   subnet_ids         = local.subnets
-  launch_template_id = aws_launch_template.ce["ce-router"].id
+  launch_template_id = aws_launch_template.ce["router"].id
 
   min_size         = 1
   max_size         = 10

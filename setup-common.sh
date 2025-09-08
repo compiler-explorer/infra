@@ -65,8 +65,12 @@ get_conf() {
   aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
 
-LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
-LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
+# Allow override of SSM parameter paths for log destination
+LOG_DEST_HOST_PARAM="${LOG_DEST_HOST_PARAM:-/compiler-explorer/logDestHost}"
+LOG_DEST_PORT_PARAM="${LOG_DEST_PORT_PARAM:-/compiler-explorer/logDestPort}"
+
+LOG_DEST_HOST=$(get_conf "${LOG_DEST_HOST_PARAM}")
+LOG_DEST_PORT=$(get_conf "${LOG_DEST_PORT_PARAM}")
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart

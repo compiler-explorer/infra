@@ -19,7 +19,7 @@ resource "aws_autoscaling_group" "ce_router" {
 
   tag {
     key                 = "Name"
-    value               = "CE-Router-${var.environment}"
+    value               = "ce-router-${var.environment}"
     propagate_at_launch = true
   }
 
@@ -67,7 +67,7 @@ resource "aws_alb_target_group" "ce_router" {
   }
 
   tags = {
-    Name        = "CE-Router-${var.environment}"
+    Name        = "ce-router-${var.environment}"
     Site        = "CompilerExplorer"
     Environment = var.environment
   }

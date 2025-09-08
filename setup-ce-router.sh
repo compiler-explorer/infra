@@ -7,6 +7,11 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Use common setup but skip NFS and CEFS (routers don't need filesystem mounts)
 export SKIP_NFS_SETUP=1
 export SKIP_CEFS_SETUP=1
+
+# Use router-specific SSM parameters for Papertrail logging
+export LOG_DEST_HOST_PARAM="/compiler-explorer/logDestHostRouter"
+export LOG_DEST_PORT_PARAM="/compiler-explorer/logDestPortRouter"
+
 "${DIR}/setup-common.sh"
 
 apt-get -y update
@@ -35,11 +40,7 @@ systemctl enable ce-router
 # Create ce user for running the router
 adduser --system --group ce
 
-# Set hostname for identification
-echo ce-router >/etc/hostname
-hostname ce-router
-sed -i "/127.0.0.1/c 127.0.0.1 localhost ce-router" /etc/hosts
-sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
+# Don't set hostname here - let cloud-init handle it like other instances
 
 # Configure CloudWatch logging
 mkdir -p /var/log/ce-router

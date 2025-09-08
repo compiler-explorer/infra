@@ -52,7 +52,7 @@ locals {
     }
 
     // CE Router instances for compilation routing
-    ce-router = {
+    router = {
       image_id      = local.ce_router_image_id
       instance_type = "t4g.medium"
     }
@@ -67,7 +67,7 @@ resource "aws_launch_template" "ce" {
   ebs_optimized = true
 
   iam_instance_profile {
-    arn = startswith(each.key, "win") ? aws_iam_instance_profile.CompilerExplorerWindowsRole.arn : (each.key == "ce-router" ? aws_iam_instance_profile.CeRouterRole.arn : aws_iam_instance_profile.CompilerExplorerRole.arn)
+    arn = startswith(each.key, "win") ? aws_iam_instance_profile.CompilerExplorerWindowsRole.arn : (each.key == "router" ? aws_iam_instance_profile.CeRouterRole.arn : aws_iam_instance_profile.CompilerExplorerRole.arn)
   }
 
   image_id               = each.value.image_id
