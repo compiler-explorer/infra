@@ -29,7 +29,7 @@ graph TB
             GPURule["'/gpu*' - GPU TG"]
             WinRule["'/win*' - Win TGs"]
             AArch64Rule["'/aarch64*' - AArch64 TGs"]
-            
+
             CompileRule["'/*/api/compiler/*/compile*' - CE Router TGs"]
             CMakeRule["'/*/api/compiler/*/cmake*' - CE Router TGs"]
         end
@@ -49,9 +49,9 @@ graph TB
         TGAArchBlue[TG: AArch64-Blue<br/>Port 80]
         TGAArchGreen[TG: AArch64-Green<br/>Port 80]
         TGConan[TG: Conan<br/>Port 1080]
-        
+
         TGCERouterProd[TG: CE Router Prod<br/>Port 80]
-        TGCERouterBeta[TG: CE Router Beta<br/>Port 80]  
+        TGCERouterBeta[TG: CE Router Beta<br/>Port 80]
         TGCERouterStaging[TG: CE Router Staging<br/>Port 80]
     end
 
@@ -68,7 +68,7 @@ graph TB
         ASGWinGreen[ASG: win-green<br/>Windows Instances]
         ASGAArchBlue[ASG: aarch64-blue<br/>ARM Instances]
         ASGAArchGreen[ASG: aarch64-green<br/>ARM Instances]
-        
+
         ASGCERouterProd[ASG: ce-router-prod<br/>Min: 1, Max: 20]
         ASGCERouterBeta[ASG: ce-router-beta<br/>Min: 1, Max: 10]
         ASGCERouterStaging[ASG: ce-router-staging<br/>Min: 1, Max: 10]
@@ -82,7 +82,7 @@ graph TB
         EC2Win[EC2 Instances<br/>Windows]
         EC2AArch[EC2 Instances<br/>ARM/Graviton]
         ConanNode[Conan Node<br/>Static Instance]
-        
+
         EC2CERouter[CE Router Instances<br/>Node.js + Nginx<br/>t4g/m7g instances]
     end
 
@@ -90,7 +90,7 @@ graph TB
         EFS[EFS: Compiler Cache<br/>Shared Storage]
         S3Logs[S3: compiler-explorer-logs]
         S3Static[S3: compiler-explorer]
-        
+
         DDBRouting[DynamoDB: CompilerRouting<br/>Environment-specific routing decisions]
         SQSProd[SQS: prod-compilation-queue.fifo<br/>Compilation requests]
         SQSBeta[SQS: beta-compilation-queue.fifo<br/>Compilation requests]
@@ -141,7 +141,7 @@ graph TB
     TGCERouterProd --> ASGCERouterProd
     TGCERouterBeta --> ASGCERouterBeta
     TGCERouterStaging --> ASGCERouterStaging
-    
+
     %% CE Router instance connections
     ASGCERouterProd --> EC2CERouter
     ASGCERouterBeta --> EC2CERouter
@@ -185,7 +185,7 @@ graph TB
     EC2CERouter --> SQSBeta
     EC2CERouter --> SQSStaging
     EC2CERouter --> WSGateway
-    
+
     %% Instances consume from SQS and respond via WebSocket
     EC2Prod --> SQSProd
     EC2Beta --> SQSBeta
@@ -300,7 +300,7 @@ The CE Router provides intelligent routing for compilation endpoints (`/api/comp
 
 ### General Content Flow
 1. **User Request** → godbolt.org
-2. **Route 53** → Resolves to CloudFront  
+2. **Route 53** → Resolves to CloudFront
 3. **CloudFront** → Checks cache, forwards to ALB if needed
 4. **ALB** → Routes based on path:
    - `/beta*` → Beta target group (UI, non-compilation)
@@ -315,11 +315,11 @@ The CE Router provides intelligent routing for compilation endpoints (`/api/comp
 2. **Route 53** → Resolves to CloudFront
 3. **CloudFront** → Forwards to ALB (compilation not cached)
 4. **ALB** → Routes to CE Router target group (based on path pattern)
-5. **CE Router** → 
+5. **CE Router** →
    - Looks up compiler routing in DynamoDB
    - **Queue Route**: Publishes to SQS → Subscribes to WebSocket → Waits for result
    - **URL Route**: Forwards directly to environment URL
-6. **Backend Instances** → 
+6. **Backend Instances** →
    - **Queue Route**: Poll SQS → Compile → Publish result to WebSocket
    - **URL Route**: Process compilation directly
 7. **CE Router** → Receives result (via WebSocket or direct response)
