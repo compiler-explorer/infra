@@ -9,7 +9,7 @@ from lib.amazon import as_client, ec2_client, elb_client
 from lib.ce_utils import are_you_sure
 from lib.cli import cli
 from lib.env import Config
-from lib.ssh import exec_remote_all, run_remote_shell
+from lib.ssh import exec_remote, exec_remote_all, run_remote_shell
 
 LOGGER = logging.getLogger(__name__)
 
@@ -226,3 +226,54 @@ def ce_router_health(cfg: Config) -> None:
 
     except Exception as e:
         print(f"Error checking CE Router health: {e}")
+
+
+@ce_router.command(name="healthcheck")
+@click.pass_obj
+def ce_router_healthcheck(cfg: Config) -> None:
+    """Send healthcheck requests to all CE Router instance private IPs."""
+    asg_name = f"ce-router-{cfg.env.name.lower()}"
+
+    try:
+        # Get instances from ASG
+        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+
+        if not response["AutoScalingGroups"]:
+            print(f"ASG '{asg_name}' not found")
+            return
+
+        asg = response["AutoScalingGroups"][0]
+        instance_ids = [instance["InstanceId"] for instance in asg["Instances"]]
+
+        if not instance_ids:
+            print("No instances found in CE Router ASG")
+            return
+
+        # Get instance details from EC2
+        ec2_response = ec2_client.describe_instances(InstanceIds=instance_ids)
+
+        print(f"Checking health of {len(instance_ids)} CE Router instances...")
+
+        for reservation in ec2_response["Reservations"]:
+            for instance in reservation["Instances"]:
+                instance_id = instance["InstanceId"]
+                private_ip = instance.get("PrivateIpAddress", "N/A")
+                state = instance["State"]["Name"]
+
+                if state != "running":
+                    print(f"  {instance_id} ({private_ip}): SKIPPED - instance state is {state}")
+                    continue
+
+                # Send healthcheck request to private IP
+                try:
+                    print(f"  {instance_id} ({private_ip}): ", end="", flush=True)
+                    result = exec_remote(instance_id, ["curl", "-f", "-s", f"http://{private_ip}/healthcheck"])
+                    if result and "OK" in result:
+                        print("✅ HEALTHY")
+                    else:
+                        print(f"❌ UNHEALTHY - Response: {result}")
+                except Exception as e:
+                    print(f"❌ ERROR - {e}")
+
+    except Exception as e:
+        print(f"Error checking CE Router healthcheck: {e}")

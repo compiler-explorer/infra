@@ -3,7 +3,7 @@
 module "ce_router_prod" {
   source = "./modules/ce_router"
 
-  environment         = "prod"
+  environment        = "prod"
   vpc_id             = module.ce_network.vpc.id
   subnet_ids         = local.subnets
   launch_template_id = aws_launch_template.ce["router"].id
@@ -16,7 +16,7 @@ module "ce_router_prod" {
 module "ce_router_staging" {
   source = "./modules/ce_router"
 
-  environment         = "staging"
+  environment        = "staging"
   vpc_id             = module.ce_network.vpc.id
   subnet_ids         = local.subnets
   launch_template_id = aws_launch_template.ce["router"].id
@@ -29,7 +29,7 @@ module "ce_router_staging" {
 module "ce_router_beta" {
   source = "./modules/ce_router"
 
-  environment         = "beta"
+  environment        = "beta"
   vpc_id             = module.ce_network.vpc.id
   subnet_ids         = local.subnets
   launch_template_id = aws_launch_template.ce["router"].id

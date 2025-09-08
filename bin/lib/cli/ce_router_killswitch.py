@@ -185,11 +185,11 @@ def _get_ce_router_rule_status(rule) -> str:
     return "UNKNOWN"
 
 
-@ce_router.command("killswitch")
-@click.option("--environment", "-e", help="Environment to enable (prod, staging, beta). Default: all")
+@ce_router.command("enable")
+@click.option("--environment", "-e", required=True, help="Environment to enable (prod, staging, beta)")
 @click.option("--skip-confirmation", is_flag=True, default=False, help="Skip confirmation prompt")
 @click.pass_obj
-def killswitch(cfg: Config, environment: str | None, skip_confirmation: bool):
+def enable(cfg: Config, environment: str, skip_confirmation: bool):
     """
     EMERGENCY: Route compilation traffic to CE Router instances.
 
@@ -197,22 +197,18 @@ def killswitch(cfg: Config, environment: str | None, skip_confirmation: bool):
     bypassing Lambda or other routing for compilation requests.
 
     Examples:
-        ce ce-router killswitch              # Enable for all environments
-        ce ce-router killswitch -e prod      # Enable for production only
-        ce ce-router killswitch -e staging   # Enable for staging only
+        ce ce-router enable -e prod      # Enable for production
+        ce ce-router enable -e staging   # Enable for staging
+        ce ce-router enable -e beta      # Enable for beta
     """
     click.echo("🚨 CE ROUTER EMERGENCY KILLSWITCH")
     click.echo("")
 
-    if environment:
-        click.echo(f"This will IMMEDIATELY route {environment} compilation traffic to CE Router instances.")
-    else:
-        click.echo("This will IMMEDIATELY route ALL compilation traffic to CE Router instances.")
-
+    click.echo(f"This will IMMEDIATELY route {environment} compilation traffic to CE Router instances.")
     click.echo("Affected paths: /api/compiler/*/compile, /api/compiler/*/cmake")
     click.echo("")
 
-    if not skip_confirmation and not click.confirm("Enable emergency CE Router routing?"):
+    if not skip_confirmation and not click.confirm(f"Enable emergency CE Router routing for {environment}?"):
         click.echo("Operation cancelled.")
         return
 
@@ -225,12 +221,11 @@ def killswitch(cfg: Config, environment: str | None, skip_confirmation: bool):
         click.echo("❌ Error: No ce-router target groups found", err=True)
         return
 
-    # Filter by environment if specified
-    if environment:
-        if environment not in target_groups:
-            click.echo(f"❌ Error: ce-router-{environment} target group not found", err=True)
-            return
-        target_groups = {environment: target_groups[environment]}
+    # Filter by specified environment
+    if environment not in target_groups:
+        click.echo(f"❌ Error: ce-router-{environment} target group not found", err=True)
+        return
+    target_groups = {environment: target_groups[environment]}
 
     # Find HTTPS listener
     click.echo("🔍 Finding HTTPS listener...")
@@ -270,25 +265,28 @@ def killswitch(cfg: Config, environment: str | None, skip_confirmation: bool):
 
 
 @ce_router.command("disable")
+@click.option("--environment", "-e", required=True, help="Environment to disable (prod, staging, beta)")
 @click.option("--skip-confirmation", is_flag=True, default=False, help="Skip confirmation prompt")
 @click.pass_obj
-def disable(cfg: Config, skip_confirmation: bool):
+def disable(cfg: Config, environment: str, skip_confirmation: bool):
     """
     Disable CE Router routing, returning to default behavior.
 
     This disables the ce-router ALB rule, allowing traffic to fall back
     to whatever routing is configured as default (Lambda or instances).
 
-    Example:
-        ce ce-router disable
+    Examples:
+        ce ce-router disable -e prod     # Disable for production
+        ce ce-router disable -e staging  # Disable for staging
+        ce ce-router disable -e beta     # Disable for beta
     """
     click.echo("🟡 DISABLE CE Router routing")
     click.echo("")
-    click.echo("This will IMMEDIATELY disable ce-router routing.")
+    click.echo(f"This will IMMEDIATELY disable ce-router routing for {environment}.")
     click.echo("Traffic will fall back to default routing (Lambda or instances).")
     click.echo("")
 
-    if not skip_confirmation and not click.confirm("Disable CE Router routing?"):
+    if not skip_confirmation and not click.confirm(f"Disable CE Router routing for {environment}?"):
         click.echo("Operation cancelled.")
         return
 
@@ -300,6 +298,12 @@ def disable(cfg: Config, skip_confirmation: bool):
     if not target_groups:
         click.echo("❌ Error: No ce-router target groups found", err=True)
         return
+
+    # Filter by specified environment
+    if environment not in target_groups:
+        click.echo(f"❌ Error: ce-router-{environment} target group not found", err=True)
+        return
+    target_groups = {environment: target_groups[environment]}
 
     # Find HTTPS listener
     click.echo("🔍 Finding HTTPS listener...")
