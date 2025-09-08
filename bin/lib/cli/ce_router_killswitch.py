@@ -204,8 +204,14 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
     click.echo("🚨 CE ROUTER EMERGENCY KILLSWITCH")
     click.echo("")
 
+    # Show correct paths for the environment
+    if environment == "prod":
+        paths = "/api/compiler/*/compile, /api/compiler/*/cmake"
+    else:
+        paths = f"/{environment}/api/compiler/*/compile, /{environment}/api/compiler/*/cmake"
+
     click.echo(f"This will IMMEDIATELY route {environment} compilation traffic to CE Router instances.")
-    click.echo("Affected paths: /api/compiler/*/compile, /api/compiler/*/cmake")
+    click.echo(f"Affected paths: {paths}")
     click.echo("")
 
     if not skip_confirmation and not click.confirm(f"Enable emergency CE Router routing for {environment}?"):
