@@ -8,7 +8,7 @@ locals {
   winprod_image_id        = "ami-0cf55c2532ef41565"
   winstaging_image_id     = "ami-0cf55c2532ef41565"
   wintest_image_id        = "ami-0807541f025aad832"
-  ce_router_image_id      = "ami-0c8f298bc709054c3"
+  ce_router_image_id      = "ami-01bf1ab608fbae8bf"
 
   launch_templates = {
     prod = {
