@@ -20,7 +20,6 @@ When writing, especially PRs and commit messages:
 - Check code style/linting: `make pre-commit`
 - Install pre-commit hooks: `make install-pre-commit`
 - Build lambda package: `make lambda-package`
-- Build compilation lambda package (Node.js): `make compilation-lambda-package`
 - Build events lambda package: `make events-lambda-package`
 - **NEVER USE THE SYSTEM PYTHON** - always use `uv` to invoke python or pytest or to run experiments with python syntax
 
@@ -201,46 +200,46 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
 
 All workflow trigger commands support `--dry-run` to preview the `gh` command without executing it.
 
-## Compilation Lambda Management
+## CE Router Management
 
-The `ce compilation-lambda` command group provides emergency controls for the compilation Lambda routing system:
+The `ce ce-router` command group provides emergency controls for the CE Router routing system:
 
 ### Available Commands
 
-- **`ce compilation-lambda killswitch ENVIRONMENT`** - EMERGENCY: Disable compilation Lambda ALB routing for an environment
-  - Immediately stops routing compilation requests through Lambda
+- **`ce ce-router disable ENVIRONMENT`** - Disable CE Router ALB routing for an environment
+  - Immediately stops routing compilation requests through CE Router
   - Falls back to legacy instance-based routing within seconds
   - Environments: beta, staging, prod
   - Use `--skip-confirmation` to skip confirmation prompt
-  - Example: `ce compilation-lambda killswitch beta`
+  - Example: `ce ce-router disable beta`
 
-- **`ce compilation-lambda enable ENVIRONMENT`** - Re-enable compilation Lambda ALB routing for an environment
-  - Restores routing of compilation requests through Lambda
+- **`ce ce-router enable ENVIRONMENT`** - Re-enable CE Router ALB routing for an environment
+  - Restores routing of compilation requests through CE Router
   - Takes effect immediately after ALB rule modification
   - Use `--skip-confirmation` to skip confirmation prompt
-  - Example: `ce compilation-lambda enable beta`
+  - Example: `ce ce-router enable beta`
 
-- **`ce compilation-lambda status [ENVIRONMENT]`** - Show current status of compilation Lambda ALB routing
+- **`ce ce-router status [ENVIRONMENT]`** - Show current status of CE Router ALB routing
   - Shows actual ALB listener rule state (not Terraform configuration)
   - Status indicators:
-    - 🟢 ENABLED: Lambda routing active
+    - 🟢 ENABLED: CE Router routing active
     - 🚨 KILLSWITCH ACTIVE: Using instance routing
     - 🔴 NOT_FOUND: No ALB rule exists
   - Without environment argument, shows status for all environments
-  - Example: `ce compilation-lambda status` or `ce compilation-lambda status prod`
+  - Example: `ce ce-router status` or `ce ce-router status prod`
 
 ### Usage Scenarios
 
 **Emergency Response**: Use killswitch when Lambda compilation system is experiencing issues:
 ```bash
-# Disable Lambda routing for production
-ce compilation-lambda killswitch prod
+# Disable CE Router routing for production
+ce ce-router disable prod
 
 # Check status across all environments
-ce compilation-lambda status
+ce ce-router status
 
 # Re-enable when issues are resolved
-ce compilation-lambda enable prod
+ce ce-router enable prod
 ```
 
 ### Technical Details

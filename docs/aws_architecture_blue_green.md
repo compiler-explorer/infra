@@ -180,30 +180,8 @@ graph TB
     TGAArchBlue --> ASGAArchBG
     TGAArchGreen --> ASGAArchBG
 
-    %% Terraform Modules create blue-green resources
-    ModuleBetaBG -.->|Creates| TGBetaBlue
-    ModuleBetaBG -.->|Creates| TGBetaGreen
-    ModuleBetaBG -.->|Creates| ASGBetaBlue
-    ModuleBetaBG -.->|Creates| ASGBetaGreen
-    ModuleBetaBG -.->|Creates| SSMColor
-    ModuleBetaBG -.->|Creates| SSMTargetGroup
-
-    ModuleProdBG -.->|Creates| TGProdBlue
-    ModuleProdBG -.->|Creates| TGProdGreen
-    ModuleProdBG -.->|Creates| ASGProdBlue
-    ModuleProdBG -.->|Creates| ASGProdGreen
-    ModuleProdBG -.->|Creates| SSMProdColor
-    ModuleProdBG -.->|Creates| SSMProdTargetGroup
-
-    %% Additional modules create their blue-green resources
-    ModuleStagingBG -.->|Creates| TGStagingBlue
-    ModuleStagingBG -.->|Creates| TGStagingGreen
-    ModuleGpuBG -.->|Creates| TGGpuBlue
-    ModuleGpuBG -.->|Creates| TGGpuGreen
-    ModuleWinBG -.->|Creates| TGWinBlue
-    ModuleWinBG -.->|Creates| TGWinGreen
-    ModuleAArchBG -.->|Creates| TGAArchBlue
-    ModuleAArchBG -.->|Creates| TGAArchGreen
+    %% Terraform modules manage the blue-green infrastructure
+    %% (No connection lines shown to reduce clutter - resources are already displayed above)
 
     %% Storage connections
     EC2BetaBlue --> EFS
