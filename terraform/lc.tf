@@ -8,6 +8,7 @@ locals {
   winprod_image_id        = "ami-0cf55c2532ef41565"
   winstaging_image_id     = "ami-0cf55c2532ef41565"
   wintest_image_id        = "ami-0807541f025aad832"
+  ce_router_image_id      = "ami-01bf1ab608fbae8bf"
 
   launch_templates = {
     prod = {
@@ -49,6 +50,12 @@ locals {
       image_id      = local.winprod_image_id
       instance_type = "m6i.large"
     }
+
+    // CE Router instances for compilation routing
+    router = {
+      image_id      = local.ce_router_image_id
+      instance_type = "t4g.medium"
+    }
   }
 }
 
@@ -60,7 +67,7 @@ resource "aws_launch_template" "ce" {
   ebs_optimized = true
 
   iam_instance_profile {
-    arn = startswith(each.key, "win") ? aws_iam_instance_profile.CompilerExplorerWindowsRole.arn : aws_iam_instance_profile.CompilerExplorerRole.arn
+    arn = startswith(each.key, "win") ? aws_iam_instance_profile.CompilerExplorerWindowsRole.arn : (each.key == "router" ? aws_iam_instance_profile.CeRouterRole.arn : aws_iam_instance_profile.CompilerExplorerRole.arn)
   }
 
   image_id               = each.value.image_id

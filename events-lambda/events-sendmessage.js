@@ -62,8 +62,8 @@ async function handle_text_message(apiGwClient, connectionId, message) {
             throw error;
         }
     } else if (message.startsWith('unsubscribe: ')) {
-        // const subscription = message.substring(13); // Currently unused, kept for future use
-        await EventsConnections.unsubscribe(connectionId);
+        const subscription = message.substring(13); // Currently unused, kept for future use
+        await EventsConnections.unsubscribe(connectionId, subscription);
     } else {
         await send_message(apiGwClient, connectionId, 'unknown text message');
     }
@@ -73,6 +73,8 @@ async function handle_object_message(apiGwClient, connectionId, message, rawMess
     if (message.guid) {
         await relay_request(apiGwClient, message.guid, message, rawMessage);
     } else {
+        // eslint-disable-next-line no-console
+        console.warn('Received object message without guid:', rawMessage);
         await send_message(apiGwClient, connectionId, 'unknown object message');
     }
 }
