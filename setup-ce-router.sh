@@ -22,14 +22,6 @@ echo "Installing node ${TARGET_NODE_VERSION}"
 curl -sL "https://nodejs.org/dist/${TARGET_NODE_VERSION}/node-${TARGET_NODE_VERSION}-linux-arm64.tar.xz" | tar xJf - && mv node-${TARGET_NODE_VERSION}-linux-arm64 node
 popd
 
-# Clone and setup ce-router application from separate repository
-git clone https://github.com/compiler-explorer/ce-router.git /opt/ce-router
-chown -R root:root /opt/ce-router
-
-# Install Node.js dependencies
-pushd /opt/ce-router
-/opt/node/bin/npm ci --only=production
-popd
 
 # Configure nginx for health checks
 cp /infra/nginx/ce-router.conf /etc/nginx/nginx.conf
