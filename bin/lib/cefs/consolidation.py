@@ -89,7 +89,6 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
         # For partial extraction: extract to temp dir then move to correct location
         # For full extraction: extract directly to target directory
         if extraction_path is not None:
-            # Create a unique temp directory for extraction
             temp_dir = extraction_dir / f".tmp_{uuid.uuid4().hex}"
             logger.info(
                 "Partially extracting %s from %s (%s) via temp dir",
@@ -98,22 +97,12 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
                 humanfriendly.format_size(compressed_size, binary=True),
             )
 
-            # Extract to temp directory with the extraction path
             extract_squashfs_image(config, squashfs_path, temp_dir, extraction_path)
-
-            # Move the extracted content to the correct location
             extracted_content = temp_dir / extraction_path
             final_location = extraction_dir / subdir_name
-
-            # Ensure parent directory exists
             final_location.parent.mkdir(parents=True, exist_ok=True)
-
-            # Move the extracted directory to its final location
             extracted_content.rename(final_location)
-
-            # Clean up the temp directory completely
             shutil.rmtree(temp_dir)
-
         else:
             actual_extraction_dir = extraction_dir / subdir_name
             logger.info(
@@ -122,7 +111,6 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
                 humanfriendly.format_size(compressed_size, binary=True),
                 actual_extraction_dir,
             )
-            # For full extraction, pass None as extraction_path
             extract_squashfs_image(config, squashfs_path, actual_extraction_dir, None)
 
         # Always measure size at the expected location
