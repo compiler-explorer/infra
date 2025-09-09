@@ -269,7 +269,7 @@ def rollback(context: CliContext, filter_: list[str]):
         _LOGGER.info("Checking %s for rollback...", installable.name)
 
         # Check if this is a CEFS installation (symlink exists)
-        if not nfs_path.exists():
+        if not nfs_path.exists(follow_symlinks=False):
             _LOGGER.debug("Skipping %s - path does not exist", installable.name)
             skipped += 1
             continue
