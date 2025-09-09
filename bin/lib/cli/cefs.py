@@ -27,6 +27,7 @@ from lib.cefs.formatting import (
     format_image_contents_string,
     format_usage_statistics,
     get_image_description,
+    get_installable_current_locations,
 )
 from lib.cefs.fsck import FSCKResults, run_fsck_validation
 from lib.cefs.gc import delete_image_with_manifest, filter_images_by_age
@@ -700,6 +701,10 @@ def gc(context: CliContext, force: bool, min_age: str):
             format_image_contents_string(get_image_description(image_path, context.config.cefs.mount_point), 3)
             or " [contents unknown]",
         )
+
+        # Show where each Installable in this image is currently installed
+        for line in get_installable_current_locations(image_path):
+            _LOGGER.info(line)
 
     if context.installation_context.dry_run:
         _LOGGER.info("DRY RUN: Would delete %d unreferenced images", len(unreferenced))

@@ -128,7 +128,8 @@ def format_verbose_image_details(
                 targets = get_current_symlink_targets(dest_path)
                 # Find which target (if any) points to this image for status reporting
                 current_target = next(
-                    (t for t in targets if is_item_still_using_image(t, image_path, mount_point)), None
+                    (t for t in targets if is_item_still_using_image(t, image_path, mount_point)),
+                    None,
                 )
                 status = get_consolidated_item_status(content, image_path, current_target, mount_point)
                 if status:
@@ -192,3 +193,26 @@ def format_usage_statistics(stats, state: CEFSState, verbose: bool, cefs_mount_p
         lines.append("\nRun 'ce cefs consolidate --reconsolidate' to optimize partially used images")
 
     return lines
+
+
+def get_installable_current_locations(image_path: Path) -> list[str]:
+    """Get information about where each Installable in an image is currently installed."""
+    if not (manifest := read_manifest_from_alongside(image_path)):
+        return []
+
+    def _classify(path: Path) -> str:
+        if path.is_symlink():
+            try:
+                return f"{path} -> {path.readlink()}"
+            except OSError as e:
+                return f"{path} -> [unreadable: {e}]"
+        if path.is_dir():
+            return f"{path} [directory]"
+        if path.exists():
+            return f"{path} [file]"
+        return "NOT INSTALLED"
+
+    return [
+        f"    └─ {content['name']} → currently: {_classify(Path(content['destination']))}"
+        for content in manifest["contents"]
+    ]
