@@ -128,7 +128,7 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
         return
 
     try:
-        #  Follow symlinks=False here to account for broken symlinks
+        # We use symlinks=False here to account for broken symlinks.
         # Handle old backup if it exists
         if backup_path.exists(follow_symlinks=False):
             if defer_cleanup:
