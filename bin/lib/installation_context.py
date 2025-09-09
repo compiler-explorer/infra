@@ -11,7 +11,7 @@ import subprocess
 import tempfile
 import time
 import uuid
-from collections.abc import Collection, Iterator, Sequence
+from collections.abc import Callable, Collection, Iterator, Sequence
 from pathlib import Path
 from typing import IO
 
@@ -305,7 +305,7 @@ class InstallationContext:
         installable_name: str,
         source: PathOrString,
         dest: PathOrString | None = None,
-        do_staging_move=lambda source, dest: source.replace(dest),
+        relocate: Callable[[Path, Path], None] | None = None,
     ) -> None:
         dest = dest or source
 
@@ -316,7 +316,7 @@ class InstallationContext:
         # Check if CEFS is enabled and should be used for this installation
         if self.config and self.config.cefs.enabled:
             _LOGGER.info("Installing via CEFS: %s -> %s", source, dest)
-            self._deploy_to_cefs(staging, installable_name, source, dest, do_staging_move)
+            self._deploy_to_cefs(staging, installable_name, source, dest, relocate=relocate)
             return
 
         # Traditional installation flow
@@ -349,7 +349,9 @@ class InstallationContext:
                 shutil.rmtree(dest_path)
 
         try:
-            do_staging_move(source_path, dest_path)
+            if relocate:
+                relocate(source_path, dest_path)
+            source_path.replace(dest_path)
             if state == "old_renamed":
                 state = "old_needs_remove"
         finally:
@@ -463,70 +465,50 @@ class InstallationContext:
         installable_name: str,
         source: PathOrString,
         dest: PathOrString,
-        do_staging_move=lambda source, dest: source.replace(dest),
+        relocate: Callable[[Path, Path], None] | None,
     ) -> None:
         """Deploy staging content directly to CEFS storage."""
         if not self.config or not self.config.cefs.enabled:
             raise RuntimeError("CEFS not enabled but _deploy_to_cefs called")
 
         source_path = staging.path / source
+        if not source_path.is_dir():
+            raise RuntimeError(f"Missing source '{source_path}'")
+
         nfs_path = self.destination / dest
+        if relocate:
+            relocate(source_path, nfs_path)
 
-        # Apply any special staging move logic (e.g., for Python virtual environments)
-        # We need to create a temporary destination to apply do_staging_move
-        temp_dest_dir = self.config.cefs.local_temp_dir / "temp_dest"
-        temp_dest_dir.mkdir(parents=True, exist_ok=True)
-        temp_dest_path = temp_dest_dir / f"temp_{uuid.uuid4()}"
+        # Fix permissions before squashing
+        if not is_windows():
+            self._fix_permissions(source_path)
 
+        installable_info = create_installable_manifest_entry(installable_name, nfs_path)
+        manifest = create_manifest(
+            operation="install",
+            description=f"Created through installation of {installable_name}",
+            contents=[installable_info],
+        )
+
+        # Create temporary squashfs image
+        temp_squash_file = self.config.cefs.local_temp_dir / f"temp_{uuid.uuid4()}.img"
+
+        # Create squashfs image from processed content
+        _LOGGER.info("Creating squashfs image from %s", source_path)
         try:
-            # Apply special move logic if needed
-            if not source_path.is_dir():
-                raise RuntimeError(f"Missing source '{source_path}'")
-
-            # Fix permissions before squashing
-            if not is_windows():
-                self._fix_permissions(source_path)
-
-            # Create a copy for squashing (do_staging_move might modify the source)
-            final_source_path = temp_dest_path
-            do_staging_move(source_path, final_source_path)
-
-            installable_info = create_installable_manifest_entry(installable_name, nfs_path)
-            manifest = create_manifest(
-                operation="install",
-                description=f"Created through installation of {installable_name}",
-                contents=[installable_info],
-            )
-
-            # Create temporary squashfs image
-            temp_squash_dir = self.config.cefs.local_temp_dir / "squash"
-            temp_squash_dir.mkdir(parents=True, exist_ok=True)
-            temp_squash_file = temp_squash_dir / f"temp_{uuid.uuid4()}.img"
-
-            # Create squashfs image from processed content
-            _LOGGER.info("Creating squashfs image from %s", final_source_path)
-            create_squashfs_image(self.config.squashfs, final_source_path, temp_squash_file)
+            create_squashfs_image(self.config.squashfs, source_path, temp_squash_file)
 
             filename = get_cefs_filename_for_image(temp_squash_file, "install", Path(dest))
             cefs_paths = get_cefs_paths(self.config.cefs.image_dir, self.config.cefs.mount_point, filename)
 
-            # Copy to CEFS images directory if not already there
             if cefs_paths.image_path.exists():
                 _LOGGER.info("CEFS image already exists: %s", cefs_paths.image_path)
-                # Still need to create symlink even if image exists
                 backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
             else:
-                # Deploy image and create symlink within transaction
                 _LOGGER.info("Copying squashfs to CEFS storage: %s", cefs_paths.image_path)
                 with deploy_to_cefs_transactional(temp_squash_file, cefs_paths.image_path, manifest, self.dry_run):
-                    # Create symlink in NFS
                     # TODO: Add defer_cleanup parameter to install command to speed up bulk installations
                     backup_and_symlink(nfs_path, cefs_paths.mount_path, self.dry_run, defer_cleanup=False)
-                    # Manifest will be automatically finalized on successful exit
-
         finally:
-            # Clean up temporary files
-            if "temp_squash_file" in locals():
-                temp_squash_file.unlink(missing_ok=True)
-            if temp_dest_path.exists():
-                shutil.rmtree(temp_dest_path, ignore_errors=True)
+            if temp_squash_file.exists():
+                temp_squash_file.unlink()
