@@ -213,10 +213,9 @@ def test_should_include_manifest_item(tmp_path):
     # Valid entry that references the image
     content = {"name": "compilers/c++/x86/gcc 15.1.0", "destination": str(dest)}
 
-    should_include, targets = should_include_manifest_item(content, image_path, mount_point, [])
+    should_include, target = should_include_manifest_item(content, image_path, mount_point, [])
     # This checks if the symlink target contains the image stem in the right position
-    assert len(targets) == 1
-    assert targets[0] == cefs_target
+    assert target == cefs_target
 
     # The actual inclusion depends on is_item_still_using_image checking the path structure
     # For a proper test, we'd need the symlink to actually point to a matching image
@@ -233,6 +232,56 @@ def test_should_include_manifest_item(tmp_path):
     bad_content = {"name": "test"}  # Missing destination
     with pytest.raises(ValueError, match="Malformed manifest entry"):
         should_include_manifest_item(bad_content, image_path, mount_point, [])
+
+
+def test_should_include_manifest_item_bak_symlink(tmp_path):
+    """Test that should_include_manifest_item only considers main symlink, not .bak."""
+    mount_point = Path("/cefs")
+
+    # Two different consolidated images
+    old_image_stem = "old123_consolidated"
+    old_image_path = tmp_path / "cefs-images" / "ol" / f"{old_image_stem}.sqfs"
+    old_image_path.parent.mkdir(parents=True)
+    old_image_path.touch()
+
+    new_image_stem = "new456_consolidated"
+    new_image_path = tmp_path / "cefs-images" / "ne" / f"{new_image_stem}.sqfs"
+    new_image_path.parent.mkdir(parents=True)
+    new_image_path.touch()
+
+    # Create destination directory
+    dest = tmp_path / "osaca-0.7.1"
+    dest_bak = tmp_path / "osaca-0.7.1.bak"
+
+    # Main symlink points to new image
+    new_target = mount_point / "ne" / new_image_stem / "tools_osaca_0.7.1"
+    dest.symlink_to(new_target)
+
+    # Backup symlink points to old image
+    old_target = mount_point / "ol" / old_image_stem / "tools_osaca_0.7.1"
+    dest_bak.symlink_to(old_target)
+
+    content = {"name": "tools/osaca 0.7.1", "destination": str(dest)}
+
+    # When checking the OLD image (only referenced by .bak)
+    # The current implementation incorrectly includes it because get_current_symlink_targets
+    # returns both main and .bak targets
+    should_include_old, target_old = should_include_manifest_item(content, old_image_path, mount_point, [])
+
+    # When checking the NEW image (referenced by main symlink)
+    should_include_new, target_new = should_include_manifest_item(content, new_image_path, mount_point, [])
+
+    # Current buggy behavior: both return True because get_current_symlink_targets
+    # returns both main and .bak targets, and the function checks if ANY target
+    # points to the image
+
+    # After fix: only the new image should be included for reconsolidation
+    # since only the main symlink should be considered
+
+    # This test will initially fail, demonstrating the bug
+    # After the fix, it should pass
+    assert not should_include_old, "Old image should not be included (only referenced by .bak)"
+    assert should_include_new, "New image should be included (referenced by main symlink)"
 
 
 def test_prepare_consolidation_items(tmp_path):

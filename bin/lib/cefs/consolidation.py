@@ -28,7 +28,6 @@ from lib.cefs.paths import (
     get_cefs_filename_for_image,
     get_cefs_mount_path,
     get_cefs_paths,
-    get_current_symlink_targets,
     get_directory_size,
     get_extraction_path_from_symlink,
 )
@@ -491,7 +490,7 @@ def should_reconsolidate_image(
 
 def should_include_manifest_item(
     content: dict, image_path: Path, mount_point: Path, filter_: list[str]
-) -> tuple[bool, list[Path]]:
+) -> tuple[bool, Path | None]:
     """Check if a manifest item should be included for reconsolidation.
 
     Args:
@@ -501,23 +500,29 @@ def should_include_manifest_item(
         filter_: Optional filter for selecting items
 
     Returns:
-        Tuple of (should_include, targets) where targets are the current symlink targets
+        Tuple of (should_include, target) where target is the main symlink target or None
     """
     if "destination" not in content or "name" not in content:
         raise ValueError(f"Malformed manifest entry missing required fields: {content}")
 
     dest_path = Path(content["destination"])
-    targets = get_current_symlink_targets(dest_path)
+
+    # Only check the main symlink for reconsolidation, not backups
+    # We reconsolidate items that are actively in use, not old backups
+    if not dest_path.is_symlink():
+        return False, None
+
+    target = dest_path.resolve()
 
     # Check if this item is still referenced to this image
-    if not any(is_item_still_using_image(target, image_path, mount_point) for target in targets):
-        return False, targets
+    if not is_item_still_using_image(target, image_path, mount_point):
+        return False, target
 
     # Apply filter if provided
     if filter_ and not any(f in content["name"] for f in filter_):
-        return False, targets
+        return False, target
 
-    return True, targets
+    return True, target
 
 
 def determine_extraction_path(targets: list[Path], image_path: Path, mount_point: Path) -> Path | None:
@@ -570,7 +575,7 @@ def extract_candidates_from_manifest(
 
     candidates = []
     for content in contents:
-        should_include, targets = should_include_manifest_item(content, image_path, mount_point, filter_)
+        should_include, target = should_include_manifest_item(content, image_path, mount_point, filter_)
         if not should_include:
             continue
 
@@ -579,7 +584,7 @@ def extract_candidates_from_manifest(
                 name=content["name"],
                 nfs_path=Path(content["destination"]),
                 squashfs_path=image_path,
-                extraction_path=determine_extraction_path(targets, image_path, mount_point),
+                extraction_path=determine_extraction_path([target] if target else [], image_path, mount_point),
                 size=item_size,
                 from_reconsolidation=True,
             )
