@@ -7,4 +7,4 @@ from __future__ import annotations
 NFS_MAX_RECURSION_DEPTH = 3  # Limit depth when recursing on NFS to avoid performance issues
 
 # Default minimum age for CEFS cleanup operations
-DEFAULT_MIN_AGE = "1h"  # Used by gc and fsck repair to avoid interfering with in-progress operations
+DEFAULT_MIN_AGE = "1h"
