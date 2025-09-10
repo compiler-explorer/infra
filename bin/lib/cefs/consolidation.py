@@ -173,7 +173,7 @@ def create_consolidated_image(
         items: List of (nfs_path, squashfs_path, subdirectory_name, extraction_path) tuples
         temp_dir: Temporary directory for extraction
         output_path: Path for the consolidated squashfs image
-        max_parallel_extractions: Maximum number of parallel extractions (default: CPU count)
+        max_parallel_extractions: Maximum number of parallel extractions (default: CPU count - 1)
 
     Raises:
         RuntimeError: If consolidation fails
@@ -182,7 +182,7 @@ def create_consolidated_image(
     extraction_dir.mkdir(parents=True, exist_ok=True)
 
     if max_parallel_extractions is None:
-        max_parallel_extractions = os.cpu_count() or 1
+        max_parallel_extractions = max(1, (os.cpu_count() or 1) - 1)
     num_workers = min(max_parallel_extractions, len(items))
 
     _LOGGER.info("Starting parallel extraction with %d workers for %d items", num_workers, len(items))
