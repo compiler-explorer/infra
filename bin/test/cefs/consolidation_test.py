@@ -263,23 +263,13 @@ def test_should_include_manifest_item_bak_symlink(tmp_path):
 
     content = {"name": "tools/osaca 0.7.1", "destination": str(dest)}
 
-    # When checking the OLD image (only referenced by .bak)
-    # The current implementation incorrectly includes it because get_current_symlink_targets
-    # returns both main and .bak targets
+    # Check the OLD image (only referenced by .bak)
     should_include_old, target_old = should_include_manifest_item(content, old_image_path, mount_point, [])
 
-    # When checking the NEW image (referenced by main symlink)
+    # Check the NEW image (referenced by main symlink)
     should_include_new, target_new = should_include_manifest_item(content, new_image_path, mount_point, [])
 
-    # Current buggy behavior: both return True because get_current_symlink_targets
-    # returns both main and .bak targets, and the function checks if ANY target
-    # points to the image
-
-    # After fix: only the new image should be included for reconsolidation
-    # since only the main symlink should be considered
-
-    # This test will initially fail, demonstrating the bug
-    # After the fix, it should pass
+    # Only the main symlink should be considered for reconsolidation
     assert not should_include_old, "Old image should not be included (only referenced by .bak)"
     assert should_include_new, "New image should be included (referenced by main symlink)"
 
