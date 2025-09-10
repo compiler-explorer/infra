@@ -217,10 +217,10 @@ def parse_cefs_target(cefs_target: Path, cefs_image_dir: Path, mount_point: Path
     return cefs_image_path, is_already_consolidated
 
 
-def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) -> Path:
+def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) -> Path | None:
     """Determine what to extract from a CEFS image based on symlink target.
 
-    Returns the relative path after {mount_point}/XX/HASH/ or Path(".") if at root.
+    Returns the relative path after {mount_point}/XX/HASH/ or None if at root.
 
     Args:
         symlink_target: The symlink target path
@@ -228,7 +228,7 @@ def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) ->
 
     Examples (assuming mount_point=/cefs):
         /cefs/ab/abcd1234567890abcdef12/content → Path("content")
-        /cefs/ab/abcd1234567890abcdef12 → Path(".")
+        /cefs/ab/abcd1234567890abcdef12 → None
         /cefs/ab/abcd1234567890abcdef12/gcc-4.5 → Path("gcc-4.5")
         /cefs/ab/abcd1234567890abcdef12/libs/boost → Path("libs/boost")
     """
@@ -236,7 +236,7 @@ def get_extraction_path_from_symlink(symlink_target: Path, mount_point: Path) ->
     mount_parts = mount_point.parts
     # Need at least mount_point + XX + HASH to have any relative path
     if len(parts) <= len(mount_parts) + 2:
-        return Path(".")
+        return None
 
     relative_parts = parts[len(mount_parts) + 2 :]
     return Path(*relative_parts)

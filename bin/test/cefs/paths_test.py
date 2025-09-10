@@ -67,7 +67,7 @@ def test_parse_cefs_target_variations(tmp_path):
 def test_get_extraction_path_from_symlink():
     mount_point = Path("/cefs")
     test_cases = [
-        (Path("/cefs/ab/abcdef1234567890abcdef12"), Path(".")),
+        (Path("/cefs/ab/abcdef1234567890abcdef12"), None),
         (Path("/cefs/ab/abcdef1234567890abcdef12/content"), Path("content")),
         (Path("/cefs/ab/abcdef1234567890abcdef12/gcc-4.5"), Path("gcc-4.5")),
         (Path("/cefs/ab/abcdef1234567890abcdef12/libs/boost"), Path("libs/boost")),
@@ -201,7 +201,7 @@ def test_get_extraction_path_with_custom_mount():
     custom_mount = Path("/test/cefs")
 
     test_cases = [
-        (custom_mount / "ab" / "abcd1234", Path(".")),
+        (custom_mount / "ab" / "abcd1234", None),
         (custom_mount / "ab" / "abcd1234" / "content", Path("content")),
         (custom_mount / "ab" / "abcd1234" / "deep" / "path", Path("deep/path")),
     ]
