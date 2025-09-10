@@ -162,6 +162,7 @@ export class EventsConnections {
                 connectionId: {
                     S: id,
                 },
+                ttl: {N: String(Math.floor(Date.now() / 1000) + 86400)}, // 24 hour TTL
             },
         });
         await ddbClient.send(putCommand);
