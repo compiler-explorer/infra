@@ -19,9 +19,6 @@ from lib.cefs_manifest import read_manifest_from_alongside
 
 _LOGGER = logging.getLogger(__name__)
 
-# Constants for NFS performance tuning
-NFS_MAX_RECURSION_DEPTH = 3  # Limit depth when recursing on NFS to avoid performance issues
-
 
 class CEFSState:
     """Track CEFS images and their references for garbage collection using manifests."""

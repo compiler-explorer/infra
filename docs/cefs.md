@@ -143,6 +143,9 @@ The modified script now skips mounting when the destination is already a symlink
 - `ce cefs convert FILTER` - Convert existing squashfs images to CEFS with hash-based storage
 - `ce cefs rollback FILTER` - Undo conversions by restoring from .bak directories
 - `ce cefs status` - Show current configuration
+- `ce cefs fsck [--repair]` - Check filesystem integrity and optionally repair incomplete transactions
+- `ce cefs gc` - Garbage collect unreferenced CEFS images
+- `ce cefs consolidate` - Combine multiple images into larger consolidated images
 
 #### Migration Process
 
@@ -305,10 +308,106 @@ Both `new_hash` and `old_hash` images must be preserved.
 Images with `.yaml.inprogress` markers indicate incomplete or failed operations:
 - **DO NOT** auto-delete these images (may be partially in use)
 - For consolidations: Some symlinks may already point to the image
-- Require manual investigation and decision
-- Future tool: `ce cefs check-failed` to analyze and remediate
+- Use `ce cefs fsck --repair` to analyze and fix these transactions
 
-#### Reconsolidation
+#### Filesystem Integrity and Repair
+
+CEFS includes filesystem checking and repair functionality via `ce cefs fsck` to handle incomplete transactions marked by `.yaml.inprogress` files.
+
+#### Transaction Lifecycle
+
+Normal CEFS operations follow this pattern:
+1. Copy squashfs image to `/efs/cefs-images/`
+2. Write `.yaml.inprogress` manifest (transaction in progress)
+3. Create symlinks in `/opt/compiler-explorer/`
+4. Atomically rename `.yaml.inprogress` → `.yaml` (transaction complete)
+
+If the process fails between steps 2-4, a `.yaml.inprogress` file remains, indicating an incomplete transaction.
+
+#### Filesystem Check (`fsck`)
+
+The `ce cefs fsck` command validates CEFS filesystem integrity:
+
+```bash
+# Check filesystem (read-only)
+ce cefs fsck
+
+# Check with verbose output
+ce cefs fsck --verbose
+
+# Check and repair incomplete transactions
+ce cefs fsck --repair
+
+# Repair with custom age threshold
+ce cefs fsck --repair --min-age 2h
+
+# Force repairs without confirmation
+ce cefs fsck --repair --force
+```
+
+#### Repair Logic
+
+When run with `--repair`, fsck analyzes each `.yaml.inprogress` file and determines the appropriate action:
+
+1. **Transaction Analysis**:
+   - Read manifest to determine expected symlinks
+   - Check if symlinks exist and point to the correct image
+   - Also check `.bak` symlinks for rollback protection
+   - Calculate transaction age
+
+2. **Transaction States**:
+   - **FULLY_COMPLETE**: All expected symlinks exist → Finalize (rename to `.yaml`)
+   - **PARTIALLY_COMPLETE**: Some symlinks exist → Finalize (assume partial success is intentional)
+   - **FAILED_EARLY**: No symlinks created → Delete (rollback failed transaction)
+   - **CONFLICTED**: Symlinks point elsewhere → Skip (needs manual review)
+   - **TOO_RECENT**: Younger than min-age threshold → Skip (might still be running)
+
+3. **Safety Features**:
+   - Default min-age threshold (1h, configurable via `--min-age`) prevents interference with running operations
+   - Confirmation required unless `--force` is used
+   - Dry-run mode shows what would be done without changes
+   - Conservative approach: when in doubt, preserve the transaction
+
+#### Example Output
+
+```
+$ ce cefs fsck --repair
+
+CEFS Filesystem Check Results
+============================================
+📊 Summary:
+  Total images scanned: 245
+  ✅ Valid manifests: 242
+  🔄 In-progress files: 3
+
+🔧 Repair Analysis
+==================
+Analyzing 3 incomplete transaction(s)...
+
+/efs/cefs-images/ab/abc123_consolidated.yaml.inprogress (age: 2 days)
+  Transaction: PARTIALLY_COMPLETE
+  Progress: 2/3 symlink(s) created
+    ✓ /opt/compiler-explorer/gcc-12
+    ✓ /opt/compiler-explorer/gcc-13
+    ✗ /opt/compiler-explorer/gcc-14 (missing)
+  Action: FINALIZE (complete the transaction)
+
+/efs/cefs-images/de/def456_converted.yaml.inprogress (age: 5 days)
+  Transaction: FAILED_EARLY
+  Progress: 0/1 symlink(s) created
+    ✗ /opt/compiler-explorer/clang-15 (missing)
+  Action: DELETE (rollback failed transaction)
+
+Repairs to perform:
+- Finalize 1 transaction(s) (marking as complete)
+- Delete 1 failed transaction(s) (freeing 500MB)
+
+Proceed with 2 repair(s)? [y/N]: y
+
+✅ Filesystem check complete. 1 finalized, 1 deleted.
+```
+
+### Reconsolidation
 
 The `ce cefs consolidate --reconsolidate` command optimizes inefficient consolidated images that accumulate over time.
 

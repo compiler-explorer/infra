@@ -9,14 +9,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
+from lib.cefs.constants import NFS_MAX_RECURSION_DEPTH
 from lib.cefs.paths import FileWithAge
 from lib.cefs.state import CEFSState
 from lib.cefs_manifest import validate_manifest
 
 _LOGGER = logging.getLogger(__name__)
-
-# Constants for NFS performance tuning
-NFS_MAX_RECURSION_DEPTH = 3  # Limit depth when recursing on NFS to avoid performance issues
 
 
 @dataclass(frozen=True)
