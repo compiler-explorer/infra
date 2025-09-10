@@ -218,13 +218,14 @@ export class EventsConnections {
         // Store in local cache first for instant access
         guidSenderCache.set(guid, connectionId);
 
-        // Store GUID -> sender mapping with TTL (24 hours) as backup
+        // Store GUID -> sender mapping with TTL (1 minute) as backup
+        // Note: TTL requires table-level configuration in Terraform to be effective
         const putCommand = new PutItemCommand({
             TableName: config.connections_table,
             Item: {
                 connectionId: {S: `guid-sender#${guid}`},
                 senderConnectionId: {S: connectionId},
-                ttl: {N: Math.floor(Date.now() / 1000) + 86400}, // 24 hour TTL
+                ttl: {N: Math.floor(Date.now() / 1000) + 60}, // 1 minute TTL
             },
         });
 
