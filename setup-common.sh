@@ -200,7 +200,14 @@ rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
 
 setup_cefs() {
-    # This manual setup should be kept in sync with `ce_install cefs setup`
+    # We can hit "too many open files" during autofs mount, so increase limits.
+    mkdir -p /etc/systemd/system/autofs.service.d
+    cat >/etc/systemd/system/autofs.service.d/limits.conf <<EOF
+[Service]
+LimitNOFILE=65536
+EOF
+    systemctl daemon-reload
+    # This part of the manual setup should be kept in sync with `ce_install cefs setup`
     # To save us having to install `uv` etc in our packer stages we duplicate
     # the setup here.
     mkdir /cefs
