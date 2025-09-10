@@ -204,7 +204,7 @@ setup_cefs() {
     # To save us having to install `uv` etc in our packer stages we duplicate
     # the setup here.
     mkdir /cefs
-    echo "* -fstype=autofs,--negative-timeout=1 program:/etc/auto.cefs.sub" > /etc/auto.cefs
+    echo "* -fstype=autofs program:/etc/auto.cefs.sub" > /etc/auto.cefs
     cat > /etc/auto.cefs.sub << 'EOF'
 #!/bin/bash
 key="$1"
