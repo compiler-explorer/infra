@@ -2498,8 +2498,9 @@ libraries:
       - compiler=%compilerTypeOrGcc%
       - arch=%intelarch?%
       lib_type: shared
-      method: nightlyclone
-      repo: oneapi-src/oneTBB
+      method: clone_branch
+      target_prefix: v
+      repo: uxlfoundation/oneTBB
       targets:
       - '2020.2'
       - '2020.3'
