@@ -9,6 +9,8 @@ cd "${DIR}"
 
 env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh" ci
 
+# In order to run older compilers like gcc 1.27, we need to support running 32-bit code
+dpkg --add-architecture i386
 add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
 apt-get -y install \
@@ -38,6 +40,8 @@ apt-get -y install \
     python3-pip \
     python3-venv \
     xz-utils \
+    libc6-dev:i386 \
+    libc6-dev-i386 \
     linux-libc-dev \
     libelf-dev \
     libgmp3-dev \
