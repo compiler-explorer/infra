@@ -242,7 +242,7 @@ def extract_squashfs_image(
     config_squashfs: SquashfsConfig,
     squashfs_path: Path,
     output_dir: Path,
-    extract_path: Path | None = None,
+    extract_path: Path | None,
 ) -> None:
     """Extract a squashfs image using configured unsquashfs tool.
 
@@ -250,7 +250,7 @@ def extract_squashfs_image(
         config_squashfs: SquashFsConfig object with tool paths
         squashfs_path: Path to squashfs file to extract
         output_dir: Directory to extract to
-        extract_path: Specific path within the archive to extract (optional)
+        extract_path: Specific path within the archive to extract, or None for full extraction
 
     Raises:
         SquashfsError: If unsquashfs command fails

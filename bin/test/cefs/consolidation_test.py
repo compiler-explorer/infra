@@ -189,12 +189,12 @@ def test_determine_extraction_path():
 
     # Test with empty targets - should return current directory
     extraction_path = determine_extraction_path([], image_path, mount_point)
-    assert extraction_path == Path(".")
+    assert extraction_path is None
 
     # Test with short path (less than 5 parts) - should return current directory
     targets = [Path("/cefs/ab")]
     extraction_path = determine_extraction_path(targets, image_path, mount_point)
-    assert extraction_path == Path(".")
+    assert extraction_path is None
 
 
 def test_should_include_manifest_item(tmp_path):
@@ -413,7 +413,7 @@ def test_reconsolidation_symlink_mapping():
         # The mapping should preserve the structure for proper symlink targeting
         # For an extraction_path of "gcc/compilers_c++_x86_gcc_12.3.0",
         # the symlink needs to point to the full path within the consolidated image
-        if candidate.extraction_path != Path("."):
+        if candidate.extraction_path is not None:
             # For reconsolidated items with nested paths, we need special handling
             # The mapped subdir should indicate where the symlink should point
             expected_name = sanitize_path_for_filename(Path(candidate.name))
@@ -578,7 +578,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/gcc-15.0.0"),
             squashfs_path=Path("/efs/gcc.sqfs"),
             size=500 * 1024 * 1024,  # 500MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -586,7 +586,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/clang-18.0.0"),
             squashfs_path=Path("/efs/clang.sqfs"),
             size=400 * 1024 * 1024,  # 400MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -594,7 +594,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/rust-1.80.0"),
             squashfs_path=Path("/efs/rust.sqfs"),
             size=300 * 1024 * 1024,  # 300MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -602,7 +602,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/go-1.21.0"),
             squashfs_path=Path("/efs/go.sqfs"),
             size=200 * 1024 * 1024,  # 200MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
     ]
@@ -648,7 +648,7 @@ def test_validate_space_requirements(tmp_path):
             nfs_path=Path("/opt/item1"),
             squashfs_path=Path("/efs/item1.sqfs"),
             size=100 * 1024 * 1024,  # 100MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -656,7 +656,7 @@ def test_validate_space_requirements(tmp_path):
             nfs_path=Path("/opt/item2"),
             squashfs_path=Path("/efs/item2.sqfs"),
             size=200 * 1024 * 1024,  # 200MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
     ]
@@ -667,7 +667,7 @@ def test_validate_space_requirements(tmp_path):
             nfs_path=Path("/opt/item3"),
             squashfs_path=Path("/efs/item3.sqfs"),
             size=150 * 1024 * 1024,  # 150MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
     ]
