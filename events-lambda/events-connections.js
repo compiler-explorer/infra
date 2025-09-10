@@ -225,7 +225,7 @@ export class EventsConnections {
             Item: {
                 connectionId: {S: `guid-sender#${guid}`},
                 senderConnectionId: {S: connectionId},
-                ttl: {N: Math.floor(Date.now() / 1000) + 60}, // 1 minute TTL
+                ttl: {N: String(Math.floor(Date.now() / 1000) + 60)}, // 1 minute TTL
             },
         });
 
