@@ -14,7 +14,7 @@ async function send_message(apiGwClient, connectionId, postData) {
         // eslint-disable-next-line no-console
         console.error(e);
 
-        if (e.statusCode === 410) {
+        if (e.$metadata?.httpStatusCode === 410 || e.statusCode === 410) {
             await EventsConnections.remove(connectionId);
             return false;
         } else {
