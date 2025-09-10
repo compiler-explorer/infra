@@ -20,6 +20,9 @@ const ddbClient = new DynamoDBClient({
 // Simple in-memory cache: Set<"connectionId:subscription">
 const subscriptionCache = new Set();
 
+// GUID sender tracking cache: Map<guid, connectionId>
+const guidSenderCache = new Map();
+
 export class EventsConnections {
     static async subscribers(subscription) {
         // Check cache first - find all connectionIds with this subscription
@@ -172,6 +175,13 @@ export class EventsConnections {
             }
         }
 
+        // Remove all GUID sender entries for this connection from cache
+        for (const [guid, connectionId] of guidSenderCache) {
+            if (connectionId === id) {
+                guidSenderCache.delete(guid);
+            }
+        }
+
         // Find and delete all connection-subscription items from DynamoDB
         // Use scan with begins_with filter to find all composite keys for this connection
         const scanCommand = new ScanCommand({
@@ -201,6 +211,61 @@ export class EventsConnections {
         } catch (error) {
             // eslint-disable-next-line no-console
             console.error(`Failed to remove connection ${id} items from DynamoDB:`, error);
+        }
+    }
+
+    static async trackGuidSender(guid, connectionId) {
+        // Store in local cache first for instant access
+        guidSenderCache.set(guid, connectionId);
+
+        // Store GUID -> sender mapping with TTL (24 hours) as backup
+        const putCommand = new PutItemCommand({
+            TableName: config.connections_table,
+            Item: {
+                connectionId: {S: `guid-sender#${guid}`},
+                senderConnectionId: {S: connectionId},
+                ttl: {N: Math.floor(Date.now() / 1000) + 86400}, // 24 hour TTL
+            },
+        });
+
+        try {
+            await ddbClient.send(putCommand);
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(`Failed to track GUID sender for ${guid}:`, error);
+            // Don't throw - this is non-critical tracking
+        }
+    }
+
+    static async getGuidSender(guid) {
+        // Check local cache first
+        if (guidSenderCache.has(guid)) {
+            return guidSenderCache.get(guid);
+        }
+
+        // Fallback to DynamoDB if not in cache
+        const queryCommand = new QueryCommand({
+            TableName: config.connections_table,
+            KeyConditionExpression: 'connectionId = :guidSenderKey',
+            ExpressionAttributeValues: {
+                ':guidSenderKey': {S: `guid-sender#${guid}`},
+            },
+            ProjectionExpression: 'senderConnectionId',
+        });
+
+        try {
+            const result = await ddbClient.send(queryCommand);
+            if (result.Items && result.Items.length > 0) {
+                const senderConnectionId = result.Items[0].senderConnectionId.S;
+                // Cache the result for future lookups
+                guidSenderCache.set(guid, senderConnectionId);
+                return senderConnectionId;
+            }
+            return null;
+        } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(`Failed to get GUID sender for ${guid}:`, error);
+            return null;
         }
     }
 }
