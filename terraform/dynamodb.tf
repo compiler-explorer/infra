@@ -165,6 +165,12 @@ resource "aws_dynamodb_table" "events-connections" {
   point_in_time_recovery {
     enabled = false
   }
+
+  # TTL for automatic cleanup of expired GUID-sender mappings
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
 }
 
 # Auto-scaling for events-connections table read capacity

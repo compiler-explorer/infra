@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import uuid
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -27,7 +28,6 @@ from lib.cefs.paths import (
     get_cefs_filename_for_image,
     get_cefs_mount_path,
     get_cefs_paths,
-    get_current_symlink_targets,
     get_directory_size,
     get_extraction_path_from_symlink,
 )
@@ -62,16 +62,16 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
     """Worker function to extract a single squashfs image.
 
     Args are serialized as strings for pickling:
-        unsquashfs_path, squashfs_path, subdir_path, extraction_path, subdir_name, nfs_path
+        unsquashfs_path, squashfs_path, extraction_dir, extraction_path, subdir_name, nfs_path
 
     Returns:
         Dictionary with extraction metrics and status
     """
     logger = logging.getLogger(__name__)
-    unsquashfs_path, squashfs_path_str, subdir_path_str, extraction_path_str, subdir_name, nfs_path_str = args
+    unsquashfs_path, squashfs_path_str, extraction_dir_str, extraction_path_str, subdir_name, nfs_path_str = args
 
     squashfs_path = Path(squashfs_path_str)
-    subdir_path = Path(subdir_path_str)
+    extraction_dir = Path(extraction_dir_str)
     extraction_path = Path(extraction_path_str) if extraction_path_str else None
 
     config = SquashfsConfig(
@@ -83,28 +83,40 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
 
     try:
         compressed_size = squashfs_path.stat().st_size
-        is_partial_extraction = extraction_path is not None and extraction_path != Path(".")
 
-        if is_partial_extraction:
+        # Determine where to extract based on whether this is partial extraction
+        # For partial extraction: extract to temp dir then move to correct location
+        # For full extraction: extract directly to target directory
+        if extraction_path is not None:
+            temp_dir = extraction_dir / f".tmp_{uuid.uuid4().hex}"
             logger.info(
-                "Partially extracting %s from %s (%s) to %s",
+                "Partially extracting %s from %s (%s) via temp dir",
                 extraction_path,
                 squashfs_path,
                 humanfriendly.format_size(compressed_size, binary=True),
-                subdir_path,
             )
+
+            extract_squashfs_image(config, squashfs_path, temp_dir, extraction_path)
+            extracted_content = temp_dir / extraction_path
+            final_location = extraction_dir / subdir_name
+            final_location.parent.mkdir(parents=True, exist_ok=True)
+            extracted_content.rename(final_location)
+            shutil.rmtree(temp_dir)
         else:
+            actual_extraction_dir = extraction_dir / subdir_name
             logger.info(
                 "Extracting %s (%s) to %s",
                 squashfs_path,
                 humanfriendly.format_size(compressed_size, binary=True),
-                subdir_path,
+                actual_extraction_dir,
             )
+            extract_squashfs_image(config, squashfs_path, actual_extraction_dir, None)
 
-        extract_squashfs_image(config, squashfs_path, subdir_path, extraction_path)
+        # Always measure size at the expected location
+        subdir_path = extraction_dir / subdir_name
         extracted_size = get_directory_size(subdir_path)
 
-        if is_partial_extraction:
+        if extraction_path is not None:
             logger.info(
                 "Partially extracted %s (%s from %s total image)",
                 extraction_path,
@@ -149,7 +161,7 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
 
 def create_consolidated_image(
     squashfs_config: SquashfsConfig,
-    items: list[tuple[Path, Path, str, Path]],
+    items: list[tuple[Path, Path, str, Path | None]],
     temp_dir: Path,
     output_path: Path,
     max_parallel_extractions: int | None = None,
@@ -161,7 +173,7 @@ def create_consolidated_image(
         items: List of (nfs_path, squashfs_path, subdirectory_name, extraction_path) tuples
         temp_dir: Temporary directory for extraction
         output_path: Path for the consolidated squashfs image
-        max_parallel_extractions: Maximum number of parallel extractions (default: CPU count)
+        max_parallel_extractions: Maximum number of parallel extractions (default: CPU count - 1)
 
     Raises:
         RuntimeError: If consolidation fails
@@ -170,7 +182,7 @@ def create_consolidated_image(
     extraction_dir.mkdir(parents=True, exist_ok=True)
 
     if max_parallel_extractions is None:
-        max_parallel_extractions = os.cpu_count() or 1
+        max_parallel_extractions = max(1, (os.cpu_count() or 1) - 1)
     num_workers = min(max_parallel_extractions, len(items))
 
     _LOGGER.info("Starting parallel extraction with %d workers for %d items", num_workers, len(items))
@@ -180,7 +192,7 @@ def create_consolidated_image(
             (
                 squashfs_config.unsquashfs_path,
                 str(squashfs_path),
-                str(extraction_dir / subdir_name),
+                str(extraction_dir),
                 str(extraction_path) if extraction_path else None,
                 subdir_name,
                 str(nfs_path),
@@ -478,7 +490,7 @@ def should_reconsolidate_image(
 
 def should_include_manifest_item(
     content: dict, image_path: Path, mount_point: Path, filter_: list[str]
-) -> tuple[bool, list[Path]]:
+) -> tuple[bool, Path | None]:
     """Check if a manifest item should be included for reconsolidation.
 
     Args:
@@ -488,26 +500,32 @@ def should_include_manifest_item(
         filter_: Optional filter for selecting items
 
     Returns:
-        Tuple of (should_include, targets) where targets are the current symlink targets
+        Tuple of (should_include, target) where target is the main symlink target or None
     """
     if "destination" not in content or "name" not in content:
         raise ValueError(f"Malformed manifest entry missing required fields: {content}")
 
     dest_path = Path(content["destination"])
-    targets = get_current_symlink_targets(dest_path)
+
+    # Only check the main symlink for reconsolidation, not backups
+    # We reconsolidate items that are actively in use, not old backups
+    if not dest_path.is_symlink():
+        return False, None
+
+    target = dest_path.resolve()
 
     # Check if this item is still referenced to this image
-    if not any(is_item_still_using_image(target, image_path, mount_point) for target in targets):
-        return False, targets
+    if not is_item_still_using_image(target, image_path, mount_point):
+        return False, target
 
     # Apply filter if provided
     if filter_ and not any(f in content["name"] for f in filter_):
-        return False, targets
+        return False, target
 
-    return True, targets
+    return True, target
 
 
-def determine_extraction_path(targets: list[Path], image_path: Path, mount_point: Path) -> Path:
+def determine_extraction_path(targets: list[Path], image_path: Path, mount_point: Path) -> Path | None:
     """Determine the extraction path from symlink targets.
 
     Args:
@@ -516,14 +534,14 @@ def determine_extraction_path(targets: list[Path], image_path: Path, mount_point
         mount_point: CEFS mount point
 
     Returns:
-        Path within the consolidated image to extract from
+        Path within the consolidated image to extract from, or None to extract everything
     """
     for target in targets:
         if is_item_still_using_image(target, image_path, mount_point):
             if len(target.parts) > 4:
                 return Path(*target.parts[4:])
             break
-    return Path(".")
+    return None
 
 
 def extract_candidates_from_manifest(
@@ -557,7 +575,7 @@ def extract_candidates_from_manifest(
 
     candidates = []
     for content in contents:
-        should_include, targets = should_include_manifest_item(content, image_path, mount_point, filter_)
+        should_include, target = should_include_manifest_item(content, image_path, mount_point, filter_)
         if not should_include:
             continue
 
@@ -566,7 +584,7 @@ def extract_candidates_from_manifest(
                 name=content["name"],
                 nfs_path=Path(content["destination"]),
                 squashfs_path=image_path,
-                extraction_path=determine_extraction_path(targets, image_path, mount_point),
+                extraction_path=determine_extraction_path([target] if target else [], image_path, mount_point),
                 size=item_size,
                 from_reconsolidation=True,
             )
@@ -657,7 +675,7 @@ def validate_space_requirements(groups: list[list[ConsolidationCandidate]], temp
 
 def prepare_consolidation_items(
     group: list[ConsolidationCandidate], mount_point: Path
-) -> tuple[list[tuple[Path, Path, str, Path]], dict[Path, str]]:
+) -> tuple[list[tuple[Path, Path, str, Path | None]], dict[Path, str]]:
     """Prepare items for consolidation by determining extraction paths and subdirectory names.
 
     Args:

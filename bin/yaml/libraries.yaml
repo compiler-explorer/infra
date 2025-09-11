@@ -1735,6 +1735,14 @@ libraries:
         targets:
         - trunk
         type: github
+      med:
+        build_type: none
+        check_file: med/med.hpp
+        repo: cppden/med
+        targets:
+        - trunk
+        type: github
+        method: nightlyclone
       mimicpp:
         check_file: README.md
         method: nightlyclone
@@ -2490,8 +2498,9 @@ libraries:
       - compiler=%compilerTypeOrGcc%
       - arch=%intelarch?%
       lib_type: shared
-      method: nightlyclone
-      repo: oneapi-src/oneTBB
+      method: clone_branch
+      target_prefix: v
+      repo: uxlfoundation/oneTBB
       targets:
       - '2020.2'
       - '2020.3'

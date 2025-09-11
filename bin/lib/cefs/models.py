@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -15,7 +15,7 @@ class ConsolidationCandidate:
     nfs_path: Path
     squashfs_path: Path
     size: int
-    extraction_path: Path = field(default_factory=lambda: Path("."))
+    extraction_path: Path | None = None
     from_reconsolidation: bool = False
 
 

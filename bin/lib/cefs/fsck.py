@@ -9,7 +9,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
-from lib.cefs.paths import NFS_MAX_RECURSION_DEPTH, FileWithAge, glob_with_depth
+from lib.cefs.constants import NFS_MAX_RECURSION_DEPTH
+from lib.cefs.paths import FileWithAge, glob_with_depth
 from lib.cefs.state import CEFSState
 from lib.cefs_manifest import validate_manifest
 

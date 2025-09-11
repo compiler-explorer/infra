@@ -128,8 +128,9 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
         return
 
     try:
+        # We use symlinks=False here to account for broken symlinks.
         # Handle old backup if it exists
-        if backup_path.exists():
+        if backup_path.exists(follow_symlinks=False):
             if defer_cleanup:
                 # Rename to .DELETE_ME_<timestamp> for later cleanup
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -137,18 +138,16 @@ def backup_and_symlink(nfs_path: Path, cefs_target: Path, dry_run: bool, defer_c
                 backup_path.rename(delete_me_path)
                 _LOGGER.info("Renamed old backup %s to %s for deferred cleanup", backup_path, delete_me_path)
             else:
-                # Original behavior: delete immediately
                 if backup_path.is_symlink():
                     backup_path.unlink()
                 else:
                     shutil.rmtree(backup_path)
 
-        # Backup current directory (or symlink) if it exists. Follow symlinks=False here to account for broken symlinks
         if nfs_path.exists(follow_symlinks=False):
             nfs_path.rename(backup_path)
             _LOGGER.info("Backed up %s to %s", nfs_path, backup_path)
 
-        # Create symlink
+        nfs_path.parent.mkdir(parents=True, exist_ok=True)
         nfs_path.symlink_to(cefs_target, target_is_directory=True)
         _LOGGER.info("Created symlink %s -> %s", nfs_path, cefs_target)
 

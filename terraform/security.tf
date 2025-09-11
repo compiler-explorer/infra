@@ -230,6 +230,12 @@ resource "aws_iam_role" "CompilerExplorerWindowsRole" {
   assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
 }
 
+resource "aws_iam_role" "CeRouterRole" {
+  name               = "CeRouterRole"
+  description        = "CE Router instances role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
 data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
   arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentServerPolicy"
 }
@@ -345,17 +351,18 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
   statement {
     sid = "CompilationQueueAccess"
     actions = [
+      "sqs:SendMessage",
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
       "sqs:GetQueueAttributes"
     ]
     resources = [
-      module.compilation_lambda_beta.sqs_queue_blue_arn,
-      module.compilation_lambda_beta.sqs_queue_green_arn,
-      module.compilation_lambda_staging.sqs_queue_blue_arn,
-      module.compilation_lambda_staging.sqs_queue_green_arn,
-      module.compilation_lambda_prod.sqs_queue_blue_arn,
-      module.compilation_lambda_prod.sqs_queue_green_arn,
+      module.beta_blue_green.sqs_queue_blue_arn,
+      module.beta_blue_green.sqs_queue_green_arn,
+      module.staging_blue_green.sqs_queue_blue_arn,
+      module.staging_blue_green.sqs_queue_green_arn,
+      module.prod_blue_green.sqs_queue_blue_arn,
+      module.prod_blue_green.sqs_queue_green_arn,
     ]
   }
 }
@@ -364,6 +371,99 @@ resource "aws_iam_policy" "CeSqsPushPop" {
   name        = "CeSqsPushPop"
   description = "Can push/pop SQS execution queues and receive compilation queue messages"
   policy      = data.aws_iam_policy_document.CeSqsPushPop.json
+}
+
+# IAM policy for CE Router to access CompilerRouting DynamoDB table
+data "aws_iam_policy_document" "CeRouterDynamoDB" {
+  statement {
+    sid = "CompilerRoutingAccess"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+    resources = [
+      aws_dynamodb_table.compiler_routing.arn
+    ]
+  }
+
+  statement {
+    sid = "WebSocketConnectionsAccess"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+    resources = [
+      aws_dynamodb_table.events-connections.arn,
+      "${aws_dynamodb_table.events-connections.arn}/index/SubscriptionIndex"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterDynamoDB" {
+  name        = "CeRouterDynamoDB"
+  description = "CE Router access to DynamoDB tables for routing and WebSocket connections"
+  policy      = data.aws_iam_policy_document.CeRouterDynamoDB.json
+}
+
+# IAM policy for CE Router to access API Gateway WebSocket API
+data "aws_iam_policy_document" "CeRouterApiGateway" {
+  statement {
+    sid = "WebSocketApiAccess"
+    actions = [
+      "execute-api:ManageConnections",
+      "execute-api:Invoke"
+    ]
+    resources = ["arn:aws:execute-api:*:*:*/prod/POST/@connections/*"]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterApiGateway" {
+  name        = "CeRouterApiGateway"
+  description = "CE Router access to API Gateway WebSocket API"
+  policy      = data.aws_iam_policy_document.CeRouterApiGateway.json
+}
+
+# IAM policy for CE Router read-only S3 access
+data "aws_iam_policy_document" "CeRouterS3ReadOnly" {
+  statement {
+    sid = "S3ReadOnlyAccess"
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket"
+    ]
+    resources = [
+      "${aws_s3_bucket.storage-godbolt-org.arn}/*",
+      aws_s3_bucket.storage-godbolt-org.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterS3ReadOnly" {
+  name        = "CeRouterS3ReadOnly"
+  description = "CE Router read-only access to storage S3 bucket"
+  policy      = data.aws_iam_policy_document.CeRouterS3ReadOnly.json
+}
+
+# IAM policy for CE Router SQS send-only access
+data "aws_iam_policy_document" "CeRouterSQSSendOnly" {
+  statement {
+    sid = "SQSSendMessages"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    resources = ["arn:aws:sqs:us-east-1:*:*-compilation-queue-*.fifo"]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterSQSSendOnly" {
+  name        = "CeRouterSQSSendOnly"
+  description = "CE Router send-only access to compilation queues"
+  policy      = data.aws_iam_policy_document.CeRouterSQSSendOnly.json
 }
 
 data "aws_iam_policy_document" "AccessCeParams" {
@@ -453,6 +553,28 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadGooGl
 
 resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AmazonSSMManagedInstanceCore" {
   role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+// CE Router Role policy attachments
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_CeRouterDynamoDB" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = aws_iam_policy.CeRouterDynamoDB.arn
+}
+
+
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_CeRouterS3ReadOnly" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = aws_iam_policy.CeRouterS3ReadOnly.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_CeRouterSQSSendOnly" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = aws_iam_policy.CeRouterSQSSendOnly.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.CeRouterRole.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
@@ -666,6 +788,11 @@ resource "aws_iam_role" "CompilerExplorerAdminNode" {
 resource "aws_iam_instance_profile" "CompilerExplorerAdminNode" {
   name = "CompilerExplorerAdminNode"
   role = aws_iam_role.CompilerExplorerAdminNode.name
+}
+
+resource "aws_iam_instance_profile" "CeRouterRole" {
+  name = "CeRouterRole"
+  role = aws_iam_role.CeRouterRole.name
 }
 
 data "aws_iam_policy" "CloudWatchAgentAdminPolicy" {

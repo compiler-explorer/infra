@@ -49,12 +49,6 @@ repos:
         types_or: [python, shell]
         pass_filenames: false
         require_serial: true
-      - id: lint-compilation-lambda
-        name: Lint compilation-lambda
-        entry: bash -c 'cd compilation-lambda && npm install && npm run lint'
-        language: system
-        files: ^compilation-lambda/.*\.(js|json|yml)$
-        pass_filenames: false
       - id: lint-events-lambda
         name: Lint events-lambda
         entry: bash -c 'cd events-lambda && npm install && npm run lint'

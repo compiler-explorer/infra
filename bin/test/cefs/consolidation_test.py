@@ -189,12 +189,12 @@ def test_determine_extraction_path():
 
     # Test with empty targets - should return current directory
     extraction_path = determine_extraction_path([], image_path, mount_point)
-    assert extraction_path == Path(".")
+    assert extraction_path is None
 
     # Test with short path (less than 5 parts) - should return current directory
     targets = [Path("/cefs/ab")]
     extraction_path = determine_extraction_path(targets, image_path, mount_point)
-    assert extraction_path == Path(".")
+    assert extraction_path is None
 
 
 def test_should_include_manifest_item(tmp_path):
@@ -213,10 +213,9 @@ def test_should_include_manifest_item(tmp_path):
     # Valid entry that references the image
     content = {"name": "compilers/c++/x86/gcc 15.1.0", "destination": str(dest)}
 
-    should_include, targets = should_include_manifest_item(content, image_path, mount_point, [])
+    should_include, target = should_include_manifest_item(content, image_path, mount_point, [])
     # This checks if the symlink target contains the image stem in the right position
-    assert len(targets) == 1
-    assert targets[0] == cefs_target
+    assert target == cefs_target
 
     # The actual inclusion depends on is_item_still_using_image checking the path structure
     # For a proper test, we'd need the symlink to actually point to a matching image
@@ -233,6 +232,46 @@ def test_should_include_manifest_item(tmp_path):
     bad_content = {"name": "test"}  # Missing destination
     with pytest.raises(ValueError, match="Malformed manifest entry"):
         should_include_manifest_item(bad_content, image_path, mount_point, [])
+
+
+def test_should_include_manifest_item_bak_symlink(tmp_path):
+    """Test that should_include_manifest_item only considers main symlink, not .bak."""
+    mount_point = Path("/cefs")
+
+    # Two different consolidated images
+    old_image_stem = "old123_consolidated"
+    old_image_path = tmp_path / "cefs-images" / "ol" / f"{old_image_stem}.sqfs"
+    old_image_path.parent.mkdir(parents=True)
+    old_image_path.touch()
+
+    new_image_stem = "new456_consolidated"
+    new_image_path = tmp_path / "cefs-images" / "ne" / f"{new_image_stem}.sqfs"
+    new_image_path.parent.mkdir(parents=True)
+    new_image_path.touch()
+
+    # Create destination directory
+    dest = tmp_path / "osaca-0.7.1"
+    dest_bak = tmp_path / "osaca-0.7.1.bak"
+
+    # Main symlink points to new image
+    new_target = mount_point / "ne" / new_image_stem / "tools_osaca_0.7.1"
+    dest.symlink_to(new_target)
+
+    # Backup symlink points to old image
+    old_target = mount_point / "ol" / old_image_stem / "tools_osaca_0.7.1"
+    dest_bak.symlink_to(old_target)
+
+    content = {"name": "tools/osaca 0.7.1", "destination": str(dest)}
+
+    # Check the OLD image (only referenced by .bak)
+    should_include_old, target_old = should_include_manifest_item(content, old_image_path, mount_point, [])
+
+    # Check the NEW image (referenced by main symlink)
+    should_include_new, target_new = should_include_manifest_item(content, new_image_path, mount_point, [])
+
+    # Only the main symlink should be considered for reconsolidation
+    assert not should_include_old, "Old image should not be included (only referenced by .bak)"
+    assert should_include_new, "New image should be included (referenced by main symlink)"
 
 
 def test_prepare_consolidation_items(tmp_path):
@@ -413,7 +452,7 @@ def test_reconsolidation_symlink_mapping():
         # The mapping should preserve the structure for proper symlink targeting
         # For an extraction_path of "gcc/compilers_c++_x86_gcc_12.3.0",
         # the symlink needs to point to the full path within the consolidated image
-        if candidate.extraction_path != Path("."):
+        if candidate.extraction_path is not None:
             # For reconsolidated items with nested paths, we need special handling
             # The mapped subdir should indicate where the symlink should point
             expected_name = sanitize_path_for_filename(Path(candidate.name))
@@ -578,7 +617,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/gcc-15.0.0"),
             squashfs_path=Path("/efs/gcc.sqfs"),
             size=500 * 1024 * 1024,  # 500MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -586,7 +625,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/clang-18.0.0"),
             squashfs_path=Path("/efs/clang.sqfs"),
             size=400 * 1024 * 1024,  # 400MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -594,7 +633,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/rust-1.80.0"),
             squashfs_path=Path("/efs/rust.sqfs"),
             size=300 * 1024 * 1024,  # 300MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -602,7 +641,7 @@ def test_pack_items_into_groups():
             nfs_path=Path("/opt/go-1.21.0"),
             squashfs_path=Path("/efs/go.sqfs"),
             size=200 * 1024 * 1024,  # 200MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
     ]
@@ -648,7 +687,7 @@ def test_validate_space_requirements(tmp_path):
             nfs_path=Path("/opt/item1"),
             squashfs_path=Path("/efs/item1.sqfs"),
             size=100 * 1024 * 1024,  # 100MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
@@ -656,7 +695,7 @@ def test_validate_space_requirements(tmp_path):
             nfs_path=Path("/opt/item2"),
             squashfs_path=Path("/efs/item2.sqfs"),
             size=200 * 1024 * 1024,  # 200MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
     ]
@@ -667,7 +706,7 @@ def test_validate_space_requirements(tmp_path):
             nfs_path=Path("/opt/item3"),
             squashfs_path=Path("/efs/item3.sqfs"),
             size=150 * 1024 * 1024,  # 150MB
-            extraction_path=Path("."),
+            extraction_path=None,
             from_reconsolidation=False,
         ),
     ]

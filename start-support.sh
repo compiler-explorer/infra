@@ -2,7 +2,6 @@
 
 # designed to be sourced
 
-SKIP_SQUASH=0
 CE_USER=ce
 
 METADATA_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -38,14 +37,6 @@ mount_opt() {
 
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
-
-    if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # don't be tempted to background this, it just causes everything to wedge
-        # during startup (startup time I/O etc goes through the roof).
-        ./mount-all-img.sh
-
-        echo "Done mounting squash images"
-    fi
 }
 
 get_discovered_compilers() {
@@ -156,4 +147,17 @@ mount_nosym() {
     mount -onosymfollow --bind / /nosym
     # seems to need a remount to pick it up properly on our version of Ubuntu (but not 23.10)
     mount -oremount,nosymfollow --bind / /nosym
+}
+
+install_ce_router() {
+    local latest_version
+
+    latest_version=$(curl -s https://api.github.com/repos/compiler-explorer/ce-router/releases/latest | jq -r '.tag_name')
+
+    if ! curl -sL "https://github.com/compiler-explorer/ce-router/releases/download/${latest_version}/ce-router-${latest_version}.zip" -o /tmp/ce-router.zip; then
+        echo "Failed to download ce-router version ${latest_version}"
+        return
+    fi
+    unzip -q -o /tmp/ce-router.zip -d /infra/.deploy
+    rm -f /tmp/ce-router.zip
 }

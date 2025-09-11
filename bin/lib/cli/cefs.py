@@ -21,12 +21,14 @@ from lib.cefs.consolidation import (
     process_consolidation_group,
     validate_space_requirements,
 )
+from lib.cefs.constants import DEFAULT_MIN_AGE
 from lib.cefs.conversion import convert_to_cefs
 from lib.cefs.deployment import snapshot_symlink_targets
 from lib.cefs.formatting import (
     format_image_contents_string,
     format_usage_statistics,
     get_image_description,
+    get_installable_current_locations,
 )
 from lib.cefs.fsck import FSCKResults, run_fsck_validation
 from lib.cefs.gc import delete_image_with_manifest, filter_images_by_age
@@ -36,6 +38,14 @@ from lib.cefs.paths import (
     glob_with_depth,
     parse_cefs_target,
     validate_cefs_mount_point,
+)
+from lib.cefs.repair import (
+    InProgressTransaction,
+    RepairAction,
+    TransactionStatus,
+    analyze_all_incomplete_transactions,
+    perform_delete,
+    perform_finalize,
 )
 from lib.cefs.state import CEFSState
 
@@ -344,7 +354,7 @@ def rollback(context: CliContext, filter_: list[str]):
         _LOGGER.info("Checking %s for rollback...", installable.name)
 
         # Check if this is a CEFS installation (symlink exists)
-        if not nfs_path.exists():
+        if not nfs_path.exists(follow_symlinks=False):
             _LOGGER.debug("Skipping %s - path does not exist", installable.name)
             skipped += 1
             continue
@@ -684,7 +694,9 @@ def consolidate(
 @cefs.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
-@click.option("--min-age", default="1h", help="Minimum age of images to consider for deletion (e.g., 1h, 30m, 1d)")
+@click.option(
+    "--min-age", default=DEFAULT_MIN_AGE, help="Minimum age of images to consider for deletion (e.g., 1h, 30m, 1d)"
+)
 @click.option("--include-broken", is_flag=True, help="Include unreferenced broken images in garbage collection")
 def gc(context: CliContext, force: bool, min_age: str, include_broken: bool):
     """Garbage collect unreferenced CEFS images using manifests.
@@ -786,6 +798,10 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool):
             format_image_contents_string(get_image_description(image_path, context.config.cefs.mount_point), 3)
             or " [contents unknown]",
         )
+
+        # Show where each Installable in this image is currently installed
+        for line in get_installable_current_locations(image_path):
+            _LOGGER.info(line)
 
     if context.installation_context.dry_run:
         _LOGGER.info("DRY RUN: Would delete %d unreferenced images", len(unreferenced))
@@ -889,6 +905,51 @@ def display_verbose_fsck_logs(
         item_type = "symlink" if item_with_age.path.is_symlink() else "directory"
         age_str = humanfriendly.format_timespan(item_with_age.age_seconds)
         click.echo(f"  Found .DELETE_ME {item_type}: {item_with_age.path} (age: {age_str})")
+
+
+def _display_transaction_analysis(transaction: InProgressTransaction) -> None:
+    """Display analysis of a single incomplete transaction.
+
+    Args:
+        transaction: Transaction to display
+    """
+    click.echo(f"{transaction.inprogress_path} (age: {transaction.age_str})")
+    click.echo(f"  Transaction: {transaction.status.value.upper()}")
+
+    if transaction.total_destinations > 0:
+        existing_count = len(transaction.existing_symlinks)
+        total_count = transaction.total_destinations
+        click.echo(f"  Progress: {existing_count}/{total_count} symlink(s) created")
+
+        # Show details
+        for symlink in transaction.existing_symlinks[:3]:
+            click.echo(f"    ✓ {symlink}")
+        if len(transaction.existing_symlinks) > 3:
+            click.echo(f"    ... and {len(transaction.existing_symlinks) - 3} more")
+
+        for symlink in transaction.missing_symlinks[:3]:
+            click.echo(f"    ✗ {symlink} (missing)")
+        if len(transaction.missing_symlinks) > 3:
+            click.echo(f"    ... and {len(transaction.missing_symlinks) - 3} more missing")
+
+        for symlink in transaction.conflicted_symlinks[:3]:
+            click.echo(f"    ⚠ {symlink} (points elsewhere)")
+        if len(transaction.conflicted_symlinks) > 3:
+            click.echo(f"    ... and {len(transaction.conflicted_symlinks) - 3} more conflicted")
+
+    # Action
+    if transaction.action == RepairAction.FINALIZE:
+        click.echo("  Action: FINALIZE (complete the transaction)")
+    elif transaction.action == RepairAction.DELETE:
+        click.echo("  Action: DELETE (rollback failed transaction)")
+    else:
+        reason = ""
+        if transaction.status == TransactionStatus.TOO_RECENT:
+            reason = " (too recent)"
+        elif transaction.status == TransactionStatus.CONFLICTED:
+            reason = " (conflicted)"
+        click.echo(f"  Action: SKIP{reason}")
+    click.echo()
 
 
 def format_cleanup_item(item: FileWithAge | tuple | Path) -> str:
@@ -1072,8 +1133,10 @@ def display_fsck_results(results: FSCKResults, verbose: bool, state: CEFSState) 
 
     if results.inprogress_files:
         click.echo("  • In-progress files indicate operations that didn't complete")
-        click.echo("  • Review these files to determine if operations should be retried")
-        click.echo("  • Safe to remove .inprogress files older than 24 hours")
+        click.echo("  • Run with --repair to automatically fix these incomplete transactions")
+        click.echo("  • Transactions with symlinks will be finalized (marked complete)")
+        click.echo("  • Failed transactions with no symlinks will be deleted")
+        click.echo(f"  • Recent transactions (< {DEFAULT_MIN_AGE} by default) are skipped for safety")
 
     if results.pending_backups or results.pending_deletes:
         click.echo("  • Pending cleanup items can be safely removed to free disk space")
@@ -1093,12 +1156,26 @@ def display_fsck_results(results: FSCKResults, verbose: bool, state: CEFSState) 
     is_flag=True,
     help="Show detailed information for each check",
 )
+@click.option(
+    "--repair",
+    is_flag=True,
+    help="Repair incomplete transactions (finalize or delete)",
+)
+@click.option(
+    "--min-age",
+    default=DEFAULT_MIN_AGE,
+    help="Minimum age for repairing incomplete transactions (e.g., 1h, 30m, 1d)",
+)
+@click.option("--force", is_flag=True, help="Skip confirmation prompt for repairs")
 @click.pass_obj
 def fsck(
     context: CliContext,
     verbose: bool,
+    repair: bool,
+    min_age: str,
+    force: bool,
 ) -> None:
-    """Check CEFS filesystem integrity.
+    """Check CEFS filesystem integrity and optionally repair issues.
 
     Validates:
     - Manifest format and content validity
@@ -1107,6 +1184,11 @@ def fsck(
     - No broken manifest formats (e.g., old 'target' field)
     - In-progress files indicating incomplete operations
     - Pending cleanup tasks (.bak, .DELETE_ME directories)
+
+    With --repair, also fixes incomplete transactions by:
+    - Finalizing transactions where symlinks exist (marking as complete)
+    - Deleting failed transactions where no symlinks were created
+    - Skipping recent or conflicted transactions for safety
     """
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
@@ -1132,6 +1214,86 @@ def fsck(
 
     display_fsck_results(results, verbose, state)
 
+    # Repair mode
+    if repair and results.inprogress_files:
+        click.echo("\n" + "=" * 60)
+        click.echo("🔧 Repair Analysis")
+        click.echo("=" * 60)
+
+        # Parse min-age
+        try:
+            min_age_seconds = humanfriendly.parse_timespan(min_age)
+            click.echo(f"Minimum age for repair: {min_age}")
+        except humanfriendly.InvalidTimespan as e:
+            raise click.ClickException(f"Invalid min-age: {e}") from e
+
+        now = datetime.datetime.now()
+
+        # Extract paths from FileWithAge objects
+        inprogress_paths = [f.path for f in results.inprogress_files]
+
+        # Analyze all incomplete transactions
+        summary = analyze_all_incomplete_transactions(
+            inprogress_paths,
+            context.installation_context.destination,
+            context.config.cefs.mount_point,
+            min_age_seconds,
+            now,
+        )
+
+        click.echo(f"Analyzing {len(inprogress_paths)} incomplete transaction(s)...\n")
+
+        # Display analysis for each transaction
+        for transaction in summary.to_finalize + summary.to_delete + summary.to_skip:
+            _display_transaction_analysis(transaction)
+
+        # Summary
+        click.echo("\nRepairs to perform:")
+        if summary.to_finalize:
+            click.echo(f"- Finalize {len(summary.to_finalize)} transaction(s) (marking as complete)")
+        if summary.to_delete:
+            space_str = humanfriendly.format_size(summary.total_space_to_free, binary=True)
+            click.echo(f"- Delete {len(summary.to_delete)} failed transaction(s) (freeing {space_str})")
+        if summary.to_skip:
+            click.echo(f"- Skip {len(summary.to_skip)} transaction(s) (too recent or conflicted)")
+
+        if not summary.to_finalize and not summary.to_delete:
+            click.echo("\nNo repairs needed.")
+        elif context.installation_context.dry_run:
+            click.echo(f"\nDRY RUN: Would repair {len(summary.to_finalize) + len(summary.to_delete)} transaction(s)")
+        else:
+            # Confirm repairs
+            if not force:
+                total_repairs = len(summary.to_finalize) + len(summary.to_delete)
+                if not click.confirm(f"\nProceed with {total_repairs} repair(s)?"):
+                    click.echo("Repairs cancelled by user.")
+                    if results.has_issues:
+                        sys.exit(1)
+                    return
+
+            # Perform repairs
+            finalized = 0
+            deleted = 0
+
+            for transaction in summary.to_finalize:
+                if perform_finalize(transaction, context.installation_context.dry_run):
+                    finalized += 1
+
+            for transaction in summary.to_delete:
+                if perform_delete(transaction, context.installation_context.dry_run):
+                    deleted += 1
+
+            click.echo(f"\n✅ Filesystem check complete. {finalized} finalized, {deleted} deleted.")
+    elif repair and not results.inprogress_files:
+        click.echo("\n✅ No incomplete transactions to repair.")
+
     # Exit with appropriate code
-    if results.has_issues:
+    if results.has_issues and not repair:
+        # Only suggest --repair if there are issues it can actually fix
+        if results.inprogress_files:
+            click.echo("\n💡 Run with --repair to fix incomplete transactions")
         sys.exit(1)
+    elif results.has_issues:
+        # After repair, only exit with error if there were issues we couldn't fix
+        if results.has_issues and not (repair and not results.inprogress_files):
+            sys.exit(1)

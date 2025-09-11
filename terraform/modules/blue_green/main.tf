@@ -8,6 +8,22 @@ locals {
   env_capitalized = title(var.environment)
 }
 
+# SQS FIFO queues for compilation requests (one per color)
+resource "aws_sqs_queue" "compilation_queue" {
+  for_each = toset(local.colors)
+
+  name                        = "${var.environment}-compilation-queue-${each.value}.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = false
+  message_retention_seconds   = 300 # 5 minutes
+  visibility_timeout_seconds  = 60  # 1 minute
+
+  tags = {
+    Environment = var.environment
+    Color       = each.value
+  }
+}
+
 # Target Groups for both colors
 resource "aws_alb_target_group" "color" {
   for_each = toset(local.colors)

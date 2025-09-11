@@ -26,7 +26,7 @@ We've tried [many](https://github.com/compiler-explorer/cefs) [different](https:
 
 ### Atomic Operations Available
 - **Available**:
-  - File creation is atomic (O_CREAT | O_EXCL)
+  - File creation is atomic (`O_CREAT` | `O_EXCL`)
   - Rename within same filesystem is atomic
   - Symlink creation is atomic
 - **Not Atomic**:
@@ -93,12 +93,6 @@ The two-level autofs configuration works as follows:
 3. The script extracts the first two characters from the hash and returns mount options for `/efs/cefs-images/XX/XXYYZZZ.sqfs`
 4. Autofs mounts the squashfs image at the requested location
 
-## mount-all-img.sh Integration
-
-Currently `mount-all-img.sh` globs all `*.img` files in `/efs/squash-images/` and unconditionally mounts them over `/opt/compiler-explorer/...` paths.
-
-The modified script now skips mounting when the destination is already a symlink, allowing gradual migration without breaking existing mounts.
-
 ## Work
 
 - [x] Investigate what I've forgotten about getting this to work
@@ -107,7 +101,7 @@ The modified script now skips mounting when the destination is already a symlink
 - [x] "Squash verify" to check current squash images are in fact "correct"
   - [x] in progress
   - [x] fix up anything found that mismatches
-- [x] Update `mount-all-img.sh` to do the Right Thing, test it, and rebuild and deploy all the AMIs
+- [x] Update legacy `mount-all-img.sh` to do the Right Thing, test it, and rebuild and deploy all the AMIs
   - [x] make the change in main
   - [x] build and deploy staging
   - [x] build and deploy prod
@@ -115,7 +109,7 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] build and deploy aarch64staging
   - [x] build and deploy aarch64prod
   - [x] build beta
-- [ ] Fix up automounter/general config
+- [x] Fix up automounter/general config
   - [x] fix in main
   - [x] install in admin
   - [x] staging, beta, prod script update and AMI
@@ -124,16 +118,20 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] windows rebuild just to pick up the other changes
   - [x] builder
   - [x] runner
-  - [ ] ce-ci too?
+  - [x] ce-ci too?
 - [x] Simple config loader
 - [x] Write "port" code to move existing images over
 - [x] Update installers to (optionally, based on config) install this way (even works for nightly)
 - [x] CLI commands for setup, conversion, and rollback
 - [x] Test with a single compiler or library
-- [ ] Disable squashing and enable the cefs install
-- [ ] Slowly move older things over
+- [x] Disable squashing and enable the cefs install
+- [x] Slowly move older things over
 - [x] Write consolidation tooling and run it
+- [x] Test no mounts from old system are used
+- [x] Remove mount-all-img.sh and config
 - [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
+- [ ] Remove /efs/squash-images
+- [ ] Remove all `.bak` files and gc
 
 ## Implementation Notes
 
@@ -143,6 +141,9 @@ The modified script now skips mounting when the destination is already a symlink
 - `ce cefs convert FILTER` - Convert existing squashfs images to CEFS with hash-based storage
 - `ce cefs rollback FILTER` - Undo conversions by restoring from .bak directories
 - `ce cefs status` - Show current configuration
+- `ce cefs fsck [--repair]` - Check filesystem integrity and optionally repair incomplete transactions
+- `ce cefs gc` - Garbage collect unreferenced CEFS images
+- `ce cefs consolidate` - Combine multiple images into larger consolidated images
 
 #### Migration Process
 
@@ -305,10 +306,106 @@ Both `new_hash` and `old_hash` images must be preserved.
 Images with `.yaml.inprogress` markers indicate incomplete or failed operations:
 - **DO NOT** auto-delete these images (may be partially in use)
 - For consolidations: Some symlinks may already point to the image
-- Require manual investigation and decision
-- Future tool: `ce cefs check-failed` to analyze and remediate
+- Use `ce cefs fsck --repair` to analyze and fix these transactions
 
-#### Reconsolidation
+#### Filesystem Integrity and Repair
+
+CEFS includes filesystem checking and repair functionality via `ce cefs fsck` to handle incomplete transactions marked by `.yaml.inprogress` files.
+
+#### Transaction Lifecycle
+
+Normal CEFS operations follow this pattern:
+1. Copy squashfs image to `/efs/cefs-images/`
+2. Write `.yaml.inprogress` manifest (transaction in progress)
+3. Create symlinks in `/opt/compiler-explorer/`
+4. Atomically rename `.yaml.inprogress` → `.yaml` (transaction complete)
+
+If the process fails between steps 2-4, a `.yaml.inprogress` file remains, indicating an incomplete transaction.
+
+#### Filesystem Check (`fsck`)
+
+The `ce cefs fsck` command validates CEFS filesystem integrity:
+
+```bash
+# Check filesystem (read-only)
+ce cefs fsck
+
+# Check with verbose output
+ce cefs fsck --verbose
+
+# Check and repair incomplete transactions
+ce cefs fsck --repair
+
+# Repair with custom age threshold
+ce cefs fsck --repair --min-age 2h
+
+# Force repairs without confirmation
+ce cefs fsck --repair --force
+```
+
+#### Repair Logic
+
+When run with `--repair`, fsck analyzes each `.yaml.inprogress` file and determines the appropriate action:
+
+1. **Transaction Analysis**:
+   - Read manifest to determine expected symlinks
+   - Check if symlinks exist and point to the correct image
+   - Also check `.bak` symlinks for rollback protection
+   - Calculate transaction age
+
+2. **Transaction States**:
+   - **FULLY_COMPLETE**: All expected symlinks exist → Finalize (rename to `.yaml`)
+   - **PARTIALLY_COMPLETE**: Some symlinks exist → Finalize (assume partial success is intentional)
+   - **FAILED_EARLY**: No symlinks created → Delete (rollback failed transaction)
+   - **CONFLICTED**: Symlinks point elsewhere → Skip (needs manual review)
+   - **TOO_RECENT**: Younger than min-age threshold → Skip (might still be running)
+
+3. **Safety Features**:
+   - Default min-age threshold (1h, configurable via `--min-age`) prevents interference with running operations
+   - Confirmation required unless `--force` is used
+   - Dry-run mode shows what would be done without changes
+   - Conservative approach: when in doubt, preserve the transaction
+
+#### Example Output
+
+```
+$ ce cefs fsck --repair
+
+CEFS Filesystem Check Results
+============================================
+📊 Summary:
+  Total images scanned: 245
+  ✅ Valid manifests: 242
+  🔄 In-progress files: 3
+
+🔧 Repair Analysis
+==================
+Analyzing 3 incomplete transaction(s)...
+
+/efs/cefs-images/ab/abc123_consolidated.yaml.inprogress (age: 2 days)
+  Transaction: PARTIALLY_COMPLETE
+  Progress: 2/3 symlink(s) created
+    ✓ /opt/compiler-explorer/gcc-12
+    ✓ /opt/compiler-explorer/gcc-13
+    ✗ /opt/compiler-explorer/gcc-14 (missing)
+  Action: FINALIZE (complete the transaction)
+
+/efs/cefs-images/de/def456_converted.yaml.inprogress (age: 5 days)
+  Transaction: FAILED_EARLY
+  Progress: 0/1 symlink(s) created
+    ✗ /opt/compiler-explorer/clang-15 (missing)
+  Action: DELETE (rollback failed transaction)
+
+Repairs to perform:
+- Finalize 1 transaction(s) (marking as complete)
+- Delete 1 failed transaction(s) (freeing 500MB)
+
+Proceed with 2 repair(s)? [y/N]: y
+
+✅ Filesystem check complete. 1 finalized, 1 deleted.
+```
+
+### Reconsolidation
 
 The `ce cefs consolidate --reconsolidate` command optimizes inefficient consolidated images that accumulate over time.
 

@@ -88,10 +88,10 @@ class BlueGreenDeployment:
                 LOGGER.warning(f"Failed to restore capacity settings for {active_asg}: {e}")
 
         if inactive_asg:
-            env_min_size = self.cfg.env.min_instances
-            print(f"Resetting minimum size of {inactive_asg} to {env_min_size}")
+            # Reset to 0 since deployment was interrupted (inactive ASG)
+            print(f"Resetting minimum size of {inactive_asg} to 0")
             try:
-                reset_asg_min_size(inactive_asg, min_size=env_min_size)
+                reset_asg_min_size(inactive_asg, min_size=0)
             except Exception as e:
                 LOGGER.warning(f"Failed to reset min size for {inactive_asg}: {e}")
 
@@ -488,10 +488,13 @@ class BlueGreenDeployment:
             print(f"\nStep 4: Switching traffic to {inactive_color}")
             self.switch_target_group(inactive_color)
 
-            # Step 5: Reset minimum size to environment default now that deployment is complete
-            env_min_size = self.cfg.env.min_instances
-            print(f"\nStep 5: Resetting minimum size of {inactive_asg} to {env_min_size} (environment default)")
-            reset_asg_min_size(inactive_asg, min_size=env_min_size)
+            # Step 5: Reset minimum size to 1 to ensure ASG always has at least one instance
+            # This ensures the active ASG is always ready, regardless of environment defaults
+            min_size_after_deploy = max(1, self.cfg.env.min_instances)
+            print(
+                f"\nStep 5: Resetting minimum size of {inactive_asg} to {min_size_after_deploy} (ensuring at least 1)"
+            )
+            reset_asg_min_size(inactive_asg, min_size=min_size_after_deploy)
 
             # Step 5.5: Reset old active ASG minimum size to 0 (it's now inactive)
             print(f"\nStep 5.5: Resetting minimum size of {active_asg} to 0 (now inactive)")
@@ -535,11 +538,9 @@ class BlueGreenDeployment:
 
             # If deployment failed, also reset the inactive ASG min size
             if not deployment_succeeded:
-                env_min_size = self.cfg.env.min_instances
-                print(
-                    f"\nCleaning up: Resetting minimum size of {inactive_asg} to {env_min_size} after failed deployment"
-                )
-                reset_asg_min_size(inactive_asg, min_size=env_min_size)
+                # Use 0 for failed deployments since it's still inactive
+                print(f"\nCleaning up: Resetting minimum size of {inactive_asg} to 0 after failed deployment")
+                reset_asg_min_size(inactive_asg, min_size=0)
 
                 # Rollback version if it was changed
                 if version_was_changed and original_version_key:

@@ -65,8 +65,12 @@ get_conf() {
   aws ssm get-parameter --name "$1" | jq -r .Parameter.Value
 }
 
-LOG_DEST_HOST=$(get_conf /compiler-explorer/logDestHost)
-LOG_DEST_PORT=$(get_conf /compiler-explorer/logDestPort)
+# Allow override of SSM parameter paths for log destination
+LOG_DEST_HOST_PARAM="${LOG_DEST_HOST_PARAM:-/compiler-explorer/logDestHost}"
+LOG_DEST_PORT_PARAM="${LOG_DEST_PORT_PARAM:-/compiler-explorer/logDestPort}"
+
+LOG_DEST_HOST=$(get_conf "${LOG_DEST_HOST_PARAM}")
+LOG_DEST_PORT=$(get_conf "${LOG_DEST_PORT_PARAM}")
 PTRAIL='/etc/rsyslog.d/99-papertrail.conf'
 echo "*.*          @${LOG_DEST_HOST}:${LOG_DEST_PORT}" >"${PTRAIL}"
 service rsyslog restart
@@ -150,9 +154,12 @@ setup_grafana() {
 }
 setup_grafana
 
-mkdir -p /efs
-if ! grep "/efs nfs" /etc/fstab; then
-  echo "fs-db4c8192.efs.us-east-1.amazonaws.com:/ /efs nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
+# Skip NFS setup if SKIP_NFS_SETUP is set
+if [ "${SKIP_NFS_SETUP:-}" != "1" ]; then
+  mkdir -p /efs
+  if ! grep "/efs nfs" /etc/fstab; then
+    echo "fs-db4c8192.efs.us-east-1.amazonaws.com:/ /efs nfs nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport${EXTRA_NFS_ARGS} 0 0" >>/etc/fstab
+  fi
 fi
 
 # Configure email
@@ -178,7 +185,10 @@ else
 fi
 chmod 640 /etc/ssmtp/*
 
-mount -a
+# Skip mount if NFS was skipped
+if [ "${SKIP_NFS_SETUP:-}" != "1" ]; then
+  mount -a
+fi
 
 cd /home/ubuntu/
 
@@ -190,7 +200,14 @@ rm -rf /tmp/auth_keys
 chown -R ubuntu /home/ubuntu/.ssh
 
 setup_cefs() {
-    # This manual setup should be kept in sync with `ce_install cefs setup`
+    # We can hit "too many open files" during autofs mount, so increase limits.
+    mkdir -p /etc/systemd/system/autofs.service.d
+    cat >/etc/systemd/system/autofs.service.d/limits.conf <<EOF
+[Service]
+LimitNOFILE=65536
+EOF
+    systemctl daemon-reload
+    # This part of the manual setup should be kept in sync with `ce_install cefs setup`
     # To save us having to install `uv` etc in our packer stages we duplicate
     # the setup here.
     mkdir /cefs
@@ -205,4 +222,8 @@ EOF
     echo "/cefs /etc/auto.cefs --negative-timeout 1" > /etc/auto.master.d/cefs.autofs
     service autofs restart
 }
-setup_cefs
+
+# Skip CEFS setup if SKIP_CEFS_SETUP is set
+if [ "${SKIP_CEFS_SETUP:-}" != "1" ]; then
+  setup_cefs
+fi

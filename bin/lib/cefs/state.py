@@ -13,9 +13,10 @@ from lib.cefs.consolidation import (
     is_consolidated_image,
     should_reconsolidate_image,
 )
+from lib.cefs.constants import NFS_MAX_RECURSION_DEPTH
 from lib.cefs.gc import GCSummary
 from lib.cefs.models import ConsolidationCandidate, ImageUsageStats
-from lib.cefs.paths import NFS_MAX_RECURSION_DEPTH, glob_with_depth
+from lib.cefs.paths import glob_with_depth
 from lib.cefs_manifest import read_manifest_from_alongside
 
 _LOGGER = logging.getLogger(__name__)
