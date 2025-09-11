@@ -85,6 +85,37 @@ When writing, especially PRs and commit messages:
 This repository contains scripts and infrastructure configurations for Compiler Explorer.
 Files in `/opt/compiler-explorer` are the target installation location.
 
+## SQS Message Overflow to S3
+
+The CE Router system supports automatic overflow of large compilation requests to S3 when they exceed SQS message size limits.
+
+### Configuration
+
+- **S3 Bucket**: `temp-storage.godbolt.org` (shared across all environments)
+- **Message Storage**: Path pattern `sqs-overflow/{environment}/{timestamp}/{guid}.json`
+- **Automatic Cleanup**: Messages deleted after 1 day (configurable via `sqs_overflow_retention_days` variable)
+- **Server-side Encryption**: AES256 encryption enabled
+
+### Environment Variables
+
+Configure via SSM parameters:
+
+- `SQS_MAX_MESSAGE_SIZE`: Maximum message size before overflow (bytes)
+- `S3_OVERFLOW_BUCKET`: S3 bucket name (default: temp-storage.godbolt.org)
+- `S3_OVERFLOW_KEY_PREFIX`: S3 key prefix (default: sqs-overflow/)
+
+### IAM Permissions
+
+The overflow system grants appropriate S3 permissions to:
+- CE Router instances (write overflow messages)
+- CE instances (read overflow messages)
+- Lambda functions (read/write overflow messages)
+
+### Monitoring
+
+- CloudWatch metric `SQSOverflowMessages` tracks overflow usage
+- CloudWatch alarm triggers when more than 100 messages overflow in 5 minutes
+
 ## Instance Management
 
 The `ce instances` command group provides functionality to manage CE instances:
