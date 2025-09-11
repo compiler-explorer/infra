@@ -1172,7 +1172,9 @@ def fsck(
 
     # Exit with appropriate code
     if results.has_issues and not repair:
-        click.echo("\n💡 Run with --repair to fix these issues")
+        # Only suggest --repair if there are issues it can actually fix
+        if results.inprogress_files:
+            click.echo("\n💡 Run with --repair to fix incomplete transactions")
         sys.exit(1)
     elif results.has_issues:
         # After repair, only exit with error if there were issues we couldn't fix
