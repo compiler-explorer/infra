@@ -15,6 +15,7 @@ from lib.cefs.paths import (
     get_cefs_paths,
     get_current_symlink_targets,
     get_extraction_path_from_symlink,
+    glob_with_depth,
     parse_cefs_target,
 )
 
@@ -298,3 +299,145 @@ def test_get_current_symlink_targets(tmp_path):
     nonexistent_path = tmp_path / "nonexistent"
     targets4 = get_current_symlink_targets(nonexistent_path)
     assert targets4 == []
+
+
+# Tests for glob_with_depth
+
+
+def test_glob_with_depth_basic(tmp_path):
+    """Test glob_with_depth finds files at various depths."""
+    # Create test directory structure
+    (tmp_path / "file1.txt").touch()
+    (tmp_path / "dir1").mkdir()
+    (tmp_path / "dir1" / "file2.txt").touch()
+    (tmp_path / "dir1" / "dir2").mkdir()
+    (tmp_path / "dir1" / "dir2" / "file3.txt").touch()
+    (tmp_path / "dir1" / "dir2" / "file4.log").touch()
+
+    # Test with max_depth=0 (current directory only)
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=0))
+    assert len(results) == 1
+    assert tmp_path / "file1.txt" in results
+
+    # Test with max_depth=1 (current + one level down)
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=1))
+    assert len(results) == 2
+    assert tmp_path / "file1.txt" in results
+    assert tmp_path / "dir1" / "file2.txt" in results
+
+    # Test with max_depth=2 (all txt files in this structure)
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=2))
+    assert len(results) == 3
+    assert tmp_path / "file1.txt" in results
+    assert tmp_path / "dir1" / "file2.txt" in results
+    assert tmp_path / "dir1" / "dir2" / "file3.txt" in results
+
+
+def test_glob_with_depth_all_files(tmp_path):
+    """Test glob_with_depth with pattern '*' to find all files and directories."""
+    # Create test structure
+    (tmp_path / "file1.txt").touch()
+    dir1 = tmp_path / "dir1"
+    dir1.mkdir()
+    (dir1 / "file2.txt").touch()
+
+    # Test finding all items at depth 0
+    results = list(glob_with_depth(tmp_path, "*", max_depth=0))
+    assert len(results) == 2  # file1.txt and dir1
+    assert tmp_path / "file1.txt" in results
+    assert dir1 in results
+
+    # Test finding all items at depth 1
+    results = list(glob_with_depth(tmp_path, "*", max_depth=1))
+    assert len(results) == 3  # file1.txt, dir1, and dir1/file2.txt
+    assert tmp_path / "file1.txt" in results
+    assert dir1 in results
+    assert dir1 / "file2.txt" in results
+
+
+def test_glob_with_depth_unlimited(tmp_path):
+    """Test glob_with_depth with unlimited depth."""
+    # Create deep structure
+    deep_dir = tmp_path / "a" / "b" / "c" / "d"
+    deep_dir.mkdir(parents=True)
+    (deep_dir / "deep.txt").touch()
+    (tmp_path / "shallow.txt").touch()
+
+    # Test unlimited depth
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=None))
+    assert len(results) == 2
+    assert tmp_path / "shallow.txt" in results
+    assert deep_dir / "deep.txt" in results
+
+
+def test_glob_with_depth_no_matches(tmp_path):
+    """Test glob_with_depth when no files match the pattern."""
+    (tmp_path / "file.txt").touch()
+    (tmp_path / "file.log").touch()
+
+    # Search for non-existent pattern
+    results = list(glob_with_depth(tmp_path, "*.bak", max_depth=2))
+    assert results == []
+
+
+def test_glob_with_depth_symlinks(tmp_path):
+    """Test glob_with_depth behavior with symlinks."""
+    # Create files and symlinks
+    real_file = tmp_path / "real.txt"
+    real_file.touch()
+
+    link_file = tmp_path / "link.txt"
+    link_file.symlink_to(real_file)
+
+    # Both real file and symlink should be found
+    results = list(glob_with_depth(tmp_path, "*.txt", max_depth=0))
+    assert len(results) == 2
+    assert real_file in results
+    assert link_file in results
+
+
+def test_glob_with_depth_does_not_follow_symlink_dirs(tmp_path):
+    """CEFS fsck must not report .bak files inside CEFS-mounted images."""
+    # Create a real directory with a .bak file inside
+    real_dir = tmp_path / "real_dir"
+    real_dir.mkdir()
+    bak_file_in_real = real_dir / "file.bak"
+    bak_file_in_real.touch()
+
+    # Create a symlink directory pointing to real_dir
+    symlink_dir = tmp_path / "symlink_dir"
+    symlink_dir.symlink_to(real_dir)
+
+    # Also put a .bak file inside the symlinked directory
+    # (simulating a CEFS mount with internal .bak files)
+    internal_bak = real_dir / "internal.bak"
+    internal_bak.touch()
+
+    # Create a .bak file at the root level
+    root_bak = tmp_path / "root.bak"
+    root_bak.touch()
+
+    # Search for .bak files with depth limit
+    results = list(glob_with_depth(tmp_path, "*.bak", max_depth=2))
+
+    # Should find:
+    # - root.bak at the root
+    # - file.bak and internal.bak in real_dir
+    # Should NOT find files through symlink_dir (would be duplicates)
+    assert root_bak in results
+    assert bak_file_in_real in results
+    assert internal_bak in results
+
+    # Importantly, we should not get duplicates through the symlink
+    # (if we followed symlinks, we'd get the files twice)
+    assert len(results) == 3
+
+    # Verify that symlink_dir itself can be found if it matches pattern
+    symlink_bak_dir = tmp_path / "dir.bak"
+    symlink_bak_dir.symlink_to(real_dir)
+
+    results2 = list(glob_with_depth(tmp_path, "*.bak", max_depth=0))
+    # Should find root.bak and dir.bak (the symlink directory itself)
+    assert len(results2) == 2
+    assert root_bak in results2
+    assert symlink_bak_dir in results2

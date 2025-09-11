@@ -13,8 +13,10 @@ from lib.cefs.consolidation import (
     is_consolidated_image,
     should_reconsolidate_image,
 )
+from lib.cefs.constants import NFS_MAX_RECURSION_DEPTH
 from lib.cefs.gc import GCSummary
 from lib.cefs.models import ConsolidationCandidate, ImageUsageStats
+from lib.cefs.paths import glob_with_depth
 from lib.cefs_manifest import read_manifest_from_alongside
 
 _LOGGER = logging.getLogger(__name__)
@@ -97,15 +99,33 @@ class CEFSState:
                     self.image_references[filename_stem] = []
                     _LOGGER.warning("Manifest for %s has no contents", filename_stem)
 
-    def check_symlink_references(self) -> None:
-        """Check if expected symlinks exist and point to the correct CEFS images."""
+    def check_symlink_references(self, include_broken: bool = False) -> None:
+        """Check if expected symlinks exist and point to the correct CEFS images.
+
+        Args:
+            include_broken: If True, check actual symlink references for broken images
+                          instead of automatically marking them as referenced
+        """
         for filename_stem, expected_destinations in self.image_references.items():
             if not expected_destinations:
                 image_path = self.all_cefs_images.get(filename_stem)
                 if image_path:
                     self.broken_images.append(image_path)
-                    self.referenced_images.add(filename_stem)
-                    _LOGGER.error("BROKEN IMAGE: %s has invalid manifest - needs investigation", image_path)
+                    if include_broken:
+                        # Check if any symlinks actually point to this broken image
+                        if self._find_symlinks_to_image(filename_stem):
+                            self.referenced_images.add(filename_stem)
+                            _LOGGER.error(
+                                "BROKEN IMAGE (REFERENCED): %s has invalid manifest but is in use", image_path
+                            )
+                        else:
+                            _LOGGER.error(
+                                "BROKEN IMAGE (UNREFERENCED): %s has invalid manifest and is NOT in use", image_path
+                            )
+                    else:
+                        # Default behavior: protect all broken images
+                        self.referenced_images.add(filename_stem)
+                        _LOGGER.error("BROKEN IMAGE: %s has invalid manifest - needs investigation", image_path)
                 continue
 
             for dest_path in expected_destinations:
@@ -137,6 +157,24 @@ class CEFSState:
         if self._check_single_symlink(bak_path, filename_stem):
             _LOGGER.debug("Found reference via .bak symlink: %s", bak_path)
             return True
+
+        return False
+
+    def _find_symlinks_to_image(self, filename_stem: str) -> bool:
+        """Find any symlinks in NFS that point to a CEFS image.
+
+        This is used for broken images where we can't trust the manifest.
+        Limited to NFS_MAX_RECURSION_DEPTH to avoid performance issues.
+
+        Args:
+            filename_stem: The filename stem (hash + suffix) of the CEFS image
+
+        Returns:
+            True if any symlink points to this image
+        """
+        for path in glob_with_depth(self.nfs_dir, "*", NFS_MAX_RECURSION_DEPTH):
+            if self._check_single_symlink(path, filename_stem):
+                return True
 
         return False
 
