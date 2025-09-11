@@ -10,7 +10,7 @@ from pathlib import Path
 
 import yaml
 from lib.cefs.constants import NFS_MAX_RECURSION_DEPTH
-from lib.cefs.paths import FileWithAge
+from lib.cefs.paths import FileWithAge, glob_with_depth
 from lib.cefs.state import CEFSState
 from lib.cefs_manifest import validate_manifest
 
@@ -71,25 +71,15 @@ def find_files_by_pattern(
     Returns:
         List of FileWithAge tuples
     """
-    # Build list of glob patterns based on max_depth
-    if max_depth is None:
-        patterns = [f"**/{pattern}"]
-    else:
-        patterns = [
-            pattern if depth == 0 else "/".join(["*"] * depth) + "/" + pattern for depth in range(max_depth + 1)
-        ]
-
-    # Single loop to process all patterns
     results = []
-    for glob_pattern in patterns:
-        for path in base_dir.glob(glob_pattern):
-            try:
-                # Use lstat to get the modification time of the item itself (not following symlinks)
-                mtime = path.lstat().st_mtime
-                results.append(FileWithAge(path, current_time - mtime))
-            except OSError:
-                # File disappeared or permission denied - skip silently
-                continue
+    for path in glob_with_depth(base_dir, pattern, max_depth):
+        try:
+            # Use lstat to get the modification time of the item itself (not following symlinks)
+            mtime = path.lstat().st_mtime
+            results.append(FileWithAge(path, current_time - mtime))
+        except OSError:
+            # File disappeared or permission denied - skip silently
+            continue
 
     return results
 

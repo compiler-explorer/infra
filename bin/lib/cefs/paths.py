@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
+from lib.cefs.constants import NFS_MAX_RECURSION_DEPTH  # noqa: F401 (used in docstring)
 from lib.cefs_manifest import generate_cefs_filename
 
 _LOGGER = logging.getLogger(__name__)
@@ -281,3 +282,52 @@ def get_current_symlink_targets(path: Path) -> list[Path]:
             except OSError:
                 pass
     return targets
+
+
+def generate_glob_patterns(pattern: str, max_depth: int | None = None) -> list[str]:
+    """Generate glob patterns for depth-limited searching.
+
+    Args:
+        pattern: The base pattern to search for (e.g., "*.bak", "*")
+        max_depth: Maximum directory depth (0-based). None for unlimited.
+
+    Returns:
+        List of glob patterns to use, from shallow to deep
+
+    Examples:
+        >>> generate_glob_patterns("*.bak", max_depth=2)
+        ["*.bak", "*/*.bak", "*/*/*.bak"]
+
+        >>> generate_glob_patterns("*", max_depth=1)
+        ["*", "*/*"]
+
+        >>> generate_glob_patterns("*.yaml", max_depth=None)
+        ["**/*.yaml"]
+    """
+    if max_depth is None:
+        return [f"**/{pattern}"]
+
+    return [pattern if depth == 0 else "/".join(["*"] * depth) + "/" + pattern for depth in range(max_depth + 1)]
+
+
+def glob_with_depth(base_dir: Path, pattern: str, max_depth: int | None = None):
+    """Generate paths matching pattern with optional depth limit.
+
+    Combines pattern generation and globbing into a single generator.
+
+    Args:
+        base_dir: Directory to search in
+        pattern: Glob pattern to match (e.g., "*.bak", "*")
+        max_depth: Maximum directory depth (0-based). None for unlimited.
+                  Use NFS_MAX_RECURSION_DEPTH for NFS directories.
+
+    Yields:
+        Path objects matching the pattern
+
+    Examples:
+        >>> list(glob_with_depth(Path("/tmp"), "*.txt", max_depth=1))
+        [Path("/tmp/file.txt"), Path("/tmp/subdir/other.txt")]
+    """
+    patterns = generate_glob_patterns(pattern, max_depth)
+    for glob_pattern in patterns:
+        yield from base_dir.glob(glob_pattern)
