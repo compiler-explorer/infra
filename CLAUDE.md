@@ -93,7 +93,7 @@ The CE Router system supports automatic overflow of large compilation requests t
 
 - **S3 Bucket**: `compiler-explorer-sqs-overflow` (shared across all environments)
 - **Message Storage**: Path pattern `messages/{environment}/{timestamp}/{guid}.json`
-- **Automatic Cleanup**: Messages deleted after 7 days (configurable via `sqs_overflow_retention_days` variable)
+- **Automatic Cleanup**: Messages deleted after 1 day (configurable via `sqs_overflow_retention_days` variable)
 - **Server-side Encryption**: AES256 encryption enabled
 
 ### Environment Variables

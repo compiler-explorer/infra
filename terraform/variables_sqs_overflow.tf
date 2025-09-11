@@ -1,7 +1,7 @@
 variable "sqs_overflow_retention_days" {
   description = "Number of days to retain overflow messages in S3 before automatic deletion"
   type        = number
-  default     = 7
+  default     = 1
 
   validation {
     condition     = var.sqs_overflow_retention_days >= 1 && var.sqs_overflow_retention_days <= 30
