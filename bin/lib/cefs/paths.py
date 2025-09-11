@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 from dataclasses import dataclass
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import NamedTuple
 
@@ -284,36 +286,11 @@ def get_current_symlink_targets(path: Path) -> list[Path]:
     return targets
 
 
-def generate_glob_patterns(pattern: str, max_depth: int | None = None) -> list[str]:
-    """Generate glob patterns for depth-limited searching.
-
-    Args:
-        pattern: The base pattern to search for (e.g., "*.bak", "*")
-        max_depth: Maximum directory depth (0-based). None for unlimited.
-
-    Returns:
-        List of glob patterns to use, from shallow to deep
-
-    Examples:
-        >>> generate_glob_patterns("*.bak", max_depth=2)
-        ["*.bak", "*/*.bak", "*/*/*.bak"]
-
-        >>> generate_glob_patterns("*", max_depth=1)
-        ["*", "*/*"]
-
-        >>> generate_glob_patterns("*.yaml", max_depth=None)
-        ["**/*.yaml"]
-    """
-    if max_depth is None:
-        return [f"**/{pattern}"]
-
-    return [pattern if depth == 0 else "/".join(["*"] * depth) + "/" + pattern for depth in range(max_depth + 1)]
-
-
 def glob_with_depth(base_dir: Path, pattern: str, max_depth: int | None = None):
     """Generate paths matching pattern with optional depth limit.
 
-    Combines pattern generation and globbing into a single generator.
+    Does NOT follow symlinks when traversing directories, preventing descent
+    into CEFS-mounted images.
 
     Args:
         base_dir: Directory to search in
@@ -328,6 +305,15 @@ def glob_with_depth(base_dir: Path, pattern: str, max_depth: int | None = None):
         >>> list(glob_with_depth(Path("/tmp"), "*.txt", max_depth=1))
         [Path("/tmp/file.txt"), Path("/tmp/subdir/other.txt")]
     """
-    patterns = generate_glob_patterns(pattern, max_depth)
-    for glob_pattern in patterns:
-        yield from base_dir.glob(glob_pattern)
+    for root, dirs, files in os.walk(base_dir, followlinks=False):
+        root_path = Path(root)
+
+        relative_path = root_path.relative_to(base_dir)
+        current_depth = len(relative_path.parts) if relative_path != Path(".") else 0
+
+        if max_depth is not None and current_depth > max_depth:
+            dirs.clear()
+            continue
+
+        yield from (root_path / f for f in files if fnmatch(f, pattern))
+        yield from (root_path / d for d in dirs if fnmatch(d, pattern))

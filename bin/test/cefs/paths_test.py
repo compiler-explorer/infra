@@ -10,7 +10,6 @@ import pytest
 from lib.cefs.paths import (
     CEFSPaths,
     describe_cefs_image,
-    generate_glob_patterns,
     get_cefs_image_path,
     get_cefs_mount_path,
     get_cefs_paths,
@@ -302,41 +301,6 @@ def test_get_current_symlink_targets(tmp_path):
     assert targets4 == []
 
 
-# Tests for generate_glob_patterns
-
-
-def test_generate_glob_patterns_with_max_depth():
-    """Test generate_glob_patterns with various max_depth values."""
-    # Test with max_depth=0 (current directory only)
-    patterns = generate_glob_patterns("*.txt", max_depth=0)
-    assert patterns == ["*.txt"]
-
-    # Test with max_depth=1
-    patterns = generate_glob_patterns("*.txt", max_depth=1)
-    assert patterns == ["*.txt", "*/*.txt"]
-
-    # Test with max_depth=2
-    patterns = generate_glob_patterns("*.txt", max_depth=2)
-    assert patterns == ["*.txt", "*/*.txt", "*/*/*.txt"]
-
-    # Test with max_depth=3 (commonly used for NFS)
-    patterns = generate_glob_patterns("*.bak", max_depth=3)
-    assert patterns == ["*.bak", "*/*.bak", "*/*/*.bak", "*/*/*/*.bak"]
-
-    # Test with pattern="*" (all files)
-    patterns = generate_glob_patterns("*", max_depth=1)
-    assert patterns == ["*", "*/*"]
-
-
-def test_generate_glob_patterns_unlimited():
-    """Test generate_glob_patterns with unlimited depth."""
-    patterns = generate_glob_patterns("*.txt", max_depth=None)
-    assert patterns == ["**/*.txt"]
-
-    patterns = generate_glob_patterns("*.DELETE_ME_*", max_depth=None)
-    assert patterns == ["**/*.DELETE_ME_*"]
-
-
 # Tests for glob_with_depth
 
 
@@ -430,3 +394,50 @@ def test_glob_with_depth_symlinks(tmp_path):
     assert len(results) == 2
     assert real_file in results
     assert link_file in results
+
+
+def test_glob_with_depth_does_not_follow_symlink_dirs(tmp_path):
+    """CEFS fsck must not report .bak files inside CEFS-mounted images."""
+    # Create a real directory with a .bak file inside
+    real_dir = tmp_path / "real_dir"
+    real_dir.mkdir()
+    bak_file_in_real = real_dir / "file.bak"
+    bak_file_in_real.touch()
+
+    # Create a symlink directory pointing to real_dir
+    symlink_dir = tmp_path / "symlink_dir"
+    symlink_dir.symlink_to(real_dir)
+
+    # Also put a .bak file inside the symlinked directory
+    # (simulating a CEFS mount with internal .bak files)
+    internal_bak = real_dir / "internal.bak"
+    internal_bak.touch()
+
+    # Create a .bak file at the root level
+    root_bak = tmp_path / "root.bak"
+    root_bak.touch()
+
+    # Search for .bak files with depth limit
+    results = list(glob_with_depth(tmp_path, "*.bak", max_depth=2))
+
+    # Should find:
+    # - root.bak at the root
+    # - file.bak and internal.bak in real_dir
+    # Should NOT find files through symlink_dir (would be duplicates)
+    assert root_bak in results
+    assert bak_file_in_real in results
+    assert internal_bak in results
+
+    # Importantly, we should not get duplicates through the symlink
+    # (if we followed symlinks, we'd get the files twice)
+    assert len(results) == 3
+
+    # Verify that symlink_dir itself can be found if it matches pattern
+    symlink_bak_dir = tmp_path / "dir.bak"
+    symlink_bak_dir.symlink_to(real_dir)
+
+    results2 = list(glob_with_depth(tmp_path, "*.bak", max_depth=0))
+    # Should find root.bak and dir.bak (the symlink directory itself)
+    assert len(results2) == 2
+    assert root_bak in results2
+    assert symlink_bak_dir in results2
