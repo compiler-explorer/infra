@@ -2,7 +2,6 @@
 
 # designed to be sourced
 
-SKIP_SQUASH=0
 CE_USER=ce
 
 METADATA_TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
@@ -38,14 +37,6 @@ mount_opt() {
 
     [ -f /opt/.health ] || touch /opt/.health
     mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
-
-    if [[ "${SKIP_SQUASH}" == "0" ]]; then
-        # don't be tempted to background this, it just causes everything to wedge
-        # during startup (startup time I/O etc goes through the roof).
-        ./mount-all-img.sh
-
-        echo "Done mounting squash images"
-    fi
 }
 
 get_discovered_compilers() {
