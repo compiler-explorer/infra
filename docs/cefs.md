@@ -26,7 +26,7 @@ We've tried [many](https://github.com/compiler-explorer/cefs) [different](https:
 
 ### Atomic Operations Available
 - **Available**:
-  - File creation is atomic (O_CREAT | O_EXCL)
+  - File creation is atomic (`O_CREAT` | `O_EXCL`)
   - Rename within same filesystem is atomic
   - Symlink creation is atomic
 - **Not Atomic**:
@@ -115,7 +115,7 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] build and deploy aarch64staging
   - [x] build and deploy aarch64prod
   - [x] build beta
-- [ ] Fix up automounter/general config
+- [x] Fix up automounter/general config
   - [x] fix in main
   - [x] install in admin
   - [x] staging, beta, prod script update and AMI
@@ -124,14 +124,14 @@ The modified script now skips mounting when the destination is already a symlink
   - [x] windows rebuild just to pick up the other changes
   - [x] builder
   - [x] runner
-  - [ ] ce-ci too?
+  - [x] ce-ci too?
 - [x] Simple config loader
 - [x] Write "port" code to move existing images over
 - [x] Update installers to (optionally, based on config) install this way (even works for nightly)
 - [x] CLI commands for setup, conversion, and rollback
 - [x] Test with a single compiler or library
-- [ ] Disable squashing and enable the cefs install
-- [ ] Slowly move older things over
+- [x] Disable squashing and enable the cefs install
+- [x] Slowly move older things over
 - [x] Write consolidation tooling and run it
 - [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
 
