@@ -184,33 +184,6 @@ resource "aws_iam_role_policy_attachment" "compiler_explorer_windows_sqs_overflo
   policy_arn = aws_iam_policy.sqs_overflow_access.arn
 }
 
-resource "aws_cloudwatch_log_metric_filter" "sqs_overflow_usage" {
-  name           = "sqs-overflow-messages"
-  log_group_name = "/aws/lambda/compilation"
-  pattern        = "[time, request_id, level = INFO, msg = \"Message size * exceeds limit * storing in S3\"]"
-
-  metric_transformation {
-    name      = "SQSOverflowMessages"
-    namespace = "CompilerExplorer/SQSOverflow"
-    value     = "1"
-    unit      = "Count"
-  }
-}
-
-resource "aws_cloudwatch_metric_alarm" "sqs_overflow_high_usage" {
-  alarm_name          = "sqs-overflow-high-usage"
-  comparison_operator = "GreaterThanThreshold"
-  evaluation_periods  = "2"
-  metric_name         = "SQSOverflowMessages"
-  namespace           = "CompilerExplorer/SQSOverflow"
-  period              = "300"
-  statistic           = "Sum"
-  threshold           = "100"
-  alarm_description   = "Alert when SQS overflow usage is high"
-  treat_missing_data  = "notBreaching"
-
-  alarm_actions = [data.aws_sns_topic.alert.arn]
-}
 
 output "sqs_overflow_bucket_name" {
   value       = aws_s3_bucket.sqs_overflow.id

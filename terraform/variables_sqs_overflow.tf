@@ -25,15 +25,3 @@ variable "s3_overflow_key_prefix" {
   type        = string
   default     = "messages/"
 }
-
-variable "enable_overflow_monitoring" {
-  description = "Enable CloudWatch monitoring and alarms for overflow usage"
-  type        = bool
-  default     = true
-}
-
-variable "overflow_alarm_threshold" {
-  description = "Number of overflow messages in 5 minutes to trigger alarm"
-  type        = number
-  default     = 100
-}
