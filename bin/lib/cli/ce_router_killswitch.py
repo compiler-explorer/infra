@@ -191,9 +191,9 @@ def _get_ce_router_rule_status(rule) -> str:
 @click.pass_obj
 def enable(cfg: Config, environment: str, skip_confirmation: bool):
     """
-    EMERGENCY: Route compilation traffic to CE Router instances.
+    Route compilation traffic to CE Router instances.
 
-    This immediately enables ALB routing to ce-router instances,
+    This enables ALB routing to ce-router instances,
     bypassing Lambda or other routing for compilation requests.
 
     Examples:
@@ -201,7 +201,7 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
         ce ce-router enable -e staging   # Enable for staging
         ce ce-router enable -e beta      # Enable for beta
     """
-    click.echo("🚨 CE ROUTER EMERGENCY KILLSWITCH")
+    click.echo("🔧 CE ROUTER ROUTING CONTROL")
     click.echo("")
 
     # Show correct paths for the environment
@@ -210,18 +210,18 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
     else:
         paths = f"/{environment}/api/compiler/*/compile, /{environment}/api/compiler/*/cmake"
 
-    click.echo(f"This will IMMEDIATELY route {environment} compilation traffic to CE Router instances.")
+    click.echo(f"This will route {environment} compilation traffic to CE Router instances.")
     click.echo(f"Affected paths: {paths}")
     click.echo("")
 
-    if not skip_confirmation and not click.confirm(f"Enable emergency CE Router routing for {environment}?"):
+    if not skip_confirmation and not click.confirm(f"Enable CE Router routing for {environment}?"):
         click.echo("Operation cancelled.")
         return
 
     alb_client = _get_alb_client()
 
     # Find ce-router target groups
-    click.echo("🔍 Finding ce-router target groups...")
+    click.echo("🔍 Locating ce-router target groups...")
     target_groups = _find_ce_router_target_groups(alb_client)
     if not target_groups:
         click.echo("❌ Error: No ce-router target groups found", err=True)
@@ -234,13 +234,13 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
     target_groups = {environment: target_groups[environment]}
 
     # Find HTTPS listener
-    click.echo("🔍 Finding HTTPS listener...")
+    click.echo("🔍 Locating HTTPS listener...")
     listener_arn = _find_compiler_explorer_listener(alb_client)
     if not listener_arn:
         return
 
     # Find or create ce-router rules
-    click.echo("🔍 Finding/creating ce-router ALB rules...")
+    click.echo("🔍 Locating/creating ce-router ALB rules...")
     rules = _find_or_create_ce_router_rules(alb_client, listener_arn, target_groups)
     if not rules:
         return
@@ -255,16 +255,16 @@ def enable(cfg: Config, environment: str, skip_confirmation: bool):
             click.echo(f"⚠️  CE Router routing for {env} is already enabled")
             continue
 
-        click.echo(f"🚀 Enabling ce-router ALB routing for {env}...")
+        click.echo(f"🔧 Enabling ce-router ALB routing for {env}...")
         if _enable_ce_router_rule(alb_client, env, rule_arn):
-            click.echo(f"✅ {env.upper()} ce-router routing ACTIVATED")
+            click.echo(f"✅ {env.upper()} ce-router routing enabled")
             success_count += 1
         else:
             click.echo(f"❌ Failed to enable ce-router routing for {env}", err=True)
 
     if success_count > 0:
         click.echo("")
-        click.echo(f"🎯 Compilation traffic for {success_count} environment(s) now routed to CE Router instances.")
+        click.echo(f"✅ Compilation traffic for {success_count} environment(s) now routed to CE Router instances.")
     else:
         click.echo("")
         click.echo("❌ No environments were successfully enabled.", err=True)
@@ -286,9 +286,9 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
         ce ce-router disable -e staging  # Disable for staging
         ce ce-router disable -e beta     # Disable for beta
     """
-    click.echo("🟡 DISABLE CE Router routing")
+    click.echo("🔧 CE ROUTER ROUTING CONTROL")
     click.echo("")
-    click.echo(f"This will IMMEDIATELY disable ce-router routing for {environment}.")
+    click.echo(f"This will disable ce-router routing for {environment}.")
     click.echo("Traffic will fall back to default routing (Lambda or instances).")
     click.echo("")
 
@@ -299,7 +299,7 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
     alb_client = _get_alb_client()
 
     # Find ce-router target groups
-    click.echo("🔍 Finding ce-router target groups...")
+    click.echo("🔍 Locating ce-router target groups...")
     target_groups = _find_ce_router_target_groups(alb_client)
     if not target_groups:
         click.echo("❌ Error: No ce-router target groups found", err=True)
@@ -312,13 +312,13 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
     target_groups = {environment: target_groups[environment]}
 
     # Find HTTPS listener
-    click.echo("🔍 Finding HTTPS listener...")
+    click.echo("🔍 Locating HTTPS listener...")
     listener_arn = _find_compiler_explorer_listener(alb_client)
     if not listener_arn:
         return
 
     # Find or create ce-router rules
-    click.echo("🔍 Finding ce-router ALB rules...")
+    click.echo("🔍 Locating ce-router ALB rules...")
     rules = _find_or_create_ce_router_rules(alb_client, listener_arn, target_groups)
     if not rules:
         return
@@ -333,9 +333,9 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
             click.echo(f"⚠️  CE Router routing for {env} is already disabled")
             continue
 
-        click.echo(f"🚫 Disabling ce-router ALB routing for {env}...")
+        click.echo(f"🔧 Disabling ce-router ALB routing for {env}...")
         if _disable_ce_router_rule(alb_client, env, rule_arn):
-            click.echo(f"✅ {env.upper()} ce-router routing DISABLED")
+            click.echo(f"✅ {env.upper()} ce-router routing disabled")
             success_count += 1
         else:
             click.echo(f"❌ Failed to disable ce-router routing for {env}", err=True)
@@ -343,7 +343,7 @@ def disable(cfg: Config, environment: str, skip_confirmation: bool):
     if success_count > 0:
         click.echo("")
         click.echo(
-            f"🎯 CE Router routing disabled for {success_count} environment(s). Traffic returned to default routing."
+            f"✅ CE Router routing disabled for {success_count} environment(s). Traffic returned to default routing."
         )
     else:
         click.echo("")
