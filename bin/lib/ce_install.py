@@ -10,7 +10,7 @@ import os
 import signal
 import sys
 import traceback
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import partial
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
@@ -41,6 +41,7 @@ class CliContext:
     filter_match_all: bool
     parallel: int
     config: Config
+    _name_to_installable_cache: dict[str, Installable] = field(default_factory=dict, init=False, repr=False)
 
     def pool(self):  # no type hint as mypy freaks out, really a multiprocessing.Pool
         # https://stackoverflow.com/questions/11312525/catch-ctrlc-sigint-and-exit-multiprocesses-gracefully-in-python
@@ -82,14 +83,19 @@ class CliContext:
         Raises:
             ValueError: If exactly one installable is not found (0 or 2+ matches)
         """
-        matches = [inst for inst in self.get_installables([]) if inst.name == name]
+        if not self._name_to_installable_cache:
+            # bypass_enable_check=True includes ALL installables regardless of 'if:' conditions
+            # (nightly, non-free, etc). Critical for finding installables that might be
+            # conditionally disabled but still exist on disk (e.g., during consolidation checks)
+            for inst in self.get_installables([], bypass_enable_check=True):
+                if inst.name in self._name_to_installable_cache:
+                    raise ValueError(f"Duplicate installable name found: {inst.name}")
+                self._name_to_installable_cache[inst.name] = inst
 
-        if len(matches) == 0:
+        if name not in self._name_to_installable_cache:
             raise ValueError(f"No installable found with exact name: {name}")
-        elif len(matches) > 1:
-            raise ValueError(f"Ambiguous: found {len(matches)} installables with name: {name}")
 
-        return matches[0]
+        return self._name_to_installable_cache[name]
 
 
 def _context_match(context_query: str, installable: Installable) -> bool:
