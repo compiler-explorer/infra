@@ -91,18 +91,18 @@ The CE Router system supports automatic overflow of large compilation requests t
 
 ### Configuration
 
-- **S3 Bucket**: `compiler-explorer-sqs-overflow` (shared across all environments)
-- **Message Storage**: Path pattern `messages/{environment}/{timestamp}/{guid}.json`
+- **S3 Bucket**: `temp-storage.godbolt.org` (shared across all environments)
+- **Message Storage**: Path pattern `sqs-overflow/{environment}/{timestamp}/{guid}.json`
 - **Automatic Cleanup**: Messages deleted after 1 day (configurable via `sqs_overflow_retention_days` variable)
 - **Server-side Encryption**: AES256 encryption enabled
 
 ### Environment Variables
 
-Configure via SSM parameters with fallback defaults:
+Configure via SSM parameters:
 
-- `SQS_MAX_MESSAGE_SIZE`: Maximum message size before overflow (default: 262144 bytes)
-- `S3_OVERFLOW_BUCKET`: S3 bucket name (default: compiler-explorer-sqs-overflow)
-- `S3_OVERFLOW_KEY_PREFIX`: S3 key prefix (default: messages/)
+- `SQS_MAX_MESSAGE_SIZE`: Maximum message size before overflow (bytes)
+- `S3_OVERFLOW_BUCKET`: S3 bucket name (default: temp-storage.godbolt.org)
+- `S3_OVERFLOW_KEY_PREFIX`: S3 key prefix (default: sqs-overflow/)
 
 ### IAM Permissions
 
