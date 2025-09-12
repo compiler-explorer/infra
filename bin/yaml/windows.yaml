@@ -9,6 +9,10 @@ windows:
         check_file: "bin/g++.exe"
         # check_exe: "bin/g++.exe --version"
         targets:
+          - name: "15.2.0posix-13.0.0-ucrt-r1"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-posix-seh-gcc-15.2.0-mingw-w64ucrt-13.0.0-r1.zip
+          - name: "14.3.0posix-12.0.0-ucrt-r1"
+            url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-posix-seh-gcc-14.3.0-mingw-w64ucrt-12.0.0-r1.zip
           - name: "13.1.0-16.0.2-11.0.0-ucrt-r1"
             url: https://github.com/brechtsanders/winlibs_mingw/releases/download/{{name}}/winlibs-x86_64-mcf-seh-gcc-13.1.0-llvm-16.0.2-mingw-w64ucrt-11.0.0-r1.zip
           - name: "12.2.0-16.0.0-10.0.0-ucrt-r5"
