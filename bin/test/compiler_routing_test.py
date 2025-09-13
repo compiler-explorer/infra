@@ -86,8 +86,12 @@ class TestCompilerRouting(unittest.TestCase):
                 "exe": "/usr/local/cuda/bin/nvcc",
             },
             {
-                "id": "skip-this",
+                "id": "remote-compiler",
                 "exe": "/dev/null",
+                "remote": {
+                    "target": "https://godbolt.org:443",
+                    "path": "/winprod/api/compiler/remote-compiler/compile",
+                },
             },
         ]
         mock_requests.get.return_value = mock_response
@@ -107,12 +111,19 @@ class TestCompilerRouting(unittest.TestCase):
                 "id": "nvcc-12",
                 "exe": "/usr/local/cuda/bin/nvcc",
             },
-            # skip-this should be filtered out due to /dev/null exe
+            "remote-compiler": {
+                "id": "remote-compiler",
+                "exe": "/dev/null",
+                "remote": {
+                    "target": "https://godbolt.org:443",
+                    "path": "/winprod/api/compiler/remote-compiler/compile",
+                },
+            },
         }
 
         self.assertEqual(result, expected)
         mock_requests.get.assert_called_once_with(
-            "https://godbolt.org/api/compilers?fields=id,exe", headers={"Accept": "application/json"}, timeout=30
+            "https://godbolt.org/api/compilers?fields=id,exe,remote", headers={"Accept": "application/json"}, timeout=30
         )
 
     @patch("lib.compiler_routing.requests")
@@ -150,14 +161,14 @@ class TestCompilerRouting(unittest.TestCase):
         fetch_discovery_compilers("staging")
 
         mock_requests.get.assert_called_once_with(
-            "https://godbolt.org/staging/api/compilers?fields=id,exe",
+            "https://godbolt.org/staging/api/compilers?fields=id,exe,remote",
             headers={"Accept": "application/json"},
             timeout=30,
         )
 
     @patch("lib.compiler_routing.requests")
-    def test_fetch_discovery_compilers_filters_dev_null(self, mock_requests):
-        """Test that compilers with /dev/null exe paths are filtered out."""
+    def test_fetch_discovery_compilers_includes_dev_null(self, mock_requests):
+        """Test that compilers with /dev/null exe paths are included."""
         mock_response = MagicMock()
         mock_response.json.return_value = [
             {
@@ -165,12 +176,20 @@ class TestCompilerRouting(unittest.TestCase):
                 "exe": "/usr/bin/gcc",
             },
             {
-                "id": "invalid-compiler-1",
+                "id": "remote-compiler-1",
                 "exe": "/dev/null",
+                "remote": {
+                    "target": "https://godbolt.org",
+                    "path": "/winprod/api/compiler/remote-compiler-1/compile",
+                },
             },
             {
-                "id": "invalid-compiler-2",
-                "exe": "/path/to/dev/null/something",
+                "id": "remote-compiler-2",
+                "exe": None,
+                "remote": {
+                    "target": "https://godbolt.org",
+                    "path": "/gpu/api/compiler/remote-compiler-2/compile",
+                },
             },
             {
                 "id": "another-valid",
@@ -181,11 +200,27 @@ class TestCompilerRouting(unittest.TestCase):
 
         result = fetch_discovery_compilers("prod")
 
-        # Should only include compilers without /dev/null in exe path
+        # Should include all compilers including those with /dev/null or null exe
         expected = {
             "valid-compiler": {
                 "id": "valid-compiler",
                 "exe": "/usr/bin/gcc",
+            },
+            "remote-compiler-1": {
+                "id": "remote-compiler-1",
+                "exe": "/dev/null",
+                "remote": {
+                    "target": "https://godbolt.org",
+                    "path": "/winprod/api/compiler/remote-compiler-1/compile",
+                },
+            },
+            "remote-compiler-2": {
+                "id": "remote-compiler-2",
+                "exe": None,
+                "remote": {
+                    "target": "https://godbolt.org",
+                    "path": "/gpu/api/compiler/remote-compiler-2/compile",
+                },
             },
             "another-valid": {
                 "id": "another-valid",
@@ -194,7 +229,7 @@ class TestCompilerRouting(unittest.TestCase):
         }
 
         self.assertEqual(result, expected)
-        self.assertEqual(len(result), 2)  # Only 2 compilers should remain
+        self.assertEqual(len(result), 4)  # All 4 compilers should be included
 
     def test_generate_queue_name_local_compiler(self):
         """Test queue name generation for local compilers."""
@@ -219,6 +254,75 @@ class TestCompilerRouting(unittest.TestCase):
         # Test staging environment
         result = generate_queue_name(compiler_data, "staging")
         self.assertEqual(result, "staging-gpu-compilation-queue")
+
+    def test_generate_routing_info_remote_compiler_url_env(self):
+        """Test routing info generation for compilers with remote config in URL environment."""
+        # Test compiler with /dev/null exe and remote config in a URL environment
+        compiler_data = {
+            "id": "remote-compiler",
+            "exe": "/dev/null",
+            "remote": {
+                "target": "https://godbolt.org:443",
+                "path": "/winprod/api/compiler/remote-compiler/compile",
+            },
+        }
+
+        # Test in winprod environment (which uses URL routing)
+        result = generate_routing_info(compiler_data, "winprod")
+
+        expected = {
+            "queueName": "",
+            "routingType": "url",
+            "targetUrl": "https://godbolt.org/winprod/api/compiler/remote-compiler/compile",
+        }
+
+        self.assertEqual(result, expected)
+
+    def test_generate_routing_info_remote_compiler_queue_env(self):
+        """Test routing info generation for compilers with remote config pointing to queue environment."""
+        # Test compiler with /dev/null exe and remote config pointing to prod (queue environment)
+        compiler_data = {
+            "id": "remote-compiler",
+            "exe": "/dev/null",
+            "remote": {
+                "target": "https://godbolt.org:443",
+                "path": "/prod/api/compiler/remote-compiler/compile",  # Points to prod (queue env)
+            },
+        }
+
+        # Test in staging environment - should use prod's routing strategy
+        result = generate_routing_info(compiler_data, "staging")
+
+        expected = {
+            "queueName": "gpu-compilation-queue",  # Remote compilers get GPU queue in prod
+            "routingType": "queue",
+            "targetUrl": "",
+        }
+
+        self.assertEqual(result, expected)
+
+    def test_generate_routing_info_null_exe_compiler(self):
+        """Test routing info generation for compilers with null exe and remote config."""
+        # Test compiler with null exe and remote config in a URL environment
+        compiler_data = {
+            "id": "null-exe-compiler",
+            "exe": None,
+            "remote": {
+                "target": "https://godbolt.org",
+                "path": "/gpu/api/compiler/null-exe-compiler/compile",
+            },
+        }
+
+        # Test in gpu environment (which uses URL routing)
+        result = generate_routing_info(compiler_data, "gpu")
+
+        expected = {
+            "queueName": "",
+            "routingType": "url",
+            "targetUrl": "https://godbolt.org/gpu/api/compiler/null-exe-compiler/compile",
+        }
+
+        self.assertEqual(result, expected)
 
     @patch("lib.compiler_routing.dynamodb_client")
     def test_get_current_routing_table_success(self, mock_dynamodb_client):
