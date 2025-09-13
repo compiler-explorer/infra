@@ -119,7 +119,7 @@ def fetch_compilers_from_instance(instance_ip: str, environment: str) -> dict[st
         else:
             api_path = f"/{environment}/api/compilers"
 
-        url = f"http://{instance_ip}{api_path}?fields=id,exe"
+        url = f"http://{instance_ip}{api_path}?fields=id,exe,remote"
 
         LOGGER.info(f"Fetching compiler list from instance {instance_ip}: {url}")
 
@@ -132,26 +132,17 @@ def fetch_compilers_from_instance(instance_ip: str, environment: str) -> dict[st
 
         compilers_list = response.json()
 
-        # Convert list to dictionary keyed by compiler ID, filtering out /dev/null compilers
+        # Convert list to dictionary keyed by compiler ID
         compilers = {}
-        skipped_count = 0
 
         for compiler in compilers_list:
             compiler_id = compiler.get("id", "")
             if not compiler_id:
                 continue
 
-            # Skip /dev/null compilers (broken or disabled compilers)
-            exe_path = compiler.get("exe", "")
-            if exe_path == "/dev/null":
-                skipped_count += 1
-                continue
-
             compilers[compiler_id] = compiler
 
-        LOGGER.info(
-            f"Fetched {len(compilers)} compilers from instance {instance_ip} (skipped {skipped_count} /dev/null)"
-        )
+        LOGGER.info(f"Fetched {len(compilers)} compilers from instance {instance_ip}")
         return compilers
 
     except requests.exceptions.RequestException as e:
@@ -186,9 +177,9 @@ def fetch_discovery_compilers(environment: str, version: str | None = None) -> d
     try:
         # Map environment to API URL with fields parameter to reduce bandwidth
         if environment == "prod":
-            api_url = "https://godbolt.org/api/compilers?fields=id,exe"
+            api_url = "https://godbolt.org/api/compilers?fields=id,exe,remote"
         else:
-            api_url = f"https://godbolt.org/{environment}/api/compilers?fields=id,exe"
+            api_url = f"https://godbolt.org/{environment}/api/compilers?fields=id,exe,remote"
 
         LOGGER.info(f"Fetching compiler list from {api_url}")
 
@@ -229,22 +220,14 @@ def fetch_discovery_compilers(environment: str, version: str | None = None) -> d
 
         compilers_list = response.json()
 
-        # Convert list to dictionary keyed by compiler ID, filtering out /dev/null compilers
+        # Convert list to dictionary keyed by compiler ID
         compilers = {}
-        skipped_count = 0
         for compiler_data in compilers_list:
             compiler_id = compiler_data.get("id")
-            exe_path = compiler_data.get("exe", "")
-
-            # Skip compilers with /dev/null in exe path (not real compilers for this environment)
-            if "/dev/null" in exe_path:
-                skipped_count += 1
-                continue
-
             if compiler_id:
                 compilers[compiler_id] = compiler_data
 
-        LOGGER.info(f"Found {len(compilers)} compilers from API (skipped {skipped_count} /dev/null compilers)")
+        LOGGER.info(f"Found {len(compilers)} compilers from API")
         return compilers
 
     except json.JSONDecodeError as e:
@@ -346,14 +329,59 @@ def generate_routing_info(compiler_data: dict[str, Any], environment: str) -> di
     Returns:
         Dictionary with routing information (queueName, routingType, targetUrl)
     """
-    routing_strategy = get_environment_routing_strategy(environment)
     compiler_id = compiler_data.get("id", "")
+    exe_path = compiler_data.get("exe")
+    remote_config = compiler_data.get("remote")
 
+    # Get the routing strategy for this environment
+    routing_strategy = get_environment_routing_strategy(environment)
+
+    # Check if this compiler has remote configuration (exe is /dev/null, null, or missing)
+    if (exe_path == "/dev/null" or exe_path is None) and remote_config:
+        # Extract the target environment from the remote path
+        path = remote_config.get("path", "")
+        target_environment = None
+
+        # Parse environment from path like "/winprod/api/compiler/..." -> "winprod"
+        if path.startswith("/") and "/" in path[1:]:
+            target_environment = path.split("/")[1]
+
+        # Use the target environment's routing strategy, fallback to current environment
+        target_env_for_routing = target_environment if target_environment else environment
+        target_routing_strategy = get_environment_routing_strategy(target_env_for_routing)
+
+        if target_routing_strategy == "url":
+            # Target environment uses URL routing - use the remote URL
+            target = remote_config.get("target", "")
+
+            # Construct the full URL from remote configuration
+            if target and path:
+                # Remove port from target if it's the default https port
+                target_url = target.replace(":443", "")
+                target_url = f"{target_url}{path}"
+            else:
+                # Fallback if remote config is incomplete
+                target_url = construct_environment_url(compiler_id, environment, False)
+
+            return {
+                "queueName": "",  # Empty for URL routing
+                "routingType": "url",
+                "targetUrl": target_url,
+            }
+        else:
+            # Target environment uses queue routing - determine queue based on remote info
+            return {
+                "queueName": generate_queue_name(compiler_data, target_env_for_routing),
+                "routingType": "queue",
+                "targetUrl": "",  # Empty for queue routing
+            }
+
+    # Normal compilers - use environment routing strategy
     if routing_strategy == "url":
         return {
             "queueName": "",  # Empty for URL routing
             "routingType": "url",
-            "targetUrl": construct_environment_url(compiler_id, environment, False),  # Default to compile endpoint
+            "targetUrl": construct_environment_url(compiler_id, environment, False),
         }
     else:
         return {
@@ -540,8 +568,23 @@ def update_compiler_routing_table(
             # Use public API as fallback
             current_compilers = fetch_discovery_compilers(environment)
 
+        # Count current compiler routing types for overview
+        current_url_count = 0
+        current_queue_count = 0
+        for compiler_data in current_compilers.values():
+            routing_info = generate_routing_info(compiler_data, environment)
+            if routing_info["routingType"] == "url":
+                current_url_count += 1
+            else:
+                current_queue_count += 1
+
+        LOGGER.info(f"Fetched compilers for {environment}: {len(current_compilers)} total")
+        LOGGER.info(f"  Would use URL routing: {current_url_count} compilers")
+        LOGGER.info(f"  Would use queue routing: {current_queue_count} compilers")
+
         # Get existing routing table contents for this environment only
         existing_table = get_current_routing_table(environment)
+        LOGGER.info(f"Existing routing table has {len(existing_table)} entries for {environment}")
 
         # Calculate what changes are needed
         items_to_add, items_to_delete, items_to_update = calculate_routing_changes(
@@ -551,15 +594,35 @@ def update_compiler_routing_table(
         # Combine items to add and update for batch writing
         items_to_write = {**items_to_add, **items_to_update}
 
+        # Count routing types for logging (only for changes)
+        added_url_count = sum(1 for item in items_to_add.values() if item.get("routingType") == "url")
+        added_queue_count = sum(1 for item in items_to_add.values() if item.get("routingType") == "queue")
+        updated_url_count = sum(1 for item in items_to_update.values() if item.get("routingType") == "url")
+        updated_queue_count = sum(1 for item in items_to_update.values() if item.get("routingType") == "queue")
+
+        total_change_url_count = added_url_count + updated_url_count
+        total_change_queue_count = added_queue_count + updated_queue_count
+
         # Log what will be changed
         LOGGER.info(f"Changes for {environment}:")
-        LOGGER.info(f"  Items to add: {len(items_to_add)}")
-        LOGGER.info(f"  Items to update: {len(items_to_update)}")
+        LOGGER.info(f"  Items to add: {len(items_to_add)} (URL: {added_url_count}, Queue: {added_queue_count})")
+        LOGGER.info(
+            f"  Items to update: {len(items_to_update)} (URL: {updated_url_count}, Queue: {updated_queue_count})"
+        )
         LOGGER.info(f"  Items to delete: {len(items_to_delete)}")
+        LOGGER.info(
+            f"  Total changes - URL routing: {total_change_url_count}, Queue routing: {total_change_queue_count}"
+        )
 
         if dry_run:
             LOGGER.info("DRY RUN - No changes will be made")
-            return {"added": len(items_to_add), "updated": len(items_to_update), "deleted": len(items_to_delete)}
+            return {
+                "added": len(items_to_add),
+                "updated": len(items_to_update),
+                "deleted": len(items_to_delete),
+                "url_routing": total_change_url_count,
+                "queue_routing": total_change_queue_count,
+            }
 
         # Apply changes to DynamoDB
         if items_to_write:
@@ -569,7 +632,13 @@ def update_compiler_routing_table(
             batch_delete_items(items_to_delete)
 
         LOGGER.info(f"Successfully updated compiler routing table for {environment}")
-        return {"added": len(items_to_add), "updated": len(items_to_update), "deleted": len(items_to_delete)}
+        return {
+            "added": len(items_to_add),
+            "updated": len(items_to_update),
+            "deleted": len(items_to_delete),
+            "url_routing": total_change_url_count,
+            "queue_routing": total_change_queue_count,
+        }
 
     except Exception as e:
         if isinstance(e, CompilerRoutingError):

@@ -65,6 +65,10 @@ def update_routing(cfg: Config, environment: str | None, dry_run: bool, skip_con
         print(f"  Updated: {result['updated']} compilers")
         print(f"  Deleted: {result['deleted']} compilers")
 
+        if "url_routing" in result and "queue_routing" in result:
+            print(f"  URL routing: {result['url_routing']} compilers")
+            print(f"  Queue routing: {result['queue_routing']} compilers")
+
         if not dry_run:
             print(f"\n✅ Successfully updated compiler routing table for {target_env}")
 
