@@ -50,7 +50,3 @@ apt-get -y install \
     libdw-dev \
     libboost-all-dev \
     zlib1g-dev
-
-ln -s /efs/squash-images /opt/squash-images
-ln -s /efs/compiler-explorer /opt/compiler-explorer
-ln -s /efs/wine-stable /opt/wine-stable

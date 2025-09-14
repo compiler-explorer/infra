@@ -22,7 +22,26 @@ fi
 PYENV_ROOT="/root/.pyenv"
 PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PYENV_ROOT/versions/3.10.16/bin:/home/ubuntu/.local/bin:/opt/compiler-explorer/cmake/bin:$PATH"
 
-mount -a
+mount_opt() {
+    mount -a
+
+    mkdir -p /opt/compiler-explorer
+    mountpoint /opt/compiler-explorer || mount --bind /efs/compiler-explorer /opt/compiler-explorer
+
+    mkdir -p /opt/intel
+    mountpoint /opt/intel || mount --bind /efs/intel /opt/intel
+
+    mkdir -p /opt/arm
+    mountpoint /opt/arm || mount --bind /efs/arm /opt/arm
+
+    mkdir -p /opt/qnx
+    mountpoint /opt/qnx || mount --bind /efs/qnx /opt/qnx
+
+    [ -f /opt/.health ] || touch /opt/.health
+    mountpoint /opt/.health || mount --bind /efs/.health /opt/.health
+}
+
+mount_opt
 
 mkdir -p /tmp/build
 cd /tmp/build
