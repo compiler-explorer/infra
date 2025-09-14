@@ -29,6 +29,8 @@ git clone https://github.com/compiler-explorer/infra
 
 cd /tmp/build/infra
 
+python -m pip install conan==1.59
+conan remote clean && conan remote add ceserver https://conan.compiler-explorer.com/ True
 
 export CONAN_USER="ce"
 CONHOME=$(conan config home)
