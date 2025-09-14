@@ -21,6 +21,7 @@ fi
 
 PATH=$PATH:/opt/compiler-explorer/cmake/bin
 
+mkdir -p /tmp/build
 cd /tmp/build
 git clone https://github.com/compiler-explorer/infra
 
