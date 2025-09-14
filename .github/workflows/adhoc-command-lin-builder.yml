@@ -20,7 +20,7 @@ on:
 jobs:
   adhoc:
     name: Run command on lin-builder
-    runs-on: [self-hosted, ce, lin-builder]
+    runs-on: [lin-builder]
     # TODO in future consider github environments for this?
     if: github.actor == 'mattgodbolt' || github.actor == 'partouf'
     timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
