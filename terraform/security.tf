@@ -755,11 +755,11 @@ resource "aws_security_group_rule" "efs_outbound" {
 
 resource "aws_security_group_rule" "efs_inbound" {
   for_each = {
-    "Admin"       = aws_security_group.AdminNode.id,
-    "Compilation" = aws_security_group.CompilerExplorer.id
-    "Builder"     = aws_security_group.Builder.id
-    "CI-x64"      = "sg-07a8509aae61cbe4f"
-    "CI-arm64"    = "sg-0d3a3411b05a2bfb4"
+    "Admin"              = aws_security_group.AdminNode.id,
+    "Compilation"        = aws_security_group.CompilerExplorer.id
+    "Builder"            = aws_security_group.Builder.id
+    "CI-x64"             = "sg-07a8509aae61cbe4f"
+    "CI-arm64"           = "sg-0d3a3411b05a2bfb4"
     "CI-lin-builder-x64" = "sg-06fc1097fde032d6e"
   }
   security_group_id        = aws_security_group.efs.id
