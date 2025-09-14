@@ -98,6 +98,11 @@ class FortranLibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
+        # Caching to reduce redundant operations
+        self._conan_hash_cache: dict[str, str | None] = {}
+        self._annotations_cache: dict[str, dict] = {}
+        # HTTP session for connection pooling
+        self.http_session = requests.Session()
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -256,9 +261,9 @@ class FortranLibraryBuilder:
         while retries > 0:
             try:
                 if headers is not None:
-                    request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
+                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
-                    request = requests.post(
+                    request = self.http_session.post(
                         url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
                     )
 
@@ -448,6 +453,11 @@ class FortranLibraryBuilder:
         return compiler + "_" + hasher.hexdigest()
 
     def get_conan_hash(self, buildfolder: str) -> str | None:
+        # Check cache first
+        if buildfolder in self._conan_hash_cache:
+            self.logger.debug(f"Using cached conan hash for {buildfolder}")
+            return self._conan_hash_cache[buildfolder]
+
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
             conaninfo = subprocess.check_output(
@@ -456,7 +466,11 @@ class FortranLibraryBuilder:
             self.logger.debug(conaninfo)
             match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
             if match:
-                return match[1]
+                result = match[1]
+                self._conan_hash_cache[buildfolder] = result
+                return result
+
+        self._conan_hash_cache[buildfolder] = None
         return None
 
     def conanproxy_login(self):
@@ -502,13 +516,20 @@ class FortranLibraryBuilder:
         return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
     def get_build_annotations(self, buildfolder):
+        # Check cache first
+        if buildfolder in self._annotations_cache:
+            self.logger.debug(f"Using cached annotations for {buildfolder}")
+            return self._annotations_cache[buildfolder]
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
-            return defaultdict(lambda: [])
+            result = defaultdict(lambda: [])
+            self._annotations_cache[buildfolder] = result
+            return result
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
+            request = self.http_session.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
                 raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
@@ -516,7 +537,9 @@ class FortranLibraryBuilder:
             fd.flush()
             fd.seek(0)
             buffer = fd.read()
-            return json.loads(buffer)
+            result = json.loads(buffer)
+            self._annotations_cache[buildfolder] = result
+            return result
 
     def get_commit_hash(self) -> str:
         if os.path.exists(f"{self.sourcefolder}/.git"):
