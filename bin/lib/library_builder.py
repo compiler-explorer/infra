@@ -55,7 +55,26 @@ disable_clang_libcpp = [
 ]
 disable_clang_32bit = disable_clang_libcpp.copy()
 disable_clang_libcpp += ["clang_lifetime"]
-disable_compiler_ids = ["avrg454"]
+disable_compiler_ids = [
+    "avrg454",
+    "icc1301",
+    "icc16",
+    "icc17",
+    "icc18",
+    "icc19",
+    "icc191",
+    "icc202112",
+    "icc202120",
+    "icc202130",
+    "icc202140",
+    "icc202150",
+    "icc202160",
+    "icc202170",
+    "icc202171",
+    "icc202180",
+    "icc202190",
+    "icc2021100",
+]
 
 _propsandlibs: dict[str, Any] = defaultdict(lambda: [])
 _supports_x86: dict[str, Any] = defaultdict(lambda: [])
