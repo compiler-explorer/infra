@@ -19,7 +19,8 @@ if [ "$LIBRARYTOBUILD" != "all" ]; then
   LIBRARYPARAM="libraries/$LANGUAGE/$LIBRARYTOBUILD"
 fi
 
-PATH="/root/.pyenv/shims:/root/.pyenv/versions/3.10.16/bin:/opt/compiler-explorer/cmake/bin:$PATH"
+PYENV_ROOT="/root/.pyenv"
+PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PYENV_ROOT/versions/3.10.16/bin:/opt/compiler-explorer/cmake/bin:$PATH"
 
 mkdir -p /tmp/build
 cd /tmp/build
