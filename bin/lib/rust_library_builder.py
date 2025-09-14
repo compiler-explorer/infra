@@ -86,10 +86,8 @@ class RustLibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
-        # Caching to reduce redundant operations
         self._conan_hash_cache: dict[str, str | None] = {}
         self._annotations_cache: dict[str, dict] = {}
-        # HTTP session for connection pooling
         self.http_session = requests.Session()
 
         if self.language in _propsandlibs:
@@ -260,7 +258,6 @@ class RustLibraryBuilder:
         return compiler + "_" + hasher.hexdigest()
 
     def get_conan_hash(self, buildfolder: str) -> str | None:
-        # Check cache first
         if buildfolder in self._conan_hash_cache:
             self.logger.debug(f"Using cached conan hash for {buildfolder}")
             return self._conan_hash_cache[buildfolder]
@@ -354,7 +351,6 @@ class RustLibraryBuilder:
             raise PostFailure(f"Post failure for {url}: {request}")
 
     def get_build_annotations(self, buildfolder):
-        # Check cache first
         if buildfolder in self._annotations_cache:
             self.logger.debug(f"Using cached annotations for {buildfolder}")
             return self._annotations_cache[buildfolder]

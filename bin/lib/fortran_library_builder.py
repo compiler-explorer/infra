@@ -98,10 +98,8 @@ class FortranLibraryBuilder:
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
-        # Caching to reduce redundant operations
         self._conan_hash_cache: dict[str, str | None] = {}
         self._annotations_cache: dict[str, dict] = {}
-        # HTTP session for connection pooling
         self.http_session = requests.Session()
 
         if self.language in _propsandlibs:
@@ -453,7 +451,6 @@ class FortranLibraryBuilder:
         return compiler + "_" + hasher.hexdigest()
 
     def get_conan_hash(self, buildfolder: str) -> str | None:
-        # Check cache first
         if buildfolder in self._conan_hash_cache:
             self.logger.debug(f"Using cached conan hash for {buildfolder}")
             return self._conan_hash_cache[buildfolder]
@@ -516,7 +513,6 @@ class FortranLibraryBuilder:
         return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
     def get_build_annotations(self, buildfolder):
-        # Check cache first
         if buildfolder in self._annotations_cache:
             self.logger.debug(f"Using cached annotations for {buildfolder}")
             return self._annotations_cache[buildfolder]
