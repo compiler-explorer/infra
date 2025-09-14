@@ -1,0 +1,36 @@
+name: Library Builds for Linux compilers
+
+on:
+    workflow_dispatch:
+        inputs:
+            library:
+                description: 'Library'
+                default: 'all'
+                required: true
+            compiler:
+                description: 'Compiler'
+                default: 'popular-compilers-only'
+                required: true
+    workflow_call:
+        inputs:
+            library:
+                description: 'Library'
+                default: 'all'
+                required: true
+                type: string
+            compiler:
+                description: 'Compiler'
+                default: 'popular-compilers-only'
+                required: true
+                type: string
+
+jobs:
+    librarybuild:
+      runs-on: ['lin-builder']
+      timeout-minutes: 720
+
+      steps:
+      - name: Download build script
+        run: curl -sL "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/init/start-builder.sh" -o "/tmp/start-builder.sh"
+      - name: Build libraries
+        run: cd /tmp && ./start-builder.sh "${{ secrets.CONAN_PASSWORD }}" "c++" "${{ inputs.library }}" "${{ inputs.compiler }}"
