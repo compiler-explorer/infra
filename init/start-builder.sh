@@ -2,7 +2,7 @@
 
 set -ex
 
-export CONAN_PASSWORD = $1;
+export CONAN_PASSWORD=$1
 LANGUAGE=$2
 LIBRARYTOBUILD=$3
 FORCECOMPILER=$4
@@ -27,10 +27,11 @@ git clone https://github.com/compiler-explorer/infra
 cd /tmp/build/infra
 
 
-export CONAN_USER = "ce";
-export CONAN_HOME=$(conan config home)
+export CONAN_USER="ce"
+CONHOME=$(conan config home)
+export CONAN_HOME=$CONHOME
 
-cp /tmp/build/infra/init/settings.yml $CONAN_HOME/settings.yml
+cp /tmp/build/infra/init/settings.yml "${CONAN_HOME}/settings.yml"
 make ce > ceinstall.log
 
 conan user ce -p -r=ceserver
