@@ -22,6 +22,8 @@ fi
 PYENV_ROOT="/root/.pyenv"
 PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PYENV_ROOT/versions/3.10.16/bin:/home/ubuntu/.local/bin:/opt/compiler-explorer/cmake/bin:$PATH"
 
+mount -a
+
 mkdir -p /tmp/build
 cd /tmp/build
 rm -rf infra
