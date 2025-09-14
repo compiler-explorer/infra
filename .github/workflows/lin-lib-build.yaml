@@ -33,4 +33,4 @@ jobs:
       - name: Download build script
         run: curl -sL "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/init/start-builder.sh" -o "/tmp/start-builder.sh"
       - name: Build libraries
-        run: cd /tmp && ./start-builder.sh "${{ secrets.CONAN_PASSWORD }}" "c++" "${{ inputs.library }}" "${{ inputs.compiler }}"
+        run: cd /tmp && chmod +x start-builder.sh && ./start-builder.sh "${{ secrets.CONAN_PASSWORD }}" "c++" "${{ inputs.library }}" "${{ inputs.compiler }}"
