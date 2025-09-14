@@ -23,9 +23,7 @@ PATH="/root/.pyenv/shims:/root/.pyenv/versions/3.10.16/bin:/opt/compiler-explore
 
 mkdir -p /tmp/build
 cd /tmp/build
-if [ -d infra ]; then
-  rm -rf infra
-fi
+rm -rf infra
 git clone https://github.com/compiler-explorer/infra
 
 cd /tmp/build/infra
