@@ -20,7 +20,7 @@ if [ "$LIBRARYTOBUILD" != "all" ]; then
 fi
 
 PYENV_ROOT="/root/.pyenv"
-PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PYENV_ROOT/versions/3.10.16/bin:/opt/compiler-explorer/cmake/bin:$PATH"
+PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PYENV_ROOT/versions/3.10.16/bin:/home/ubuntu/.local/bin:/opt/compiler-explorer/cmake/bin:$PATH"
 
 mkdir -p /tmp/build
 cd /tmp/build
