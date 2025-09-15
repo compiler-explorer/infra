@@ -136,6 +136,9 @@ class LibraryBuilder:
         self.conanserverproxy_token = None
         self.current_commit_hash = ""
         self.platform = platform
+        self._conan_hash_cache: dict[str, str | None] = {}
+        self._annotations_cache: dict[str, dict] = {}
+        self.http_session = requests.Session()
 
         self.history = LibraryBuildHistory(self.logger)
 
@@ -388,9 +391,9 @@ class LibraryBuilder:
         while retries > 0:
             try:
                 if headers is not None:
-                    request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
+                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
-                    request = requests.post(
+                    request = self.http_session.post(
                         url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
                     )
 
@@ -411,9 +414,9 @@ class LibraryBuilder:
         while retries > 0:
             try:
                 if headers is not None:
-                    request = requests.get(url, stream=stream, headers=headers, timeout=timeout)
+                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
                 else:
-                    request = requests.get(
+                    request = self.http_session.get(
                         url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
                     )
 
@@ -1042,6 +1045,10 @@ class LibraryBuilder:
         return compiler + "_" + str(iteration)
 
     def get_conan_hash(self, buildfolder: str) -> str | None:
+        if buildfolder in self._conan_hash_cache:
+            self.logger.debug(f"Using cached conan hash for {buildfolder}")
+            return self._conan_hash_cache[buildfolder]
+
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
             conaninfo = subprocess.check_output(
@@ -1050,7 +1057,11 @@ class LibraryBuilder:
             self.logger.debug(conaninfo)
             match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
             if match:
-                return match[1]
+                result = match[1]
+                self._conan_hash_cache[buildfolder] = result
+                return result
+
+        self._conan_hash_cache[buildfolder] = None
         return None
 
     def conanproxy_login(self):
@@ -1114,9 +1125,15 @@ class LibraryBuilder:
         return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
     def get_build_annotations(self, buildfolder):
+        if buildfolder in self._annotations_cache:
+            self.logger.debug(f"Using cached annotations for {buildfolder}")
+            return self._annotations_cache[buildfolder]
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
-            return defaultdict(lambda: [])
+            result = defaultdict(lambda: [])
+            self._annotations_cache[buildfolder] = result
+            return result
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
@@ -1128,7 +1145,9 @@ class LibraryBuilder:
             fd.flush()
             fd.seek(0)
             buffer = fd.read()
-            return json.loads(buffer)
+            result = json.loads(buffer)
+            self._annotations_cache[buildfolder] = result
+            return result
 
     def get_commit_hash(self) -> str:
         if self.current_commit_hash:
