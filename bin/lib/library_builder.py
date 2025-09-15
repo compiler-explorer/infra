@@ -10,9 +10,12 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from collections import defaultdict
 from collections.abc import Generator
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from enum import Enum, unique
 from pathlib import Path
 from typing import Any, TextIO
@@ -96,6 +99,32 @@ class BuildStatus(Enum):
     TimedOut = 3
 
 
+@dataclass
+class BuildConfiguration:
+    compiler: str
+    options: str
+    exe: str
+    compiler_type: str
+    toolchain: str
+    buildos: str
+    buildtype: str
+    arch: str
+    stdver: str
+    stdlib: str
+    flagscombination: list[str]
+    ld_path: str
+    compiler_props: dict[str, Any]
+    iteration: int
+
+
+@dataclass
+class DiscoveryResult:
+    config: BuildConfiguration
+    should_build: bool
+    build_folder: str
+    skip_reason: str | None = None
+
+
 build_timeout = 600
 
 conanserver_url = "https://conan.compiler-explorer.com"
@@ -120,6 +149,7 @@ class LibraryBuilder:
         buildconfig: LibraryBuildConfig,
         popular_compilers_only: bool,
         platform: LibraryPlatform,
+        parallel_discovery_workers: int,
     ):
         self.logger = logger
         self.language = language
@@ -139,6 +169,12 @@ class LibraryBuilder:
         self._conan_hash_cache: dict[str, str | None] = {}
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
+
+        # Thread safety for parallel discovery
+        self._cache_lock = threading.Lock()
+        self._needs_uploading_lock = threading.Lock()
+        self.parallel_discovery_workers = parallel_discovery_workers
+        self._thread_local_data = threading.local()
 
         self.history = LibraryBuildHistory(self.logger)
 
@@ -1045,9 +1081,10 @@ class LibraryBuilder:
         return compiler + "_" + str(iteration)
 
     def get_conan_hash(self, buildfolder: str) -> str | None:
-        if buildfolder in self._conan_hash_cache:
-            self.logger.debug(f"Using cached conan hash for {buildfolder}")
-            return self._conan_hash_cache[buildfolder]
+        with self._cache_lock:
+            if buildfolder in self._conan_hash_cache:
+                self.logger.debug(f"Using cached conan hash for {buildfolder}")
+                return self._conan_hash_cache[buildfolder]
 
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
@@ -1058,10 +1095,12 @@ class LibraryBuilder:
             match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
             if match:
                 result = match[1]
-                self._conan_hash_cache[buildfolder] = result
+                with self._cache_lock:
+                    self._conan_hash_cache[buildfolder] = result
                 return result
 
-        self._conan_hash_cache[buildfolder] = None
+        with self._cache_lock:
+            self._conan_hash_cache[buildfolder] = None
         return None
 
     def conanproxy_login(self):
@@ -1125,14 +1164,16 @@ class LibraryBuilder:
         return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
     def get_build_annotations(self, buildfolder):
-        if buildfolder in self._annotations_cache:
-            self.logger.debug(f"Using cached annotations for {buildfolder}")
-            return self._annotations_cache[buildfolder]
+        with self._cache_lock:
+            if buildfolder in self._annotations_cache:
+                self.logger.debug(f"Using cached annotations for {buildfolder}")
+                return self._annotations_cache[buildfolder]
 
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             result = defaultdict(lambda: [])
-            self._annotations_cache[buildfolder] = result
+            with self._cache_lock:
+                self._annotations_cache[buildfolder] = result
             return result
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
@@ -1146,7 +1187,8 @@ class LibraryBuilder:
             fd.seek(0)
             buffer = fd.read()
             result = json.loads(buffer)
-            self._annotations_cache[buildfolder] = result
+            with self._cache_lock:
+                self._annotations_cache[buildfolder] = result
             return result
 
     def get_commit_hash(self) -> str:
@@ -1236,6 +1278,72 @@ class LibraryBuilder:
         request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
             raise PostFailure(f"Post failure for {url}: {request}")
+
+    def discover_build_configuration(
+        self,
+        config: BuildConfiguration,
+        staging_path: str,
+    ) -> DiscoveryResult:
+        """Check if a build configuration needs to be built."""
+        # Build folder hash
+        combined_hash = self.makebuildhash(
+            config.compiler,
+            config.options,
+            config.toolchain,
+            config.buildos,
+            config.buildtype,
+            config.arch,
+            config.stdver,
+            config.stdlib,
+            config.flagscombination,
+            config.iteration,
+        )
+
+        build_folder = os.path.join(staging_path, combined_hash)
+
+        # Build parameters for this configuration
+        build_params: dict[str, Any] = defaultdict(lambda: [])
+        build_params["os"] = config.buildos
+        build_params["buildtype"] = config.buildtype
+        build_params["compiler"] = config.compiler_type if config.compiler_type else "gcc"
+        build_params["compiler_version"] = config.compiler
+        build_params["libcxx"] = config.stdlib if config.stdlib else "libstdc++"
+        build_params["arch"] = config.arch
+        build_params["stdver"] = config.stdver
+        build_params["flagcollection"] = config.flagscombination
+        build_params["library"] = self.libid
+        build_params["library_version"] = self.target_name
+
+        # Check if build has failed before
+        if not self.forcebuild:
+            url = f"{conanserver_url}/whathasfailedbefore"
+            session = self._thread_local_data.session
+            try:
+                request = session.post(url, json=build_params, timeout=_TIMEOUT)
+                if request.ok:
+                    response = request.json()
+                    current_commit = self.get_commit_hash()
+                    if response["commithash"] == current_commit and response["response"]:
+                        return DiscoveryResult(
+                            config=config,
+                            should_build=False,
+                            build_folder=build_folder,
+                            skip_reason="Build has failed before",
+                        )
+            except Exception as e:
+                self.logger.warning(f"Failed to check build history: {e}")
+
+        # Check if already uploaded
+        os.makedirs(build_folder, exist_ok=True)
+        self.writeconanfile(build_folder)
+
+        if self.is_already_uploaded(build_folder):
+            if not self.forcebuild:
+                return DiscoveryResult(
+                    config=config, should_build=False, build_folder=build_folder, skip_reason="Build already uploaded"
+                )
+
+        return DiscoveryResult(config=config, should_build=True, build_folder=build_folder)
 
     def makebuildfor(
         self,
@@ -1435,6 +1543,56 @@ class LibraryBuilder:
 
         return True
 
+    def parallel_discover_configurations(self, all_configs: list[BuildConfiguration]) -> list[DiscoveryResult]:
+        """Discover which configurations need building using parallel workers."""
+        discovery_results = []
+        total_configs = len(all_configs)
+
+        self.logger.info(
+            f"Starting parallel discovery for {total_configs} configurations with {self.parallel_discovery_workers} workers"
+        )
+
+        def worker_init():
+            # Initialize session once per worker thread
+            self._thread_local_data.session = requests.Session()
+
+        def worker_discover(config: BuildConfiguration) -> DiscoveryResult:
+            # Create temporary staging dir for discovery
+            with tempfile.TemporaryDirectory() as temp_staging:
+                return self.discover_build_configuration(config, temp_staging)
+
+        with ThreadPoolExecutor(max_workers=self.parallel_discovery_workers, initializer=worker_init) as executor:
+            # Submit all discovery tasks
+            future_to_config = {executor.submit(worker_discover, config): config for config in all_configs}
+
+            # Process results as they complete
+            completed = 0
+            for future in as_completed(future_to_config):
+                completed += 1
+                if completed % 100 == 0 or completed == total_configs:
+                    self.logger.info(f"Discovery progress: {completed}/{total_configs} configurations checked")
+
+                try:
+                    result = future.result()
+                    discovery_results.append(result)
+                    if result.should_build:
+                        self.logger.debug(
+                            f"Will build: {result.config.compiler} {result.config.arch} {result.config.buildtype}"
+                        )
+                    elif result.skip_reason:
+                        self.logger.debug(f"Skipping: {result.skip_reason}")
+                except Exception as e:
+                    config = future_to_config[future]
+                    self.logger.error(f"Discovery failed for {config.compiler}: {e}")
+                    # Still add as a result that should build to not miss configurations
+                    discovery_results.append(
+                        DiscoveryResult(
+                            config=config, should_build=True, build_folder="", skip_reason=f"Discovery error: {e}"
+                        )
+                    )
+
+        return discovery_results
+
     def makebuild(self, buildfor):
         builds_failed = 0
         builds_succeeded = 0
@@ -1483,6 +1641,9 @@ class LibraryBuilder:
             checkcompiler = buildfor
             if checkcompiler not in self.compilerprops:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
+
+        # Phase 1: Collect all build configurations
+        all_configurations = []
 
         for compiler in self.compilerprops:
             if compiler in disable_compiler_ids:
@@ -1614,27 +1775,75 @@ class LibraryBuilder:
                 build_supported_os, buildtypes, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
                 iteration += 1
-                with self.install_context.new_staging_dir() as staging:
-                    buildstatus = self.makebuildfor(
-                        compiler,
-                        options,
-                        exe,
-                        compilerType,
-                        toolchain,
-                        *args,
-                        self.compilerprops[compiler]["ldPath"],
-                        staging,
-                        self.compilerprops[compiler],
-                        iteration,
-                    )
-                    if buildstatus == BuildStatus.Ok:
-                        builds_succeeded = builds_succeeded + 1
-                    elif buildstatus == BuildStatus.Skipped:
-                        builds_skipped = builds_skipped + 1
-                    else:
-                        builds_failed = builds_failed + 1
+                config = BuildConfiguration(
+                    compiler=compiler,
+                    options=options,
+                    exe=exe,
+                    compiler_type=compilerType,
+                    toolchain=toolchain,
+                    buildos=args[0],
+                    buildtype=args[1],
+                    arch=args[2],
+                    stdver=args[3],
+                    stdlib=args[4],
+                    flagscombination=args[5],
+                    ld_path=self.compilerprops[compiler]["ldPath"],
+                    compiler_props=self.compilerprops[compiler],
+                    iteration=iteration,
+                )
+                all_configurations.append(config)
 
-            if builds_succeeded > 0:
+        # Phase 2: Parallel discovery
+        if not all_configurations:
+            self.logger.info("No configurations to build")
+            return [builds_succeeded, builds_skipped, builds_failed]
+
+        self.logger.info(f"Total configurations to check: {len(all_configurations)}")
+        discovery_results = self.parallel_discover_configurations(all_configurations)
+
+        # Phase 3: Sequential building of configurations that need building
+        configs_to_build = [result for result in discovery_results if result.should_build]
+        configs_skipped = [result for result in discovery_results if not result.should_build]
+
+        self.logger.info(f"Configurations to build: {len(configs_to_build)}, skipped: {len(configs_skipped)}")
+        builds_skipped = len(configs_skipped)
+
+        # Track builds per compiler for upload
+        compiler_builds: dict[str, int] = defaultdict(int)
+
+        for idx, discovery_result in enumerate(configs_to_build, 1):
+            config = discovery_result.config
+            self.logger.info(
+                f"Building {idx}/{len(configs_to_build)}: {config.compiler} {config.arch} {config.buildtype}"
+            )
+
+            with self.install_context.new_staging_dir() as staging:
+                buildstatus = self.makebuildfor(
+                    config.compiler,
+                    config.options,
+                    config.exe,
+                    config.compiler_type,
+                    config.toolchain,
+                    config.buildos,
+                    config.buildtype,
+                    config.arch,
+                    config.stdver,
+                    config.stdlib,
+                    config.flagscombination,
+                    config.ld_path,
+                    staging,
+                    config.compiler_props,
+                    config.iteration,
+                )
+                if buildstatus == BuildStatus.Ok:
+                    builds_succeeded += 1
+                    compiler_builds[config.compiler] += 1
+                elif buildstatus == BuildStatus.Failed or buildstatus == BuildStatus.TimedOut:
+                    builds_failed += 1
+
+            # Upload builds for this compiler if we have any
+            if compiler_builds[config.compiler] > 0:
                 self.upload_builds()
+                compiler_builds[config.compiler] = 0
 
         return [builds_succeeded, builds_skipped, builds_failed]

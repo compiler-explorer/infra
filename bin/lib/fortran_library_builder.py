@@ -84,6 +84,7 @@ class FortranLibraryBuilder:
         install_context,
         buildconfig: LibraryBuildConfig,
         popular_compilers_only: bool,
+        parallel_discovery_workers: int,
     ):
         self.logger = logger
         self.language = language
@@ -101,6 +102,7 @@ class FortranLibraryBuilder:
         self._conan_hash_cache: dict[str, str | None] = {}
         self._annotations_cache: dict[str, dict] = {}
         self.http_session = requests.Session()
+        self.parallel_discovery_workers = parallel_discovery_workers
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
