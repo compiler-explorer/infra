@@ -880,3 +880,23 @@ resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedIns
   role       = "ce-ci-windows-x64-win-builder-runner-role"
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_UpdateLibraryBuildHistory" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_AccessCeParams" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = aws_iam_policy.AccessCeParams.arn
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_ReadS3Minimal" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_AmazonSSMManagedInstanceCore" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
