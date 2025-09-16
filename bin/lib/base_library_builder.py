@@ -61,6 +61,7 @@ class BaseLibraryBuilder(ABC):
         sourcefolder: str,
         install_context: InstallationContext,
         buildconfig: LibraryBuildConfig,
+        platform: LibraryPlatform = LibraryPlatform.Linux,
     ):
         self.logger = logger
         self.language = language
@@ -69,6 +70,7 @@ class BaseLibraryBuilder(ABC):
         self.sourcefolder = sourcefolder
         self.install_context = install_context
         self.buildconfig = buildconfig
+        self.platform = platform
 
         # Common state
         self.forcebuild = False
@@ -399,34 +401,44 @@ class BaseLibraryBuilder(ABC):
         self.current_buildparameters_obj["arch"] = arch
         self.current_buildparameters_obj["stdver"] = stdver
         self.current_buildparameters_obj["flagcollection"] = extraflags
+        self.current_buildparameters_obj["library"] = self.libid
+        self.current_buildparameters_obj["library_version"] = self.target_name
 
-        self.current_buildparameters = []
-        for key, value in self.current_buildparameters_obj.items():
-            if key == "flagcollection":
-                continue
-            self.current_buildparameters.extend(["-s", f"{key}={value}"])
+        self.current_buildparameters = [
+            "-s",
+            f"os={buildos}",
+            "-s",
+            f"build_type={buildtype}",
+            "-s",
+            f"compiler={compilerTypeOrGcc or 'gcc'}",
+            "-s",
+            f"compiler.version={compiler}",
+            "-s",
+            f"compiler.libcxx={libcxx or 'libstdc++'}",
+            "-s",
+            f"arch={arch}",
+            "-s",
+            f"stdver={stdver}",
+            "-s",
+            f"flagcollection={extraflags}",
+        ]
 
     def writeconanscript(self, buildfolder):
-        """Write conan export script."""
-        scriptfile = os.path.join(buildfolder, "conanexport.sh")
-        with open(scriptfile, "w", encoding="utf-8") as f:
-            f.write("#!/bin/bash\n")
-            f.write("set -ex\n")
-            f.write(
-                " ".join(
-                    [
-                        "conan",
-                        "export-pkg",
-                        ".",
-                        f"{self.libname}/{self.target_name}@celibs/trunk",
-                        "-r",
-                        "ceserver",
-                        "--force",
-                    ]
-                    + self.current_buildparameters
-                )
-            )
-            f.write("\n")
+        """Write conan export script with cross-platform support."""
+        conanparamsstr = " ".join(self.current_buildparameters)
+
+        if self.platform == LibraryPlatform.Windows:
+            scriptfile = Path(buildfolder) / "conanexport.ps1"
+            with scriptfile.open("w", encoding="utf-8") as f:
+                f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
+        else:
+            scriptfile = Path(buildfolder) / "conanexport.sh"
+            with scriptfile.open("w", encoding="utf-8") as f:
+                f.write("#!/bin/sh\n\n")
+                f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
+
+        # Make script executable
+        scriptfile.chmod(0o755)
 
     def writebuildscript(
         self,
@@ -500,8 +512,7 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
         popular_compilers_only,
         platform,
     ):
-        super().__init__(logger, language, libname, target_name, sourcefolder, install_context, buildconfig)
-        self.platform = platform
+        super().__init__(logger, language, libname, target_name, sourcefolder, install_context, buildconfig, platform)
         self.check_compiler_popularity = popular_compilers_only
 
         # These will be set by subclasses
@@ -549,7 +560,12 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
 
     def getTargetFromOptions(self, options):
         """Get target from compiler options."""
+        # Try equals format first: --target=value or -target=value
         match = re.search(r"(?:--target|-target)=(\S*)", options)
+        if match:
+            return match[1]
+        # Try space format: -target value
+        match = re.search(r"-target (\S*)", options)
         if match:
             return match[1]
         return ""

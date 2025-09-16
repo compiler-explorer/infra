@@ -119,6 +119,11 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
         # C++-specific initialization
         self.current_commit_hash = ""
 
+        # Set script filename based on platform
+        self.script_filename = "cebuild.sh"
+        if self.platform == LibraryPlatform.Windows:
+            self.script_filename = "cebuild.ps1"
+
         self.history = LibraryBuildHistory(self.logger)
 
         if self.language in _propsandlibs:
@@ -176,6 +181,58 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
             self.history.failed(self.current_buildparameters_obj, commit_hash)
         # Call base implementation
         return super().save_build_logging(builtok, buildfolder, extralogtext)
+
+    def is_already_uploaded(self, buildfolder):
+        """Check if build is already uploaded - C++ specific implementation using annotations."""
+        annotations = self.get_build_annotations(buildfolder)
+
+        if "commithash" in annotations:
+            commithash = self.get_commit_hash()
+            return commithash == annotations["commithash"]
+        else:
+            return False
+
+    def _get_script_args(self, scriptfile):
+        """Get script execution arguments for C++ builds."""
+        if self.platform == LibraryPlatform.Linux:
+            return ["./" + self.script_filename]
+        elif self.platform == LibraryPlatform.Windows:
+            return ["pwsh", "./" + self.script_filename]
+        else:
+            return ["bash", scriptfile]  # fallback
+
+    def get_compiler_type(self, compiler):
+        """Get compiler type with C++-specific clang-intel hack."""
+        compilerType = ""
+        if "compilerType" in self.compilerprops[compiler]:
+            compilerType = self.compilerprops[compiler]["compilerType"]
+        else:
+            raise RuntimeError(f"Something is wrong with {compiler}")
+
+        if self.compilerprops[compiler]["compilerType"] == "clang-intel":
+            # hack for icpx so we don't get duplicate builds
+            compilerType = "gcc"
+
+        return compilerType
+
+    def executeconanscript(self, buildfolder):
+        """Execute conan script with platform-specific logic."""
+        if self.install_context.dry_run:
+            return BuildStatus.Ok
+
+        try:
+            if self.platform == LibraryPlatform.Linux:
+                subprocess.check_call(["./conanexport.sh"], cwd=buildfolder)
+            elif self.platform == LibraryPlatform.Windows:
+                subprocess.check_call(["pwsh", "./conanexport.ps1"], cwd=buildfolder)
+            else:
+                # Fallback to base class behavior
+                return super().executeconanscript(buildfolder)
+
+            self.logger.info("Export successful")
+            return BuildStatus.Ok
+        except subprocess.CalledProcessError:
+            return BuildStatus.Failed
 
     def completeBuildConfig(self):
         if "description" in self.libraryprops[self.libid]:

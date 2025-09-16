@@ -58,8 +58,10 @@ class RustLibraryBuilder(BaseLibraryBuilder):
         install_context: InstallationContext,
         buildconfig: LibraryBuildConfig,
     ):
-        # Rust doesn't have sourcefolder in signature
-        super().__init__(logger, language, libname, target_name, "", install_context, buildconfig)
+        # Rust doesn't have sourcefolder in signature, uses Linux platform
+        super().__init__(
+            logger, language, libname, target_name, "", install_context, buildconfig, LibraryPlatform.Linux
+        )
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -168,15 +170,6 @@ class RustLibraryBuilder(BaseLibraryBuilder):
         ]
         if libcxx:
             self.current_buildparameters.extend(["-s", f"compiler.libcxx={libcxx}"])
-
-    def writeconanscript(self, buildfolder):
-        """Write conan export script for Rust packages."""
-        conanparamsstr = " ".join(self.current_buildparameters)
-        scriptfile = Path(buildfolder) / "conanexport.sh"
-        with scriptfile.open("w", encoding="utf-8") as f:
-            f.write("#!/bin/sh\n\n")
-            f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
-        scriptfile.chmod(0o755)
 
     def writeconanfile(self, buildfolder):
         underscoredlibname = self.libname.replace("-", "_")

@@ -63,17 +63,19 @@ def test_setCurrentConanBuildParameters_format(test_builder):
         "-s",
         "os=Linux",
         "-s",
-        "buildtype=Debug",
+        "build_type=Debug",
         "-s",
         "compiler=gcc",
         "-s",
-        "compiler_version=11.1.0",
+        "compiler.version=11.1.0",
         "-s",
-        "libcxx=libstdc++",
+        "compiler.libcxx=libstdc++",
         "-s",
         "arch=x86_64",
         "-s",
         "stdver=c++17",
+        "-s",
+        "flagcollection=",
     ]
 
     assert test_builder.current_buildparameters == expected
@@ -96,24 +98,26 @@ def test_setCurrentConanBuildParameters_with_defaults(test_builder):
         "-s",
         "os=Linux",
         "-s",
-        "buildtype=Release",
+        "build_type=Release",
         "-s",
         "compiler=gcc",  # defaulted
         "-s",
-        "compiler_version=10.2.0",
+        "compiler.version=10.2.0",
         "-s",
-        "libcxx=libstdc++",  # defaulted
+        "compiler.libcxx=libstdc++",  # defaulted
         "-s",
         "arch=x86",
         "-s",
         "stdver=",
+        "-s",
+        "flagcollection=",
     ]
 
     assert test_builder.current_buildparameters == expected
 
 
-def test_setCurrentConanBuildParameters_excludes_flagcollection(test_builder):
-    """Test that flagcollection is excluded from conan parameters list."""
+def test_setCurrentConanBuildParameters_includes_flagcollection(test_builder):
+    """Test that flagcollection is included in conan parameters list."""
     test_builder.setCurrentConanBuildParameters(
         buildos="Linux",
         buildtype="Debug",
@@ -125,12 +129,12 @@ def test_setCurrentConanBuildParameters_excludes_flagcollection(test_builder):
         extraflags="-O3",
     )
 
-    # Verify flagcollection is in the object but not in the parameters list
+    # Verify flagcollection is in the object
     assert test_builder.current_buildparameters_obj["flagcollection"] == "-O3"
 
-    # Verify it's not in the parameter list
+    # Verify it IS in the parameter list (original behavior)
     param_strings = " ".join(test_builder.current_buildparameters)
-    assert "flagcollection" not in param_strings
+    assert "flagcollection=-O3" in param_strings
 
 
 def test_conan_parameter_format_for_command_line(test_builder):
@@ -148,17 +152,19 @@ def test_conan_parameter_format_for_command_line(test_builder):
         "-s",
         "os=Linux",
         "-s",
-        "buildtype=Debug",
+        "build_type=Debug",
         "-s",
         "compiler=gcc",
         "-s",
-        "compiler_version=11.1.0",
+        "compiler.version=11.1.0",
         "-s",
-        "libcxx=libstdc++",
+        "compiler.libcxx=libstdc++",
         "-s",
         "arch=x86_64",
         "-s",
         "stdver=c++17",
+        "-s",
+        "flagcollection=",
     ]
 
     assert conan_cmd == expected_cmd
