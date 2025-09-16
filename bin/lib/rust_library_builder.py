@@ -128,7 +128,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
                 cargoline = f"$CARGO build {methodflags} --target-dir {buildfolder} > {logfolder}/buildlog.txt 2>&1\n"
                 f.write(cargoline)
             else:
-                raise RuntimeError("Unknown build_type {self.buildconfig.build_type}")
+                raise RuntimeError(f"Unknown build_type {self.buildconfig.build_type}")
 
         self.setCurrentConanBuildParameters(
             buildos, buildtype, compilerType, compiler, libcxx, arch, stdver, extraflags

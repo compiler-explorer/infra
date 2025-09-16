@@ -30,7 +30,7 @@ _TIMEOUT = 30
 CONANSERVER_URL = "https://conan.compiler-explorer.com"
 BUILD_TIMEOUT = 600
 
-CONANINFOHASH_RE = re.compile(r"^ ID: ([0-9a-f]+)$", re.MULTILINE)
+CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)", re.MULTILINE)
 
 
 class PostFailure(RuntimeError):
@@ -126,7 +126,7 @@ class BaseLibraryBuilder(ABC):
                 ["conan", "info", "-r", "ceserver", "."] + self.current_buildparameters, cwd=buildfolder
             ).decode("utf-8", "ignore")
             self.logger.debug(conaninfo)
-            match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
+            match = CONANINFOHASH_RE.search(conaninfo)
             if match:
                 result = match[1]
                 self._conan_hash_cache[buildfolder] = result
@@ -404,7 +404,7 @@ class BaseLibraryBuilder(ABC):
         for key, value in self.current_buildparameters_obj.items():
             if key == "flagcollection":
                 continue
-            self.current_buildparameters.append(f"-s {key}={value}")
+            self.current_buildparameters.extend(["-s", f"{key}={value}"])
 
     def writeconanscript(self, buildfolder):
         """Write conan export script."""
