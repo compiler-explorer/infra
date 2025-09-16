@@ -73,10 +73,6 @@ class RustLibraryBuilder(BaseLibraryBuilder):
 
         self.cached_source_folders: list[str] = []
 
-        # Current build parameters for executeconanscript
-        self._current_arch = None
-        self._current_stdlib = None
-
         self.completeBuildConfig()
 
     @property
@@ -172,8 +168,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
             "-s",
             f"flagcollection={extraflags}",
         ]
-        if libcxx:
-            self.current_buildparameters.extend(["-s", f"compiler.libcxx={libcxx}"])
+        self.current_buildparameters.extend(["-s", f"compiler.libcxx={libcxx}"])
 
     def writeconanfile(self, buildfolder):
         underscoredlibname = self.libname.replace("-", "_")
@@ -196,16 +191,12 @@ class RustLibraryBuilder(BaseLibraryBuilder):
 
         return filesfound
 
-    def executeconanscript(self, buildfolder):
-        """Execute conan script with Rust-specific binary validation."""
-        # Use current build parameters set by makebuildfor_by_method
-        filesfound = self.countValidLibraryBinaries(buildfolder, self._current_arch, self._current_stdlib)
+    def validate_and_export_conan(self, buildfolder, arch, stdlib):
+        """Validate Rust binaries and export via conan if valid."""
+        filesfound = self.countValidLibraryBinaries(buildfolder, arch, stdlib)
         if filesfound != 0:
-            if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
-                self.logger.info("Export succesful")
-                return BuildStatus.Ok
-            else:
-                return BuildStatus.Failed
+            # Use base class executeconanscript for actual execution
+            return self.executeconanscript(buildfolder)
         else:
             self.logger.info("No binaries found to export")
             return BuildStatus.Failed
@@ -479,10 +470,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
         if build_status == BuildStatus.Ok:
             self.writeconanscript(build_folder)
             if not self.install_context.dry_run:
-                # Set current build parameters for executeconanscript
-                self._current_arch = arch
-                self._current_stdlib = stdlib
-                build_status = self.executeconanscript(build_folder)
+                build_status = self.validate_and_export_conan(build_folder, arch, stdlib)
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
                     self.set_as_uploaded(build_folder, build_method)

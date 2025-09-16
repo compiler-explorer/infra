@@ -230,10 +230,17 @@ class BaseLibraryBuilder(ABC):
             return self.current_commit_hash
 
         if os.path.exists(f"{self.sourcefolder}/.git"):
-            lastcommitinfo = subprocess.check_output(
-                ["git", "log", "--format=%H#%s", "-n", "1"], cwd=self.sourcefolder
-            ).decode("utf-8", "ignore")
-            match = re.match(r"^([0-9a-f]+)#(.*)$", lastcommitinfo, re.MULTILINE)
+            lastcommitinfo = subprocess.check_output([
+                "git",
+                "-C",
+                self.sourcefolder,
+                "log",
+                "-1",
+                "--oneline",
+                "--no-color",
+            ]).decode("utf-8", "ignore")
+            self.logger.debug(f"last git commit: {lastcommitinfo}")
+            match = re.match(r"^(\w*)\s.*", lastcommitinfo)
             if match:
                 self.current_commit_hash = match[1]
             else:
