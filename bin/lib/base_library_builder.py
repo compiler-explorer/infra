@@ -15,9 +15,11 @@ from enum import Enum, unique
 from logging import Logger
 from typing import Any
 
+import botocore.exceptions
 import requests
 from urllib3.exceptions import ProtocolError
 
+from lib.amazon import get_ssm_param
 from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_platform import LibraryPlatform
@@ -140,7 +142,12 @@ class BaseLibraryBuilder(ABC):
         if os.environ.get("CONAN_PASSWORD"):
             login_body["password"] = os.environ.get("CONAN_PASSWORD")
         else:
-            login_body["password"] = "password_is_disabled"
+            try:
+                login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
+            except botocore.exceptions.NoCredentialsError as exc:
+                raise RuntimeError(
+                    "No password found for conan server, setup AWS credentials to access the CE SSM, or set CONAN_PASSWORD environment variable"
+                ) from exc
 
         request = self.resil_post(url, json_data=json.dumps(login_body))
         if not request.ok:
