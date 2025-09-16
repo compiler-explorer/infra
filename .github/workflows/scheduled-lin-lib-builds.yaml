@@ -1,0 +1,65 @@
+name: Scheduled Linux Library Builds
+
+on:
+  schedule:
+    # Run at 15:52 UTC daily (offset from Windows builds to avoid conflicts)
+    - cron: '52 15 * * *'
+  workflow_dispatch:
+    inputs:
+      library_filter:
+        description: 'Library filter (default: libraries/c++ libraries/rust libraries/fortran)'
+        required: false
+        default: 'libraries/c++ libraries/rust libraries/fortran'
+        type: string
+
+jobs:
+  discover-libraries:
+    if: github.repository == 'compiler-explorer/infra'
+    runs-on: ubuntu-latest
+    outputs:
+      libraries: ${{ steps.get-libs.outputs.libraries }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python environment
+        run: make ce
+
+      - name: Get list of libraries to build
+        id: get-libs
+        run: |
+          FILTER="${{ github.event.inputs.library_filter || 'libraries/c++ libraries/rust libraries/fortran' }}"
+
+          # Get the library names from all specified filters, with --per-lib for deduplication
+          LIBS=""
+          for filter in $FILTER; do
+            FILTER_LIBS=$(bin/ce_install list-gh-build-commands-linux --per-lib "$filter" | \
+                         grep -o 'library=[^"]*' | \
+                         cut -d= -f2)
+            LIBS="$LIBS$FILTER_LIBS"$'\n'
+          done
+
+          # Remove duplicates and empty lines
+          LIBS=$(echo "$LIBS" | grep -v '^$' | sort -u)
+
+          # Convert to JSON array for matrix strategy
+          LIBS_JSON=$(echo "$LIBS" | jq -R -s -c 'split("\n")[:-1]')
+
+          echo "libraries=$LIBS_JSON" >> $GITHUB_OUTPUT
+          echo "Found libraries to build for Linux:"
+          echo "$LIBS" | sed 's/^/  - /'
+          echo "Total library count: $(echo "$LIBS" | wc -l)"
+
+  build-libraries:
+    needs: discover-libraries
+    if: ${{ fromJson(needs.discover-libraries.outputs.libraries)[0] != null }}
+    strategy:
+      matrix:
+        library: ${{ fromJson(needs.discover-libraries.outputs.libraries) }}
+      fail-fast: false
+      max-parallel: 3  # Limit concurrent builds to avoid overwhelming Linux builders
+    uses: ./.github/workflows/lin-lib-build.yaml
+    with:
+      library: ${{ matrix.library }}
+      compiler: 'popular-compilers-only'
+    secrets: inherit

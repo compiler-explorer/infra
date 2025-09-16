@@ -625,59 +625,12 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   description              = "Allow port 3000 access from the ALB"
 }
 
-resource "aws_security_group" "Builder" {
-  vpc_id      = module.ce_network.vpc.id
-  name        = "BuilderNodeSecGroup"
-  description = "Compiler Explorer compiler and library security group"
-  tags = {
-    Name = "Builder"
-  }
-}
 
-// The builder needs to be able to fetch things from the wider internet.
-resource "aws_security_group_rule" "Builder_EgressToAll" {
-  security_group_id = aws_security_group.Builder.id
-  type              = "egress"
-  from_port         = 0
-  to_port           = 65535
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "-1"
-  description       = "Unfettered outbound access"
-}
 
-resource "aws_security_group_rule" "Builder_SshFromAdminNode" {
-  security_group_id        = aws_security_group.Builder.id
-  type                     = "ingress"
-  from_port                = 22
-  to_port                  = 22
-  source_security_group_id = aws_security_group.AdminNode.id
-  protocol                 = "tcp"
-  description              = "Allow SSH access from the admin node only"
-}
 
-// TODO: remove this comment once we're happy with the builder:
-// * builder used to have AmazonSFullAccess and AmazonSSMReadOnlyAccess
-resource "aws_iam_role" "Builder" {
-  name               = "Builder"
-  description        = "Compiler Explorer compiler and library building role"
-  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
-}
 
-resource "aws_iam_instance_profile" "Builder" {
-  name = "Builder"
-  role = aws_iam_role.Builder.name
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerPolicy" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_UpdateLibraryBuildHistory" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
-}
 
 data "aws_iam_policy_document" "CeBuilderStorageAccess" {
   statement {
@@ -710,25 +663,9 @@ resource "aws_iam_policy" "CeBuilderStorageAccess" {
   policy      = data.aws_iam_policy_document.CeBuilderStorageAccess.json
 }
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_CeBuilderStorageAccess" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_AccessCeParams" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.AccessCeParams.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.ReadS3Minimal.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_AmazonSSMManagedInstanceCore" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
 
 
 resource "aws_security_group" "efs" {
@@ -757,7 +694,6 @@ resource "aws_security_group_rule" "efs_inbound" {
   for_each = {
     "Admin"              = aws_security_group.AdminNode.id,
     "Compilation"        = aws_security_group.CompilerExplorer.id
-    "Builder"            = aws_security_group.Builder.id
     "CI-x64"             = "sg-07a8509aae61cbe4f"
     "CI-arm64"           = "sg-0d3a3411b05a2bfb4"
     "CI-lin-builder-x64" = "sg-06fc1097fde032d6e"
