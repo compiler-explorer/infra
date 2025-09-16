@@ -586,15 +586,10 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
 
     def get_compiler_type(self, compiler):
         """Get compiler type from compiler properties."""
-        compilerType = ""
         if "compilerType" in self.compilerprops[compiler]:
-            compilerType = self.compilerprops[compiler]["compilerType"]
+            return self.compilerprops[compiler]["compilerType"]
         else:
             raise RuntimeError(f"Something is wrong with {compiler}")
-
-        if self.compilerprops[compiler]["compilerType"] == "clang-intel":
-            compilerType = "clang"
-        return compilerType
 
     def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
         """Check if compiler supports the given architecture."""
