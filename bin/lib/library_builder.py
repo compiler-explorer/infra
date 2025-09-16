@@ -168,13 +168,14 @@ class LibraryBuilder:
         self.platform = platform
         self._conan_hash_cache: dict[str, str | None] = {}
         self._annotations_cache: dict[str, dict] = {}
-        self.http_session = requests.Session()
 
         # Thread safety for parallel discovery
         self._cache_lock = threading.Lock()
         self._needs_uploading_lock = threading.Lock()
         self.parallel_discovery_workers = parallel_discovery_workers
         self._thread_local_data = threading.local()
+        # Initialize session for main thread
+        self._thread_local_data.session = requests.Session()
 
         self.history = LibraryBuildHistory(self.logger)
 
@@ -193,6 +194,11 @@ class LibraryBuilder:
             self.script_filename = "cebuild.ps1"
 
         self.completeBuildConfig()
+
+    @property
+    def http_session(self):
+        """Thread-local HTTP session."""
+        return self._thread_local_data.session
 
     def completeBuildConfig(self):
         if "description" in self.libraryprops[self.libid]:
@@ -1317,9 +1323,8 @@ class LibraryBuilder:
         # Check if build has failed before
         if not self.forcebuild:
             url = f"{conanserver_url}/whathasfailedbefore"
-            session = self._thread_local_data.session
             try:
-                request = session.post(url, json=build_params, timeout=_TIMEOUT)
+                request = self.http_session.post(url, json=build_params, timeout=_TIMEOUT)
                 if request.ok:
                     response = request.json()
                     current_commit = self.get_commit_hash()
@@ -1436,7 +1441,8 @@ class LibraryBuilder:
                 if not self.install_context.dry_run:
                     build_status = self.executeconanscript(build_folder)
                     if build_status == BuildStatus.Ok:
-                        self.needs_uploading += 1
+                        with self._needs_uploading_lock:
+                            self.needs_uploading += 1
                         self.set_as_uploaded(build_folder)
             else:
                 extralogtext = "No binaries found to export"
@@ -1462,20 +1468,27 @@ class LibraryBuilder:
             self.logger.info(f"Removing {buildfolder}")
 
     def upload_builds(self):
-        if self.needs_uploading > 0:
-            if not self.install_context.dry_run:
-                self.logger.info("Uploading cached builds")
-                subprocess.check_call([
-                    "conan",
-                    "upload",
-                    f"{self.libname}/{self.target_name}",
-                    "--all",
-                    "-r=ceserver",
-                    "-c",
-                ])
-                self.logger.debug("Clearing cache to speed up next upload")
-                subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
+        # Check and reset counter atomically
+        with self._needs_uploading_lock:
+            count = self.needs_uploading
             self.needs_uploading = 0
+
+        if count == 0:
+            return
+
+        # Do the expensive upload work outside the lock
+        if not self.install_context.dry_run:
+            self.logger.info("Uploading cached builds")
+            subprocess.check_call([
+                "conan",
+                "upload",
+                f"{self.libname}/{self.target_name}",
+                "--all",
+                "-r=ceserver",
+                "-c",
+            ])
+            self.logger.debug("Clearing cache to speed up next upload")
+            subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
 
     def get_compiler_type(self, compiler):
         compilerType = ""

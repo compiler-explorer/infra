@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 from collections import defaultdict
 from collections.abc import Generator
@@ -101,8 +102,11 @@ class FortranLibraryBuilder:
         self.conanserverproxy_token = None
         self._conan_hash_cache: dict[str, str | None] = {}
         self._annotations_cache: dict[str, dict] = {}
-        self.http_session = requests.Session()
         self.parallel_discovery_workers = parallel_discovery_workers
+
+        # Thread-local storage for HTTP sessions
+        self._thread_local_data = threading.local()
+        self._thread_local_data.session = requests.Session()
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -115,6 +119,11 @@ class FortranLibraryBuilder:
         self.check_compiler_popularity = popular_compilers_only
 
         self.completeBuildConfig()
+
+    @property
+    def http_session(self):
+        """Thread-local HTTP session."""
+        return self._thread_local_data.session
 
     def completeBuildConfig(self):
         if "description" in self.libraryprops[self.libid]:
