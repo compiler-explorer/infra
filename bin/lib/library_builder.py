@@ -24,8 +24,6 @@ from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
-compiler_popularity_treshhold = 1000
-popular_compilers: dict[str, Any] = defaultdict(lambda: [])
 
 disable_clang_libcpp = [
     "clang30",
@@ -211,25 +209,6 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
             compilerType = "gcc"
 
         return compilerType
-
-    def executeconanscript(self, buildfolder):
-        """Execute conan script with platform-specific logic."""
-        if self.install_context.dry_run:
-            return BuildStatus.Ok
-
-        try:
-            if self.platform == LibraryPlatform.Linux:
-                subprocess.check_call(["./conanexport.sh"], cwd=buildfolder)
-            elif self.platform == LibraryPlatform.Windows:
-                subprocess.check_call(["pwsh", "./conanexport.ps1"], cwd=buildfolder)
-            else:
-                # Fallback to base class behavior
-                return super().executeconanscript(buildfolder)
-
-            self.logger.info("Export successful")
-            return BuildStatus.Ok
-        except subprocess.CalledProcessError:
-            return BuildStatus.Failed
 
     def getDefaultTargetFromCompiler(self, exe):
         try:

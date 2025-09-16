@@ -73,6 +73,10 @@ class RustLibraryBuilder(BaseLibraryBuilder):
 
         self.cached_source_folders: list[str] = []
 
+        # Current build parameters for executeconanscript
+        self._current_arch = None
+        self._current_stdlib = None
+
         self.completeBuildConfig()
 
     @property
@@ -192,8 +196,10 @@ class RustLibraryBuilder(BaseLibraryBuilder):
 
         return filesfound
 
-    def executeconanscript(self, buildfolder, arch, stdlib):
-        filesfound = self.countValidLibraryBinaries(buildfolder, arch, stdlib)
+    def executeconanscript(self, buildfolder):
+        """Execute conan script with Rust-specific binary validation."""
+        # Use current build parameters set by makebuildfor_by_method
+        filesfound = self.countValidLibraryBinaries(buildfolder, self._current_arch, self._current_stdlib)
         if filesfound != 0:
             if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
                 self.logger.info("Export succesful")
@@ -473,7 +479,10 @@ class RustLibraryBuilder(BaseLibraryBuilder):
         if build_status == BuildStatus.Ok:
             self.writeconanscript(build_folder)
             if not self.install_context.dry_run:
-                build_status = self.executeconanscript(build_folder, arch, stdlib)
+                # Set current build parameters for executeconanscript
+                self._current_arch = arch
+                self._current_stdlib = stdlib
+                build_status = self.executeconanscript(build_folder)
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
                     self.set_as_uploaded(build_folder, source_folder, build_method)

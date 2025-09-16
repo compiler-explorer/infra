@@ -22,8 +22,6 @@ from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
-compiler_popularity_treshhold = 1000
-popular_compilers: dict[str, Any] = defaultdict(lambda: [])
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]

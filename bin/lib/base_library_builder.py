@@ -373,16 +373,24 @@ class BaseLibraryBuilder(ABC):
         return ["bash", scriptfile]
 
     def executeconanscript(self, buildfolder):
-        """Execute conan script."""
-        scriptfile = os.path.join(buildfolder, "conanexport.sh")
+        """Execute conan script with platform-specific logic."""
         if self.install_context.dry_run:
             return BuildStatus.Ok
-        else:
-            try:
+
+        try:
+            if self.platform == LibraryPlatform.Linux:
+                subprocess.check_call(["./conanexport.sh"], cwd=buildfolder)
+            elif self.platform == LibraryPlatform.Windows:
+                subprocess.check_call(["pwsh", "./conanexport.ps1"], cwd=buildfolder)
+            else:
+                # Fallback for other platforms
+                scriptfile = os.path.join(buildfolder, "conanexport.sh")
                 subprocess.check_call(["bash", scriptfile], cwd=buildfolder)
-                return BuildStatus.Ok
-            except subprocess.CalledProcessError:
-                return BuildStatus.Failed
+
+            self.logger.info("Export successful")
+            return BuildStatus.Ok
+        except subprocess.CalledProcessError:
+            return BuildStatus.Failed
 
     def setCurrentConanBuildParameters(
         self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
@@ -501,6 +509,10 @@ class BaseLibraryBuilder(ABC):
 
 class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
     """Base class for compiler-based library builders (C++, Fortran)."""
+
+    # Class attributes for compiler popularity tracking
+    popular_compilers: dict[str, int] = {}
+    compiler_popularity_treshhold = 1000
 
     def __init__(
         self,
@@ -675,9 +687,6 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
 
     def download_compiler_usage_csv(self):
         """Download compiler usage statistics from S3."""
-        # Use global popular_compilers dict (should be imported from caller)
-        global popular_compilers
-
         url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
         with tempfile.TemporaryFile() as fd:
             request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
@@ -690,21 +699,21 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
 
             reader = csv.DictReader(line.decode("utf-8") for line in fd.readlines())
             for row in reader:
-                popular_compilers[row["compiler"]] = int(row["times_used"])
+                CompilerBasedLibraryBuilder.popular_compilers[row["compiler"]] = int(row["times_used"])
 
     def is_popular_enough(self, compiler):
         """Check if compiler is popular enough based on usage statistics."""
-        # Import globals from caller context
-        global popular_compilers, compiler_popularity_treshhold
-
-        if len(popular_compilers) == 0:
+        if len(CompilerBasedLibraryBuilder.popular_compilers) == 0:
             self.logger.debug("downloading compiler popularity csv")
             self.download_compiler_usage_csv()
 
-        if compiler not in popular_compilers:
+        if compiler not in CompilerBasedLibraryBuilder.popular_compilers:
             return False
 
-        if popular_compilers[compiler] < compiler_popularity_treshhold:
+        if (
+            CompilerBasedLibraryBuilder.popular_compilers[compiler]
+            < CompilerBasedLibraryBuilder.compiler_popularity_treshhold
+        ):
             return False
 
         return True
