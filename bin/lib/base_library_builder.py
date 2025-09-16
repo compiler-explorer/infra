@@ -306,20 +306,36 @@ class BaseLibraryBuilder(ABC):
 
     def save_build_logging(self, builtok, buildfolder, extralogtext):
         """Save build logging to conan server."""
-        url = f"{CONANSERVER_URL}/buildfailed"
+        if builtok == BuildStatus.Failed:
+            url = f"{CONANSERVER_URL}/buildfailed"
+        elif builtok == BuildStatus.Ok:
+            url = f"{CONANSERVER_URL}/buildsuccess"
+        elif builtok == BuildStatus.TimedOut:
+            url = f"{CONANSERVER_URL}/buildfailed"
+        else:
+            return
+
+        # Default implementation for gathering log files
+        # Subclasses can override to customize which logs to gather
+        logging_data = self._gather_build_logs(buildfolder)
+
+        if builtok == BuildStatus.TimedOut:
+            logging_data = logging_data + "\n\n" + "BUILD TIMED OUT!!"
 
         buildparameters_copy = self.current_buildparameters_obj.copy()
         buildparameters_copy["library"] = self.libname
         buildparameters_copy["library_version"] = self.target_name
-
-        commit_hash = self.get_commit_hash()
-        if extralogtext:
-            buildparameters_copy["logging"] = extralogtext
-        buildparameters_copy["commithash"] = commit_hash
+        buildparameters_copy["logging"] = logging_data + "\n\n" + extralogtext
+        buildparameters_copy["commithash"] = self.get_commit_hash()
 
         headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
 
         return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
+
+    def _gather_build_logs(self, buildfolder):
+        """Gather build log files. Override in subclasses to customize."""
+        # Basic implementation - subclasses can override
+        return ""
 
     def executebuildscript(self, buildfolder):
         """Execute build script."""
@@ -357,25 +373,24 @@ class BaseLibraryBuilder(ABC):
                 return BuildStatus.Failed
 
     def setCurrentConanBuildParameters(
-        self, compiler, options, exe, compilerType, toolchain, buildos, buildtype, arch, stdver, stdlib, *args
+        self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
     ):
         """Set current conan build parameters."""
         self.current_buildparameters_obj = defaultdict(lambda: [])
         self.current_buildparameters_obj["os"] = buildos
         self.current_buildparameters_obj["buildtype"] = buildtype
-        if compilerType:
-            self.current_buildparameters_obj["compiler"] = compilerType
+        if compilerTypeOrGcc:
+            self.current_buildparameters_obj["compiler"] = compilerTypeOrGcc
         else:
             self.current_buildparameters_obj["compiler"] = "gcc"
         self.current_buildparameters_obj["compiler_version"] = compiler
-        if stdlib:
-            self.current_buildparameters_obj["libcxx"] = stdlib
+        if libcxx:
+            self.current_buildparameters_obj["libcxx"] = libcxx
         else:
             self.current_buildparameters_obj["libcxx"] = "libstdc++"
         self.current_buildparameters_obj["arch"] = arch
         self.current_buildparameters_obj["stdver"] = stdver
-        if len(args) >= 1:
-            self.current_buildparameters_obj["flagcollection"] = args[0]
+        self.current_buildparameters_obj["flagcollection"] = extraflags
 
         self.current_buildparameters = []
         for key, value in self.current_buildparameters_obj.items():
@@ -427,10 +442,20 @@ class BaseLibraryBuilder(ABC):
         # Not abstract - subclasses with different signatures can override this
         return
 
-    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, *args) -> str:
+    def makebuildhash(
+        self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration=None
+    ) -> str:
         """Make build hash from configuration."""
-        flagsstr = "_".join(args[0]) if args and args[0] else ""
+        # If iteration is provided (from LibraryBuilder), use simple format
+        if iteration is not None:
+            flagsstr = "|".join(x for x in flagscombination) if flagscombination else ""
+            self.logger.info(
+                f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
+            )
+            return compiler + "_" + str(iteration)
 
+        # Otherwise use SHA256 hash (for Rust/Fortran builders)
+        flagsstr = "_".join(flagscombination) if flagscombination else ""
         hasher = hashlib.sha256()
         hasher.update(compiler.encode("utf-8", "ignore"))
         hasher.update(options.encode("utf-8", "ignore"))
@@ -482,39 +507,37 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
 
     def getToolchainPathFromOptions(self, options):
         """Get toolchain path from compiler options."""
-        for option in options.split(" "):
-            if option.startswith("--gcc-toolchain="):
-                return option.replace("--gcc-toolchain=", "")
+        match = re.search(r"--gcc-toolchain=(\S*)", options)
+        if match:
+            return match[1]
         return ""
 
     def getSysrootPathFromOptions(self, options):
         """Get sysroot path from compiler options."""
-        for option in options.split(" "):
-            if option.startswith("--sysroot="):
-                return option.replace("--sysroot=", "")
+        match = re.search(r"--sysroot=(\S*)", options)
+        if match:
+            return match[1]
         return ""
 
     def getStdVerFromOptions(self, options):
         """Get C++ standard version from compiler options."""
-        for option in options.split(" "):
-            if option.startswith("-std=") or option.startswith("--std="):
-                return option.replace("-std=", "").replace("--std=", "")
+        match = re.search(r"(?:--std|-std)=(\S*)", options)
+        if match:
+            return match[1]
         return ""
 
     def getStdLibFromOptions(self, options):
         """Get stdlib from compiler options."""
-        for option in options.split(" "):
-            if option.startswith("-stdlib="):
-                return option.replace("-stdlib=", "")
+        match = re.search(r"-stdlib=(\S*)", options)
+        if match:
+            return match[1]
         return ""
 
     def getTargetFromOptions(self, options):
         """Get target from compiler options."""
-        for option in options.split(" "):
-            if option.startswith("-target="):
-                return option.replace("-target=", "")
-            if option.startswith("--target="):
-                return option.replace("--target=", "")
+        match = re.search(r"(?:--target|-target)=(\S*)", options)
+        if match:
+            return match[1]
         return ""
 
     def get_compiler_type(self, compiler):

@@ -153,6 +153,30 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
                 else:
                     annotations["osabi"] = archinfo["elf_osabi"]
 
+    def _gather_build_logs(self, buildfolder):
+        """Gather C++ build log files."""
+        loggingfiles = []
+        loggingfiles += glob.glob(buildfolder + "/" + self.script_filename)
+        loggingfiles += glob.glob(buildfolder + "/cecmake*.txt")
+        loggingfiles += glob.glob(buildfolder + "/ceconfiglog.txt")
+        loggingfiles += glob.glob(buildfolder + "/cemake*.txt")
+        loggingfiles += glob.glob(buildfolder + "/ceinstall*.txt")
+        logging_data = ""
+        for logfile in loggingfiles:
+            logging_data += Path(logfile).read_text(encoding="utf-8")
+        return logging_data
+
+    def save_build_logging(self, builtok, buildfolder, extralogtext):
+        """Override to add history tracking for C++ builds."""
+        # Add history tracking
+        commit_hash = self.get_commit_hash()
+        if builtok == BuildStatus.Ok:
+            self.history.success(self.current_buildparameters_obj, commit_hash)
+        elif builtok != BuildStatus.Skipped:
+            self.history.failed(self.current_buildparameters_obj, commit_hash)
+        # Call base implementation
+        return super().save_build_logging(builtok, buildfolder, extralogtext)
+
     def completeBuildConfig(self):
         if "description" in self.libraryprops[self.libid]:
             self.buildconfig.description = self.libraryprops[self.libid]["description"]
