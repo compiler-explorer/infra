@@ -244,61 +244,6 @@ class BaseLibraryBuilder(ABC):
 
         return self.current_commit_hash
 
-    def has_failed_before(self):
-        """Check if this build configuration has failed before."""
-        url = f"{CONANSERVER_URL}/whathasfailedbefore"
-        request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            current_commit = self.get_commit_hash()
-            if response["commithash"] == current_commit:
-                return response["response"]
-            else:
-                return False
-
-    def is_already_uploaded(self, buildfolder):
-        """Check if build is already uploaded to conan server."""
-        conanhash = self.get_conan_hash(buildfolder)
-        if conanhash is None:
-            return False
-
-        url = f"{CONANSERVER_URL}/conanlibrary/{self.libname}/{self.target_name}/{conanhash}"
-        with tempfile.TemporaryFile():
-            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
-            if not request:
-                return False
-            return request.ok
-
-    def set_as_uploaded(self, buildfolder):
-        """Mark build as uploaded to conan server."""
-        conanhash = self.get_conan_hash(buildfolder)
-        if conanhash is None:
-            raise RuntimeError(f"Error determining conan hash in {buildfolder}")
-
-        self.logger.info(f"commithash: {conanhash}")
-
-        annotations = self.get_build_annotations(buildfolder)
-        if "commithash" not in annotations:
-            self.upload_builds()
-        annotations["commithash"] = self.get_commit_hash()
-
-        # Platform-specific annotations handling would be in subclasses
-        self._add_platform_annotations(annotations, buildfolder)
-
-        headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
-
-        url = f"{CONANSERVER_URL}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-
-    def _add_platform_annotations(self, annotations, buildfolder):
-        """Add platform-specific annotations. Override in subclasses if needed."""
-        # Not abstract - subclasses can optionally override this
-        return
-
     def upload_builds(self):
         """Upload builds to conan server."""
         if self.needs_uploading > 0:
@@ -776,3 +721,58 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
         expanded = self.replace_optional_arg(expanded, "cmake_bool_windows", cmake_bool_windows)
 
         return expanded
+
+    def has_failed_before(self, build_method):
+        """Check if this build configuration has failed before."""
+        url = f"{CONANSERVER_URL}/whathasfailedbefore"
+        request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
+        if not request.ok:
+            raise PostFailure(f"Post failure for {url}: {request}")
+        else:
+            response = json.loads(request.content)
+            current_commit = self.get_commit_hash()
+            if response["commithash"] == current_commit:
+                return response["response"]
+            else:
+                return False
+
+    def is_already_uploaded(self, buildfolder):
+        """Check if build is already uploaded to conan server."""
+        conanhash = self.get_conan_hash(buildfolder)
+        if conanhash is None:
+            return False
+
+        url = f"{CONANSERVER_URL}/conanlibrary/{self.libname}/{self.target_name}/{conanhash}"
+        with tempfile.TemporaryFile():
+            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
+            if not request:
+                return False
+            return request.ok
+
+    def set_as_uploaded(self, buildfolder, build_method):
+        """Mark build as uploaded to conan server."""
+        conanhash = self.get_conan_hash(buildfolder)
+        if conanhash is None:
+            raise RuntimeError(f"Error determining conan hash in {buildfolder}")
+
+        self.logger.info(f"commithash: {conanhash}")
+
+        annotations = self.get_build_annotations(buildfolder)
+        if "commithash" not in annotations:
+            self.upload_builds()
+        annotations["commithash"] = self.get_commit_hash()
+
+        # Platform-specific annotations handling would be in subclasses
+        self._add_platform_annotations(annotations, buildfolder)
+
+        headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
+
+        url = f"{CONANSERVER_URL}/annotations/{self.libname}/{self.target_name}/{conanhash}"
+        request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
+        if not request.ok:
+            raise PostFailure(f"Post failure for {url}: {request}")
+
+    def _add_platform_annotations(self, annotations, buildfolder):
+        """Add platform-specific annotations. Override in subclasses if needed."""
+        # Not abstract - subclasses can optionally override this
+        return

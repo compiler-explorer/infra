@@ -258,7 +258,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
     def get_commit_hash(self) -> str:
         return self.target_name
 
-    def has_failed_before(self, build_method=None):
+    def has_failed_before(self, build_method):
         """Check if this build configuration has failed before.
 
         Rust override to handle build_method parameter.
@@ -277,9 +277,9 @@ class RustLibraryBuilder(BaseLibraryBuilder):
                 return response["response"]
         else:
             # Fall back to base implementation
-            return super().has_failed_before()
+            return super().has_failed_before({})
 
-    def is_already_uploaded(self, buildfolder, source_folder=None):
+    def is_already_uploaded(self, buildfolder):
         """Check if build is already uploaded.
 
         Rust override that checks annotations for commithash.
@@ -293,7 +293,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
         else:
             return False
 
-    def set_as_uploaded(self, buildfolder, source_folder=None, build_method=None):
+    def set_as_uploaded(self, buildfolder, build_method):
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
@@ -465,7 +465,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
             self.logger.info("Build has failed before, not re-attempting")
             return BuildStatus.Skipped
 
-        if self.is_already_uploaded(build_folder, source_folder):
+        if self.is_already_uploaded(build_folder):
             self.logger.info("Build already uploaded")
             if not self.forcebuild:
                 return BuildStatus.Skipped
@@ -485,7 +485,7 @@ class RustLibraryBuilder(BaseLibraryBuilder):
                 build_status = self.executeconanscript(build_folder)
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
-                    self.set_as_uploaded(build_folder, source_folder, build_method)
+                    self.set_as_uploaded(build_folder, build_method)
             else:
                 filesfound = self.countValidLibraryBinaries(build_folder, arch, stdlib)
                 self.logger.debug(f"Number of valid library binaries {filesfound}")

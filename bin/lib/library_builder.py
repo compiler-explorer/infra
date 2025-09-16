@@ -857,7 +857,7 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
         self.writeconanfile(build_folder)
         extralogtext = ""
 
-        if not self.forcebuild and self.has_failed_before():
+        if not self.forcebuild and self.has_failed_before({}):
             self.logger.info("Build has failed before, not re-attempting")
             return BuildStatus.Skipped
 
@@ -895,7 +895,7 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
                     build_status = self.executeconanscript(build_folder)
                     if build_status == BuildStatus.Ok:
                         self.needs_uploading += 1
-                        self.set_as_uploaded(build_folder)
+                        self.set_as_uploaded(build_folder, {})
             else:
                 extralogtext = "No binaries found to export"
                 self.logger.info(extralogtext)
