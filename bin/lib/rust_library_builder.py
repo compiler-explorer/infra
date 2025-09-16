@@ -134,6 +134,50 @@ class RustLibraryBuilder(BaseLibraryBuilder):
             buildos, buildtype, compilerType, compiler, libcxx, arch, stdver, extraflags
         )
 
+    def setCurrentConanBuildParameters(
+        self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
+    ):
+        """Set current conan build parameters for Rust builds."""
+        self.current_buildparameters_obj = {}
+        self.current_buildparameters_obj["os"] = buildos
+        self.current_buildparameters_obj["buildtype"] = buildtype
+        self.current_buildparameters_obj["compiler"] = compilerTypeOrGcc
+        self.current_buildparameters_obj["compiler_version"] = compiler
+        self.current_buildparameters_obj["libcxx"] = libcxx
+        self.current_buildparameters_obj["arch"] = arch
+        self.current_buildparameters_obj["stdver"] = stdver
+        self.current_buildparameters_obj["flagcollection"] = extraflags
+        self.current_buildparameters_obj["library"] = self.libid
+        self.current_buildparameters_obj["library_version"] = self.target_name
+
+        self.current_buildparameters = [
+            "-s",
+            f"os={buildos}",
+            "-s",
+            f"build_type={buildtype}",
+            "-s",
+            f"compiler={compilerTypeOrGcc}",
+            "-s",
+            f"compiler.version={compiler}",
+            "-s",
+            f"arch={arch}",
+            "-s",
+            f"stdver={stdver}",
+            "-s",
+            f"flagcollection={extraflags}",
+        ]
+        if libcxx:
+            self.current_buildparameters.extend(["-s", f"compiler.libcxx={libcxx}"])
+
+    def writeconanscript(self, buildfolder):
+        """Write conan export script for Rust packages."""
+        conanparamsstr = " ".join(self.current_buildparameters)
+        scriptfile = Path(buildfolder) / "conanexport.sh"
+        with scriptfile.open("w", encoding="utf-8") as f:
+            f.write("#!/bin/sh\n\n")
+            f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
+        scriptfile.chmod(0o755)
+
     def writeconanfile(self, buildfolder):
         underscoredlibname = self.libname.replace("-", "_")
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
@@ -215,33 +259,42 @@ class RustLibraryBuilder(BaseLibraryBuilder):
     def get_commit_hash(self) -> str:
         return self.target_name
 
-    def has_failed_before(self, build_method):
-        url = f"{CONANSERVER_URL}/hasfailedbefore"
+    def has_failed_before(self, build_method=None):
+        """Check if this build configuration has failed before.
 
-        data = self.current_buildparameters_obj.copy()
-        data["flagcollection"] = build_method["build_method"]
-
-        req_data = json.dumps(data)
-
-        request = self.resil_post(url, req_data)
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
+        Rust override to handle build_method parameter.
+        """
+        if build_method:
+            # Rust-specific: check with build method
+            url = f"{CONANSERVER_URL}/hasfailedbefore"
+            data = self.current_buildparameters_obj.copy()
+            data["flagcollection"] = build_method["build_method"]
+            req_data = json.dumps(data)
+            request = self.resil_post(url, req_data)
+            if not request.ok:
+                raise PostFailure(f"Post failure for {url}: {request}")
+            else:
+                response = json.loads(request.content)
+                return response["response"]
         else:
-            response = json.loads(request.content)
-            return response["response"]
+            # Fall back to base implementation
+            return super().has_failed_before()
 
-    def is_already_uploaded(self, buildfolder, source_folder):
+    def is_already_uploaded(self, buildfolder, source_folder=None):
+        """Check if build is already uploaded.
+
+        Rust override that checks annotations for commithash.
+        """
         annotations = self.get_build_annotations(buildfolder)
         self.logger.debug("Annotations: " + json.dumps(annotations))
 
         if "commithash" in annotations:
             commithash = self.get_commit_hash()
-
             return commithash == annotations["commithash"]
         else:
             return False
 
-    def set_as_uploaded(self, buildfolder, source_folder, build_method):
+    def set_as_uploaded(self, buildfolder, source_folder=None, build_method=None):
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
             raise RuntimeError(f"Error determining conan hash in {buildfolder}")
@@ -253,8 +306,9 @@ class RustLibraryBuilder(BaseLibraryBuilder):
             self.upload_builds()
         annotations["commithash"] = self.get_commit_hash()
 
-        for key in build_method:
-            annotations[key] = build_method[key]
+        if build_method:
+            for key in build_method:
+                annotations[key] = build_method[key]
 
         self.logger.info(annotations)
 

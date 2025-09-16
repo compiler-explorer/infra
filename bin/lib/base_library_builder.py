@@ -13,6 +13,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import Enum, unique
 from logging import Logger
+from pathlib import Path
 from typing import Any
 
 import botocore.exceptions
@@ -517,6 +518,12 @@ class CompilerBasedLibraryBuilder(BaseLibraryBuilder):
         match = re.search(r"--gcc-toolchain=(\S*)", options)
         if match:
             return match[1]
+        else:
+            # Fallback for --gxx-name option (used by some compilers)
+            match = re.search(r"--gxx-name=(\S*)", options)
+            if match:
+                toolchainpath = Path(match[1]).parent / ".."
+                return str(toolchainpath.resolve())
         return ""
 
     def getSysrootPathFromOptions(self, options):

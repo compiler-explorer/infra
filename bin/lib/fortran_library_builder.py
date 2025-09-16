@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import csv
+import glob
 import itertools
 import os
 import re
@@ -202,7 +203,8 @@ class FortranLibraryBuilder(CompilerBasedLibraryBuilder):
         return False
 
     def getTargetFromOptions(self, options):
-        match = re.search(r"-target (\S*)", options)
+        # Align with base class pattern while supporting Fortran compilers
+        match = re.search(r"(?:--target|-target)[=\s](\S*)", options)
         if match:
             return match[1]
         return False
@@ -216,9 +218,26 @@ class FortranLibraryBuilder(CompilerBasedLibraryBuilder):
 
         if self.compilerprops[compiler]["compilerType"] == "clang-intel":
             # hack for icpx so we don't get duplicate builds
+            # Note: Fortran specifically needs this mapping to gcc
             compilerType = "gcc"
 
         return compilerType
+
+    def _gather_build_logs(self, buildfolder):
+        """Gather Fortran-specific build logs including FPM logs."""
+        logging_data = ""
+        # Get standard build logs
+        if hasattr(super(), "_gather_build_logs"):
+            logging_data = super()._gather_build_logs(buildfolder)
+
+        # Add FPM-specific logs
+        fpm_logs = glob.glob(os.path.join(buildfolder, "cefpm*.txt"))
+        for logfile in fpm_logs:
+            with open(logfile, encoding="utf-8") as f:
+                logging_data += f"\n\n=== FPM Log: {os.path.basename(logfile)} ===\n"
+                logging_data += f.read()
+
+        return logging_data
 
     def replace_optional_arg(self, arg, name, value):
         optional = "%" + name + "?%"
