@@ -1,24 +1,21 @@
 from __future__ import annotations
 
 import contextlib
-import csv
 import glob
 import itertools
 import os
 import re
 import shutil
 import subprocess
-import tempfile
 from collections import defaultdict
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any, TextIO
 
-from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
+from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.base_library_builder import (
     BuildStatus,
     CompilerBasedLibraryBuilder,
-    FetchFailure,
 )
 from lib.binary_info import BinaryInfo
 from lib.library_build_config import LibraryBuildConfig
@@ -234,75 +231,6 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
         except subprocess.CalledProcessError:
             return BuildStatus.Failed
 
-    def completeBuildConfig(self):
-        if "description" in self.libraryprops[self.libid]:
-            self.buildconfig.description = self.libraryprops[self.libid]["description"]
-        if "name" in self.libraryprops[self.libid]:
-            self.buildconfig.description = self.libraryprops[self.libid]["name"]
-        if "url" in self.libraryprops[self.libid]:
-            self.buildconfig.url = self.libraryprops[self.libid]["url"]
-
-        if "staticliblink" in self.libraryprops[self.libid]:
-            self.buildconfig.staticliblink = list(
-                set(self.buildconfig.staticliblink + self.libraryprops[self.libid]["staticliblink"])
-            )
-
-        if "liblink" in self.libraryprops[self.libid]:
-            self.buildconfig.sharedliblink = list(
-                set(self.buildconfig.sharedliblink + self.libraryprops[self.libid]["liblink"])
-            )
-
-        specificVersionDetails = get_specific_library_version_details(self.libraryprops, self.libid, self.target_name)
-        if specificVersionDetails:
-            if "staticliblink" in specificVersionDetails:
-                self.buildconfig.staticliblink = list(
-                    set(self.buildconfig.staticliblink + specificVersionDetails["staticliblink"])
-                )
-
-            if "liblink" in specificVersionDetails:
-                self.buildconfig.sharedliblink = list(
-                    set(self.buildconfig.sharedliblink + specificVersionDetails["liblink"])
-                )
-
-        if self.buildconfig.lib_type == "headeronly":
-            if self.buildconfig.staticliblink != []:
-                self.buildconfig.lib_type = "static"
-            if self.buildconfig.sharedliblink != []:
-                self.buildconfig.lib_type = "shared"
-
-        if self.buildconfig.lib_type == "static":
-            if self.buildconfig.staticliblink == []:
-                self.buildconfig.staticliblink = [f"{self.libname}"]
-        elif self.buildconfig.lib_type == "shared":
-            if self.buildconfig.sharedliblink == []:
-                self.buildconfig.sharedliblink = [f"{self.libname}"]
-        elif self.buildconfig.lib_type == "cshared":
-            if self.buildconfig.sharedliblink == []:
-                self.buildconfig.sharedliblink = [f"{self.libname}"]
-
-        if self.platform == LibraryPlatform.Windows:
-            self.buildconfig.package_install = True
-
-        alternatelibs = []
-        for lib in self.buildconfig.staticliblink:
-            if lib.endswith("d") and lib[:-1] not in self.buildconfig.staticliblink:
-                alternatelibs += [lib[:-1]]
-            else:
-                if f"{lib}d" not in self.buildconfig.staticliblink:
-                    alternatelibs += [f"{lib}d"]
-
-        self.buildconfig.staticliblink += alternatelibs
-
-        alternatelibs = []
-        for lib in self.buildconfig.sharedliblink:
-            if lib.endswith("d") and lib[:-1] not in self.buildconfig.sharedliblink:
-                alternatelibs += [lib[:-1]]
-            else:
-                if f"{lib}d" not in self.buildconfig.sharedliblink:
-                    alternatelibs += [f"{lib}d"]
-
-        self.buildconfig.sharedliblink += alternatelibs
-
     def getDefaultTargetFromCompiler(self, exe):
         try:
             return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore").strip()
@@ -368,42 +296,6 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
 
     def does_compiler_support_amd64(self, exe, compilerType, options, ldPath):
         return self.does_compiler_support(exe, compilerType, "x86_64", options, ldPath)
-
-    def replace_optional_arg(self, arg, name, value):
-        self.logger.debug(f"replace_optional_arg('{arg}', '{name}', '{value}')")
-        optional = "%" + name + "?%"
-        if optional in arg:
-            return arg.replace(optional, value) if value else ""
-        else:
-            return arg.replace("%" + name + "%", value)
-
-    def expand_make_arg(self, arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib):
-        expanded = arg
-
-        expanded = self.replace_optional_arg(expanded, "compilerTypeOrGcc", compilerTypeOrGcc)
-        expanded = self.replace_optional_arg(expanded, "buildtype", buildtype)
-        expanded = self.replace_optional_arg(expanded, "arch", arch)
-        expanded = self.replace_optional_arg(expanded, "stdver", stdver)
-        expanded = self.replace_optional_arg(expanded, "stdlib", stdlib)
-
-        intelarch = ""
-        if arch == "x86":
-            intelarch = "ia32"
-        elif arch == "x86_64":
-            intelarch = "intel64"
-
-        expanded = self.replace_optional_arg(expanded, "intelarch", intelarch)
-
-        cmake_bool_windows = "OFF"
-        cmake_bool_not_windows = "ON"
-        if self.platform == LibraryPlatform.Windows:
-            cmake_bool_windows = "ON"
-            cmake_bool_not_windows = "OFF"
-
-        expanded = self.replace_optional_arg(expanded, "cmake_bool_not_windows", cmake_bool_not_windows)
-        expanded = self.replace_optional_arg(expanded, "cmake_bool_windows", cmake_bool_windows)
-
-        return expanded
 
     def expand_build_script_line(
         self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags
@@ -1040,59 +932,6 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
                 subprocess.call(["make", "clean"], cwd=build_folder)
 
         return build_status
-
-    def download_compiler_usage_csv(self):
-        url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
-        with tempfile.TemporaryFile() as fd:
-            request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
-            if not request or not request.ok:
-                raise FetchFailure(f"Fetch failure for {url}: {request}")
-            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
-                fd.write(chunk)
-            fd.flush()
-            fd.seek(0)
-
-            reader = csv.DictReader(line.decode("utf-8") for line in fd.readlines())
-            for row in reader:
-                popular_compilers[row["compiler"]] = int(row["times_used"])
-
-    def is_popular_enough(self, compiler):
-        if len(popular_compilers) == 0:
-            self.logger.debug("downloading compiler popularity csv")
-            self.download_compiler_usage_csv()
-
-        if compiler not in popular_compilers:
-            return False
-
-        if popular_compilers[compiler] < compiler_popularity_treshhold:
-            return False
-
-        return True
-
-    def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
-        if checkcompiler and compiler != checkcompiler:
-            return False
-
-        if compiler in self.buildconfig.skip_compilers:
-            return False
-
-        compilerType = self.get_compiler_type(compiler)
-
-        exe = self.compilerprops[compiler]["exe"]
-
-        if buildfor == "allclang" and compilerType != "clang":
-            return False
-        elif buildfor == "allicc" and "/icc" not in exe:
-            return False
-        elif buildfor == "allgcc" and compilerType:
-            return False
-
-        if self.check_compiler_popularity:
-            if not self.is_popular_enough(compiler):
-                self.logger.info(f"compiler {compiler} is not popular enough")
-                return False
-
-        return True
 
     def makebuild(self, buildfor):
         builds_failed = 0
