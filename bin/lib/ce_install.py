@@ -911,6 +911,33 @@ def list_gh_build_commands(context: CliContext, per_lib: bool, filter_: list[str
             )
 
 
+@cli.command(name="list-gh-build-commands-linux")
+@click.pass_obj
+@click.option("--per-lib", is_flag=True, help="Group by library instead of version")
+@click.argument("filter_", metavar="FILTER", nargs=-1)
+def list_gh_build_commands_linux(context: CliContext, per_lib: bool, filter_: list[str]):
+    """List gh workflow commands for Linux builds matching FILTER."""
+    grouped = set()
+
+    if per_lib:
+        for installable in context.get_installables(filter_):
+            if not installable.should_build(LibraryPlatform.Linux):
+                continue
+            shorter_name = installable.name.replace("libraries/c++/", "").split(" ")[0]
+            grouped.add(shorter_name)
+
+        for group in grouped:
+            print(f'gh workflow run lin-lib-build.yaml --field "library={group}" -R github.com/compiler-explorer/infra')
+    else:
+        for installable in context.get_installables(filter_):
+            if not installable.should_build(LibraryPlatform.Linux):
+                continue
+            shorter_name = installable.name.replace("libraries/c++/", "")
+            print(
+                f'gh workflow run lin-lib-build.yaml --field "library={shorter_name}" -R github.com/compiler-explorer/infra'
+            )
+
+
 @cli.command()
 @click.argument("output", type=click.File("w", encoding="utf-8"), default="-")
 @click.pass_obj

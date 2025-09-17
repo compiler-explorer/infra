@@ -7,7 +7,7 @@ compilers:
       - compilers/c++/x86/gcc 13.4.0
     fetch:
       - https://developer.download.nvidia.com/compute/cuda/{{name}}/local_installers/cuda_{{name}}_{{build}}_linux.run combined.sh
-      - https://raw.githubusercontent.com/NVIDIA/jitify/6bc6e25e13300a8bc7520ed3bf977865201183b7/nvrtc_cli.cpp nvrtc_cli.cpp
+      - https://raw.githubusercontent.com/cliffburdick/jitify/refs/heads/patch-3/nvrtc_cli.cpp nvrtc_cli.cpp
     script: |
       mkdir -p cuda/{{name}}
       sh combined.sh --silent --toolkit --toolkitpath=$(pwd)/cuda/{{name}}
