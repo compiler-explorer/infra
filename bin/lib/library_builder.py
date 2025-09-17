@@ -267,14 +267,35 @@ class LibraryBuilder(CompilerBasedLibraryBuilder):
 
         return arch
 
+    def _check_compiler_support_impl(self, exe, compilerType, arch, options, ldPath):
+        """Internal implementation of compiler support checking for LibraryBuilder."""
+        fixedTarget = self.getTargetFromOptions(options)
+        if fixedTarget:
+            return fixedTarget == arch
+
+        output = self.get_compiler_support_output(exe, compilerType, ldPath)
+        if not compilerType:
+            if "icpx" in exe:
+                return arch == "x86" or arch == "x86_64"
+            elif "zapcc" in exe:
+                return arch == "x86" or arch == "x86_64"
+
+        check_text = self.get_support_check_text(exe, compilerType, arch)
+        if check_text in output:
+            self.logger.debug(f"Compiler {exe} supports {arch}")
+            return True
+        else:
+            self.logger.debug(f"Compiler {exe} does not support {arch}")
+            return False
+
     def does_compiler_support_x86(self, exe, compilerType, options, ldPath):
         cachekey = f"{exe}|{options}"
         if cachekey not in _supports_x86:
-            _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, "x86", options, ldPath)
+            _supports_x86[cachekey] = self._check_compiler_support_impl(exe, compilerType, "x86", options, ldPath)
         return _supports_x86[cachekey]
 
     def does_compiler_support_amd64(self, exe, compilerType, options, ldPath):
-        return self.does_compiler_support(exe, compilerType, "x86_64", options, ldPath)
+        return self._check_compiler_support_impl(exe, compilerType, "x86_64", options, ldPath)
 
     def expand_build_script_line(
         self, line: str, buildos, buildtype, compilerTypeOrGcc, compiler, compilerexe, libcxx, arch, stdver, extraflags

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import glob
+import hashlib
 import itertools
 import json
 import os
@@ -169,6 +170,22 @@ class RustLibraryBuilder(BaseLibraryBuilder):
             f"flagcollection={extraflags}",
         ]
         self.current_buildparameters.extend(["-s", f"compiler.libcxx={libcxx}"])
+
+    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+        """Create build hash for Rust builds with compiler prefix."""
+        hasher = hashlib.sha256()
+        flagsstr = "|".join(x for x in flagscombination) if flagscombination else ""
+        hasher.update(
+            bytes(
+                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
+            )
+        )
+
+        self.logger.info(
+            f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
+        )
+
+        return compiler + "_" + hasher.hexdigest()
 
     def writeconanfile(self, buildfolder):
         underscoredlibname = self.libname.replace("-", "_")

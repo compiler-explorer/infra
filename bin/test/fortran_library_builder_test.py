@@ -189,7 +189,8 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
 def test_execute_build_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
-    install_context = mock.Mock(spec_set=InstallationContext)
+    install_context = mock.Mock()
+    install_context.dry_run = False
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
         logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
@@ -200,14 +201,17 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
     result = builder.executebuildscript("/tmp/buildfolder")
 
     assert result == BuildStatus.Ok
-    mock_subprocess.assert_called_once_with(["./cebuild.sh"], cwd="/tmp/buildfolder", timeout=600)
+    mock_subprocess.assert_called_once_with(
+        ["bash", "/tmp/buildfolder/cebuild.sh"], cwd="/tmp/buildfolder", timeout=600
+    )
 
 
 @patch("subprocess.call")
 def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
-    install_context = mock.Mock(spec_set=InstallationContext)
+    install_context = mock.Mock()
+    install_context.dry_run = False
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
         logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
@@ -220,7 +224,7 @@ def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     assert result == BuildStatus.TimedOut
 
 
-@patch("lib.fortran_library_builder.get_ssm_param")
+@patch("lib.base_library_builder.get_ssm_param")
 def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     requests_mock.get(f"{BASE}fortran.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)

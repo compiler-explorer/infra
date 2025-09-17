@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import glob
+import hashlib
 import itertools
 import os
 import re
@@ -88,11 +89,28 @@ class FortranLibraryBuilder(CompilerBasedLibraryBuilder):
 
         self.completeBuildConfig()
 
+    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+        """Create build hash for Fortran builds with compiler prefix."""
+        hasher = hashlib.sha256()
+        flagsstr = "|".join(x for x in flagscombination) if flagscombination else ""
+        hasher.update(
+            bytes(
+                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
+            )
+        )
+
+        self.logger.info(
+            f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
+        )
+
+        return compiler + "_" + hasher.hexdigest()
+
     def does_compiler_support_amd64(self, exe, compilerType, options, ldPath):
         """Fortran compilers generally support amd64."""
         return True
 
-    def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
+    def _check_compiler_support_impl(self, exe, compilerType, arch, options, ldPath):
+        """Internal implementation of compiler support checking for FortranLibraryBuilder."""
         fixedTarget = self.getTargetFromOptions(options)
         if fixedTarget:
             return fixedTarget == arch
@@ -118,7 +136,7 @@ class FortranLibraryBuilder(CompilerBasedLibraryBuilder):
     def does_compiler_support_x86(self, exe, compilerType, options, ldPath):
         cachekey = f"{exe}|{options}"
         if cachekey not in _supports_x86:
-            _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, "x86", options, ldPath)
+            _supports_x86[cachekey] = self._check_compiler_support_impl(exe, compilerType, "x86", options, ldPath)
         return _supports_x86[cachekey]
 
     def getToolchainPathFromOptions(self, options):
