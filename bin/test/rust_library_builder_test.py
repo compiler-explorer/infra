@@ -44,7 +44,7 @@ def test_makebuildhash(requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     result = builder.makebuildhash(
         "rustc-1.70", "-O", "/opt/rust", "Linux", "Debug", "x86_64", "", "", ["flag1", "flag2"]
@@ -61,7 +61,7 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = False
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_subprocess.return_value = b"conanfile.py: ID: rust123456\nOther output"
     builder.current_buildparameters = ["-s", "os=Linux"]
@@ -80,7 +80,7 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_subprocess.return_value = 0
 
@@ -96,7 +96,7 @@ def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_subprocess.side_effect = TimeoutExpired("cmd", 600)
 
@@ -111,7 +111,7 @@ def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_get_ssm.return_value = "rust_password"
 
@@ -131,7 +131,7 @@ def test_get_commit_hash(requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     result = builder.get_commit_hash()
     assert result == "1.0.0"  # target_name
@@ -143,7 +143,7 @@ def test_execute_conan_script_success(mock_subprocess, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_subprocess.return_value = 0
 
@@ -159,7 +159,7 @@ def test_execute_conan_script_failure(mock_subprocess, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_subprocess.return_value = 1
 
@@ -173,7 +173,7 @@ def test_count_valid_library_binaries(requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     result = builder.countValidLibraryBinaries("/tmp/buildfolder", "x86_64", "")
     assert result == 1
@@ -186,7 +186,7 @@ def test_get_source_folder(mock_mkdir, mock_exists, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_staging = mock.Mock()
     mock_staging.path = "/tmp/staging"
@@ -207,7 +207,7 @@ def test_build_cleanup_normal(mock_rmtree, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = False
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     builder.build_cleanup("/tmp/buildfolder")
 
@@ -221,7 +221,7 @@ def test_build_cleanup_dry_run(mock_rmtree, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = True
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     builder.build_cleanup("/tmp/buildfolder")
 
@@ -235,7 +235,7 @@ def test_cache_cleanup_normal(mock_rmtree, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = False
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     builder.cached_source_folders = ["/tmp/folder1", "/tmp/folder2"]
     builder.cache_cleanup()
@@ -252,7 +252,7 @@ def test_cache_cleanup_dry_run(mock_rmtree, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = True
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     builder.cached_source_folders = ["/tmp/folder1", "/tmp/folder2"]
     builder.cache_cleanup()
@@ -267,7 +267,7 @@ def test_upload_builds_with_uploads(mock_subprocess, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = False
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     builder.needs_uploading = 2
     builder.upload_builds()
@@ -283,7 +283,7 @@ def test_upload_builds_dry_run(mock_subprocess, requests_mock):
     install_context = mock.Mock()
     install_context.dry_run = True
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     builder.needs_uploading = 2
     builder.upload_builds()
@@ -298,7 +298,7 @@ def test_clone_branch(mock_subprocess, requests_mock):
     logger = mock.Mock(spec_set=Logger)
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_rust_test_build_config()
-    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
+    builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config, 1)
 
     mock_staging = mock.Mock()
     mock_staging.path = "/tmp/staging"

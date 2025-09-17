@@ -43,7 +43,7 @@ def test_get_toolchain_path_from_options_gcc_toolchain(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     options = "--gcc-toolchain=/opt/gfortran-11 -O2"
@@ -57,7 +57,7 @@ def test_get_toolchain_path_from_options_gxx_name(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     options = "--gxx-name=/opt/gcc/bin/g++ -std=f2008"
@@ -71,7 +71,7 @@ def test_get_toolchain_path_from_options_none(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     options = "-O2 -std=f2008"
@@ -85,7 +85,7 @@ def test_get_std_ver_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     options = "-std=f2018 -O2"
@@ -99,7 +99,7 @@ def test_get_std_lib_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     options = "-stdlib=libgfortran -O2"
@@ -113,7 +113,7 @@ def test_get_target_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     options = "-target aarch64-linux-gnu -O2"
@@ -127,7 +127,7 @@ def test_replace_optional_arg_with_value(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     arg = "fpm build --arch=%arch% --build=%buildtype%"
@@ -141,7 +141,7 @@ def test_replace_optional_arg_no_value(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     arg = "fpm build %arch?% --build=%buildtype%"
@@ -155,7 +155,7 @@ def test_expand_make_arg(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     arg = "--arch=%arch% --build=%buildtype% --std=%stdver%"
@@ -171,7 +171,7 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
     install_context.dry_run = False
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     mock_subprocess.return_value = b"conanfile.py: ID: fortran123456\nOther output"
@@ -192,7 +192,7 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     mock_subprocess.return_value = 0
@@ -210,7 +210,7 @@ def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     mock_subprocess.side_effect = TimeoutExpired("cmd", 600)
@@ -227,7 +227,7 @@ def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     mock_get_ssm.return_value = "fortran_password"
@@ -249,7 +249,7 @@ def test_makebuildhash(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     result = builder.makebuildhash(
@@ -266,7 +266,7 @@ def test_does_compiler_support_fixed_target_match(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     result = builder.does_compiler_support(
@@ -281,7 +281,7 @@ def test_does_compiler_support_fixed_target_mismatch(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     result = builder.does_compiler_support("/usr/bin/gfortran", "fortran", "x86", "-target x86_64-linux-gnu", "")
@@ -294,7 +294,7 @@ def test_get_commit_hash_with_git(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     with patch("os.path.exists", return_value=True):
@@ -312,7 +312,7 @@ def test_get_commit_hash_without_git(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_fortran_test_build_config()
     builder = FortranLibraryBuilder(
-        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False
+        logger, "fortran", "fortranlib", "2.0.0", "/tmp/source", install_context, build_config, False, 1
     )
 
     with patch("os.path.exists", return_value=False):
