@@ -758,6 +758,12 @@ def install(context: CliContext, filter_: list[str], force: bool):
 )
 @click.option("--popular-compilers-only", is_flag=True, help="Only build with popular (enough) compilers")
 @click.option("--temp-install", is_flag=True, help="Temporary install target if it's not installed yet")
+@click.option(
+    "--parallel-discovery",
+    default=4,
+    metavar="WORKERS",
+    help="Number of parallel workers for library discovery phase (default: 4, use 1 to disable)",
+)
 @click.argument("filter_", metavar="FILTER", nargs=-1)
 def build(
     context: CliContext,
@@ -766,6 +772,7 @@ def build(
     buildfor: str,
     popular_compilers_only: bool,
     temp_install: bool,
+    parallel_discovery: int,
 ):
     """Build library targets matching FILTER."""
     num_installed = 0
@@ -801,7 +808,7 @@ def build(
             else:
                 try:
                     [num_installed, num_skipped, num_failed] = installable.build(
-                        buildfor, popular_compilers_only, platform
+                        buildfor, popular_compilers_only, platform, parallel_discovery
                     )
                     if num_installed > 0:
                         _LOGGER.info("%s built OK", installable.name)
