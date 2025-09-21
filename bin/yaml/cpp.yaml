@@ -1197,7 +1197,7 @@ compilers:
           compiler_name: clad-{{name}}
           type: nightly
           targets:
-          - trunk-clang-20.1.0
+          - trunk-clang-21.1.0
     qnx:
       if: non-free
       compression: xz
