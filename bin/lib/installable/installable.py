@@ -256,7 +256,9 @@ class Installable:
     def nightly_like(self) -> bool:
         return self.install_always or self.target_name in ["nightly", "trunk", "master", "main"]
 
-    def build(self, buildfor: str, popular_compilers_only: bool, platform: LibraryPlatform):
+    def build(
+        self, buildfor: str, popular_compilers_only: bool, platform: LibraryPlatform, parallel_discovery: int = 4
+    ):
         if not self.is_library:
             raise RuntimeError("Nothing to build")
 
@@ -275,6 +277,7 @@ class Installable:
                 self.build_config,
                 popular_compilers_only,
                 platform,
+                parallel_discovery,
             )
             return cppbuilder.makebuild(buildfor)
         elif (
@@ -293,6 +296,7 @@ class Installable:
                 self.build_config,
                 popular_compilers_only,
                 platform,
+                parallel_discovery,
             )
             return cppbuilder.makebuild(buildfor)
         elif self.build_config.build_type == "fpm":
@@ -306,11 +310,18 @@ class Installable:
                 self.install_context,
                 self.build_config,
                 popular_compilers_only,
+                parallel_discovery,
             )
             return fbuilder.makebuild(buildfor)
         elif self.build_config.build_type == "cargo":
             rbuilder = RustLibraryBuilder(
-                _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config
+                _LOGGER,
+                self.language,
+                self.context[-1],
+                self.target_name,
+                self.install_context,
+                self.build_config,
+                parallel_discovery,
             )
             return rbuilder.makebuild(buildfor)
         raise RuntimeError(f"Unsupported build_type ${self.build_config.build_type}")
