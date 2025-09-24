@@ -87,3 +87,5 @@ compilers:
         build: 575.57.08
       - name: 13.0.0
         build: 580.65.06
+      - name: 13.0.1
+        build: 580.82.07
