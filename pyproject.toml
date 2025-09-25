@@ -24,8 +24,8 @@ dependencies = [
     "pillow>=11.3.0",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pytest>=8.2.2",
     "pre-commit>=3.7.1",
     "requests-mock>=1.10.0",
