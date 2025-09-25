@@ -2706,6 +2706,13 @@ libraries:
       targets:
       - 1.8.0
       type: github
+    cutlass:
+      check_file: README.md
+      method: clone_branch
+      repo: NVIDIA/cutlass
+      targets:
+      - trunk
+      type: github
     matx:
       check_file: README.md
       method: clone_branch
