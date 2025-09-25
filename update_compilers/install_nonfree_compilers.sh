@@ -13,22 +13,18 @@ CE_INSTALL_ARG+=" --enable=non-free"
 ##################################
 # Non-free tools
 ce_install tools
-ce_squash tools
 
 ##################################
 # EDG compilers
 ce_install edg
-ce_squash edg
 
 ##################################
 # QNX compilers
 ce_install qnx
-ce_squash qnx
 
 ##################################
 # ORCA/C compilers
 ce_install orca-c
-ce_squash orca-c
 
 ##################################
 # Intel compilers
