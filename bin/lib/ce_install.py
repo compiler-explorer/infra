@@ -697,7 +697,7 @@ def squash_check(
 def _should_install(force: bool, installable: Installable) -> tuple[Installable, bool]:
     try:
         return installable, force or installable.should_install()
-    except Exception as ex:
+    except (OSError, RuntimeError) as ex:
         raise RuntimeError(f"Unable to install {installable}") from ex
 
 
@@ -729,7 +729,7 @@ def install(context: CliContext, filter_: list[str], force: bool):
                     else:
                         _LOGGER.info("%s installed OK", installable.name)
                         num_installed += 1
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 _LOGGER.info("%s failed to install: %s\n%s", installable.name, e, traceback.format_exc(5))
                 failed.append(installable.name)
         else:

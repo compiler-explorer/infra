@@ -46,7 +46,7 @@ def copy_to_cefs_atomically(source_path: Path, cefs_image_path: Path) -> None:
         # Atomic rename - only complete files get .sqfs extension
         # On Linux, rename() is atomic within the same filesystem
         temp_path.replace(cefs_image_path)
-    except Exception:
+    except OSError:
         # Clean up temp file on any failure
         temp_path.unlink(missing_ok=True)
         raise
@@ -106,7 +106,7 @@ def deploy_to_cefs_transactional(
             try:
                 finalize_manifest(cefs_image_path)
                 _LOGGER.debug("Finalized manifest for %s", cefs_image_path)
-            except Exception as e:
+            except OSError as e:
                 _LOGGER.error("Failed to finalize manifest for %s: %s", cefs_image_path, e)
                 # Note: We don't re-raise here because the main operation succeeded
 

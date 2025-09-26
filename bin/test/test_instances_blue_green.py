@@ -3,6 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from botocore.exceptions import ClientError
 from lib.cli.instances import get_instances_for_environment
 from lib.env import Config, Environment
 
@@ -54,7 +55,9 @@ class TestBlueGreenInstances(unittest.TestCase):
 
         with patch("lib.cli.instances.BlueGreenDeployment") as mock_deployment_class:
             # Simulate blue-green deployment failure
-            mock_deployment_class.side_effect = Exception("Parameter not found")
+            mock_deployment_class.side_effect = ClientError(
+                {"Error": {"Code": "ParameterNotFound", "Message": "Parameter not found"}}, "GetParameter"
+            )
 
             with self.assertRaises(RuntimeError) as cm:
                 get_instances_for_environment(cfg)

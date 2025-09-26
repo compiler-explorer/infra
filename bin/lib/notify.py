@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import urllib.error
 import urllib.parse
 import urllib.request
 
@@ -36,7 +37,7 @@ def post(entity: str, token: str, query: dict | None = None, dry_run=False) -> d
         result = urllib.request.urlopen(req)
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
-    except Exception as e:
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as e:
         raise RuntimeError(f"Error while posting {entity}") from e
 
 
@@ -61,7 +62,7 @@ def get(entity: str, token: str, query: dict | None = None) -> dict:
         result = urllib.request.urlopen(req)
         # It's ok not to check for error codes here. We'll throw either way
         return json.loads(result.read())
-    except Exception as e:
+    except (OSError, urllib.error.URLError, json.JSONDecodeError) as e:
         raise RuntimeError(f"Error while getting {entity}") from e
 
 

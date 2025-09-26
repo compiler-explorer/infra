@@ -316,7 +316,7 @@ echo "-fstype=squashfs,loop,nosuid,nodev,ro :{cefs_image_dir}/${{subdir}}/${{key
     except subprocess.CalledProcessError as e:
         _LOGGER.error("Failed to set up CEFS: %s", e)
         raise click.ClickException(f"CEFS setup failed: {e}") from e
-    except Exception as e:
+    except OSError as e:
         _LOGGER.error("Unexpected error during CEFS setup: %s", e)
         raise click.ClickException(f"CEFS setup failed: {e}") from e
 

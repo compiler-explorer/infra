@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import requests
+from botocore.exceptions import ClientError
 
 from lib.amazon import dynamodb_client
 
@@ -149,7 +150,7 @@ def fetch_compilers_from_instance(instance_ip: str, environment: str) -> dict[st
         error_msg = f"Failed to fetch compilers from instance {instance_ip}: {e}"
         LOGGER.error(error_msg)
         raise CompilerRoutingError(error_msg) from e
-    except (ValueError, KeyError) as e:
+    except RuntimeError as e:
         error_msg = f"Failed to parse compiler data from instance {instance_ip}: {e}"
         LOGGER.error(error_msg)
         raise CompilerRoutingError(error_msg) from e
@@ -234,7 +235,7 @@ def fetch_discovery_compilers(environment: str, version: str | None = None) -> d
         raise CompilerRoutingError(f"Failed to parse compiler API JSON: {e}") from e
     except requests.exceptions.RequestException as e:
         raise CompilerRoutingError(f"Failed to fetch compiler API: {e}") from e
-    except Exception as e:
+    except RuntimeError as e:
         raise CompilerRoutingError(f"Unexpected error fetching compilers: {e}") from e
 
 
@@ -287,7 +288,7 @@ def get_current_routing_table(environment: str | None = None) -> dict[str, dict[
         LOGGER.info(f"Found {item_count} compiler routing entries")
         return routing_data
 
-    except Exception as e:
+    except ClientError as e:
         raise CompilerRoutingError(f"Failed to scan routing table: {e}") from e
 
 
@@ -496,7 +497,7 @@ def batch_write_items(items_to_write: dict[str, dict[str, Any]]) -> None:
                 # Simple retry for unprocessed items
                 dynamodb_client.batch_write_item(RequestItems=unprocessed)
 
-    except Exception as e:
+    except ClientError as e:
         raise CompilerRoutingError(f"Failed to batch write items: {e}") from e
 
 
@@ -534,7 +535,7 @@ def batch_delete_items(items_to_delete: set[str]) -> None:
                 LOGGER.warning(f"Failed to process {len(unprocessed)} deletions, retrying...")
                 dynamodb_client.batch_write_item(RequestItems=unprocessed)
 
-    except Exception as e:
+    except ClientError as e:
         raise CompilerRoutingError(f"Failed to batch delete items: {e}") from e
 
 
@@ -640,7 +641,7 @@ def update_compiler_routing_table(
             "queue_routing": total_change_queue_count,
         }
 
-    except Exception as e:
+    except ClientError as e:
         if isinstance(e, CompilerRoutingError):
             raise
         else:
@@ -684,7 +685,7 @@ def get_routing_table_stats() -> dict[str, Any]:
             "routing_types": routing_type_counts,
         }
 
-    except Exception as e:
+    except ClientError as e:
         raise CompilerRoutingError(f"Failed to get table statistics: {e}") from e
 
 
@@ -709,7 +710,7 @@ def lookup_compiler_queue(compiler_id: str) -> str | None:
         else:
             return None
 
-    except Exception as e:
+    except ClientError as e:
         raise CompilerRoutingError(f"Failed to lookup compiler queue: {e}") from e
 
 
@@ -757,5 +758,5 @@ def lookup_compiler_routing(compiler_id: str, environment: str | None = None) ->
         else:
             return None
 
-    except Exception as e:
+    except ClientError as e:
         raise CompilerRoutingError(f"Failed to lookup compiler routing: {e}") from e
