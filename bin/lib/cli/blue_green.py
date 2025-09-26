@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import click
+from botocore.exceptions import ClientError
 
 from lib.amazon import (
     as_client,
@@ -31,7 +32,7 @@ def get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | N
         releases = get_releases(cfg)
         release = release_for(releases, version_key)
         return release.hash.hash if release else None
-    except Exception:
+    except (ClientError, ValueError, AttributeError):
         return None
 
 
@@ -43,7 +44,7 @@ def get_commit_hash_for_version_param(cfg: Config, version: str | None, branch: 
     try:
         release = get_release_without_discovery_check(cfg, version, branch)
         return release.hash.hash if release else None
-    except Exception:
+    except (ClientError, ValueError, AttributeError):
         return None
 
 
@@ -156,7 +157,7 @@ def blue_green_status(cfg: Config, detailed: bool):
                                 )
                                 if tg_response["TargetHealthDescriptions"]:
                                     tg_health = tg_response["TargetHealthDescriptions"][0]["TargetHealth"]["State"]
-                            except Exception:
+                            except ClientError:
                                 tg_health = "error"
 
                             # Get private IP address
@@ -166,7 +167,7 @@ def blue_green_status(cfg: Config, detailed: bool):
                                 if ec2_response["Reservations"] and ec2_response["Reservations"][0]["Instances"]:
                                     ec2_instance = ec2_response["Reservations"][0]["Instances"][0]
                                     private_ip = ec2_instance.get("PrivateIpAddress", "unknown")
-                            except Exception:
+                            except ClientError:
                                 private_ip = "error"
 
                             # Get HTTP health for this instance if available
@@ -187,7 +188,7 @@ def blue_green_status(cfg: Config, detailed: bool):
                                 f"      {iid}: IP={private_ip}, ASG={asg_health}, TG={tg_health}, HTTP={http_health}{http_details}, State={lifecycle}"
                             )
 
-                except Exception as e:
+                except ClientError as e:
                     print(f"      Error getting detailed status: {e}")
 
 
@@ -312,7 +313,7 @@ def blue_green_deploy(
         try:
             gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
             handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=True)
-        except Exception as e:
+        except ClientError as e:
             print(f"⚠️  Could not retrieve GitHub token ({e})")
             print("🔍 Showing commit range that would be checked:")
             print("   GitHub API would be queried for commits between:")
@@ -388,7 +389,7 @@ def blue_green_deploy(
                     )
                     handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=dry_run_notify)
                     print("Notification check completed.")
-                except Exception as e:
+                except (OSError, RuntimeError) as e:
                     print(f"Warning: Failed to send notifications: {e}")
             else:
                 if original_commit_hash is None:
@@ -399,7 +400,7 @@ def blue_green_deploy(
     except DeploymentCancelledException:
         # Deployment was cancelled - don't show success message or raise
         return
-    except Exception as e:
+    except ClientError as e:
         print(f"\nDeployment failed: {e}")
         print("The inactive ASG may be partially scaled. Check status and clean up if needed.")
         raise
@@ -441,7 +442,7 @@ def blue_green_switch(cfg: Config, color: str, skip_confirmation: bool, force: b
 
         deployment.switch_target_group(color)
         print(f"Successfully switched to {color}")
-    except Exception as e:
+    except ClientError as e:
         print(f"Switch failed: {e}")
         raise
 
@@ -465,7 +466,7 @@ def blue_green_rollback(cfg: Config, skip_confirmation: bool):
 
     try:
         deployment.rollback()
-    except Exception as e:
+    except ClientError as e:
         print(f"Rollback failed: {e}")
         raise
 
@@ -488,7 +489,7 @@ def blue_green_cleanup(cfg: Config, skip_confirmation: bool):
 
     try:
         deployment.cleanup_inactive()
-    except Exception as e:
+    except ClientError as e:
         print(f"Cleanup failed: {e}")
         raise
 
@@ -533,7 +534,7 @@ def blue_green_shutdown(cfg: Config, skip_confirmation: bool):
         scale_asg(active_asg, 0)
         print(f"✅ {cfg.env.value.capitalize()} environment shut down successfully")
         print(f"To restart: run 'ce --env {cfg.env.value} blue-green deploy' or scale up manually")
-    except Exception as e:
+    except ClientError as e:
         print(f"Shutdown failed: {e}")
         raise
 
@@ -556,7 +557,7 @@ def blue_green_validate(cfg: Config):
     try:
         active_color = deployment.get_active_color()
         print(f"✓ Active color parameter exists: {active_color}")
-    except Exception as e:
+    except ClientError as e:
         issues.append(f"Cannot read active color parameter: {e}")
 
     # Check target groups
@@ -564,7 +565,7 @@ def blue_green_validate(cfg: Config):
         try:
             deployment.get_target_group_arn(color)
             print(f"✓ {color.capitalize()} target group exists")
-        except Exception as e:
+        except ClientError as e:
             issues.append(f"{color.capitalize()} target group not found: {e}")
 
     # Check ASGs
@@ -576,7 +577,7 @@ def blue_green_validate(cfg: Config):
                 print(f"✓ {color.capitalize()} ASG exists: {asg_name}")
             else:
                 issues.append(f"{color.capitalize()} ASG not found: {asg_name}")
-        except Exception as e:
+        except ClientError as e:
             issues.append(f"Error checking {color} ASG: {e}")
 
     # Check listener rule
@@ -592,7 +593,7 @@ def blue_green_validate(cfg: Config):
                 issues.append("ALB listener not found for production")
             else:
                 issues.append(f"ALB listener rule not found for /{cfg.env.value}*")
-    except Exception as e:
+    except ClientError as e:
         issues.append(f"Error checking listener rule: {e}")
 
     if issues:

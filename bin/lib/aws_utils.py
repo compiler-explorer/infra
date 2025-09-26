@@ -17,7 +17,7 @@ def get_instance_private_ip(instance_id: str) -> str | None:
             instance = response["Reservations"][0]["Instances"][0]
             if instance["State"]["Name"] == "running":
                 return instance.get("PrivateIpAddress")
-    except Exception:
+    except ClientError:
         pass
     return None
 
@@ -50,7 +50,7 @@ def get_target_health_counts(target_group_arn: str, instance_ids: list[str]) -> 
                 unused_count += 1
 
         return {"healthy": healthy_count, "unused": unused_count}
-    except Exception:
+    except ClientError:
         return {"healthy": 0, "unused": 0}
 
 

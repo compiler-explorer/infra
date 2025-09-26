@@ -414,10 +414,10 @@ def status(cfg: Config):
 
                 click.echo(f"         | Healthy targets: {healthy_targets}/{total_targets}")
 
-            except Exception as e:
+            except ClientError as e:
                 click.echo(f"         | Target health: Error ({e})")
 
             click.echo("")  # Add spacing between environments
 
-    except Exception as e:
+    except ClientError as e:
         click.echo(f"CE-ROUTER | ❌ ERROR: {str(e)}")

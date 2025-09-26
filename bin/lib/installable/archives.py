@@ -366,7 +366,7 @@ class RestQueryTarballInstallable(TarballInstallable):
         query = self.config_get("query")
         try:
             self.url = eval(query, {}, dict(document=document))
-        except Exception:
+        except Exception:  # noqa: BLE001
             self._logger.exception("Exception evaluating query '%s' for %s", query, self)
             raise
         if not self.url:

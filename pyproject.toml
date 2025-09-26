@@ -47,6 +47,7 @@ select = [
     "I", # isort
     "UP", # pyupgrade
     "PLC", # Pylint Convention rules
+    "BLE001", # Ban blind except: Exception
 ]
 ignore = [
     "E501" # line length

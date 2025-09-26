@@ -101,7 +101,7 @@ def admin_mount_efs(local_path: str, use_sudo: bool):
         if f"{instance.address}:{remote_path}" in result.stdout:
             click.echo(f"Already mounted at {local_path}")
             return
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
 
     # Check ownership of the mount point
@@ -111,7 +111,7 @@ def admin_mount_efs(local_path: str, use_sudo: bool):
         if getuid and stat_info.st_uid != getuid():
             click.echo(f"Warning: You don't own {local_path}. This may cause mount issues.", err=True)
             click.echo(f"Current owner UID: {stat_info.st_uid}, your UID: {getuid()}", err=True)
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
 
     # Mount via sshfs (readonly)
@@ -182,7 +182,7 @@ def admin_unmount_efs(local_path: str, use_sudo: bool):
         if local_path not in result.stdout:
             click.echo(f"Not mounted at {local_path}")
             return
-    except Exception:
+    except (subprocess.SubprocessError, OSError):
         pass
 
     # Unmount

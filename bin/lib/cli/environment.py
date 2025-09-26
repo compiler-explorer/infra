@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 
 import click
+from botocore.exceptions import ClientError
 
 from lib.amazon import (
     as_client,
@@ -30,7 +31,7 @@ def environment_status(cfg: Config):
         try:
             active_color = deployment.get_active_color()
             print(f"Blue-green environment - Active color: {active_color}")
-        except Exception:
+        except (ClientError, AttributeError):
             print("Blue-green environment - Unable to determine active color")
 
         for asg in get_autoscaling_groups_for(cfg):
@@ -41,7 +42,7 @@ def environment_status(cfg: Config):
             try:
                 is_active = color == active_color
                 status = " (ACTIVE)" if is_active else " (INACTIVE)"
-            except Exception:
+            except (NameError, AttributeError):
                 status = ""
             print(f"Found ASG {asg_name} with desired instances {desired}{status}")
     else:

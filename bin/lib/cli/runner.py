@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import sys
 import time
 from collections.abc import Sequence
@@ -148,7 +149,7 @@ def runner_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except Exception as e:
+        except (OSError, subprocess.SubprocessError) as e:
             print(f"Still waiting for SSH: got: {e}")
         time.sleep(5)
     else:

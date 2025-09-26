@@ -9,6 +9,7 @@ import time
 from collections.abc import Sequence
 
 import click
+from botocore.exceptions import ClientError
 
 from lib.amazon import (
     as_client,
@@ -223,7 +224,7 @@ def instances_isolate(cfg: Config):
         print(f"   Instance ID: {instance_id}")
         print("\nTo terminate this instance later, use: ce instances terminate-isolated")
 
-    except Exception as e:
+    except ClientError as e:
         LOGGER.error("Failed to isolate instance %s: %s", instance, e)
         print(f"❌ Error isolating instance: {e}")
         sys.exit(1)
@@ -283,7 +284,7 @@ def instances_terminate_isolated(cfg: Config):
         print(f"\n✅ Instance {instance_id} has been terminated and removed from ASG.")
         print("The ASG will automatically launch a replacement instance.")
 
-    except Exception as e:
+    except ClientError as e:
         LOGGER.error("Failed to terminate instance %s: %s", instance, e)
         print(f"❌ Error terminating instance: {e}")
         sys.exit(1)
@@ -335,7 +336,7 @@ def instances_status(cfg: Config):
                 print()
                 print("Note: Service and Version information requires SSH access from admin node.")
 
-        except Exception as e:
+        except ClientError as e:
             print(f"Error: Failed to get blue-green status for {cfg.env.value}: {e}")
     else:
         print(f"Environment: {cfg.env.value}")
@@ -390,7 +391,7 @@ def get_instances_for_environment(cfg: Config):
             active_tg_arn = deployment.get_target_group_arn(active_color)
 
             return Instance.elb_instances(active_tg_arn)
-        except Exception as e:
+        except ClientError as e:
             raise RuntimeError(f"Failed to get instances for blue-green environment {cfg.env.value}: {e}") from e
 
     return Instance.elb_instances(target_group_arn_for(cfg))
@@ -440,7 +441,7 @@ def get_isolated_instances_for_environment(cfg: Config):
                     if isolated_instance.instance.meta.data is None:
                         LOGGER.debug(f"Instance {instance_id} no longer exists, skipping")
                         continue
-                except Exception as e:
+                except ClientError as e:
                     LOGGER.debug(f"Failed to load instance {instance_id}: {e}, skipping")
                     continue
 

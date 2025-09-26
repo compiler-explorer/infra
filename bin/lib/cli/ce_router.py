@@ -4,6 +4,7 @@ import logging
 import time
 
 import click
+from botocore.exceptions import ClientError
 
 from lib.amazon import as_client, ec2_client, elb_client
 from lib.ce_utils import are_you_sure
@@ -77,10 +78,10 @@ def ce_router_status(cfg: Config) -> None:
                     health_state = target["TargetHealth"]["State"]
                     print(f"    {target_id}: {health_state}")
 
-        except Exception as e:
+        except ClientError as e:
             print(f"  Could not retrieve target group health: {e}")
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error retrieving CE Router status: {e}")
 
 
@@ -109,7 +110,7 @@ def ce_router_scale(cfg: Config, desired_capacity: int, skip_confirmation: bool)
 
         print(f"CE Router ASG successfully scaled to {desired_capacity} instances")
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error scaling CE Router ASG: {e}")
 
 
@@ -153,7 +154,7 @@ def ce_router_login(cfg: Config, instance_id: str | None) -> None:
         print(f"Connecting to CE Router instance {target_instance_id}...")
         run_remote_shell(instance)
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error logging into CE Router instance: {e}")
 
 
@@ -191,7 +192,7 @@ def ce_router_restart(cfg: Config, skip_confirmation: bool) -> None:
         print("Checking service status...")
         exec_remote_all(instance_ids, ["sudo", "systemctl", "status", "ce-router", "--no-pager"])
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error restarting CE Router service: {e}")
 
 
@@ -224,7 +225,7 @@ def ce_router_health(cfg: Config) -> None:
         # Check if Node.js process is responding
         exec_remote_all(instance_ids, ["curl", "-f", "http://localhost:10240/healthcheck"])
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error checking CE Router health: {e}")
 
 
@@ -272,8 +273,8 @@ def ce_router_healthcheck(cfg: Config) -> None:
                         print("✅ HEALTHY")
                     else:
                         print(f"❌ UNHEALTHY - Response: {result}")
-                except Exception as e:
+                except (OSError, ValueError) as e:
                     print(f"❌ ERROR - {e}")
 
-    except Exception as e:
+    except ClientError as e:
         print(f"Error checking CE Router healthcheck: {e}")

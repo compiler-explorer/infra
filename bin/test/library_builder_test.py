@@ -43,7 +43,7 @@ def create_test_build_config():
 def assert_valid_python(python_source: str) -> None:
     try:
         ast.parse(python_source)
-    except Exception as e:
+    except SyntaxError as e:
         raise AssertionError("Not valid python") from e
 
 

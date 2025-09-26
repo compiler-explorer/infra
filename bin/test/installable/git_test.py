@@ -128,7 +128,7 @@ def _assert_git_repo_isolation(repo_path, expected_repo_path):
             assert actual_git_dir.resolve() == expected_git_dir.resolve(), (
                 f"Git isolation failed! Operating on {actual_git_dir} instead of {expected_git_dir}"
             )
-    except Exception as e:
+    except (subprocess.SubprocessError, OSError) as e:
         # If we can't check, that's also a problem
         pytest.fail(f"Failed to verify git repository isolation: {e}")
 
