@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -28,9 +29,21 @@ class ScriptInstallable(Installable):
                 with staging_path_filename.open("wb") as f:
                     self.install_context.fetch_to(url, f)
             self._logger.info("%s -> %s", url, filename)
-        self.install_context.stage_command(staging, ["bash", "-c", self.script])
+        cmd = ["bash", "-c", self.script]
+        if self.install_context.cefs_enabled:
+            # Use bubblewrap to ensure a "real" path for every dependency and nothing else.
+            # That way we can avoid any issues with symlinks in CEFS mounts.
+            binds = []
+            for dep in self.depends:
+                dep_path = Path(self.install_context.destination / dep.install_path)
+                binds += ["--bind", str(dep_path.resolve()), str(dep_path)]
+            cmd = ["bwrap", "--dev-bind", "/", "/", "--tmpfs", str(self.install_context.destination)] + binds + cmd
+        self.install_context.stage_command(staging, cmd)
         if self.strip:
             self.install_context.strip_exes(staging, self.strip)
+
+    def resolve_dependencies(self, resolver: Callable[[str], str]) -> None:
+        self.script = resolver(self.script)
 
     def verify(self) -> bool:
         if not super().verify():

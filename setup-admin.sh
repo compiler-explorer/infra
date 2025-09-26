@@ -16,6 +16,7 @@ env EXTRA_NFS_ARGS="" INSTALL_TYPE="admin" "${DIR}/setup-common.sh"
 
 apt -y install \
   autojump \
+  bubblewrap \
   cronic \
   fish \
   gdb \
