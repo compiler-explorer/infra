@@ -1423,6 +1423,9 @@ compilers:
       dir: hpc_sdk/Linux_{{arch}}/{{version}}
       check_stderr_on_stdout: true
       check_exe: compilers/bin/nvc++ --version
+      depends:
+        - compilers/c++/x86/gcc 12.2.0
+        - compilers/c++/cross/gcc/arm64 12.2.0
       script: |
         mkdir -p "nvhpc_sdk_{{version}}_{{arch}}";
         tar -f "nvhpc_sdk_{{version}}_{{arch}}.tar.gz" -C "nvhpc_sdk_{{version}}_{{arch}}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
@@ -1437,16 +1440,16 @@ compilers:
         if [[ "{{arch}}" == "x86_64" ]]; then
           bash "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin/makelocalrc" \
             -x "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin" \
-            -gcc /opt/compiler-explorer/gcc-12.2.0/bin/gcc \
-            -gpp /opt/compiler-explorer/gcc-12.2.0/bin/g++ \
-            -g77 /opt/compiler-explorer/gcc-12.2.0/bin/gfortran \
+            -gcc %DEP0%/bin/gcc \
+            -gpp %DEP0%/bin/g++ \
+            -g77 %DEP0%/bin/gfortran \
             ;
         elif [[ "{{arch}}" == "aarch64" ]]; then
           bash "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin/makelocalrc" \
             -x "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin" \
-            -gcc /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc \
-            -gpp /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++ \
-            -g77 /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gfortran \
+            -gcc %DEP1%/bin/aarch64-unknown-linux-gnu-gcc \
+            -gpp %DEP1%/bin/aarch64-unknown-linux-gnu-g++ \
+            -g77 %DEP1%/bin/aarch64-unknown-linux-gnu-gfortran \
             ;
         fi
       targets:
