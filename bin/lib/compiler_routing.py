@@ -150,7 +150,7 @@ def fetch_compilers_from_instance(instance_ip: str, environment: str) -> dict[st
         error_msg = f"Failed to fetch compilers from instance {instance_ip}: {e}"
         LOGGER.error(error_msg)
         raise CompilerRoutingError(error_msg) from e
-    except (ValueError, KeyError) as e:
+    except RuntimeError as e:
         error_msg = f"Failed to parse compiler data from instance {instance_ip}: {e}"
         LOGGER.error(error_msg)
         raise CompilerRoutingError(error_msg) from e
@@ -235,7 +235,7 @@ def fetch_discovery_compilers(environment: str, version: str | None = None) -> d
         raise CompilerRoutingError(f"Failed to parse compiler API JSON: {e}") from e
     except requests.exceptions.RequestException as e:
         raise CompilerRoutingError(f"Failed to fetch compiler API: {e}") from e
-    except (KeyError, ValueError) as e:
+    except RuntimeError as e:
         raise CompilerRoutingError(f"Unexpected error fetching compilers: {e}") from e
 
 

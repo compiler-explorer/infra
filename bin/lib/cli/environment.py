@@ -31,7 +31,7 @@ def environment_status(cfg: Config):
         try:
             active_color = deployment.get_active_color()
             print(f"Blue-green environment - Active color: {active_color}")
-        except (ClientError, AttributeError):
+        except (ClientError, RuntimeError):
             print("Blue-green environment - Unable to determine active color")
 
         for asg in get_autoscaling_groups_for(cfg):
@@ -42,7 +42,7 @@ def environment_status(cfg: Config):
             try:
                 is_active = color == active_color
                 status = " (ACTIVE)" if is_active else " (INACTIVE)"
-            except (NameError, AttributeError):
+            except RuntimeError:
                 status = ""
             print(f"Found ASG {asg_name} with desired instances {desired}{status}")
     else:

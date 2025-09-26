@@ -32,7 +32,7 @@ def get_commit_hash_for_version(cfg: Config, version_key: str | None) -> str | N
         releases = get_releases(cfg)
         release = release_for(releases, version_key)
         return release.hash.hash if release else None
-    except (ClientError, ValueError, AttributeError):
+    except (ClientError, RuntimeError):
         return None
 
 
@@ -44,7 +44,7 @@ def get_commit_hash_for_version_param(cfg: Config, version: str | None, branch: 
     try:
         release = get_release_without_discovery_check(cfg, version, branch)
         return release.hash.hash if release else None
-    except (ClientError, ValueError, AttributeError):
+    except (ClientError, RuntimeError):
         return None
 
 
@@ -389,7 +389,7 @@ def blue_green_deploy(
                     )
                     handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=dry_run_notify)
                     print("Notification check completed.")
-                except (OSError, RuntimeError) as e:
+                except RuntimeError as e:
                     print(f"Warning: Failed to send notifications: {e}")
             else:
                 if original_commit_hash is None:

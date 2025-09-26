@@ -273,7 +273,7 @@ def ce_router_healthcheck(cfg: Config) -> None:
                         print("✅ HEALTHY")
                     else:
                         print(f"❌ UNHEALTHY - Response: {result}")
-                except (OSError, ValueError) as e:
+                except RuntimeError as e:
                     print(f"❌ ERROR - {e}")
 
     except ClientError as e:

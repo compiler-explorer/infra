@@ -97,7 +97,7 @@ def check_compiler_discovery(cfg: Config, version: str, branch: str | None = Non
     else:
         try:
             release = find_release(cfg, Version.from_string(version))
-        except (ValueError, RuntimeError) as e:
+        except RuntimeError as e:
             print(f"Invalid version format {version}: {e}")
             return None
 
@@ -123,7 +123,7 @@ def get_release_without_discovery_check(cfg: Config, version: str, branch: str |
     else:
         try:
             return find_release(cfg, Version.from_string(version))
-        except (ValueError, RuntimeError, AttributeError):
+        except RuntimeError:
             return None
 
 
