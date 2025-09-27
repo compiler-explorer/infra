@@ -10,6 +10,8 @@ compilers:
       ./{{script_filename}} --prefix ./clojure/{{name}}
     check_exe: "bin/clojure --version"
     targets:
+      - 1.12.3.1577
+      - 1.12.2.1571
       - 1.12.1.1550
       - 1.12.0.1530
       - 1.11.4.1474
