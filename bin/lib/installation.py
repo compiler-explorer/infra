@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections import ChainMap
 from datetime import datetime
 
@@ -20,6 +21,8 @@ from lib.installable.python import PipInstallable
 from lib.installable.rust import CratesIOInstallable, RustInstallable
 from lib.installable.script import ScriptInstallable
 from lib.installable.solidity import SolidityInstallable
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def targets_from(node, enabled, base_config=None):
@@ -115,4 +118,7 @@ def installers_for(install_context, nodes, enabled):
         if target_type not in _INSTALLER_TYPES:
             raise RuntimeError(f"Unknown installer type {target_type}")
         installer_type = _INSTALLER_TYPES[target_type]
-        yield installer_type(install_context, target)
+        try:
+            yield installer_type(install_context, target)
+        except RuntimeError as e:
+            _LOGGER.warn(f"{e}, skipping.")
