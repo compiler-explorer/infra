@@ -660,6 +660,7 @@ libraries:
       - 11.0.0
       - 11.1.4
       - 11.2.0
+      - 12.0.0
       type: github
     fusedkernellibrary:
       check_file: README.md
@@ -1738,11 +1739,11 @@ libraries:
       med:
         build_type: none
         check_file: med/med.hpp
+        method: nightlyclone
         repo: cppden/med
         targets:
         - trunk
         type: github
-        method: nightlyclone
       mimicpp:
         check_file: README.md
         method: nightlyclone
@@ -2500,8 +2501,8 @@ libraries:
       - arch=%intelarch?%
       lib_type: shared
       method: clone_branch
-      target_prefix: v
       repo: uxlfoundation/oneTBB
+      target_prefix: v
       targets:
       - '2020.2'
       - '2020.3'
