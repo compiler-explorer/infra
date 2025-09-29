@@ -20,6 +20,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
     /opt/node/bin/node \
     -- app.js \
     --discoveryonly=/home/ce/discovered-compilers.json \
+    --exit-on-compiler-failure \
     --env amazon \
     --env discovery \
     --port 10240 \
