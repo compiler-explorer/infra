@@ -226,3 +226,16 @@ tools:
     targets:
       - name: bronto-refactor-ubuntu-22.04-x86-64
         install_always: true
+  sonar:
+    if:
+      - non-free
+      - nightly
+    install_always: true
+    type: non-free-s3tarballs
+    compression: xz
+    s3_path_prefix: sonar/sonar
+    path_name: sonar
+    strip_components: 1
+    check_file: sonar.sh
+    targets:
+      - latest
