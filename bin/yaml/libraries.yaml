@@ -301,6 +301,8 @@ libraries:
       - 1.85.0
       - 1.86.0
       - 1.87.0
+      - 1.88.0
+      - 1.89.0
       type: tarballs
       untar_dir: boost-{{name}}
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
