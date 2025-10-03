@@ -1,9 +1,9 @@
-name: Scheduled Windows Library Builds
+name: Scheduled Windows Library Builds (Full)
 
 on:
   schedule:
-    # Run at 15:00 UTC daily except Sunday
-    - cron: '0 15 * * 1-6'
+    # Run at 15:00 UTC on Sundays only
+    - cron: '0 15 * * 0'
   workflow_dispatch:
     inputs:
       library_filter:
@@ -54,5 +54,5 @@ jobs:
     uses: ./.github/workflows/win-lib-build.yaml
     with:
       library: ${{ matrix.library }}
-      compiler: 'popular-compilers-only'
+      compiler: 'all'
     secrets: inherit

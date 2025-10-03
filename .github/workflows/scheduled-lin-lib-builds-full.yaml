@@ -1,9 +1,9 @@
-name: Scheduled Linux Library Builds
+name: Scheduled Linux Library Builds (Full)
 
 on:
   schedule:
-    # Run at 12:00 UTC daily except Sunday (offset from Windows builds to avoid conflicts)
-    - cron: '0 12 * * 1-6'
+    # Run at 12:00 UTC on Sundays only (offset from Windows builds to avoid conflicts)
+    - cron: '0 12 * * 0'
   workflow_dispatch:
     inputs:
       library_filter:
@@ -61,5 +61,5 @@ jobs:
     uses: ./.github/workflows/lin-lib-build.yaml
     with:
       library: ${{ matrix.library }}
-      compiler: 'popular-compilers-only'
+      compiler: 'all'
     secrets: inherit
