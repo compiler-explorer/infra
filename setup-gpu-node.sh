@@ -26,7 +26,6 @@ DRIVER_VERSION=580
 CUDA_VERSION=13-0
 apt install -y \
     nvidia-headless-${DRIVER_VERSION}-open \
-    nvidia-utils-${DRIVER_VERSION} \
     nvidia-driver-assistant \
     cuda-compiler-${CUDA_VERSION} \
     cuda-runtime-${CUDA_VERSION}
