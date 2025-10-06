@@ -16,7 +16,8 @@ tools:
       - 3.28.4
       - 3.29.2
       - 3.30.7
-      - name: 3.31.5
+      - 3.31.5
+      - name: 4.1.2
         symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
     experimental:
       type: tarballs
