@@ -56,3 +56,11 @@ compilers:
       - 0.1.0
       - 0.1.1
       - 0.1.2
+  resolc:
+    type: singleFile
+    dir: resolc-{{name}}
+    url: https://github.com/paritytech/revive/releases/download/v{{name}}/resolc-x86_64-unknown-linux-musl
+    filename: resolc
+    check_exe: resolc --version
+    targets:
+      - 0.4.0
