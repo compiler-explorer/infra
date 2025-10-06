@@ -168,11 +168,9 @@ function Disable-WindowsDefenderPermanent {
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
 
-
 function InstallWinFsp {
     Invoke-WebRequest -Uri "https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi" -OutFile "C:\tmp\winfsp.msi"
-    Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i winfsp.msi" -wait
-    Remove-Item -Force "C:\tmp\winfsp.msi"
+    Start-Process "msiexec" -argumentlist "/i winfsp.msi /quiet ALLUSERS=1" -wait
 }
 
 InstallWinFsp
