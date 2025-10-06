@@ -168,13 +168,14 @@ function Disable-WindowsDefenderPermanent {
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
 
-function InstallWinDbg {
-    Set-Location -Path "C:\tmp"
-    Invoke-WebRequest -Uri "https://windbg.download.prss.microsoft.com/dbazure/prod/1-2508-27001-0/windbg.msixbundle" -OutFile "windbg.msixbundle"
-    Add-AppxPackage "windbg.msixbundle"
+
+function InstallWinFsp {
+    Invoke-WebRequest -Uri "https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi" -OutFile "C:\tmp\winfsp.msi"
+    Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i winfsp.msi" -wait
+    Remove-Item -Force "C:\tmp\winfsp.msi"
 }
 
-InstallWinDbg
+InstallWinFsp
 
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent
