@@ -119,12 +119,6 @@ function GetCeWinFileCacheConfig {
     Write-Host "CeWinFileCache configuration downloaded successfully"
 }
 
-function InstallWinDbg {
-    Set-Location -Path "C:\tmp"
-    Invoke-WebRequest -Uri "https://aka.ms/windbg/download" -OutFile "windbg.appinstaller"
-    Add-AppxPackage -appinstallerfile "windbg.appinstaller"
-}
-
 function GetConf {
     Param(
         $Name,
@@ -503,7 +497,6 @@ ConfigureSmbRights
 
 MountY
 
-InstallWinDbg
 GetLatestCEWrapper
 GetLatestCeWinFileCache
 GetCeWinFileCacheConfig

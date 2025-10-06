@@ -168,6 +168,14 @@ function Disable-WindowsDefenderPermanent {
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
 
+function InstallWinDbg {
+    Set-Location -Path "C:\tmp"
+    Invoke-WebRequest -Uri "https://aka.ms/windbg/download" -OutFile "windbg.appinstaller"
+    Add-AppxPackage -appinstallerfile "windbg.appinstaller"
+}
+
+InstallWinDbg
+
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent
 
