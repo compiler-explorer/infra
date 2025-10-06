@@ -170,8 +170,8 @@ function Disable-WindowsDefenderPermanent {
 
 function InstallWinDbg {
     Set-Location -Path "C:\tmp"
-    Invoke-WebRequest -Uri "https://aka.ms/windbg/download" -OutFile "windbg.appinstaller"
-    Add-AppxPackage -appinstallerfile "windbg.appinstaller"
+    Invoke-WebRequest -Uri "https://windbg.download.prss.microsoft.com/dbazure/prod/1-2508-27001-0/windbg.msixbundle" -OutFile "windbg.msixbundle"
+    Add-AppxPackage "windbg.msixbundle"
 }
 
 InstallWinDbg
