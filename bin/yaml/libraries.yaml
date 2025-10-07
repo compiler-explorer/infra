@@ -548,6 +548,7 @@ libraries:
       check_file: README.md
       method: clone_branch
       repo: electronicarts/EASTL
+      type: github
       targets:
       - 3.12.01
       - 3.12.04
@@ -567,7 +568,24 @@ libraries:
       - 3.15.00
       - 3.16.01
       - 3.16.05
-      type: github
+      built:
+        subdir: eastl
+        staticliblink:
+        - EASTL
+        build_type: cmake
+        lib_type: static
+        recursive: false
+        check_file: CMakeLists.txt
+        targets:
+        - 3.16.07
+        - 3.17.00
+        - 3.17.02
+        - 3.17.03
+        - 3.17.06
+        - 3.18.00
+        - 3.21.12
+        - 3.21.23
+        - 3.27.00
     eigen:
       check_file: README.md
       repo: libeigen/eigen
