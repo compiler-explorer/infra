@@ -64,7 +64,7 @@ class InstallationContext:
         keep_staging: bool,
         check_user: str,
         platform: LibraryPlatform,
-        config: Config | None = None,
+        config: Config,
     ):
         self._destination = destination
         self._prior_installation = self.destination
@@ -104,10 +104,14 @@ class InstallationContext:
     def prior_installation(self) -> Path:
         return self._prior_installation
 
+    @property
+    def cefs_enabled(self) -> bool:
+        return self.config.cefs.enabled
+
     @contextlib.contextmanager
     def new_staging_dir(self) -> Iterator[StagingDir]:
         # Use local staging directory when CEFS is enabled for better performance
-        if self.config and self.config.cefs.enabled:
+        if self.cefs_enabled:
             local_staging_root = self.config.cefs.local_temp_dir / "staging"
             local_staging_root.mkdir(parents=True, exist_ok=True)
             staging_dir = StagingDir(local_staging_root / str(uuid.uuid4()), self._keep_staging)
@@ -314,7 +318,7 @@ class InstallationContext:
             return
 
         # Check if CEFS is enabled and should be used for this installation
-        if self.config and self.config.cefs.enabled:
+        if self.cefs_enabled:
             _LOGGER.info("Installing via CEFS: %s -> %s", source, dest)
             self._deploy_to_cefs(staging, installable_name, source, dest, relocate=relocate)
             return
@@ -468,7 +472,7 @@ class InstallationContext:
         relocate: Callable[[Path, Path], None] | None,
     ) -> None:
         """Deploy staging content directly to CEFS storage."""
-        if not self.config or not self.config.cefs.enabled:
+        if not self.config.cefs.enabled:
             raise RuntimeError("CEFS not enabled but _deploy_to_cefs called")
 
         source_path = staging.path / source

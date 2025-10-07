@@ -84,7 +84,7 @@ class BlueGreenDeployment:
             print(f"Restoring original capacity settings for {active_asg}")
             try:
                 restore_asg_capacity_protection(active_asg, active_original_min, active_original_max)
-            except Exception as e:
+            except ClientError as e:
                 LOGGER.warning(f"Failed to restore capacity settings for {active_asg}: {e}")
 
         if inactive_asg:
@@ -92,7 +92,7 @@ class BlueGreenDeployment:
             print(f"Resetting minimum size of {inactive_asg} to 0")
             try:
                 reset_asg_min_size(inactive_asg, min_size=0)
-            except Exception as e:
+            except ClientError as e:
                 LOGGER.warning(f"Failed to reset min size for {inactive_asg}: {e}")
 
         # Rollback version if it was changed
@@ -101,7 +101,7 @@ class BlueGreenDeployment:
             try:
                 set_current_key(self.cfg, original_version_key)
                 print("✓ Version rolled back successfully")
-            except Exception as e:
+            except ClientError as e:
                 LOGGER.error(f"Failed to rollback version: {e}")
                 LOGGER.error(f"You may need to manually set version back to {original_version_key}")
 
@@ -374,7 +374,7 @@ class BlueGreenDeployment:
                                     if not release:
                                         raise RuntimeError(f"Version {version} not found") from None
                                     break
-                                except Exception as copy_error:
+                                except (ClientError, OSError) as copy_error:
                                     LOGGER.error(f"Failed to copy discovery file: {copy_error}")
                                     LOGGER.error("Deployment cancelled due to discovery copy failure.")
                                     raise DeploymentCancelledException("Discovery copy failed") from copy_error
@@ -520,7 +520,7 @@ class BlueGreenDeployment:
                 print(
                     f"  Compiler routing updated: {result['added']} added, {result['updated']} updated, {result['deleted']} deleted"
                 )
-            except Exception as e:
+            except ClientError as e:
                 LOGGER.warning(f"Failed to update compiler routing table: {e}")
                 LOGGER.warning("Deployment will continue, but compiler routing may be out of date")
                 print(f"  ⚠️  Warning: Compiler routing update failed: {e}")
@@ -548,7 +548,7 @@ class BlueGreenDeployment:
                     try:
                         set_current_key(self.cfg, original_version_key)
                         print("✓ Version rolled back successfully")
-                    except Exception as e:
+                    except ClientError as e:
                         LOGGER.error(f"Failed to rollback version: {e}")
                         LOGGER.error(f"You may need to manually set version back to {original_version_key}")
 
@@ -649,7 +649,7 @@ class BlueGreenDeployment:
                             tg_status = "partially_healthy"
                         else:
                             tg_status = "unhealthy"
-                    except Exception:
+                    except ClientError:
                         tg_status = "error"
 
                     # Get HTTP health checks for instances

@@ -1181,6 +1181,7 @@ compilers:
           - 6.2.4
           - 6.3.3
           - 6.4.0
+          - 7.0.1
     plugins:
       clad:
         path_name: clang-plugins/clad-{{name}}
@@ -1191,13 +1192,14 @@ compilers:
           - 1.9-clang-19.1.0
           - 1.10-clang-20.1.0
           - 2.0-clang-20.1.0
+          - 2.1-clang-21.1.0
         nightly:
           if: nightly
           subdir: clang-plugins
           compiler_name: clad-{{name}}
           type: nightly
           targets:
-          - trunk-clang-20.1.0
+          - trunk-clang-21.1.0
     qnx:
       if: non-free
       compression: xz
@@ -1423,6 +1425,9 @@ compilers:
       dir: hpc_sdk/Linux_{{arch}}/{{version}}
       check_stderr_on_stdout: true
       check_exe: compilers/bin/nvc++ --version
+      depends:
+        - compilers/c++/x86/gcc 12.2.0
+        - compilers/c++/cross/gcc/arm64 12.2.0
       script: |
         mkdir -p "nvhpc_sdk_{{version}}_{{arch}}";
         tar -f "nvhpc_sdk_{{version}}_{{arch}}.tar.gz" -C "nvhpc_sdk_{{version}}_{{arch}}" --wildcards --strip-components=1 -pzx "nvhpc_*/*"
@@ -1437,16 +1442,16 @@ compilers:
         if [[ "{{arch}}" == "x86_64" ]]; then
           bash "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin/makelocalrc" \
             -x "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin" \
-            -gcc /opt/compiler-explorer/gcc-12.2.0/bin/gcc \
-            -gpp /opt/compiler-explorer/gcc-12.2.0/bin/g++ \
-            -g77 /opt/compiler-explorer/gcc-12.2.0/bin/gfortran \
+            -gcc %DEP0%/bin/gcc \
+            -gpp %DEP0%/bin/g++ \
+            -g77 %DEP0%/bin/gfortran \
             ;
         elif [[ "{{arch}}" == "aarch64" ]]; then
           bash "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin/makelocalrc" \
             -x "$CE_STAGING_DIR/hpc_sdk/Linux_{{arch}}/{{version}}/compilers/bin" \
-            -gcc /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gcc \
-            -gpp /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-g++ \
-            -g77 /opt/compiler-explorer/arm64/gcc-12.2.0/aarch64-unknown-linux-gnu/bin/aarch64-unknown-linux-gnu-gfortran \
+            -gcc %DEP1%/bin/aarch64-unknown-linux-gnu-gcc \
+            -gpp %DEP1%/bin/aarch64-unknown-linux-gnu-g++ \
+            -g77 %DEP1%/bin/aarch64-unknown-linux-gnu-gfortran \
             ;
         fi
       targets:
@@ -1594,6 +1599,14 @@ compilers:
           dot_removed_version: "257"
           year: "2025"
           ctk_ver: "12.9"
+          fetch:
+            - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
+        - name: x86_64_25_9
+          arch: x86_64
+          version: "25.9"
+          dot_removed_version: "259"
+          year: "2025"
+          ctk_ver: "13.0"
           fetch:
             - https://developer.download.nvidia.com/hpc-sdk/{{version}}/nvhpc_{{year}}_{{dot_removed_version}}_Linux_{{arch}}_cuda_{{ctk_ver}}.tar.gz nvhpc_sdk_{{version}}_{{arch}}.tar.gz
     nightly:

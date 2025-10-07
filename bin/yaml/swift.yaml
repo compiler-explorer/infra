@@ -37,11 +37,11 @@ compilers:
           - '5.10'
           - '6.0.3'
           - '6.1'
-    # post-6-2:
-    #   url: https://download.swift.org/{{build}}/ubuntu2204/{{toolchain}}/{{toolchain}}-ubuntu22.04.tar.gz
-    #   targets:
-    #       - '6.2'
-    #   TODO: use this for 6.2+ releases since ubuntu 20.04 urls will no longer work
+    post-6-2:
+      url: https://download.swift.org/{{build}}/ubuntu2204/{{toolchain}}/{{toolchain}}-ubuntu22.04.tar.gz
+      targets:
+          - '6.2'
+
     static-sdk:
       url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-0.0.1.artifactbundle.tar.gz
       dir: swift-{{name}}-static-sdk
@@ -52,6 +52,7 @@ compilers:
       targets:
           - '6.0.3'
           - '6.1'
+          - '6.2'
     nightly:
       if: nightly
       type: restQueryTarballs

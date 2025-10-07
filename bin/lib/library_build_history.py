@@ -43,6 +43,6 @@ class LibraryBuildHistory:
         except botocore.exceptions.NoCredentialsError as e:
             self.logger.error(f"Failed to insert into library-build-history - No AWS credentials: {e}")
             return
-        except Exception as e:
+        except botocore.exceptions.ClientError as e:
             self.logger.error(f"Failed to insert into library-build-history: {e}")
             return

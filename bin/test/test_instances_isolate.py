@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import Mock, call, patch
 
+from botocore.exceptions import ClientError
 from click.testing import CliRunner
 from lib.cli.instances import instances
 from lib.env import Config, Environment
@@ -193,7 +194,9 @@ class TestInstanceIsolation(unittest.TestCase):
         mock_are_you_sure.return_value = True
 
         # Simulate EC2 API error
-        mock_ec2_client.modify_instance_attribute.side_effect = Exception("EC2 API Error")
+        mock_ec2_client.modify_instance_attribute.side_effect = ClientError(
+            {"Error": {"Code": "Test", "Message": "EC2 API Error"}}, "ModifyInstanceAttribute"
+        )
 
         # Call the function using Click's test runner
         runner = CliRunner()

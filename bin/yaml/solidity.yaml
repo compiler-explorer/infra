@@ -13,6 +13,7 @@ compilers:
       - 0.8.25
       - 0.8.26
       - 0.8.29
+      - 0.8.30
   solidity_zksync:
     type: singleFile
     dir: zksync-solc-{{name}}
@@ -52,4 +53,6 @@ compilers:
     filename: solx
     check_exe: solx --version
     targets:
-      - 0.1.0-alpha.2
+      - 0.1.0
+      - 0.1.1
+      - 0.1.2

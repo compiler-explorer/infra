@@ -148,7 +148,7 @@ def runner_start():
             r = exec_remote(instance, ["echo", "hello"])
             if r.strip() == "hello":
                 break
-        except Exception as e:
+        except RuntimeError as e:
             print(f"Still waiting for SSH: got: {e}")
         time.sleep(5)
     else:

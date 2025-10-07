@@ -92,7 +92,7 @@ class Config(BaseModel):
         except ValidationError as e:
             _LOGGER.error("Invalid config in %s: %s", config_path, e)
             raise
-        except Exception as e:
+        except (OSError, yaml.YAMLError) as e:
             _LOGGER.error("Failed to load config from %s: %s", config_path, e)
             raise
 

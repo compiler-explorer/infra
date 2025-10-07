@@ -130,8 +130,8 @@ The two-level autofs configuration works as follows:
 - [x] Test no mounts from old system are used
 - [x] Remove mount-all-img.sh and config
 - [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
-- [ ] Remove /efs/squash-images
-- [ ] Remove all `.bak` files and gc
+- [x] Remove /efs/squash-images
+- [x] Remove all `.bak` files and gc
 
 ## Implementation Notes
 

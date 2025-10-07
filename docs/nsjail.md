@@ -17,7 +17,7 @@ The main CE nsjail configuration is at `/etc/nsjail/compilers-and-tools.cfg`.
 
 ### The Problem
 
-Compiler Explorer's [CEFS](cefs.md) uses autofs for on-demand mounting of SquashFS images. When a compilation process accesses `/cefs/4c/4cdeadbeef/library`, autofs automatically mounts the corresponding SquashFS image at `/efs/squash-images/4c/4cdeadbeef.sqfs`.
+Compiler Explorer's [CEFS](cefs.md) uses autofs for on-demand mounting of SquashFS images. When a compilation process accesses `/cefs/4c/4cdeadbeef/library`, autofs automatically mounts the corresponding SquashFS image at `/efs/cefs-images/4c/4cdeadbeef.sqfs`.
 
 However, in containers with default mount namespace settings, these autofs-created mounts don't propagate into the container, causing ["Too many levels of symbolic links"](https://unix.stackexchange.com/questions/141436/too-many-levels-of-symbolic-links) errors.
 

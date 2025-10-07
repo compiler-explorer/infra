@@ -29,7 +29,7 @@ def svg_to_png(svg_path: str, png_path: str | None = None, dpi: int = DEFAULT_DP
         cairosvg.svg2png(url=svg_path, write_to=png_path, dpi=dpi)
 
         return png_path
-    except Exception as e:
+    except (OSError, ValueError) as e:
         raise RuntimeError(f"Failed to convert SVG to PNG: {e}") from e
 
 

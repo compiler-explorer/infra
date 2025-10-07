@@ -46,17 +46,10 @@
   <text x="119" y="534.0" font-family="DejaVu Sans Mono"
         font-size="54" font-weight="bold" fill="#000000">Special regs</text>
   <text x="566" y="534.0" font-family="DejaVu Sans Mono" font-size="54">
-<<<<<<< HEAD
-<tspan font-weight="bold" fill="#67c52a">R11</tspan><tspan fill="#000000"> FP, </tspan><tspan font-weight="bold" fill="#67c52a">R12</tspan><tspan fill="#000000"> IP</tspan>
-  </text>
-  <text x="566" y="591.0" font-family="DejaVu Sans Mono" font-size="54">
-<tspan font-weight="bold" fill="#67c52a">R13</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">SP</tspan><tspan fill="#000000">, </tspan><tspan font-weight="bold" fill="#67c52a">R14</tspan><tspan fill="#000000"> LR, </tspan><tspan font-weight="bold" fill="#67c52a">R15</tspan><tspan fill="#000000"> PC</tspan>
-=======
 <tspan font-weight="bold" fill="#67c52a">R11</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">FP</tspan><tspan fill="#000000">, </tspan><tspan font-weight="bold" fill="#67c52a">R12</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">IP</tspan>
   </text>
   <text x="566" y="591.0" font-family="DejaVu Sans Mono" font-size="54">
 <tspan font-weight="bold" fill="#67c52a">R13</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">SP</tspan><tspan fill="#000000">, </tspan><tspan font-weight="bold" fill="#67c52a">R14</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">LR</tspan><tspan fill="#000000">, </tspan><tspan font-weight="bold" fill="#67c52a">R15</tspan><tspan fill="#000000"> </tspan><tspan font-weight="bold" fill="#67c52a">PC</tspan>
->>>>>>> mcy-goabi
   </text>
   <text x="119" y="659.0" font-family="DejaVu Sans Mono"
         font-size="54" font-weight="bold" fill="#000000">VFP args</text>

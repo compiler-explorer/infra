@@ -340,7 +340,7 @@ def validate_manifest(manifest_dict: dict[str, Any]) -> CEFSManifest:
         # Use simplified error message for ValueError
         simplified = simplify_validation_error(e)
         raise ValueError(f"Invalid manifest: {simplified}") from e
-    except Exception as e:
+    except TypeError as e:
         raise ValueError(f"Invalid manifest: {e}") from e
 
 

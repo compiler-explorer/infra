@@ -74,7 +74,7 @@ def update_routing(cfg: Config, environment: str | None, dry_run: bool, skip_con
 
     except CompilerRoutingError as e:
         print(f"❌ Compiler routing error: {e}")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"❌ Unexpected error: {e}")
         LOGGER.error(f"Error updating compiler routing: {e}", exc_info=True)
 
@@ -103,7 +103,7 @@ def routing_status(cfg: Config):
 
     except CompilerRoutingError as e:
         print(f"❌ Compiler routing error: {e}")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"❌ Unexpected error: {e}")
         LOGGER.error(f"Error getting routing status: {e}", exc_info=True)
 
@@ -143,7 +143,7 @@ def lookup_compiler(cfg: Config, compiler_id: str):
 
     except CompilerRoutingError as e:
         print(f"❌ Compiler routing error: {e}")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"❌ Unexpected error: {e}")
         LOGGER.error(f"Error looking up compiler: {e}", exc_info=True)
 
@@ -205,7 +205,7 @@ def validate_routing(cfg: Config, environment: str | None):
 
     except CompilerRoutingError as e:
         print(f"❌ Compiler routing error: {e}")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"❌ Unexpected error: {e}")
         LOGGER.error(f"Error validating routing: {e}", exc_info=True)
 
@@ -255,6 +255,6 @@ def clear_routing(cfg: Config, environment: str, skip_confirmation: bool):
 
     except CompilerRoutingError as e:
         print(f"❌ Compiler routing error: {e}")
-    except Exception as e:
+    except RuntimeError as e:
         print(f"❌ Unexpected error: {e}")
         LOGGER.error(f"Error clearing routing: {e}", exc_info=True)

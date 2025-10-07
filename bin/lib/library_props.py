@@ -152,7 +152,11 @@ def update_library_in_properties(existing_content, library_name, library_propert
                     continue
 
                 if prop_name in library_properties:
-                    result_lines.append(f"{key}={library_properties[prop_name]}")
+                    # Preserve existing name and url properties instead of overwriting
+                    if prop_name in ("name", "url"):
+                        result_lines.append(line)
+                    else:
+                        result_lines.append(f"{key}={library_properties[prop_name]}")
                 else:
                     result_lines.append(line)
                 continue

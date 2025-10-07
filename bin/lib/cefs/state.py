@@ -84,7 +84,7 @@ class CEFSState:
 
                 try:
                     manifest = read_manifest_from_alongside(image_file)
-                except Exception as e:
+                except OSError as e:
                     _LOGGER.warning("Failed to read manifest for %s: %s", image_file, e)
                     self.image_references[filename_stem] = []
                     continue

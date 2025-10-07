@@ -25,7 +25,7 @@ def print_target_group_diagnostics(target_group_arn: str, instance_ids: list[str
             state = target["TargetHealth"]["State"]
             reason = target["TargetHealth"].get("Reason", "")
             print(f"  {target['Target']['Id']}: {state} - {reason}")
-    except Exception as e:
+    except ClientError as e:
         print(f"  Could not check target group status: {e}")
 
 
@@ -255,7 +255,7 @@ def check_instance_health(instance_id: str, running_on_admin_node: bool) -> dict
             return {"status": "connection_error", "message": "Connection refused", "private_ip": private_ip}
         except requests.exceptions.RequestException as e:
             return {"status": "error", "message": f"Request error: {str(e)}", "private_ip": private_ip}
-    except Exception as e:
+    except RuntimeError as e:
         return {"status": "error", "message": f"Unexpected error: {str(e)}"}
 
 
@@ -341,7 +341,7 @@ def check_instance_compiler_registration(
                 "private_ip": private_ip,
                 "compiler_count": 0,
             }
-    except Exception as e:
+    except RuntimeError as e:
         return {"status": "error", "message": f"Unexpected error: {str(e)}", "compiler_count": 0}
 
 

@@ -5,6 +5,7 @@ import re
 from datetime import datetime, timezone
 
 import boto3
+from botocore.exceptions import ClientError
 
 
 # AWS clients are initialized on demand with caching to make testing easier
@@ -245,7 +246,7 @@ def lambda_handler(event, _context):
         )
     except (ValueError, TypeError, KeyError, boto3.exceptions.Boto3Error) as e:
         return handle_error(e)
-    except Exception as e:
+    except RuntimeError as e:
         # Handle unexpected errors while still returning a proper response
         return handle_error(e, is_internal=True)
 
@@ -345,7 +346,7 @@ def parse_version_info(version_str):
             version_info["version"] = extract_version_from_key(version_str)
 
         return version_info
-    except Exception as e:
+    except (ValueError, KeyError) as e:
         # Fall back to safe defaults for unexpected errors
         return handle_version_parse_error(version_str, e, is_internal=True)
 
@@ -372,7 +373,7 @@ def fetch_commit_hash(info_key):
                 "hash_url": f"https://github.com/compiler-explorer/compiler-explorer/tree/{commit_hash}",
             }
         return None
-    except Exception as e:
+    except (ClientError, KeyError, ValueError) as e:
         # Log error and return
         print(f"Error fetching hash from {info_key}: {str(e)}")
         return None
@@ -427,7 +428,7 @@ def get_asg_status(env_name):
             "max_size": asg["MaxSize"],
             "is_deliberate_shutdown": asg["DesiredCapacity"] == 0 and asg["MinSize"] == 0,
         }
-    except Exception as e:
+    except ClientError as e:
         print(f"Error fetching ASG status for {env_name}: {str(e)}")
         return {"is_deliberate_shutdown": False}
 
@@ -452,7 +453,7 @@ def get_environment_status(env):
         status["version_info"] = version_info
     except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
         status.update(handle_environment_error(env["name"], e))
-    except Exception as e:
+    except RuntimeError as e:
         status.update(handle_environment_error(env["name"], e, is_internal=True))
 
     # Check load balancer status if ARN is provided
@@ -492,7 +493,7 @@ def get_environment_status(env):
             }
         except (boto3.exceptions.Boto3Error, KeyError, ValueError) as e:
             status["health"] = handle_lb_error(env["name"], e)
-        except Exception as e:
+        except RuntimeError as e:
             status["health"] = handle_lb_error(env["name"], e, is_internal=True)
     else:
         status["health"] = {"status": "Unknown", "status_type": "secondary", "error": "No load balancer configured"}

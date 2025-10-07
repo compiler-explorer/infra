@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 
 import requests
+from botocore.exceptions import ClientError
 
 from lib.amazon import (
     download_release_file,
@@ -96,7 +97,7 @@ def check_compiler_discovery(cfg: Config, version: str, branch: str | None = Non
     else:
         try:
             release = find_release(cfg, Version.from_string(version))
-        except Exception as e:
+        except RuntimeError as e:
             print(f"Invalid version format {version}: {e}")
             return None
 
@@ -122,7 +123,7 @@ def get_release_without_discovery_check(cfg: Config, version: str, branch: str |
     else:
         try:
             return find_release(cfg, Version.from_string(version))
-        except Exception:
+        except RuntimeError:
             return None
 
 
@@ -141,7 +142,7 @@ def set_version_for_deployment(cfg: Config, release: Release, ignore_hash_mismat
     # Log the new build
     try:
         log_new_build(cfg, to_set)
-    except Exception as e:
+    except ClientError as e:
         print(f"Failed to log new build: {e}")
         return False
 
@@ -156,7 +157,7 @@ def set_version_for_deployment(cfg: Config, release: Release, ignore_hash_mismat
                 if not deploy_staticfiles(release, ignore_hash_mismatch=ignore_hash_mismatch):
                     print("Failed to deploy static files")
                     return False
-        except Exception as e:
+        except (ClientError, OSError) as e:
             print(f"Failed to deploy static files: {e}")
             return False
     else:
@@ -166,7 +167,7 @@ def set_version_for_deployment(cfg: Config, release: Release, ignore_hash_mismat
     # Set the current key
     try:
         set_current_key(cfg, to_set)
-    except Exception as e:
+    except ClientError as e:
         print(f"Failed to set current key: {e}")
         return False
 
@@ -192,6 +193,6 @@ def notify_sentry_deployment(cfg: Config, release: Release) -> None:
             # Don't fail deployment for sentry notification failure
         else:
             print("...done")
-    except Exception as e:
+    except requests.RequestException as e:
         print(f"Warning: Failed to notify sentry: {e}")
         # Don't fail deployment for sentry notification failure
