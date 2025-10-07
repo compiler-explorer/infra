@@ -170,11 +170,9 @@ class BaseLibraryBuilder(ABC):
             except (
                 requests.exceptions.Timeout,
                 requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
                 ProtocolError,
             ) as e:
-                self.logger.warning(f"Got {e} when posting to {url}, retrying")
-                time.sleep(1)
-            except Exception as e:
                 self.logger.warning(f"Got {e} when posting to {url}, retrying")
                 time.sleep(1)
         raise RuntimeError(f"Failed to post to {url}")
@@ -189,12 +187,10 @@ class BaseLibraryBuilder(ABC):
             except (
                 requests.exceptions.Timeout,
                 requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
                 ProtocolError,
             ) as e:
                 self.logger.warning(f"Got {e} for {url}, retrying")
-                time.sleep(1)
-            except Exception:
-                self.logger.warning(f"Got exception for {url}, retrying")
                 time.sleep(1)
         return None
 
