@@ -8,21 +8,21 @@ param(
     $InstanceColor = $null
 )
 
-#function MountZ {
-#    $exists = (Get-SmbMapping -LocalPath 'Z:') -as [bool]
-#    if ($exists) {
-#         Remove-SmbMapping -LocalPath 'Z:' -Force
-#         $exists = $False
-#    }
-#
-#    while (-not $exists) {
-#        try {
-#            Write-Host "Mapping Z:"
-#            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath "\\$SMBServer\winshared") -as [bool]
-#        } catch {
-#        }
-#    }
-#}
+function MountZ {
+    $exists = (Get-SmbMapping -LocalPath 'Z:') -as [bool]
+    if ($exists) {
+         Remove-SmbMapping -LocalPath 'Z:' -Force
+         $exists = $False
+    }
+
+    while (-not $exists) {
+        try {
+            Write-Host "Mapping Z:"
+            $exists = (New-SmbMapping -LocalPath 'Z:' -RemotePath "\\$SMBServer\winshared") -as [bool]
+        } catch {
+        }
+    }
+}
 
 function MountY {
     $exists = (Get-SmbMapping -LocalPath 'Y:') -as [bool]
@@ -63,11 +63,13 @@ function Wait-ForDrive {
     }
 }
 
-MountY
-
-Start-Process "C:\tmp\cewinfilecache\CeWinFileCacheFS.exe" -WorkingDirectory "C:\tmp\cewinfilecache" -ArgumentList "--mount Z: --log-level debug --config compilers.production.json" -RedirectStandardOutput "C:\tmp\cewinfilecache\output.log" -RedirectStandardError "C:\tmp\cewinfilecache\error.log" -NoNewWindow
-
-Wait-ForDrive -DriveLetter 'Z' -CheckIntervalSeconds 1
+if (Test-Path "C:\tmp\cewinfilecache\CeWinFileCacheFS.exe") {
+  MountZ
+} else {
+  MountY
+  Start-Process "C:\tmp\cewinfilecache\CeWinFileCacheFS.exe" -WorkingDirectory "C:\tmp\cewinfilecache" -ArgumentList "--mount Z: --log-level debug --config compilers.production.json" -RedirectStandardOutput "C:\tmp\cewinfilecache\output.log" -RedirectStandardError "C:\tmp\cewinfilecache\error.log" -NoNewWindow
+  Wait-ForDrive -DriveLetter 'Z' -CheckIntervalSeconds 1
+}
 
 $env:NODE_ENV = "production"
 $env:PATH = "$env:PATH;Z:/compilers/mingw-8.1.0/mingw64/bin"
