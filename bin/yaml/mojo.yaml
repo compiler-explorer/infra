@@ -17,4 +17,4 @@ compilers:
         - name: nightly
           package:
             - --index-url=https://dl.modular.com/public/nightly/python/simple/
-            - "mojo<1.0.0"
+            - mojo

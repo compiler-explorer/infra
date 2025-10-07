@@ -2,11 +2,11 @@ locals {
   prod_image_id           = "ami-07e713f417975e753"
   staging_image_id        = "ami-07e713f417975e753"
   beta_image_id           = "ami-07e713f417975e753"
-  gpu_image_id            = "ami-0dcbc7e97c49d59e0"
+  gpu_image_id            = "ami-0e9b7b6038861de04"
   aarch64prod_image_id    = "ami-081acf5f3a2f3679f"
   aarch64staging_image_id = "ami-081acf5f3a2f3679f"
   winprod_image_id        = "ami-0cf55c2532ef41565"
-  winstaging_image_id     = "ami-0cf55c2532ef41565"
+  winstaging_image_id     = "ami-00ae456840fab5ef7"
   wintest_image_id        = "ami-0807541f025aad832"
   ce_router_image_id      = "ami-01bf1ab608fbae8bf"
 

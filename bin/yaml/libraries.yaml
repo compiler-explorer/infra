@@ -301,6 +301,8 @@ libraries:
       - 1.85.0
       - 1.86.0
       - 1.87.0
+      - 1.88.0
+      - 1.89.0
       type: tarballs
       untar_dir: boost-{{name}}
       url: https://github.com/boostorg/boost/releases/download/boost-{{name}}/boost-{{name}}-cmake.tar.xz
@@ -546,6 +548,7 @@ libraries:
       check_file: README.md
       method: clone_branch
       repo: electronicarts/EASTL
+      type: github
       targets:
       - 3.12.01
       - 3.12.04
@@ -565,7 +568,24 @@ libraries:
       - 3.15.00
       - 3.16.01
       - 3.16.05
-      type: github
+      built:
+        subdir: eastl
+        staticliblink:
+        - EASTL
+        build_type: cmake
+        lib_type: static
+        recursive: false
+        check_file: CMakeLists.txt
+        targets:
+        - 3.16.07
+        - 3.17.00
+        - 3.17.02
+        - 3.17.03
+        - 3.17.06
+        - 3.18.00
+        - 3.21.12
+        - 3.21.23
+        - 3.27.00
     eigen:
       check_file: README.md
       repo: libeigen/eigen
@@ -660,6 +680,7 @@ libraries:
       - 11.0.0
       - 11.1.4
       - 11.2.0
+      - 12.0.0
       type: github
     fusedkernellibrary:
       check_file: README.md
@@ -810,6 +831,7 @@ libraries:
       - 6.2.4
       - 6.3.3
       - 6.4.0
+      - 7.0.1
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
@@ -1738,11 +1760,11 @@ libraries:
       med:
         build_type: none
         check_file: med/med.hpp
+        method: nightlyclone
         repo: cppden/med
         targets:
         - trunk
         type: github
-        method: nightlyclone
       mimicpp:
         check_file: README.md
         method: nightlyclone
@@ -2500,8 +2522,8 @@ libraries:
       - arch=%intelarch?%
       lib_type: shared
       method: clone_branch
-      target_prefix: v
       repo: uxlfoundation/oneTBB
+      target_prefix: v
       targets:
       - '2020.2'
       - '2020.3'
@@ -2714,6 +2736,7 @@ libraries:
       repo: NVIDIA/MatX
       target_prefix: v
       targets:
+      - 0.9.3
       - 0.9.2
       - 0.9.1
       - 0.9.0

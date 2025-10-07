@@ -142,7 +142,10 @@ class Installable:
             )
         else:
             return (
-                self.is_library and self.build_config.build_type != "manual" and self.build_config.build_type != "none"
+                self.is_library
+                and self.build_config.build_type != "manual"
+                and self.build_config.build_type != "none"
+                and self.build_config.build_type != "never"
             )
 
     def install(self) -> None:

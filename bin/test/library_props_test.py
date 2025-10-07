@@ -343,3 +343,39 @@ libs.json.versions=3113
     existing_without_newline = existing_with_newline.rstrip("\n")
     result = merge_properties(existing_without_newline, new_content)
     assert not result.endswith("\n"), "Should preserve no final newline when original didn't have one"
+
+
+def test_update_library_preserves_existing_name_and_url():
+    """Test that updating library properties preserves existing name and url values."""
+    existing_content = """libs=fmt
+
+libs.fmt.name=Custom FMT Library
+libs.fmt.url=https://example.com/custom-fmt
+libs.fmt.versions=1000
+libs.fmt.versions.1000.version=10.0.0
+libs.fmt.versions.1000.path=/opt/compiler-explorer/libs/fmt/10.0.0/include
+"""
+
+    # Properties that include name and url (which should be ignored if they exist)
+    lib_props = {
+        "name": "fmt",
+        "url": "https://github.com/fmtlib/fmt",
+        "versions": "1000:1021",
+        "versions.1021.version": "10.2.1",
+        "versions.1021.path": "/opt/compiler-explorer/libs/fmt/10.2.1/include",
+    }
+
+    result = update_library_in_properties(existing_content, "fmt", lib_props, update_version_id="1021")
+
+    # Should preserve the existing custom name and url
+    assert "libs.fmt.name=Custom FMT Library" in result
+    assert "libs.fmt.url=https://example.com/custom-fmt" in result
+
+    # Should NOT contain the new values from lib_props
+    assert "libs.fmt.name=fmt\n" not in result
+    assert "libs.fmt.url=https://github.com/fmtlib/fmt" not in result
+
+    # Should still update the versions list and add new version properties
+    assert "libs.fmt.versions=1000:1021" in result
+    assert "libs.fmt.versions.1021.version=10.2.1" in result
+    assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in result

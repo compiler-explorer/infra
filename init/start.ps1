@@ -69,6 +69,56 @@ function get_released_code {
     Expand-Archive -Path "/tmp/build.zip" -DestinationPath $DEPLOY_DIR
 }
 
+function GetLatestCeWinFileCache {
+    Write-Host "Fetching latest CeWinFileCache release"
+
+    $releaseUrl = "https://api.github.com/repos/compiler-explorer/ce-win-file-cache/releases/latest"
+    $release = Invoke-RestMethod -Uri $releaseUrl -UseBasicParsing
+
+    $zipAsset = $release.assets | Where-Object { $_.name -like "ce-win-file-cache*.zip" } | Select-Object -First 1
+
+    if (-not $zipAsset) {
+        Write-Host "No ce-win-file-cache zip asset found in latest release"
+        return
+    }
+
+    $downloadUrl = $zipAsset.browser_download_url
+    Write-Host "Downloading from: $downloadUrl"
+
+    $tmpZip = "C:\tmp\ce-win-file-cache.zip"
+    $tmpExtract = "C:\tmp\ce-win-file-cache-extract"
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $tmpZip -UseBasicParsing
+
+    Write-Host "Extracting to C:\tmp\cewinfilecache"
+    if (Test-Path $tmpExtract) {
+        Remove-Item -Path $tmpExtract -Force -Recurse
+    }
+    Expand-Archive -Path $tmpZip -DestinationPath $tmpExtract -Force
+
+    $innerFolder = Get-ChildItem -Path $tmpExtract -Directory | Select-Object -First 1
+    if ($innerFolder) {
+        if (Test-Path "C:\tmp\cewinfilecache") {
+            Remove-Item -Path "C:\tmp\cewinfilecache" -Force -Recurse
+        }
+        Move-Item -Path $innerFolder.FullName -Destination "C:\tmp\cewinfilecache" -Force
+    }
+
+    Remove-Item -Path $tmpExtract -Force -Recurse
+    Remove-Item -Path $tmpZip -Force
+    Write-Host "CeWinFileCache installed successfully"
+}
+
+function GetCeWinFileCacheConfig {
+    Write-Host "Downloading CeWinFileCache configuration"
+
+    $configUrl = "https://raw.githubusercontent.com/compiler-explorer/ce-win-file-cache/refs/heads/main/compilers.production.json"
+    $configPath = "C:\tmp\cewinfilecache\compilers.production.json"
+
+    Invoke-WebRequest -Uri $configUrl -OutFile $configPath -UseBasicParsing
+
+    Write-Host "CeWinFileCache configuration downloaded successfully"
+}
+
 function GetConf {
     Param(
         $Name,
@@ -448,6 +498,8 @@ ConfigureSmbRights
 MountY
 
 GetLatestCEWrapper
+GetLatestCeWinFileCache
+GetCeWinFileCacheConfig
 
 UnMountY
 

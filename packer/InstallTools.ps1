@@ -136,9 +136,9 @@ function InstallBuildTools {
     New-Item -Path "/BuildTools" -ItemType Directory
 
     Write-Host "Installing CMake"
-    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v3.31.5/cmake-3.31.5-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
+    Invoke-WebRequest -Uri "https://github.com/Kitware/CMake/releases/download/v4.1.2/cmake-4.1.2-windows-x86_64.zip" -OutFile "/tmp/cmake-win.zip"
     Expand-Archive -Path "/tmp/cmake-win.zip" -DestinationPath "/BuildTools"
-    Rename-Item -Path "/BuildTools/cmake-3.31.5-windows-x86_64" -NewName "CMake"
+    Rename-Item -Path "/BuildTools/cmake-4.1.2-windows-x86_64" -NewName "CMake"
     Remove-Item -Path "/tmp/cmake-win.zip"
 
     AllowAppContainerRXAccess -Path "C:\BuildTools\CMake"
@@ -167,6 +167,13 @@ function Disable-WindowsDefenderPermanent {
     }
     Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
 }
+
+function InstallWinFsp {
+    Invoke-WebRequest -Uri "https://github.com/winfsp/winfsp/releases/download/v2.0/winfsp-2.0.23075.msi" -OutFile "C:\tmp\winfsp.msi"
+    Start-Process "msiexec" -argumentlist "/i winfsp.msi /quiet ALLUSERS=1" -wait
+}
+
+InstallWinFsp
 
 Disable-WindowsUpdatePermanent
 Disable-WindowsDefenderPermanent
