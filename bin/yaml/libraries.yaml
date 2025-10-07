@@ -813,6 +813,7 @@ libraries:
       - 6.2.4
       - 6.3.3
       - 6.4.0
+      - 7.0.1
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     hpx:
