@@ -64,11 +64,11 @@ function Wait-ForDrive {
 }
 
 if (Test-Path "C:\tmp\cewinfilecache\CeWinFileCacheFS.exe") {
-  MountZ
-} else {
   MountY
   Start-Process "C:\tmp\cewinfilecache\CeWinFileCacheFS.exe" -WorkingDirectory "C:\tmp\cewinfilecache" -ArgumentList "--mount Z: --log-level debug --config compilers.production.json" -RedirectStandardOutput "C:\tmp\cewinfilecache\output.log" -RedirectStandardError "C:\tmp\cewinfilecache\error.log" -NoNewWindow
   Wait-ForDrive -DriveLetter 'Z' -CheckIntervalSeconds 1
+} else {
+  MountZ
 }
 
 $env:NODE_ENV = "production"
