@@ -8,6 +8,10 @@ compilers:
     script: |
       chmod +x {{script_filename}}
       ./{{script_filename}} --prefix ./clojure/{{name}}
+    depends:
+      - compilers/java 21.0.2
+    check_env:
+      - JAVA_HOME=%DEP0%
     check_exe: "bin/clojure --version"
     targets:
       - 1.12.3.1577
