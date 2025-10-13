@@ -7,7 +7,9 @@ compilers:
     script_filename: "clojure-{{name}}.sh"
     script: |
       chmod +x {{script_filename}}
-      ./{{script_filename}} --prefix ./clojure/{{name}}
+      ./{{script_filename}} --prefix $(pwd)/clojure/{{name}}
+    relocate_paths:
+      - bin
     depends:
       - compilers/java 21.0.2
     check_env:
