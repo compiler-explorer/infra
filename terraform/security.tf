@@ -785,10 +785,6 @@ data "aws_security_group" "windows_builder" {
     name   = "tag:ghr:environment"
     values = ["ce-ci-windows-x64-win-builder"]
   }
-  filter {
-    name   = "vpc-id"
-    values = ["vpc-17209172"]
-  }
 }
 
 resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
