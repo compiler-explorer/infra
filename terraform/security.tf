@@ -67,9 +67,9 @@ resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   type                     = "ingress"
   from_port                = 1080
   to_port                  = 1080
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = aws_security_group.InternalServicesAlb.id
   protocol                 = "tcp"
-  description              = "Allow HTTP access from the ALB"
+  description              = "Allow HTTP access from the internal services ALB"
 }
 
 resource "aws_security_group_rule" "CE_HttpsFromAlb" {
@@ -87,9 +87,9 @@ resource "aws_security_group_rule" "CE_ConanHttpsFromAlb" {
   type                     = "ingress"
   from_port                = 1443
   to_port                  = 1443
-  source_security_group_id = aws_security_group.CompilerExplorerAlb.id
+  source_security_group_id = aws_security_group.InternalServicesAlb.id
   protocol                 = "tcp"
-  description              = "Allow HTTPS access from the ALB"
+  description              = "Allow HTTPS access from the internal services ALB"
 }
 
 resource "aws_security_group" "CompilerExplorerAlb" {
@@ -98,6 +98,15 @@ resource "aws_security_group" "CompilerExplorerAlb" {
   description = "Load balancer security group"
   tags = {
     Name = "CELoadBalancer"
+  }
+}
+
+resource "aws_security_group" "InternalServicesAlb" {
+  vpc_id      = module.ce_network.vpc.id
+  name        = "internal-services-alb-sg"
+  description = "Security group for internal services load balancer (conan, etc)"
+  tags = {
+    Name = "InternalServicesLoadBalancer"
   }
 }
 
@@ -112,19 +121,46 @@ resource "aws_security_group_rule" "ALB_HttpsFromAnywhere" {
   description       = "Allow HTTPS access from anywhere"
 }
 
-resource "aws_security_group_rule" "ALB_ConanHttpsFromAnywhere" {
+resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
   security_group_id = aws_security_group.CompilerExplorerAlb.id
+  type              = "egress"
+  from_port         = 0
+  to_port           = 65535
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "-1"
+  description       = "Allow egress to anywhere"
+}
+
+# TODO: Consider restricting these ports to CloudFront IP ranges only for better security.
+# Can use AWS managed prefix list: prefix_list_ids = ["pl-3b927c52"] instead of cidr_blocks.
+# Ports 1080/1443 are only used by conan via CloudFront, so there's no legitimate direct access.
+# Check with CE team before tightening to ensure no one is using direct ALB access for debugging.
+
+resource "aws_security_group_rule" "InternalALB_ConanHttpsFromAnywhere" {
+  security_group_id = aws_security_group.InternalServicesAlb.id
   type              = "ingress"
   from_port         = 1443
   to_port           = 1443
   cidr_blocks       = ["0.0.0.0/0"]
   ipv6_cidr_blocks  = ["::/0"]
   protocol          = "tcp"
-  description       = "Allow HTTPS access from anywhere"
+  description       = "Allow HTTPS access from anywhere (port 1443 for conan)"
 }
 
-resource "aws_security_group_rule" "ALB_EgressToAnywhere" {
-  security_group_id = aws_security_group.CompilerExplorerAlb.id
+resource "aws_security_group_rule" "InternalALB_ConanHttpFromAnywhere" {
+  security_group_id = aws_security_group.InternalServicesAlb.id
+  type              = "ingress"
+  from_port         = 1080
+  to_port           = 1080
+  cidr_blocks       = ["0.0.0.0/0"]
+  ipv6_cidr_blocks  = ["::/0"]
+  protocol          = "tcp"
+  description       = "Allow HTTP access from anywhere (port 1080 for conan)"
+}
+
+resource "aws_security_group_rule" "InternalALB_EgressToAnywhere" {
+  security_group_id = aws_security_group.InternalServicesAlb.id
   type              = "egress"
   from_port         = 0
   to_port           = 65535
