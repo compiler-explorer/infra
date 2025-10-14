@@ -218,11 +218,18 @@ class Installable:
             return False
 
         if self.check_file:
-            res = (self.install_context.destination / self.check_file).is_file()
-            self._logger.debug(
-                'Check file for "%s" returned %s', self.install_context.destination / self.check_file, res
-            )
-            return res
+            try:
+                res = (self.install_context.destination / self.check_file).is_file()
+                self._logger.debug(
+                    'Check file for "%s" returned %s', self.install_context.destination / self.check_file, res
+                )
+                return res
+            except PermissionError:
+                self._logger.warning(
+                    "Permission denied checking %s - assuming not installed",
+                    self.install_context.destination / self.check_file,
+                )
+                return False
 
         try:
             res_call = self.check_output_under_different_user()

@@ -268,6 +268,10 @@ class InstallationContext:
         Mirrors user permissions to group and other, but never grants write to group/other.
         Always ensures user has write permission for future editing.
         """
+        # Fix the root directory itself first
+        self._fix_single_permission(path)
+
+        # Then fix all subdirectories and files
         for root, dirs, files in os.walk(path):
             for dir_name in dirs:
                 dir_path = Path(root) / dir_name
