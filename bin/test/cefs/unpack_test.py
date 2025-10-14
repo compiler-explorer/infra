@@ -33,7 +33,7 @@ def mock_paths(tmp_path):
     }
 
 
-@patch("lib.cefs.unpack.extract_squashfs_image")
+@patch("lib.cefs.unpack.extract_squashfs_relocating_subdir")
 @patch("lib.cefs.unpack.parse_cefs_target")
 def test_unpack_simple_cefs_image(mock_parse, mock_extract, tmp_path, squashfs_config, mock_paths):
     """Test unpacking a simple (non-consolidated) CEFS image."""
@@ -80,7 +80,7 @@ def test_unpack_simple_cefs_image(mock_parse, mock_extract, tmp_path, squashfs_c
     assert args[3] is None  # extract_path should be None for simple images
 
 
-@patch("lib.cefs.unpack.extract_squashfs_image")
+@patch("lib.cefs.unpack.extract_squashfs_relocating_subdir")
 @patch("lib.cefs.unpack.parse_cefs_target")
 def test_unpack_consolidated_image(mock_parse, mock_extract, tmp_path, squashfs_config, mock_paths):
     """Test unpacking from a consolidated CEFS image (extracts only the subdir)."""
@@ -95,7 +95,8 @@ def test_unpack_consolidated_image(mock_parse, mock_extract, tmp_path, squashfs_
     # Mock parse_cefs_target to return the image path and indicate consolidated
     mock_parse.return_value = (cefs_image_path, True)
 
-    # Mock extract to create the directory
+    # Mock extract_squashfs_relocating_subdir to just create the directory with contents
+    # The helper already handles the nested subdirectory extraction logic
     def mock_extract_impl(config, image_path, output_dir, extract_path):
         output_dir.mkdir(parents=True, exist_ok=True)
         (output_dir / "bin").mkdir()
@@ -121,6 +122,10 @@ def test_unpack_consolidated_image(mock_parse, mock_extract, tmp_path, squashfs_
     args = mock_extract.call_args[0]
     assert args[1] == cefs_image_path
     assert args[3] == Path("gcc-12.3.0")  # Should extract only this subdir
+
+    # Verify the contents are directly in nfs_path, not nested in a subdirectory
+    assert (nfs_path / "bin" / "gcc").exists()
+    assert not (nfs_path / "gcc-12.3.0").exists()  # Should NOT have the nested subdir
 
 
 def test_unpack_not_a_symlink(tmp_path, squashfs_config, mock_paths):
@@ -162,7 +167,7 @@ def test_unpack_missing_image(mock_parse, tmp_path, squashfs_config, mock_paths)
         )
 
 
-@patch("lib.cefs.unpack.extract_squashfs_image")
+@patch("lib.cefs.unpack.extract_squashfs_relocating_subdir")
 @patch("lib.cefs.unpack.parse_cefs_target")
 def test_unpack_with_defer_cleanup(mock_parse, mock_extract, tmp_path, squashfs_config, mock_paths):
     """Test unpacking with defer_cleanup creates .DELETE_ME instead of deleting old .bak."""
@@ -346,7 +351,7 @@ def test_repack_dry_run(tmp_path, squashfs_config, mock_paths):
 @patch("lib.cefs.unpack.backup_and_symlink")
 @patch("lib.cefs.unpack.get_cefs_paths")
 @patch("lib.cefs.unpack.get_cefs_filename_for_image")
-@patch("lib.cefs.unpack.extract_squashfs_image")
+@patch("lib.cefs.unpack.extract_squashfs_relocating_subdir")
 @patch("lib.cefs.unpack.parse_cefs_target")
 def test_unpack_repack_roundtrip(
     mock_parse,

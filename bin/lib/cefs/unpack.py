@@ -13,7 +13,7 @@ from lib.cefs.deployment import backup_and_symlink, deploy_to_cefs_transactional
 from lib.cefs.paths import get_cefs_filename_for_image, get_cefs_paths, parse_cefs_target
 from lib.cefs_manifest import create_installable_manifest_entry, create_manifest
 from lib.config import SquashfsConfig
-from lib.squashfs import create_squashfs_image, extract_squashfs_image
+from lib.squashfs import create_squashfs_image, extract_squashfs_relocating_subdir
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ def unpack_cefs_item(
     try:
         # Extract to temp directory
         _LOGGER.info("Extracting to temporary location: %s", temp_path)
-        extract_squashfs_image(squashfs_config, cefs_image_path, temp_path, extraction_path)
+        extract_squashfs_relocating_subdir(squashfs_config, cefs_image_path, temp_path, extraction_path)
 
         backup_path = nfs_path.with_name(nfs_path.name + ".bak")
 
