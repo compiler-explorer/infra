@@ -694,9 +694,9 @@ resource "aws_security_group_rule" "efs_inbound" {
   for_each = {
     "Admin"              = aws_security_group.AdminNode.id,
     "Compilation"        = aws_security_group.CompilerExplorer.id
-    "CI-x64"             = "sg-07a8509aae61cbe4f"
-    "CI-arm64"           = "sg-0d3a3411b05a2bfb4"
-    "CI-lin-builder-x64" = "sg-06fc1097fde032d6e"
+    "CI-x64"             = data.aws_security_group.linux_x64.id
+    "CI-arm64"           = data.aws_security_group.linux_arm64.id
+    "CI-lin-builder-x64" = data.aws_security_group.linux_x64_builder.id
   }
   security_group_id        = aws_security_group.efs.id
   type                     = "ingress"
@@ -779,11 +779,32 @@ resource "aws_iam_role_policy_attachment" "api_gw_logging_policy" {
 }
 
 
-# Look up Windows builder security group created by ce-ci terraform
+# Look up CI runner security groups created by ce-ci terraform
 data "aws_security_group" "windows_builder" {
   filter {
     name   = "tag:ghr:environment"
     values = ["ce-ci-windows-x64-win-builder"]
+  }
+}
+
+data "aws_security_group" "linux_x64" {
+  filter {
+    name   = "tag:ghr:environment"
+    values = ["ce-ci-linux-x64"]
+  }
+}
+
+data "aws_security_group" "linux_arm64" {
+  filter {
+    name   = "tag:ghr:environment"
+    values = ["ce-ci-linux-arm64"]
+  }
+}
+
+data "aws_security_group" "linux_x64_builder" {
+  filter {
+    name   = "tag:ghr:environment"
+    values = ["ce-ci-linux-x64-builder"]
   }
 }
 
