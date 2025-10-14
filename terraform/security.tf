@@ -815,60 +815,20 @@ resource "aws_iam_role_policy_attachment" "api_gw_logging_policy" {
 }
 
 
-# note: SG mentioned here is created by the ce-ci terraform
+# Look up Windows builder security group created by ce-ci terraform
+data "aws_security_group" "windows_builder" {
+  filter {
+    name   = "tag:ghr:environment"
+    values = ["ce-ci-windows-x64-win-builder"]
+  }
+}
 
 resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
   security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
   from_port                = 445
   to_port                  = 445
-  source_security_group_id = "sg-06f4355d49a1e117b"
+  source_security_group_id = data.aws_security_group.windows_builder.id
   protocol                 = "tcp"
-  description              = "Allow SMB access locally"
-}
-
-# note: roles mentioned here are applied by the ce-ci terraform, so comment this out if that is not applied yet
-resource "aws_iam_instance_profile" "WinBuilder" {
-  name = "WinBuilder"
-  role = "ce-ci-windows-x64-win-builder-runner-role"
-}
-
-resource "aws_iam_role_policy_attachment" "WinBuilder_attach_UpdateLibraryBuildHistory" {
-  role       = "ce-ci-windows-x64-win-builder-runner-role"
-  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
-}
-
-resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AccessCeParams" {
-  role       = "ce-ci-windows-x64-win-builder-runner-role"
-  policy_arn = aws_iam_policy.AccessCeParams.arn
-}
-
-resource "aws_iam_role_policy_attachment" "WinBuilder_attach_ReadS3Minimal" {
-  role       = "ce-ci-windows-x64-win-builder-runner-role"
-  policy_arn = aws_iam_policy.ReadS3Minimal.arn
-}
-
-resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedInstanceCore" {
-  role       = "ce-ci-windows-x64-win-builder-runner-role"
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_UpdateLibraryBuildHistory" {
-  role       = "ce-ci-linux-x64-builder-runner-role"
-  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
-}
-
-resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_AccessCeParams" {
-  role       = "ce-ci-linux-x64-builder-runner-role"
-  policy_arn = aws_iam_policy.AccessCeParams.arn
-}
-
-resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_ReadS3Minimal" {
-  role       = "ce-ci-linux-x64-builder-runner-role"
-  policy_arn = aws_iam_policy.ReadS3Minimal.arn
-}
-
-resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_AmazonSSMManagedInstanceCore" {
-  role       = "ce-ci-linux-x64-builder-runner-role"
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  description              = "Allow SMB access from Windows builder"
 }

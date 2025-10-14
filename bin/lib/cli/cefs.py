@@ -48,6 +48,7 @@ from lib.cefs.repair import (
     perform_finalize,
 )
 from lib.cefs.state import CEFSState
+from lib.cefs.unpack import repack_cefs_item, unpack_cefs_item
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1297,3 +1298,166 @@ def fsck(
         # After repair, only exit with error if there were issues we couldn't fix
         if results.has_issues and not (repair and not results.inprogress_files):
             sys.exit(1)
+
+
+@cefs.command()
+@click.pass_obj
+@click.option(
+    "--defer-backup-cleanup",
+    is_flag=True,
+    help="Rename old .bak directories to .DELETE_ME_<timestamp> instead of deleting them immediately",
+)
+@click.argument("filter_", metavar="FILTER", nargs=-1, required=True)
+def unpack(context: CliContext, defer_backup_cleanup: bool, filter_: list[str]):
+    """Unpack CEFS images to real directories for in-place modifications.
+
+    Extracts the CEFS image and replaces the symlink with the actual directory.
+    The original symlink is saved as .bak for rollback.
+
+    This is useful when you need to modify files in a CEFS image but cannot
+    reinstall (e.g., upstream tarballs are gone). After unpacking, you can
+    modify the directory contents, then use 'ce cefs repack' to create a new
+    CEFS image with your changes.
+
+    Example:
+        ce cefs unpack qt-6.10
+        chmod -R a+rX /opt/compiler-explorer/qt-6.10.0
+        ce cefs repack qt-6.10
+    """
+    if not validate_cefs_mount_point(context.config.cefs.mount_point):
+        _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
+        raise click.ClickException("CEFS not properly configured")
+
+    if not filter_:
+        _LOGGER.error("No filter specified. Use a filter to select installables to unpack")
+        raise click.ClickException("Filter required for safety")
+
+    installables = context.get_installables(filter_)
+
+    if not installables:
+        _LOGGER.warning("No installables match filter: %s", " ".join(filter_))
+        return
+
+    successful = 0
+    failed = 0
+    skipped = 0
+
+    for installable in installables:
+        nfs_path = context.installation_context.destination / installable.install_path
+
+        if not nfs_path.exists(follow_symlinks=False):
+            _LOGGER.debug("Skipping %s - path does not exist", installable.name)
+            skipped += 1
+            continue
+
+        if not nfs_path.is_symlink():
+            _LOGGER.debug("Skipping %s - not a CEFS symlink (already unpacked?)", installable.name)
+            skipped += 1
+            continue
+
+        _LOGGER.info("Unpacking %s...", installable.name)
+
+        try:
+            if unpack_cefs_item(
+                installable.name,
+                nfs_path,
+                context.config.cefs.image_dir,
+                context.config.cefs.mount_point,
+                context.config.squashfs,
+                defer_backup_cleanup,
+                context.installation_context.dry_run,
+            ):
+                successful += 1
+        except RuntimeError as e:
+            _LOGGER.error("Failed to unpack %s: %s", installable.name, e)
+            failed += 1
+
+    _LOGGER.info("Unpack complete: %d successful, %d failed, %d skipped", successful, failed, skipped)
+
+    if failed > 0:
+        raise click.ClickException(f"Failed to unpack {failed} installables")
+
+
+@cefs.command()
+@click.pass_obj
+@click.option(
+    "--defer-backup-cleanup",
+    is_flag=True,
+    help="Rename old .bak directories to .DELETE_ME_<timestamp> instead of deleting them immediately",
+)
+@click.argument("filter_", metavar="FILTER", nargs=-1, required=True)
+def repack(context: CliContext, defer_backup_cleanup: bool, filter_: list[str]):
+    """Repack modified directories back into CEFS images.
+
+    Creates a new squashfs image from an unpacked directory and deploys it
+    to CEFS with a new hash. The directory is replaced with a symlink to the
+    new CEFS image.
+
+    Use this after you've unpacked a CEFS image with 'ce cefs unpack' and
+    made modifications to the directory contents. The old CEFS image will
+    become unreferenced and can be removed with 'ce cefs gc'.
+
+    Example:
+        ce cefs unpack qt-6.10
+        chmod -R a+rX /opt/compiler-explorer/qt-6.10.0
+        ce cefs repack qt-6.10
+        ce cefs gc
+    """
+    if not validate_cefs_mount_point(context.config.cefs.mount_point):
+        _LOGGER.error("CEFS mount point validation failed. Run 'ce cefs setup' first.")
+        raise click.ClickException("CEFS not properly configured")
+
+    if not filter_:
+        _LOGGER.error("No filter specified. Use a filter to select installables to repack")
+        raise click.ClickException("Filter required for safety")
+
+    installables = context.get_installables(filter_)
+
+    if not installables:
+        _LOGGER.warning("No installables match filter: %s", " ".join(filter_))
+        return
+
+    successful = 0
+    failed = 0
+    skipped = 0
+
+    for installable in installables:
+        nfs_path = context.installation_context.destination / installable.install_path
+
+        if not nfs_path.exists(follow_symlinks=False):
+            _LOGGER.debug("Skipping %s - path does not exist", installable.name)
+            skipped += 1
+            continue
+
+        if nfs_path.is_symlink():
+            _LOGGER.debug("Skipping %s - is a CEFS symlink (not unpacked)", installable.name)
+            skipped += 1
+            continue
+
+        if not nfs_path.is_dir():
+            _LOGGER.debug("Skipping %s - not a directory", installable.name)
+            skipped += 1
+            continue
+
+        _LOGGER.info("Repacking %s...", installable.name)
+
+        try:
+            if repack_cefs_item(
+                installable.name,
+                nfs_path,
+                context.config.cefs.image_dir,
+                context.config.cefs.mount_point,
+                context.config.squashfs,
+                context.config.cefs.local_temp_dir,
+                defer_backup_cleanup,
+                context.installation_context.dry_run,
+            ):
+                successful += 1
+        except RuntimeError as e:
+            _LOGGER.error("Failed to repack %s: %s", installable.name, e)
+            failed += 1
+
+    _LOGGER.info("Repack complete: %d successful, %d failed, %d skipped", successful, failed, skipped)
+
+    if failed > 0:
+        raise click.ClickException(f"Failed to repack {failed} installables")
