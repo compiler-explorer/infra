@@ -202,9 +202,12 @@ data "aws_iam_policy_document" "compiler-explorer-logs-s3-policy" {
       identifiers = ["arn:aws:iam::127311923021:root"]
       type        = "AWS"
     }
-    sid       = "Allow ELB to write logs"
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.compiler-explorer-logs.arn}/elb/*"]
+    sid     = "Allow ELB to write logs"
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer-logs.arn}/elb/*",
+      "${aws_s3_bucket.compiler-explorer-logs.arn}/elb-internal/*"
+    ]
   }
 }
 
