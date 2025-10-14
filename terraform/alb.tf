@@ -16,6 +16,24 @@ resource "aws_alb" "GccExplorerApp" {
   }
 }
 
+resource "aws_alb" "InternalServices" {
+  idle_timeout = 60
+  internal     = false
+  name         = "InternalServices"
+  security_groups = [
+    aws_security_group.InternalServicesAlb.id
+  ]
+  subnets = local.all_subnet_ids
+
+  enable_deletion_protection = false
+
+  access_logs {
+    bucket  = aws_s3_bucket.compiler-explorer-logs.bucket
+    prefix  = "elb-internal"
+    enabled = true
+  }
+}
+
 resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
   lifecycle {
     # Ignore changes to the default_action since it's managed by blue-green deployment
@@ -239,7 +257,7 @@ resource "aws_alb_listener" "ceconan-alb-listen-http" {
     target_group_arn = aws_alb_target_group.conan.arn
   }
 
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
+  load_balancer_arn = aws_alb.InternalServices.arn
   port              = 1080
   protocol          = "HTTP"
 }
@@ -249,7 +267,7 @@ resource "aws_alb_listener" "ceconan-alb-listen-https" {
     type             = "forward"
     target_group_arn = aws_alb_target_group.conan.arn
   }
-  load_balancer_arn = aws_alb.GccExplorerApp.arn
+  load_balancer_arn = aws_alb.InternalServices.arn
   port              = 1443
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2015-05"

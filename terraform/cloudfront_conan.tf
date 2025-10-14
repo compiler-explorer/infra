@@ -4,8 +4,8 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
     origin_id   = "S3-compiler-explorer"
   }
   origin {
-    domain_name = aws_alb.GccExplorerApp.dns_name
-    origin_id   = "GccExplorerApp"
+    domain_name = aws_alb.InternalServices.dns_name
+    origin_id   = "InternalServices"
     custom_origin_config {
       http_port                = 1080
       https_port               = 1443
@@ -77,7 +77,7 @@ resource "aws_cloudfront_distribution" "conan-compiler-explorer-com" {
         "*"
       ]
     }
-    target_origin_id       = "GccExplorerApp"
+    target_origin_id       = "InternalServices"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
   }

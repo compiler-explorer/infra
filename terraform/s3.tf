@@ -109,8 +109,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
   dynamic "rule" {
     # Keep only one month of these logs (See the privacy policy in the compiler explorer project)
     for_each = {
-      cloudfront = "cloudfront"
-      elb        = "elb"
+      cloudfront   = "cloudfront"
+      elb          = "elb"
+      elb-internal = "elb-internal"
     }
     content {
       id     = "delete_${rule.value}_per_log_policy"
@@ -202,9 +203,12 @@ data "aws_iam_policy_document" "compiler-explorer-logs-s3-policy" {
       identifiers = ["arn:aws:iam::127311923021:root"]
       type        = "AWS"
     }
-    sid       = "Allow ELB to write logs"
-    actions   = ["s3:PutObject"]
-    resources = ["${aws_s3_bucket.compiler-explorer-logs.arn}/elb/*"]
+    sid     = "Allow ELB to write logs"
+    actions = ["s3:PutObject"]
+    resources = [
+      "${aws_s3_bucket.compiler-explorer-logs.arn}/elb/*",
+      "${aws_s3_bucket.compiler-explorer-logs.arn}/elb-internal/*"
+    ]
   }
 }
 
