@@ -1,0 +1,20 @@
+compilers:
+  mojo:
+    depends:
+      - compilers/python 3.13.0
+    type: pip
+    dir: mojo-{{name}}
+    python: "%DEP0%/bin/python3.13"
+    package:
+      - mojo=={{name}}
+    check_exe: bin/mojo --version
+    targets:
+      - 0.25.6.0
+    nightly:
+      if: nightly
+      install_always: true
+      targets:
+        - name: nightly
+          package:
+            - --index-url=https://dl.modular.com/public/nightly/python/simple/
+            - mojo

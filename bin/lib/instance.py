@@ -1,16 +1,17 @@
+from __future__ import annotations
+
 import functools
 import logging
 from multiprocessing.pool import ThreadPool
-from typing import Dict, Optional
 
-from lib.amazon import ec2, ec2_client, as_client, elb_client, get_all_releases, release_for
-from lib.ssh import exec_remote, can_ssh_to
+from lib.amazon import as_client, ec2, ec2_client, elb_client, get_all_releases, release_for
+from lib.ssh import can_ssh_to, exec_remote
 
 STATUS_FORMAT = "{: <16} {: <20} {: <10} {: <12} {: <11} {: <11} {: <14}"
 logger = logging.getLogger("instance")
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def _singleton_instance(name: str):
     result = ec2_client.describe_instances(
         Filters=[
@@ -41,9 +42,9 @@ class Instance:
         self.update(health)
 
     def __str__(self):
-        return "{}@{}".format(self.instance.id, self.instance.private_ip_address)
+        return f"{self.instance.id}@{self.instance.private_ip_address}"
 
-    def describe_autoscale(self) -> Optional[Dict]:
+    def describe_autoscale(self) -> dict | None:
         results = as_client.describe_auto_scaling_instances(InstanceIds=[self.instance.instance_id])[
             "AutoScalingInstances"
         ]
@@ -230,13 +231,13 @@ def print_instances(instances, number=False):
     count = 0
     for inst in instances:
         if number:
-            print("{: <3}".format(count), end="")
+            print(f"{count: <3}", end="")
         count += 1
         running_version = release_for(releases, inst.running_version)
         if running_version:
-            running_version = "{} ({})".format(running_version.version, running_version.branch)
+            running_version = f"{running_version.version} ({running_version.branch})"
         else:
-            running_version = "(unknown {})".format(inst.running_version)
+            running_version = f"(unknown {inst.running_version})"
         print(
             STATUS_FORMAT.format(
                 inst.instance.private_ip_address,

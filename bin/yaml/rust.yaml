@@ -99,6 +99,10 @@ compilers:
         - 1.84.0
         - 1.85.0
         - 1.86.0
+        - 1.87.0
+        - 1.88.0
+        - 1.89.0
+        - 1.90.0
       nightly:
         if: nightly
         targets:
@@ -121,6 +125,12 @@ compilers:
           check_exe: bin/mrustc --version
           targets:
             - master
+      rust-miri:
+        if: nightly
+        type: nightly
+        check_exe: "bin/miri --version --verbose"
+        targets:
+          - nightly
   rust-linux:
     type: s3tarballs
     subdir: rust-linux

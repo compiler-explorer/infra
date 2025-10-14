@@ -73,6 +73,14 @@ resource "aws_route53_record" "atproto-matt-godbolt-org" {
   records = ["did=did:plc:vbbhrlxqrokfgnvuppfyeir5"]
 }
 
+// Test for auth - dev only do not use
+resource "aws_route53_record" "auth-godbolt-org" {
+  name    = "auth"
+  zone_id = module.godbolt-org.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["dev-ce-vupzkjx14g5sjvco-cd-qtr5mjlqgunghpuo.edge.tenants.us.auth0.com"]
+}
 
 ////////////////////////////////////////////////////
 
@@ -134,6 +142,134 @@ resource "aws_route53_record" "events-compiler-explorer-com" {
     zone_id                = aws_apigatewayv2_domain_name.events-api-compiler-explorer-custom-domain.domain_name_configuration[0].hosted_zone_id
     evaluate_target_health = false
   }
+}
+
+// Shop DNS records for fourthwall.com integration
+resource "aws_route53_record" "shop-compiler-explorer-com" {
+  name    = "shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "A"
+  records = ["34.117.223.165"]
+}
+
+resource "aws_route53_record" "www-shop-compiler-explorer-com" {
+  name    = "www.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["shop.compiler-explorer.com."]
+}
+
+// SendGrid CNAME records for support.shop
+resource "aws_route53_record" "em-fw-support-shop-compiler-explorer-com" {
+  name    = "em-fw.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["u45139959.wl210.sendgrid.net."]
+}
+
+resource "aws_route53_record" "s1-domainkey-support-shop-compiler-explorer-com" {
+  name    = "s1._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["s1.domainkey.u45139959.wl210.sendgrid.net."]
+}
+
+resource "aws_route53_record" "s2-domainkey-support-shop-compiler-explorer-com" {
+  name    = "s2._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["s2.domainkey.u45139959.wl210.sendgrid.net."]
+}
+
+// Zendesk CNAME records for support.shop
+resource "aws_route53_record" "zendesk1-domainkey-support-shop-compiler-explorer-com" {
+  name    = "zendesk1._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["zendesk1._domainkey.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk2-domainkey-support-shop-compiler-explorer-com" {
+  name    = "zendesk2._domainkey.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["zendesk2._domainkey.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk1-support-shop-compiler-explorer-com" {
+  name    = "zendesk1.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail1.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk2-support-shop-compiler-explorer-com" {
+  name    = "zendesk2.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail2.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk3-support-shop-compiler-explorer-com" {
+  name    = "zendesk3.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail3.zendesk.com."]
+}
+
+resource "aws_route53_record" "zendesk4-support-shop-compiler-explorer-com" {
+  name    = "zendesk4.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["mail4.zendesk.com."]
+}
+
+// TXT records for support.shop email verification and policies
+resource "aws_route53_record" "zendeskverification-support-shop-compiler-explorer-com" {
+  name    = "zendeskverification.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["7e2a8a956b617a3b"]
+}
+
+resource "aws_route53_record" "dmarc-support-shop-compiler-explorer-com" {
+  name    = "_dmarc.support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["v=DMARC1; p=reject; pct=100; rua=mailto:dmarc@fourthwall.com"]
+}
+
+resource "aws_route53_record" "spf-support-shop-compiler-explorer-com" {
+  name    = "support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["v=spf1 include:_spf.google.com include:mail.zendesk.com include:spf.improvmx.com include:sendgrid.net ~all"]
+}
+
+// MX records for support.shop email handling via ImprovMX
+resource "aws_route53_record" "mx-support-shop-compiler-explorer-com" {
+  name    = "support.shop"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "MX"
+  records = [
+    "10 mx1.improvmx.com.",
+    "20 mx2.improvmx.com."
+  ]
 }
 
 

@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 import contextlib
 import csv
 import glob
-import hashlib
 import itertools
 import json
 import os
@@ -9,27 +10,29 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
 from collections import defaultdict
+from collections.abc import Generator
 from enum import Enum, unique
 from pathlib import Path
-import time
-from typing import Dict, Any, List, Optional, Generator, TextIO
+from typing import Any, TextIO
+
 import botocore
+import requests
 from urllib3.exceptions import ProtocolError
 
-import requests
-
-from lib.library_build_history import LibraryBuildHistory
 from lib.amazon import get_ssm_param
-from lib.amazon_properties import get_specific_library_version_details, get_properties_compilers_and_libraries
-from lib.library_platform import LibraryPlatform
+from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
 from lib.binary_info import BinaryInfo
+from lib.installation_context import FetchFailure, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_build_history import LibraryBuildHistory
+from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
 compiler_popularity_treshhold = 1000
-popular_compilers: Dict[str, Any] = defaultdict(lambda: [])
+popular_compilers: dict[str, Any] = defaultdict(lambda: [])
 
 disable_clang_libcpp = [
     "clang30",
@@ -52,11 +55,30 @@ disable_clang_libcpp = [
 ]
 disable_clang_32bit = disable_clang_libcpp.copy()
 disable_clang_libcpp += ["clang_lifetime"]
-disable_compiler_ids = ["avrg454"]
+disable_compiler_ids = [
+    "avrg454",
+    "icc1301",
+    "icc16",
+    "icc17",
+    "icc18",
+    "icc19",
+    "icc191",
+    "icc202112",
+    "icc202120",
+    "icc202130",
+    "icc202140",
+    "icc202150",
+    "icc202160",
+    "icc202170",
+    "icc202171",
+    "icc202180",
+    "icc202190",
+    "icc2021100",
+]
 
-_propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
-_supports_x86: Dict[str, Any] = defaultdict(lambda: [])
-_compiler_support_output: Dict[str, Any] = defaultdict(lambda: [])
+_propsandlibs: dict[str, Any] = defaultdict(lambda: [])
+_supports_x86: dict[str, Any] = defaultdict(lambda: [])
+_compiler_support_output: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
 CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
@@ -107,13 +129,16 @@ class LibraryBuilder:
         self.sourcefolder = sourcefolder
         self.target_name = target_name
         self.forcebuild = False
-        self.current_buildparameters_obj: Dict[str, Any] = defaultdict(lambda: [])
-        self.current_buildparameters: List[str] = []
+        self.current_buildparameters_obj: dict[str, Any] = defaultdict(lambda: [])
+        self.current_buildparameters: list[str] = []
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
         self.current_commit_hash = ""
         self.platform = platform
+        self._conan_hash_cache: dict[str, str | None] = {}
+        self._annotations_cache: dict[str, dict] = {}
+        self.http_session = requests.Session()
 
         self.history = LibraryBuildHistory(self.logger)
 
@@ -192,6 +217,16 @@ class LibraryBuilder:
 
         self.buildconfig.staticliblink += alternatelibs
 
+        alternatelibs = []
+        for lib in self.buildconfig.sharedliblink:
+            if lib.endswith("d") and lib[:-1] not in self.buildconfig.sharedliblink:
+                alternatelibs += [lib[:-1]]
+            else:
+                if f"{lib}d" not in self.buildconfig.sharedliblink:
+                    alternatelibs += [f"{lib}d"]
+
+        self.buildconfig.sharedliblink += alternatelibs
+
     def getToolchainPathFromOptions(self, options):
         match = re.search(r"--gcc-toolchain=(\S*)", options)
         if match:
@@ -228,10 +263,9 @@ class LibraryBuilder:
         return False
 
     def getDefaultTargetFromCompiler(self, exe):
-        # pylint: disable=W0702
         try:
             return subprocess.check_output([exe, "-dumpmachine"]).decode("utf-8", "ignore").strip()
-        except:
+        except:  # noqa: E722
             return False
 
     def get_compiler_support_output(self, exe, compilerType, ldPath):
@@ -242,11 +276,11 @@ class LibraryBuilder:
         fullenv["LD_LIBRARY_PATH"] = ldPath
         output = ""
 
-        if compilerType == "" or compilerType == "win32-mingw-gcc":
+        if not compilerType or compilerType == "win32-mingw-gcc":
             if "icc" in exe:
                 output = subprocess.check_output([exe, "--help"], env=fullenv).decode("utf-8", "ignore")
             else:
-                if not ("zapcc" in exe) and not ("icpx" in exe):
+                if "zapcc" not in exe and "icpx" not in exe:
                     try:
                         output = subprocess.check_output([exe, "--target-help"], env=fullenv).decode("utf-8", "ignore")
                     except subprocess.CalledProcessError as e:
@@ -291,7 +325,7 @@ class LibraryBuilder:
             return fixedTarget == arch
 
         output = self.get_compiler_support_output(exe, compilerType, ldPath)
-        if compilerType == "":
+        if not compilerType:
             if "icpx" in exe:
                 return arch == "x86" or arch == "x86_64"
             elif "zapcc" in exe:
@@ -318,10 +352,7 @@ class LibraryBuilder:
         self.logger.debug(f"replace_optional_arg('{arg}', '{name}', '{value}')")
         optional = "%" + name + "?%"
         if optional in arg:
-            if value != "":
-                return arg.replace(optional, value)
-            else:
-                return ""
+            return arg.replace(optional, value) if value else ""
         else:
             return arg.replace("%" + name + "%", value)
 
@@ -342,6 +373,15 @@ class LibraryBuilder:
 
         expanded = self.replace_optional_arg(expanded, "intelarch", intelarch)
 
+        cmake_bool_windows = "OFF"
+        cmake_bool_not_windows = "ON"
+        if self.platform == LibraryPlatform.Windows:
+            cmake_bool_windows = "ON"
+            cmake_bool_not_windows = "OFF"
+
+        expanded = self.replace_optional_arg(expanded, "cmake_bool_not_windows", cmake_bool_not_windows)
+        expanded = self.replace_optional_arg(expanded, "cmake_bool_windows", cmake_bool_windows)
+
         return expanded
 
     def resil_post(self, url, json_data, headers=None):
@@ -350,10 +390,10 @@ class LibraryBuilder:
         last_error = ""
         while retries > 0:
             try:
-                if headers != None:
-                    request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
+                if headers is not None:
+                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
-                    request = requests.post(
+                    request = self.http_session.post(
                         url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
                     )
 
@@ -363,20 +403,20 @@ class LibraryBuilder:
                 retries = retries - 1
                 time.sleep(1)
 
-        if request == None:
+        if request is None:
             request = {"ok": False, "text": last_error}
 
         return request
 
-    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> Optional[requests.Response]:
-        request: Optional[requests.Response] = None
+    def resil_get(self, url: str, stream: bool, timeout: int, headers=None) -> requests.Response | None:
+        request: requests.Response | None = None
         retries = 3
         while retries > 0:
             try:
-                if headers != None:
-                    request = requests.get(url, stream=stream, headers=headers, timeout=timeout)
+                if headers is not None:
+                    request = self.http_session.get(url, stream=stream, headers=headers, timeout=timeout)
                 else:
-                    request = requests.get(
+                    request = self.http_session.get(
                         url, stream=stream, headers={"Content-Type": "application/json"}, timeout=timeout
                     )
 
@@ -472,7 +512,7 @@ class LibraryBuilder:
             if is_msvc:
                 libparampaths = compiler_props["libPath"].split(";")
             else:
-                if arch == "" or arch == "x86_64":
+                if not arch or arch == "x86_64":
                     # note: native arch for the compiler, so most of the time 64, but not always
                     if os.path.exists(f"{toolchain}/lib64"):
                         libparampaths.append(f"{toolchain}/lib64")
@@ -486,7 +526,7 @@ class LibraryBuilder:
 
                     if compilerType == "clang" or compilerType == "win32-mingw-clang":
                         archflag = "-m32"
-                    elif compilerType == "" or compilerType == "gcc" or compilerType == "win32-mingw-gcc":
+                    elif not compilerType or compilerType == "gcc" or compilerType == "win32-mingw-gcc":
                         archflag = "-march=i386 -m32"
 
             rpathflags = ""
@@ -504,7 +544,7 @@ class LibraryBuilder:
                 f.write(self.script_addtoend_env("PATH", os.path.abspath(x64path)))
             else:
                 for path in libparampaths:
-                    if path != "":
+                    if path:
                         ldflags += f"-L{path} "
 
             ldlibpathsstr = ldPath.replace("${exePath}", os.path.dirname(compilerexe)).replace("|", ":")
@@ -547,11 +587,11 @@ class LibraryBuilder:
                 f.write(self.script_env("NUMCPUS", "$(nproc)"))
 
             stdverflag = ""
-            if stdver != "":
+            if stdver:
                 stdverflag = f"-std={stdver}"
 
             stdlibflag = ""
-            if stdlib != "" and compilerType == "clang":
+            if stdlib and compilerType == "clang":
                 libcxx = stdlib
                 stdlibflag = f"-stdlib={stdlib}"
                 if stdlibflag in compileroptions:
@@ -561,10 +601,7 @@ class LibraryBuilder:
 
             extraflags = " ".join(x for x in flagscombination)
 
-            if compilerType == "":
-                compilerTypeOrGcc = "gcc"
-            else:
-                compilerTypeOrGcc = compilerType
+            compilerTypeOrGcc = compilerType or "gcc"
 
             if is_msvc:
                 compileroptions = compileroptions.replace("/source-charset:utf-8", "")
@@ -609,7 +646,10 @@ class LibraryBuilder:
                         )
                         if boosttarget == "i386":
                             cxx_flags += " -DBOOST_STACKTRACE_LIBCXX_RUNTIME_MAY_CAUSE_MEMORY_LEAK "
-                            targetparams += ' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" "-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" "-DBOOST_LOCALE_ENABLE_ICU=OFF" '
+                            targetparams += (
+                                ' "-DBOOST_IOSTREAMS_ENABLE_BZIP2=OFF" "-DBOOST_IOSTREAMS_ENABLE_LZMA=OFF" '
+                                '"-DBOOST_IOSTREAMS_ENABLE_ZSTD=OFF" "-DBOOST_LOCALE_ENABLE_ICU=OFF" '
+                            )
 
                 generator = ""
                 if self.platform == LibraryPlatform.Linux:
@@ -633,7 +673,15 @@ class LibraryBuilder:
                     )
                     f.write(f"{expanded_line}\n")
 
-                cmakeline = f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" {targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} "-DCMAKE_CXX_FLAGS_DEBUG={cxx_flags}" "-DCMAKE_C_FLAGS_DEBUG={c_flags}" "-DCMAKE_ASM_FLAGS_DEBUG={asm_flags}" {extracmakeargs} {sourcefolder} > cecmakelog.txt 2>&1\n'
+                # Use appropriate CMAKE_*_FLAGS based on build type
+                cmake_flags_suffix = "_DEBUG" if buildtype == "Debug" else "_RELEASE"
+                cmakeline = (
+                    f'cmake --install-prefix "{installfolder}" {generator} "-DCMAKE_VERBOSE_MAKEFILE=ON" '
+                    f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
+                    f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
+                    f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder} '
+                    f"> cecmakelog.txt 2>&1\n"
+                )
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
 
@@ -698,8 +746,12 @@ class LibraryBuilder:
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
 
+                par_args = []
+                if self.platform == LibraryPlatform.Linux:
+                    par_args = ["-j$NUMCPUS"]
+
                 extramakeargs = " ".join(
-                    ["-j$NUMCPUS"]
+                    par_args
                     + [
                         self.expand_make_arg(arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib)
                         for arg in self.buildconfig.extra_make_arg
@@ -716,14 +768,20 @@ class LibraryBuilder:
                         lognum += 1
 
                     if not self.buildconfig.package_install:
-                        if len(self.buildconfig.staticliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.a')\n")
-                        elif len(self.buildconfig.sharedliblink) != 0:
-                            f.write("libsfound=$(find . -iname 'lib*.so*')\n")
+                        if self.platform == LibraryPlatform.Linux:
+                            if len(self.buildconfig.staticliblink) != 0:
+                                f.write("libsfound=$(find . -iname 'lib*.a')\n")
+                            elif len(self.buildconfig.sharedliblink) != 0:
+                                f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
-                    f.write('if [ "$libsfound" = "" ]; then\n')
-                    f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
-                    f.write("fi\n")
+                            f.write('if [ "$libsfound" = "" ]; then\n')
+                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write("fi\n")
+                        elif self.platform == LibraryPlatform.Windows:
+                            f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
+                            f.write("if ($libs.count -eq 0) {\n")
+                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write("}\n")
 
                 if self.buildconfig.package_install:
                     f.write(f"{make_utility} install > ceinstall_0.txt 2>&1\n")
@@ -860,7 +918,7 @@ class LibraryBuilder:
                     filepath = os.path.join(buildfolder, f"lib{lib}.so")
                 bininfo = BinaryInfo(self.logger, buildfolder, filepath, self.platform)
                 if "libstdc++.so" not in bininfo.ldd_details and "libc++.so" not in bininfo.ldd_details:
-                    if arch == "":
+                    if not arch:
                         filesfound += 1
                     elif arch == "x86" and "ELF32" in bininfo.readelf_header_details:
                         filesfound += 1
@@ -883,11 +941,11 @@ class LibraryBuilder:
                         filesfound += 1
                     elif arch == "x86_64" and archinfo["obj_arch"] == "x86_64":
                         filesfound += 1
-                    elif arch == "":
+                    elif not arch:
                         filesfound += 1
                 else:
-                    if (stdlib == "") or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
-                        if arch == "":
+                    if not stdlib or (stdlib == "libc++" and not cxxinfo["has_maybecxx11abi"]):
+                        if not arch:
                             filesfound += 1
                         else:
                             if arch == "x86" and (
@@ -919,13 +977,13 @@ class LibraryBuilder:
                     filesfound += 1
                 elif arch == "x86_64" and archinfo["obj_arch"] == "x86_64":
                     filesfound += 1
-                elif arch == "":
+                elif not arch:
                     filesfound += 1
             else:
-                if (stdlib == "" and "libstdc++.so" in bininfo.ldd_details) or (
-                    stdlib != "" and f"{stdlib}.so" in bininfo.ldd_details
+                if (not stdlib and "libstdc++.so" in bininfo.ldd_details) or (
+                    stdlib and f"{stdlib}.so" in bininfo.ldd_details
                 ):
-                    if arch == "":
+                    if not arch:
                         filesfound += 1
                     elif arch == "x86" and (
                         "ELF32" in bininfo.readelf_header_details
@@ -961,34 +1019,36 @@ class LibraryBuilder:
                     self.logger.info(f"Build succeeded in {buildfolder}")
                     return BuildStatus.Ok
                 else:
+                    self.logger.debug(f"Build failed in {buildfolder}")
                     return BuildStatus.Failed
             elif self.platform == LibraryPlatform.Windows:
                 if subprocess.call(["pwsh", "./" + self.script_filename], cwd=buildfolder, timeout=build_timeout) == 0:
                     self.logger.info(f"Build succeeded in {buildfolder}")
                     return BuildStatus.Ok
                 else:
+                    self.logger.debug(f"Build failed in {buildfolder}")
                     return BuildStatus.Failed
 
         except subprocess.TimeoutExpired:
             self.logger.info(f"Build timed out and was killed ({buildfolder})")
             return BuildStatus.TimedOut
 
-    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
-        hasher = hashlib.sha256()
+    def makebuildhash(
+        self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration
+    ):
         flagsstr = "|".join(x for x in flagscombination)
-        hasher.update(
-            bytes(
-                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
-            )
-        )
 
         self.logger.info(
             f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
         )
 
-        return compiler + "_" + hasher.hexdigest()
+        return compiler + "_" + str(iteration)
 
-    def get_conan_hash(self, buildfolder: str) -> Optional[str]:
+    def get_conan_hash(self, buildfolder: str) -> str | None:
+        if buildfolder in self._conan_hash_cache:
+            self.logger.debug(f"Using cached conan hash for {buildfolder}")
+            return self._conan_hash_cache[buildfolder]
+
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
             conaninfo = subprocess.check_output(
@@ -997,7 +1057,11 @@ class LibraryBuilder:
             self.logger.debug(conaninfo)
             match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
             if match:
-                return match[1]
+                result = match[1]
+                self._conan_hash_cache[buildfolder] = result
+                return result
+
+        self._conan_hash_cache[buildfolder] = None
         return None
 
     def conanproxy_login(self):
@@ -1017,7 +1081,7 @@ class LibraryBuilder:
         request = self.resil_post(url, json_data=json.dumps(login_body))
         if not request.ok:
             self.logger.info(request.text)
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             self.conanserverproxy_token = response["token"]
@@ -1061,30 +1125,44 @@ class LibraryBuilder:
         return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
 
     def get_build_annotations(self, buildfolder):
+        if buildfolder in self._annotations_cache:
+            self.logger.debug(f"Using cached annotations for {buildfolder}")
+            return self._annotations_cache[buildfolder]
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
-            return defaultdict(lambda: [])
+            result = defaultdict(lambda: [])
+            self._annotations_cache[buildfolder] = result
+            return result
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
             request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
             if not request or not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
             fd.seek(0)
             buffer = fd.read()
-            return json.loads(buffer)
+            result = json.loads(buffer)
+            self._annotations_cache[buildfolder] = result
+            return result
 
     def get_commit_hash(self) -> str:
         if self.current_commit_hash:
             return self.current_commit_hash
 
         if os.path.exists(f"{self.sourcefolder}/.git"):
-            lastcommitinfo = subprocess.check_output(
-                ["git", "-C", self.sourcefolder, "log", "-1", "--oneline", "--no-color"]
-            ).decode("utf-8", "ignore")
+            lastcommitinfo = subprocess.check_output([
+                "git",
+                "-C",
+                self.sourcefolder,
+                "log",
+                "-1",
+                "--oneline",
+                "--no-color",
+            ]).decode("utf-8", "ignore")
             self.logger.debug(f"last git commit: {lastcommitinfo}")
             match = GITCOMMITHASH_RE.match(lastcommitinfo)
             if match:
@@ -1101,7 +1179,7 @@ class LibraryBuilder:
         url = f"{conanserver_url}/whathasfailedbefore"
         request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             current_commit = self.get_commit_hash()
@@ -1157,7 +1235,7 @@ class LibraryBuilder:
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
 
     def makebuildfor(
         self,
@@ -1175,9 +1253,10 @@ class LibraryBuilder:
         ld_path,
         staging: StagingDir,
         compiler_props,
+        iteration,
     ):
         combined_hash = self.makebuildhash(
-            compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination
+            compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination, iteration
         )
 
         build_folder = os.path.join(staging.path, combined_hash)
@@ -1278,9 +1357,14 @@ class LibraryBuilder:
         if self.needs_uploading > 0:
             if not self.install_context.dry_run:
                 self.logger.info("Uploading cached builds")
-                subprocess.check_call(
-                    ["conan", "upload", f"{self.libname}/{self.target_name}", "--all", "-r=ceserver", "-c"]
-                )
+                subprocess.check_call([
+                    "conan",
+                    "upload",
+                    f"{self.libname}/{self.target_name}",
+                    "--all",
+                    "-r=ceserver",
+                    "-c",
+                ])
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
@@ -1303,7 +1387,7 @@ class LibraryBuilder:
         with tempfile.TemporaryFile() as fd:
             request = self.resil_get(url, stream=True, timeout=_TIMEOUT)
             if not request or not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
@@ -1318,7 +1402,7 @@ class LibraryBuilder:
             self.logger.debug("downloading compiler popularity csv")
             self.download_compiler_usage_csv()
 
-        if not compiler in popular_compilers:
+        if compiler not in popular_compilers:
             return False
 
         if popular_compilers[compiler] < compiler_popularity_treshhold:
@@ -1327,7 +1411,7 @@ class LibraryBuilder:
         return True
 
     def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
-        if checkcompiler != "" and compiler != checkcompiler:
+        if checkcompiler and compiler != checkcompiler:
             return False
 
         if compiler in self.buildconfig.skip_compilers:
@@ -1341,7 +1425,7 @@ class LibraryBuilder:
             return False
         elif buildfor == "allicc" and "/icc" not in exe:
             return False
-        elif buildfor == "allgcc" and compilerType != "":
+        elif buildfor == "allgcc" and compilerType:
             return False
 
         if self.check_compiler_popularity:
@@ -1364,7 +1448,7 @@ class LibraryBuilder:
         build_supported_stdlib = ["", "libc++"]
         build_supported_flagscollection = [[""]]
 
-        if buildfor != "":
+        if buildfor:
             self.forcebuild = True
 
         if self.buildconfig.lib_type == "cshared":
@@ -1384,6 +1468,7 @@ class LibraryBuilder:
                 build_supported_arch = [""]
             else:
                 self.logger.info("Header-only library, no need to build")
+                return [builds_succeeded, 1, builds_failed]
         elif buildfor == "nonx86":
             self.forcebuild = True
             checkcompiler = ""
@@ -1394,7 +1479,7 @@ class LibraryBuilder:
         elif buildfor == "allclang" or buildfor == "allicc" or buildfor == "allgcc" or buildfor == "forceall":
             self.forcebuild = True
             checkcompiler = ""
-        elif buildfor != "":
+        elif buildfor:
             checkcompiler = buildfor
             if checkcompiler not in self.compilerprops:
                 self.logger.error(f"Unknown compiler {checkcompiler}")
@@ -1423,7 +1508,7 @@ class LibraryBuilder:
                 toolchain = str(os.path.abspath(Path(exe).parent / ".."))
 
             if (
-                self.buildconfig.build_fixed_stdlib != ""
+                self.buildconfig.build_fixed_stdlib
                 and fixedStdlib
                 and self.buildconfig.build_fixed_stdlib != fixedStdlib
             ):
@@ -1437,11 +1522,11 @@ class LibraryBuilder:
                     self.logger.debug(f"Fixed stdlib {fixedStdlib}")
                     stdlibs = [fixedStdlib]
                 else:
-                    if self.buildconfig.build_fixed_stdlib != "":
+                    if self.buildconfig.build_fixed_stdlib:
                         if self.buildconfig.build_fixed_stdlib != "libstdc++":
                             stdlibs = [self.buildconfig.build_fixed_stdlib]
                     else:
-                        if compilerType == "":
+                        if not compilerType:
                             self.logger.debug("Gcc-like compiler")
                         elif compilerType == "clang":
                             self.logger.debug("Clang-like compiler")
@@ -1454,7 +1539,7 @@ class LibraryBuilder:
             if compiler in disable_clang_32bit:
                 archs = ["x86_64"]
             else:
-                if self.buildconfig.build_fixed_arch != "":
+                if self.buildconfig.build_fixed_arch:
                     if not self.does_compiler_support(
                         exe,
                         compilerType,
@@ -1510,18 +1595,25 @@ class LibraryBuilder:
                         else:
                             archs = [""]
 
-            if buildfor == "nonx86" and archs[0] != "":
+            if buildfor == "nonx86" and archs[0]:
                 continue
-            if buildfor == "onlyx86" and archs[0] == "":
+            if buildfor == "onlyx86" and not archs[0]:
                 continue
 
             stdvers = build_supported_stdver
             if fixedStdver:
                 stdvers = [fixedStdver]
 
+            # Use Release build type for MSVC compilers on Windows
+            buildtypes = build_supported_buildtype
+            if is_msvc and self.platform == LibraryPlatform.Windows:
+                buildtypes = ["Release"]
+
+            iteration = 0
             for args in itertools.product(
-                build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
+                build_supported_os, buildtypes, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
+                iteration += 1
                 with self.install_context.new_staging_dir() as staging:
                     buildstatus = self.makebuildfor(
                         compiler,
@@ -1533,6 +1625,7 @@ class LibraryBuilder:
                         self.compilerprops[compiler]["ldPath"],
                         staging,
                         self.compilerprops[compiler],
+                        iteration,
                     )
                     if buildstatus == BuildStatus.Ok:
                         builds_succeeded = builds_succeeded + 1

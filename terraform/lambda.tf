@@ -19,6 +19,7 @@ resource "aws_iam_role_policy_attachment" "terraform_lambda_policy" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+# Pretty sure this is subsumed by https://docs.aws.amazon.com/aws-managed-policy/latest/reference/AWSLambdaBasicExecutionRole.html above?
 data "aws_iam_policy_document" "aws_lambda_logging" {
   statement {
     sid       = "AllowLogging"
@@ -98,6 +99,7 @@ resource "aws_iam_role_policy_attachment" "alert_on_elb_instance" {
   role       = aws_iam_role.iam_for_lambda.name
   policy_arn = aws_iam_policy.alert_on_elb_instance.arn
 }
+
 
 data "aws_ssm_parameter" "discord_webhook_url" {
   name = "/admin/discord_webhook_url"
@@ -251,4 +253,96 @@ resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   function_name                      = aws_lambda_function.stats.arn
   batch_size                         = 100
   maximum_batching_window_in_seconds = 300
+}
+
+# Status Lambda Policy
+data "aws_iam_policy_document" "aws_lambda_status" {
+  statement {
+    sid       = "S3Access"
+    actions   = ["s3:GetObject"]
+    resources = ["${aws_s3_bucket.compiler-explorer.arn}/version/*"]
+  }
+  statement {
+    sid     = "ElbAccess"
+    actions = ["elasticloadbalancing:DescribeTargetHealth"]
+    # Must use wildcard resource because DescribeTargetHealth requires permissions on both
+    # target groups AND their associated load balancers. AWS doesn't provide a way to determine
+    # which load balancer a target group belongs to at policy definition time.
+    # See: https://serverfault.com/questions/856737/aws-iam-policy-for-elasticloadbalancingdescribetargethealth
+    resources = ["*"]
+  }
+  statement {
+    sid     = "AutoScalingAccess"
+    actions = ["autoscaling:DescribeAutoScalingGroups"]
+    # Must use wildcard resource as ASG ARNs cannot be specified more precisely in IAM
+    resources = ["*"]
+  }
+  statement {
+    sid       = "Ec2Access"
+    actions   = ["ec2:DescribeInstances"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_policy" "aws_lambda_status" {
+  name        = "aws_lambda_status"
+  description = "Lambda status policy (S3, ELB, EC2, AutoScaling)"
+  policy      = data.aws_iam_policy_document.aws_lambda_status.json
+}
+
+resource "aws_iam_role_policy_attachment" "aws_lambda_status" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.aws_lambda_status.arn
+}
+
+resource "aws_cloudwatch_log_group" "status" {
+  name              = "/aws/lambda/status"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_function" "status" {
+  description       = "Provide status information for CE environments"
+  s3_bucket         = data.aws_s3_object.lambda_zip.bucket
+  s3_key            = data.aws_s3_object.lambda_zip.key
+  s3_object_version = data.aws_s3_object.lambda_zip.version_id
+  source_code_hash  = chomp(data.aws_s3_object.lambda_zip_sha.body)
+  function_name     = "status"
+  role              = aws_iam_role.iam_for_lambda.arn
+  handler           = "status.lambda_handler"
+  timeout           = 10
+
+  runtime = "python3.12"
+
+  environment {
+    variables = {
+      PROD_LB_BLUE_ARN         = module.prod_blue_green.target_group_arns["blue"]
+      PROD_LB_GREEN_ARN        = module.prod_blue_green.target_group_arns["green"]
+      STAGING_LB_BLUE_ARN      = module.staging_blue_green.target_group_arns["blue"]
+      STAGING_LB_GREEN_ARN     = module.staging_blue_green.target_group_arns["green"]
+      BETA_LB_BLUE_ARN         = module.beta_blue_green.target_group_arns["blue"]
+      BETA_LB_GREEN_ARN        = module.beta_blue_green.target_group_arns["green"]
+      GPU_LB_BLUE_ARN          = module.gpu_blue_green.target_group_arns["blue"]
+      GPU_LB_GREEN_ARN         = module.gpu_blue_green.target_group_arns["green"]
+      ARM_PROD_LB_BLUE_ARN     = module.aarch64prod_blue_green.target_group_arns["blue"]
+      ARM_PROD_LB_GREEN_ARN    = module.aarch64prod_blue_green.target_group_arns["green"]
+      ARM_STAGING_LB_BLUE_ARN  = module.aarch64staging_blue_green.target_group_arns["blue"]
+      ARM_STAGING_LB_GREEN_ARN = module.aarch64staging_blue_green.target_group_arns["green"]
+      WIN_PROD_LB_BLUE_ARN     = module.winprod_blue_green.target_group_arns["blue"]
+      WIN_PROD_LB_GREEN_ARN    = module.winprod_blue_green.target_group_arns["green"]
+      WIN_STAGING_LB_BLUE_ARN  = module.winstaging_blue_green.target_group_arns["blue"]
+      WIN_STAGING_LB_GREEN_ARN = module.winstaging_blue_green.target_group_arns["green"]
+      WIN_TEST_LB_BLUE_ARN     = module.wintest_blue_green.target_group_arns["blue"]
+      WIN_TEST_LB_GREEN_ARN    = module.wintest_blue_green.target_group_arns["green"]
+    }
+  }
+  depends_on = [aws_cloudwatch_log_group.status]
+}
+
+# Grant permission for the ALB to invoke the Lambda
+resource "aws_lambda_permission" "from_alb_status" {
+  statement_id  = "AllowExecutionFromALB"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.status.arn
+  principal     = "elasticloadbalancing.amazonaws.com"
+  source_arn    = aws_alb_target_group.lambda_status.arn
 }

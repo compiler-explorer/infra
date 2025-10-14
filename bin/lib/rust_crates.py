@@ -1,5 +1,7 @@
-import urllib
+from __future__ import annotations
+
 import json
+import urllib
 
 
 def get_builder_user_agent_id():

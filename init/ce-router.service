@@ -1,0 +1,24 @@
+[Unit]
+Description=CE Router - Compilation routing service
+After=remote-fs.target systemd-logind.service network-online.target cloud-init.target
+Wants=network-online.target
+Requires=remote-fs.target
+# DefaultDependencies=no prevents circular dependency: this service is WantedBy=multi-user.target
+# but needs After=cloud-init.target, and cloud-init.target is also WantedBy=multi-user.target
+# See: https://serverfault.com/questions/871328/start-service-after-aws-user-data-has-run
+DefaultDependencies=no
+
+[Service]
+Type=simple
+User=root
+TimeoutStartSec=infinity
+WorkingDirectory=/infra
+ExecStart=/infra/init/start-router.sh
+StandardOutput=journal
+StandardError=journal
+# Keep CPU controller enabled during daemon-reload to prevent cgroup setup race - see #1761
+CPUAccounting=yes
+CPUQuota=100%
+
+[Install]
+WantedBy=multi-user.target

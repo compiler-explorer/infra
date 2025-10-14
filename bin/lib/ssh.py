@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
@@ -11,11 +13,24 @@ from requests.exceptions import ConnectTimeout
 logger = logging.getLogger("ssh")
 
 
-@functools.lru_cache()
+@functools.lru_cache
 def running_on_ec2():
     logger.debug("Checking to see if running on ec2...")
     try:
-        result = requests.get("http://169.254.169.254/latest/dynamic/instance-identity/document", timeout=2)
+        token_response = requests.put(
+            "http://169.254.169.254/latest/api/token",
+            headers={"X-aws-ec2-metadata-token-ttl-seconds": "21600"},
+            timeout=2,
+        )
+        if not token_response.ok:
+            logger.debug("Failed to get IMDSv2 token: not running on ec2")
+            return False
+
+        result = requests.get(
+            "http://169.254.169.254/latest/dynamic/instance-identity/document",
+            headers={"X-aws-ec2-metadata-token": token_response.text},
+            timeout=2,
+        )
         logger.debug("Result %s", result)
         if result.ok and result.json():
             logger.debug("Running on ec2")
@@ -105,4 +120,4 @@ def ssh_client_for(instance) -> paramiko.SSHClient:
 def exec_remote_all(instances, command):
     for instance in instances:
         result = exec_remote(instance, command)
-        print(f'{instance}: {result or "(no output)"}')
+        print(f"{instance}: {result or '(no output)'}")

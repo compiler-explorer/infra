@@ -13,22 +13,18 @@ CE_INSTALL_ARG+=" --enable=non-free"
 ##################################
 # Non-free tools
 ce_install tools
-ce_squash tools
 
 ##################################
 # EDG compilers
 ce_install edg
-ce_squash edg
 
 ##################################
 # QNX compilers
 ce_install qnx
-ce_squash qnx
 
 ##################################
 # ORCA/C compilers
 ce_install orca-c
-ce_squash orca-c
 
 ##################################
 # Intel compilers
@@ -58,6 +54,9 @@ done
 
 ##################################
 # Windows compilers
+# Honestly only here to remind me how to get them back if we somehow lose them
+# These would need to be `ce smb sync`-d but we're root here and we don't have
+# the creds set up.
 fix_up_windows() {
     local file=$1
     if [[ -d "${file}/lib/native/bin/amd64" ]]; then
@@ -75,8 +74,8 @@ fix_up_windows() {
     fi
 }
 
-mkdir -p windows
-pushd windows
+mkdir -p /opt/winshared/compilers/msvc-legacy-from-wine/
+pushd /opt/winshared/compilers/msvc-legacy-from-wine/
 for file in \
     10.0.10240.0 \
     14.0.24224-Pre \
@@ -134,7 +133,3 @@ install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installer
 install_cuda https://developer.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.168_418.67_linux.run 10.1.168
 install_cuda https://developer.download.nvidia.com/compute/cuda/10.1/Prod/local_installers/cuda_10.1.243_418.87.00_linux.run 10.1.243
 install_cuda https://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run 10.2.89
-
-##################################
-# Sonar Analyzer
-s3fetch ${S3URL}/sonar/sonar.txz | tar Jxf -

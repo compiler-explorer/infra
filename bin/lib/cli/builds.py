@@ -1,41 +1,44 @@
+from __future__ import annotations
+
 import datetime
-import json
 import os
-import subprocess
 import sys
 import tempfile
 from collections import defaultdict
-from typing import Optional, Dict, Sequence
+from collections.abc import Sequence
 
 import click
-import requests
 
 from lib.amazon import (
-    download_release_file,
+    delete_bouncelock_file,
     download_release_fileobj,
     find_latest_release,
     find_release,
-    get_all_releases,
-    get_key_counterpart,
-    log_new_build,
-    set_current_key,
-    get_ssm_param,
     get_all_current,
-    get_releases,
-    remove_release,
+    get_all_releases,
     get_current_key,
+    get_key_counterpart,
+    get_releases,
+    has_bouncelock_file,
     list_all_build_logs,
     list_period_build_logs,
+    log_new_build,
     put_bouncelock_file,
-    delete_bouncelock_file,
-    has_bouncelock_file,
+    remove_release,
+    set_current_key,
+)
+from lib.builds_core import (
+    deploy_staticfiles,
+    deploy_staticfiles_windows,
+    notify_sentry_deployment,
+    old_deploy_staticfiles,
 )
 from lib.cdn import DeploymentJob
-from lib.ce_utils import describe_current_release, are_you_sure, display_releases, confirm_branch, confirm_action
+from lib.ce_utils import are_you_sure, confirm_action, confirm_branch, describe_current_release, display_releases
 from lib.cli import cli
 from lib.cli.runner import runner_discoveryexists
 from lib.env import Config, Environment
-from lib.releases import Version, Release, VersionSource
+from lib.releases import Release, Version, VersionSource
 
 
 @cli.group()
@@ -48,43 +51,6 @@ def builds():
 def builds_current(cfg: Config):
     """Print the current release."""
     print(describe_current_release(cfg))
-
-
-def old_deploy_staticfiles(branch, versionfile):
-    print("Deploying static files")
-    downloadfile = versionfile
-    filename = "deploy.tar.xz"
-    remotefile = branch + "/" + downloadfile
-    download_release_file(remotefile[1:], filename)
-    os.mkdir("deploy")
-    subprocess.call(["tar", "-C", "deploy", "-Jxf", filename])
-    os.remove(filename)
-    subprocess.call(["aws", "s3", "sync", "deploy/out/dist/dist", "s3://compiler-explorer/dist/cdn"])
-    subprocess.call(["rm", "-Rf", "deploy"])
-
-
-def deploy_staticfiles_windows(release) -> bool:
-    print("Deploying static files to cdn (Windows)")
-    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
-
-    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
-        download_release_fileobj(release.static_key, f)
-        f.flush()
-        with DeploymentJob(
-            f.name, "ce-cdn.net", version=release.version, cache_control=cc, bucket_path="windows"
-        ) as job:
-            return job.run()
-
-
-def deploy_staticfiles(release) -> bool:
-    print("Deploying static files to cdn")
-    cc = f"public, max-age={int(datetime.timedelta(days=365).total_seconds())}"
-
-    with tempfile.NamedTemporaryFile(suffix=os.path.basename(release.static_key)) as f:
-        download_release_fileobj(release.static_key, f)
-        f.flush()
-        with DeploymentJob(f.name, "ce-cdn.net", version=release.version, cache_control=cc) as job:
-            return job.run()
 
 
 def check_staticfiles_for_deployment(release) -> bool:
@@ -108,10 +74,10 @@ def check_staticfiles_for_deployment(release) -> bool:
 @click.option("--branch", help="if version == latest, branch to get latest version from")
 @click.option("--raw/--no-raw", help="Set a raw path for a version")
 @click.argument("version")
-def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
+def check_hashes(cfg: Config, branch: str | None, version: str, raw: bool):
     """Checks the static files for this version."""
-    to_set: Optional[str] = None
-    release: Optional[Release] = None
+    to_set: str | None = None
+    release: Release | None = None
     if raw:
         to_set = version
     else:
@@ -123,8 +89,8 @@ def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
         )
         if not release:
             print("Unable to find version " + version)
-            if setting_latest and branch != "":
-                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+            if setting_latest and branch:
+                print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
             sys.exit(1)
         else:
             to_set = release.key
@@ -140,17 +106,29 @@ def check_hashes(cfg: Config, branch: Optional[str], version: str, raw: bool):
 @click.option("--branch", help="if version == latest, branch to get latest version from")
 @click.option("--raw/--no-raw", help="Set a raw path for a version")
 @click.option("--confirm", help="Skip confirmation questions", is_flag=True)
+@click.option(
+    "--ignore-hash-mismatch", help="Continue deployment even if files have unexpected hash values", is_flag=True
+)
 @click.argument("version")
-def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bool, confirm: bool):
+def builds_set_current(
+    cfg: Config, branch: str | None, version: str, raw: bool, confirm: bool, ignore_hash_mismatch: bool
+):
     """Set the current version to VERSION for this environment.
 
     If VERSION is "latest" then the latest version (optionally filtered by --branch), is set.
     """
+    # Check if this environment supports blue-green deployment
+    if cfg.env.supports_blue_green:
+        print(f"⚠️  WARNING: Environment '{cfg.env.value}' supports blue-green deployment.")
+        print(f"   Consider using 'ce --env {cfg.env.value} blue-green deploy' instead of 'builds set_current'.")
+        print("   Blue-green deployment provides zero-downtime updates with automatic rollback capability.")
+        print()
+
     if has_bouncelock_file(cfg):
         print(f"{cfg.env.value} is currently bounce locked. New versions can't be set until the lock is lifted")
         sys.exit(1)
-    to_set: Optional[str] = None
-    release: Optional[Release] = None
+    to_set: str | None = None
+    release: Release | None = None
     if raw:
         to_set = version
     else:
@@ -162,13 +140,13 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
         )
         if not release:
             print("Unable to find version " + version)
-            if setting_latest and branch != "":
-                print("Branch {} has no available versions (Bad branch/No image yet built)".format(branch))
+            if setting_latest and branch:
+                print(f"Branch {branch} has no available versions (Bad branch/No image yet built)")
             sys.exit(1)
         elif confirm:
             print(f"Found release {release}")
             to_set = release.key
-        elif are_you_sure("change current version to {}".format(release.key), cfg) and confirm_branch(release.branch):
+        elif are_you_sure(f"change current version to {release.key}", cfg) and confirm_branch(release.branch):
             print(f"Found release {release}")
             to_set = release.key
     if to_set is not None and release is not None:
@@ -185,28 +163,18 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
         log_new_build(cfg, to_set)
         if release and release.static_key:
             if cfg.env.is_windows:
-                if not deploy_staticfiles_windows(release):
+                if not deploy_staticfiles_windows(release, ignore_hash_mismatch=ignore_hash_mismatch):
                     print("...aborted due to deployment failure!")
                     sys.exit(1)
             else:
-                if not deploy_staticfiles(release):
+                if not deploy_staticfiles(release, ignore_hash_mismatch=ignore_hash_mismatch):
                     print("...aborted due to deployment failure!")
                     sys.exit(1)
         else:
             old_deploy_staticfiles(branch, to_set)
         set_current_key(cfg, to_set)
         if release:
-            print("Marking as a release in sentry...")
-            token = get_ssm_param("/compiler-explorer/sentryAuthToken")
-            result = requests.post(
-                f"https://sentry.io/api/0/organizations/compiler-explorer/releases/{release.version}/deploys/",
-                data=dict(environment=cfg.env.value),
-                headers=dict(Authorization=f"Bearer {token}"),
-                timeout=30,
-            )
-            if not result.ok:
-                raise RuntimeError(f"Failed to send to sentry: {result} {result.content.decode('utf-8')}")
-            print("...done", json.loads(result.content.decode()))
+            notify_sentry_deployment(cfg, release)
 
 
 @builds.command(name="rm_old")
@@ -215,7 +183,7 @@ def builds_set_current(cfg: Config, branch: Optional[str], version: str, raw: bo
 def builds_rm_old(dry_run: bool, max_age: int):
     """Remove all but the last MAX_AGE builds."""
     current = get_all_current()
-    max_builds: Dict[VersionSource, int] = defaultdict(int)
+    max_builds: dict[VersionSource, int] = defaultdict(int)
     for release in get_all_releases():
         max_builds[release.version.source] = max(release.version.number, max_builds[release.version.source])
     for release in get_all_releases():
@@ -260,12 +228,10 @@ def builds_list(cfg: Config, branch: Sequence[str]):
 @click.option("--from", "from_time")
 @click.option("--until", "until_time")
 @click.pass_obj
-def builds_history(cfg: Config, from_time: Optional[str], until_time: Optional[str]):
+def builds_history(cfg: Config, from_time: str | None, until_time: str | None):
     """Show the history of current versions for this environment."""
     if from_time is None and until_time is None:
-        if confirm_action(
-            "Do you want list all builds for {}? It might be an expensive operation:".format(cfg.env.value)
-        ):
+        if confirm_action(f"Do you want list all builds for {cfg.env.value}? It might be an expensive operation:"):
             list_all_build_logs(cfg)
     else:
         list_period_build_logs(cfg, from_time, until_time)

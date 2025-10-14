@@ -37,6 +37,11 @@ compilers:
           - '5.10'
           - '6.0.3'
           - '6.1'
+    post-6-2:
+      url: https://download.swift.org/{{build}}/ubuntu2204/{{toolchain}}/{{toolchain}}-ubuntu22.04.tar.gz
+      targets:
+          - '6.2'
+
     static-sdk:
       url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-0.0.1.artifactbundle.tar.gz
       dir: swift-{{name}}-static-sdk
@@ -47,14 +52,15 @@ compilers:
       targets:
           - '6.0.3'
           - '6.1'
+          - '6.2'
     nightly:
       if: nightly
       type: restQueryTarballs
       install_always: true
       toolchain: development
-      url: https://download.swift.org/{{toolchain}}/ubuntu2004/latest-build.yml
+      url: https://download.swift.org/{{toolchain}}/ubuntu2204/latest-build.yml
       query: |
-        'https://download.swift.org/{{toolchain}}/ubuntu2004' \
+        'https://download.swift.org/{{toolchain}}/ubuntu2204' \
         + '/' + document['dir'] \
         + '/' + document['download']
       targets:
@@ -63,4 +69,4 @@ compilers:
         dir: swift-dev-snapshot
         toolchain: swift-{{name}}-branch
         targets:
-          - '6.1'
+          - '6.2'

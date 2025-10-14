@@ -14,6 +14,17 @@ The directory `/opt/compiler-explorer` is required, otherwise you'll have to sup
 
 `ce_install list` or `ce_install --enable nightly list`
 
+### Listing installation paths
+
+To see where compilers/tools would be installed without actually installing them:
+
+`ce_install list-paths <filter>`
+
+Examples:
+- `ce_install list-paths 'libraries/c++/fmt'` - Show all fmt library version paths
+- `ce_install list-paths --absolute 'libraries/c++/fmt 10.2.1'` - Show absolute path for specific version
+- `ce_install list-paths --json 'compilers/c++'` - Output all C++ compiler paths in JSON format
+
 ### For versioned compilers/tools
 
 `ce_install install <name>`
@@ -34,8 +45,8 @@ You can install a small amount of Windows compilers using ce_install.ps1, a regu
 
 ### On CE infrastructure
 
-`ce_install --staging-dir /efs/winshared/staging --dest /efs/winshared/compilers --enable windows install windows`
+**IMPORTANT no sudo; ensure --force-traditional**
 
-!no sudo!
+`ce_install --force-traditional --staging-dir /efs/winshared/staging --dest /efs/winshared/compilers --enable windows install windows`
 
 `ce smb sync`

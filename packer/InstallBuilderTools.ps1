@@ -8,6 +8,8 @@ function InstallAwsTools {
     Start-Process "msiexec" -argumentlist "/quiet ALLUSERS=1 /i awscli.msi" -wait
     Write-Host "Deleting tmp files"
     Remove-Item -Force "awscli.msi"
+
+    $env:PATH = "C:\Program Files\Amazon\AWSCLIV2;$env:PATH"
 }
 
 function InstallGIT {
@@ -121,6 +123,21 @@ function ConfigureSmbRights {
     gpupdate /Force
 }
 
+function GetConf {
+    Param(
+        $Name,
+        $Default = ""
+    )
+
+    try {
+        return (aws ssm get-parameter --name "$Name" | ConvertFrom-Json).Parameter.Value
+    }
+    catch {
+        Write-Host "GetConf($Name) raised Exception: $_"
+        return $Default
+    }
+}
+
 function InitializeAgentConfig {
     Write-Host "Downloading Grafana config template"
     Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/grafana/agent-win.yaml" -OutFile "/tmp/agent-win.yaml"
@@ -143,6 +160,26 @@ function InitializeAgentConfig {
         Start-Service "Grafana Agent"
     }
 }
+
+function Disable-WindowsUpdatePermanent {
+    Write-Host "Attempting to disable Windows Update..."
+
+    Stop-Service -Name wuauserv -Force -ErrorAction SilentlyContinue
+    Set-Service -Name wuauserv -StartupType Manual
+}
+
+function Disable-WindowsDefenderPermanent {
+    Write-Host "Attempting to disable Windows Defender..."
+
+    $defenderKey = "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender"
+    if (-not (Test-Path $defenderKey)) {
+        New-Item -Path $defenderKey -Force | Out-Null
+    }
+    Set-ItemProperty -Path $defenderKey -Name "DisableAntiSpyware" -Value 1
+}
+
+Disable-WindowsUpdatePermanent
+Disable-WindowsDefenderPermanent
 
 ConfigureSmbRights
 InstallAwsTools

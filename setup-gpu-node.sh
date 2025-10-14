@@ -6,6 +6,14 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 bash "${DIR}/setup-node.sh"
 
+# On Ubuntu 22 the older system GCC won't compile the driver
+. /etc/os-release
+if [[ "$ID" == "ubuntu" ]] && [[ "${VERSION_ID%%.*}" -eq 22 ]]; then
+    apt-get install -y gcc-12 g++-12
+    update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-12 12
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-12 12
+fi
+
 pushd /tmp
 curl -sL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb -o cuda_keyring.deb
 dpkg -i cuda_keyring.deb
@@ -14,11 +22,10 @@ popd
 
 apt-get -y update
 # Note the hyphen in the CUDA version number, not a period.
-DRIVER_VERSION=570
-CUDA_VERSION=12-8
+DRIVER_VERSION=580
+CUDA_VERSION=13-0
 apt install -y \
     nvidia-headless-${DRIVER_VERSION}-open \
-    nvidia-utils-${DRIVER_VERSION} \
     nvidia-driver-assistant \
     cuda-compiler-${CUDA_VERSION} \
     cuda-runtime-${CUDA_VERSION}

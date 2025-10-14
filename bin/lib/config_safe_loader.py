@@ -1,5 +1,6 @@
-import yaml
+from __future__ import annotations
 
+import yaml
 
 # With thanks to:
 # https://stackoverflow.com/questions/34667108/ignore-dates-and-times-while-parsing-yaml

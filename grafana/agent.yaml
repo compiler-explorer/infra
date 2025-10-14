@@ -17,6 +17,18 @@ prometheus:
               regex: (.*):(.*)
               replacement: :$2
               action: replace
+        - job_name: ce_node_metrics
+          static_configs:
+            - targets: [ 'localhost:10242' ]
+              labels:
+                agent_hostname: '@HOSTNAME@'
+                env: '@ENV@'
+          relabel_configs:
+            - source_labels: [ __address__ ]
+              target_label: instance
+              regex: (.*):(.*)
+              replacement: :$2
+              action: replace
       remote_write:
         - url: https://prometheus-us-central1.grafana.net/api/prom/push
           basic_auth:

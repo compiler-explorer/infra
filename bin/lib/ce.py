@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# coding=utf-8
+
+from __future__ import annotations
 
 import logging
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     try:
-        cli(prog_name="ce")  # pylint: disable=unexpected-keyword-arg,no-value-for-parameter
+        cli(prog_name="ce")
     except KeyboardInterrupt:
         # print empty line so terminal prompt doesn't end up on the end of some
         # of our own program output

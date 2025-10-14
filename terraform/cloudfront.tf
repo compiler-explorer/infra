@@ -13,6 +13,7 @@ data "aws_acm_certificate" "static-ce-cdn-net" {
 }
 
 resource "aws_cloudfront_distribution" "ce-godbolt-org" {
+  comment = "CE on godbolt.org"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -112,23 +113,23 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
   }
 
   ordered_cache_behavior {
-    allowed_methods            = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cache_policy_id            = "ce5806f2-1018-4efc-9127-db3038758622"
-    cached_methods             = [
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
       "GET",
       "HEAD"
     ]
-    compress                   = true
-    origin_request_policy_id   = "216adef6-5c7f-47e4-b989-5492eafa07d3"
-    path_pattern               = "/client-options.js"
-    smooth_streaming           = false
-    target_origin_id           = "ALB-compiler-explorer"
-    trusted_key_groups         = []
-    trusted_signers            = []
-    viewer_protocol_policy     = "allow-all"
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
   }
 
   default_cache_behavior {
@@ -173,6 +174,7 @@ resource "aws_cloudfront_distribution" "ce-godbolt-org" {
 # TODO - the duplication is rubbish
 # Though note the differences: logging and aliases (at least).
 resource "aws_cloudfront_distribution" "compiler-explorer-com" {
+  comment = "CE on compiler-explorer.com"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -272,23 +274,23 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
   }
 
   ordered_cache_behavior {
-    allowed_methods            = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cache_policy_id            = "ce5806f2-1018-4efc-9127-db3038758622"
-    cached_methods             = [
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
       "GET",
       "HEAD"
     ]
-    compress                   = true
-    origin_request_policy_id   = "216adef6-5c7f-47e4-b989-5492eafa07d3"
-    path_pattern               = "/client-options.js"
-    smooth_streaming           = false
-    target_origin_id           = "ALB-compiler-explorer"
-    trusted_key_groups         = []
-    trusted_signers            = []
-    viewer_protocol_policy     = "allow-all"
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
   }
 
   default_cache_behavior {
@@ -331,6 +333,7 @@ resource "aws_cloudfront_distribution" "compiler-explorer-com" {
 }
 
 resource "aws_cloudfront_distribution" "godbo-lt" {
+  comment = "CE on godbo.lt"
   origin {
     domain_name = "compiler-explorer.s3.amazonaws.com"
     origin_id   = "S3-compiler-explorer"
@@ -430,23 +433,23 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
   }
 
   ordered_cache_behavior {
-    allowed_methods            = [
+    allowed_methods = [
       "GET",
       "HEAD"
     ]
-    cache_policy_id            = "ce5806f2-1018-4efc-9127-db3038758622"
-    cached_methods             = [
+    cache_policy_id = "ce5806f2-1018-4efc-9127-db3038758622"
+    cached_methods = [
       "GET",
       "HEAD"
     ]
-    compress                   = true
-    origin_request_policy_id   = "216adef6-5c7f-47e4-b989-5492eafa07d3"
-    path_pattern               = "/client-options.js"
-    smooth_streaming           = false
-    target_origin_id           = "ALB-compiler-explorer"
-    trusted_key_groups         = []
-    trusted_signers            = []
-    viewer_protocol_policy     = "allow-all"
+    compress                 = true
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
+    path_pattern             = "/client-options.js"
+    smooth_streaming         = false
+    target_origin_id         = "ALB-compiler-explorer"
+    trusted_key_groups       = []
+    trusted_signers          = []
+    viewer_protocol_policy   = "allow-all"
   }
 
   default_cache_behavior {
@@ -490,6 +493,7 @@ resource "aws_cloudfront_distribution" "godbo-lt" {
 }
 
 resource "aws_cloudfront_distribution" "static-ce-cdn-net" {
+  comment = "CE CDN"
   origin {
     domain_name = "ce-cdn.net.s3.amazonaws.com"
     origin_id   = "S3-ce-cdn.net"

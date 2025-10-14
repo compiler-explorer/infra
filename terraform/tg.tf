@@ -1,15 +1,8 @@
 variable "ce-target-groups" {
   description = "Target groups to create on port 80 for CE"
   default = {
-    "prod"           = 1
-    "staging"        = 2
-    "beta"           = 3
-    "gpu"            = 4
-    "wintest"        = 5
-    "winstaging"     = 6
-    "winprod"        = 7
-    "aarch64prod"    = 8
-    "aarch64staging" = 9
+    # All blue-green environments now use modules instead of single target groups
+    # Keeping this variable structure for any remaining single environments
   }
 }
 
@@ -64,4 +57,17 @@ resource "aws_alb_target_group_attachment" "CEConanServerTargetInstance" {
   target_group_arn = aws_alb_target_group.conan.id
   target_id        = aws_instance.ConanNode.id
   port             = 1080
+}
+
+# Target group for the status Lambda
+resource "aws_alb_target_group" "lambda_status" {
+  name        = "StatusApiTargetGroup"
+  target_type = "lambda"
+}
+
+# Attach the Lambda function to the target group
+resource "aws_alb_target_group_attachment" "lambda-status-endpoint" {
+  target_group_arn = aws_alb_target_group.lambda_status.arn
+  target_id        = aws_lambda_function.status.arn
+  depends_on       = [aws_lambda_permission.from_alb_status]
 }

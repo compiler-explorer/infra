@@ -9,8 +9,6 @@ env EXTRA_NFS_ARGS=",ro" "${DIR}/setup-common.sh"
 apt-get -y update
 apt-get -y install software-properties-common
 dpkg --add-architecture i386
-curl -s https://dl.winehq.org/wine-builds/winehq.key | apt-key add -
-apt-add-repository 'deb https://dl.winehq.org/wine-builds/ubuntu/ jammy main'
 add-apt-repository ppa:deadsnakes/ppa
 apt-get install -y \
     binutils-multiarch \
@@ -27,6 +25,7 @@ apt-get install -y \
     gnat \
     jq \
     libapparmor-dev \
+    libc6-dev:i386 \
     libc6-dev-i386 \
     libdatetime-perl \
     libelf-dev \
@@ -50,37 +49,25 @@ apt-get install -y \
     texinfo \
     unzip \
     wget \
-    winehq-stable \
-    wine-stable \
-    wine-stable-amd64 \
-    wine-stable-i386 \
     xz-utils
-
-pushd /tmp
-git clone https://github.com/apmorton/firejail.git firejail-apmorton
-cd firejail-apmorton
-git checkout 0.9.58.2-ce-patch.1
-./configure --enable-apparmor --prefix /usr/local/firejail-0.9.58.2-ce-patch.1
-make "-j$(nproc)"
-make install
-popd
-
-ln -s /usr/local/firejail-0.9.58.2-ce-patch.1/bin/firejail /usr/local/bin
-
-pushd /tmp
-git clone https://github.com/netblue30/firejail.git
-cd firejail
-git checkout 0.9.70
-./configure --enable-apparmor --prefix /usr/local/firejail-0.9.70
-make "-j$(nproc)"
-make install
-popd
 
 pushd /tmp
 git clone --recursive --branch ce https://github.com/compiler-explorer/nsjail.git
 cd nsjail
 make "-j$(nproc)"
 cp nsjail /usr/local/bin/nsjail
+# Ubuntu 24.04+ needs AppArmor configuration to run unprivileged
+. /etc/os-release
+if [[ "$ID" == "ubuntu" ]] && [[ "${VERSION_ID%%.*}" -ge 24 ]]; then
+    cat > /etc/apparmor.d/usr.local.bin.nsjail <<EOF
+#include <tunables/global>
+
+/usr/local/bin/nsjail flags=(unconfined) {
+userns,
+}
+EOF
+    apparmor_parser -r /etc/apparmor.d/usr.local.bin.nsjail
+fi
 popd
 
 

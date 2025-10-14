@@ -27,9 +27,11 @@ on:
         - heaptrack
         - ispc
         - iwyu
+        - jakt
         - lfortran
         - mads
         - nasm
+        - nix
         - ocaml
         - python
         - pythran

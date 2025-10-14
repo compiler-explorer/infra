@@ -52,6 +52,16 @@ resource "aws_security_group_rule" "CE_HttpFromAlb" {
   description              = "Allow HTTP access from the ALB"
 }
 
+resource "aws_security_group_rule" "CE_HttpFromAdminNode" {
+  security_group_id        = aws_security_group.CompilerExplorer.id
+  type                     = "ingress"
+  from_port                = 80
+  to_port                  = 80
+  source_security_group_id = aws_security_group.AdminNode.id
+  protocol                 = "tcp"
+  description              = "Allow HTTP access from admin node for health checks"
+}
+
 resource "aws_security_group_rule" "CE_ConanHttpFromAlb" {
   security_group_id        = aws_security_group.CompilerExplorer.id
   type                     = "ingress"
@@ -220,6 +230,12 @@ resource "aws_iam_role" "CompilerExplorerWindowsRole" {
   assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
 }
 
+resource "aws_iam_role" "CeRouterRole" {
+  name               = "CeRouterRole"
+  description        = "CE Router instances role"
+  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
+}
+
 data "aws_iam_policy" "CloudWatchAgentServerPolicy" {
   arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentServerPolicy"
 }
@@ -287,6 +303,22 @@ resource "aws_iam_policy" "CeModifyStoredState" {
   policy      = data.aws_iam_policy_document.CeModifyStoredState.json
 }
 
+data "aws_iam_policy_document" "ReadGooGlLinks" {
+  statement {
+    sid = "ReadGooGlLinks"
+    actions = [
+      "dynamodb:GetItem"
+    ]
+    resources = [aws_dynamodb_table.goo_gl_links.arn]
+  }
+}
+
+resource "aws_iam_policy" "ReadGooGlLinks" {
+  name        = "ReadGooGlLinks"
+  description = "Read-only access to goo.gl links table"
+  policy      = data.aws_iam_policy_document.ReadGooGlLinks.json
+}
+
 data "aws_iam_policy_document" "CePutCompileStatsLog" {
   statement {
     sid     = "CePutCompileStatsLog"
@@ -316,12 +348,122 @@ data "aws_iam_policy_document" "CeSqsPushPop" {
       aws_sqs_queue.staging-execqueue-aarch64-linux-cpu.arn,
     ]
   }
+  statement {
+    sid = "CompilationQueueAccess"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    resources = [
+      module.beta_blue_green.sqs_queue_blue_arn,
+      module.beta_blue_green.sqs_queue_green_arn,
+      module.staging_blue_green.sqs_queue_blue_arn,
+      module.staging_blue_green.sqs_queue_green_arn,
+      module.prod_blue_green.sqs_queue_blue_arn,
+      module.prod_blue_green.sqs_queue_green_arn,
+    ]
+  }
 }
 
 resource "aws_iam_policy" "CeSqsPushPop" {
   name        = "CeSqsPushPop"
-  description = "Can push/pop Sqs"
+  description = "Can push/pop SQS execution queues and receive compilation queue messages"
   policy      = data.aws_iam_policy_document.CeSqsPushPop.json
+}
+
+# IAM policy for CE Router to access CompilerRouting DynamoDB table
+data "aws_iam_policy_document" "CeRouterDynamoDB" {
+  statement {
+    sid = "CompilerRoutingAccess"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+    resources = [
+      aws_dynamodb_table.compiler_routing.arn
+    ]
+  }
+
+  statement {
+    sid = "WebSocketConnectionsAccess"
+    actions = [
+      "dynamodb:GetItem",
+      "dynamodb:PutItem",
+      "dynamodb:DeleteItem",
+      "dynamodb:Query",
+      "dynamodb:Scan"
+    ]
+    resources = [
+      aws_dynamodb_table.events-connections.arn,
+      "${aws_dynamodb_table.events-connections.arn}/index/SubscriptionIndex"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterDynamoDB" {
+  name        = "CeRouterDynamoDB"
+  description = "CE Router access to DynamoDB tables for routing and WebSocket connections"
+  policy      = data.aws_iam_policy_document.CeRouterDynamoDB.json
+}
+
+# IAM policy for CE Router to access API Gateway WebSocket API
+data "aws_iam_policy_document" "CeRouterApiGateway" {
+  statement {
+    sid = "WebSocketApiAccess"
+    actions = [
+      "execute-api:ManageConnections",
+      "execute-api:Invoke"
+    ]
+    resources = ["arn:aws:execute-api:*:*:*/prod/POST/@connections/*"]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterApiGateway" {
+  name        = "CeRouterApiGateway"
+  description = "CE Router access to API Gateway WebSocket API"
+  policy      = data.aws_iam_policy_document.CeRouterApiGateway.json
+}
+
+# IAM policy for CE Router read-only S3 access
+data "aws_iam_policy_document" "CeRouterS3ReadOnly" {
+  statement {
+    sid = "S3ReadOnlyAccess"
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket"
+    ]
+    resources = [
+      "${aws_s3_bucket.storage-godbolt-org.arn}/*",
+      aws_s3_bucket.storage-godbolt-org.arn
+    ]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterS3ReadOnly" {
+  name        = "CeRouterS3ReadOnly"
+  description = "CE Router read-only access to storage S3 bucket"
+  policy      = data.aws_iam_policy_document.CeRouterS3ReadOnly.json
+}
+
+# IAM policy for CE Router SQS send-only access
+data "aws_iam_policy_document" "CeRouterSQSSendOnly" {
+  statement {
+    sid = "SQSSendMessages"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    resources = ["arn:aws:sqs:us-east-1:*:*-compilation-queue-*.fifo"]
+  }
+}
+
+resource "aws_iam_policy" "CeRouterSQSSendOnly" {
+  name        = "CeRouterSQSSendOnly"
+  description = "CE Router send-only access to compilation queues"
+  policy      = data.aws_iam_policy_document.CeRouterSQSSendOnly.json
 }
 
 data "aws_iam_policy_document" "AccessCeParams" {
@@ -404,6 +546,38 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ScanLibra
   policy_arn = aws_iam_policy.ScanLibraryBuildHistory.arn
 }
 
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_ReadGooGlLinks" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = aws_iam_policy.ReadGooGlLinks.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CompilerExplorerRole_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.CompilerExplorerRole.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+// CE Router Role policy attachments
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_CeRouterDynamoDB" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = aws_iam_policy.CeRouterDynamoDB.arn
+}
+
+
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_CeRouterS3ReadOnly" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = aws_iam_policy.CeRouterS3ReadOnly.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_CeRouterSQSSendOnly" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = aws_iam_policy.CeRouterSQSSendOnly.arn
+}
+
+resource "aws_iam_role_policy_attachment" "CeRouterRole_attach_AmazonSSMManagedInstanceCore" {
+  role       = aws_iam_role.CeRouterRole.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
 // CompilerExplorerRole but for Windows machines
 resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_CloudWatchAgentServerPolicy" {
   role       = aws_iam_role.CompilerExplorerWindowsRole.name
@@ -435,6 +609,11 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_Am
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "CompilerExplorerWindowsRole_attach_ReadGooGlLinks" {
+  role       = aws_iam_role.CompilerExplorerWindowsRole.name
+  policy_arn = aws_iam_policy.ReadGooGlLinks.arn
+}
+
 // This is for the auth node temporarily to allow port 3000 from the alb
 resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   security_group_id        = aws_security_group.AdminNode.id
@@ -446,59 +625,12 @@ resource "aws_security_group_rule" "CE_AuthHttpFromAlb" {
   description              = "Allow port 3000 access from the ALB"
 }
 
-resource "aws_security_group" "Builder" {
-  vpc_id      = module.ce_network.vpc.id
-  name        = "BuilderNodeSecGroup"
-  description = "Compiler Explorer compiler and library security group"
-  tags = {
-    Name = "Builder"
-  }
-}
 
-// The builder needs to be able to fetch things from the wider internet.
-resource "aws_security_group_rule" "Builder_EgressToAll" {
-  security_group_id = aws_security_group.Builder.id
-  type              = "egress"
-  from_port         = 0
-  to_port           = 65535
-  cidr_blocks       = ["0.0.0.0/0"]
-  ipv6_cidr_blocks  = ["::/0"]
-  protocol          = "-1"
-  description       = "Unfettered outbound access"
-}
 
-resource "aws_security_group_rule" "Builder_SshFromAdminNode" {
-  security_group_id        = aws_security_group.Builder.id
-  type                     = "ingress"
-  from_port                = 22
-  to_port                  = 22
-  source_security_group_id = aws_security_group.AdminNode.id
-  protocol                 = "tcp"
-  description              = "Allow SSH access from the admin node only"
-}
 
-// TODO: remove this comment once we're happy with the builder:
-// * builder used to have AmazonSFullAccess and AmazonSSMReadOnlyAccess
-resource "aws_iam_role" "Builder" {
-  name               = "Builder"
-  description        = "Compiler Explorer compiler and library building role"
-  assume_role_policy = data.aws_iam_policy_document.InstanceAssumeRolePolicy.json
-}
 
-resource "aws_iam_instance_profile" "Builder" {
-  name = "Builder"
-  role = aws_iam_role.Builder.name
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_CloudWatchAgentServerPolicy" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = data.aws_iam_policy.CloudWatchAgentServerPolicy.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_UpdateLibraryBuildHistory" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
-}
 
 data "aws_iam_policy_document" "CeBuilderStorageAccess" {
   statement {
@@ -531,20 +663,9 @@ resource "aws_iam_policy" "CeBuilderStorageAccess" {
   policy      = data.aws_iam_policy_document.CeBuilderStorageAccess.json
 }
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_CeBuilderStorageAccess" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.CeBuilderStorageAccess.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_AccessCeParams" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.AccessCeParams.arn
-}
 
-resource "aws_iam_role_policy_attachment" "Builder_attach_ReadS3Minimal" {
-  role       = aws_iam_role.Builder.name
-  policy_arn = aws_iam_policy.ReadS3Minimal.arn
-}
+
 
 
 resource "aws_security_group" "efs" {
@@ -571,11 +692,11 @@ resource "aws_security_group_rule" "efs_outbound" {
 
 resource "aws_security_group_rule" "efs_inbound" {
   for_each = {
-    "Admin"       = aws_security_group.AdminNode.id,
-    "Compilation" = aws_security_group.CompilerExplorer.id
-    "Builder"     = aws_security_group.Builder.id
-    "CI-x64"      = "sg-07a8509aae61cbe4f"
-    "CI-arm64"    = "sg-0d3a3411b05a2bfb4"
+    "Admin"              = aws_security_group.AdminNode.id,
+    "Compilation"        = aws_security_group.CompilerExplorer.id
+    "CI-x64"             = "sg-07a8509aae61cbe4f"
+    "CI-arm64"           = "sg-0d3a3411b05a2bfb4"
+    "CI-lin-builder-x64" = "sg-06fc1097fde032d6e"
   }
   security_group_id        = aws_security_group.efs.id
   type                     = "ingress"
@@ -606,6 +727,11 @@ resource "aws_iam_instance_profile" "CompilerExplorerAdminNode" {
   role = aws_iam_role.CompilerExplorerAdminNode.name
 }
 
+resource "aws_iam_instance_profile" "CeRouterRole" {
+  name = "CeRouterRole"
+  role = aws_iam_role.CeRouterRole.name
+}
+
 data "aws_iam_policy" "CloudWatchAgentAdminPolicy" {
   arn = "arn:aws:iam::052730242331:policy/CloudWatchAgentAdminPolicy"
 }
@@ -622,6 +748,7 @@ resource "aws_iam_role_policy_attachment" "CompilerExplorerAdminNode_attach_mana
     "CloudWatchFullAccess" : true,
     "AmazonDynamoDBFullAccess" : true,
     "service-role/AWSQuicksightAthenaAccess" : true,
+    "CloudFrontFullAccess" : true,
   }
   role       = aws_iam_role.CompilerExplorerAdminNode.name
   policy_arn = "arn:aws:iam::aws:policy/${each.key}"
@@ -687,5 +814,25 @@ resource "aws_iam_role_policy_attachment" "WinBuilder_attach_ReadS3Minimal" {
 
 resource "aws_iam_role_policy_attachment" "WinBuilder_attach_AmazonSSMManagedInstanceCore" {
   role       = "ce-ci-windows-x64-win-builder-runner-role"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_UpdateLibraryBuildHistory" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = aws_iam_policy.UpdateLibraryBuildHistory.arn
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_AccessCeParams" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = aws_iam_policy.AccessCeParams.arn
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_ReadS3Minimal" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
+  policy_arn = aws_iam_policy.ReadS3Minimal.arn
+}
+
+resource "aws_iam_role_policy_attachment" "LinuxBuilder_attach_AmazonSSMManagedInstanceCore" {
+  role       = "ce-ci-linux-x64-builder-runner-role"
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }

@@ -17,9 +17,14 @@ resource "aws_alb" "GccExplorerApp" {
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
+  lifecycle {
+    # Ignore changes to the default_action since it's managed by blue-green deployment
+    ignore_changes = [default_action]
+  }
+
   default_action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["prod"].arn
+    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
 
   load_balancer_arn = aws_alb.GccExplorerApp.arn
@@ -28,9 +33,14 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-http" {
 }
 
 resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
+  lifecycle {
+    # Ignore changes to the default_action since it's managed by blue-green deployment
+    ignore_changes = [default_action]
+  }
+
   default_action {
     type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["prod"].arn
+    target_group_arn = module.prod_blue_green.target_group_arns["blue"]
   }
   load_balancer_arn = aws_alb.GccExplorerApp.arn
   port              = 443
@@ -40,10 +50,17 @@ resource "aws_alb_listener" "compiler-explorer-alb-listen-https" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
-  priority = 1
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 101
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["beta"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.beta_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -56,10 +73,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-beta" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
-  priority = 2
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 111
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["staging"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.staging_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -72,10 +96,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-staging" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
-  priority = 3
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 121
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["gpu"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.gpu_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -88,10 +119,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-gpu" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
-  priority = 6
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 151
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["wintest"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.wintest_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -104,10 +142,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-wintest" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winstaging" {
-  priority = 7
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 161
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["winstaging"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.winstaging_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -120,10 +165,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winstaging"
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
-  priority = 8
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 171
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["winprod"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.winprod_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -136,10 +188,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-winprod" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod" {
-  priority = 9
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 181
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["aarch64prod"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.aarch64prod_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -152,10 +211,17 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64prod
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-aarch64staging" {
-  priority = 10
+  lifecycle {
+    # Ignore changes to the action since it's managed by blue-green deployment
+    ignore_changes = [action]
+  }
+
+  priority = 191
   action {
-    type             = "forward"
-    target_group_arn = aws_alb_target_group.ce["aarch64staging"].arn
+    type = "forward"
+    # This target group ARN is managed by blue-green deployment process
+    # The initial value doesn't matter as it will be overridden
+    target_group_arn = module.aarch64staging_blue_green.target_group_arns["blue"]
   }
   condition {
     path_pattern {
@@ -202,7 +268,7 @@ resource "aws_alb_target_group_attachment" "lambda-stats-endpoint" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
-  priority = 4
+  priority = 131
   action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.lambda.arn
@@ -216,7 +282,7 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-lambda" {
 }
 
 resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
-  priority = 5
+  priority = 141
   action {
     type = "redirect"
     redirect {
@@ -229,6 +295,23 @@ resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-stats" {
   condition {
     host_header {
       values = ["stats.compiler-explorer.com"]
+    }
+  }
+  listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn
+}
+
+# Status API ALB listener rule
+resource "aws_alb_listener_rule" "compiler-explorer-alb-listen-https-status" {
+  priority = 201
+  action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.lambda_status.arn
+  }
+  condition {
+    path_pattern {
+      values = [
+        "/api/status"
+      ]
     }
   }
   listener_arn = aws_alb_listener.compiler-explorer-alb-listen-https.arn

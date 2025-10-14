@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import contextlib
 import glob
 import hashlib
@@ -9,21 +11,21 @@ import shutil
 import subprocess
 import tempfile
 from collections import defaultdict
+from collections.abc import Generator
 from enum import Enum, unique
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Generator, TextIO
-from urllib3.exceptions import ProtocolError
+from typing import Any, TextIO
 
 import requests
-from lib.staging import StagingDir
-from lib.installation_context import InstallationContext
-from lib.library_platform import LibraryPlatform
-
-from lib.rust_crates import RustCrate, get_builder_user_agent_id
+from urllib3.exceptions import ProtocolError
 
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.installation_context import FetchFailure, InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
+from lib.library_platform import LibraryPlatform
+from lib.rust_crates import RustCrate, get_builder_user_agent_id
+from lib.staging import StagingDir
 
 _TIMEOUT = 600
 skip_compilers = ["nightly", "beta", "gccrs-snapshot", "mrustc-master", "rustccggcc-master"]
@@ -36,7 +38,7 @@ build_supported_stdlib = [""]
 build_supported_flags = [""]
 build_supported_flagscollection = [[""]]
 
-_propsandlibs: Dict[str, Any] = defaultdict(lambda: [])
+_propsandlibs: dict[str, Any] = defaultdict(lambda: [])
 
 GITCOMMITHASH_RE = re.compile(r"^(\w*)\s.*")
 CONANINFOHASH_RE = re.compile(r"\s+ID:\s(\w*)")
@@ -79,11 +81,14 @@ class RustLibraryBuilder:
         self.install_context = install_context
         self.target_name = target_name
         self.forcebuild = False
-        self.current_buildparameters_obj: Dict[str, Any] = defaultdict(lambda: [])
-        self.current_buildparameters: List[str] = []
+        self.current_buildparameters_obj: dict[str, Any] = defaultdict(lambda: [])
+        self.current_buildparameters: list[str] = []
         self.needs_uploading = 0
         self.libid = self.libname  # TODO: CE libid might be different from yaml libname
         self.conanserverproxy_token = None
+        self._conan_hash_cache: dict[str, str | None] = {}
+        self._annotations_cache: dict[str, dict] = {}
+        self.http_session = requests.Session()
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -93,7 +98,7 @@ class RustLibraryBuilder:
             )
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 
-        self.cached_source_folders: List[str] = []
+        self.cached_source_folders: list[str] = []
 
         self.completeBuildConfig()
 
@@ -105,7 +110,6 @@ class RustLibraryBuilder:
         if "url" in self.libraryprops[self.libid]:
             self.buildconfig.url = self.libraryprops[self.libid]["url"]
 
-    # pylint: disable=unused-argument
     def writebuildscript(
         self,
         buildfolder,
@@ -253,7 +257,11 @@ class RustLibraryBuilder:
 
         return compiler + "_" + hasher.hexdigest()
 
-    def get_conan_hash(self, buildfolder: str) -> Optional[str]:
+    def get_conan_hash(self, buildfolder: str) -> str | None:
+        if buildfolder in self._conan_hash_cache:
+            self.logger.debug(f"Using cached conan hash for {buildfolder}")
+            return self._conan_hash_cache[buildfolder]
+
         if not self.install_context.dry_run:
             self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
             conaninfo = subprocess.check_output(
@@ -262,7 +270,11 @@ class RustLibraryBuilder:
             self.logger.debug(conaninfo)
             match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
             if match:
-                return match[1]
+                result = match[1]
+                self._conan_hash_cache[buildfolder] = result
+                return result
+
+        self._conan_hash_cache[buildfolder] = None
         return None
 
     def resil_post(self, url, json_data, headers=None):
@@ -271,10 +283,10 @@ class RustLibraryBuilder:
         last_error = ""
         while retries > 0:
             try:
-                if headers != None:
-                    request = requests.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
+                if headers is not None:
+                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
                 else:
-                    request = requests.post(
+                    request = self.http_session.post(
                         url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
                     )
 
@@ -283,7 +295,7 @@ class RustLibraryBuilder:
                 last_error = e
                 retries = retries - 1
 
-        if request == None:
+        if request is None:
             request = {"ok": False, "text": last_error}
 
         return request
@@ -336,24 +348,32 @@ class RustLibraryBuilder:
         req_data = json.dumps(buildparameters_copy)
         request = self.resil_post(url, req_data, headers)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
 
     def get_build_annotations(self, buildfolder):
+        if buildfolder in self._annotations_cache:
+            self.logger.debug(f"Using cached annotations for {buildfolder}")
+            return self._annotations_cache[buildfolder]
+
         conanhash = self.get_conan_hash(buildfolder)
         if conanhash is None:
-            return defaultdict(lambda: [])
+            result = defaultdict(lambda: [])
+            self._annotations_cache[buildfolder] = result
+            return result
 
         url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
         with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
+            request = self.http_session.get(url, stream=True, timeout=_TIMEOUT)
             if not request.ok:
-                raise RuntimeError(f"Fetch failure for {url}: {request}")
+                raise FetchFailure(f"Fetch failure for {url}: {request}")
             for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
                 fd.write(chunk)
             fd.flush()
             fd.seek(0)
             buffer = fd.read()
-            return json.loads(buffer)
+            result = json.loads(buffer)
+            self._annotations_cache[buildfolder] = result
+            return result
 
     def get_commit_hash(self) -> str:
         return self.target_name
@@ -368,7 +388,7 @@ class RustLibraryBuilder:
 
         request = self.resil_post(url, req_data)
         if not request.ok:
-            raise RuntimeError(f"Post failure for {url}: {request}")
+            raise PostFailure(f"Post failure for {url}: {request}")
         else:
             response = json.loads(request.content)
             return response["response"]
@@ -432,7 +452,7 @@ class RustLibraryBuilder:
 
     def get_source_folder(self, source_staging: StagingDir):
         source_folder = os.path.join(source_staging.path, f"crate_{self.libname}_{self.target_name}")
-        if not source_folder in self.cached_source_folders:
+        if source_folder not in self.cached_source_folders:
             if not os.path.exists(source_folder):
                 os.mkdir(source_folder)
             self.cached_source_folders.append(source_folder)
@@ -607,9 +627,14 @@ class RustLibraryBuilder:
         if self.needs_uploading > 0:
             if not self.install_context.dry_run:
                 self.logger.info("Uploading cached builds")
-                subprocess.check_call(
-                    ["conan", "upload", f"{self.libname}/{self.target_name}", "--all", "-r=ceserver", "-c"]
-                )
+                subprocess.check_call([
+                    "conan",
+                    "upload",
+                    f"{self.libname}/{self.target_name}",
+                    "--all",
+                    "-r=ceserver",
+                    "-c",
+                ])
                 self.logger.debug("Clearing cache to speed up next upload")
                 subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
             self.needs_uploading = 0
@@ -619,7 +644,7 @@ class RustLibraryBuilder:
         builds_succeeded = 0
         builds_skipped = 0
 
-        if buildfor != "":
+        if buildfor:
             self.forcebuild = True
 
         if buildfor == "forceall":
@@ -632,7 +657,7 @@ class RustLibraryBuilder:
 
         with self.install_context.new_staging_dir() as source_staging:
             for compiler in self.compilerprops:
-                if checkcompiler != "" and compiler != checkcompiler:
+                if checkcompiler and compiler != checkcompiler:
                     continue
 
                 if compiler in self.buildconfig.skip_compilers:

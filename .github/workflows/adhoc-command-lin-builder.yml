@@ -1,0 +1,56 @@
+name: Run Ad-hoc Command on Self-Hosted (lin-builder) Runner
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Command to run'
+        required: false
+        default: 'echo "Hello from $HOSTNAME"'
+      interactive:
+        description: 'Start interactive debugging session'
+        required: false
+        type: boolean
+        default: false
+      timeout_minutes:
+        description: 'Timeout for interactive session (minutes)'
+        required: false
+        default: '30'
+
+jobs:
+  adhoc:
+    name: Run command on lin-builder
+    runs-on: [lin-builder]
+    # TODO in future consider github environments for this?
+    if: github.actor == 'mattgodbolt' || github.actor == 'partouf'
+    timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}
+
+    steps:
+      - name: Clean workspace
+        uses: AutoModality/action-clean@v1.1.0
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show runner information
+        run: |
+          echo "Runner: ${{ runner.name }}"
+          echo "OS: ${{ runner.os }}"
+          echo "Architecture: ${{ runner.arch }}"
+          echo "User: ${{ github.actor }}"
+          echo "Timestamp: $(date)"
+
+      - name: Run command
+        if: ${{ !inputs.interactive }}
+        run: ${{ inputs.command }}
+
+      - name: Setup interactive session
+        if: ${{ inputs.interactive }}
+        uses: owenthereal/action-upterm@v1
+        with:
+          limit-access-to-actor: true
+          wait-timeout-minutes: ${{ inputs.timeout_minutes }}
+
+      - name: Command completed
+        if: ${{ !inputs.interactive }}
+        run: echo "✅ Command execution completed successfully"

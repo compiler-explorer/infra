@@ -1,5 +1,8 @@
-import boto3
+from __future__ import annotations
+
 import os
+
+import boto3
 
 from lib.cli import cli
 

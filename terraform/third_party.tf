@@ -1,5 +1,5 @@
 module "oidc_provider" {
-  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1//modules/provider"
+  source = "github.com/philips-labs/terraform-aws-github-oidc//modules/provider?ref=v0.8.1"
 }
 
 module "oidc_repo_sonar_source" {
@@ -36,10 +36,10 @@ module "oidc_repo_brontosource" {
   source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1"
 
   openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
-  repo                        = "brontosource/bin"
+  repo                        = "brontosource/repo"
   role_name                   = "brontosource"
 
-  default_conditions = ["allow_main"]
+  default_conditions = ["allow_all"]
 }
 
 data "aws_iam_policy_document" "s3_bronto" {
@@ -51,6 +51,42 @@ data "aws_iam_policy_document" "s3_bronto" {
 
 resource "aws_iam_role_policy" "s3_bronto" {
   name   = "s3-policy"
-  role   = module.oidc_repo_sonar_source.role.name
+  role   = module.oidc_repo_brontosource.role.name
   policy = data.aws_iam_policy_document.s3_bronto.json
+}
+
+# Not really third party but
+module "oidc_repo_explain" {
+  source = "github.com/philips-labs/terraform-aws-github-oidc?ref=v0.8.1"
+
+  openid_connect_provider_arn = module.oidc_provider.openid_connect_provider.arn
+  repo                        = "compiler-explorer/explain"
+  role_name                   = "explain-ci"
+
+  default_conditions = ["allow_main"]
+}
+
+data "aws_iam_policy_document" "ce_explain" {
+  # ECR public
+  statement {
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+  statement {
+    actions = [
+      "ecr:BatchGetImage",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:CompleteLayerUpload",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:InitiateLayerUpload",
+      "ecr:PutImage",
+    "ecr:UploadLayerPart"]
+    resources = [aws_ecr_repository.explain.arn]
+  }
+}
+
+resource "aws_iam_role_policy" "ce_explain" {
+  name   = "ce-explain-policy"
+  role   = module.oidc_repo_explain.role.name
+  policy = data.aws_iam_policy_document.ce_explain.json
 }

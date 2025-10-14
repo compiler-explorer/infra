@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import hashlib
 import logging
 import mimetypes
@@ -11,7 +13,7 @@ from pathlib import Path
 from tempfile import mkdtemp
 from zipfile import ZipFile
 
-from lib.amazon import botocore, s3_client, force_lazy_init
+from lib.amazon import botocore, force_lazy_init, s3_client
 
 logger = logging.getLogger("ce-cdn")
 
@@ -68,13 +70,23 @@ def guess_content_type(filename):
 class DeploymentJob:
     tmpdir = None
 
-    def __init__(self, tar_file_path, bucket_name, bucket_path="", version=None, max_workers=None, cache_control=None):
+    def __init__(
+        self,
+        tar_file_path,
+        bucket_name,
+        bucket_path="",
+        version=None,
+        max_workers=None,
+        cache_control=None,
+        ignore_hash_mismatch=False,
+    ):
         self.tar_file_path = tar_file_path
         self.bucket_name = bucket_name
         self.bucket_path = Path(bucket_path)
         self.version = version
         self.max_workers = max_workers or os.cpu_count() or 1
         self.cache_control = cache_control
+        self.ignore_hash_mismatch = ignore_hash_mismatch
         self.deploydate = datetime.utcnow().isoformat(timespec="seconds")
 
     def __enter__(self):
@@ -91,7 +103,6 @@ class DeploymentJob:
         with ZipFile(self.tar_file_path) as zipfile:
 
             def is_within_directory(directory, target):
-
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
 
@@ -100,7 +111,6 @@ class DeploymentJob:
                 return prefix == abs_directory
 
             def safe_extract(zipfile, path=".", members=None):
-
                 for member in zipfile.infolist():
                     member_path = os.path.join(path, member.filename)
                     if not is_within_directory(path, member_path):
@@ -122,7 +132,6 @@ class DeploymentJob:
         with tarfile.open(self.tar_file_path) as tar:
 
             def is_within_directory(directory, target):
-
                 abs_directory = os.path.abspath(directory)
                 abs_target = os.path.abspath(target)
 
@@ -131,7 +140,6 @@ class DeploymentJob:
                 return prefix == abs_directory
 
             def safe_extract(tar, path=".", members=None, *, numeric_owner=False):
-
                 for member in tar.getmembers():
                     member_path = os.path.join(path, member.name)
                     if not is_within_directory(path, member_path):
@@ -289,12 +297,18 @@ class DeploymentJob:
                     files_to_upload.append(f)
 
             if files_with_mismatch:
-                logger.error("%d files have mismatching hashes", len(files_with_mismatch))
+                log_level = logging.WARNING if self.ignore_hash_mismatch else logging.ERROR
+                logger.log(log_level, "%d files have mismatching hashes", len(files_with_mismatch))
                 for f in files_with_mismatch:
-                    logger.error("%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
+                    logger.log(log_level, "%s: expected hash %s != %s", f["name"], f["hash"], f["s3hash"])
 
-                logger.error("aborting cdn deployment due to errors")
-                return False
+                if self.ignore_hash_mismatch:
+                    logger.warning("continuing deployment despite hash mismatches")
+                    # Treat mismatched files as files to upload
+                    files_to_upload.extend(files_with_mismatch)
+                else:
+                    logger.error("aborting cdn deployment due to errors")
+                    return False
 
             logger.info("will update %d file tag%s", len(files_to_update), "s" if len(files_to_update) != 1 else "")
             logger.info("will upload %d file tag%s", len(files_to_upload), "s" if len(files_to_upload) != 1 else "")

@@ -1,0 +1,26 @@
+compilers:
+  clojure:
+    type: script
+    fetch:
+      - https://github.com/clojure/brew-install/releases/download/{{name}}/linux-install.sh clojure-{{name}}.sh
+    dir: "clojure/{{name}}"
+    script_filename: "clojure-{{name}}.sh"
+    script: |
+      chmod +x {{script_filename}}
+      ./{{script_filename}} --prefix $(pwd)/clojure/{{name}}
+    relocate_paths:
+      - bin
+    depends:
+      - compilers/java 21.0.2
+    check_env:
+      - JAVA_HOME=%DEP0%
+    check_exe: "bin/clojure --version"
+    targets:
+      - 1.12.3.1577
+      - 1.12.2.1571
+      - 1.12.1.1550
+      - 1.12.0.1530
+      - 1.11.4.1474
+      - 1.11.3.1463
+      - 1.11.2.1446
+      - 1.11.1.1435

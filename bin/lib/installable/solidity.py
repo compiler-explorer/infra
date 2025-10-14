@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import functools
-from typing import Dict, Any
+from typing import Any
 
 from lib.installable.installable import SingleFileInstallable
 from lib.installation_context import InstallationContext
@@ -14,7 +14,7 @@ def solidity_available_releases(context: InstallationContext, list_url: str):
 
 
 class SolidityInstallable(SingleFileInstallable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         artifacts = solidity_available_releases(self.install_context, self.url + "/list.json")

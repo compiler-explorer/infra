@@ -8,7 +8,7 @@ compilers:
       - JAVA_HOME=%DEP0%
     filename: kotlin-native-linux-{{name}}
     url: https://github.com/JetBrains/kotlin/releases/download/v{{name}}/{{filename}}.tar.gz
-    untar_dir: '{{filename}}'
+    untar_dir: "{{filename}}"
     depends:
       - compilers/java 16.0.1
     targets:
@@ -49,3 +49,9 @@ compilers:
         - 2.0.20
         - 2.0.21
         - 2.1.0
+        - 2.1.10
+        - 2.1.20
+        - 2.1.21
+        - 2.2.0
+        - 2.2.10
+        - 2.2.20

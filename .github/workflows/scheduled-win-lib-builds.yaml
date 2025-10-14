@@ -1,0 +1,58 @@
+name: Scheduled Windows Library Builds
+
+on:
+  schedule:
+    # Run at 15:00 UTC daily except Sunday
+    - cron: '0 15 * * 1-6'
+  workflow_dispatch:
+    inputs:
+      library_filter:
+        description: 'Library filter (default: libraries/c++)'
+        required: false
+        default: 'libraries/c++'
+        type: string
+
+jobs:
+  discover-libraries:
+    if: github.repository == 'compiler-explorer/infra'
+    runs-on: ubuntu-latest
+    outputs:
+      libraries: ${{ steps.get-libs.outputs.libraries }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python environment
+        run: make ce
+
+      - name: Get list of libraries to build
+        id: get-libs
+        run: |
+          FILTER="${{ github.event.inputs.library_filter || 'libraries/c++' }}"
+
+          # Get the library names, with --per-lib for deduplication
+          LIBS=$(bin/ce_install list-gh-build-commands --per-lib "$FILTER" | \
+                 grep -o 'library=[^"]*' | \
+                 cut -d= -f2 | \
+                 sort -u)
+
+          # Convert to JSON array for matrix strategy
+          LIBS_JSON=$(echo "$LIBS" | jq -R -s -c 'split("\n")[:-1]')
+
+          echo "libraries=$LIBS_JSON" >> $GITHUB_OUTPUT
+          echo "Found libraries to build:"
+          echo "$LIBS" | sed 's/^/  - /'
+
+  build-libraries:
+    needs: discover-libraries
+    if: ${{ fromJson(needs.discover-libraries.outputs.libraries)[0] != null }}
+    strategy:
+      matrix:
+        library: ${{ fromJson(needs.discover-libraries.outputs.libraries) }}
+      fail-fast: false
+      max-parallel: 2  # Limit concurrent builds
+    uses: ./.github/workflows/win-lib-build.yaml
+    with:
+      library: ${{ matrix.library }}
+      compiler: 'popular-compilers-only'
+    secrets: inherit

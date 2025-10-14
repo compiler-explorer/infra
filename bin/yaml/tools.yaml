@@ -16,7 +16,8 @@ tools:
       - 3.28.4
       - 3.29.2
       - 3.30.7
-      - name: 3.31.5
+      - 3.31.5
+      - name: 4.1.2
         symlink: cmake  # The one distinguished cmake we use for "cmake" on the site
     experimental:
       type: tarballs
@@ -114,7 +115,7 @@ tools:
     package: osaca=={{name}}
     check_exe: bin/osaca --version
     targets:
-      - 0.7.0
+      - 0.7.1
   rustfmt:
     type: tarballs
     dir: rustfmt-{{name}}
@@ -226,3 +227,16 @@ tools:
     targets:
       - name: bronto-refactor-ubuntu-22.04-x86-64
         install_always: true
+  sonar:
+    if:
+      - non-free
+      - nightly
+    install_always: true
+    type: non-free-s3tarballs
+    compression: xz
+    s3_path_prefix: sonar/sonar
+    path_name: sonar
+    strip_components: 1
+    check_file: sonar.sh
+    targets:
+      - latest

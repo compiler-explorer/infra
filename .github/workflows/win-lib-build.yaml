@@ -11,13 +11,26 @@ on:
                 description: 'Compiler'
                 default: 'popular-compilers-only'
                 required: true
+    workflow_call:
+        inputs:
+            library:
+                description: 'Library'
+                default: 'all'
+                required: true
+                type: string
+            compiler:
+                description: 'Compiler'
+                default: 'popular-compilers-only'
+                required: true
+                type: string
 
 jobs:
     librarybuild:
       runs-on: ['win-builder']
+      timeout-minutes: 720
 
       steps:
       - name: Download build script
         run: Invoke-WebRequest -Uri "https://raw.githubusercontent.com/compiler-explorer/infra/refs/heads/main/init/start-builder.ps1" -OutFile "C:\tmp\start-builder.ps1"
       - name: Build libraries
-        run: Set-Location "C:\tmp"; pwsh .\start-builder.ps1 -ConanPassword "${{ secrets.CONAN_PASSWORD }}" -Language c++ -Library "${{ github.event.inputs.library }}" -Compiler "${{ github.event.inputs.compiler }}"
+        run: Set-Location "C:\tmp"; pwsh .\start-builder.ps1 -ConanPassword "${{ secrets.CONAN_PASSWORD }}" -Language c++ -Library "${{ inputs.library }}" -Compiler "${{ inputs.compiler }}"

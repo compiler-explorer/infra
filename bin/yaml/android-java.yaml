@@ -43,6 +43,9 @@ compilers:
       after_stage_script:
         - "{{yaml_dir}}/android-java/create_boot_images.sh"
       targets:
+        - "36.0"
+        - "35.14"
+        - "35.13"
         - "35.11"
         - "35.10"
         - "35.9"

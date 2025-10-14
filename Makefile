@@ -1,12 +1,10 @@
 .NOTPARALLEL:
 
-export POETRY_HOME=$(CURDIR)/.poetry
-# https://github.com/python-poetry/poetry/issues/1917
-export PYTHON_KEYRING_BACKEND=keyring.backends.null.Keyring
-POETRY:=$(POETRY_HOME)/bin/poetry
-POETRY_VENV=$(CURDIR)/.venv
-POETRY_DEPS:=$(POETRY_VENV)/.deps
-SYS_PYTHON:=$(shell env PATH='/bin:/usr/bin:/usr/local/bin:$(PATH)' bash -c "command -v python3.13 || command -v python3.12 || command -v python3.11 || command -v python3.10 || command -v python3.9 || echo .python-not-found")
+# Use system uv if available, otherwise install locally
+UV_SYSTEM:=$(shell command -v uv 2>/dev/null)
+UV_BIN:=$(if $(UV_SYSTEM),$(UV_SYSTEM),$(CURDIR)/.uv/uv)
+UV_VENV:=$(CURDIR)/.venv
+UV_DEPS:=$(UV_VENV)/.deps
 export PYTHONPATH=$(CURDIR)/bin
 
 .PHONY: help
@@ -15,12 +13,21 @@ help: # with thanks to Ben Rady
 
 PACKER ?= packer
 
-$(SYS_PYTHON):
-	@echo "Python 3.9, 3.10, 3.11, 3.12 or 3.13 not found on path. Please install (sudo apt install python3 or similar)"
-	@exit 1
+$(CURDIR)/.uv/uv:
+	@echo "Installing uv..."
+	@mkdir -p $(dir $@)
+	@curl -LsSf https://astral.sh/uv/install.sh | UV_NO_MODIFY_PATH=1 UV_INSTALL_DIR=$(CURDIR)/.uv sh -s
 
-config.json: make_json.py | $(POETRY_DEPS)
-	$(POETRY) run python make_json.py
+# Only require local uv installation if system uv is not available
+# When UV_SYSTEM is set, UV_BIN points to the system uv, so no dependency needed
+# When UV_SYSTEM is empty, UV_BIN points to .uv/uv, but we don't want a circular dependency
+ifneq ($(UV_SYSTEM),)
+$(UV_BIN):
+	@true
+endif
+
+config.json: make_json.py | $(UV_DEPS)
+	$(UV_BIN) run python make_json.py
 
 .PHONY: packer
 packer: config.json ## Builds the base image for compiler explorer nodes
@@ -62,90 +69,131 @@ packer-win: config.json  ## Builds the base image for the CE windows
 packer-builder: config.json  ## Builds the base image for the CE builder
 	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/builder.pkr.hcl
 
+.PHONY: packer-ce-router
+packer-ce-router: config.json  ## Builds the base image for the CE router
+	$(PACKER) build -timestamp-ui -var-file=config.json $(EXTRA_ARGS) packer/ce-router.pkr.hcl
+
 .PHONY: clean
 clean:  ## Cleans up everything
-	rm -rf $(POETRY_HOME) $(POETRY_VENV)
+	rm -rf $(CURDIR)/.uv $(UV_VENV) uv.lock
 
 .PHONY: update-admin
 update-admin:  ## Updates the admin website
 	aws s3 sync admin/ s3://compiler-explorer/admin/ --cache-control max-age=5 --metadata-directive REPLACE
 
 .PHONY: ce
-ce: $(POETRY) $(POETRY_DEPS)  ## Installs and configures the python environment needed for the various admin commands
-$(POETRY): $(SYS_PYTHON) poetry.toml
-	curl -sSL https://install.python-poetry.org | $(SYS_PYTHON) -
-	@touch $@
+ce: $(UV_BIN) $(UV_DEPS)  ## Installs and configures the python environment needed for the various admin commands
 
-poetry.lock:
-	$(POETRY) lock
-
-$(POETRY_DEPS): $(POETRY) pyproject.toml poetry.lock
-	$(POETRY) sync --no-root
+$(UV_DEPS): $(UV_BIN) pyproject.toml
+	$(UV_BIN) sync --no-install-project
 	@touch $@
 
 PY_SOURCE_ROOTS:=bin/lib bin/test lambda
 
 .PHONY: test
-test: ce  ## Runs the tests
-	$(POETRY) run pytest $(PY_SOURCE_ROOTS)
+test: ce  ## Runs all tests (Python only)
+	$(UV_BIN) run pytest $(PY_SOURCE_ROOTS)
 
 .PHONY: static-checks
 static-checks: ce  ## Runs all the static tests
-	env SKIP=test $(POETRY) run pre-commit run --all-files
+	env SKIP=test $(UV_BIN) run pre-commit run --all-files
 
-LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/lambda-package
+.PHONY: mugs
+mugs: ce  ## Generate all ABI reference mug designs (SVG + PNG)
+	$(UV_BIN) run mugs/make_x86_64_systemv_mug.py mugs/x86_64_systemv_abi_mug.svg
+	$(UV_BIN) run mugs/make_x86_64_msvc_mug.py mugs/x86_64_msvc_abi_mug.svg
+	$(UV_BIN) run mugs/make_x86_64_go_mug.py mugs/x86_64_go_abi_mug.svg
+	$(UV_BIN) run mugs/make_arm64_mug.py mugs/arm64_abi_mug.svg
+	$(UV_BIN) run mugs/make_arm32_eabi_mug.py mugs/arm32_eabi_mug.svg
+	$(UV_BIN) run mugs/make_arm64_go_mug.py mugs/arm64_go_abi_mug.svg
+	$(UV_BIN) run mugs/make_riscv_mug.py mugs/riscv_abi_mug.svg
+	$(UV_BIN) run mugs/make_riscv_go_mug.py mugs/riscv_go_abi_mug.svg
+
 LAMBDA_PACKAGE:=$(CURDIR)/.dist/lambda-package.zip
 LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/lambda-package.zip.sha256
-$(LAMBDA_PACKAGE): $(PYTHON) $(wildcard lambda/*) Makefile
-	rm -rf $(LAMBDA_PACKAGE_DIR)
-	mkdir -p $(LAMBDA_PACKAGE_DIR)
-	$(POETRY) run python -mpip install -r lambda/requirements.txt -t $(LAMBDA_PACKAGE_DIR)
-	cp -R lambda/* $(LAMBDA_PACKAGE_DIR)
-	rm -f $(LAMBDA_PACKAGE)
-	cd $(LAMBDA_PACKAGE_DIR) && zip -r $(LAMBDA_PACKAGE) .
+$(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA): $(wildcard lambda/*.py) lambda/pyproject.toml lambda/uv.lock Makefile scripts/build_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_lambda_deterministic.py $(CURDIR)/lambda $(LAMBDA_PACKAGE)
+
+.PHONY: lambda-package  ## builds lambda
+lambda-package: $(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA)
+
+.PHONY: check-lambda-changed
+check-lambda-changed: lambda-package
+	@mkdir -p $(dir $(LAMBDA_PACKAGE))
+	@echo "Checking if lambda package has changed..."
+	@aws s3 cp s3://compiler-explorer/lambdas/lambda-package.zip.sha256 $(LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote lambda SHA doesn't exist yet" && touch $(LAMBDA_PACKAGE_SHA).remote)
+	@if [ ! -f $(LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(LAMBDA_PACKAGE_SHA) $(LAMBDA_PACKAGE_SHA).remote; then \
+		echo "Lambda package has changed"; \
+		echo "LAMBDA_CHANGED=1" > $(LAMBDA_PACKAGE_SHA).status; \
+	else \
+		echo "Lambda package has not changed"; \
+		echo "LAMBDA_CHANGED=0" > $(LAMBDA_PACKAGE_SHA).status; \
+	fi
+
+
+.PHONY: upload-lambda
+upload-lambda: check-lambda-changed
+	@. $(LAMBDA_PACKAGE_SHA).status && \
+	if [ "$$LAMBDA_CHANGED" = "1" ]; then \
+		echo "Uploading new lambda package to S3..."; \
+		aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip; \
+		aws s3 cp --content-type text/sha256 $(LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/lambda-package.zip.sha256; \
+		echo "Lambda package uploaded successfully!"; \
+	else \
+		echo "Lambda package hasn't changed. No upload needed."; \
+	fi
 
 EVENTS_LAMBDA_PACKAGE_DIR:=$(CURDIR)/.dist/events-lambda-package
 EVENTS_LAMBDA_PACKAGE:=$(CURDIR)/.dist/events-lambda-package.zip
 EVENTS_LAMBDA_PACKAGE_SHA:=$(CURDIR)/.dist/events-lambda-package.zip.sha256
 EVENTS_LAMBDA_DIR:=$(CURDIR)/events-lambda
-$(EVENTS_LAMBDA_PACKAGE):
-	rm -rf $(EVENTS_LAMBDA_PACKAGE_DIR)
-	mkdir -p $(EVENTS_LAMBDA_PACKAGE_DIR)
-	cd $(EVENTS_LAMBDA_DIR) && npm i && npm run lint && npm install --no-audit --ignore-scripts --production && npm install --no-audit --ignore-scripts --production --cpu arm64 && cd ..
-	cp -R $(EVENTS_LAMBDA_DIR)/* $(EVENTS_LAMBDA_PACKAGE_DIR)
-	rm -f $(EVENTS_LAMBDA_PACKAGE)
-	cd $(EVENTS_LAMBDA_PACKAGE_DIR) && zip -r $(EVENTS_LAMBDA_PACKAGE) .
+$(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA): $(wildcard events-lambda/*.js) events-lambda/package.json Makefile scripts/build_nodejs_lambda_deterministic.py
+	$(UV_BIN) run python scripts/build_nodejs_lambda_deterministic.py $(EVENTS_LAMBDA_DIR) $(EVENTS_LAMBDA_PACKAGE)
 
-$(LAMBDA_PACKAGE_SHA): $(LAMBDA_PACKAGE)
-	openssl dgst -sha256 -binary $(LAMBDA_PACKAGE) | openssl enc -base64 > $@
-
-$(EVENTS_LAMBDA_PACKAGE_SHA): $(EVENTS_LAMBDA_PACKAGE)
-	openssl dgst -sha256 -binary $(EVENTS_LAMBDA_PACKAGE) | openssl enc -base64 > $@
-
-.PHONY: lambda-package  ## builds lambda
-lambda-package: $(LAMBDA_PACKAGE) $(LAMBDA_PACKAGE_SHA)
-
-.PHONY: upload-lambda
-upload-lambda: lambda-package  ## Uploads lambda to S3
-	aws s3 cp $(LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/lambda-package.zip
-	aws s3 cp --content-type text/sha256 $(LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/lambda-package.zip.sha256
-
-.PHONY: events-lambda-package  ## Builds events-lambda
+.PHONY: events-lambda-package  ## Builds events lambda
 events-lambda-package: $(EVENTS_LAMBDA_PACKAGE) $(EVENTS_LAMBDA_PACKAGE_SHA)
 
+.PHONY: lint-events-lambda  ## runs events lambda linter
+lint-events-lambda:
+	cd events-lambda && npm install && npm run lint
+
+.PHONY: check-events-lambda-changed
+check-events-lambda-changed: events-lambda-package
+	@mkdir -p $(dir $(EVENTS_LAMBDA_PACKAGE))
+	@echo "Checking if events lambda package has changed..."
+	@aws s3 cp s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256 $(EVENTS_LAMBDA_PACKAGE_SHA).remote 2>/dev/null || (echo "Remote events lambda SHA doesn't exist yet" && touch $(EVENTS_LAMBDA_PACKAGE_SHA).remote)
+	@if [ ! -f $(EVENTS_LAMBDA_PACKAGE_SHA).remote ] || ! cmp -s $(EVENTS_LAMBDA_PACKAGE_SHA) $(EVENTS_LAMBDA_PACKAGE_SHA).remote; then \
+		echo "Events lambda package has changed"; \
+		echo "EVENTS_LAMBDA_CHANGED=1" > $(EVENTS_LAMBDA_PACKAGE_SHA).status; \
+	else \
+		echo "Events lambda package has not changed"; \
+		echo "EVENTS_LAMBDA_CHANGED=0" > $(EVENTS_LAMBDA_PACKAGE_SHA).status; \
+	fi
+
 .PHONY: upload-events-lambda
-upload-events-lambda: events-lambda-package  ## Uploads events-lambda to S3
-	aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip
-	aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256
+upload-events-lambda: check-events-lambda-changed  ## Uploads events-lambda to S3
+	@. $(EVENTS_LAMBDA_PACKAGE_SHA).status && \
+	if [ "$$EVENTS_LAMBDA_CHANGED" = "1" ]; then \
+		echo "Uploading new events lambda package to S3..."; \
+		aws s3 cp $(EVENTS_LAMBDA_PACKAGE) s3://compiler-explorer/lambdas/events-lambda-package.zip; \
+		aws s3 cp --content-type text/sha256 $(EVENTS_LAMBDA_PACKAGE_SHA) s3://compiler-explorer/lambdas/events-lambda-package.zip.sha256; \
+		echo "Events lambda package uploaded successfully!"; \
+	else \
+		echo "Events lambda package hasn't changed. No upload needed."; \
+	fi
 
 .PHONY: terraform-apply
-terraform-apply:  ## Applies terraform
-	cd terraform && terraform apply
+terraform-apply:  upload-lambda upload-events-lambda ## Applies terraform
+	terraform -chdir=terraform apply
+
+.PHONY: terraform-plan
+terraform-plan:  upload-lambda upload-events-lambda ## Plans terraform changes
+	terraform -chdir=terraform plan
 
 .PHONY: pre-commit
 pre-commit: ce  ## Runs all pre-commit hooks
-	$(POETRY) run pre-commit run --all-files
+	$(UV_BIN) run pre-commit run --all-files
 
 .PHONY: install-pre-commit
 install-pre-commit: ce  ## Install pre-commit hooks
-	$(POETRY) run pre-commit install
+	$(UV_BIN) run pre-commit install

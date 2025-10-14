@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import List
 
 import click
 
-from lib.amazon import get_tools_releases, download_release_file
-from lib.ce_utils import display_releases, are_you_sure
+from lib.amazon import download_release_file, get_tools_releases
+from lib.ce_utils import are_you_sure, display_releases
 from lib.cli import cli
 from lib.releases import Hash, Version, VersionSource
 
@@ -28,7 +29,7 @@ def tools():
     metavar="BRANCH",
     multiple=True,
 )
-def tools_list(destination: str, branch: List[str]):
+def tools_list(destination: str, branch: list[str]):
     current_version = Hash("")
     hash_file = Path(destination) / "git_hash"
     if hash_file.exists():

@@ -43,3 +43,12 @@ compilers:
         - name: 9.6.1
           deb: 10
           dir: ghc-{{name}}-x86_64-unknown-linux
+        - name: 9.8.4
+          deb: 10
+          dir: ghc-{{name}}-x86_64-unknown-linux
+        - name: 9.10.2
+          deb: 10
+          dir: ghc-{{name}}-x86_64-unknown-linux
+        - name: 9.12.2
+          deb: 10
+          dir: ghc-{{name}}-x86_64-unknown-linux

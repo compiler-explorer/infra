@@ -72,30 +72,89 @@ This is unsurprisingly accomplished by running `ce --env staging environment sto
 Instead of now rerunning the first step of compiler discovery for your commit but now for the prod environment,
 you can instead run `ce runner safeforprod staging gh-xxxx`, and it will create a compiler discovery result for prod.
 
-## Set current version in prod
+## Version Management for Different Environments
 
-Now that you've tested that everything works correctly,
-running `ce --env prod builds set_current gh-xxxx` will mark your build as current for the prod environment.
+Now that you've tested that everything works correctly, the deployment process varies by environment:
 
-_If this fails complaining that prod is currently bounce locked, it means that someone has blocked prod from updating.
+### For Blue-Green Environments (prod, beta)
+**Do NOT use `set_current`** - instead pass the version directly to the deploy command:
+- Production: `ce --env prod blue-green deploy gh-xxxx`
+- Beta: `ce --env beta blue-green deploy gh-xxxx`
+
+### For Traditional Environments (staging, gpu, winprod, etc.)
+Use `set_current` followed by environment refresh:
+```bash
+# Examples:
+ce --env staging builds set_current gh-xxxx
+ce --env gpu builds set_current gh-xxxx
+ce --env winprod builds set_current gh-xxxx
+```
+
+_If any command fails complaining about bounce lock, it means someone has blocked that environment from updating.
 The usual reason is that a conference is currently running and we don't want to have any big changes at this moment.
 There are instructions in the error message on how to bypass this if necessary, but ask around to check first._
 
-## Refresh prod
+## Deploy to production (Blue-Green)
 
-Now that the version is set as current, running `ce --env prod environment refresh` will refresh the live instances,
-bringing them up-to-date with your new version. Go make your preferred brevage,
-as this might take anywhere from 15min to an hour, depending on the number of active instances at this moment.
+Production now uses blue-green deployment for zero-downtime updates. Instead of refreshing instances,
+you'll deploy to the inactive color and then switch traffic:
 
-This command accepts a few interesting options:
- - _--min-healthy-percent n_: Ensures that at no point less than n% of the instances are healthy.
- The default is 75, but for quiet days such as weekends, we've found that setting it to 35 is a good tradeoff between security and speed.
- - _--motd msg_: Sets msg as the update notice displayed in the site. By default, its value is "Site is being updated",
- but it's handy if you need to be more specific.
+### Check current status
+```bash
+ce --env prod blue-green status
+```
+
+This shows which color (blue or green) is currently active and serving traffic.
+
+### Deploy to inactive color
+```bash
+ce --env prod blue-green deploy gh-xxxx
+```
+
+Replace `gh-xxxx` with the actual build version you identified earlier.
+
+This will:
+1. Deploy new instances to the inactive color
+2. Wait for all health checks to pass
+3. Automatically switch traffic to the new version
+4. Keep the old version as standby for quick rollback
+
+The deployment typically takes 10-15 minutes depending on the number of instances.
+
+### Alternative: Manual deployment steps
+
+If you prefer more control, you can use individual commands:
+
+```bash
+# Deploy without automatic switch
+ce --env prod blue-green deploy gh-xxxx --skip-switch
+
+# Manually switch when ready
+ce --env prod blue-green switch {blue|green}
+
+# If issues arise, rollback instantly
+ce --env prod blue-green rollback
+```
+
+### Cleanup old version
+
+After confirming the new version is stable, clean up the old instances:
+
+```bash
+ce --env prod blue-green cleanup
+```
+
+This scales down the inactive ASG to save costs.
 
 ## Done
 
-Congratulations, you've bounced the live site to a new version!
+Congratulations, you've deployed the live site to a new version using blue-green deployment!
+
+The benefits of this approach:
+- Zero downtime during deployment
+- No mixed versions serving traffic
+- Instant rollback capability if issues are detected
+- Previous version remains available as backup
 
 We now usually go to all the PR/issues that this new build implements and comment that they are now live in each of them.
 

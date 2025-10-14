@@ -1,5 +1,4 @@
 packer {
-  required_version = "1.10.2"
   required_plugins {
     amazon = {
       source  = "github.com/hashicorp/amazon"
@@ -23,10 +22,10 @@ variable "MY_SECRET_KEY" {
   default = ""
 }
 
-data "amazon-ami" "jammy" {
+data "amazon-ami" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
   filters = {
-    name                = "ubuntu/images/*ubuntu-jammy-22.04-amd64-server-*"
+    name                = "ubuntu-minimal/images/*ubuntu-*-22.04-amd64-minimal-*"
     root-device-type    = "ebs"
     virtualization-type = "hvm"
   }
@@ -38,16 +37,16 @@ data "amazon-ami" "jammy" {
 
 locals { timestamp = regex_replace(timestamp(), "[- TZ:]", "") }
 
-source "amazon-ebs" "jammy" {
+source "amazon-ebs" "ubuntu" {
   access_key = "${var.MY_ACCESS_KEY}"
-  ami_name                    = "compiler-explorer packer 22.04 @ ${local.timestamp}"
+  ami_name                    = "compiler-explorer packer @ ${local.timestamp}"
   associate_public_ip_address = true
   iam_instance_profile        = "XaniaBlog"
   instance_type               = "c5.xlarge"
   launch_block_device_mappings {
     delete_on_termination = true
     device_name           = "/dev/sda1"
-    volume_size           = 20
+    volume_size           = 8
     volume_type           = "gp2"
   }
   region = "us-east-1"
@@ -56,7 +55,7 @@ source "amazon-ebs" "jammy" {
   }
   secret_key        = "${var.MY_SECRET_KEY}"
   security_group_id = "sg-f53f9f80"
-  source_ami        = "${data.amazon-ami.jammy.id}"
+  source_ami        = "${data.amazon-ami.ubuntu.id}"
   ssh_username      = "ubuntu"
   subnet_id         = "subnet-1df1e135"
   tags = {
@@ -66,7 +65,7 @@ source "amazon-ebs" "jammy" {
 }
 
 build {
-  sources = ["source.amazon-ebs.jammy"]
+  sources = ["source.amazon-ebs.ubuntu"]
 
   provisioner "file" {
     destination = "/home/ubuntu/"
@@ -77,7 +76,7 @@ build {
     execute_command = "{{ .Vars }} sudo -E bash '{{ .Path }}'"
     inline = [
       "set -euo pipefail",
-      "while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud-init...'; sleep 1; done",
+      "cloud-init status --wait",
       "export DEBIAN_FRONTEND=noninteractive", "mkdir -p /root/.ssh",
       "cp /home/ubuntu/packer/known_hosts /root/.ssh/", "cp /home/ubuntu/packer/known_hosts /home/ubuntu/.ssh/",
       "rm -rf /home/ubuntu/packer", "apt-get -y update", "apt-get -y install git",

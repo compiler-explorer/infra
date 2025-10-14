@@ -253,6 +253,16 @@
         "url": "https://github.com/ericniebler/range-v3",
         "pretty_name": "range-v3"
       },
+      "rapidjson": {
+        "url": "https://github.com/Tencent/rapidjson",
+        "description": "A fast JSON parser/generator for C++ with both SAX/DOM style API",
+        "pretty_name": "RapidJSON"
+      },
+      "re2": {
+        "url": "https://github.com/google/re2n",
+        "description": "RE2, a regular expression library",
+        "pretty_name": "RE2"
+      },
       "scylladb-seastar": null,
       "agner-fog-vcl": null,
       "xerces-c": {

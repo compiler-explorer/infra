@@ -7,17 +7,19 @@ import re
 import shutil
 import socket
 import subprocess
+from collections.abc import Callable
 from functools import partial
 from pathlib import Path
-from typing import Optional, Callable, Dict, List, Any, Union
-from lib.nightly_versions import NightlyVersions
+from typing import Any
 
-from lib.library_platform import LibraryPlatform
+from lib.config import SquashfsConfig
+from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.installation_context import InstallationContext, is_windows
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
+from lib.library_platform import LibraryPlatform
+from lib.nightly_versions import NightlyVersions
 from lib.rust_library_builder import RustLibraryBuilder
-from lib.fortran_library_builder import FortranLibraryBuilder
 from lib.staging import StagingDir
 
 _LOGGER = logging.getLogger(__name__)
@@ -31,17 +33,17 @@ SimpleJsonType = (int, float, str, bool)
 
 
 class Installable:
-    _check_link: Optional[Callable[[], bool]]
-    check_env: Dict
+    _check_link: Callable[[], bool] | None
+    check_env: dict
     check_file: str
-    check_call: List[str]
+    check_call: list[str]
 
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         self.install_context = install_context
         self.config = config
         self.target_name = str(self.config.get("name", "(unnamed)"))
         self.context = self.config_get("context", [])
-        self.name = f'{"/".join(self.context)} {self.target_name}'
+        self.name = f"{'/'.join(self.context)} {self.target_name}"
         self.is_library = False
         self.language = ""
         if len(self.context) > 0:
@@ -49,7 +51,7 @@ class Installable:
         if len(self.context) > 1:
             self.language = self.context[1]
         self.depends_by_name = self.config.get("depends", [])
-        self.depends: List[Installable] = []
+        self.depends: list[Installable] = []
         self.install_always = self.config.get("install_always", False)
         self._check_link = None
         self.build_config = LibraryBuildConfig(config)
@@ -67,13 +69,13 @@ class Installable:
         self._logger = logging.getLogger(self.name)
         self.install_path_symlink = self.config_get("symlink", False)
 
-    def to_json_dict(self) -> Dict[str, Any]:
+    def to_json_dict(self) -> dict[str, Any]:
         return {key: value for key, value in self.__dict__.items() if isinstance(value, SimpleJsonType)}
 
     def to_json(self) -> str:
         return json.dumps(self.to_json_dict())
 
-    def _resolve(self, all_installables: Dict[str, Installable]):
+    def _resolve(self, all_installables: dict[str, Installable]):
         try:
             self.depends = [all_installables[dep] for dep in self.depends_by_name]
         except KeyError as ke:
@@ -86,9 +88,9 @@ class Installable:
         def resolve_deps(s: str) -> str:
             return _DEP_RE.sub(dep_n, s)
 
-        self.check_env = dict(
-            [x.replace("%PATH%", self.install_path).split("=", 1) for x in self.config_get("check_env", [])]
-        )
+        self.check_env = dict([
+            x.replace("%PATH%", self.install_path).split("=", 1) for x in self.config_get("check_env", [])
+        ])
         self.check_env = {key: resolve_deps(value) for key, value in self.check_env.items()}
 
         self.after_stage_script = [resolve_deps(line) for line in self.after_stage_script]
@@ -112,7 +114,7 @@ class Installable:
     def resolve(installables: list[Installable]) -> None:
         installables_by_name = {installable.name: installable for installable in installables}
         for installable in installables:
-            installable._resolve(installables_by_name)  # pylint: disable=protected-access
+            installable._resolve(installables_by_name)
 
     def find_dependee(self, name: str) -> Installable:
         for i in self.depends:
@@ -129,13 +131,22 @@ class Installable:
 
         return self.install_always or not self.is_installed()
 
-    def should_build(self):
-        return (
-            self.is_library
-            and self.build_config.build_type != "manual"
-            and self.build_config.build_type != "none"
-            and self.build_config.build_type != ""
-        )
+    def should_build(self, platform: LibraryPlatform) -> bool:
+        if platform == LibraryPlatform.Windows:
+            return (
+                self.is_library
+                and self.build_config.build_type != "manual"
+                and self.build_config.build_type != "none"
+                and self.build_config.build_type != "never"
+                and self.build_config.build_type != "make"
+            )
+        else:
+            return (
+                self.is_library
+                and self.build_config.build_type != "manual"
+                and self.build_config.build_type != "none"
+                and self.build_config.build_type != "never"
+            )
 
     def install(self) -> None:
         self._logger.debug("Ensuring dependees are installed")
@@ -230,7 +241,7 @@ class Installable:
             self._logger.debug("Got an error for %s: %s", self.check_call, cpe)
             return False
 
-    def config_get(self, config_key: str, default: Optional[Any] = None) -> Any:
+    def config_get(self, config_key: str, default: Any | None = None) -> Any:
         if config_key not in self.config and default is None:
             raise RuntimeError(f"Missing required key '{config_key}' in {self.name}")
         return self.config.get(config_key, default)
@@ -252,7 +263,7 @@ class Installable:
         if not self.is_library:
             raise RuntimeError("Nothing to build")
 
-        if self.build_config.build_type == "":
+        if not self.build_config.build_type:
             raise RuntimeError("No build_type")
 
         if self.build_config.build_type in ["cmake", "make"]:
@@ -268,10 +279,7 @@ class Installable:
                 popular_compilers_only,
                 platform,
             )
-            if self.build_config.build_type == "cmake":
-                return cppbuilder.makebuild(buildfor)
-            elif self.build_config.build_type == "make":
-                return cppbuilder.makebuild(buildfor)
+            return cppbuilder.makebuild(buildfor)
         elif (
             self.build_config.build_type == "none"
             and self.build_config.lib_type == "headeronly"
@@ -308,33 +316,34 @@ class Installable:
                 _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config
             )
             return rbuilder.makebuild(buildfor)
-        else:
-            raise RuntimeError("Unsupported build_type")
+        raise RuntimeError(f"Unsupported build_type ${self.build_config.build_type}")
 
-    def squash_to(self, destination_image: Path):
+    @property
+    def is_squashable(self) -> bool:
+        return True
+
+    def squash_to(self, destination_image: Path, squashfs_config: SquashfsConfig):
         destination_image.parent.mkdir(parents=True, exist_ok=True)
         source_folder = self.install_context.destination / self.install_path
         temp_image = destination_image.with_suffix(".tmp")
         temp_image.unlink(missing_ok=True)
         self._logger.info("Squashing %s...", source_folder)
-        self.install_context.check_call(
-            [
-                "/usr/bin/mksquashfs",
-                str(source_folder),
-                str(temp_image),
-                "-all-root",
-                "-progress",
-                "-comp",
-                "zstd",
-                "-Xcompression-level",
-                "19",
-            ]
-        )
+        self.install_context.check_call([
+            squashfs_config.mksquashfs_path,
+            str(source_folder),
+            str(temp_image),
+            "-all-root",
+            "-progress",
+            "-comp",
+            squashfs_config.compression,
+            "-Xcompression-level",
+            str(squashfs_config.compression_level),
+        ])
         temp_image.replace(destination_image)
 
 
 class SingleFileInstallable(Installable):
-    def __init__(self, install_context: InstallationContext, config: Dict[str, Any]):
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
         super().__init__(install_context, config)
         self.install_path = self.config_get("dir")
         self.url = self.config_get("url")
@@ -360,13 +369,13 @@ class SingleFileInstallable(Installable):
         super().install()
         with self.install_context.new_staging_dir() as staging:
             self.stage(staging)
-            self.install_context.move_from_staging(staging, self.install_path)
+            self.install_context.move_from_staging(staging, self.name, self.install_path)
 
     def __repr__(self) -> str:
         return f"SingleFileInstallable({self.name}, {self.install_path})"
 
 
-def command_config(config: Union[List[str], str]) -> List[str]:
+def command_config(config: list[str] | str) -> list[str]:
     if isinstance(config, str):
         return config.split(" ")
     return config

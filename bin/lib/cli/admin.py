@@ -1,11 +1,14 @@
-from typing import List
+from __future__ import annotations
+
+import os
+import subprocess
 
 import click
 
 from lib.amazon import ec2_client
 from lib.cli import cli
 from lib.instance import AdminInstance
-from lib.ssh import run_remote_shell, exec_remote_to_stdout
+from lib.ssh import exec_remote_to_stdout, run_remote_shell
 
 
 @cli.group()
@@ -24,7 +27,7 @@ def admin_login(mosh: bool):
 
 @admin.command(name="exec")
 @click.argument("command", nargs=-1)
-def admin_exec(command: List[str]):
+def admin_exec(command: list[str]):
     """Execute a command on the admin instance."""
     exec_remote_to_stdout(AdminInstance.instance(), command)
 
@@ -74,3 +77,130 @@ def admin_cleanup():
             click.echo(f"Snapshot {snapshot} not in use: removing")
             ec2_client.delete_snapshot(SnapshotId=snapshot_id)
     click.echo("done")
+
+
+@admin.command(name="mount-efs")
+@click.option("--local-path", default="/efs", help="Local mount point (default: /efs)")
+@click.option("--use-sudo", is_flag=True, help="Use sudo to mount (required for paths outside home directory)")
+def admin_mount_efs(local_path: str, use_sudo: bool):
+    """Mount the admin node's /efs directory locally via sshfs."""
+    instance = AdminInstance.instance()
+    remote_path = "/efs"
+
+    # Check if local mount point exists
+    if not os.path.exists(local_path):
+        click.echo(f"Error: Mount point {local_path} does not exist", err=True)
+        click.echo("Please create it first with:", err=True)
+        click.echo(f"  sudo mkdir {local_path}", err=True)
+        click.echo(f"  sudo chown $USER:$USER {local_path}", err=True)
+        return
+
+    # Check if already mounted
+    try:
+        result = subprocess.run(["mount"], capture_output=True, text=True)
+        if f"{instance.address}:{remote_path}" in result.stdout:
+            click.echo(f"Already mounted at {local_path}")
+            return
+    except RuntimeError:
+        pass
+
+    # Check ownership of the mount point
+    try:
+        stat_info = os.stat(local_path)
+        getuid = getattr(os, "getuid", None)
+        if getuid and stat_info.st_uid != getuid():
+            click.echo(f"Warning: You don't own {local_path}. This may cause mount issues.", err=True)
+            click.echo(f"Current owner UID: {stat_info.st_uid}, your UID: {getuid()}", err=True)
+    except RuntimeError:
+        pass
+
+    # Mount via sshfs (readonly)
+    # Build sshfs options
+    if use_sudo:
+        # When using sudo, tell SSH to use the current user's known_hosts file
+        home_dir = os.path.expanduser("~")
+        known_hosts = f"{home_dir}/.ssh/known_hosts"
+        sshfs_options = (
+            f"ro,"
+            f"reconnect,ServerAliveInterval=120,ServerAliveCountMax=3,"
+            f"StrictHostKeyChecking=accept-new,UserKnownHostsFile={known_hosts},allow_other"
+        )
+    else:
+        sshfs_options = "ro,reconnect,ServerAliveInterval=120,ServerAliveCountMax=3"
+
+    sshfs_cmd = [
+        "sshfs",
+        f"ubuntu@{instance.address}:{remote_path}",
+        local_path,
+        "-o",
+        sshfs_options,
+    ]
+
+    if use_sudo:
+        # Preserve SSH agent socket when using sudo
+        sudo_cmd = ["sudo"]
+        if "SSH_AUTH_SOCK" in os.environ:
+            sudo_cmd.extend(["--preserve-env=SSH_AUTH_SOCK"])
+        sshfs_cmd = sudo_cmd + sshfs_cmd
+
+    click.echo(f"Mounting {instance.address}:{remote_path} to {local_path}...")
+    try:
+        result = subprocess.run(sshfs_cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            click.echo(f"Successfully mounted EFS at {local_path}")
+            if use_sudo:
+                click.echo(f"Note: Mounted with sudo. To unmount: sudo umount {local_path}")
+        else:
+            raise subprocess.CalledProcessError(result.returncode, sshfs_cmd, result.stdout, result.stderr)
+    except subprocess.CalledProcessError as e:
+        click.echo(f"Failed to mount: {e}", err=True)
+        if e.stderr:
+            click.echo(f"Error: {e.stderr.strip()}", err=True)
+        if not use_sudo and "Permission denied" in (e.stderr or ""):
+            click.echo(
+                "\nPermission denied. When mounting outside your home directory, you need to use sudo.", err=True
+            )
+            click.echo("Try again with:", err=True)
+            click.echo("\n  bin/ce admin mount-efs --use-sudo", err=True)
+    except FileNotFoundError:
+        click.echo("sshfs not found. Please install it first:", err=True)
+        click.echo("  sudo apt-get install sshfs", err=True)
+
+
+@admin.command(name="unmount-efs")
+@click.option("--local-path", default="/efs", help="Local mount point (default: /efs)")
+@click.option("--use-sudo", is_flag=True, help="Use sudo to unmount (if mounted with sudo)")
+def admin_unmount_efs(local_path: str, use_sudo: bool):
+    """Unmount the locally mounted EFS directory."""
+    if not os.path.exists(local_path):
+        click.echo(f"Mount point {local_path} does not exist")
+        return
+
+    # Check if mounted
+    try:
+        result = subprocess.run(["mount"], capture_output=True, text=True)
+        if local_path not in result.stdout:
+            click.echo(f"Not mounted at {local_path}")
+            return
+    except RuntimeError:
+        pass
+
+    # Unmount
+    umount_cmd = ["umount", local_path]
+    if use_sudo:
+        umount_cmd = ["sudo"] + umount_cmd
+
+    try:
+        subprocess.run(umount_cmd, check=True)
+        click.echo(f"Successfully unmounted {local_path}")
+    except subprocess.CalledProcessError:
+        if not use_sudo:
+            # Try fusermount -u as fallback
+            try:
+                subprocess.run(["fusermount", "-u", local_path], check=True)
+                click.echo(f"Successfully unmounted {local_path}")
+            except subprocess.CalledProcessError as e:
+                click.echo(f"Failed to unmount: {e}", err=True)
+                click.echo("If mounted with sudo, try: bin/ce admin unmount-efs --use-sudo", err=True)
+        else:
+            click.echo("Failed to unmount with sudo", err=True)

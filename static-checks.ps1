@@ -3,20 +3,30 @@
 
 $cwd = Get-Location
 
-if (! ((Get-Item .env) -as [bool])) {
-    python -m venv .env
-    (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | py -
-
-    $env:PATH = "$env:PATH;$env:APPDATA\Python\Scripts"
+# Check if uv is available system-wide, otherwise install locally
+$uvPath = Get-Command uv -ErrorAction SilentlyContinue
+if ($uvPath) {
+    $uvBin = "uv"
 } else {
-    $env:PATH = "$env:PATH;$env:APPDATA\Python\Scripts"
+    $uvBin = "$cwd/.uv/uv.exe"
+    if (! (Test-Path -Path $uvBin)) {
+        Write-Host "Installing uv..."
+        $uvInstallDir = "$cwd/.uv"
+        if (! (Test-Path -Path $uvInstallDir)) {
+            New-Item -ItemType Directory -Path $uvInstallDir | Out-Null
+        }
+        # Download and extract uv for Windows
+        $uvUrl = "https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip"
+        $uvZip = "$uvInstallDir/uv.zip"
+        Invoke-WebRequest -Uri $uvUrl -OutFile $uvZip
+        Expand-Archive -Path $uvZip -DestinationPath $uvInstallDir -Force
+        Remove-Item $uvZip
+    }
 }
 
-$env:POETRY_VENV = "$cwd/.venv"
-$env:POETRY_DEPS = "$env:POETRY_VENV/.deps"
+# Sync dependencies
+& $uvBin sync --no-install-project
 
-poetry install --sync
+& $uvBin run pre-commit install
 
-poetry run pre-commit install
-
-poetry run pre-commit run --all-files
+& $uvBin run pre-commit run --all-files

@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import json
 import re
-from typing import Sequence
+from collections.abc import Sequence
 
 import click
 
 from lib.amazon import save_event_file
-from lib.ce_utils import get_events, are_you_sure
+from lib.ce_utils import are_you_sure, get_events
 from lib.cli import cli
 from lib.env import Config
 

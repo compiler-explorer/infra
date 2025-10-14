@@ -1,10 +1,10 @@
 import enum
 import json
-import boto3
-
 import logging
-from dataclasses import dataclass
 import os
+from dataclasses import dataclass
+
+import boto3
 
 BASE_CW_URL = "https://console.aws.amazon.com/cloudwatch/home"
 REGION = "us-east-1"

@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 import itertools
 import json
 import logging
+import socket
 import time
-from typing import Optional, Union, Set, List
 
 import click
 
-from lib.amazon import get_current_key, release_for, get_releases, get_events_file, save_event_file
+from lib.amazon import get_current_key, get_events_file, get_releases, release_for, save_event_file
 from lib.env import Config
 from lib.instance import Instance
 from lib.releases import Hash, Release
@@ -14,12 +16,22 @@ from lib.releases import Hash, Release
 logger = logging.getLogger(__name__)
 
 
-def sizeof_fmt(num: Union[int, float], suffix="B") -> str:
+def sizeof_fmt(num: int | float, suffix="B") -> str:
     for unit in ["", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "Zi"]:
         if abs(num) < 1024.0:
-            return "%3.1f%s%s" % (num, unit, suffix)
+            return f"{num:3.1f}{unit}{suffix}"
         num /= 1024.0
-    return "%.1f%s%s" % (num, "Yi", suffix)
+    return "{:.1f}{}{}".format(num, "Yi", suffix)
+
+
+def is_running_on_admin_node() -> bool:
+    """Check if the current script is running on the admin node.
+
+    Returns True if running on the admin node, False otherwise.
+    This is used to determine which features require admin node access
+    (SSH to instances, HTTP health checks, etc.).
+    """
+    return socket.gethostname() == "admin-node"
 
 
 def describe_current_release(cfg: Config) -> str:
@@ -30,7 +42,7 @@ def describe_current_release(cfg: Config) -> str:
     if r:
         return str(r)
     else:
-        return "non-standard release with s3 key '{}'".format(current)
+        return f"non-standard release with s3 key '{current}'"
 
 
 def wait_for_autoscale_state(instance: Instance, state: str) -> None:
@@ -79,7 +91,7 @@ def set_update_message(cfg: Config, message: str):
     save_events(cfg, events)
 
 
-def are_you_sure(name: str, cfg: Optional[Config] = None) -> bool:
+def are_you_sure(name: str, cfg: Config | None = None) -> bool:
     env_name = cfg.env.value if cfg else "global"
     while True:
         typed = input(f'Confirm operation: "{name}" in env {env_name}\nType the name of the environment to proceed: ')
@@ -87,7 +99,7 @@ def are_you_sure(name: str, cfg: Optional[Config] = None) -> bool:
             return True
 
 
-def display_releases(current: Union[str, Hash], filter_branches: Set[str], releases: List[Release]) -> None:
+def display_releases(current: str | Hash, filter_branches: set[str], releases: list[Release]) -> None:
     max_branch_len = max(10, max((len(release.branch) for release in releases), default=10))
     release_format = "{: <5} {: <" + str(max_branch_len) + "} {: <10} {: <10} {: <14}"
     click.echo(release_format.format("Live", "Branch", "Version", "Size", "Hash"))
@@ -107,11 +119,27 @@ def display_releases(current: Union[str, Hash], filter_branches: Set[str], relea
 
 def confirm_branch(branch: str) -> bool:
     while True:
-        typed = input('Confirm build branch "{}"\nType the name of the branch: '.format(branch))
+        typed = input(f'Confirm build branch "{branch}"\nType the name of the branch: ')
         if typed == branch:
             return True
 
 
 def confirm_action(description: str) -> bool:
-    typed = input("{}: [Y/N]\n".format(description))
+    typed = input(f"{description}: [Y/N]\n")
     return typed.upper() == "Y"
+
+
+def print_elapsed_time(message: str, start_time: float, **kwargs) -> None:
+    """Print a message with elapsed time in minutes and seconds format."""
+    elapsed_total_secs = int(time.time() - start_time)
+    elapsed_mins = elapsed_total_secs // 60
+    elapsed_secs = elapsed_total_secs % 60
+    formatted_msg = message.format(**kwargs) if kwargs else message
+    print(f"{formatted_msg} after {elapsed_mins}m {elapsed_secs}s")
+
+
+def print_elapsed_minutes(message: str, start_time: float, **kwargs) -> None:
+    """Print a message with elapsed time in minutes only."""
+    elapsed_mins = int((time.time() - start_time) / 60)
+    formatted_msg = message.format(**kwargs) if kwargs else message
+    print(f"[{elapsed_mins}m] {formatted_msg}")

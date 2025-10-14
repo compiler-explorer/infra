@@ -2,13 +2,12 @@
 import glob
 import json
 import os
-import requests
+import re
+import sys
 from argparse import ArgumentParser
 from difflib import unified_diff
 
-import re
-
-import sys
+import requests
 
 _TIMEOUT = 10.0
 
@@ -47,7 +46,7 @@ def get(session, url, compiler, options, source, filters):
                 obj["text"] = re.sub(r"/tmp/compiler-explorer-[^/]+", "/tmp", obj["text"])
             return obj
         except:
-            print("Issues with obj '{}'".format(obj))
+            print(f"Issues with obj '{obj}'")
             raise
 
     result = r.json()
@@ -119,7 +118,7 @@ def main(args):
                         if expected != result:
                             with open("/tmp/got.json", "w", encoding="utf-8") as f:
                                 f.write(json.dumps(result, indent=2))
-                            raise RuntimeError("Differences in {}".format(expected_file))
+                            raise RuntimeError(f"Differences in {expected_file}")
 
 
 if __name__ == "__main__":

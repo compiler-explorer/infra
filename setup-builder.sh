@@ -9,7 +9,7 @@ env EXTRA_NFS_ARGS="" "${DIR}/setup-common.sh"
 wget -qO- https://get.docker.com/ | sh
 usermod -aG docker ubuntu
 
-apt -y install mosh fish cronic subversion upx gdb
+apt -y install mosh fish cronic subversion upx gdb cron make
 chsh ubuntu -s /usr/bin/fish
 
 aws ssm get-parameter --name /admin/ce_private_key | jq -r .Parameter.Value >/home/ubuntu/.ssh/id_rsa
@@ -28,5 +28,3 @@ sed -i "/preserve_hostname/c preserve_hostname: true" /etc/cloud/cloud.cfg
 mv /infra /home/ubuntu/infra
 chown -R ubuntu:ubuntu /home/ubuntu/infra
 sudo -u ubuntu make -C /home/ubuntu/infra ce
-
-ln -s /efs/squash-images /opt/squash-images

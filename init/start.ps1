@@ -2,8 +2,31 @@ do {
   $ping = test-connection -comp "s3.amazonaws.com" -count 1 -Quiet
 } until ($ping)
 
-$userdata = Invoke-WebRequest -Uri "http://169.254.169.254/latest/user-data" -UseBasicParsing
-$env:CE_ENV = $userdata -as [string]
+# Get metadata token for IMDSv2
+$token = Invoke-WebRequest -Method PUT -Uri "http://169.254.169.254/latest/api/token" -Headers @{"X-aws-ec2-metadata-token-ttl-seconds" = "21600"} -UseBasicParsing
+$tokenHeader = @{"X-aws-ec2-metadata-token" = $token.Content}
+
+# Get Environment tag
+$envTag = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/tags/instance/Environment" -Headers $tokenHeader -UseBasicParsing
+$env:CE_ENV = $envTag.Content -as [string]
+
+# Get Color tag for blue-green deployment queue routing
+Write-Host "Detecting instance color..."
+try {
+    $colorTag = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/tags/instance/Color" -Headers $tokenHeader -UseBasicParsing -ErrorAction Stop
+    $instanceColor = $colorTag.Content -as [string]
+    Write-Host "Instance color: $instanceColor"
+}
+catch {
+    Write-Host "No instance color detected, using legacy queue routing"
+    $instanceColor = $null
+}
+
+if ([string]::IsNullOrEmpty($env:CE_ENV)) {
+    Write-Host "Environment tag not set!!"
+    exit 1
+}
+Write-Host "Running in environment $($env:CE_ENV)"
 $DEPLOY_DIR = "/compilerexplorer"
 $CE_ENV = $env:CE_ENV
 $CE_USER = "ce"
@@ -12,8 +35,9 @@ $loghost = "todo"
 $logport = "80"
 
 function GetBetterHostname {
-    $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -UseBasicParsing
-    return $meta -as [string] -replace ".ec2.internal",""
+    $token = Invoke-WebRequest -Method PUT -Uri "http://169.254.169.254/latest/api/token" -Headers @{"X-aws-ec2-metadata-token-ttl-seconds" = "21600"} -UseBasicParsing
+    $meta = Invoke-WebRequest -Uri "http://169.254.169.254/latest/meta-data/hostname" -Headers @{"X-aws-ec2-metadata-token" = $token.Content} -UseBasicParsing
+    return $meta.Content -as [string] -replace ".ec2.internal",""
 }
 
 $betterComputerName = GetBetterHostname
@@ -43,6 +67,56 @@ function get_released_code {
     Remove-Item -Path "/compilerexplorer" -Force -Recurse
     New-Item -Path "./" -Name "compilerexplorer" -ItemType "directory" -Force
     Expand-Archive -Path "/tmp/build.zip" -DestinationPath $DEPLOY_DIR
+}
+
+function GetLatestCeWinFileCache {
+    Write-Host "Fetching latest CeWinFileCache release"
+
+    $releaseUrl = "https://api.github.com/repos/compiler-explorer/ce-win-file-cache/releases/latest"
+    $release = Invoke-RestMethod -Uri $releaseUrl -UseBasicParsing
+
+    $zipAsset = $release.assets | Where-Object { $_.name -like "ce-win-file-cache*.zip" } | Select-Object -First 1
+
+    if (-not $zipAsset) {
+        Write-Host "No ce-win-file-cache zip asset found in latest release"
+        return
+    }
+
+    $downloadUrl = $zipAsset.browser_download_url
+    Write-Host "Downloading from: $downloadUrl"
+
+    $tmpZip = "C:\tmp\ce-win-file-cache.zip"
+    $tmpExtract = "C:\tmp\ce-win-file-cache-extract"
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $tmpZip -UseBasicParsing
+
+    Write-Host "Extracting to C:\tmp\cewinfilecache"
+    if (Test-Path $tmpExtract) {
+        Remove-Item -Path $tmpExtract -Force -Recurse
+    }
+    Expand-Archive -Path $tmpZip -DestinationPath $tmpExtract -Force
+
+    $innerFolder = Get-ChildItem -Path $tmpExtract -Directory | Select-Object -First 1
+    if ($innerFolder) {
+        if (Test-Path "C:\tmp\cewinfilecache") {
+            Remove-Item -Path "C:\tmp\cewinfilecache" -Force -Recurse
+        }
+        Move-Item -Path $innerFolder.FullName -Destination "C:\tmp\cewinfilecache" -Force
+    }
+
+    Remove-Item -Path $tmpExtract -Force -Recurse
+    Remove-Item -Path $tmpZip -Force
+    Write-Host "CeWinFileCache installed successfully"
+}
+
+function GetCeWinFileCacheConfig {
+    Write-Host "Downloading CeWinFileCache configuration"
+
+    $configUrl = "https://raw.githubusercontent.com/compiler-explorer/ce-win-file-cache/refs/heads/main/compilers.production.json"
+    $configPath = "C:\tmp\cewinfilecache\compilers.production.json"
+
+    Invoke-WebRequest -Uri $configUrl -OutFile $configPath -UseBasicParsing
+
+    Write-Host "CeWinFileCache configuration downloaded successfully"
 }
 
 function GetConf {
@@ -225,9 +299,13 @@ function InstallAsService {
 function InstallAndRunCEAsSystem {
     $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CE_ENV,"-HostnameForLogging",$betterComputerName,"-SMBServer",$SMBServer) -join " "
+    $runargs = @("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CE_ENV,"-HostnameForLogging",$betterComputerName,"-SMBServer",$SMBServer)
+    if ($instanceColor) {
+        $runargs += @("-InstanceColor",$instanceColor)
+    }
+    $runargsJoined = $runargs -join " "
 
-    InstallAsSystemService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs
+    InstallAsSystemService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargsJoined
 }
 
 function InstallCERunTask {
@@ -236,12 +314,17 @@ function InstallCERunTask {
         [securestring] $Password,
         [string] $CeEnv,
         [string] $HostnameForLogging,
-        [string] $SMBServer
+        [string] $SMBServer,
+        [string] $InstanceColor = $null
     )
 
-    $runargs = ("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging,"-SMBServer",$SMBServer) -join " "
+    $runargs = @("c:\tmp\infra\init\run.ps1","-LogHost",$loghost,"-LogPort",$logport,"-CeEnv",$CeEnv,"-HostnameForLogging",$HostnameForLogging,"-SMBServer",$SMBServer)
+    if ($InstanceColor) {
+        $runargs += @("-InstanceColor",$InstanceColor)
+    }
+    $runargsJoined = $runargs -join " "
 
-    InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargs -User $Credential -Password $Password
+    InstallAsService -Name "ce" -Exe "C:\Program Files\PowerShell\7\pwsh.exe" -WorkingDirectory "C:\tmp" -Arguments $runargsJoined -User $Credential -Password $Password
 }
 
 function ConfigureFileRights {
@@ -258,7 +341,7 @@ function CreateCredAndRun {
 
     $SMBServer = GetSMBServerIP -CeEnv $CE_ENV
 
-    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName -SMBServer $SMBServer
+    InstallCERunTask -Credential $credential -Password $pass -CeEnv $CE_ENV -HostnameForLogging $betterComputerName -SMBServer $SMBServer -InstanceColor $instanceColor
 }
 
 function GetLatestCEWrapper {
@@ -355,6 +438,17 @@ function AddToHosts {
     return $ip
 }
 
+function AddConanToHostsAndFirewall {
+    $hostname = "conan.compiler-explorer.com"
+    $ip = "18.160.18.12"
+
+    $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
+    $content = $content,($ip + " " + $hostname)
+    Set-Content -Path "C:\Windows\System32\drivers\etc\hosts" -Value $content
+
+    netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
+}
+
 function AddLocalHost {
     $content = Get-Content "C:\Windows\System32\drivers\etc\hosts"
     $content = $content,("127.0.0.1 localhost")
@@ -391,6 +485,8 @@ function ConfigureFirewall {
         netsh advfirewall firewall add rule name="Allow IP for $hostname" dir=out remoteip="$ip" action=allow enable=yes
     }
 
+    AddConanToHostsAndFirewall
+
     # should disable dns, but has consequences to figure out
     netsh advfirewall firewall delete rule name="Core Networking - DNS (UDP-Out)"
 
@@ -402,6 +498,8 @@ ConfigureSmbRights
 MountY
 
 GetLatestCEWrapper
+GetLatestCeWinFileCache
+GetCeWinFileCacheConfig
 
 UnMountY
 

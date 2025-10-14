@@ -12,6 +12,8 @@ compilers:
       - 0.7.6
       - 0.8.25
       - 0.8.26
+      - 0.8.29
+      - 0.8.30
   solidity_zksync:
     type: singleFile
     dir: zksync-solc-{{name}}
@@ -25,6 +27,7 @@ compilers:
       - 0.7.6-1.0.1
       - 0.8.25-1.0.1
       - 0.8.26-1.0.1
+      - 0.8.29-1.0.1
   zksolc:
     type: singleFile
     dir: zksolc-{{name}}
@@ -35,9 +38,31 @@ compilers:
       - compilers/solidity_zksync 0.7.6-1.0.1
       - compilers/solidity_zksync 0.8.25-1.0.1
       - compilers/solidity_zksync 0.8.26-1.0.1
+      - compilers/solidity_zksync 0.8.29-1.0.1
     url: https://github.com/matter-labs/era-compiler-solidity/releases/download/{{name}}/zksolc-linux-amd64-musl-v{{name}}
     filename: zksolc
     check_exe: zksolc --version
     targets:
       - 1.4.1
       - 1.5.0
+      - 1.5.13
+  solx:
+    type: singleFile
+    dir: solx-{{name}}
+    url: https://github.com/matter-labs/solx/releases/download/{{name}}/solx-linux-amd64-gnu-v{{name}}
+    filename: solx
+    check_exe: solx --version
+    targets:
+      - 0.1.0
+      - 0.1.1
+      - 0.1.2
+  resolc:
+    type: singleFile
+    dir: resolc-{{name}}
+    depends:
+      - compilers/solidity 0.8.30
+    url: https://github.com/paritytech/revive/releases/download/v{{name}}/resolc-x86_64-unknown-linux-musl
+    filename: resolc
+    check_exe: resolc --version
+    targets:
+      - 0.4.0

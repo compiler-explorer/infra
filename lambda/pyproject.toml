@@ -1,0 +1,30 @@
+[project]
+name = "compiler-explorer-lambda"
+version = "0.0.1"
+description = "Compiler Explorer Lambda Functions"
+authors = [
+    {name = "Matt Godbolt", email = "matt@godbolt.org"}
+]
+requires-python = ">=3.12"
+dependencies = [
+    "aws-embedded-metrics",
+    "requests==2.32.4"
+]
+
+# Mostly copied from the parent project.
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    # https://docs.astral.sh/ruff/rules/
+    "E", # pycodestyle errors,
+    "W", # pycodestyle warnings
+    "F", # pyflake
+    "B", # flake8-bugbear
+    "I", # isort
+]
+ignore = [
+    "E501" # line length
+]

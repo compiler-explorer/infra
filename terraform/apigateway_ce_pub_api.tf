@@ -4,9 +4,9 @@ resource "aws_apigatewayv2_api" "ce_pub_api" {
   description   = "Public API to host some lambdas"
   protocol_type = "HTTP"
   cors_configuration {
-    allow_origins = [
-      "https://*"
-    ]
+    allow_origins = ["*"]
+    allow_methods = ["GET", "POST", "OPTIONS"]
+    allow_headers = ["Content-Type"]
   }
 }
 

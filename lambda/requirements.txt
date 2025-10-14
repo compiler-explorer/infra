@@ -1,2 +1,0 @@
-aws-embedded-metrics
-requests==2.32.3

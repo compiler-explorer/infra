@@ -1,6 +1,8 @@
-import boto3
 import json
+from datetime import datetime
 from typing import Dict
+
+import boto3
 
 versionTablename = "nightly-version"
 nightlyExeTablename = "nightly-exe"
@@ -8,7 +10,7 @@ db_client = boto3.client("dynamodb")
 
 
 def lambda_handler(event, _context):
-    if not ("queryStringParameters" in event):
+    if "queryStringParameters" not in event:
         return default_error("No event.queryStringParameters")
 
     jsonp = ""
@@ -18,36 +20,40 @@ def lambda_handler(event, _context):
     item = False
     if "id" in event["queryStringParameters"]:
         exeItem = get_exe_path_by_compiler_id(event["queryStringParameters"]["id"])
-        if not exeItem or not "Item" in exeItem:
+        if not exeItem or "Item" not in exeItem:
             return default_error("No exe found based on id " + event["queryStringParameters"]["id"])
         else:
             exe = exeItem["Item"]["exe"]["S"]
             item = get_exe_version(exe)
-            if not item or not "Item" in item:
+            if not item or "Item" not in item:
                 return default_error("No exe found based on path " + exe)
 
     if "exe" in event["queryStringParameters"]:
         exe = event["queryStringParameters"]["exe"]
         item = get_exe_version(exe)
-        if not item or not "Item" in item:
+        if not item or "Item" not in item:
             return default_error("No exe found based on path " + exe)
 
     return respond_with_version(item["Item"], jsonp)
 
 
 def respond_with_version(version: Dict, jsonp: str):
+    modified_iso = None
+    if "modified" in version:
+        timestamp = float(version["modified"]["N"])
+        modified_iso = datetime.fromtimestamp(timestamp).isoformat()
+
     if jsonp:
         return dict(
             statusCode=200,
             headers={"content-type": "application/javascript"},
             body=jsonp
             + "("
-            + json.dumps(
-                {
-                    "version": version["version"]["S"],
-                    "full_version": version["full_version"]["S"],
-                }
-            )
+            + json.dumps({
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+                "modified": modified_iso,
+            })
             + ");",
         )
     else:
@@ -59,12 +65,11 @@ def respond_with_version(version: Dict, jsonp: str):
                 "max-age": "3600",
                 "s-maxage": "3600",
             },
-            body=json.dumps(
-                {
-                    "version": version["version"]["S"],
-                    "full_version": version["full_version"]["S"],
-                }
-            ),
+            body=json.dumps({
+                "version": version["version"]["S"],
+                "full_version": version["full_version"]["S"],
+                "modified": modified_iso,
+            }),
         )
 
 

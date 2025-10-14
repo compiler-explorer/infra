@@ -1,6 +1,9 @@
-from typing import Any, Dict
+from __future__ import annotations
+
+from typing import Any
 
 import botocore
+
 from lib.amazon import dynamodb_client
 
 
@@ -8,12 +11,12 @@ class LibraryBuildHistory:
     def __init__(self, logger):
         self.logger = logger
 
-    def get_lib_key(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
+    def get_lib_key(self, buildparameters_obj: dict[str, Any], commit_hash: str):
         library = buildparameters_obj["library"]
         library_version = buildparameters_obj["library_version"]
         return f"{library}#{library_version}#{commit_hash}"
 
-    def get_compiler_key(self, buildparameters_obj: Dict[str, Any]):
+    def get_compiler_key(self, buildparameters_obj: dict[str, Any]):
         compiler = buildparameters_obj["compiler"]
         compiler_version = buildparameters_obj["compiler_version"]
         arch = buildparameters_obj["arch"]
@@ -21,12 +24,12 @@ class LibraryBuildHistory:
 
         return f"{compiler}#{compiler_version}#{arch}#{libcxx}"
 
-    def failed(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
+    def failed(self, buildparameters_obj: dict[str, Any], commit_hash: str):
         lib_key = self.get_lib_key(buildparameters_obj, commit_hash)
         compiler_key = self.get_compiler_key(buildparameters_obj)
         self.insert(lib_key, compiler_key, False)
 
-    def success(self, buildparameters_obj: Dict[str, Any], commit_hash: str):
+    def success(self, buildparameters_obj: dict[str, Any], commit_hash: str):
         lib_key = self.get_lib_key(buildparameters_obj, commit_hash)
         compiler_key = self.get_compiler_key(buildparameters_obj)
         self.insert(lib_key, compiler_key, True)
@@ -37,6 +40,9 @@ class LibraryBuildHistory:
                 TableName="library-build-history",
                 Item={"library": {"S": lib_key}, "compiler": {"S": compiler_key}, "success": {"BOOL": success}},
             )
-        except botocore.exceptions.NoCredentialsError:
-            self.logger.error("Failed to insert into library-build-history (check if you've set your AWS credentials)")
+        except botocore.exceptions.NoCredentialsError as e:
+            self.logger.error(f"Failed to insert into library-build-history - No AWS credentials: {e}")
+            return
+        except botocore.exceptions.ClientError as e:
+            self.logger.error(f"Failed to insert into library-build-history: {e}")
             return

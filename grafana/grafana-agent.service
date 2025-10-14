@@ -1,13 +1,18 @@
 [Unit]
 Description=Grafana Agent
-After=network-online.target
+After=network-online.target cloud-init.target
+Wants=network-online.target
+# DefaultDependencies=no prevents circular dependency: this service is WantedBy=multi-user.target
+# but needs After=cloud-init.target, and cloud-init.target is also WantedBy=multi-user.target
+# See: https://serverfault.com/questions/871328/start-service-after-aws-user-data-has-run
+DefaultDependencies=no
 
 [Service]
 Type=exec
 User=root
 Restart=always
-ExecStart=/usr/local/bin/grafana-agent --config.file=/etc/grafana/agent.yaml
 ExecStartPre=/etc/grafana/make-config.sh
+ExecStart=/usr/local/bin/grafana-agent --config.file=/etc/grafana/agent.yaml
 
 [Install]
 WantedBy=multi-user.target
