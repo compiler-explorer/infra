@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import logging
 import re
+import shutil
 import subprocess
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -269,3 +271,58 @@ def extract_squashfs_image(
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, check=False)
     if result.returncode != 0:
         raise SquashfsError(f"unsquashfs of {squashfs_path} failed: {result.stdout.strip()}")
+
+
+def extract_squashfs_relocating_subdir(
+    config_squashfs: SquashfsConfig,
+    squashfs_path: Path,
+    output_dir: Path,
+    extraction_path: Path | None,
+) -> None:
+    """Extract a squashfs image, relocating subdirectory contents if needed.
+
+    When extraction_path is provided, unsquashfs extracts it as a subdirectory
+    within output_dir. This function moves that subdirectory's contents to
+    output_dir directly, avoiding nested directory structures.
+
+    This is useful when you want the contents of a specific subdirectory from
+    a consolidated image to appear directly at the output location.
+
+    Args:
+        config_squashfs: SquashFsConfig object with tool paths
+        squashfs_path: Path to squashfs file to extract
+        output_dir: Final destination directory for the extracted contents
+        extraction_path: Specific path within the archive to extract, or None for full extraction
+
+    Raises:
+        SquashfsError: If extraction fails
+        RuntimeError: If expected subdirectory not found after extraction
+
+    Example:
+        # Extract "gcc-12.3.0" subdir from consolidated.sqfs directly to /opt/gcc
+        extract_squashfs_relocating_subdir(
+            config, Path("consolidated.sqfs"), Path("/opt/gcc"), Path("gcc-12.3.0")
+        )
+        # Results in: /opt/gcc/bin/gcc (not /opt/gcc/gcc-12.3.0/bin/gcc)
+    """
+    if extraction_path:
+        # Extract to temp location, then move just the subdirectory to final location
+        # This handles unsquashfs creating extraction_path as a subdirectory
+        temp_extract_dir = output_dir.parent / f".tmp_extract_{uuid.uuid4().hex[:8]}"
+        try:
+            extract_squashfs_image(config_squashfs, squashfs_path, temp_extract_dir, extraction_path)
+            extracted_subdir = temp_extract_dir / extraction_path
+
+            if not extracted_subdir.exists():
+                raise RuntimeError(f"Expected extracted subdirectory not found: {extracted_subdir}")
+
+            # Move the subdirectory contents to final location
+            output_dir.parent.mkdir(parents=True, exist_ok=True)
+            extracted_subdir.rename(output_dir)
+        finally:
+            # Clean up temp extraction directory
+            if temp_extract_dir.exists():
+                shutil.rmtree(temp_extract_dir)
+    else:
+        # Simple case: extract directly to output
+        extract_squashfs_image(config_squashfs, squashfs_path, output_dir, None)

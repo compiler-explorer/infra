@@ -6,7 +6,6 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import uuid
 from collections.abc import Callable
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -39,7 +38,7 @@ from lib.cefs_manifest import (
     validate_manifest,
 )
 from lib.config import SquashfsConfig
-from lib.squashfs import create_squashfs_image, extract_squashfs_image
+from lib.squashfs import create_squashfs_image, extract_squashfs_relocating_subdir
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,37 +83,26 @@ def _extract_single_squashfs(args: tuple[str, str, str, str | None, str, str]) -
     try:
         compressed_size = squashfs_path.stat().st_size
 
-        # Determine where to extract based on whether this is partial extraction
-        # For partial extraction: extract to temp dir then move to correct location
-        # For full extraction: extract directly to target directory
+        # Extract using helper that handles nested subdirectory extraction
+        final_location = extraction_dir / subdir_name
         if extraction_path is not None:
-            temp_dir = extraction_dir / f".tmp_{uuid.uuid4().hex}"
             logger.info(
-                "Partially extracting %s from %s (%s) via temp dir",
+                "Partially extracting %s from %s (%s)",
                 extraction_path,
                 squashfs_path,
                 humanfriendly.format_size(compressed_size, binary=True),
             )
-
-            extract_squashfs_image(config, squashfs_path, temp_dir, extraction_path)
-            extracted_content = temp_dir / extraction_path
-            final_location = extraction_dir / subdir_name
-            final_location.parent.mkdir(parents=True, exist_ok=True)
-            extracted_content.rename(final_location)
-            shutil.rmtree(temp_dir)
         else:
-            actual_extraction_dir = extraction_dir / subdir_name
             logger.info(
-                "Extracting %s (%s) to %s",
+                "Extracting %s (%s)",
                 squashfs_path,
                 humanfriendly.format_size(compressed_size, binary=True),
-                actual_extraction_dir,
             )
-            extract_squashfs_image(config, squashfs_path, actual_extraction_dir, None)
 
-        # Always measure size at the expected location
-        subdir_path = extraction_dir / subdir_name
-        extracted_size = get_directory_size(subdir_path)
+        extract_squashfs_relocating_subdir(config, squashfs_path, final_location, extraction_path)
+
+        # Measure size at the extraction location
+        extracted_size = get_directory_size(final_location)
 
         if extraction_path is not None:
             logger.info(
