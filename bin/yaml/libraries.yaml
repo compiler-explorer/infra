@@ -2292,12 +2292,18 @@ libraries:
       sharedliblink:
       - Qt6Core
       targets:
+      - name: 6.4.2
+        url: https://download.qt.io/official_releases/qt/6.4/6.4.2/submodules/qtbase-everywhere-src-6.4.2.tar.xz
+      - name: 6.5.2
+        url: https://download.qt.io/official_releases/qt/6.5/6.5.2/submodules/qtbase-everywhere-src-6.5.2.tar.xz
+      - name: 6.6.0
+        url: https://download.qt.io/official_releases/qt/6.6/6.6.0/submodules/qtbase-everywhere-src-6.6.0.tar.xz
+      - name: 6.7.0
+        url: https://download.qt.io/official_releases/qt/6.7/6.7.0/submodules/qtbase-everywhere-src-6.7.0.tar.xz
       - name: 6.8.0
         url: https://download.qt.io/official_releases/qt/6.8/6.8.0/submodules/qtbase-everywhere-src-6.8.0.tar.xz
       - name: 6.9.0
         url: https://download.qt.io/official_releases/qt/6.9/6.9.0/submodules/qtbase-everywhere-src-6.9.0.tar.xz
-      - name: 6.10.0
-        url: https://download.qt.io/official_releases/qt/6.10/6.10.0/submodules/qtbase-everywhere-src-6.10.0.tar.xz
       type: tarballs
       untar_dir: qtbase-everywhere-src-{{name}}
     quill:
