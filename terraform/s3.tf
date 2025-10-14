@@ -109,8 +109,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "compiler-explorer-logs" {
   dynamic "rule" {
     # Keep only one month of these logs (See the privacy policy in the compiler explorer project)
     for_each = {
-      cloudfront = "cloudfront"
-      elb        = "elb"
+      cloudfront   = "cloudfront"
+      elb          = "elb"
+      elb-internal = "elb-internal"
     }
     content {
       id     = "delete_${rule.value}_per_log_policy"
