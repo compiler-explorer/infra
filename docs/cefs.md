@@ -129,7 +129,7 @@ The two-level autofs configuration works as follows:
 - [x] Write consolidation tooling and run it
 - [x] Test no mounts from old system are used
 - [x] Remove mount-all-img.sh and config
-- [ ] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
+- [x] Write an `unpack` tool that lets us unpack a mountpoint and replace the symlink with the "real" data for patching.
 - [x] Remove /efs/squash-images
 - [x] Remove all `.bak` files and gc
 
@@ -144,6 +144,8 @@ The two-level autofs configuration works as follows:
 - `ce cefs fsck [--repair]` - Check filesystem integrity and optionally repair incomplete transactions
 - `ce cefs gc` - Garbage collect unreferenced CEFS images
 - `ce cefs consolidate` - Combine multiple images into larger consolidated images
+- `ce cefs unpack FILTER` - Unpack CEFS images to real directories for in-place modifications
+- `ce cefs repack FILTER` - Repack modified directories back into new CEFS images
 
 #### Migration Process
 
@@ -432,6 +434,43 @@ ce --env prod cefs consolidate --reconsolidate \
 ```
 
 Safety: Uses same `.yaml.inprogress` pattern and atomic operations as regular consolidation.
+
+### Unpack and Repack
+
+The `ce cefs unpack` and `ce cefs repack` commands enable in-place modifications of CEFS images when reinstallation is not possible.
+
+**Use Cases**:
+- Upstream tarballs no longer available (e.g., old compiler versions removed)
+- Need to fix permissions, add files, or patch binaries in existing installations
+- Testing modifications without full reinstall cycle
+
+**Workflow**:
+```bash
+# 1. Unpack the CEFS image to a real directory
+ce cefs unpack qt-6.10
+
+# 2. Make modifications (permissions, files, patches, etc.)
+chmod -R a+rX /opt/compiler-explorer/qt-6.10.0
+echo "patched" > /opt/compiler-explorer/qt-6.10.0/VERSION
+
+# 3. Repack into a new CEFS image with a new hash
+ce cefs repack qt-6.10
+
+# 4. Old image becomes unreferenced and can be garbage collected
+ce cefs gc
+```
+
+**How It Works**:
+- **Unpack**: Extracts CEFS image (handling consolidated images transparently by extracting only the needed subdir), replaces symlink with directory, saves original as `.bak`
+- **Repack**: Creates new squashfs image with new hash, deploys to CEFS, replaces directory with symlink to new image
+- **Consolidated Images**: Transparently handled - unpack extracts only the needed subdirectory, repack creates a new single-item image
+
+**Safety**:
+- Atomic rename sequence minimizes race window during unpack
+- Uses standard `.bak` backup mechanism for rollback
+- Repack uses `.yaml.inprogress` pattern for transactional deployment
+- New images get new hashes, old images preserved until GC
+
 ### Edge Cases and Failure Scenarios
 
 #### What if GC runs during installation?
@@ -538,9 +577,6 @@ Manual intervention required for:
 - Disk space concerns (can reduce `--min-age` if needed)
 
 ## Future Work
-
-### Unpack Tool
-Implement `ce cefs unpack` command that allows unpacking a mountpoint and replacing the symlink with the "real" data for patching. This would enable in-place modifications of CEFS-managed content when necessary.
 
 ### Automated Failed Operation Recovery
 Develop `ce cefs check-failed` tool to analyze `.yaml.inprogress` files and provide automated remediation options for failed operations.
