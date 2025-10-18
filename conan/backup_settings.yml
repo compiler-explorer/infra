@@ -1,0 +1,78 @@
+os:
+    Linux:
+    Windows:
+
+arch: ANY
+
+arch_build: ANY
+
+os_build: ANY
+
+compiler:
+    gcc:
+        version: ANY
+        libcxx: ANY
+    clang:
+        version: ANY
+        libcxx: ANY
+    ellcc:
+        version: ANY
+        libcxx: ANY
+    zigcxx:
+        version: ANY
+        libcxx: ANY
+    rust:
+        version: ANY
+        libcxx: ANY
+    gccrs:
+        version: ANY
+        libcxx: ANY
+    cshared:
+        version: [cshared]
+        libcxx: ANY
+    headeronly:
+        version: [headeronly]
+        libcxx: ANY
+    llvmmos:
+        version: ANY
+        libcxx: ANY
+    clang-hexagon:
+        version: ANY
+        libcxx: ANY
+    edg:
+        version: ANY
+        libcxx: ANY
+    fortran:
+        version: ANY
+        libcxx: ANY
+    flang:
+        version: ANY
+        libcxx: ANY
+    flang-fc1:
+        version: ANY
+        libcxx: ANY
+    win32-vc:
+        version: ANY
+        libcxx: ANY
+    win32-mingw-gcc:
+        version: ANY
+        libcxx: ANY
+    win32-mingw-clang:
+        version: ANY
+        libcxx: ANY
+    lfortran:
+        version: ANY
+        libcxx: ANY
+    qnx:
+        version: ANY
+        libcxx: ANY
+
+build_type: [Debug, Release]
+
+flagcollection: ANY
+
+stdlib: ['', libc++]
+
+stdver: ['', c++11, c++14, c++17, c++2a, c++20, c++2b, c++23, c++2c, c++26, gnu++11, gnu++14, gnu++17, gnu++2a, gnu++2c]
+
+toolchain: ANY
