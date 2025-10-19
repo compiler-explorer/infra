@@ -1,0 +1,15 @@
+compilers:
+  helion:
+    depends:
+      - compilers/python 3.12.1
+    type: pip
+    dir: helion/v{{name}}
+    python: "%DEP0%/bin/python3.12"
+    package:
+      - helion=={{name}}
+      - triton==3.5.0
+      - torch==2.9.0
+      - numpy
+    check_exe: [ "bin/python3.12", "-c", "import helion; print(helion.__name__)" ]
+    targets:
+      - 0.2.0
