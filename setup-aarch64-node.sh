@@ -28,6 +28,7 @@ apt-get install -y \
     libelf-dev \
     libgmp3-dev \
     libnl-route-3-dev \
+    libpciaccess0 \
     libprotobuf-dev \
     libwww-perl \
     linux-libc-dev \
