@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Any
 
@@ -9,8 +10,10 @@ import requests
 from botocore.exceptions import ClientError
 
 from lib.amazon import as_client, elb_client
-from lib.aws_utils import get_instance_private_ip
+from lib.aws_utils import get_asg_info, get_instance_private_ip
 from lib.ce_utils import is_running_on_admin_node, print_elapsed_minutes, print_elapsed_time
+
+LOGGER = logging.getLogger(__name__)
 
 
 def print_target_group_diagnostics(target_group_arn: str, instance_ids: list[str]) -> None:
@@ -413,3 +416,71 @@ def wait_for_compiler_registration(instance_ids: list[str], environment: str, ti
         time.sleep(15)  # Check every 15 seconds
 
     raise TimeoutError(f"Timeout waiting for compiler registration on {len(instance_ids)} instances")
+
+
+def clear_router_cache(env: str) -> bool:
+    """Clear the ce-router cache for the specified environment.
+
+    This function clears both the active color cache and routing cache on the ce-router
+    to ensure it immediately picks up configuration changes during blue-green deployments.
+
+    Args:
+        env: Environment name (e.g., 'prod', 'staging', 'beta')
+
+    Returns:
+        True if cache was successfully cleared on at least one instance, False otherwise
+    """
+    router_asg_name = f"ce-router-{env}"
+
+    try:
+        asg_info = get_asg_info(router_asg_name)
+        if not asg_info:
+            LOGGER.warning(f"Router ASG {router_asg_name} not found")
+            return False
+
+        instances = asg_info.get("Instances", [])
+        if not instances:
+            LOGGER.warning(f"No instances found in router ASG {router_asg_name}")
+            return False
+
+        in_service_instances = [i for i in instances if i["LifecycleState"] == "InService"]
+        if not in_service_instances:
+            LOGGER.warning(f"No in-service instances found in router ASG {router_asg_name}")
+            return False
+
+        success_count = 0
+        for instance in in_service_instances:
+            router_instance_id = instance["InstanceId"]
+            router_private_ip = get_instance_private_ip(router_instance_id)
+
+            if not router_private_ip:
+                LOGGER.warning(f"Could not get private IP for router instance {router_instance_id}")
+                continue
+
+            print(f"  Clearing cache on {router_asg_name} instance {router_instance_id} ({router_private_ip})")
+
+            try:
+                url = f"http://{router_private_ip}:10240/admin/clear-cache"
+                response = requests.post(url, timeout=5)
+
+                if response.status_code == 200:
+                    success_count += 1
+                else:
+                    LOGGER.warning(
+                        f"Cache clear request for {router_instance_id} returned HTTP {response.status_code}: {response.text}"
+                    )
+            except requests.exceptions.Timeout:
+                LOGGER.warning(f"Timeout clearing cache on instance {router_instance_id}")
+            except requests.exceptions.ConnectionError:
+                LOGGER.warning(f"Connection error clearing cache on instance {router_instance_id}")
+            except requests.exceptions.RequestException as e:
+                LOGGER.warning(f"Request error clearing cache on instance {router_instance_id}: {e}")
+
+        return success_count > 0
+
+    except ClientError as e:
+        LOGGER.warning(f"AWS error getting router instance: {e}")
+        return False
+    except (RuntimeError, KeyError) as e:
+        LOGGER.warning(f"Unexpected error clearing router cache: {e}")
+        return False

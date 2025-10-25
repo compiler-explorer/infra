@@ -28,6 +28,7 @@ from lib.ce_utils import is_running_on_admin_node
 from lib.compiler_routing import update_compiler_routing_table
 from lib.deployment_utils import (
     check_instance_health,
+    clear_router_cache,
     print_target_group_diagnostics,
     wait_for_compiler_registration,
     wait_for_http_health,
@@ -483,6 +484,13 @@ class BlueGreenDeployment:
                             return
             else:
                 print("\nStep 3.5: Skipping compiler registration check (--skip-compiler-check)")
+
+            # Step 3.9: Clear router cache before traffic switch
+            print("\nStep 3.9: Clearing router cache before traffic switch")
+            if clear_router_cache(self.env):
+                print("✓ Router cache cleared successfully")
+            else:
+                LOGGER.warning("Failed to clear router cache (deployment will continue, cache expires in 30s)")
 
             # Step 4: Switch traffic to new color
             print(f"\nStep 4: Switching traffic to {inactive_color}")
