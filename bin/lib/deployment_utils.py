@@ -460,7 +460,7 @@ def clear_router_cache(env: str) -> bool:
             print(f"  Clearing cache on {router_asg_name} instance {router_instance_id} ({router_private_ip})")
 
             try:
-                url = f"http://{router_private_ip}:10240/admin/clear-cache"
+                url = f"http://{router_private_ip}/admin/clear-cache"
                 response = requests.post(url, timeout=5)
 
                 if response.status_code == 200:

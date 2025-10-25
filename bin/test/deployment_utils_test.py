@@ -34,7 +34,7 @@ class TestClearRouterCache(unittest.TestCase):
         self.assertTrue(result)
         mock_get_asg_info.assert_called_once_with("ce-router-staging")
         mock_get_private_ip.assert_called_once_with("i-router123")
-        mock_post.assert_called_once_with("http://10.0.1.50:10240/admin/clear-cache", timeout=5)
+        mock_post.assert_called_once_with("http://10.0.1.50/admin/clear-cache", timeout=5)
 
     @patch("lib.deployment_utils.get_asg_info")
     def test_clear_router_cache_asg_not_found(self, mock_get_asg_info):
@@ -172,8 +172,8 @@ class TestClearRouterCache(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(mock_get_private_ip.call_count, 2)
         self.assertEqual(mock_post.call_count, 2)
-        mock_post.assert_any_call("http://10.0.1.50:10240/admin/clear-cache", timeout=5)
-        mock_post.assert_any_call("http://10.0.1.51:10240/admin/clear-cache", timeout=5)
+        mock_post.assert_any_call("http://10.0.1.50/admin/clear-cache", timeout=5)
+        mock_post.assert_any_call("http://10.0.1.51/admin/clear-cache", timeout=5)
 
     @patch("lib.deployment_utils.get_instance_private_ip")
     @patch("lib.deployment_utils.get_asg_info")
@@ -222,7 +222,7 @@ class TestClearRouterCache(unittest.TestCase):
         self.assertTrue(result)
         self.assertEqual(mock_get_private_ip.call_count, 2)
         self.assertEqual(mock_post.call_count, 1)
-        mock_post.assert_called_once_with("http://10.0.1.51:10240/admin/clear-cache", timeout=5)
+        mock_post.assert_called_once_with("http://10.0.1.51/admin/clear-cache", timeout=5)
 
 
 if __name__ == "__main__":
