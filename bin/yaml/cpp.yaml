@@ -94,6 +94,12 @@ compilers:
           - assertions-15.1.0
           - 15.2.0
           - assertions-15.2.0
+        g++:
+          type: s3tarballs
+          check_exe: bin/g++ -v
+          check_stderr_on_stdout: true
+          targets:
+            - '1.27'
     cross:
       type: s3tarballs
       arch_prefix:
