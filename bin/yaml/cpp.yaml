@@ -1653,6 +1653,7 @@ compilers:
           - p2998-trunk
           - p3068-trunk
           - p3309-trunk
+          - p3334-trunk
           - p3367-trunk
           - p3372-trunk
           - p3385-trunk
