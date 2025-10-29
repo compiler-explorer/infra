@@ -1624,6 +1624,7 @@ compilers:
           - lock3-contracts-trunk
           - lock3-contract-labels-trunk
           - p1144-trunk
+          - reflection-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
