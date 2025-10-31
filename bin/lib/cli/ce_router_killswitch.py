@@ -6,18 +6,71 @@ CLI commands for CE Router killswitch - emergency routing control.
 
 from __future__ import annotations
 
+import logging
+import shlex
+import time
+from collections.abc import Sequence
+
 import boto3
 import click
 from botocore.exceptions import ClientError
 
+from lib.amazon import as_client, ec2
+from lib.ce_utils import are_you_sure
 from lib.cli import cli
 from lib.env import Config
+from lib.ssh import exec_remote, exec_remote_all
+
+LOGGER = logging.getLogger(__name__)
 
 
 @cli.group()
 def ce_router():
     """CE Router emergency routing controls."""
     pass
+
+
+class CERouterInstance:
+    """Wrapper for CE Router instances to work with SSH utilities."""
+
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "ce-router"
+
+    def __str__(self):
+        return f"{self.instance.id}@{self.instance.private_ip_address}"
+
+
+def _get_ce_router_instances(cfg: Config) -> list[CERouterInstance]:
+    """Get all CE Router instances from the ASG."""
+    asg_name = f"ce-router-{cfg.env.name.lower()}"
+
+    try:
+        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+
+        if not response["AutoScalingGroups"]:
+            LOGGER.warning(f"ASG '{asg_name}' not found")
+            return []
+
+        asg = response["AutoScalingGroups"][0]
+        instance_ids = [instance["InstanceId"] for instance in asg["Instances"]]
+
+        if not instance_ids:
+            return []
+
+        instances = []
+        for instance_id in instance_ids:
+            ec2_instance = ec2.Instance(id=instance_id)
+            ec2_instance.load()
+            instances.append(CERouterInstance(ec2_instance))
+
+        return instances
+
+    except ClientError as e:
+        LOGGER.error(f"Error getting CE Router instances: {e}")
+        return []
 
 
 def _get_alb_client():
@@ -421,3 +474,162 @@ def status(cfg: Config):
 
     except ClientError as e:
         click.echo(f"CE-ROUTER | ❌ ERROR: {str(e)}")
+
+
+@ce_router.command(name="exec_all")
+@click.pass_obj
+@click.argument("remote_cmd", required=True, nargs=-1)
+def exec_all(cfg: Config, remote_cmd: Sequence[str]):
+    """
+    Execute REMOTE_CMD on all CE Router instances.
+
+    Examples:
+        ce ce-router exec_all uptime
+        ce ce-router exec_all sudo systemctl status ce-router
+        ce ce-router exec_all curl -f http://localhost:10240/healthcheck
+    """
+    instances = _get_ce_router_instances(cfg)
+
+    if not instances:
+        click.echo(f"No CE Router instances found for environment {cfg.env.name}")
+        return
+
+    escaped = shlex.join(remote_cmd)
+    if not are_you_sure(f"exec command {escaped} on all {len(instances)} CE Router instances", cfg):
+        return
+
+    click.echo(f"Running '{escaped}' on {len(instances)} CE Router instances...")
+    exec_remote_all(instances, remote_cmd)
+
+
+@ce_router.command(name="version")
+@click.pass_obj
+def version(cfg: Config):
+    """
+    Show the installed CE Router version on all instances.
+
+    Example:
+        ce ce-router version
+    """
+    instances = _get_ce_router_instances(cfg)
+
+    if not instances:
+        click.echo(f"No CE Router instances found for environment {cfg.env.name}")
+        return
+
+    click.echo(f"CE Router versions for {cfg.env.name}:")
+    click.echo("")
+
+    for instance in instances:
+        try:
+            version_output = exec_remote(instance, ["cat", "/infra/.deploy/ce-router-version"], ignore_errors=True)
+            version_str = version_output.strip() if version_output else "unknown"
+            click.echo(f"  {instance}: {version_str}")
+        except RuntimeError:
+            click.echo(f"  {instance}: error reading version")
+
+
+@ce_router.command(name="refresh")
+@click.option(
+    "--min-healthy-percent",
+    type=click.IntRange(min=0, max=100),
+    metavar="PERCENT",
+    help="While updating, ensure at least PERCENT are healthy",
+    default=75,
+    show_default=True,
+)
+@click.option("--skip-confirmation", is_flag=True, help="Skip confirmation prompt")
+@click.pass_obj
+def refresh(cfg: Config, min_healthy_percent: int, skip_confirmation: bool):
+    """
+    Refresh CE Router instances by replacing them with new ones.
+
+    This starts an AWS instance refresh which will:
+    1. Launch new instances with the latest CE Router version
+    2. Wait for them to become healthy
+    3. Terminate old instances
+    4. Repeat until all instances are replaced
+
+    The refresh maintains the specified minimum healthy percentage throughout.
+
+    Example:
+        ce ce-router refresh
+        ce ce-router refresh --min-healthy-percent 90
+    """
+    asg_name = f"ce-router-{cfg.env.name.lower()}"
+
+    try:
+        # Check if ASG exists
+        response = as_client.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])
+
+        if not response["AutoScalingGroups"]:
+            click.echo(f"ASG '{asg_name}' not found")
+            return
+
+        asg = response["AutoScalingGroups"][0]
+
+        if asg["DesiredCapacity"] == 0:
+            click.echo(f"Skipping ASG {asg_name} as it has zero desired capacity")
+            return
+
+        # Check for existing refresh
+        describe_state = as_client.describe_instance_refreshes(AutoScalingGroupName=asg_name)
+        existing_refreshes = [
+            x for x in describe_state["InstanceRefreshes"] if x["Status"] in ("Pending", "InProgress")
+        ]
+
+        if existing_refreshes:
+            refresh_id = existing_refreshes[0]["InstanceRefreshId"]
+            click.echo(f"Found existing refresh {refresh_id} for {asg_name}")
+        else:
+            if not skip_confirmation and not are_you_sure(
+                f"refresh CE Router instances in {asg_name} (min healthy: {min_healthy_percent}%)", cfg
+            ):
+                return
+
+            click.echo("Starting instance refresh...")
+            refresh_result = as_client.start_instance_refresh(
+                AutoScalingGroupName=asg_name, Preferences={"MinHealthyPercentage": min_healthy_percent}
+            )
+            refresh_id = refresh_result["InstanceRefreshId"]
+            click.echo(f"Refresh started with ID: {refresh_id}")
+
+        # Monitor progress
+        last_log = ""
+        while True:
+            time.sleep(5)
+            describe_state = as_client.describe_instance_refreshes(
+                AutoScalingGroupName=asg_name, InstanceRefreshIds=[refresh_id]
+            )
+            refresh_data = describe_state["InstanceRefreshes"][0]
+            status = refresh_data["Status"]
+
+            if status == "InProgress":
+                log = (
+                    f"  {status}, {refresh_data['PercentageComplete']}%, "
+                    f"{refresh_data['InstancesToUpdate']} to update. "
+                    f"{refresh_data.get('StatusReason', '')}"
+                )
+            else:
+                log = f"  Status: {status}"
+
+            if log != last_log:
+                click.echo(log)
+                last_log = log
+
+            if status in ("Successful", "Failed", "Cancelled"):
+                break
+
+        if status == "Successful":
+            click.echo("")
+            click.echo("Instance refresh completed successfully!")
+            click.echo("New instances are now running with the latest CE Router version.")
+        elif status == "Failed":
+            click.echo("")
+            click.echo(f"Instance refresh failed: {refresh_data.get('StatusReason', 'Unknown reason')}")
+        else:
+            click.echo("")
+            click.echo("Instance refresh was cancelled")
+
+    except ClientError as e:
+        click.echo(f"Error refreshing CE Router instances: {e}")
