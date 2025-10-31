@@ -160,4 +160,7 @@ install_ce_router() {
     fi
     unzip -q -o /tmp/ce-router.zip -d /infra/.deploy
     rm -f /tmp/ce-router.zip
+
+    echo "${latest_version}" > /infra/.deploy/ce-router-version
+    echo "Installed ce-router version ${latest_version}"
 }
