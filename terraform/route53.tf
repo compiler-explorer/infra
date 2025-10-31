@@ -120,6 +120,49 @@ resource "aws_route53_record" "ses-compiler-explorer-com" {
   records = [aws_ses_domain_identity.compiler-explorer-com.verification_token]
 }
 
+resource "aws_ses_domain_mail_from" "compiler-explorer-com" {
+  domain                 = aws_ses_domain_identity.compiler-explorer-com.domain
+  mail_from_domain       = "bounce.${aws_ses_domain_identity.compiler-explorer-com.domain}"
+  behavior_on_mx_failure = "UseDefaultValue"
+}
+
+resource "aws_route53_record" "ses-bounce-mx-compiler-explorer-com" {
+  name    = aws_ses_domain_mail_from.compiler-explorer-com.mail_from_domain
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "MX"
+  records = ["10 feedback-smtp.us-east-1.amazonses.com"]
+}
+
+resource "aws_route53_record" "ses-bounce-spf-compiler-explorer-com" {
+  name    = aws_ses_domain_mail_from.compiler-explorer-com.mail_from_domain
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["v=spf1 include:amazonses.com ~all"]
+}
+
+resource "aws_ses_domain_dkim" "compiler-explorer-com" {
+  domain = aws_ses_domain_identity.compiler-explorer-com.domain
+}
+
+resource "aws_route53_record" "ses-dkim-compiler-explorer-com" {
+  count   = 3
+  name    = "${aws_ses_domain_dkim.compiler-explorer-com.dkim_tokens[count.index]}._domainkey"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "CNAME"
+  records = ["${aws_ses_domain_dkim.compiler-explorer-com.dkim_tokens[count.index]}.dkim.amazonses.com"]
+}
+
+resource "aws_route53_record" "dmarc-compiler-explorer-com" {
+  name    = "_dmarc"
+  zone_id = module.compiler-explorer-com.zone_id
+  ttl     = 3600
+  type    = "TXT"
+  records = ["v=DMARC1; p=quarantine; rua=mailto:matt+dmarc@compiler-explorer.com"]
+}
+
 resource "aws_route53_record" "api-compiler-explorer-com" {
   name    = aws_apigatewayv2_domain_name.api-compiler-explorer-custom-domain.domain_name
   type    = "A"
