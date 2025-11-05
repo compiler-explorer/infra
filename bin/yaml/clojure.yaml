@@ -7,7 +7,7 @@ compilers:
     script_filename: "clojure-{{name}}.sh"
     script: |
       chmod +x {{script_filename}}
-      export JAVA_HOME="$(pwd)/../../jdk-21.0.2"
+      export JAVA_HOME=%DEP0%
       ./{{script_filename}} --prefix $(pwd)/clojure/{{name}}
       $(pwd)/clojure/{{name}}/bin/clojure -Sdeps "{:mvn/local-repo \"$(pwd)/clojure/{{name}}/.m2/repository\"}" -Spath
     relocate_paths:
