@@ -9,6 +9,7 @@ compilers:
       check_exe: bin/slangc -version
       targets:
         - "2025.12.1"
+        - "2025.21.1"
       # Older URL format
       glibc-named:
         url: https://github.com/shader-slang/slang/releases/download/v{{name}}/slang-{{name}}-linux-x86_64-glibc-2.17.tar.gz
