@@ -2323,6 +2323,7 @@ libraries:
       - v8.2.0
       - v9.0.0
       - v10.0.1
+      - v10.2.0
       type: github
     raberu:
       check_file: README.md
