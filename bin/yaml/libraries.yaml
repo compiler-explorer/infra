@@ -580,10 +580,27 @@ libraries:
       type: github
     eastl:
       build_type: none
+      built:
+        build_type: cmake
+        check_file: CMakeLists.txt
+        lib_type: static
+        recursive: false
+        staticliblink:
+        - EASTL
+        subdir: eastl
+        targets:
+        - 3.16.07
+        - 3.17.00
+        - 3.17.02
+        - 3.17.03
+        - 3.17.06
+        - 3.18.00
+        - 3.21.12
+        - 3.21.23
+        - 3.27.00
       check_file: README.md
       method: clone_branch
       repo: electronicarts/EASTL
-      type: github
       targets:
       - 3.12.01
       - 3.12.04
@@ -603,24 +620,7 @@ libraries:
       - 3.15.00
       - 3.16.01
       - 3.16.05
-      built:
-        subdir: eastl
-        staticliblink:
-        - EASTL
-        build_type: cmake
-        lib_type: static
-        recursive: false
-        check_file: CMakeLists.txt
-        targets:
-        - 3.16.07
-        - 3.17.00
-        - 3.17.02
-        - 3.17.03
-        - 3.17.06
-        - 3.18.00
-        - 3.21.12
-        - 3.21.23
-        - 3.27.00
+      type: github
     eigen:
       check_file: README.md
       repo: libeigen/eigen
@@ -722,6 +722,7 @@ libraries:
       repo: Libraries-Openly-Fused/FusedKernelLibrary
       targets:
       - Beta-0.1.9
+      - Beta-0.1.13-LTS
       type: github
     gcem:
       build_type: cmake
