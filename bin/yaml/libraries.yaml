@@ -185,6 +185,41 @@ libraries:
       targets:
       - '1.2'
       type: github
+    bde:
+      build_type: cmake
+      check_file: Readme.md
+      repo: bloomberg/bde
+      method: clone_branch
+      lib_type: static
+      after_stage_script:
+      # Remove tests and test dependencies
+      - find . -name "*.t.*" -exec rm -f {} ";"
+      - sed -i 's/add_subdirectory(standalones)//g' CMakeLists.txt
+      prebuild_script:
+      - curl -o bde-tools.zip -L https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip
+      - unzip bde-tools.zip
+      extra_cmake_arg:
+      - -DBdeBuildSystem_ROOT:PATH=bde-tools-main/BdeBuildSystem/
+      - -DBBS_ENV_MARKER=ON
+      - -DCMAKE_INSTALL_LIBDIR=lib  # BDE CMake requires LIBDIR to be set
+      package_install: true
+      make_utility: ninja
+      staticliblink:
+      - bal
+      - bbl
+      - bbryu
+      - bdl
+      - bsl
+      - inteldfp
+      - pcre2
+      make_targets:
+      - bal
+      - bbl
+      - bdl
+      - bsl
+      targets:
+      - 4.31.0.0
+      type: github
     benchmark:
       build_type: cmake
       extra_cmake_arg:
@@ -1197,41 +1232,6 @@ libraries:
         repo: modm-io/avr-libstdcpp
         targets:
         - trunk
-        type: github
-      bde:
-        build_type: cmake
-        check_file: Readme.md
-        repo: bloomberg/bde
-        method: nightlyclone
-        lib_type: static
-        after_stage_script:
-        # Remove tests and test dependencies
-        - find . -name "*.t.*" -exec rm -f {} ";"
-        - sed -i 's/add_subdirectory(standalones)//g' CMakeLists.txt
-        prebuild_script:
-        - curl -o bde-tools.zip -L https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip
-        - unzip bde-tools.zip
-        extra_cmake_arg:
-        - -DBdeBuildSystem_ROOT:PATH=bde-tools-main/BdeBuildSystem/
-        - -DBBS_ENV_MARKER=ON
-        - -DCMAKE_INSTALL_LIBDIR=lib  # BDE CMake requires LIBDIR to be set
-        package_install: true
-        make_utility: ninja
-        staticliblink:
-        - bal
-        - bbl
-        - bbryu
-        - bdl
-        - bsl
-        - inteldfp
-        - pcre2
-        make_targets:
-        - bal
-        - bbl
-        - bdl
-        - bsl
-        targets:
-        - main
         type: github
       belleviews:
         build_type: none
