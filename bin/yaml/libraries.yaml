@@ -197,7 +197,7 @@ libraries:
       - sed -i 's/add_subdirectory(standalones)//g' CMakeLists.txt
       prebuild_script:
       - curl -o bde-tools.zip -L https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip
-      - unzip bde-tools.zip
+      - unzip -q bde-tools.zip
       extra_cmake_arg:
       - -DBdeBuildSystem_ROOT:PATH=bde-tools-main/BdeBuildSystem/
       - -DBBS_ENV_MARKER=ON
