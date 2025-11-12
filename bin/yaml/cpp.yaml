@@ -1627,7 +1627,7 @@ compilers:
           - reflection-trunk
           - contracts-base-trunk
           - contracts-GNUext-trunk
-          - thomas-healy
+          - thomas-healy-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
