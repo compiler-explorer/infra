@@ -147,10 +147,10 @@ class UvInstallable(Installable):
         venv = staging.path / self.install_path
 
         # Create venv first (uv will use its managed python)
-        # Use the same uv that's running ce_install
-        uv_path = os.environ.get("UV_BIN")
+        # Use the same uv that's running ce_install (uv run sets UV env var)
+        uv_path = os.environ.get("UV")
         if not uv_path:
-            raise RuntimeError("UV_BIN environment variable not set")
+            raise RuntimeError("UV environment variable not set (must be run via uv run)")
         self.install_context.check_output([uv_path, "venv", str(venv)])
 
         # Run script if specified (after venv creation, can use the venv)
