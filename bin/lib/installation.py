@@ -17,7 +17,7 @@ from lib.installable.archives import (
 from lib.installable.edg import EdgCompilerInstallable
 from lib.installable.git import BitbucketInstallable, GitHubInstallable, GitLabInstallable
 from lib.installable.installable import SingleFileInstallable
-from lib.installable.python import PipInstallable
+from lib.installable.python import PipInstallable, UvInstallable
 from lib.installable.rust import CratesIOInstallable, RustInstallable
 from lib.installable.script import ScriptInstallable
 from lib.installable.solidity import SolidityInstallable
@@ -95,6 +95,7 @@ _INSTALLER_TYPES = {
     "bitbucket": BitbucketInstallable,
     "rust": RustInstallable,
     "pip": PipInstallable,
+    "uv": UvInstallable,
     "ziparchive": ZipArchiveInstallable,
     "cratesio": CratesIOInstallable,
     "non-free-s3tarballs": NonFreeS3TarballInstallable,

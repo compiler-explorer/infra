@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -126,3 +127,70 @@ class PipInstallable(Installable):
 
     def __repr__(self) -> str:
         return f"PipInstallable({self.name}, {self.install_path})"
+
+
+class UvInstallable(Installable):
+    """
+    Installable for Python projects using uv package manager.
+
+    Creates a venv, then optionally runs a script and/or installs packages.
+    The script runs after venv creation and can use the venv for installation.
+    """
+
+    def __init__(self, install_context: InstallationContext, config: dict[str, Any]):
+        super().__init__(install_context, config)
+        self.install_path: str = self.config_get("dir")
+        self.package: str | list[str] | None = self.config.get("package")
+        self.script: list[str] = self.config.get("script", [])
+
+    def stage(self, staging: StagingDir) -> None:
+        venv = staging.path / self.install_path
+
+        # Create venv first (uv will use its managed python)
+        # Use the same uv that's running ce_install
+        uv_path = os.environ.get("UV_BIN")
+        if not uv_path:
+            raise RuntimeError("UV_BIN environment variable not set")
+        self.install_context.check_output([uv_path, "venv", str(venv)])
+
+        # Run script if specified (after venv creation, can use the venv)
+        if self.script:
+            self.install_context.run_script(staging, staging.path, self.script)
+
+        # Install packages if specified (can be package name, git+https://..., or local path)
+        if self.package:
+            packages = self.package
+            if isinstance(packages, str):
+                packages = [packages]
+
+            # Convert local paths (starting with ./) to absolute paths
+            abs_packages = []
+            for pkg in packages:
+                if pkg.startswith("./"):
+                    abs_packages.append(str((staging.path / pkg).resolve()))
+                else:
+                    abs_packages.append(pkg)
+
+            venv_python = str(venv / "bin" / "python")
+            self.install_context.check_output([uv_path, "pip", "install", "--python", venv_python, *abs_packages])
+
+        # Run after_stage_script if specified (inherited from base Installable)
+        if self.after_stage_script:
+            self.install_context.run_script(staging, venv, self.after_stage_script)
+
+    def verify(self) -> bool:
+        if not super().verify():
+            return False
+        with self.install_context.new_staging_dir() as staging:
+            self.stage(staging)
+            return self.install_context.compare_against_staging(staging, self.install_path)
+
+    def install(self) -> None:
+        super().install()
+        with self.install_context.new_staging_dir() as staging:
+            self.stage(staging)
+            # Reuse pip's relocation logic - uv venvs have the same structure
+            self.install_context.move_from_staging(staging, self.name, self.install_path, relocate=do_relocate)
+
+    def __repr__(self) -> str:
+        return f"UvInstallable({self.name}, {self.install_path})"
