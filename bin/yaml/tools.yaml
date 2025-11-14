@@ -116,6 +116,16 @@ tools:
     check_exe: bin/osaca --version
     targets:
       - 0.7.1
+  uica:
+    type: uv
+    dir: uica-{{name}}
+    script:
+      - git clone --branch {{name}} --recursive https://github.com/compiler-explorer/uiCA.git uica-src
+      - cd uica-src && uv run --with setuptools python build.py
+    package: ./uica-src
+    check_exe: bin/uica --help
+    targets:
+      - ce
   rustfmt:
     type: tarballs
     dir: rustfmt-{{name}}
