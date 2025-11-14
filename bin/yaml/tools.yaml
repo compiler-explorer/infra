@@ -121,7 +121,7 @@ tools:
     dir: uica-{{name}}
     script:
       - git clone --branch {{name}} --recursive https://github.com/compiler-explorer/uiCA.git uica-src
-      - cd uica-src && uv run --with setuptools python build.py
+      - cd uica-src && "${UV}" run --with setuptools python build.py
     package: ./uica-src
     check_exe: bin/uica --help
     targets:
