@@ -30,6 +30,7 @@ on:
         - jakt
         - lfortran
         - mads
+        - micropython
         - nasm
         - nix
         - ocaml
