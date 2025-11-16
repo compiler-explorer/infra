@@ -62,7 +62,16 @@ def test_can_write_conan_file(requests_mock):
     build_config.url = "https://some.url"
     build_config.package_install = False
     lb = LibraryBuilder(
-        logger, "lang", "somelib", "target", "src-folder", install_context, build_config, False, LibraryPlatform.Linux
+        logger,
+        "lang",
+        "somelib",
+        "target",
+        "src-folder",
+        install_context,
+        build_config,
+        False,
+        LibraryPlatform.Linux,
+        1,
     )
     tio = io.StringIO()
     lb.write_conan_file_to(tio)
@@ -91,7 +100,7 @@ def test_get_toolchain_path_from_options_gcc_toolchain(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "--gcc-toolchain=/opt/gcc-11 -O2"
@@ -105,7 +114,7 @@ def test_get_toolchain_path_from_options_gxx_name(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "--gxx-name=/opt/gcc/bin/g++ -std=c++17"
@@ -119,7 +128,7 @@ def test_get_toolchain_path_from_options_none(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "-O2 -std=c++17"
@@ -133,7 +142,7 @@ def test_get_sysroot_path_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "--sysroot=/opt/sysroot -O2"
@@ -147,7 +156,7 @@ def test_get_std_ver_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "-std=c++17 -O2"
@@ -161,7 +170,7 @@ def test_get_std_lib_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "-stdlib=libc++ -O2"
@@ -175,7 +184,7 @@ def test_get_target_from_options(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     options = "-target x86_64-linux-gnu -O2"
@@ -189,7 +198,7 @@ def test_replace_optional_arg_with_value(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     arg = "cmake -DARCH=%arch% -DBUILD=%buildtype%"
@@ -203,7 +212,7 @@ def test_replace_optional_arg_no_value(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     arg = "cmake %arch?% -DBUILD=%buildtype%"
@@ -217,7 +226,7 @@ def test_expand_make_arg(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     arg = "-DARCH=%arch% -DBUILD=%buildtype% -DSTD=%stdver%"
@@ -233,7 +242,7 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
     install_context.dry_run = False
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     mock_subprocess.return_value = b"conanfile.py: ID: abc123def456\nOther output"
@@ -254,7 +263,7 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     mock_subprocess.return_value = 0
@@ -272,7 +281,7 @@ def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     mock_subprocess.side_effect = TimeoutExpired("cmd", 600)
@@ -289,7 +298,7 @@ def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     mock_get_ssm.return_value = "test_password"
@@ -312,7 +321,7 @@ def test_conanproxy_login_with_env_var(mock_get_ssm, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     mock_response = mock.Mock()
@@ -333,7 +342,7 @@ def test_does_compiler_support_fixed_target_match(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     result = builder.does_compiler_support("/usr/bin/gcc", "gcc", "x86_64-linux-gnu", "-target x86_64-linux-gnu", "")
@@ -346,7 +355,7 @@ def test_does_compiler_support_fixed_target_mismatch(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     result = builder.does_compiler_support("/usr/bin/gcc", "gcc", "x86", "-target x86_64-linux-gnu", "")
@@ -359,7 +368,7 @@ def test_script_env_linux(requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     result = builder.script_env("CC", "/usr/bin/gcc")
@@ -373,7 +382,7 @@ def test_count_headers(mock_glob, requests_mock):
     install_context = mock.Mock(spec_set=InstallationContext)
     build_config = create_test_build_config()
     builder = LibraryBuilder(
-        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
+        logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux, 1
     )
 
     mock_glob.side_effect = [
