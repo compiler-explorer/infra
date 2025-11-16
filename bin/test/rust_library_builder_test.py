@@ -105,7 +105,7 @@ def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     assert result == BuildStatus.TimedOut
 
 
-@patch("lib.rust_library_builder.get_ssm_param")
+@patch("lib.base_library_builder.get_ssm_param")
 def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
@@ -141,13 +141,14 @@ def test_get_commit_hash(requests_mock):
 def test_execute_conan_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
-    install_context = mock.Mock(spec_set=InstallationContext)
+    install_context = mock.Mock()
+    install_context.dry_run = False
     build_config = create_rust_test_build_config()
     builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
 
     mock_subprocess.return_value = 0
 
-    result = builder.executeconanscript("/tmp/buildfolder", "x86_64", "")
+    result = builder.validate_and_export_conan("/tmp/buildfolder", "x86_64", "")
 
     assert result == BuildStatus.Ok
     mock_subprocess.assert_called_once_with(["./conanexport.sh"], cwd="/tmp/buildfolder")
@@ -157,13 +158,14 @@ def test_execute_conan_script_success(mock_subprocess, requests_mock):
 def test_execute_conan_script_failure(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}rust.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
-    install_context = mock.Mock(spec_set=InstallationContext)
+    install_context = mock.Mock()
+    install_context.dry_run = False
     build_config = create_rust_test_build_config()
     builder = RustLibraryBuilder(logger, "rust", "rustlib", "1.0.0", install_context, build_config)
 
     mock_subprocess.return_value = 1
 
-    result = builder.executeconanscript("/tmp/buildfolder", "x86_64", "")
+    result = builder.validate_and_export_conan("/tmp/buildfolder", "x86_64", "")
 
     assert result == BuildStatus.Failed
 
