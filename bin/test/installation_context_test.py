@@ -3,10 +3,8 @@ from __future__ import annotations
 import stat
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock
 
-from lib.installation_context import InstallationContext
-from lib.library_platform import LibraryPlatform
+from lib.installation_context import fix_permissions
 
 
 def test_fix_permissions_skips_broken_symlinks():
@@ -27,27 +25,8 @@ def test_fix_permissions_skips_broken_symlinks():
         assert broken_link.is_symlink()
         assert not broken_link.exists()
 
-        # Create a mock installation context
-        config = Mock()
-        ic = InstallationContext(
-            destination=test_dir,
-            staging_root=test_dir,
-            s3_url="",
-            dry_run=False,
-            is_nightly_enabled=False,
-            only_nightly=False,
-            cache=None,
-            yaml_dir=test_dir,
-            allow_unsafe_ssl=False,
-            resource_dir=test_dir,
-            keep_staging=False,
-            check_user="test",
-            platform=LibraryPlatform.Linux,
-            config=config,
-        )
-
         # This should not raise an exception
-        ic._fix_permissions(test_dir)
+        fix_permissions(test_dir)
 
         # Verify the regular file still exists
         assert regular_file.exists()
@@ -73,27 +52,8 @@ def test_fix_permissions_handles_valid_symlinks():
         assert valid_link.is_symlink()
         assert valid_link.exists()
 
-        # Create a mock installation context
-        config = Mock()
-        ic = InstallationContext(
-            destination=test_dir,
-            staging_root=test_dir,
-            s3_url="",
-            dry_run=False,
-            is_nightly_enabled=False,
-            only_nightly=False,
-            cache=None,
-            yaml_dir=test_dir,
-            allow_unsafe_ssl=False,
-            resource_dir=test_dir,
-            keep_staging=False,
-            check_user="test",
-            platform=LibraryPlatform.Linux,
-            config=config,
-        )
-
         # This should not raise an exception
-        ic._fix_permissions(test_dir)
+        fix_permissions(test_dir)
 
         # Verify both files still exist
         assert target_file.exists()
@@ -126,26 +86,8 @@ def test_fix_permissions_fixes_root_directory():
         assert stat.S_IMODE(subdir.stat().st_mode) == 0o700
         assert stat.S_IMODE(test_file.stat().st_mode) == 0o600
 
-        config = Mock()
-        ic = InstallationContext(
-            destination=test_dir,
-            staging_root=test_dir,
-            s3_url="",
-            dry_run=False,
-            is_nightly_enabled=False,
-            only_nightly=False,
-            cache=None,
-            yaml_dir=test_dir,
-            allow_unsafe_ssl=False,
-            resource_dir=test_dir,
-            keep_staging=False,
-            check_user="test",
-            platform=LibraryPlatform.Linux,
-            config=config,
-        )
-
         # Fix permissions
-        ic._fix_permissions(test_dir)
+        fix_permissions(test_dir)
 
         # Verify root directory permissions are fixed (should be 755)
         root_mode = stat.S_IMODE(test_dir.stat().st_mode)

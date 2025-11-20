@@ -38,6 +38,7 @@ from lib.cefs_manifest import (
     validate_manifest,
 )
 from lib.config import SquashfsConfig
+from lib.installation_context import fix_permissions, is_windows
 from lib.squashfs import create_squashfs_image, extract_squashfs_relocating_subdir
 
 _LOGGER = logging.getLogger(__name__)
@@ -256,6 +257,11 @@ def create_consolidated_image(
             "Total extracted data: %s",
             humanfriendly.format_size(total_extracted_size, binary=True),
         )
+
+        # Fix permissions before creating consolidated squashfs to ensure all files are accessible
+        if not is_windows():
+            _LOGGER.info("Fixing permissions in extraction directory before consolidation")
+            fix_permissions(extraction_dir)
 
         _LOGGER.info("Creating consolidated squashfs image at %s", output_path)
         create_squashfs_image(squashfs_config, extraction_dir, output_path)

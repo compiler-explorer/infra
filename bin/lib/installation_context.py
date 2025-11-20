@@ -40,6 +40,57 @@ def is_windows():
     return os.name == "nt"
 
 
+def fix_single_permission(file_path: Path) -> None:
+    """Fix permissions for a single file or directory.
+
+    Mirrors user permissions to group and other, but never grants write to group/other.
+    Always ensures user has write permission for future editing.
+    """
+    # Skip symlinks - they don't have their own permissions and
+    # chmod would affect the target, which may not exist (broken symlinks)
+    if file_path.is_symlink():
+        return
+
+    current_mode = file_path.stat().st_mode
+    current_perms = stat.S_IMODE(current_mode)
+
+    # Build expected permissions:
+    # - User always gets write, keeps read/exec
+    # - Group/other mirror user's read/exec but never get write
+    new_perms = (current_perms & stat.S_IRWXU) | stat.S_IWUSR  # Always give user write
+
+    if bool(current_perms & stat.S_IRUSR):
+        new_perms |= stat.S_IRGRP
+        new_perms |= stat.S_IROTH
+    if bool(current_perms & stat.S_IXUSR):
+        new_perms |= stat.S_IXGRP
+        new_perms |= stat.S_IXOTH
+
+    if current_perms != new_perms:
+        _LOGGER.debug("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
+        file_path.chmod(new_perms)
+
+
+def fix_permissions(path: Path) -> None:
+    """Fix permissions recursively to ensure files are accessible by all users.
+
+    Mirrors user permissions to group and other, but never grants write to group/other.
+    Always ensures user has write permission for future editing.
+    """
+    # Fix the root directory itself first
+    fix_single_permission(path)
+
+    # Then fix all subdirectories and files
+    for root, dirs, files in os.walk(path):
+        for dir_name in dirs:
+            dir_path = Path(root) / dir_name
+            fix_single_permission(dir_path)
+
+        for file_name in files:
+            file_path = Path(root) / file_name
+            fix_single_permission(file_path)
+
+
 class FetchFailure(RuntimeError):
     pass
 
@@ -262,51 +313,6 @@ class InstallationContext:
             _LOGGER.debug("File not found for %s", link)
             return False
 
-    def _fix_permissions(self, path: Path) -> None:
-        """Fix permissions recursively to ensure files are accessible by all users.
-
-        Mirrors user permissions to group and other, but never grants write to group/other.
-        Always ensures user has write permission for future editing.
-        """
-        # Fix the root directory itself first
-        self._fix_single_permission(path)
-
-        # Then fix all subdirectories and files
-        for root, dirs, files in os.walk(path):
-            for dir_name in dirs:
-                dir_path = Path(root) / dir_name
-                self._fix_single_permission(dir_path)
-
-            for file_name in files:
-                file_path = Path(root) / file_name
-                self._fix_single_permission(file_path)
-
-    def _fix_single_permission(self, file_path: Path) -> None:
-        """Fix permissions for a single file or directory."""
-        # Skip symlinks - they don't have their own permissions and
-        # chmod would affect the target, which may not exist (broken symlinks)
-        if file_path.is_symlink():
-            return
-
-        current_mode = file_path.stat().st_mode
-        current_perms = stat.S_IMODE(current_mode)
-
-        # Build expected permissions:
-        # - User always gets write, keeps read/exec
-        # - Group/other mirror user's read/exec but never get write
-        new_perms = (current_perms & stat.S_IRWXU) | stat.S_IWUSR  # Always give user write
-
-        if bool(current_perms & stat.S_IRUSR):
-            new_perms |= stat.S_IRGRP
-            new_perms |= stat.S_IROTH
-        if bool(current_perms & stat.S_IXUSR):
-            new_perms |= stat.S_IXGRP
-            new_perms |= stat.S_IXOTH
-
-        if current_perms != new_perms:
-            _LOGGER.debug("Fixing permissions on %s: %s -> %s", file_path, oct(current_perms), oct(new_perms))
-            file_path.chmod(new_perms)
-
     def move_from_staging(
         self,
         staging: StagingDir,
@@ -342,7 +348,7 @@ class InstallationContext:
 
         # Fix permissions to ensure files are accessible by all users
         if not is_windows():
-            self._fix_permissions(source_path)
+            fix_permissions(source_path)
 
         state = ""
         if dest_path.is_dir():
@@ -489,7 +495,7 @@ class InstallationContext:
 
         # Fix permissions before squashing
         if not is_windows():
-            self._fix_permissions(source_path)
+            fix_permissions(source_path)
 
         installable_info = create_installable_manifest_entry(installable_name, nfs_path)
         manifest = create_manifest(
