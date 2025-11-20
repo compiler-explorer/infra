@@ -34,7 +34,9 @@ minimum_install_req = [
     # {"MSVersionSemver": "14.41.33923", "MSVSVer": "2022", "MSVSShortVer": "17.11.0", "ZIPFile": "14.41.33923-14.41.33923.0"},
     {"MSVersionSemver": "14.41.34120", "MSVSVer": "2022", "MSVSShortVer": "17.11.6", "ZIPFile": "14.41.34120-14.41.34123.0"},
     {"MSVersionSemver": "14.42.34433", "MSVSVer": "2022", "MSVSShortVer": "17.12.7", "ZIPFile": "14.42.34433-14.42.34441.0"},
+  # {"MSVersionSemver": "14.43.34433", "MSVSVer": "2022", "MSVSShortVer": "17.12.13", "ZIPFile": "14.42.34433-14.42.34444.0"},
     {"MSVersionSemver": "14.43.34808", "MSVSVer": "2022", "MSVSShortVer": "17.13.6", "ZIPFile": "14.43.34808-14.43.34810.0"},
+    {"MSVersionSemver": "14.44.35207", "MSVSVer": "2022", "MSVSShortVer": "17.14.19", "ZIPFile": "14.44.35207-14.44.35219.0"},
 ]
 # fmt: on
 
