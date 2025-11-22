@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import subprocess
 from pathlib import Path
-from unittest.mock import MagicMock, call, mock_open, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
-
 from lib.golang_stdlib import (
     DEFAULT_ARCHITECTURES,
     STDLIB_CACHE_DIR,
-    _get_arch_marker_file,
     build_go_stdlib,
+    get_arch_marker_file,
     is_go_installation,
     is_stdlib_already_built,
 )
@@ -52,7 +51,7 @@ class TestIsStdlibAlreadyBuilt:
 
         # Create marker for each default architecture
         for arch in DEFAULT_ARCHITECTURES:
-            marker = _get_arch_marker_file(cache_dir, arch)
+            marker = get_arch_marker_file(cache_dir, arch)
             marker.write_text("Built")
 
         assert is_stdlib_already_built(tmp_path) is True
@@ -64,7 +63,7 @@ class TestIsStdlibAlreadyBuilt:
         (cache_dir / "some_cache_file").touch()
 
         # Only create marker for first architecture
-        marker = _get_arch_marker_file(cache_dir, DEFAULT_ARCHITECTURES[0])
+        marker = get_arch_marker_file(cache_dir, DEFAULT_ARCHITECTURES[0])
         marker.write_text("Built")
 
         assert is_stdlib_already_built(tmp_path) is False
@@ -91,7 +90,7 @@ class TestIsStdlibAlreadyBuilt:
 
         # Create markers for custom architectures
         for arch in custom_archs:
-            marker = _get_arch_marker_file(cache_dir, arch)
+            marker = get_arch_marker_file(cache_dir, arch)
             marker.write_text("Built")
 
         assert is_stdlib_already_built(tmp_path, custom_archs) is True
@@ -148,7 +147,7 @@ class TestBuildGoStdlib:
 
         # Verify marker file was created in cache directory
         cache_dir = tmp_path / STDLIB_CACHE_DIR
-        marker = _get_arch_marker_file(cache_dir, "linux/amd64")
+        marker = get_arch_marker_file(cache_dir, "linux/amd64")
         assert marker.exists()
         assert marker.name == ".built_linux_amd64"
 
@@ -189,7 +188,7 @@ class TestBuildGoStdlib:
         assert result is False
         # Marker file should not be created on failure
         cache_dir = tmp_path / STDLIB_CACHE_DIR
-        marker = _get_arch_marker_file(cache_dir, "linux/amd64")
+        marker = get_arch_marker_file(cache_dir, "linux/amd64")
         assert not marker.exists()
 
     @patch("lib.golang_stdlib.subprocess.run")
@@ -213,8 +212,8 @@ class TestBuildGoStdlib:
 
         # Marker file should be created only for successful architecture
         cache_dir = tmp_path / STDLIB_CACHE_DIR
-        marker_amd64 = _get_arch_marker_file(cache_dir, "linux/amd64")
-        marker_arm64 = _get_arch_marker_file(cache_dir, "linux/arm64")
+        marker_amd64 = get_arch_marker_file(cache_dir, "linux/amd64")
+        marker_arm64 = get_arch_marker_file(cache_dir, "linux/arm64")
         assert marker_amd64.exists()
         assert not marker_arm64.exists()
 

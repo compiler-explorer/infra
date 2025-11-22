@@ -23,7 +23,7 @@ def is_go_installation(install_path: Path) -> bool:
     return go_binary.exists() and go_binary.is_file()
 
 
-def _get_arch_marker_file(cache_dir: Path, arch: str) -> Path:
+def get_arch_marker_file(cache_dir: Path, arch: str) -> Path:
     """Get the marker file path for a specific architecture.
 
     Args:
@@ -59,7 +59,7 @@ def is_stdlib_already_built(install_path: Path, architectures: list[str] | None 
 
     # Check if all architectures have been built
     for arch in architectures:
-        marker_file = _get_arch_marker_file(cache_dir, arch)
+        marker_file = get_arch_marker_file(cache_dir, arch)
         if not marker_file.exists():
             _LOGGER.debug("Stdlib not built for %s on %s", install_path, arch)
             return False
@@ -150,7 +150,7 @@ def build_go_stdlib(
                 _LOGGER.info("  ✓ Built for %s/%s", goos, goarch)
                 success_count += 1
                 # Create marker file for this architecture
-                marker_file = _get_arch_marker_file(gocache, arch)
+                marker_file = get_arch_marker_file(gocache, arch)
                 marker_file.write_text(f"Built at: {os.environ.get('USER', 'unknown')}\n")
 
         except subprocess.TimeoutExpired:

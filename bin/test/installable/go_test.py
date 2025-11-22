@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from lib.golang_stdlib import DEFAULT_ARCHITECTURES, STDLIB_CACHE_DIR
 from lib.installable.go import GoInstallable
 from lib.installation_context import InstallationContext

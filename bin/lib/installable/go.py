@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import subprocess
 from typing import Any
 
 from lib.golang_stdlib import DEFAULT_ARCHITECTURES, STDLIB_CACHE_DIR, build_go_stdlib
@@ -72,7 +73,7 @@ class GoInstallable(TarballInstallable):
                 # Don't fail the installation, just warn
                 # The Go compiler will still work, just slower on first use
 
-        except Exception as e:
+        except (RuntimeError, OSError, subprocess.SubprocessError) as e:
             self._logger.error("Error building stdlib cache for %s: %s", self.name, e)
             # Don't fail the installation, just warn
             # The Go compiler will still work, just slower on first use
