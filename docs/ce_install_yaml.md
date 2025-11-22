@@ -152,6 +152,7 @@ The following installer types are available, each with specific required and opt
 | `non-free-s3tarballs` | Downloads and extracts a non-free tarball from S3 | `check_exe` or `check_file` | `dir`, `s3_path_prefix` |
 | `edg` | Installs an EDG compiler (very special-case) | `check_exe` or `check_file` | `dir` |
 | `restQueryTarballs` | Downloads tarball using REST API information | `check_exe` or `check_file`, `url` | `dir` |
+| `go` | Installs a Go compiler and automatically builds the standard library | `check_exe` or `check_file` | `dir`, `build_stdlib`, `build_stdlib_archs` |
 
 ## GitHub/GitLab/Bitbucket Repository Properties
 
@@ -240,6 +241,50 @@ boost_bin:
   sharedliblink:
     - boost_iostreams
   package_install: true
+```
+
+## Go Compiler-Specific Properties
+
+The `go` installer type is used for installing Go compilers with automatic standard library building. It extends the `tarballs` installer type and automatically builds the Go standard library for specified architectures during installation.
+
+| Property | Description | Default |
+|----------|-------------|---------|
+| `build_stdlib` | Whether to automatically build the standard library during installation | `true` |
+| `build_stdlib_archs` | List of architectures to build the standard library for | `["linux/amd64", "linux/arm64"]` |
+
+Example of Go compiler configuration:
+
+```yaml
+compilers:
+  go:
+    type: go
+    check_exe: go/bin/go version
+    compression: gz
+    dir: golang-{{name}}
+    untar_path: go
+    url: https://go.dev/dl/go{{name}}.linux-amd64.tar.gz
+    build_stdlib: true
+    build_stdlib_archs:
+      - linux/amd64
+      - linux/arm64
+    targets:
+      - 1.23.8
+      - 1.24.2
+```
+
+The standard library cache is stored in the `cache` subdirectory of the Go installation. Architecture-specific marker files (e.g., `.built_linux_amd64`) are created to track which architectures have been built.
+
+You can also manually build the standard library for Go installations using the CLI:
+
+```bash
+# Build stdlib for all Go installations matching a filter
+ce golang build-stdlib 'go 1.24'
+
+# Build for specific architectures
+ce golang build-stdlib --arch linux/amd64 --arch linux/arm64 'go 1.24'
+
+# Force rebuild even if already built
+ce golang build-stdlib --force 'go 1.24'
 ```
 
 ## Pre/Post Build Scripts
