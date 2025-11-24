@@ -58,3 +58,6 @@ compilers:
       - name: 24.0.0
         url: https://download.java.net/java/GA/jdk24/1f9ff9062db4449d8ca828c504ffae90/36/GPL/openjdk-24_linux-x64_bin.tar.gz
         untar_dir: jdk-24
+      - name: 25.0.1
+        url: https://download.java.net/java/GA/jdk25.0.1/2fbf10d8c78e40bd87641c434705079d/8/GPL/openjdk-25.0.1_linux-x64_bin.tar.gz
+        untar_dir: jdk-25
