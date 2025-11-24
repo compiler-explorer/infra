@@ -366,6 +366,27 @@ The `ce compiler-routing` command group provides functionality to manage compile
 - **Queue Environments**: prod, staging, beta → Route to SQS queues
 - **URL Environments**: winprod, winstaging, wintest, gpu, aarch64prod, aarch64staging, runner → Forward directly to environment URLs
 
+## Go Standard Library Management
+
+### Automatic Building During Installation
+
+When installing Go compilers using the `go` installer type (configured in `bin/yaml/go.yaml`), the standard library is automatically built during the staging phase:
+
+- Default architectures: `linux/amd64`, `linux/arm64`
+- Cache directory: `<go-installation>/cache`
+- Marker files: `.built_linux_amd64`, `.built_linux_arm64` (stored in cache directory)
+- Controlled by YAML properties:
+  - `build_stdlib: true/false` - Enable/disable automatic building (default: true)
+  - `build_stdlib_archs: [...]` - List of architectures to build
+
+### Architecture
+
+- Standard library cache is stored in `cache` subdirectory of Go installation
+- Per-architecture marker files track build status (e.g., `.built_linux_amd64`)
+- Builds use Go's native `go build std` command with `GOCACHE` environment variable
+- Builds are idempotent: existing builds are detected via marker files
+- Core logic in `bin/lib/golang_stdlib.py`, installer in `bin/lib/installable/go.py`
+
 ## AWS Integration Pattern
 
 AWS clients are defined in `bin/lib/amazon.py` using lazy initialization:

@@ -1,7 +1,7 @@
 compilers:
   go:
     golang:
-      type: tarballs
+      type: go
       compression: gz
       url: https://storage.googleapis.com/golang/go{{name}}.linux-amd64.tar.gz
       check_env:
