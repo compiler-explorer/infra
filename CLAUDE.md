@@ -368,22 +368,6 @@ The `ce compiler-routing` command group provides functionality to manage compile
 
 ## Go Standard Library Management
 
-The `ce golang` command group provides functionality to manage Go compiler standard library builds:
-
-### Available Commands
-
-- **`ce golang build-stdlib [FILTER]`** - Build Go standard library cache for Go installations
-  - Builds the standard library for all architectures (default: linux/amd64, linux/arm64)
-  - Use `--arch` to specify architectures (can be used multiple times)
-  - Use `--force` to rebuild even if already built
-  - Use `--skip-squash` to skip squashing/CEFS consolidation after building
-  - Use `--cache-dir` to specify custom cache directory
-  - Filter follows standard ce_install filter syntax
-  - Examples:
-    - `ce golang build-stdlib 'go 1.24'` - Build for all Go 1.24.x versions
-    - `ce golang build-stdlib --arch linux/amd64 'go 1.23.8'` - Build only for amd64
-    - `ce golang build-stdlib --force 'go'` - Force rebuild all Go versions
-
 ### Automatic Building During Installation
 
 When installing Go compilers using the `go` installer type (configured in `bin/yaml/go.yaml`), the standard library is automatically built during the staging phase:
@@ -401,7 +385,7 @@ When installing Go compilers using the `go` installer type (configured in `bin/y
 - Per-architecture marker files track build status (e.g., `.built_linux_amd64`)
 - Builds use Go's native `go build std` command with `GOCACHE` environment variable
 - Builds are idempotent: existing builds are detected via marker files
-- Core logic in `bin/lib/golang_stdlib.py`, CLI in `bin/lib/cli/golang.py`, installer in `bin/lib/installable/go.py`
+- Core logic in `bin/lib/golang_stdlib.py`, installer in `bin/lib/installable/go.py`
 
 ## AWS Integration Pattern
 
