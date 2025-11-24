@@ -1193,6 +1193,7 @@ compilers:
           - 1.10-clang-20.1.0
           - 2.0-clang-20.1.0
           - 2.1-clang-21.1.0
+          - 2.2-clang-21.1.0
         nightly:
           if: nightly
           subdir: clang-plugins
