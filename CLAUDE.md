@@ -379,6 +379,19 @@ When installing Go compilers using the `go` installer type (configured in `bin/y
   - `build_stdlib: true/false` - Enable/disable automatic building (default: true)
   - `build_stdlib_archs: [...]` - List of architectures to build
 
+### Adding Stdlib Cache to Existing Installations
+
+The `ce_install add-stdlib-cache` command adds stdlib cache to existing Go installations, including CEFS-consolidated ones:
+
+- For CEFS symlinks: unpacks the image, builds stdlib, repacks with new hash
+- For directories: builds stdlib in place
+- Skips installations that already have stdlib cache (use --force to rebuild)
+- Default architectures: `linux/amd64`, `linux/arm64`
+- Examples:
+  - `ce_install add-stdlib-cache "golang 1.23"` - Add cache to all Go 1.23.x versions
+  - `ce_install add-stdlib-cache --arch linux/amd64 golang` - Build only for amd64
+  - `ce_install add-stdlib-cache --force "golang 1.24"` - Force rebuild even if cache exists
+
 ### Architecture
 
 - Standard library cache is stored in `cache` subdirectory of Go installation
