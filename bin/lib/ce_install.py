@@ -22,10 +22,8 @@ from click.core import ParameterSource
 from packaging import specifiers, version
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
-from lib.cefs.unpack import repack_cefs_item, unpack_cefs_item
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
-from lib.golang_stdlib import build_go_stdlib, is_go_installation, is_stdlib_already_built
 from lib.installable.installable import Installable
 from lib.installation import installers_for
 from lib.installation_context import FetchFailure, InstallationContext
@@ -931,142 +929,6 @@ def list_gh_build_commands_linux(context: CliContext, per_lib: bool, filter_: li
             print(
                 f'gh workflow run lin-lib-build.yaml --field "library={shorter_name}" -R github.com/compiler-explorer/infra'
             )
-
-
-@cli.command()
-@click.option(
-    "--arch",
-    "architectures",
-    multiple=True,
-    help="Architecture to build for (format: OS/ARCH, e.g., linux/amd64). Can be specified multiple times. Default: linux/amd64, linux/arm64",
-)
-@click.option(
-    "--force",
-    is_flag=True,
-    help="Force rebuild even if stdlib is already built",
-)
-@click.argument("filter_", metavar="FILTER", nargs=-1, required=True)
-@click.pass_obj
-def add_stdlib_cache(
-    context: CliContext,
-    architectures: tuple[str, ...],
-    force: bool,
-    filter_: tuple[str, ...],
-):
-    """Add stdlib cache to existing Go installations (even if consolidated).
-
-    For each matching Go installation:
-    - If CEFS symlink: unpack, build stdlib, repack
-    - If directory: build stdlib in place
-
-    The stdlib cache significantly improves compilation performance by
-    pre-building the standard library for the specified architectures.
-
-    Examples:
-        ce add-stdlib-cache "golang 1.23"
-        ce add-stdlib-cache --arch linux/amd64 "golang 1.24"
-        ce add-stdlib-cache --force golang
-    """
-    arch_list = list(architectures) if architectures else None
-
-    all_installables = context.get_installables(list(filter_))
-
-    go_installables = []
-    for installable in all_installables:
-        install_path = context.installation_context.destination / installable.install_path
-        if is_go_installation(install_path):
-            go_installables.append((installable, install_path))
-
-    if not go_installables:
-        _LOGGER.warning("No Go installations found matching filter: %s", " ".join(filter_))
-        return
-
-    _LOGGER.info("Found %d Go installation(s)", len(go_installables))
-
-    successful = 0
-    skipped = 0
-    failed = 0
-
-    for installable, install_path in go_installables:
-        _LOGGER.info("Processing %s...", installable.name)
-
-        is_cefs = install_path.is_symlink()
-
-        if is_cefs:
-            _LOGGER.info("  Installation is CEFS consolidated, will unpack/repack")
-            try:
-                _LOGGER.info("  Unpacking...")
-                unpack_cefs_item(
-                    installable.name,
-                    install_path,
-                    context.config.cefs.image_dir,
-                    context.config.cefs.mount_point,
-                    context.config.squashfs,
-                    defer_cleanup=False,
-                    dry_run=context.installation_context.dry_run,
-                )
-
-                if not force and is_stdlib_already_built(install_path, arch_list):
-                    _LOGGER.info("  Stdlib already built, repacking without rebuild")
-                    repack_cefs_item(
-                        installable.name,
-                        install_path,
-                        context.config.cefs.image_dir,
-                        context.config.cefs.mount_point,
-                        context.config.squashfs,
-                        context.config.cefs.local_temp_dir,
-                        defer_cleanup=False,
-                        dry_run=context.installation_context.dry_run,
-                    )
-                    skipped += 1
-                else:
-                    _LOGGER.info("  Building stdlib cache...")
-                    if build_go_stdlib(install_path, arch_list, None, context.installation_context.dry_run):
-                        _LOGGER.info("  Repacking...")
-                        repack_cefs_item(
-                            installable.name,
-                            install_path,
-                            context.config.cefs.image_dir,
-                            context.config.cefs.mount_point,
-                            context.config.squashfs,
-                            context.config.cefs.local_temp_dir,
-                            defer_cleanup=False,
-                            dry_run=context.installation_context.dry_run,
-                        )
-                        _LOGGER.info("  Successfully added stdlib cache for %s", installable.name)
-                        successful += 1
-                    else:
-                        _LOGGER.error("  Failed to build stdlib cache for %s", installable.name)
-                        failed += 1
-            except RuntimeError as e:
-                _LOGGER.error("  Failed to process %s: %s", installable.name, e)
-                failed += 1
-        else:
-            _LOGGER.info("  Installation is a directory, building stdlib in place")
-
-            if not force and is_stdlib_already_built(install_path, arch_list):
-                _LOGGER.info("  Stdlib already built, skipping (use --force to rebuild)")
-                skipped += 1
-                continue
-
-            try:
-                if build_go_stdlib(install_path, arch_list, None, context.installation_context.dry_run):
-                    _LOGGER.info("  Successfully added stdlib cache for %s", installable.name)
-                    successful += 1
-                else:
-                    _LOGGER.error("  Failed to build stdlib cache for %s", installable.name)
-                    failed += 1
-            except RuntimeError as e:
-                _LOGGER.error("  Failed to build stdlib for %s: %s", installable.name, e)
-                failed += 1
-
-    _LOGGER.info("\nStdlib cache addition complete:")
-    _LOGGER.info("  Successful: %d", successful)
-    _LOGGER.info("  Skipped: %d", skipped)
-    _LOGGER.info("  Failed: %d", failed)
-
-    if failed > 0:
-        raise click.ClickException(f"Failed to add stdlib cache for {failed} installation(s)")
 
 
 @cli.command()
