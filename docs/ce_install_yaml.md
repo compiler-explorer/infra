@@ -274,19 +274,6 @@ compilers:
 
 The standard library cache is stored in the `cache` subdirectory of the Go installation. Architecture-specific marker files (e.g., `.built_linux_amd64`) are created to track which architectures have been built.
 
-You can also manually build the standard library for Go installations using the CLI:
-
-```bash
-# Build stdlib for all Go installations matching a filter
-ce golang build-stdlib 'go 1.24'
-
-# Build for specific architectures
-ce golang build-stdlib --arch linux/amd64 --arch linux/arm64 'go 1.24'
-
-# Force rebuild even if already built
-ce golang build-stdlib --force 'go 1.24'
-```
-
 ## Pre/Post Build Scripts
 
 Libraries can define scripts to run before and after building:
