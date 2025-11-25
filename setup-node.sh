@@ -29,6 +29,7 @@ apt-get install -y \
     libc6-dev-i386 \
     libdatetime-perl \
     libelf-dev \
+    libffi-dev \
     libgmp3-dev \
     libnl-route-3-dev \
     libpciaccess0 \
