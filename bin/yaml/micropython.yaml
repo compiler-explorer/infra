@@ -3,6 +3,7 @@ compilers:
     type: s3tarballs
     check_exe: ./micropython --version
     s3_path_prefix: "micropython-{{name}}"
+    untar_dir: "micropython-{{name}}.tar.xz"
     targets:
       - 1.20.0
       - 1.21.0
@@ -15,7 +16,6 @@ compilers:
       - 1.25.0
       - 1.26.0
       - 1.26.1
-    
     nightly:
       if: nightly
       micropython:
