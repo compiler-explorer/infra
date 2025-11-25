@@ -1233,6 +1233,10 @@ compilers:
             edg_version: '6.7'
             depends:
               - compilers/c++/x86/gcc 14.2.0
+          - name: 6.8-default-15
+            edg_version: '6.8'
+            depends:
+              - compilers/c++/x86/gcc 15.2.0
       gcc:
         compiler_type: gcc
         macro_output_dir: base/lib
@@ -1252,11 +1256,16 @@ compilers:
             macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
               - compilers/c++/x86/gcc 14.2.0
+          - name: 6.8-gcc-15
+            edg_version: '6.8'
+            macro_gen: edg-compiler/make_predef_macro_table_v1
+            depends:
+              - compilers/c++/x86/gcc 15.2.0
           - name: gcc-experimental-reflection
             edg_version: 'experimental-reflection'
             macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
-              - compilers/c++/x86/gcc 13.2.0
+              - compilers/c++/x86/gcc 15.2.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{{name}}
