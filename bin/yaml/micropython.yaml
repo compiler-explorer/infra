@@ -1,7 +1,7 @@
 compilers:
   micropython:
     type: s3tarballs
-    check_exe: ./micropython --version
+    check_exe: bin/micropython --version
     s3_path_prefix: "micropython-{{name}}"
     untar_dir: "micropython-{{name}}.tar.xz"
     targets:
@@ -19,7 +19,7 @@ compilers:
     nightly:
       if: nightly
       micropython:
-        check_exe: ./micropython --version
+        check_exe: bin/micropython --version
         s3_path_prefix: "micropython-{{name}}"
         type: nightly
         targets:
