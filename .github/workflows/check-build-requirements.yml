@@ -25,6 +25,8 @@ jobs:
 
       - name: Check for build requirements
         id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python bin/check_build_requirements.py --base-ref origin/${{ github.base_ref }} > build_check_output.txt 2>&1
           cat build_check_output.txt
