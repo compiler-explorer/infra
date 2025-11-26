@@ -6,6 +6,8 @@ CE to build artifacts before they can be deployed.
 
 from __future__ import annotations
 
+import re
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -13,7 +15,6 @@ from typing import Any
 import yaml
 
 from lib.config_safe_loader import ConfigSafeLoader
-
 
 # Installer types that require CE to build/upload to S3
 BUILD_REQUIRED_TYPES = frozenset({
@@ -32,9 +33,6 @@ def get_misc_builder_scripts() -> dict[str, str]:
     Returns dict mapping compiler name to build script filename.
     E.g., {"erlang": "build-erlang.sh", "cc65": "buildcc65.sh"}
     """
-    import re
-    import subprocess
-
     try:
         result = subprocess.run(
             ["gh", "api", "repos/compiler-explorer/misc-builder/contents/misc", "--jq", ".[].name"],
@@ -174,7 +172,7 @@ def extract_targets_with_context(
 
     Returns list of (context, target, installer_type) tuples.
     """
-    results = []
+    results: list[tuple[list[str], str, str]] = []
 
     if not isinstance(node, dict):
         return results
@@ -226,8 +224,6 @@ def get_targets_with_types(yaml_path: Path) -> dict[tuple[tuple[str, ...], str],
 
 def analyze_git_diff(yaml_dir: Path, base_ref: str = "origin/main") -> AnalysisResult:
     """Analyze git diff against a base ref to find YAML additions that require building."""
-    import subprocess
-
     yaml_dir = yaml_dir.resolve()
 
     diff_result = subprocess.run(

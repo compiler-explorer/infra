@@ -5,13 +5,10 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from lib.build_check import (
     BUILD_REQUIRED_TYPES,
     Addition,
     AnalysisResult,
-    BuildParams,
     extract_targets_with_context,
     format_result_for_pr_comment,
     get_all_targets_from_yaml,
@@ -209,7 +206,7 @@ class TestFormatResultForPrComment:
     def test_empty_result(self):
         result = AnalysisResult()
         output = format_result_for_pr_comment(result)
-        assert output == ""
+        assert not output
 
     def test_with_build_requirements(self):
         result = AnalysisResult(
