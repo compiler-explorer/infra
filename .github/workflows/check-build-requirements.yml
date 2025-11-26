@@ -36,38 +36,16 @@ jobs:
             echo "has_requirements=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Post PR comment
+      - name: Save PR number
         if: steps.check.outputs.has_requirements == 'true'
-        uses: actions/github-script@v7
+        run: echo "${{ github.event.pull_request.number }}" > pr_number.txt
+
+      - name: Upload build check results
+        if: steps.check.outputs.has_requirements == 'true'
+        uses: actions/upload-artifact@v4
         with:
-          script: |
-            const fs = require('fs');
-            const comment = fs.readFileSync('build_check_output.txt', 'utf8');
-
-            // Check for existing comment from this workflow
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            });
-
-            const botComment = comments.find(c =>
-              c.user.type === 'Bot' &&
-              c.body.includes('## Build Required')
-            );
-
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: comment
-              });
-            } else {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
-                body: comment
-              });
-            }
+          name: build-check-results
+          path: |
+            build_check_output.txt
+            pr_number.txt
+          retention-days: 1
