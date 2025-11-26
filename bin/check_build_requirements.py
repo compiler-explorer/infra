@@ -57,9 +57,9 @@ def main() -> int:
 
     if result.has_build_requirements():
         print(format_result_for_pr_comment(result, available_images, misc_scripts))
-        return 1
+    else:
+        print("No build requirements detected for new additions.")
 
-    print("No build requirements detected for new additions.")
     return 0
 
 

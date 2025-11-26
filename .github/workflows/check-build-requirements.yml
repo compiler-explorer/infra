@@ -26,15 +26,10 @@ jobs:
       - name: Check for build requirements
         id: check
         run: |
-          python bin/check_build_requirements.py --base-ref origin/${{ github.base_ref }} > build_check_output.txt 2>&1 || true
+          python bin/check_build_requirements.py --base-ref origin/${{ github.base_ref }} > build_check_output.txt 2>&1
           cat build_check_output.txt
           if grep -q "Build Required" build_check_output.txt; then
             echo "has_requirements=true" >> $GITHUB_OUTPUT
-            {
-              echo 'comment<<EOF'
-              cat build_check_output.txt
-              echo 'EOF'
-            } >> $GITHUB_OUTPUT
           else
             echo "has_requirements=false" >> $GITHUB_OUTPUT
           fi
@@ -44,7 +39,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const comment = `${{ steps.check.outputs.comment }}`;
+            const fs = require('fs');
+            const comment = fs.readFileSync('build_check_output.txt', 'utf8');
 
             // Check for existing comment from this workflow
             const { data: comments } = await github.rest.issues.listComments({
