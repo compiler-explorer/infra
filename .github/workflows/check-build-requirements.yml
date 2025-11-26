@@ -1,0 +1,75 @@
+name: Check Build Requirements
+
+on:
+  pull_request:
+    paths:
+      - 'bin/yaml/*.yaml'
+      - '!bin/yaml/libraries.yaml'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install pyyaml
+
+      - name: Check for build requirements
+        id: check
+        run: |
+          python bin/check_build_requirements.py --base-ref origin/${{ github.base_ref }} > build_check_output.txt 2>&1 || true
+          cat build_check_output.txt
+          if grep -q "Build Required" build_check_output.txt; then
+            echo "has_requirements=true" >> $GITHUB_OUTPUT
+            {
+              echo 'comment<<EOF'
+              cat build_check_output.txt
+              echo 'EOF'
+            } >> $GITHUB_OUTPUT
+          else
+            echo "has_requirements=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post PR comment
+        if: steps.check.outputs.has_requirements == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `${{ steps.check.outputs.comment }}`;
+
+            // Check for existing comment from this workflow
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('## Build Required')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment
+              });
+            }

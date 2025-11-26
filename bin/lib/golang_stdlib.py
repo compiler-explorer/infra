@@ -13,7 +13,7 @@ from pathlib import Path
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_ARCHITECTURES = ["linux/amd64", "linux/arm64"]
+DEFAULT_ARCHITECTURES = ["linux/amd64", "linux/arm", "linux/arm64"]
 STDLIB_CACHE_DIR = "cache"
 
 
