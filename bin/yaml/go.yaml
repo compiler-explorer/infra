@@ -33,6 +33,7 @@ compilers:
         - "1.22.12"
         - "1.23.8"
         - "1.24.2"
+        - "1.25.4"
     tinygo:
       type: tarballs
       compression: gz
