@@ -10,6 +10,7 @@ compilers:
     check_exe: bin/mojo --version
     targets:
       - 0.25.6.0
+      - 0.25.7.0
     nightly:
       if: nightly
       install_always: true
