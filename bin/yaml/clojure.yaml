@@ -8,6 +8,9 @@ compilers:
     script: |
       chmod +x {{script_filename}}
       ./{{script_filename}} --prefix $(pwd)/clojure/{{name}}
+      export JAVA_HOME=%DEP0%
+      export CLJ_CONFIG=$(pwd)/clojure/{{name}}/.config
+      $(pwd)/clojure/{{name}}/bin/clojure -Sdeps "{:mvn/local-repo \"$(pwd)/clojure/{{name}}/.m2/repository\"}" -Spath
     relocate_paths:
       - bin
     depends:
