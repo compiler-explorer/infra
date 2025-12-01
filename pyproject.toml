@@ -22,6 +22,7 @@ dependencies = [
     "requests-cache>=1.2.1",
     "matplotlib>=3.10.5",
     "pillow>=11.3.0",
+    "PyJWT[crypto]>=2.8.0",
 ]
 
 [dependency-groups]

@@ -11,7 +11,6 @@ from lib.amazon import (
     elb_client,
     get_current_key,
     get_releases,
-    get_ssm_param,
     release_for,
 )
 from lib.aws_utils import get_asg_info, reset_asg_min_size, scale_asg
@@ -20,6 +19,7 @@ from lib.builds_core import get_release_without_discovery_check
 from lib.ce_utils import are_you_sure, display_releases
 from lib.cli import cli
 from lib.env import BLUE_GREEN_ENABLED_ENVIRONMENTS, Config, Environment
+from lib.github_app import get_github_app_token
 from lib.notify import handle_notify
 
 
@@ -310,19 +310,8 @@ def blue_green_deploy(
 
         # Show what would be notified
         print("\n🔍 Checking what would be notified...")
-        try:
-            gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
-            handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=True)
-        except ClientError as e:
-            print(f"⚠️  Could not retrieve GitHub token ({e})")
-            print("🔍 Showing commit range that would be checked:")
-            print("   GitHub API would be queried for commits between:")
-            print(f"   {original_commit_hash} (current deployment)")
-            print(f"   {target_commit_hash} (target deployment)")
-            print(
-                f"   URL: https://github.com/compiler-explorer/compiler-explorer/compare/{original_commit_hash[:8]}...{target_commit_hash[:8]}"
-            )
-            print("   Each commit's linked PRs and issues would be notified with 'This is now live' messages")
+        gh_token = get_github_app_token()
+        handle_notify(original_commit_hash, target_commit_hash, gh_token, dry_run=True)
 
         return
 
@@ -382,7 +371,7 @@ def blue_green_deploy(
         if should_notify and cfg.env == Environment.PROD:
             if original_commit_hash is not None and target_commit_hash is not None:
                 try:
-                    gh_token = get_ssm_param("/compiler-explorer/githubAuthToken")
+                    gh_token = get_github_app_token()
                     print(f"\n{'[DRY RUN] ' if dry_run_notify else ''}Checking for notifications...")
                     print(
                         f"Checking commits from {original_commit_hash[:8]}...{original_commit_hash[-8:]} to {target_commit_hash[:8]}...{target_commit_hash[-8:]}"

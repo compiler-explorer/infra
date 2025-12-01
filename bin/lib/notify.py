@@ -30,7 +30,7 @@ def post(entity: str, token: str, query: dict | None = None, dry_run=False) -> d
             data=querystring,
             headers={
                 "User-Agent": USER_AGENT,
-                "Authorization": f"token {token}",
+                "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github.v3+json",
             },
         )
@@ -55,7 +55,7 @@ def get(entity: str, token: str, query: dict | None = None) -> dict:
             None,
             {
                 "User-Agent": USER_AGENT,
-                "Authorization": f"token {token}",
+                "Authorization": f"Bearer {token}",
                 "Accept": "application/vnd.github.v3+json",
             },
         )
