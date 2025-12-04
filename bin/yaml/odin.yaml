@@ -22,4 +22,4 @@ compilers:
       create_untar_dir: true
       strip_components: 1
       targets:
-        - dev-2025-12
+        - dev-2025-12a
