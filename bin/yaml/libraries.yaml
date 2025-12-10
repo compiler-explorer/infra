@@ -186,30 +186,36 @@ libraries:
       - '1.2'
       type: github
     bde:
-      build_type: cmake
-      check_file: Readme.md
-      repo: bloomberg/bde
-      method: clone_branch
-      lib_type: static
       after_stage_script:
-      # Remove tests and test dependencies
       - find . -name "*.t.*" -exec rm -f {} ";"
       - sed -i 's/add_subdirectory(standalones)//g' CMakeLists.txt
       after_stage_script_pwsh:
       - Get-ChildItem -Recurse -Filter "*.t.*" | Remove-Item -Force
-      - (Get-Content CMakeLists.txt) -replace 'add_subdirectory\(standalones\)', '' | Set-Content CMakeLists.txt
+      - (Get-Content CMakeLists.txt) -replace 'add_subdirectory\(standalones\)', ''
+        | Set-Content CMakeLists.txt
+      build_type: cmake
+      check_file: Readme.md
+      extra_cmake_arg:
+      - -DBdeBuildSystem_ROOT:PATH=bde-tools-main/BdeBuildSystem/
+      - -DBBS_ENV_MARKER=ON
+      - -DCMAKE_INSTALL_LIBDIR=lib
+      lib_type: static
+      make_targets:
+      - bal
+      - bbl
+      - bdl
+      - bsl
+      make_utility: ninja
+      method: clone_branch
+      package_install: true
       prebuild_script:
       - curl -o bde-tools.zip -L https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip
       - unzip -q bde-tools.zip
       prebuild_script_pwsh:
-      - Invoke-WebRequest -Uri "https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip" -OutFile "bde-tools.zip"
+      - Invoke-WebRequest -Uri "https://github.com/bloomberg/bde-tools/archive/refs/heads/main.zip"
+        -OutFile "bde-tools.zip"
       - Expand-Archive -Path "bde-tools.zip" -DestinationPath "." -Force
-      extra_cmake_arg:
-      - -DBdeBuildSystem_ROOT:PATH=bde-tools-main/BdeBuildSystem/
-      - -DBBS_ENV_MARKER=ON
-      - -DCMAKE_INSTALL_LIBDIR=lib  # BDE CMake requires LIBDIR to be set
-      package_install: true
-      make_utility: ninja
+      repo: bloomberg/bde
       staticliblink:
       - bal
       - bbl
@@ -218,11 +224,6 @@ libraries:
       - bsl
       - inteldfp
       - pcre2
-      make_targets:
-      - bal
-      - bbl
-      - bdl
-      - bsl
       targets:
       - 4.31.0.0
       type: github
@@ -3208,6 +3209,11 @@ libraries:
       build_type: cargo
       targets:
       - 5.4.0
+      type: cratesio
+    datafusion:
+      build_type: cargo
+      targets:
+      - '51'
       type: cratesio
     digest:
       build_type: cargo
