@@ -1,15 +1,25 @@
 compilers:
   odin:
-    type: ziparchive
-    check_exe: odin version
-    os: ubuntu
-    url: https://github.com/odin-lang/Odin/releases/download/{{name}}/odin-{{os}}-amd64-{{name}}.zip
     dir: odin-{{name}}
-    extract_into_folder: true
+    check_exe: odin version
     folder: odin
-    after_stage_script:
-      - tar xzvf dist.tar.gz --strip-components 1
-    targets:
-      - dev-2025-01
-      - name: dev-2024-11
-        os: linux
+    older:
+      url: https://github.com/odin-lang/Odin/releases/download/{{name}}/odin-{{os}}-amd64-{{name}}.zip
+      type: ziparchive
+      extract_into_folder: true
+      after_stage_script:
+        - tar xzvf dist.tar.gz --strip-components 1
+      targets:
+        - name: dev-2025-01
+          os: ubuntu
+        - name: dev-2024-11
+          os: linux
+    newer:
+      url: https://github.com/odin-lang/Odin/releases/download/{{name}}/odin-linux-amd64-{{name}}.tar.gz
+      type: tarballs
+      compression: gz
+      untar_dir: odin-{{name}}
+      create_untar_dir: true
+      strip_components: 1
+      targets:
+        - dev-2025-12a
