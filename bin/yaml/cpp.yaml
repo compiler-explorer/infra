@@ -1710,6 +1710,12 @@ compilers:
         check_exe: bin/tcc -v
         targets:
           - trunk
+      ncc-ng:
+        type: nightly
+        compiler_name: ncc-ng-{{name}}
+        check_exe: bin/n++ -help
+        targets:
+          - trunk
       6502-c++:
         type: nightly
         s3_name: 6502-c%2B%2B-{{name}}
