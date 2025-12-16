@@ -1656,6 +1656,7 @@ compilers:
           - contracts-base-trunk
           - contracts-GNUext-trunk
           - thomas-healy-trunk
+          - trivial-relocation-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
