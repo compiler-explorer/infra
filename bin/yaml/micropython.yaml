@@ -1,7 +1,7 @@
 compilers:
   micropython:
     type: s3tarballs
-    check_exe: bin/micropython --version
+    check_exe: bin/micropython -h
     s3_path_prefix: "micropython-{{name}}"
     untar_dir: "micropython-{{name}}.tar.xz"
     targets:
