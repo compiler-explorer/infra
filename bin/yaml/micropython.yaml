@@ -1,7 +1,7 @@
 compilers:
   micropython:
     type: s3tarballs
-    check_exe: bin/micropython -h
+    check_exe: bin/mpy-cross --version
     s3_path_prefix: "micropython-{{name}}"
     targets:
       - 1.20.0
@@ -19,7 +19,7 @@ compilers:
     nightly:
       if: nightly
       micropython:
-        check_exe: bin/micropython --version
+        check_exe: bin/mpy-cross --version
         s3_path_prefix: "micropython-{{name}}"
         type: nightly
         targets:
