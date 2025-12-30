@@ -47,8 +47,14 @@ if [[ "${ENV}" == "runner" ]]; then
   exit
 fi
 
+# Disable io_uring to work around Linux kernel bug that causes Node.js processes to hang
+# indefinitely during high-volume async I/O (like compiler discovery with S3 cache).
+# See: https://github.com/nodejs/node/issues/55587
+#      https://bugs.launchpad.net/ubuntu/+source/linux/+bug/2105471
+export UV_USE_IO_URING=0
+
 # shellcheck disable=SC2086
-exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV -- \
+exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV,UV_USE_IO_URING -- \
     /opt/node/bin/node \
     -- app.js \
     --suppress-console-log \
