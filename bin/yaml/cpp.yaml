@@ -1693,6 +1693,7 @@ compilers:
           - p3385-trunk
           - p3412-trunk
           - p3776-trunk
+          - p3951-trunk
           - hana-clang-trunk
           - implicit-constexpr-trunk
           - dascandy-contracts-trunk
