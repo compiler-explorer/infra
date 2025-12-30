@@ -19,8 +19,8 @@ resource "aws_instance" "AdminNode" {
   source_dest_check           = true
 
   root_block_device {
-    volume_type           = "gp2"
-    volume_size           = 40
+    volume_type           = "gp3"
+    volume_size           = 100
     delete_on_termination = false
   }
 
