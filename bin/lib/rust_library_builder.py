@@ -143,6 +143,8 @@ class RustLibraryBuilder:
             linkerpath = os.path.join(build_method["linker"], "bin")
             methodflags = build_method["build_method"]
 
+            f.write(f"export CC={linkerpath}/gcc\n")
+            f.write(f"export CXX={linkerpath}/g++\n")
             f.write(f"export PATH={rustbinpath}:{linkerpath}\n")
             f.write(f'export RUSTFLAGS="-C linker={linkerpath}/gcc"\n')
 
@@ -475,7 +477,7 @@ class RustLibraryBuilder:
         source_staging,
     ):
         with self.install_context.new_staging_dir() as staging:
-            build_method = dict({"build_method": "--all-features", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
+            build_method = dict({"build_method": "--all-features", "linker": "/opt/compiler-explorer/gcc-12.4.0"})
             build_status = self.makebuildfor_by_method(
                 compiler,
                 options,
@@ -494,7 +496,7 @@ class RustLibraryBuilder:
                 source_staging,
             )
             if build_status == BuildStatus.Failed or build_status == BuildStatus.Skipped:
-                build_method = dict({"build_method": "", "linker": "/opt/compiler-explorer/gcc-11.1.0"})
+                build_method = dict({"build_method": "", "linker": "/opt/compiler-explorer/gcc-12.4.0"})
                 build_status = self.makebuildfor_by_method(
                     compiler,
                     options,
