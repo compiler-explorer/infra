@@ -142,7 +142,11 @@ resource "aws_instance" "CESMBServer" {
   lifecycle {
     ignore_changes = [
       // Seemingly needed to not replace stopped instances
-      associate_public_ip_address
+      associate_public_ip_address,
+      // user_data was removed in favour of Environment tag, but rather than replace
+      // the instance to clear the drift, we're ignoring it. Remove this if the
+      // instance is ever rebuilt.
+      user_data,
     ]
   }
 
