@@ -23,3 +23,4 @@ compilers:
       strip_components: 1
       targets:
         - dev-2025-12a
+        - dev-2026-01
