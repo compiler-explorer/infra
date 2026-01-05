@@ -1685,6 +1685,7 @@ compilers:
           - p2561-trunk
           - bb-p2996-trunk
           - p2998-trunk
+          - p3039-trunk
           - p3068-trunk
           - p3309-trunk
           - p3334-trunk
