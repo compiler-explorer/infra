@@ -324,3 +324,23 @@ module "godbo-lt" {
   cloudfront_distribution = aws_cloudfront_distribution.godbo-lt
   certificate             = aws_acm_certificate.godbolt-org-et-al
 }
+
+
+////////////////////////////////////////////////////
+
+# Route 53 hosted zone for godbolt.net (not active yet, just transferred)
+resource "aws_route53_zone" "godbolt-net" {
+  name    = "godbolt.net"
+  comment = "godbolt.net domain"
+}
+
+resource "aws_route53domains_registered_domain" "godbolt-net" {
+  domain_name = "godbolt.net"
+
+  dynamic "name_server" {
+    for_each = toset(aws_route53_zone.godbolt-net.name_servers)
+    content {
+      name = name_server.value
+    }
+  }
+}
