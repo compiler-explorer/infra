@@ -11,6 +11,9 @@ compilers:
         - 22.0.0
         - 21.0.1
         - 20.0.1
+        - 24.0.5
+        - 36.0.3
+        - 41.0.0
   wasi:
     type: tarballs
     compression: gz
@@ -21,6 +24,7 @@ compilers:
       untar_dir: wasi-sdk-{{name}}.0-x86_64-linux
       targets: &wasi-targets
         - "25"
+        - "29"
     sysroot:
       url: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{{name}}/wasi-sysroot-{{name}}.0.tar.gz
       check_file: VERSION
