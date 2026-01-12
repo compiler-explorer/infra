@@ -31,3 +31,12 @@ compilers:
         dir: wasi/sysroot/v{{name}}
         untar_dir: wasi-sysroot-{{name}}.0
         targets: *wasi-targets
+    wat2wasm:
+      type: tarballs
+      compression: gz
+      url: https://github.com/WebAssembly/wabt/releases/download/{{name}}/wabt-{{name}}-linux-x64.tar.gz
+      check_exe: bin/wat2wasm --version
+      dir: wat2wasm-{{name}}
+      untar_dir: wabt-{{name}}
+      targets:
+        - 1.0.39
