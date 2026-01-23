@@ -22,6 +22,7 @@ from click.core import ParameterSource
 from packaging import specifiers, version
 
 from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.compiler_id_lookup import get_compiler_id_lookup
 from lib.config import Config
 from lib.config_safe_loader import ConfigSafeLoader
 from lib.installable.installable import Installable
@@ -467,18 +468,59 @@ def cli(
 from lib.cli import cefs, cpp_libraries, fortran_libraries  # noqa: F401, E402
 
 
+def get_exe_path_for_installable(installable, destination) -> str | None:
+    """Get the full executable path for an installable.
+
+    Returns the path that would be used to look up compiler IDs in properties files.
+    """
+    if installable.check_call:
+        # check_call[0] is the path to the executable (already includes install_path after resolution)
+        return str(destination / installable.check_call[0])
+    return None
+
+
 @cli.command(name="list")
 @click.pass_obj
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format")
 @click.option("--installed-only", is_flag=True, help="Only output installed targets")
+@click.option("--show-compiler-ids", is_flag=True, help="Show compiler IDs from CE properties files")
 @click.argument("filter_", metavar="FILTER", nargs=-1)
-def list_cmd(context: CliContext, filter_: list[str], as_json: bool, installed_only: bool):
+def list_cmd(context: CliContext, filter_: list[str], as_json: bool, installed_only: bool, show_compiler_ids: bool):
     """List installation targets matching FILTER."""
+    lookup = get_compiler_id_lookup() if show_compiler_ids else None
+    json_output: list[dict] = []
+
     for installable in context.get_installables(filter_):
         if installed_only and not installable.is_installed():
             continue
-        print(installable.to_json() if as_json else installable.name)
+
+        if as_json:
+            output = installable.to_json_dict()
+            if lookup is not None:
+                exe_path = get_exe_path_for_installable(installable, context.installation_context.destination)
+                if exe_path:
+                    compiler_ids = lookup.get_compiler_ids(exe_path)
+                    output["compiler_ids"] = sorted(compiler_ids) if compiler_ids else []
+                else:
+                    output["compiler_ids"] = []
+            json_output.append(output)
+        else:
+            if lookup is not None:
+                exe_path = get_exe_path_for_installable(installable, context.installation_context.destination)
+                if exe_path:
+                    compiler_ids = lookup.get_compiler_ids(exe_path)
+                    if compiler_ids:
+                        print(f"{installable.name}: {', '.join(sorted(compiler_ids))}")
+                    else:
+                        print(f"{installable.name}: (no compiler ID found)")
+                else:
+                    print(f"{installable.name}: (no exe path)")
+            else:
+                print(installable.name)
         _LOGGER.debug(installable)
+
+    if as_json:
+        print(json.dumps(json_output))
 
 
 @cli.command()
