@@ -53,23 +53,20 @@ compilers:
           - '6.0.3'
           - '6.1'
           - '6.2'
-    # disabled due to HTTP 500 or 429 errors
-# https://download.swift.org:443 "GET /swift-6.3-branch/ubuntu2204/latest-build.yml HTTP/1.1" 429 202
-# Incremented Retry for (url='/swift-6.3-branch/ubuntu2204/latest-build.yml'): Retry(total=9, connect=None, read=None, redirect=None, status=None)
-    #nightly:
-    #  if: nightly
-    #  type: restQueryTarballs
-    #  install_always: true
-    #  toolchain: development
-    #  url: https://download.swift.org/{{toolchain}}/ubuntu2204/latest-build.yml
-    #  query: |
-    #    'https://download.swift.org/{{toolchain}}/ubuntu2204' \
-    #    + '/' + document['dir'] \
-    #    + '/' + document['download']
-    #  targets:
-    #    - nightly
-    #  dev-snapshot:
-    #    dir: swift-dev-snapshot
-    #    toolchain: swift-{{name}}-branch
-    #    targets:
-    #      - '6.3'
+    nightly:
+      if: nightly
+      type: restQueryTarballs
+      install_always: true
+      toolchain: development
+      url: https://download.swift.org/{{toolchain}}/ubuntu2204/latest-build.yml
+      query: |
+        'https://download.swift.org/{{toolchain}}/ubuntu2204' \
+        + '/' + document['dir'] \
+        + '/' + document['download']
+      targets:
+        - nightly
+      dev-snapshot:
+        dir: swift-dev-snapshot
+        toolchain: swift-{{name}}-branch
+        targets:
+          - '6.3'
