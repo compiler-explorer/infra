@@ -62,7 +62,8 @@ module "winprod_blue_green" {
     { instance_type = "m5n.large" },
     { instance_type = "m6i.large" },
     { instance_type = "m6id.large" },
-    { instance_type = "m6in.large" }
+    { instance_type = "m6in.large" },
+    { instance_type = "m7i-flex.large" }
   ]
 
   # Enable auto-scaling policy for Windows production
