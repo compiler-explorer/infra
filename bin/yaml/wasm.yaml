@@ -11,19 +11,32 @@ compilers:
         - 22.0.0
         - 21.0.1
         - 20.0.1
-  wasi:
-    type: tarballs
-    compression: gz
-    sdk:
-      url: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{{name}}/wasi-sdk-{{name}}.0-x86_64-linux.tar.gz
-      check_exe: bin/clang++ --version
-      dir: wasi/sdk/v{{name}}
-      untar_dir: wasi-sdk-{{name}}.0-x86_64-linux
-      targets: &wasi-targets
-        - "25"
-    sysroot:
-      url: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{{name}}/wasi-sysroot-{{name}}.0.tar.gz
-      check_file: VERSION
-      dir: wasi/sysroot/v{{name}}
-      untar_dir: wasi-sysroot-{{name}}.0
-      targets: *wasi-targets
+        - 24.0.5
+        - 36.0.3
+        - 41.0.0
+    wasi:
+      type: tarballs
+      compression: gz
+      sdk:
+        url: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{{name}}/wasi-sdk-{{name}}.0-x86_64-linux.tar.gz
+        check_exe: bin/clang++ --version
+        dir: wasi/sdk/v{{name}}
+        untar_dir: wasi-sdk-{{name}}.0-x86_64-linux
+        targets: &wasi-targets
+          - "25"
+          - "29"
+      sysroot:
+        url: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{{name}}/wasi-sysroot-{{name}}.0.tar.gz
+        check_file: VERSION
+        dir: wasi/sysroot/v{{name}}
+        untar_dir: wasi-sysroot-{{name}}.0
+        targets: *wasi-targets
+    wat2wasm:
+      type: tarballs
+      compression: gz
+      url: https://github.com/WebAssembly/wabt/releases/download/{{name}}/wabt-{{name}}-linux-x64.tar.gz
+      check_exe: bin/wat2wasm --version
+      dir: wat2wasm-{{name}}
+      untar_dir: wabt-{{name}}
+      targets:
+        - 1.0.39
