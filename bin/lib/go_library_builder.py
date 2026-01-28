@@ -39,6 +39,32 @@ BUILD_TIMEOUT = 600
 # Compilers to skip (nightly/unstable versions and gccgo which doesn't support modules)
 SKIP_COMPILERS = ["gotip", "go-tip", "gccgo"]
 
+# Compiler type prefixes for Conan classification
+GCCGO_PREFIXES = ["gccgo"]
+
+
+def get_compiler_type(compiler_id: str) -> str:
+    """Determine Conan compiler type from compiler ID.
+
+    Returns 'gccgo' for gccgo compilers, 'golang' for standard Go toolchain.
+    """
+    for prefix in GCCGO_PREFIXES:
+        if compiler_id.startswith(prefix):
+            return "gccgo"
+    return "golang"
+
+
+def get_build_method(compiler_id: str) -> str:
+    """Determine build method from compiler ID.
+
+    Returns 'gccgo' for gccgo compilers, 'gomod' for standard Go toolchain.
+    """
+    for prefix in GCCGO_PREFIXES:
+        if compiler_id.startswith(prefix):
+            return "gccgo"
+    return "gomod"
+
+
 # Build configuration
 BUILD_SUPPORTED_OS = ["Linux"]
 BUILD_SUPPORTED_BUILDTYPE = ["Debug"]
@@ -288,9 +314,10 @@ require {self.module_path} {self.target_name}
         arch: str,
     ) -> None:
         """Set Conan build parameters for current build."""
+        compiler_type = get_compiler_type(compiler)
         self.current_buildparameters_obj["os"] = buildos
         self.current_buildparameters_obj["buildtype"] = buildtype
-        self.current_buildparameters_obj["compiler"] = "gc"  # Go compiler
+        self.current_buildparameters_obj["compiler"] = compiler_type
         self.current_buildparameters_obj["compiler_version"] = compiler
         self.current_buildparameters_obj["libcxx"] = ""
         self.current_buildparameters_obj["arch"] = arch
@@ -305,7 +332,7 @@ require {self.module_path} {self.target_name}
             "-s",
             f"build_type={buildtype}",
             "-s",
-            "compiler=gc",
+            f"compiler={compiler_type}",
             "-s",
             f"compiler.version={compiler}",
             "-s",
@@ -556,7 +583,7 @@ require {self.module_path} {self.target_name}
         staging: StagingDir,
     ) -> BuildStatus:
         """Build library for a specific compiler configuration."""
-        build_method = "gomod"
+        build_method = get_build_method(compiler)
 
         combined_hash = self.makebuildhash(compiler, buildos, buildtype, arch)
         build_folder = staging.path / combined_hash

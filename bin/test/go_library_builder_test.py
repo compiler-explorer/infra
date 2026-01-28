@@ -6,7 +6,13 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from lib.go_library_builder import BuildStatus, GoLibraryBuilder, clear_properties_cache
+from lib.go_library_builder import (
+    BuildStatus,
+    GoLibraryBuilder,
+    clear_properties_cache,
+    get_build_method,
+    get_compiler_type,
+)
 from lib.library_build_config import LibraryBuildConfig
 
 
@@ -32,6 +38,31 @@ def create_go_test_build_config():
         "build_type": "gomod",
     }.get(key, default)
     return config
+
+
+class TestCompilerTypeHelpers:
+    """Tests for compiler type detection functions."""
+
+    def test_get_compiler_type_standard_go(self):
+        """Standard Go compilers should return 'golang'."""
+        assert get_compiler_type("gl1238") == "golang"
+        assert get_compiler_type("go1238") == "golang"
+        assert get_compiler_type("go-1.21") == "golang"
+
+    def test_get_compiler_type_gccgo(self):
+        """gccgo compilers should return 'gccgo'."""
+        assert get_compiler_type("gccgo-14") == "gccgo"
+        assert get_compiler_type("gccgo141") == "gccgo"
+
+    def test_get_build_method_standard_go(self):
+        """Standard Go compilers should return 'gomod'."""
+        assert get_build_method("gl1238") == "gomod"
+        assert get_build_method("go1238") == "gomod"
+
+    def test_get_build_method_gccgo(self):
+        """gccgo compilers should return 'gccgo'."""
+        assert get_build_method("gccgo-14") == "gccgo"
+        assert get_build_method("gccgo141") == "gccgo"
 
 
 class TestGoLibraryBuilderInit:
@@ -181,7 +212,7 @@ class TestGoLibraryBuilderConanHelpers:
 
         assert builder.current_buildparameters_obj["os"] == "Linux"
         assert builder.current_buildparameters_obj["buildtype"] == "Debug"
-        assert builder.current_buildparameters_obj["compiler"] == "gc"
+        assert builder.current_buildparameters_obj["compiler"] == "golang"
         assert builder.current_buildparameters_obj["compiler_version"] == "gl1238"
         assert builder.current_buildparameters_obj["library"] == "go_uuid"
         assert builder.current_buildparameters_obj["library_version"] == "v1.6.0"
