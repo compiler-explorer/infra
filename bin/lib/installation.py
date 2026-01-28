@@ -17,6 +17,7 @@ from lib.installable.archives import (
 from lib.installable.edg import EdgCompilerInstallable
 from lib.installable.git import BitbucketInstallable, GitHubInstallable, GitLabInstallable
 from lib.installable.go import GoInstallable
+from lib.installable.go_module import GoModuleInstallable
 from lib.installable.installable import SingleFileInstallable
 from lib.installable.python import PipInstallable, UvInstallable
 from lib.installable.rust import CratesIOInstallable, RustInstallable
@@ -102,6 +103,7 @@ _INSTALLER_TYPES = {
     "non-free-s3tarballs": NonFreeS3TarballInstallable,
     "edg": EdgCompilerInstallable,
     "go": GoInstallable,
+    "gomod": GoModuleInstallable,
 }
 
 
