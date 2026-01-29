@@ -59,9 +59,29 @@ compilers:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/0d65c8d4-f245-4756-80c4-6712b43cf835/l_fortran-compiler_p_{{name}}_offline.sh install.sh
           script: *intel-one-install-script
         - name: 2024.0.0.49493
-          check_exe: compiler/latest/bin/ifx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/89b0fcf9-5c00-448a-93a1-5ee4078e008e/l_fortran-compiler_p_{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2025.0.0.723
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/69f79888-2d6c-4b20-999e-e99d72af68d4/intel-fortran-compiler-{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2025.1.0.601
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/577ebc28-d0f6-492b-9a43-b04354ce99da/intel-fortran-compiler-{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2025.2.0.534
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/2c69ab6a-dfff-4d8f-ae1c-8368c79a1709/intel-fortran-compiler-{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2025.3.0.325
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b3aa3ab5-c79d-4af4-8801-983ef00b90fd/intel-fortran-compiler-{{name}}_offline.sh install.sh
+          script: *intel-one-install-script
+        - name: 2025.3.2.25
+          check_exe: compiler/latest/bin/ifx -V
+          fetch:
+            - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/3e53d136-2870-4836-adb1-892b558fa34a/intel-fortran-compiler-{{name}}_offline.sh install.sh
           script: *intel-one-install-script
     lfortran:
       check_exe: bin/lfortran --version
