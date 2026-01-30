@@ -66,6 +66,9 @@ compiler:
     qnx:
         version: ANY
         libcxx: ANY
+    golang:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug, Release]
 
