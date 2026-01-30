@@ -22,7 +22,6 @@ BUILD_REQUIRED_TYPES = frozenset({
     "non-free-s3tarballs",
     "nightly",
     "nightlytarballs",
-    "script",
     "edg",
 })
 
