@@ -14,6 +14,7 @@ from typing import Any
 
 from lib.config import SquashfsConfig
 from lib.fortran_library_builder import FortranLibraryBuilder
+from lib.go_library_builder import GoLibraryBuilder
 from lib.installation_context import InstallationContext, is_windows
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_builder import LibraryBuilder
@@ -323,6 +324,11 @@ class Installable:
                 _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config
             )
             return rbuilder.makebuild(buildfor)
+        elif self.build_config.build_type == "gomod":
+            gbuilder = GoLibraryBuilder(
+                _LOGGER, self.language, self.context[-1], self.target_name, self.install_context, self.build_config
+            )
+            return gbuilder.makebuild(buildfor)
         raise RuntimeError(f"Unsupported build_type ${self.build_config.build_type}")
 
     @property
