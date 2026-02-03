@@ -279,8 +279,10 @@ resource "aws_s3_bucket_versioning" "ce-cdn-net" {
 resource "aws_s3_bucket_cors_configuration" "ce-cdn-net" {
   bucket = aws_s3_bucket.ce-cdn-net.id
   cors_rule {
+    allowed_headers = ["*"]
     allowed_methods = ["GET"]
     allowed_origins = ["*"]
+    max_age_seconds = 3600
   }
 }
 
