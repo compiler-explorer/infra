@@ -501,7 +501,7 @@ The following workflow is recommended for adding and testing new compiler config
 When installation fails, check the following:
 
 1. Verify the URL or source location is correct
-2. Ensure the `check_exe` or `check_file` path is correct
+2. Ensure the `check_exe`, `check_file`, and `untar_dir` paths are correct
 3. Check for missing dependencies
 4. Look for interpolation errors in property values
 5. For GitHub installer issues, check repository access and tag/release names
