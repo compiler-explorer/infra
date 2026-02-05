@@ -1227,6 +1227,7 @@ libraries:
       - v2.2.0
       - v2.3.0
       - v2.4.0
+      - v2.5.0
       type: github
     nightly:
       array:
@@ -2762,6 +2763,7 @@ libraries:
       target_prefix: v
       targets:
       - 3.2.0
+      - 3.1.4
       - 3.1.0
       - 3.0.2
       - 3.0.1

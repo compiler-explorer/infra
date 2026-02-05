@@ -27,8 +27,8 @@ class TestBuildRequiredTypes:
     def test_nightly_requires_build(self):
         assert "nightly" in BUILD_REQUIRED_TYPES
 
-    def test_script_requires_build(self):
-        assert "script" in BUILD_REQUIRED_TYPES
+    def test_script_does_not_require_build(self):
+        assert "script" not in BUILD_REQUIRED_TYPES
 
 
 class TestExtractTargetsWithContext:
