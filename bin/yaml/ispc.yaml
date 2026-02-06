@@ -8,6 +8,7 @@ compilers:
     untar_dir: ispc-v{{name}}-linux
     check_exe: bin/ispc --version
     targets:
+      - 1.30.0
       - 1.29.1
       - 1.29.0
       - 1.28.2
