@@ -141,6 +141,10 @@ class GoLibraryBuilder:
         if not self.module_path:
             raise RuntimeError(f"Missing 'module' config for Go library {libname}")
 
+        # Import path - used for modules where root package isn't importable (e.g., protobuf)
+        # Falls back to module_path if not specified
+        self.import_path = buildconfig.config_get("import_path", self.module_path)
+
         # Load compiler properties
         if self.language in _propsandlibs:
             self.compilerprops, self.libraryprops = _propsandlibs[self.language]
@@ -227,10 +231,11 @@ class GoLibraryBuilder:
         self.logger.info("Building module to populate cache")
 
         # Create a minimal test program that imports the module
+        # Use import_path for modules where root package isn't importable (e.g., protobuf)
         test_program = build_dir / "main.go"
         test_program.write_text(f'''package main
 
-import _ "{self.module_path}"
+import _ "{self.import_path}"
 
 func main() {{}}
 ''')

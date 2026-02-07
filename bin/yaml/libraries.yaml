@@ -3075,6 +3075,7 @@ libraries:
       type: gomod
     protobuf:
       build_type: gomod
+      import_path: google.golang.org/protobuf/proto
       module: google.golang.org/protobuf
       targets:
       - v1.34.1

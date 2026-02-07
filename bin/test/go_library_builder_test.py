@@ -91,6 +91,50 @@ class TestGoLibraryBuilderInit:
         assert builder.language == "go"
 
     @patch("lib.go_library_builder.get_properties_compilers_and_libraries")
+    def test_init_import_path_defaults_to_module_path(self, mock_get_props):
+        """Test that import_path defaults to module_path when not specified."""
+        mock_get_props.return_value = ({"gl1238": {"exe": "/opt/go/bin/go"}}, {})
+        logger = MagicMock()
+        install_context = MagicMock()
+        buildconfig = create_go_test_build_config()
+
+        builder = GoLibraryBuilder(
+            logger=logger,
+            language="go",
+            libname="uuid",
+            target_name="v1.6.0",
+            install_context=install_context,
+            buildconfig=buildconfig,
+        )
+
+        assert builder.import_path == builder.module_path
+
+    @patch("lib.go_library_builder.get_properties_compilers_and_libraries")
+    def test_init_import_path_custom(self, mock_get_props):
+        """Test that import_path can be set to a subpackage for modules with main root."""
+        mock_get_props.return_value = ({"gl1238": {"exe": "/opt/go/bin/go"}}, {})
+        logger = MagicMock()
+        install_context = MagicMock()
+        buildconfig = MagicMock(spec=LibraryBuildConfig)
+        buildconfig.config_get = lambda key, default="": {
+            "module": "google.golang.org/protobuf",
+            "import_path": "google.golang.org/protobuf/proto",
+            "build_type": "gomod",
+        }.get(key, default)
+
+        builder = GoLibraryBuilder(
+            logger=logger,
+            language="go",
+            libname="protobuf",
+            target_name="v1.34.1",
+            install_context=install_context,
+            buildconfig=buildconfig,
+        )
+
+        assert builder.module_path == "google.golang.org/protobuf"
+        assert builder.import_path == "google.golang.org/protobuf/proto"
+
+    @patch("lib.go_library_builder.get_properties_compilers_and_libraries")
     def test_init_missing_module_raises(self, mock_get_props):
         """Test that missing module config raises error."""
         mock_get_props.return_value = ({}, {})
