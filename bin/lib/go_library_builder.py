@@ -372,8 +372,8 @@ require {self.module_path} {self.target_name}
             f.write('    author = "None"\n')
             f.write("    topics = None\n")
             f.write("    def package(self):\n")
-            f.write('        self.copy("cache_delta/*", dst="cache_delta", keep_path=True)\n')
-            f.write('        self.copy("module_sources/*", dst="module_sources", keep_path=True)\n')
+            f.write('        self.copy("cache_delta/*", dst=".", keep_path=True)\n')
+            f.write('        self.copy("module_sources/*", dst=".", keep_path=True)\n')
             f.write('        self.copy("metadata.json", dst=".", keep_path=False)\n')
 
     def get_conan_hash(self, buildfolder: Path) -> str | None:
