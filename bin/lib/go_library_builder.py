@@ -273,9 +273,10 @@ require {self.module_path} {self.target_name}
         )
 
         # Build to compile the module
+        # Use -trimpath to make cache entries portable (CE runtime also uses -trimpath)
         try:
             result = subprocess.run(
-                [str(go_binary), "build", "-v", "-o", "/dev/null", "."],
+                [str(go_binary), "build", "-trimpath", "-v", "-o", "/dev/null", "."],
                 env=env,
                 cwd=build_dir,
                 capture_output=True,
