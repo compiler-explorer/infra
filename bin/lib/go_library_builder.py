@@ -253,10 +253,7 @@ require {self.module_path} {self.target_name}
         env["GOPATH"] = str(gopath)
         env["GOCACHE"] = str(gocache)
         env["GOPROXY"] = "https://proxy.golang.org,direct"
-        # Match CE runtime environment for cache compatibility
-        env["CGO_ENABLED"] = "0"
-        env["GOOS"] = "linux"
-        env["GOARCH"] = "amd64"
+        # Don't set CGO_ENABLED - let it default to match CE runtime (CGO_ENABLED=1 on Linux)
 
         # Run go mod tidy to get go.sum
         subprocess.run(
