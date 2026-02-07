@@ -226,6 +226,7 @@ class GoLibraryBuilder:
         gopath: Path,
         gocache: Path,
         build_dir: Path,
+        compiler: str,
     ) -> bool:
         """Build the module to populate GOCACHE."""
         self.logger.info("Building module to populate cache")
@@ -254,9 +255,12 @@ require {self.module_path} {self.target_name}
         env["GOCACHE"] = str(gocache)
         env["GOPROXY"] = "https://proxy.golang.org,direct"
         # Match CE runtime environment for cache compatibility
+        # Get goos/goarch from compiler properties with defaults
+        goos = self.compilerprops[compiler].get("goos") or "linux"
+        goarch = self.compilerprops[compiler].get("goarch") or "amd64"
         env["CGO_ENABLED"] = "1"
-        env["GOOS"] = "linux"
-        env["GOARCH"] = "amd64"
+        env["GOOS"] = goos
+        env["GOARCH"] = goarch
 
         # Run go mod tidy to get go.sum
         subprocess.run(
@@ -646,7 +650,7 @@ require {self.module_path} {self.target_name}
         delta_capture.capture_baseline()
 
         # Build module
-        if not self._build_module(go_binary, goroot, gopath, gocache, source_dir):
+        if not self._build_module(go_binary, goroot, gopath, gocache, source_dir, compiler):
             self.save_build_logging(BuildStatus.Failed, log_folder, build_method)
             return BuildStatus.Failed
 
