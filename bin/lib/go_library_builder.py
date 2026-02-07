@@ -621,7 +621,8 @@ require {self.module_path} {self.target_name}
         stdlib_cache = self._get_stdlib_cache(compiler)
 
         if stdlib_cache is None:
-            self.logger.warning("No stdlib cache found for %s, building may be slower", compiler)
+            self.logger.info("No stdlib cache found for %s, skipping library build", compiler)
+            return BuildStatus.Skipped
 
         # Set up directories
         gopath = build_folder / "gopath"
