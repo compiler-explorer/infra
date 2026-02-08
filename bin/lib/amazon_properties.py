@@ -77,6 +77,10 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                 groups[group]["libPath"] = val
             elif key[2] == "includePath":
                 groups[group]["includePath"] = val
+            elif key[2] == "goarch":
+                groups[group]["goarch"] = val
+            elif key[2] == "goos":
+                groups[group]["goos"] = val
         elif line.startswith("libs."):
             keyval = line.split("=", 1)
             key = keyval[0].split(".")
@@ -139,6 +143,10 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                     groups[subgroupname]["libPath"] = group_data["libPath"]
                 if "includePath" not in groups[subgroupname] and "includePath" in group_data:
                     groups[subgroupname]["includePath"] = group_data["includePath"]
+                if "goarch" not in groups[subgroupname] and "goarch" in group_data:
+                    groups[subgroupname]["goarch"] = group_data["goarch"]
+                if "goos" not in groups[subgroupname] and "goos" in group_data:
+                    groups[subgroupname]["goos"] = group_data["goos"]
             else:
                 _compilers[compiler]["options"] = group_data.get("options", "")
                 _compilers[compiler]["compilerType"] = group_data.get("compilerType", "")
@@ -146,6 +154,8 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
                 _compilers[compiler]["ldPath"] = group_data.get("ldPath", "")
                 _compilers[compiler]["libPath"] = group_data.get("libPath", "")
                 _compilers[compiler]["includePath"] = group_data.get("includePath", "")
+                _compilers[compiler]["goarch"] = group_data.get("goarch", "")
+                _compilers[compiler]["goos"] = group_data.get("goos", "")
                 _compilers[compiler]["group"] = group
 
     logger.debug("Reading properties for compilers")

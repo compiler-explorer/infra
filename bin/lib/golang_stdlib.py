@@ -130,10 +130,14 @@ def build_go_stdlib(
         build_env = env.copy()
         build_env["GOOS"] = goos
         build_env["GOARCH"] = goarch
+        # Disable CGO for cross-platform stdlib builds (avoids C toolchain dependencies)
+        build_env["CGO_ENABLED"] = "0"
 
         try:
+            # Use -trimpath to match CE runtime behavior (CE uses -trimpath when compiling)
+            # This ensures stdlib cache entries have portable action IDs
             result = subprocess.run(
-                [str(go_binary), "build", "-v", "std"],
+                [str(go_binary), "build", "-trimpath", "-v", "std"],
                 env=build_env,
                 capture_output=True,
                 text=True,

@@ -3,7 +3,7 @@ compilers:
     golang:
       type: go
       compression: gz
-      url: https://storage.googleapis.com/golang/go{{name}}.linux-amd64.tar.gz
+      url: https://dl.google.com/go/go{{name}}.linux-amd64.tar.gz
       check_env:
         - GOROOT=%PATH%/go
       check_exe: go/bin/go version

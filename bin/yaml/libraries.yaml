@@ -3068,6 +3068,27 @@ libraries:
       targets:
       - 1.5.0
       type: github
+  go:
+    uuid:
+      build_type: gomod
+      module: github.com/google/uuid
+      targets:
+      - v1.6.0
+      type: gomod
+    protobuf:
+      build_type: gomod
+      import_path: google.golang.org/protobuf/proto
+      module: google.golang.org/protobuf
+      targets:
+      - v1.34.1
+      - v1.36.0
+      type: gomod
+    errors:
+      build_type: gomod
+      module: github.com/pkg/errors
+      targets:
+      - v0.9.1
+      type: gomod
   rust:
     ahash:
       build_type: cargo

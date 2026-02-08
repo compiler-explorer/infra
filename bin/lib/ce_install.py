@@ -842,8 +842,10 @@ def build(
                 num_skipped += 1
             else:
                 try:
+                    # Pass "forceall" to force rebuild when --force is specified without --buildfor
+                    effective_buildfor = buildfor if buildfor else ("forceall" if force else "")
                     [num_installed, num_skipped, num_failed] = installable.build(
-                        buildfor, popular_compilers_only, platform
+                        effective_buildfor, popular_compilers_only, platform
                     )
                     if num_installed > 0:
                         _LOGGER.info("%s built OK", installable.name)
