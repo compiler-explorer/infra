@@ -26,6 +26,7 @@ from urllib3.exceptions import ProtocolError
 from lib.amazon import get_ssm_param
 from lib.amazon_properties import get_properties_compilers_and_libraries
 from lib.cache_delta import CacheDeltaCapture
+from lib.golang_stdlib import go_supports_trimpath
 from lib.installation_context import InstallationContext, PostFailure
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_platform import LibraryPlatform
@@ -278,9 +279,12 @@ require {self.module_path} {self.target_name}
 
         # Build to compile the module
         # Use -trimpath to make cache entries portable (CE runtime also uses -trimpath)
+        # -trimpath requires Go >= 1.13
+        use_trimpath = go_supports_trimpath(go_binary)
+        trimpath_args = ["-trimpath"] if use_trimpath else []
         try:
             result = subprocess.run(
-                [str(go_binary), "build", "-trimpath", "-v", "-o", "/dev/null", "."],
+                [str(go_binary), "build", *trimpath_args, "-v", "-o", "/dev/null", "."],
                 env=env,
                 cwd=build_dir,
                 capture_output=True,
@@ -298,7 +302,7 @@ require {self.module_path} {self.target_name}
             # to ensure action IDs match what CE computes at runtime
             self.logger.info("Building all subpackages in %s", self.module_path)
             result = subprocess.run(
-                [str(go_binary), "build", "-trimpath", "-v", f"{self.module_path}/..."],
+                [str(go_binary), "build", *trimpath_args, "-v", f"{self.module_path}/..."],
                 env=env,
                 cwd=build_dir,
                 capture_output=True,

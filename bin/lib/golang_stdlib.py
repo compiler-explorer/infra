@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,6 +16,44 @@ _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_ARCHITECTURES = ["linux/amd64", "linux/arm", "linux/arm64"]
 STDLIB_CACHE_DIR = "cache"
+
+# -trimpath was introduced in Go 1.13
+_TRIMPATH_MIN_VERSION = (1, 13)
+
+_GO_VERSION_RE = re.compile(r"go(\d+)\.(\d+)")
+
+
+def get_go_version(go_binary: Path) -> tuple[int, int] | None:
+    """Get the major.minor version of a Go binary by running 'go version'.
+
+    Returns (major, minor) tuple, e.g. (1, 21) for Go 1.21, or None on failure.
+    """
+    try:
+        result = subprocess.run(
+            [str(go_binary), "version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode != 0:
+            return None
+        # Output like: "go version go1.21.5 linux/amd64"
+        match = _GO_VERSION_RE.search(result.stdout)
+        if match:
+            return (int(match.group(1)), int(match.group(2)))
+        return None
+    except (subprocess.TimeoutExpired, OSError):
+        return None
+
+
+def go_supports_trimpath(go_binary: Path) -> bool:
+    """Check if a Go binary supports the -trimpath build flag (Go >= 1.13)."""
+    ver = get_go_version(go_binary)
+    if ver is None:
+        # Default to using -trimpath for unknown versions
+        return True
+    return ver >= _TRIMPATH_MIN_VERSION
 
 
 def is_go_installation(install_path: Path) -> bool:
@@ -102,6 +141,8 @@ def build_go_stdlib(
     # Create cache directory (even in dry-run mode)
     gocache.mkdir(exist_ok=True, parents=True)
 
+    use_trimpath = go_supports_trimpath(go_binary)
+
     if dry_run:
         _LOGGER.info("DRY RUN: Building stdlib for %s", go_installation_path)
     else:
@@ -109,6 +150,8 @@ def build_go_stdlib(
 
     _LOGGER.info("  GOROOT: %s", goroot)
     _LOGGER.info("  GOCACHE: %s", gocache)
+    if not use_trimpath:
+        _LOGGER.info("  Go version < 1.13, building without -trimpath")
 
     env = os.environ.copy()
     env["GOROOT"] = str(goroot)
@@ -136,8 +179,13 @@ def build_go_stdlib(
         try:
             # Use -trimpath to match CE runtime behavior (CE uses -trimpath when compiling)
             # This ensures stdlib cache entries have portable action IDs
+            # -trimpath requires Go >= 1.13
+            build_cmd = [str(go_binary), "build"]
+            if use_trimpath:
+                build_cmd.append("-trimpath")
+            build_cmd.extend(["-v", "std"])
             result = subprocess.run(
-                [str(go_binary), "build", "-trimpath", "-v", "std"],
+                build_cmd,
                 env=build_env,
                 capture_output=True,
                 text=True,
