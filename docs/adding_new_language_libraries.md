@@ -88,6 +88,12 @@ of the work lives. The builder must:
 The builder must expose a `makebuild(buildfor)` method that returns
 `[succeeded, skipped, failed]` counts.
 
+The `makebuildfor()` method (called per compiler) must call
+`conanproxy_login()` before any build step that could fail and trigger
+`save_build_logging()`. The logging endpoint requires a valid auth
+token, so deferring the login until after the build will send
+`Bearer None` if an early step fails.
+
 Existing builders to reference:
 - `bin/lib/go_library_builder.py` -- Go (GOCACHE delta capture)
 - `bin/lib/rust_library_builder.py` -- Rust (Cargo)
