@@ -128,11 +128,11 @@ compilers:
           - tools/patchelf 0.15.0
         after_stage_script:
           - chmod +x linux/bin/dmd linux/bin/obj2asm
-          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb
+          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/libstdc++6_12.3.0-1ubuntu1~22.04.2_i386.deb
           - mkdir -p lib32
-          - ar p libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb data.tar.zst | tar --zstd -x --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.6*'
-          - cp usr/lib/i386-linux-gnu/libstdc++.so.6.0.33 lib32/libstdc++.so.6
-          - rm -rf libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb usr
+          - ar p libstdc++6_12.3.0-1ubuntu1~22.04.2_i386.deb data.tar.zst | tar --zstd -x --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.6*'
+          - cp usr/lib/i386-linux-gnu/libstdc++.so.6.0.30 lib32/libstdc++.so.6
+          - rm -rf libstdc++6_12.3.0-1ubuntu1~22.04.2_i386.deb usr
           - "%DEP0%/bin/patchelf --set-rpath '$ORIGIN/../../lib32' linux/bin/dmd"
         targets:
           - "1.040"
@@ -146,11 +146,11 @@ compilers:
           - tools/patchelf 0.15.0
         after_stage_script:
           - chmod +x bin/dmd bin/obj2asm
-          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb
+          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-12/libstdc++6_12.3.0-1ubuntu1~22.04.2_i386.deb
           - mkdir -p lib32
-          - ar p libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb data.tar.zst | tar --zstd -x --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.6*'
-          - cp usr/lib/i386-linux-gnu/libstdc++.so.6.0.33 lib32/libstdc++.so.6
-          - rm -rf libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb usr
+          - ar p libstdc++6_12.3.0-1ubuntu1~22.04.2_i386.deb data.tar.zst | tar --zstd -x --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.6*'
+          - cp usr/lib/i386-linux-gnu/libstdc++.so.6.0.30 lib32/libstdc++.so.6
+          - rm -rf libstdc++6_12.3.0-1ubuntu1~22.04.2_i386.deb usr
           - "%DEP0%/bin/patchelf --set-rpath '$ORIGIN/../lib32' bin/dmd"
         targets:
           - "1.037"
