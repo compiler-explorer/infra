@@ -11,11 +11,13 @@ compilers:
     targets:
       - 0.25.6.0
       - 0.25.7.0
+      - 0.26.1.0
     nightly:
       if: nightly
       install_always: true
       targets:
         - name: nightly
           package:
-            - --index-url=https://dl.modular.com/public/nightly/python/simple/
+            - --extra-index-url=https://whl.modular.com/nightly/simple
+            - --pre
             - mojo
