@@ -109,3 +109,15 @@ compilers:
         - 0.57.0
         - 0.58.0
         - 0.59.0
+    llvmflang:
+      - type: s3tarballs
+        check_exe: bin/flang-new --version
+        targets:
+          - 16.0.6
+          - 17.0.6
+          - 18.1.8
+          - 19.1.7
+      - type: s3tarballs
+        check_exe: bin/flang --version
+        targets:
+          - 20.1.8
