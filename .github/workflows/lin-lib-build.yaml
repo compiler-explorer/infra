@@ -42,6 +42,9 @@ jobs:
           elif [[ "$LIBRARY" == libraries/rust/* ]]; then
             LANGUAGE="rust"
             LIBRARY_NAME="${LIBRARY#libraries/rust/}"
+          elif [[ "$LIBRARY" == libraries/go/* ]]; then
+            LANGUAGE="go"
+            LIBRARY_NAME="${LIBRARY#libraries/go/}"
           elif [[ "$LIBRARY" == libraries/c++/* ]]; then
             LANGUAGE="c++"
             LIBRARY_NAME="${LIBRARY#libraries/c++/}"
