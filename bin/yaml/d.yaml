@@ -106,20 +106,76 @@ compilers:
       url: http://ftp.digitalmars.com/dmd.{{name}}.zip
       dir: dmd-{{name}}
       folder: dmd
-      check_exe: linux/bin64/dmd --help
       strip: false
-      after_stage_script:
-        - chmod +x linux/bin64/dmd linux/bin64/obj2asm
-      targets:
-        - "1.068"
-        - "1.069"
-        - "1.070"
-        - "1.071"
-        - "1.072"
-        - "1.073"
-        - "1.074"
-        - "1.075"
-        - "1.076"
+      # 64-bit versions (1.068-1.076): no patchelf needed
+      newer:
+        check_exe: linux/bin64/dmd --help
+        after_stage_script:
+          - chmod +x linux/bin64/dmd linux/bin64/obj2asm
+        targets:
+          - "1.068"
+          - "1.069"
+          - "1.070"
+          - "1.071"
+          - "1.072"
+          - "1.073"
+          - "1.074"
+          - "1.075"
+          - "1.076"
+      # 32-bit versions with dmd/linux/bin layout, need bundled i386 libstdc++.so.6
+      middle:
+        check_exe: linux/bin/dmd --help
+        depends:
+          - tools/patchelf 0.15.0
+        after_stage_script:
+          - chmod +x linux/bin/dmd linux/bin/obj2asm
+          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb
+          - mkdir -p lib32
+          - ar p libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb data.tar.zst | tar --zstd -x --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.6*'
+          - cp usr/lib/i386-linux-gnu/libstdc++.so.6.0.33 lib32/libstdc++.so.6
+          - rm -rf libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb usr
+          - "%DEP0%/bin/patchelf --set-rpath '$ORIGIN/../../lib32' linux/bin/dmd"
+        targets:
+          - "1.040"
+          - "1.050"
+          - "1.060"
+          - "1.067"
+      # 32-bit versions with dmd/bin layout, need bundled i386 libstdc++.so.6
+      old_newlayout:
+        check_exe: bin/dmd --help
+        depends:
+          - tools/patchelf 0.15.0
+        after_stage_script:
+          - chmod +x bin/dmd bin/obj2asm
+          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/main/g/gcc-14/libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb
+          - mkdir -p lib32
+          - ar p libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb data.tar.zst | tar --zstd -x --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.6*'
+          - cp usr/lib/i386-linux-gnu/libstdc++.so.6.0.33 lib32/libstdc++.so.6
+          - rm -rf libstdc++6_14.2.0-4ubuntu2~24.04_i386.deb usr
+          - "%DEP0%/bin/patchelf --set-rpath '$ORIGIN/../lib32' bin/dmd"
+        targets:
+          - "1.037"
+          - "1.038"
+          - "1.039"
+      # Oldest 32-bit versions with dmd/bin layout, need bundled i386 libstdc++.so.5
+      oldest:
+        check_exe: bin/dmd --help
+        depends:
+          - tools/patchelf 0.15.0
+        after_stage_script:
+          - chmod +x bin/dmd bin/obj2asm
+          - curl -sLO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-3.3/libstdc++5_3.3.6-30ubuntu2_i386.deb
+          - mkdir -p lib32
+          - ar p libstdc++5_3.3.6-30ubuntu2_i386.deb data.tar.xz | tar -Jxf - --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.5*'
+          - cp usr/lib/i386-linux-gnu/libstdc++.so.5.0.7 lib32/libstdc++.so.5
+          - rm -rf libstdc++5_3.3.6-30ubuntu2_i386.deb usr
+          - "%DEP0%/bin/patchelf --set-rpath '$ORIGIN/../lib32' bin/dmd"
+        targets:
+          - "1.001"
+          - "1.010"
+          - "1.020"
+          - "1.030"
+          - "1.036"
     nightly:
       install_always: true
       if: nightly
