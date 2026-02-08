@@ -188,6 +188,7 @@ compilers:
           - tools/patchelf 0.15.0
         after_stage_script:
           - chmod +x bin/dmd bin/obj2asm
+          - sed -i 's|-I[^ ]*|-I%@P%/../src/phobos|' bin/dmd.conf
           - curl -sLO http://archive.ubuntu.com/ubuntu/pool/universe/g/gcc-3.3/libstdc++5_3.3.6-30ubuntu2_i386.deb
           - mkdir -p lib32
           - ar p libstdc++5_3.3.6-30ubuntu2_i386.deb data.tar.xz | tar -Jxf - --wildcards './usr/lib/i386-linux-gnu/libstdc++.so.5*'
