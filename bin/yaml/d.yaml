@@ -107,7 +107,6 @@ compilers:
       dir: dmd-{{name}}
       folder: dmd
       strip: false
-      # 64-bit versions (1.068-1.076): no patchelf needed
       newer:
         check_exe: linux/bin64/dmd --help
         after_stage_script:
