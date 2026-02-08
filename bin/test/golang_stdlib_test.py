@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
+from subprocess import TimeoutExpired
 from unittest.mock import patch
 
-import pytest
 from lib.golang_stdlib import (
     DEFAULT_ARCHITECTURES,
     get_arch_marker_file,
@@ -54,8 +54,6 @@ class TestGetGoVersion:
 
     @patch("lib.golang_stdlib.subprocess.run")
     def test_returns_none_on_timeout(self, mock_run):
-        from subprocess import TimeoutExpired
-
         mock_run.side_effect = TimeoutExpired("go", 30)
         assert get_go_version(Path("/opt/go/bin/go")) is None
 
