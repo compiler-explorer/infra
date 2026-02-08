@@ -101,6 +101,25 @@ compilers:
         - 2.099.0
         - 2.099.1
         - 2.100.0
+    dmd1:
+      type: ziparchive
+      url: http://ftp.digitalmars.com/dmd.{{name}}.zip
+      dir: dmd-{{name}}
+      folder: dmd
+      check_exe: linux/bin64/dmd --help
+      strip: false
+      after_stage_script:
+        - chmod +x linux/bin64/dmd linux/bin64/obj2asm
+      targets:
+        - "1.068"
+        - "1.069"
+        - "1.070"
+        - "1.071"
+        - "1.072"
+        - "1.073"
+        - "1.074"
+        - "1.075"
+        - "1.076"
     nightly:
       install_always: true
       if: nightly
