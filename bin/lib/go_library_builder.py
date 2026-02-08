@@ -145,6 +145,10 @@ class GoLibraryBuilder:
         # Falls back to module_path if not specified
         self.import_path = buildconfig.config_get("import_path", self.module_path)
 
+        # Extra packages to build (for caching subpackages that aren't dependencies of import_path)
+        # Can be "all" to build ./... or a list like ["./types/...", "./encoding/..."]
+        self.build_packages = buildconfig.config_get("build_packages", "")
+
         # Load compiler properties
         if self.language in _propsandlibs:
             self.compilerprops, self.libraryprops = _propsandlibs[self.language]
@@ -287,6 +291,25 @@ require {self.module_path} {self.target_name}
             if result.returncode != 0:
                 self.logger.error("Build failed: %s", result.stderr)
                 return False
+
+            # Also build all packages in the module to populate cache for subpackages
+            # (e.g., protobuf's types/known/timestamppb, encoding/prototext, etc.)
+            # Use import path notation (module/...) instead of ./... from inside the module
+            # to ensure action IDs match what CE computes at runtime
+            self.logger.info("Building all subpackages in %s", self.module_path)
+            result = subprocess.run(
+                [str(go_binary), "build", "-trimpath", "-v", f"{self.module_path}/..."],
+                env=env,
+                cwd=build_dir,
+                capture_output=True,
+                text=True,
+                timeout=BUILD_TIMEOUT,
+                check=False,
+            )
+            # Log but don't fail if subpackage build has issues (some may have build constraints)
+            if result.returncode != 0:
+                self.logger.warning("Some subpackages failed to build: %s", result.stderr[:500])
+
             return True
         except subprocess.TimeoutExpired:
             self.logger.error("Build timed out")
