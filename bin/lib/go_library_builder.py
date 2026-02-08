@@ -643,6 +643,10 @@ require {self.module_path} {self.target_name}
             if not self.forcebuild:
                 return BuildStatus.Skipped
 
+        # Login to Conan proxy before any build steps that might fail and need to report status
+        if not self.install_context.dry_run and not self.conanserverproxy_token:
+            self.conanproxy_login()
+
         # Get compiler paths
         go_binary = self._get_go_binary(compiler)
         goroot = self._get_goroot(compiler)
@@ -711,10 +715,6 @@ require {self.module_path} {self.target_name}
 
         # Copy package contents to build folder for Conan
         shutil.copytree(pkg_dir, build_folder, dirs_exist_ok=True)
-
-        # Login to Conan if needed
-        if not self.install_context.dry_run and not self.conanserverproxy_token:
-            self.conanproxy_login()
 
         # Export to Conan
         self.writeconanscript(build_folder)
