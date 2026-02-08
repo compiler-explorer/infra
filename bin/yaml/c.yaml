@@ -109,6 +109,11 @@ compilers:
         check_file: chibicc
         targets:
           - main
+      ccc:
+        type: nightly
+        check_exe: ccc --version
+        targets:
+          - main
       movfuscator:
         type: nightly
         check_env:
