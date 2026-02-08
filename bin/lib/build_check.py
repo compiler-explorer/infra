@@ -108,23 +108,37 @@ class Addition:
             misc_scripts = {}
 
         # Try to find a matching image from the context
-        # Check each part of the context path for a matching image
-        for ctx_part in reversed(self.context):
-            ctx_lower = ctx_part.lower()
+        # Check each part of the context path for a matching image,
+        # trying compound names with adjacent parts first (e.g., gcc-cross)
+        for i in range(len(self.context) - 1, -1, -1):
+            ctx_lower = self.context[i].lower()
+            # Context parts after the match position become version prefixes
+            # (e.g., "arm" in cross/gcc/arm -> version="arm 11.5.0")
+            suffix_parts = [p.lower() for p in self.context[i + 1 :]]
+            version = " ".join(suffix_parts + [self.target]) if suffix_parts else self.target
+
+            # Try compound names with the parent context part (more specific match)
+            if i > 0:
+                parent_lower = self.context[i - 1].lower()
+                for compound in (f"{ctx_lower}-{parent_lower}", f"{parent_lower}-{ctx_lower}"):
+                    if compound in misc_scripts:
+                        return BuildParams(image="misc", version=version, command=misc_scripts[compound])
+                    if compound in available_images:
+                        return BuildParams(image=compound, version=version)
 
             # Check if it's a misc builder script
             if ctx_lower in misc_scripts:
-                return BuildParams(image="misc", version=self.target, command=misc_scripts[ctx_lower])
+                return BuildParams(image="misc", version=version, command=misc_scripts[ctx_lower])
 
             if ctx_lower in available_images:
-                return BuildParams(image=ctx_lower, version=self.target)
+                return BuildParams(image=ctx_lower, version=version)
 
-            # Handle hyphenated variants (e.g., rust-linux)
+            # Handle hyphenated variants (e.g., rust_linux -> rust-linux)
             ctx_hyphen = ctx_lower.replace("_", "-")
             if ctx_hyphen in misc_scripts:
-                return BuildParams(image="misc", version=self.target, command=misc_scripts[ctx_hyphen])
+                return BuildParams(image="misc", version=version, command=misc_scripts[ctx_hyphen])
             if ctx_hyphen in available_images:
-                return BuildParams(image=ctx_hyphen, version=self.target)
+                return BuildParams(image=ctx_hyphen, version=version)
 
         # Try the yaml filename (without .yaml extension)
         yaml_name = self.yaml_file.replace(".yaml", "").lower()

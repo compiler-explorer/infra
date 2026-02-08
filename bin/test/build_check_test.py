@@ -300,6 +300,34 @@ class TestBuildParams:
         assert "-f image=clad" in cmd
         assert "-f version=2.1-clang-21.1.0" in cmd
 
+    def test_get_build_params_prefers_compound_image(self):
+        """Test that gcc-cross is matched for cross-compiler context with arch in version."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "cross", "gcc", "arm"],
+            target="11.5.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"gcc", "gcc-cross", "clang"}
+        params = addition.get_build_params(available_images)
+        assert params is not None
+        assert params.image == "gcc-cross"
+        assert params.version == "arm 11.5.0"
+
+    def test_get_build_params_falls_back_to_single_part(self):
+        """Test that single-part match still works when no compound match exists."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "x86", "gcc"],
+            target="14.1.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"gcc", "gcc-cross", "clang"}
+        params = addition.get_build_params(available_images)
+        assert params is not None
+        assert params.image == "gcc"
+        assert params.version == "14.1.0"
+
 
 class TestGetAvailableBuilderImages:
     """Test extraction of builder images from workflow file."""
