@@ -34,6 +34,7 @@ on:
         - nasm
         - nix
         - ocaml
+        - perl
         - python
         - pythran
         - rocm
