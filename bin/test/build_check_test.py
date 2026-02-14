@@ -379,3 +379,65 @@ class TestMiscBuilderScripts:
         assert "-f image=misc" in cmd
         assert "-f version=28.0" in cmd
         assert "-f command=build-erlang.sh" in cmd
+
+
+class TestHyphenatedPrefixMatch:
+    """Test prefix matching for hyphenated context parts."""
+
+    def test_clang_rocm_matches_clang_builder(self):
+        """clang-rocm should match the clang builder with rocm in the version."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "clang-rocm"],
+            target="7.2.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"gcc", "clang", "misc"}
+        params = addition.get_build_params(available_images)
+        assert params is not None
+        assert params.image == "clang"
+        assert params.version == "rocm-7.2.0"
+
+    def test_exact_match_preferred_over_prefix(self):
+        """An exact image match should win over a prefix split."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "clang-18.04"],
+            target="17.0.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"clang", "clang-18.04"}
+        params = addition.get_build_params(available_images)
+        assert params is not None
+        assert params.image == "clang-18.04"
+        assert params.version == "17.0.0"
+
+    def test_prefix_match_with_misc_script(self):
+        """Prefix match should also work against misc builder scripts."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "clang-rocm"],
+            target="7.2.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"gcc", "misc"}
+        misc_scripts = {"clang": "build-clang.sh"}
+        params = addition.get_build_params(available_images, misc_scripts)
+        assert params is not None
+        assert params.image == "misc"
+        assert params.version == "rocm-7.2.0"
+        assert params.command == "build-clang.sh"
+
+    def test_longer_prefix_preferred(self):
+        """For a-b-c, a-b should be preferred over a when both match."""
+        addition = Addition(
+            yaml_file="cpp.yaml",
+            context=["compilers", "c++", "gcc-cross-arm"],
+            target="11.5.0",
+            installer_type="s3tarballs",
+        )
+        available_images = {"gcc", "gcc-cross"}
+        params = addition.get_build_params(available_images)
+        assert params is not None
+        assert params.image == "gcc-cross"
+        assert params.version == "arm-11.5.0"

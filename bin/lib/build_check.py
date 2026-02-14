@@ -140,6 +140,24 @@ class Addition:
             if ctx_hyphen in available_images:
                 return BuildParams(image=ctx_hyphen, version=version)
 
+            # Try splitting hyphenated context parts to find a prefix match
+            # e.g., "clang-rocm" with target "7.2.0" -> image="clang", version="rocm-7.2.0"
+            parts = ctx_lower.split("-")
+            if len(parts) >= 2:
+                # Try progressively longer prefixes, longest first
+                for split_at in range(len(parts) - 1, 0, -1):
+                    prefix = "-".join(parts[:split_at])
+                    remaining = "-".join(parts[split_at:])
+                    prefix_version = (
+                        " ".join(suffix_parts + [f"{remaining}-{self.target}"])
+                        if suffix_parts
+                        else f"{remaining}-{self.target}"
+                    )
+                    if prefix in misc_scripts:
+                        return BuildParams(image="misc", version=prefix_version, command=misc_scripts[prefix])
+                    if prefix in available_images:
+                        return BuildParams(image=prefix, version=prefix_version)
+
         # Try the yaml filename (without .yaml extension)
         yaml_name = self.yaml_file.replace(".yaml", "").lower()
         if yaml_name in misc_scripts:
