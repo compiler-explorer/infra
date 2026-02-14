@@ -1,0 +1,8 @@
+compilers:
+  perl:
+    type: s3tarballs
+    check_exe: bin/perl -v
+    targets:
+      - 5.8.9
+      - 5.38.5
+      - 5.42.0
