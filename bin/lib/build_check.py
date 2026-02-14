@@ -112,33 +112,34 @@ class Addition:
         # trying compound names with adjacent parts first (e.g., gcc-cross)
         for i in range(len(self.context) - 1, -1, -1):
             ctx_lower = self.context[i].lower()
-            # Context parts after the match position become version prefixes
-            # (e.g., "arm" in cross/gcc/arm -> version="arm 11.5.0")
+            # Suffix parts are only used as version prefixes for compound matches
+            # (e.g., cross/gcc/arm -> gcc-cross with version "arm 11.5.0").
+            # Direct matches skip them since they're typically YAML grouping keys.
             suffix_parts = [p.lower() for p in self.context[i + 1 :]]
-            version = " ".join(suffix_parts + [self.target]) if suffix_parts else self.target
+            compound_version = " ".join(suffix_parts + [self.target]) if suffix_parts else self.target
 
             # Try compound names with the parent context part (more specific match)
             if i > 0:
                 parent_lower = self.context[i - 1].lower()
                 for compound in (f"{ctx_lower}-{parent_lower}", f"{parent_lower}-{ctx_lower}"):
                     if compound in misc_scripts:
-                        return BuildParams(image="misc", version=version, command=misc_scripts[compound])
+                        return BuildParams(image="misc", version=compound_version, command=misc_scripts[compound])
                     if compound in available_images:
-                        return BuildParams(image=compound, version=version)
+                        return BuildParams(image=compound, version=compound_version)
 
             # Check if it's a misc builder script
             if ctx_lower in misc_scripts:
-                return BuildParams(image="misc", version=version, command=misc_scripts[ctx_lower])
+                return BuildParams(image="misc", version=self.target, command=misc_scripts[ctx_lower])
 
             if ctx_lower in available_images:
-                return BuildParams(image=ctx_lower, version=version)
+                return BuildParams(image=ctx_lower, version=self.target)
 
             # Handle hyphenated variants (e.g., rust_linux -> rust-linux)
             ctx_hyphen = ctx_lower.replace("_", "-")
             if ctx_hyphen in misc_scripts:
-                return BuildParams(image="misc", version=version, command=misc_scripts[ctx_hyphen])
+                return BuildParams(image="misc", version=self.target, command=misc_scripts[ctx_hyphen])
             if ctx_hyphen in available_images:
-                return BuildParams(image=ctx_hyphen, version=version)
+                return BuildParams(image=ctx_hyphen, version=self.target)
 
             # Try splitting hyphenated context parts to find a prefix match
             # e.g., "clang-rocm" with target "7.2.0" -> image="clang", version="rocm-7.2.0"
@@ -148,11 +149,7 @@ class Addition:
                 for split_at in range(len(parts) - 1, 0, -1):
                     prefix = "-".join(parts[:split_at])
                     remaining = "-".join(parts[split_at:])
-                    prefix_version = (
-                        " ".join(suffix_parts + [f"{remaining}-{self.target}"])
-                        if suffix_parts
-                        else f"{remaining}-{self.target}"
-                    )
+                    prefix_version = f"{remaining}-{self.target}"
                     if prefix in misc_scripts:
                         return BuildParams(image="misc", version=prefix_version, command=misc_scripts[prefix])
                     if prefix in available_images:

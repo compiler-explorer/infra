@@ -328,6 +328,24 @@ class TestBuildParams:
         assert params.image == "gcc"
         assert params.version == "14.1.0"
 
+    def test_direct_match_excludes_trailing_context_from_version(self):
+        """Trailing YAML grouping keys should not appear in the version for direct matches.
+
+        e.g., dotnet/newer with target v8.0.24 should produce version="v8.0.24",
+        not "newer v8.0.24". The "newer" key is a YAML organizational grouping.
+        """
+        addition = Addition(
+            yaml_file="dotnet.yaml",
+            context=["compilers", "dotnet", "newer"],
+            target="v8.0.24",
+            installer_type="s3tarballs",
+        )
+        available_images = {"dotnet", "gcc", "clang"}
+        params = addition.get_build_params(available_images)
+        assert params is not None
+        assert params.image == "dotnet"
+        assert params.version == "v8.0.24"
+
 
 class TestGetAvailableBuilderImages:
     """Test extraction of builder images from workflow file."""
