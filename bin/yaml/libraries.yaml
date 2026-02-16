@@ -907,6 +907,15 @@ libraries:
       targets:
       - name: 1.11.0
       type: github
+    icu:
+      build_type: cmake
+      check_file: README.md
+      lib_type: cshared
+      repo: unicode-org/icu
+      targets:
+      - release-78.2
+      type: github
+      use_compiler: g105
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
@@ -3071,11 +3080,11 @@ libraries:
       - 1.5.0
       type: github
   go:
-    uuid:
+    errors:
       build_type: gomod
-      module: github.com/google/uuid
+      module: github.com/pkg/errors
       targets:
-      - v1.6.0
+      - v0.9.1
       type: gomod
     protobuf:
       build_type: gomod
@@ -3085,11 +3094,11 @@ libraries:
       - v1.34.1
       - v1.36.0
       type: gomod
-    errors:
+    uuid:
       build_type: gomod
-      module: github.com/pkg/errors
+      module: github.com/google/uuid
       targets:
-      - v0.9.1
+      - v1.6.0
       type: gomod
   rust:
     ahash:
