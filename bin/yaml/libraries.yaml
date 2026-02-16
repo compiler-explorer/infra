@@ -879,29 +879,30 @@ libraries:
       type: s3tarballs
       untar_dir: hip-amd-rocm-{{name}}
     icu:
-      after_stage_script:
-      - cd icu/source
-      - ./configure --prefix="$PWD/../installed" --disable-tests --disable-samples
-      - make -j$(nproc)
-      - make install
-      - rm -f ../installed/lib/*.a
-      build_type: none
-      check_file: installed/lib/libicuuc.so
+      build_type: make
+      check_file: configure
       compression: gz
+      configure_flags:
+      - --disable-tests
+      - --disable-samples
       dir: libs/icu/{{name}}
-      lib_type: shared
+      lib_type: cshared
+      make_targets:
+      - all
+      package_install: true
       sharedliblink:
       - icuuc
       - icudata
       - icui18n
       targets:
       - name: 76.1
-        untar_dir: icu
+        untar_dir: icu/source
         url: https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz
       - name: 78.1
-        untar_dir: icu
+        untar_dir: icu/source
         url: https://github.com/unicode-org/icu/releases/download/release-78.1/icu4c-78.1-sources.tgz
       type: tarballs
+      use_compiler: g102
     hpx:
       build_type: cmake
       check_file: CMakeLists.txt
