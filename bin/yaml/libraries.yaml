@@ -907,6 +907,28 @@ libraries:
       targets:
       - name: 1.11.0
       type: github
+    icu:
+      targets:
+          - "78.2"
+      type: tarballs
+      untar_dir: icu
+      url: https://github.com/unicode-org/icu/releases/download/release-{{name}}/icu4c-{{name}}-sources.tgz
+      compression: gz
+      dir: libs/icu/{{name}}
+      build_type: make
+      check_file: source/configure
+      lib_type: shared
+      prebuild_script:
+      - cd source
+      - ./configure --prefix="$PWD/../../install" --disable-tests --disable-samples
+      make_targets:
+        - all
+      package_install: true
+      sharedliblink:
+      - icuuc
+      - icudata
+      - icui18n
+      - icuio
     jsoncons:
       check_file: README.md
       repo: danielaparker/jsoncons
