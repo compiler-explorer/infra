@@ -129,6 +129,7 @@ Current `cshared` libraries:
 | Library | Compiler | Also uses `package_install` |
 |---|---|---|
 | `curl` | `clang1400` | yes |
+| `icu` | `g102` | yes |
 | `pcre2` | `g105` | yes |
 | `sqlite` | `g102` | no |
 
@@ -180,6 +181,7 @@ from the library's YAML dict.
 | `make_targets` | list | `[]` | Specific build targets (e.g. `all`, `bal`, `bsl`). If empty, builds the default target. |
 | `make_utility` | string | `make` | Build tool: `make` or `ninja`. |
 | `configure_flags` | list | `[]` | Flags passed to `./configure` when `build_type: make`. |
+| `source_folder` | string | `""` | Subdirectory within the source tree that contains `configure` / build files. When set, the build script `cd`s into this directory before running configure and make. Useful when the tarball root is not the build root (e.g. ICU extracts to `icu/` with source in `icu/source/`). |
 | `package_install` | bool | `false` | Run `cmake --install` / `make install` to copy artifacts to an install prefix. See [package_install in depth](#package_install-in-depth). |
 
 ### Linking Properties
@@ -335,7 +337,7 @@ Do not use it when:
   `find` fallback is sufficient and produces a smaller Conan package).
 
 Libraries using `package_install: true`: abseil, bde, boost_bin, cpptrace, curl,
-hpx, kokkos, liblzma, mfem, pcre2, qt, re2, zlib, and some nightly entries.
+hpx, icu, kokkos, liblzma, mfem, pcre2, qt, re2, zlib, and some nightly entries.
 
 ## Source Fetch Properties
 

@@ -25,6 +25,7 @@ class LibraryBuildConfig:
         self.url = "None"
         self.description = ""
         self.configure_flags = self.config_get("configure_flags", [])
+        self.source_folder = self.config_get("source_folder", "")
         self.prebuild_script = self.config_get("prebuild_script", [])
         if is_windows():
             self.prebuild_script = self.config_get("prebuild_script_pwsh", self.prebuild_script)

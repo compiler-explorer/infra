@@ -735,13 +735,22 @@ class LibraryBuilder:
                 f.write("rm -f *.a\n")
                 f.write(self.script_env("CXXFLAGS", cxx_flags))
                 f.write(self.script_env("CFLAGS", c_flags))
+                logdir = ""
+                if self.buildconfig.source_folder:
+                    f.write("LOGDIR=$(pwd)/\n")
+                    f.write(f"cd {self.buildconfig.source_folder}\n")
+                    logdir = "${LOGDIR}"
+
                 if self.buildconfig.build_type == "make":
-                    configurepath = os.path.join(sourcefolder, "configure")
+                    configurepath = os.path.join(sourcefolder, self.buildconfig.source_folder, "configure")
                     if os.path.exists(configurepath):
                         if self.buildconfig.package_install:
-                            f.write(f"./configure {configure_flags} --prefix={installfolder} > ceconfiglog.txt 2>&1\n")
+                            f.write(
+                                f"./configure {configure_flags} --prefix={installfolder}"
+                                f" > {logdir}ceconfiglog.txt 2>&1\n"
+                            )
                         else:
-                            f.write(f"./configure {configure_flags} > ceconfiglog.txt 2>&1\n")
+                            f.write(f"./configure {configure_flags} > {logdir}ceconfiglog.txt 2>&1\n")
 
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
@@ -760,11 +769,11 @@ class LibraryBuilder:
 
                 if len(self.buildconfig.make_targets) != 0:
                     for lognum, target in enumerate(self.buildconfig.make_targets):
-                        f.write(f"{make_utility} {extramakeargs} {target} > cemakelog_{lognum}.txt 2>&1\n")
+                        f.write(f"{make_utility} {extramakeargs} {target} > {logdir}cemakelog_{lognum}.txt 2>&1\n")
                 else:
                     lognum = 0
                     for lib in itertools.chain(self.buildconfig.staticliblink, self.buildconfig.sharedliblink):
-                        f.write(f"{make_utility} {extramakeargs} {lib} > cemakelog_{lognum}.txt 2>&1\n")
+                        f.write(f"{make_utility} {extramakeargs} {lib} > {logdir}cemakelog_{lognum}.txt 2>&1\n")
                         lognum += 1
 
                     if not self.buildconfig.package_install:
@@ -775,16 +784,16 @@ class LibraryBuilder:
                                 f.write("libsfound=$(find . -iname 'lib*.so*')\n")
 
                             f.write('if [ "$libsfound" = "" ]; then\n')
-                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write(f"  {make_utility} {extramakeargs} all > {logdir}cemakelog_{lognum}.txt 2>&1\n")
                             f.write("fi\n")
                         elif self.platform == LibraryPlatform.Windows:
                             f.write("$libs = Get-Childitem -Path ./**.lib -Recurse -ErrorAction SilentlyContinue\n")
                             f.write("if ($libs.count -eq 0) {\n")
-                            f.write(f"  {make_utility} {extramakeargs} all > cemakelog_{lognum}.txt 2>&1\n")
+                            f.write(f"  {make_utility} {extramakeargs} all > {logdir}cemakelog_{lognum}.txt 2>&1\n")
                             f.write("}\n")
 
                 if self.buildconfig.package_install:
-                    f.write(f"{make_utility} install > ceinstall_0.txt 2>&1\n")
+                    f.write(f"{make_utility} install > {logdir}ceinstall_0.txt 2>&1\n")
 
             if not self.buildconfig.package_install:
                 for lib in self.buildconfig.staticliblink:
