@@ -1647,6 +1647,7 @@ compilers:
           - contracts-GNUext-trunk
           - thomas-healy-trunk
           - trivial-relocation-trunk
+          - qemu-armeb-trunk
       clang:
         type: nightly
         check_exe: bin/clang++ --version
