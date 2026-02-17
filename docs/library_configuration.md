@@ -120,7 +120,9 @@ so its Conan package includes headers alongside the `.so`.
 - `use_compiler` is mandatory. The builder raises an error at config load time if
   it is missing.
 - Pick a stable GCC or Clang version as the compiler (e.g. `g102`, `g105`,
-  `clang1400`). It does not matter which, since the output is C-only.
+  `clang1400`). It does not matter which, since the output is C-only. To find
+  available compiler IDs, see
+  [Installing compilers](installing_compilers.md#listing-available-compilerstools).
 - If downstream consumers need headers, also set `package_install: true` so the
   install tree (including `include/`) is packaged.
 
