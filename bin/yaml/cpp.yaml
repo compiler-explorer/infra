@@ -1691,6 +1691,7 @@ compilers:
           - p1974-trunk
           - ericwf-contracts-trunk
           - chrisbazley-trunk
+          - swiftlang-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang --version
       mlir:
