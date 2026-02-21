@@ -49,6 +49,11 @@ apt-get install -y \
     wget \
     xz-utils
 
+# Workaround for older Clang versions that expect xlocale.h,
+# which was removed in newer glibc (folded into locale.h).
+# See https://github.com/compiler-explorer/compiler-explorer/issues/7515
+ln -sf /usr/include/locale.h /usr/include/xlocale.h
+
 pushd /tmp
 git clone --recursive --branch ce https://github.com/compiler-explorer/nsjail.git
 cd nsjail
