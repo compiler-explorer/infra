@@ -1,36 +1,28 @@
 from __future__ import annotations
 
 import contextlib
-import csv
 import glob
 import hashlib
 import itertools
-import json
 import os
 import re
 import shutil
 import subprocess
-import tempfile
-import time
 from collections import defaultdict
 from collections.abc import Generator
-from enum import Enum, unique
 from pathlib import Path
 from typing import Any, TextIO
 
-import requests
-from urllib3.exceptions import ProtocolError
-
-from lib.amazon import get_ssm_param
-from lib.amazon_properties import get_properties_compilers_and_libraries, get_specific_library_version_details
-from lib.installation_context import FetchFailure, PostFailure
+from lib.amazon_properties import get_properties_compilers_and_libraries
+from lib.base_library_builder import (
+    BuildStatus,
+    CompilerBasedLibraryBuilder,
+)
 from lib.library_build_config import LibraryBuildConfig
 from lib.library_platform import LibraryPlatform
 from lib.staging import StagingDir
 
 _TIMEOUT = 600
-compiler_popularity_treshhold = 1000
-popular_compilers: dict[str, Any] = defaultdict(lambda: [])
 
 build_supported_os = ["Linux"]
 build_supported_buildtype = ["Debug"]
@@ -53,17 +45,7 @@ def _quote(string: str) -> str:
     return f'"{string}"'
 
 
-@unique
-class BuildStatus(Enum):
-    Ok = 0
-    Failed = 1
-    Skipped = 2
-    TimedOut = 3
-
-
-build_timeout = 600
-
-conanserver_url = "https://conan.compiler-explorer.com"
+BUILD_TIMEOUT = 600  # Keep for Fortran-specific timeout if needed
 
 
 @contextlib.contextmanager
@@ -73,7 +55,7 @@ def open_script(script: Path) -> Generator[TextIO, None, None]:
     script.chmod(0o755)
 
 
-class FortranLibraryBuilder:
+class FortranLibraryBuilder(CompilerBasedLibraryBuilder):
     def __init__(
         self,
         logger,
@@ -85,22 +67,17 @@ class FortranLibraryBuilder:
         buildconfig: LibraryBuildConfig,
         popular_compilers_only: bool,
     ):
-        self.logger = logger
-        self.language = language
-        self.libname = libname
-        self.buildconfig = buildconfig
-        self.install_context = install_context
-        self.sourcefolder = sourcefolder
-        self.target_name = target_name
-        self.forcebuild = False
-        self.current_buildparameters_obj: dict[str, Any] = defaultdict(lambda: [])
-        self.current_buildparameters: list[str] = []
-        self.needs_uploading = 0
-        self.libid = self.libname  # TODO: CE libid might be different from yaml libname
-        self.conanserverproxy_token = None
-        self._conan_hash_cache: dict[str, str | None] = {}
-        self._annotations_cache: dict[str, dict] = {}
-        self.http_session = requests.Session()
+        super().__init__(
+            logger,
+            language,
+            libname,
+            target_name,
+            sourcefolder,
+            install_context,
+            buildconfig,
+            popular_compilers_only,
+            LibraryPlatform.Linux,
+        )
 
         if self.language in _propsandlibs:
             [self.compilerprops, self.libraryprops] = _propsandlibs[self.language]
@@ -110,91 +87,30 @@ class FortranLibraryBuilder:
             )
             _propsandlibs[self.language] = [self.compilerprops, self.libraryprops]
 
-        self.check_compiler_popularity = popular_compilers_only
-
         self.completeBuildConfig()
 
-    def completeBuildConfig(self):
-        if "description" in self.libraryprops[self.libid]:
-            self.buildconfig.description = self.libraryprops[self.libid]["description"]
-        if "name" in self.libraryprops[self.libid]:
-            self.buildconfig.description = self.libraryprops[self.libid]["name"]
-        if "url" in self.libraryprops[self.libid]:
-            self.buildconfig.url = self.libraryprops[self.libid]["url"]
-
-        if "staticliblink" in self.libraryprops[self.libid]:
-            self.buildconfig.staticliblink = list(
-                set(self.buildconfig.staticliblink + self.libraryprops[self.libid]["staticliblink"])
+    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
+        """Create build hash for Fortran builds with compiler prefix."""
+        hasher = hashlib.sha256()
+        flagsstr = "|".join(x for x in flagscombination) if flagscombination else ""
+        hasher.update(
+            bytes(
+                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
             )
+        )
 
-        if "liblink" in self.libraryprops[self.libid]:
-            self.buildconfig.sharedliblink = list(
-                set(self.buildconfig.sharedliblink + self.libraryprops[self.libid]["liblink"])
-            )
+        self.logger.info(
+            f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
+        )
 
-        specificVersionDetails = get_specific_library_version_details(self.libraryprops, self.libid, self.target_name)
-        if specificVersionDetails:
-            if "staticliblink" in specificVersionDetails:
-                self.buildconfig.staticliblink = list(
-                    set(self.buildconfig.staticliblink + specificVersionDetails["staticliblink"])
-                )
+        return compiler + "_" + hasher.hexdigest()
 
-            if "liblink" in specificVersionDetails:
-                self.buildconfig.sharedliblink = list(
-                    set(self.buildconfig.sharedliblink + specificVersionDetails["liblink"])
-                )
-        else:
-            self.logger.debug("No specific library version information found")
+    def does_compiler_support_amd64(self, exe, compilerType, options, ldPath):
+        """Fortran compilers generally support amd64."""
+        return True
 
-        if self.buildconfig.lib_type == "static":
-            if self.buildconfig.staticliblink == []:
-                self.buildconfig.staticliblink = [f"{self.libname}"]
-        elif self.buildconfig.lib_type == "shared":
-            if self.buildconfig.sharedliblink == []:
-                self.buildconfig.sharedliblink = [f"{self.libname}"]
-        elif self.buildconfig.lib_type == "cshared":
-            if self.buildconfig.sharedliblink == []:
-                self.buildconfig.sharedliblink = [f"{self.libname}"]
-
-        alternatelibs = []
-        for lib in self.buildconfig.staticliblink:
-            if lib.endswith("d") and lib[:-1] not in self.buildconfig.staticliblink:
-                alternatelibs += [lib[:-1]]
-            else:
-                if f"{lib}d" not in self.buildconfig.staticliblink:
-                    alternatelibs += [f"{lib}d"]
-
-        self.buildconfig.staticliblink += alternatelibs
-
-    def getToolchainPathFromOptions(self, options):
-        match = re.search(r"--gcc-toolchain=(\S*)", options)
-        if match:
-            return match[1]
-        else:
-            match = re.search(r"--gxx-name=(\S*)", options)
-            if match:
-                return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
-        return False
-
-    def getStdVerFromOptions(self, options):
-        match = re.search(r"-std=(\S*)", options)
-        if match:
-            return match[1]
-        return False
-
-    def getStdLibFromOptions(self, options):
-        match = re.search(r"-stdlib=(\S*)", options)
-        if match:
-            return match[1]
-        return False
-
-    def getTargetFromOptions(self, options):
-        match = re.search(r"-target (\S*)", options)
-        if match:
-            return match[1]
-        return False
-
-    def does_compiler_support(self, exe, compilerType, arch, options, ldPath):
+    def _check_compiler_support_impl(self, exe, compilerType, arch, options, ldPath):
+        """Internal implementation of compiler support checking for FortranLibraryBuilder."""
         fixedTarget = self.getTargetFromOptions(options)
         if fixedTarget:
             return fixedTarget == arch
@@ -220,61 +136,67 @@ class FortranLibraryBuilder:
     def does_compiler_support_x86(self, exe, compilerType, options, ldPath):
         cachekey = f"{exe}|{options}"
         if cachekey not in _supports_x86:
-            _supports_x86[cachekey] = self.does_compiler_support(exe, compilerType, "x86", options, ldPath)
+            _supports_x86[cachekey] = self._check_compiler_support_impl(exe, compilerType, "x86", options, ldPath)
         return _supports_x86[cachekey]
 
-    def replace_optional_arg(self, arg, name, value):
-        optional = "%" + name + "?%"
-        if optional in arg:
-            if value:
-                return arg.replace(optional, value)
-            else:
-                return ""
+    def getToolchainPathFromOptions(self, options):
+        match = re.search(r"--gcc-toolchain=(\S*)", options)
+        if match:
+            return match[1]
         else:
-            return arg.replace("%" + name + "%", value)
+            match = re.search(r"--gxx-name=(\S*)", options)
+            if match:
+                return os.path.realpath(os.path.join(os.path.dirname(match[1]), ".."))
+        return False
 
-    def expand_make_arg(self, arg, compilerTypeOrGcc, buildtype, arch, stdver, stdlib):
-        expanded = arg
+    def getStdVerFromOptions(self, options):
+        match = re.search(r"-std=(\S*)", options)
+        if match:
+            return match[1]
+        return False
 
-        expanded = self.replace_optional_arg(expanded, "compilerTypeOrGcc", compilerTypeOrGcc)
-        expanded = self.replace_optional_arg(expanded, "buildtype", buildtype)
-        expanded = self.replace_optional_arg(expanded, "arch", arch)
-        expanded = self.replace_optional_arg(expanded, "stdver", stdver)
-        expanded = self.replace_optional_arg(expanded, "stdlib", stdlib)
+    def getStdLibFromOptions(self, options):
+        match = re.search(r"-stdlib=(\S*)", options)
+        if match:
+            return match[1]
+        return False
 
-        intelarch = ""
-        if arch == "x86":
-            intelarch = "ia32"
-        elif arch == "x86_64":
-            intelarch = "intel64"
+    def getTargetFromOptions(self, options):
+        # Align with base class pattern while supporting Fortran compilers
+        match = re.search(r"(?:--target|-target)[=\s](\S*)", options)
+        if match:
+            return match[1]
+        return False
 
-        expanded = self.replace_optional_arg(expanded, "intelarch", intelarch)
+    def get_compiler_type(self, compiler):
+        compilerType = ""
+        if "compilerType" in self.compilerprops[compiler]:
+            compilerType = self.compilerprops[compiler]["compilerType"]
+        else:
+            raise RuntimeError(f"Something is wrong with {compiler}")
 
-        return expanded
+        if self.compilerprops[compiler]["compilerType"] == "clang-intel":
+            # hack for icpx so we don't get duplicate builds
+            # Note: Fortran specifically needs this mapping to gcc
+            compilerType = "gcc"
 
-    def resil_post(self, url, json_data, headers=None):
-        request = None
-        retries = 3
-        last_error = ""
-        while retries > 0:
-            try:
-                if headers is not None:
-                    request = self.http_session.post(url, data=json_data, headers=headers, timeout=_TIMEOUT)
-                else:
-                    request = self.http_session.post(
-                        url, data=json_data, headers={"Content-Type": "application/json"}, timeout=_TIMEOUT
-                    )
+        return compilerType
 
-                retries = 0
-            except ProtocolError as e:
-                last_error = e
-                retries = retries - 1
-                time.sleep(1)
+    def _gather_build_logs(self, buildfolder):
+        """Gather Fortran-specific build logs including FPM logs."""
+        logging_data = ""
+        # Get standard build logs
+        if hasattr(super(), "_gather_build_logs"):
+            logging_data = super()._gather_build_logs(buildfolder)
 
-        if request is None:
-            request = {"ok": False, "text": last_error}
+        # Add FPM-specific logs
+        fpm_logs = glob.glob(os.path.join(buildfolder, "cefpm*.txt"))
+        for logfile in fpm_logs:
+            with open(logfile, encoding="utf-8") as f:
+                logging_data += f"\n\n=== FPM Log: {os.path.basename(logfile)} ===\n"
+                logging_data += f.read()
 
-        return request
+        return logging_data
 
     def writebuildscript(
         self,
@@ -354,45 +276,6 @@ class FortranLibraryBuilder:
             buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
         )
 
-    def setCurrentConanBuildParameters(
-        self, buildos, buildtype, compilerTypeOrGcc, compiler, libcxx, arch, stdver, extraflags
-    ):
-        self.current_buildparameters_obj["os"] = buildos
-        self.current_buildparameters_obj["buildtype"] = buildtype
-        self.current_buildparameters_obj["compiler"] = compilerTypeOrGcc
-        self.current_buildparameters_obj["compiler_version"] = compiler
-        self.current_buildparameters_obj["libcxx"] = libcxx
-        self.current_buildparameters_obj["arch"] = arch
-        self.current_buildparameters_obj["stdver"] = stdver
-        self.current_buildparameters_obj["flagcollection"] = extraflags
-        self.current_buildparameters_obj["library"] = self.libid
-        self.current_buildparameters_obj["library_version"] = self.target_name
-
-        self.current_buildparameters = [
-            "-s",
-            f"os={buildos}",
-            "-s",
-            f"build_type={buildtype}",
-            "-s",
-            f"compiler={compilerTypeOrGcc}",
-            "-s",
-            f"compiler.version={compiler}",
-            "-s",
-            f"compiler.libcxx={libcxx}",
-            "-s",
-            f"arch={arch}",
-            "-s",
-            f"stdver={stdver}",
-            "-s",
-            f"flagcollection={extraflags}",
-        ]
-
-    def writeconanscript(self, buildfolder):
-        conanparamsstr = " ".join(self.current_buildparameters)
-        with open_script(Path(buildfolder) / "conanexport.sh") as f:
-            f.write("#!/bin/sh\n\n")
-            f.write(f"conan export-pkg . {self.libname}/{self.target_name} -f {conanparamsstr}\n")
-
     def write_conan_file_to(self, f: TextIO) -> None:
         f.write("from conans import ConanFile, tools\n")
         f.write(f"class {self.libname}Conan(ConanFile):\n")
@@ -416,190 +299,6 @@ class FortranLibraryBuilder:
     def writeconanfile(self, buildfolder):
         with (Path(buildfolder) / "conanfile.py").open(mode="w", encoding="utf-8") as f:
             self.write_conan_file_to(f)
-
-    def executeconanscript(self, buildfolder):
-        if subprocess.call(["./conanexport.sh"], cwd=buildfolder) == 0:
-            self.logger.info("Export succesful")
-            return BuildStatus.Ok
-        else:
-            return BuildStatus.Failed
-
-    def executebuildscript(self, buildfolder):
-        try:
-            if subprocess.call(["./cebuild.sh"], cwd=buildfolder, timeout=build_timeout) == 0:
-                self.logger.info(f"Build succeeded in {buildfolder}")
-                return BuildStatus.Ok
-            else:
-                return BuildStatus.Failed
-        except subprocess.TimeoutExpired:
-            self.logger.info(f"Build timed out and was killed ({buildfolder})")
-            return BuildStatus.TimedOut
-
-    def makebuildhash(self, compiler, options, toolchain, buildos, buildtype, arch, stdver, stdlib, flagscombination):
-        hasher = hashlib.sha256()
-        flagsstr = "|".join(x for x in flagscombination)
-        hasher.update(
-            bytes(
-                f"{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}", "utf-8"
-            )
-        )
-
-        self.logger.info(
-            f"Building {self.libname} {self.target_name} for [{compiler},{options},{toolchain},{buildos},{buildtype},{arch},{stdver},{stdlib},{flagsstr}]"
-        )
-
-        return compiler + "_" + hasher.hexdigest()
-
-    def get_conan_hash(self, buildfolder: str) -> str | None:
-        if buildfolder in self._conan_hash_cache:
-            self.logger.debug(f"Using cached conan hash for {buildfolder}")
-            return self._conan_hash_cache[buildfolder]
-
-        if not self.install_context.dry_run:
-            self.logger.debug(["conan", "info", "."] + self.current_buildparameters)
-            conaninfo = subprocess.check_output(
-                ["conan", "info", "-r", "ceserver", "."] + self.current_buildparameters, cwd=buildfolder
-            ).decode("utf-8", "ignore")
-            self.logger.debug(conaninfo)
-            match = CONANINFOHASH_RE.search(conaninfo, re.MULTILINE)
-            if match:
-                result = match[1]
-                self._conan_hash_cache[buildfolder] = result
-                return result
-
-        self._conan_hash_cache[buildfolder] = None
-        return None
-
-    def conanproxy_login(self):
-        url = f"{conanserver_url}/login"
-
-        login_body = defaultdict(lambda: [])
-        login_body["password"] = get_ssm_param("/compiler-explorer/conanpwd")
-
-        request = self.resil_post(url, json_data=json.dumps(login_body))
-        if not request.ok:
-            self.logger.info(request.text)
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            self.conanserverproxy_token = response["token"]
-
-    def save_build_logging(self, builtok, buildfolder, extralogtext):
-        if builtok == BuildStatus.Failed:
-            url = f"{conanserver_url}/buildfailed"
-        elif builtok == BuildStatus.Ok:
-            url = f"{conanserver_url}/buildsuccess"
-        elif builtok == BuildStatus.TimedOut:
-            url = f"{conanserver_url}/buildfailed"
-        else:
-            return
-
-        loggingfiles = []
-        loggingfiles += glob.glob(buildfolder + "/cefpm*.txt")
-
-        logging_data = ""
-        for logfile in loggingfiles:
-            logging_data += Path(logfile).read_text(encoding="utf-8")
-
-        if builtok == BuildStatus.TimedOut:
-            logging_data = logging_data + "\n\n" + "BUILD TIMED OUT!!"
-
-        buildparameters_copy = self.current_buildparameters_obj.copy()
-        buildparameters_copy["logging"] = logging_data + "\n\n" + extralogtext
-        buildparameters_copy["commithash"] = self.get_commit_hash()
-
-        headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
-
-        return self.resil_post(url, json_data=json.dumps(buildparameters_copy), headers=headers)
-
-    def get_build_annotations(self, buildfolder):
-        if buildfolder in self._annotations_cache:
-            self.logger.debug(f"Using cached annotations for {buildfolder}")
-            return self._annotations_cache[buildfolder]
-
-        conanhash = self.get_conan_hash(buildfolder)
-        if conanhash is None:
-            result = defaultdict(lambda: [])
-            self._annotations_cache[buildfolder] = result
-            return result
-
-        url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        with tempfile.TemporaryFile() as fd:
-            request = self.http_session.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
-                raise FetchFailure(f"Fetch failure for {url}: {request}")
-            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
-                fd.write(chunk)
-            fd.flush()
-            fd.seek(0)
-            buffer = fd.read()
-            result = json.loads(buffer)
-            self._annotations_cache[buildfolder] = result
-            return result
-
-    def get_commit_hash(self) -> str:
-        if os.path.exists(f"{self.sourcefolder}/.git"):
-            lastcommitinfo = subprocess.check_output([
-                "git",
-                "-C",
-                self.sourcefolder,
-                "log",
-                "-1",
-                "--oneline",
-                "--no-color",
-            ]).decode("utf-8", "ignore")
-            self.logger.debug(lastcommitinfo)
-            match = GITCOMMITHASH_RE.match(lastcommitinfo)
-            if match:
-                return match[1]
-            else:
-                return self.target_name
-        else:
-            return self.target_name
-
-    def has_failed_before(self):
-        url = f"{conanserver_url}/whathasfailedbefore"
-        request = self.resil_post(url, json_data=json.dumps(self.current_buildparameters_obj))
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
-        else:
-            response = json.loads(request.content)
-            current_commit = self.get_commit_hash()
-            if response["commithash"] == current_commit:
-                return response["response"]
-            else:
-                return False
-
-    def is_already_uploaded(self, buildfolder):
-        annotations = self.get_build_annotations(buildfolder)
-
-        if "commithash" in annotations:
-            commithash = self.get_commit_hash()
-
-            return commithash == annotations["commithash"]
-        else:
-            return False
-
-    def set_as_uploaded(self, buildfolder):
-        conanhash = self.get_conan_hash(buildfolder)
-        if conanhash is None:
-            raise RuntimeError(f"Error determining conan hash in {buildfolder}")
-
-        self.logger.info(f"commithash: {conanhash}")
-
-        annotations = self.get_build_annotations(buildfolder)
-        if "commithash" not in annotations:
-            self.upload_builds()
-        annotations["commithash"] = self.get_commit_hash()
-
-        self.logger.info(annotations)
-
-        headers = {"Content-Type": "application/json", "Authorization": "Bearer " + self.conanserverproxy_token}
-
-        url = f"{conanserver_url}/annotations/{self.libname}/{self.target_name}/{conanhash}"
-        request = self.resil_post(url, json_data=json.dumps(annotations), headers=headers)
-        if not request.ok:
-            raise PostFailure(f"Post failure for {url}: {request}")
 
     def makebuildfor(
         self,
@@ -650,7 +349,7 @@ class FortranLibraryBuilder:
         self.writeconanfile(build_folder)
         extralogtext = ""
 
-        if not self.forcebuild and self.has_failed_before():
+        if not self.forcebuild and self.has_failed_before({}):
             self.logger.info("Build has failed before, not re-attempting")
             return BuildStatus.Skipped
 
@@ -672,7 +371,7 @@ class FortranLibraryBuilder:
                 build_status = self.executeconanscript(build_folder)
                 if build_status == BuildStatus.Ok:
                     self.needs_uploading += 1
-                    self.set_as_uploaded(build_folder)
+                    self.set_as_uploaded(build_folder, {})
 
         if not self.install_context.dry_run:
             self.save_build_logging(build_status, build_folder, extralogtext)
@@ -682,95 +381,6 @@ class FortranLibraryBuilder:
                 self.build_cleanup(build_folder)
 
         return build_status
-
-    def build_cleanup(self, buildfolder):
-        if self.install_context.dry_run:
-            self.logger.info(f"Would remove directory {buildfolder} but in dry-run mode")
-        else:
-            shutil.rmtree(buildfolder, ignore_errors=True)
-            self.logger.info(f"Removing {buildfolder}")
-
-    def upload_builds(self):
-        if self.needs_uploading > 0:
-            if not self.install_context.dry_run:
-                self.logger.info("Uploading cached builds")
-                subprocess.check_call([
-                    "conan",
-                    "upload",
-                    f"{self.libname}/{self.target_name}",
-                    "--all",
-                    "-r=ceserver",
-                    "-c",
-                ])
-                self.logger.debug("Clearing cache to speed up next upload")
-                subprocess.check_call(["conan", "remove", "-f", f"{self.libname}/{self.target_name}"])
-            self.needs_uploading = 0
-
-    def get_compiler_type(self, compiler):
-        compilerType = ""
-        if "compilerType" in self.compilerprops[compiler]:
-            compilerType = self.compilerprops[compiler]["compilerType"]
-        else:
-            raise RuntimeError(f"Something is wrong with {compiler}")
-
-        if self.compilerprops[compiler]["compilerType"] == "clang-intel":
-            # hack for icpx so we don't get duplicate builds
-            compilerType = "gcc"
-
-        return compilerType
-
-    def download_compiler_usage_csv(self):
-        url = "https://compiler-explorer.s3.amazonaws.com/public/compiler_usage.csv"
-        with tempfile.TemporaryFile() as fd:
-            request = requests.get(url, stream=True, timeout=_TIMEOUT)
-            if not request.ok:
-                raise FetchFailure(f"Fetch failure for {url}: {request}")
-            for chunk in request.iter_content(chunk_size=4 * 1024 * 1024):
-                fd.write(chunk)
-            fd.flush()
-            fd.seek(0)
-
-            reader = csv.DictReader(line.decode("utf-8") for line in fd.readlines())
-            for row in reader:
-                popular_compilers[row["compiler"]] = int(row["times_used"])
-
-    def is_popular_enough(self, compiler):
-        if len(popular_compilers) == 0:
-            self.logger.debug("downloading compiler popularity csv")
-            self.download_compiler_usage_csv()
-
-        if compiler not in popular_compilers:
-            return False
-
-        if popular_compilers[compiler] < compiler_popularity_treshhold:
-            return False
-
-        return True
-
-    def should_build_with_compiler(self, compiler, checkcompiler, buildfor):
-        if checkcompiler and compiler != checkcompiler:
-            return False
-
-        if compiler in self.buildconfig.skip_compilers:
-            return False
-
-        compilerType = self.get_compiler_type(compiler)
-
-        exe = self.compilerprops[compiler]["exe"]
-
-        if buildfor == "allclang" and compilerType != "clang":
-            return False
-        elif buildfor == "allicc" and "/icc" not in exe:
-            return False
-        elif buildfor == "allgcc" and compilerType:
-            return False
-
-        if self.check_compiler_popularity:
-            if not self.is_popular_enough(compiler):
-                self.logger.info(f"compiler {compiler} is not popular enough")
-                return False
-
-        return True
 
     def makebuild(self, buildfor):
         builds_failed = 0

@@ -124,7 +124,7 @@ def test_get_toolchain_path_from_options_none(requests_mock):
 
     options = "-O2 -std=c++17"
     result = builder.getToolchainPathFromOptions(options)
-    assert result is False
+    assert not result
 
 
 def test_get_sysroot_path_from_options(requests_mock):
@@ -251,7 +251,8 @@ def test_get_conan_hash_success(mock_subprocess, requests_mock):
 def test_execute_build_script_success(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
-    install_context = mock.Mock(spec_set=InstallationContext)
+    install_context = mock.Mock()
+    install_context.dry_run = False
     build_config = create_test_build_config()
     builder = LibraryBuilder(
         logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
@@ -269,7 +270,8 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
 def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
-    install_context = mock.Mock(spec_set=InstallationContext)
+    install_context = mock.Mock()
+    install_context.dry_run = False
     build_config = create_test_build_config()
     builder = LibraryBuilder(
         logger, "cpp", "testlib", "1.0.0", "/tmp/source", install_context, build_config, False, LibraryPlatform.Linux
@@ -282,7 +284,7 @@ def test_execute_build_script_timeout(mock_subprocess, requests_mock):
     assert result == BuildStatus.TimedOut
 
 
-@patch("lib.library_builder.get_ssm_param")
+@patch("lib.base_library_builder.get_ssm_param")
 def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
@@ -305,7 +307,7 @@ def test_conanproxy_login_success(mock_get_ssm, requests_mock):
     mock_get_ssm.assert_called_once_with("/compiler-explorer/conanpwd")
 
 
-@patch("lib.library_builder.get_ssm_param")
+@patch("lib.base_library_builder.get_ssm_param")
 def test_conanproxy_login_with_env_var(mock_get_ssm, requests_mock):
     requests_mock.get(f"{BASE}cpp.amazon.properties", text="")
     logger = mock.Mock(spec_set=Logger)
