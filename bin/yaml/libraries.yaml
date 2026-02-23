@@ -1225,6 +1225,28 @@ libraries:
       - '2'
       - '1'
       type: github
+    miniz:
+      build_type: cmake
+      check_file: README.md
+      lib_type: static
+      repo: richgel999/miniz
+      staticliblink:
+      - miniz
+      - miniz.o
+      - miniz.i
+      - miniz.s
+      - miniz_tdef.o
+      - miniz_tdef.i
+      - miniz_tdef.s
+      - miniz_tinfl.o
+      - miniz_tinfl.i
+      - miniz_tinfl.s
+      - miniz_zip.o
+      - miniz_zip.i
+      - miniz_zip.s
+      targets:
+      - 3.1.1
+      type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
       path_name: libs/mlir/{{name}}
