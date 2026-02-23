@@ -1225,6 +1225,12 @@ libraries:
       - '2'
       - '1'
       type: github
+    miniz:
+      check_file: README.md
+      repo: richgel999/miniz
+      targets:
+      - 3.1.1
+      type: github
     mlir:
       check_file: include/mlir/InitAllPasses.h
       path_name: libs/mlir/{{name}}
