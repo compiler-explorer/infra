@@ -688,6 +688,19 @@ libraries:
       targets:
       - 0.6.3
       type: github
+    flecs:
+      build_type: cmake
+      check_file: README.md
+      lib_type: static
+      package_install: true
+      repo: SanderMertens/flecs
+      staticliblink:
+      - flecs
+      - flecs_static
+      target_prefix: v
+      targets:
+      - 4.1.4
+      type: github
     flux:
       check_file: README.md
       repo: tcbrindle/flux
