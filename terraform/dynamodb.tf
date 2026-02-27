@@ -7,11 +7,9 @@ resource "aws_dynamodb_table" "links" {
     ]
     prevent_destroy = true
   }
-  billing_mode   = "PAY_PER_REQUEST"
-  read_capacity  = 1
-  write_capacity = 1
-  hash_key       = "prefix"
-  range_key      = "unique_subhash"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "prefix"
+  range_key    = "unique_subhash"
 
   attribute {
     name = "prefix"
@@ -36,11 +34,9 @@ resource "aws_dynamodb_table" "versionslog" {
     ]
     prevent_destroy = true
   }
-  billing_mode   = "PAY_PER_REQUEST"
-  read_capacity  = 1
-  write_capacity = 1
-  hash_key       = "buildId"
-  range_key      = "timestamp"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "buildId"
+  range_key    = "timestamp"
 
   attribute {
     name = "buildId"
@@ -109,11 +105,9 @@ resource "aws_dynamodb_table" "compiler-builds" {
     ]
     prevent_destroy = true
   }
-  billing_mode   = "PAY_PER_REQUEST"
-  read_capacity  = 1
-  write_capacity = 1
-  hash_key       = "compiler"
-  range_key      = "timestamp"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "compiler"
+  range_key    = "timestamp"
 
   attribute {
     name = "compiler"
@@ -155,8 +149,11 @@ resource "aws_dynamodb_table" "events-connections" {
 
   # Global Secondary Index for efficient subscription lookups
   global_secondary_index {
-    name            = "SubscriptionIndex"
-    hash_key        = "subscription"
+    name = "SubscriptionIndex"
+    key_schema {
+      attribute_name = "subscription"
+      key_type       = "HASH"
+    }
     read_capacity   = 25          # Match main table baseline
     write_capacity  = 10          # Match main table baseline
     projection_type = "KEYS_ONLY" # Only project connectionId and subscription for minimal data transfer

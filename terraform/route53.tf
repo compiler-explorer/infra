@@ -37,8 +37,7 @@ module "route53-domain-redirect" {
     master  = "master"
     beebide = "beebide"
   }
-  source                          = "trebidav/route53-domain-redirect/module"
-  version                         = "0.4.0"
+  source                          = "./modules/domain_redirect"
   zone                            = "godbolt.org"
   subdomain                       = format("%s.", each.value)
   target_url                      = format("%s.xania.org", each.value)

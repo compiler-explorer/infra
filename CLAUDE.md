@@ -575,6 +575,10 @@ Send 'now live' notifications to GitHub issues/PRs? [yes/dry-run/no] (yes):
 
 The `ce_install` command supports a filter system to narrow down installables. Filter syntax and usage patterns are documented in `docs/filter-system.md`.
 
+## Library Configuration
+
+Library YAML settings, build types, library types (`cshared`, `shared`, `static`, `headeronly`), `package_install` behavior, and per-language configuration are documented in `docs/library_configuration.md`.
+
 ## Terraform Integration
 
 - Infrastructure defined in `terraform/` directory

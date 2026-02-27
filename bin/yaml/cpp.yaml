@@ -1134,6 +1134,8 @@ compilers:
           - assertions-20.1.0
           - 21.1.0
           - assertions-21.1.0
+          - 22.1.0
+          - assertions-22.1.0
     clang-hexagon:
       - type: tarballs
         check_exe: x86_64-linux-gnu/bin/clang++ --version
@@ -1160,6 +1162,10 @@ compilers:
           - 6.3.3
           - 6.4.0
           - 7.0.1
+          - 7.0.2
+          - 7.1.0
+          - 7.1.1
+          - 7.2.0
     plugins:
       clad:
         path_name: clang-plugins/clad-{{name}}
@@ -1680,6 +1686,7 @@ compilers:
           - p3385-trunk
           - p3412-trunk
           - p3776-trunk
+          - p3822-trunk
           - p3951-trunk
           - hana-clang-trunk
           - implicit-constexpr-trunk

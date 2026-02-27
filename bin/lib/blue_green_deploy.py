@@ -34,7 +34,7 @@ from lib.deployment_utils import (
     wait_for_http_health,
     wait_for_instances_healthy,
 )
-from lib.discovery import copy_discovery_to_prod
+from lib.discovery import copy_discovery_to_prod, discovery_exists
 from lib.env import Config
 
 LOGGER = logging.getLogger(__name__)
@@ -221,6 +221,101 @@ class BlueGreenDeployment:
         asg_info = get_asg_info(asg_name)
         return asg_info["DesiredCapacity"] if asg_info else 0
 
+    @staticmethod
+    def _display_discovery_status(version: str) -> None:
+        """Display discovery status for the target version across environments."""
+        print(f"\nDiscovery status for {version}:")
+        for env in ["prod", "staging", "beta"]:
+            exists = discovery_exists(env, version)
+            label = "found" if exists else "not found"
+            padded_env = f"{env}:"
+            print(f"  {padded_env:10s} {label}")
+
+    def _copy_and_check_discovery(self, source_env: str, version: str, branch: str | None):
+        """Copy discovery from source environment and return release."""
+        print(f"Attempting to copy discovery from {source_env} for version {version}...")
+        try:
+            if copy_discovery_to_prod(source_env, version):
+                print("Retrying discovery check...")
+                try:
+                    release = check_compiler_discovery(self.cfg, version, branch)
+                    if release:
+                        return release
+                except RuntimeError:
+                    pass
+                LOGGER.warning("Discovery copy succeeded but check still failed. Continuing anyway.")
+            else:
+                LOGGER.warning(f"No discovery file found in {source_env} for this version.")
+                LOGGER.warning("Falling back to continuing without discovery.")
+
+            release = get_release_without_discovery_check(self.cfg, version, branch)
+            if not release:
+                raise RuntimeError(f"Version {version} not found") from None
+            return release
+        except (ClientError, OSError) as copy_error:
+            LOGGER.error(f"Failed to copy discovery file: {copy_error}")
+            LOGGER.error("Deployment cancelled due to discovery copy failure.")
+            raise DeploymentCancelledException("Discovery copy failed") from copy_error
+
+    def _handle_prod_missing_discovery(self, error: RuntimeError, version: str, branch: str | None):
+        """Handle missing prod discovery by checking staging/beta and presenting options."""
+        staging_has_discovery = discovery_exists("staging", version)
+        beta_has_discovery = discovery_exists("beta", version)
+
+        LOGGER.warning("%s", error)
+
+        if staging_has_discovery:
+            print("Staging discovery IS available for this version.")
+            print("Options:")
+            print("  1. Copy discovery from staging (recommended)")
+            print("  2. Continue without discovery")
+            print("  3. Cancel deployment")
+        elif beta_has_discovery:
+            print("Beta discovery IS available (staging is not).")
+            print("Options:")
+            print("  1. Copy discovery from beta")
+            print("  2. Continue without discovery")
+            print("  3. Cancel deployment")
+        else:
+            print("WARNING: No discovery found in staging or beta for this version either.")
+            suggestion = f"ce workflows run-discovery {version} --environment staging"
+            print(f"You may need to run discovery first: {suggestion}")
+            print("Options:")
+            print("  1. Continue without discovery (risky)")
+            print("  2. Cancel deployment")
+
+        source_env = "staging" if staging_has_discovery else ("beta" if beta_has_discovery else None)
+
+        while True:
+            if source_env:
+                response = input("Choose option (1/2/3): ").strip()
+                if response == "1":
+                    return self._copy_and_check_discovery(source_env, version, branch)
+                elif response == "2":
+                    LOGGER.warning("Continuing without discovery...")
+                    release = get_release_without_discovery_check(self.cfg, version, branch)
+                    if not release:
+                        raise RuntimeError(f"Version {version} not found") from None
+                    return release
+                elif response == "3":
+                    print("Deployment cancelled.")
+                    raise DeploymentCancelledException("Deployment cancelled by user") from None
+                else:
+                    LOGGER.error("Invalid option. Please choose 1, 2, or 3.")
+            else:
+                response = input("Choose option (1/2): ").strip()
+                if response == "1":
+                    LOGGER.warning("Continuing without discovery...")
+                    release = get_release_without_discovery_check(self.cfg, version, branch)
+                    if not release:
+                        raise RuntimeError(f"Version {version} not found") from None
+                    return release
+                elif response == "2":
+                    print("Deployment cancelled.")
+                    raise DeploymentCancelledException("Deployment cancelled by user") from None
+                else:
+                    LOGGER.error("Invalid option. Please choose 1 or 2.")
+
     def deploy(
         self,
         target_capacity: int | None = None,
@@ -323,6 +418,7 @@ class BlueGreenDeployment:
 
                 print(f"\nStep 0.5: Setting build version to {version}")
                 print(f"         (Current version: {original_version_key})")
+                self._display_discovery_status(version)
 
                 # Check if version exists and has discovery
                 try:
@@ -344,52 +440,7 @@ class BlueGreenDeployment:
                             raise DeploymentCancelledException(
                                 "Production deployments require manual confirmation"
                             ) from None
-                        LOGGER.warning("%s", e)
-                        print("For production deployments, we can copy discovery from staging if available.")
-                        print("Options:")
-                        print("  1. Copy discovery from staging (recommended)")
-                        print("  2. Continue without discovery (risky)")
-                        print("  3. Cancel deployment")
-
-                        while True:
-                            response = input("Choose option (1/2/3): ").strip()
-                            if response == "1":
-                                print(f"Attempting to copy discovery from staging for version {version}...")
-                                try:
-                                    if copy_discovery_to_prod("staging", version):
-                                        print("✓ Discovery copied from staging. Retrying discovery check...")
-                                        try:
-                                            release = check_compiler_discovery(self.cfg, version, branch)
-                                            if release:
-                                                break
-                                        except RuntimeError:
-                                            pass
-                                        LOGGER.warning(
-                                            "Discovery copy succeeded but check still failed. Continuing anyway."
-                                        )
-                                    else:
-                                        LOGGER.warning("No discovery file found in staging for this version.")
-                                        LOGGER.warning("Falling back to continuing without discovery.")
-
-                                    release = get_release_without_discovery_check(self.cfg, version, branch)
-                                    if not release:
-                                        raise RuntimeError(f"Version {version} not found") from None
-                                    break
-                                except (ClientError, OSError) as copy_error:
-                                    LOGGER.error(f"Failed to copy discovery file: {copy_error}")
-                                    LOGGER.error("Deployment cancelled due to discovery copy failure.")
-                                    raise DeploymentCancelledException("Discovery copy failed") from copy_error
-                            elif response == "2":
-                                LOGGER.warning("Continuing without discovery...")
-                                release = get_release_without_discovery_check(self.cfg, version, branch)
-                                if not release:
-                                    raise RuntimeError(f"Version {version} not found") from None
-                                break
-                            elif response == "3":
-                                print("Deployment cancelled.")
-                                raise DeploymentCancelledException("Deployment cancelled by user") from None
-                            else:
-                                LOGGER.error("Invalid option. Please choose 1, 2, or 3.")
+                        release = self._handle_prod_missing_discovery(e, version, branch)
                     elif skip_confirmation:
                         # For non-prod environments, skip_confirmation is allowed
                         LOGGER.warning("%s", e)
