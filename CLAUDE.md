@@ -159,6 +159,19 @@ Use instance isolation when you need to:
 - Analyze core dumps or logs
 - Test fixes before applying to all instances
 
+## GPU Runner Management
+
+The `ce gpu-runner` command group manages the GPU runner instance (CEGPURunner, g4dn.xlarge) used for GPU compiler discovery:
+
+- **`ce gpu-runner start`** - Start the GPU runner, wait for SSH and boot completion
+- **`ce gpu-runner stop`** - Stop the GPU runner instance
+- **`ce gpu-runner status`** - Show instance state
+- **`ce gpu-runner login`** - SSH into the GPU runner
+- **`ce gpu-runner exec REMOTE_CMD`** - Execute a command on the GPU runner
+- **`ce gpu-runner pull`** - Git pull infra on the GPU runner
+- **`ce gpu-runner discovery`** - Run compiler discovery on the GPU runner
+- **`ce gpu-runner uploaddiscovery gpu VERSION`** - Download, validate, and upload discovery JSON to S3
+
 ## CLI Architecture
 
 The CLI system (`bin/ce`) uses Click framework with a modular command structure:
@@ -205,6 +218,12 @@ The `ce workflows` command group provides functionality to trigger GitHub Action
   - Override with `--environment`, `--branch`, `--skip-remote-checks`
   - Use `--wait` to wait for workflow completion
   - Example: `ce workflows run-discovery gh-12345 --environment prod --wait`
+
+- **`ce workflows run-gpu-discovery BUILDNUMBER`** - Trigger GPU compiler discovery workflow in infra repo
+  - Always targets the GPU environment
+  - Override with `--branch`, `--skip-remote-checks`
+  - Use `--wait` to wait for workflow completion
+  - Example: `ce workflows run-gpu-discovery gh-12345 --wait`
 
 - **`ce workflows deploy-win BUILDNUMBER`** - Trigger Windows deployment in main compiler-explorer repo
   - Uses defaults: main branch

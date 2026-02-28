@@ -43,7 +43,7 @@ install_ninja
 
 cd "${DEPLOY_DIR}"
 
-if [[ "${ENV}" == "runner" ]]; then
+if [[ "${ENV}" == "runner" || "${ENV}" == "gpu-runner" ]]; then
   exit
 fi
 

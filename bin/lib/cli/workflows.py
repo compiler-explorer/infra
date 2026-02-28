@@ -117,6 +117,58 @@ def run_discovery(
             sys.exit(1)
 
 
+@workflows.command("run-gpu-discovery")
+@click.argument("buildnumber")
+@click.option("--branch", default="main", help="Branch to use for discovery (default: main)")
+@click.option("--skip-remote-checks", default="", help="Comma separated list of remote checks to skip")
+@click.option("--dry-run", is_flag=True, help="Print the command without executing")
+@click.option("--wait", is_flag=True, help="Wait for workflow to complete")
+@click.pass_obj
+def run_gpu_discovery(
+    cfg: Config,
+    buildnumber: str,
+    branch: str,
+    skip_remote_checks: str,
+    dry_run: bool,
+    wait: bool,
+):
+    """Trigger the GPU compiler discovery workflow.
+
+    BUILDNUMBER: The build number for discovery (e.g., gh-12345)
+    """
+    cmd = [
+        "gh",
+        "workflow",
+        "run",
+        "gpu-compiler-discovery.yml",
+        "--field",
+        f"branch={branch}",
+        "--field",
+        f"buildnumber={buildnumber}",
+    ]
+
+    if skip_remote_checks:
+        cmd.extend(["--field", f"skip_remote_checks={skip_remote_checks}"])
+
+    cmd.extend(["-R", "github.com/compiler-explorer/infra"])
+
+    if dry_run:
+        print(" ".join(cmd))
+    else:
+        print(f"Triggering GPU compiler discovery, branch {branch}, build {buildnumber}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if result.stdout:
+                print(result.stdout)
+            print("Workflow triggered successfully")
+
+            if wait:
+                wait_for_workflow_completion("infra", "gpu-compiler-discovery.yml")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to trigger workflow: {e.stderr}", file=sys.stderr)
+            sys.exit(1)
+
+
 @workflows.command("deploy-win")
 @click.argument("buildnumber")
 @click.option("--branch", default="main", help="Branch to deploy (default: main)")
@@ -312,6 +364,7 @@ def list_workflows(cfg: Config):
     print("Workflows in compiler-explorer/infra:")
     infra_workflows = [
         ("compiler-discovery.yml", "Compiler discovery workflow"),
+        ("gpu-compiler-discovery.yml", "GPU compiler discovery workflow"),
         ("win-lib-build.yaml", "Windows library build"),
         ("start_staging.yml", "Start staging environment"),
         ("update-compilers.yml", "Update compilers"),

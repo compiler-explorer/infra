@@ -1,0 +1,38 @@
+name: GPU compiler discovery
+run-name: GPU discovery ${{ inputs.branch }} build ${{ inputs.buildnumber }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number'
+        default: ''
+        required: true
+      skip_remote_checks:
+        description: 'Comma separated list of remote checks to skip'
+        default: ''
+        type: string
+
+jobs:
+  gpu-compiler-discovery:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull && make ce
+    - name: Set build number ${{ github.event.inputs.buildnumber }}
+      run: ce --env gpu builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    - name: Start GPU runner
+      run: ce gpu-runner start
+    - name: Update infra on GPU runner
+      run: ce gpu-runner pull
+    - name: Do compiler discovery
+      run: ce gpu-runner discovery
+    - name: Upload discovered compilers
+      run: ce gpu-runner uploaddiscovery gpu --skip-remote-checks='${{ github.event.inputs.skip_remote_checks }}' ${{ github.event.inputs.buildnumber }}
+    - name: Shut down GPU runner
+      run: ce gpu-runner stop
