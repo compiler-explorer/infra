@@ -1277,6 +1277,12 @@ libraries:
       - v2.4.0
       - v2.5.0
       type: github
+    named:
+      check_file: README.md
+      repo: mguid65/Named
+      target_prefix: v
+      targets:
+      - 0.0.8
     nanobench:
       check_file: README.md
       repo: martinus/nanobench
