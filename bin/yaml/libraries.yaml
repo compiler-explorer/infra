@@ -1270,6 +1270,13 @@ libraries:
       - v2.4.0
       - v2.5.0
       type: github
+    nanobench:
+      check_file: README.md
+      repo: martinus/nanobench
+      target_prefix: v
+      targets:
+      - 4.3.11
+      type: github
     nightly:
       array:
         check_file: include/array/array.h
