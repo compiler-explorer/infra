@@ -185,6 +185,13 @@ libraries:
       targets:
       - '1.2'
       type: github
+    backward_cpp:
+      check_file: README.md
+      repo: bombela/backward-cpp
+      target_prefix: v
+      targets:
+      - '1.6'
+      type: github
     bde:
       after_stage_script:
       - find . -name "*.t.*" -exec rm -f {} ";"
