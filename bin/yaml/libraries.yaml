@@ -2804,6 +2804,17 @@ libraries:
       - 0.4.16
       - 0.5.3
       type: github
+    yaml_cpp:
+      build_type: cmake
+      check_file: README.md
+      lib_type: static
+      package_install: true
+      repo: jbeder/yaml-cpp
+      staticliblink:
+      - yaml-cppd
+      targets:
+      - yaml-cpp-0.9.0
+      type: github
     yomm2:
       build_type: none
       check_file: include/yorel/yomm2.hpp
