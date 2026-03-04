@@ -725,6 +725,12 @@ libraries:
       - 11.2.0
       - 12.0.0
       type: github
+    frozen:
+      check_file: README.md
+      repo: serge-sans-paille/frozen
+      targets:
+      - 1.2.0
+      type: github
     fusedkernellibrary:
       check_file: README.md
       repo: Libraries-Openly-Fused/FusedKernelLibrary
