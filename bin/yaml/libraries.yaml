@@ -688,6 +688,13 @@ libraries:
       targets:
       - 0.1.0
       type: github
+    fastmod:
+      check_file: README.md
+      repo: lemire/fastmod
+      target_prefix: v
+      targets:
+      - 0.1.0
+      type: github
     fastor:
       check_file: README.md
       repo: romeric/Fastor
