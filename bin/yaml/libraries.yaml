@@ -1116,6 +1116,13 @@ libraries:
       - 1.0.0
       - 1.2.2
       type: github
+    libdivide:
+      check_file: README.md
+      repo: ridiculousfish/libdivide
+      target_prefix: v
+      targets:
+      - 5.3.0
+      type: github
     libguarded:
       check_file: README
       method: clone_branch
