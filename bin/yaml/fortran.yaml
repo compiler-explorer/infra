@@ -3,7 +3,7 @@ compilers:
     intel-fortran:
       type: script
       dir: "intel-fortran-{{name}}"
-      check_exe: compiler/latest/linux/bin/ifort -V
+      check_exe: compiler/latest/bin/ifx -V
       check_stderr_on_stdout: true
       script_filename: install.sh
       older:
@@ -82,7 +82,6 @@ compilers:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/b3aa3ab5-c79d-4af4-8801-983ef00b90fd/intel-fortran-compiler-{{name}}_offline.sh install.sh
           script: *intel-one-install-script
         - name: 2025.3.2.25
-          check_exe: compiler/latest/bin/ifx -V
           fetch:
             - https://registrationcenter-download.intel.com/akdlm/IRC_NAS/3e53d136-2870-4836-adb1-892b558fa34a/intel-fortran-compiler-{{name}}_offline.sh install.sh
           script: *intel-one-install-script

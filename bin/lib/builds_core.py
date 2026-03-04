@@ -107,7 +107,7 @@ def check_compiler_discovery(cfg: Config, version: str, branch: str | None = Non
 
     # Check compiler discovery
     if (
-        (cfg.env.value != "runner")
+        cfg.env.value not in ("runner", "gpu-runner")
         and not cfg.env.is_windows
         and not runner_discoveryexists(cfg.env.value, str(release.version))
     ):

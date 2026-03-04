@@ -1134,6 +1134,8 @@ compilers:
           - assertions-20.1.0
           - 21.1.0
           - assertions-21.1.0
+          - 22.1.0
+          - assertions-22.1.0
     clang-hexagon:
       - type: tarballs
         check_exe: x86_64-linux-gnu/bin/clang++ --version
@@ -1692,6 +1694,7 @@ compilers:
           - p1974-trunk
           - ericwf-contracts-trunk
           - chrisbazley-trunk
+          - swiftlang-trunk
           - name: llvmflang-trunk
             check_exe: bin/flang --version
       mlir:

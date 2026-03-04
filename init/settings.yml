@@ -69,6 +69,12 @@ compiler:
     golang:
         version: ANY
         libcxx: ANY
+    tinygo:
+        version: ANY
+        libcxx: ANY
+    m68k:
+        version: ANY
+        libcxx: ANY
 
 build_type: [Debug, Release]
 

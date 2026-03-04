@@ -2,6 +2,8 @@
 
 set -ex
 
+CE_PROP_ENV="--env amazon"
+
 # shellcheck source=start-support.sh
 . "${PWD}/start-support.sh"
 
@@ -27,7 +29,7 @@ exec sudo -u ${CE_USER} -H --preserve-env=NODE_ENV,UV_USE_IO_URING -- \
     -- app.js \
     --discoveryonly=/home/ce/discovered-compilers.json \
     --exit-on-compiler-failure \
-    --env amazon \
+    ${CE_PROP_ENV} \
     --env discovery \
     --port 10240 \
     --metricsPort 10241 \

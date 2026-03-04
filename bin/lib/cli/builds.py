@@ -151,7 +151,7 @@ def builds_set_current(
             to_set = release.key
     if to_set is not None and release is not None:
         if (
-            (cfg.env.value != "runner")
+            cfg.env.value not in ("runner", "gpu-runner")
             and not cfg.env.is_windows
             and not runner_discoveryexists(cfg.env.value, str(release.version))
         ):

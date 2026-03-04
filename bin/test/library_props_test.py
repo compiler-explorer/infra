@@ -259,7 +259,9 @@ def test_find_existing_library_by_github_url():
     # Should find existing libraries
     assert find_existing_library_by_github_url(cpp_libraries, "https://github.com/fmtlib/fmt") == "fmt"
     assert find_existing_library_by_github_url(cpp_libraries, "https://github.com/nlohmann/json") == "json"
-    assert find_existing_library_by_github_url(cpp_libraries, "https://github.com/some/nightly-lib") == "some_lib"
+
+    # Should not match libraries nested inside the nightly subsection
+    assert find_existing_library_by_github_url(cpp_libraries, "https://github.com/some/nightly-lib") is None
 
     # Should return None for non-existent libraries
     assert find_existing_library_by_github_url(cpp_libraries, "https://github.com/nonexistent/repo") is None

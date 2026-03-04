@@ -179,6 +179,28 @@ class RunnerInstance:
         return self.instance.state["Name"]
 
 
+class GpuRunnerInstance:
+    def __init__(self, instance):
+        self.instance = instance
+        self.elb_health = "unknown"
+        self.service_status = {"SubState": "unknown"}
+        self.running_version = "gpu-runner"
+
+    @staticmethod
+    def instance():
+        return GpuRunnerInstance(_singleton_instance("CEGPURunner"))
+
+    def start(self):
+        self.instance.start()
+
+    def stop(self):
+        self.instance.stop()
+
+    def status(self):
+        self.instance.load()
+        return self.instance.state["Name"]
+
+
 class SMBServerInstance:
     def __init__(self, instance):
         self.instance = instance

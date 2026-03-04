@@ -546,11 +546,6 @@ def find_existing_library_by_github_url(cpp_libraries, github_url):
         if isinstance(lib_info, dict) and lib_info.get("repo") == github_repo:
             return lib_id
 
-    if "nightly" in cpp_libraries and isinstance(cpp_libraries["nightly"], dict):
-        for lib_id, lib_info in cpp_libraries["nightly"].items():
-            if isinstance(lib_info, dict) and lib_info.get("repo") == github_repo:
-                return lib_id
-
     return None
 
 

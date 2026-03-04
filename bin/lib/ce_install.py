@@ -830,14 +830,18 @@ def build(
 
             if not installable.is_installed() and temp_install:
                 _LOGGER.info("Temporarily installing %s", installable.name)
+                saved_dry_run = context.installation_context.dry_run
+                context.installation_context.dry_run = False
                 try:
                     installable.install()
                     was_temp_installed = True
                 except FetchFailure:
                     num_failed += 1
                     continue
+                finally:
+                    context.installation_context.dry_run = saved_dry_run
 
-            if not installable.is_installed():
+            if not installable.is_installed() and not was_temp_installed:
                 _LOGGER.info("%s is not installed, unable to build", installable.name)
                 num_skipped += 1
             else:

@@ -1,0 +1,33 @@
+name: GPU compiler discovery
+run-name: GPU discovery ${{ inputs.branch }} build ${{ inputs.buildnumber }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch'
+        default: 'main'
+        required: true
+      buildnumber:
+        description: 'Build number'
+        default: ''
+        required: true
+jobs:
+  gpu-compiler-discovery:
+    runs-on: ['admin']
+
+    steps:
+    - name: Update infra
+      run: cd /home/ubuntu/infra && git pull && make ce
+    - name: Set build number ${{ github.event.inputs.buildnumber }}
+      run: ce --env gpu-runner builds set_current ${{ github.event.inputs.buildnumber }} --branch ${{ github.event.inputs.branch }} --confirm
+    - name: Start GPU runner
+      run: ce gpu-runner start
+    - name: Update infra on GPU runner
+      run: ce gpu-runner pull
+    - name: Do compiler discovery
+      run: ce gpu-runner discovery
+    - name: Upload discovered compilers
+      run: ce gpu-runner uploaddiscovery gpu ${{ github.event.inputs.buildnumber }}
+    - name: Shut down GPU runner
+      run: ce gpu-runner stop
