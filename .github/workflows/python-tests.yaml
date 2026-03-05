@@ -20,6 +20,8 @@ jobs:
             lambda/pyproject.toml
       - name: Install dependencies
         run: make ce
+      - name: Validate YAML configurations
+        run: bin/ce_install --yaml-dir bin/yaml validate
       - name: Setup ozy for unified terraform versions etc
         run: |
           curl -sL https://raw.githubusercontent.com/aquanauts/ozy/main/conf/install.sh | bash

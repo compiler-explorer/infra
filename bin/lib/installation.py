@@ -107,7 +107,7 @@ _INSTALLER_TYPES = {
 }
 
 
-def installers_for(install_context, nodes, enabled):
+def installers_for(install_context, nodes, enabled, validate_only=False):
     for target in targets_from(
         nodes,
         enabled,
@@ -118,10 +118,15 @@ def installers_for(install_context, nodes, enabled):
             now=datetime.now(),
         ),
     ):
-        assert "type" in target
+        context = "/".join(target.get("context", []))
+        name = target.get("name", "<unnamed>")
+        assert "type" in target, f"Missing 'type' in {context} {name}"
         target_type = target["type"]
         if target_type not in _INSTALLER_TYPES:
             raise RuntimeError(f"Unknown installer type {target_type}")
+        if validate_only:
+            yield target
+            continue
         installer_type = _INSTALLER_TYPES[target_type]
         try:
             yield installer_type(install_context, target)

@@ -980,6 +980,28 @@ def list_gh_build_commands_linux(context: CliContext, per_lib: bool, filter_: li
 
 
 @cli.command()
+@click.pass_obj
+def validate(context: CliContext):
+    """Validate YAML configurations produce valid installables."""
+    num_targets = 0
+    errors = []
+    for yaml_path in sorted(Path(context.installation_context.yaml_dir).glob("*.yaml")):
+        with yaml_path.open(encoding="utf-8") as yaml_file:
+            yaml_doc = yaml.load(yaml_file, Loader=ConfigSafeLoader)
+        try:
+            for _ in installers_for(context.installation_context, yaml_doc, True, validate_only=True):
+                num_targets += 1
+        except (AssertionError, RuntimeError) as e:
+            errors.append(f"{yaml_path.name}: {e}")
+    if errors:
+        for error in errors:
+            print(f"ERROR: {error}")
+        print(f"Validation failed with {len(errors)} error(s)")
+        sys.exit(1)
+    print(f"Validation passed: {num_targets} targets OK")
+
+
+@cli.command()
 @click.argument("output", type=click.File("w", encoding="utf-8"), default="-")
 @click.pass_obj
 def config_dump(context: CliContext, output: TextIO):
