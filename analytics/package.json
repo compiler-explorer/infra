@@ -17,7 +17,7 @@
         "aws-sdk": "^2.1354.0",
         "nopt": "3.0.x",
         "shell-quote": "^1.7.2",
-        "underscore": "1.12.1",
+        "underscore": "1.13.8",
         "winston": "^2.4.0"
     },
     "devDependencies": {
