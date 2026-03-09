@@ -1,9 +1,8 @@
 name: CEFS consolidation
 
 on:
-  # TODO: enable
-  # schedule:
-  #   - cron: '15 6 * * *'
+  schedule:
+    - cron: '15 7 * * *'
   workflow_dispatch:
     inputs:
       filter:
