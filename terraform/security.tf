@@ -853,3 +853,29 @@ resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
   protocol                 = "tcp"
   description              = "Allow SMB access from Windows builder"
 }
+
+# Read-only IAM user for Molty (AI assistant) to monitor CE infrastructure
+# Allows querying EC2, ALB, and ASG state without any write access.
+# Access key is managed outside Terraform — create via AWS console or CLI
+# and store in ~/.aws/credentials on the molty user's machine.
+resource "aws_iam_user" "molty" {
+  name = "molty"
+  tags = {
+    Description = "Read-only monitoring user for Molty AI assistant"
+  }
+}
+
+resource "aws_iam_user_policy_attachment" "molty_ec2_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+}
+
+resource "aws_iam_user_policy_attachment" "molty_elb_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/ElasticLoadBalancingReadOnly"
+}
+
+resource "aws_iam_user_policy_attachment" "molty_autoscaling_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/AutoScalingReadOnlyAccess"
+}
