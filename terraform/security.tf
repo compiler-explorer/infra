@@ -879,3 +879,18 @@ resource "aws_iam_user_policy_attachment" "molty_autoscaling_readonly" {
   user       = aws_iam_user.molty.name
   policy_arn = "arn:aws:iam::aws:policy/AutoScalingReadOnlyAccess"
 }
+
+resource "aws_iam_user_policy_attachment" "molty_cloudwatch_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess"
+}
+
+resource "aws_iam_user_policy_attachment" "molty_billing_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSBillingReadOnlyAccess"
+}
+
+resource "aws_iam_user_policy_attachment" "molty_sqs_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess"
+}
