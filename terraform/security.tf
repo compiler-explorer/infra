@@ -868,13 +868,14 @@ resource "aws_iam_user" "molty" {
 
 locals {
   molty_readonly_policy_arns = toset([
+    "arn:aws:iam::aws:policy/AWSBillingReadOnlyAccess",
+    "arn:aws:iam::aws:policy/AmazonDynamoDBReadOnlyAccess",
     "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess",
-    "arn:aws:iam::aws:policy/ElasticLoadBalancingReadOnly",
+    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
+    "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess",
     "arn:aws:iam::aws:policy/AutoScalingReadOnlyAccess",
     "arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AWSBillingReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess",
-    "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess",
+    "arn:aws:iam::aws:policy/ElasticLoadBalancingReadOnly",
   ])
 }
 
