@@ -95,3 +95,5 @@ compilers:
         build: 590.44.01
       - name: 13.1.1
         build: 590.48.01
+      - name: 13.2.0
+        build: 595.45.04
