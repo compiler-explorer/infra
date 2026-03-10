@@ -894,3 +894,8 @@ resource "aws_iam_user_policy_attachment" "molty_sqs_readonly" {
   user       = aws_iam_user.molty.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSQSReadOnlyAccess"
 }
+
+resource "aws_iam_user_policy_attachment" "molty_s3_readonly" {
+  user       = aws_iam_user.molty.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess"
+}
