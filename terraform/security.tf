@@ -856,8 +856,7 @@ resource "aws_security_group_rule" "WinBuilder_SmbLocally" {
 
 # Read-only IAM user for Molty (AI assistant) to monitor CE infrastructure
 # Allows querying EC2, ALB, and ASG state without any write access.
-# Access key is managed outside Terraform — create via AWS console or CLI
-# and store in ~/.aws/credentials on the molty user's machine.
+# Access key is managed outside Terraform.
 resource "aws_iam_user" "molty" {
   name = "molty"
   tags = {
