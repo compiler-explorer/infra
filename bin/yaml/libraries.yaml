@@ -2528,7 +2528,7 @@ libraries:
       build_type: none
       check_file: README.md
       method: nightlybranch
-      repo: rsl-org/util
+      repo: fuquery/rsl
       targets:
       - master
       type: github
