@@ -1437,7 +1437,7 @@ class LibraryBuilder:
         elif buildfor == "allgcc" and compilerType:
             return False
 
-        if self.check_compiler_popularity:
+        if self.check_compiler_popularity and self.buildconfig.lib_type != "headeronly":
             if not self.is_popular_enough(compiler):
                 self.logger.info(f"compiler {compiler} is not popular enough")
                 return False
