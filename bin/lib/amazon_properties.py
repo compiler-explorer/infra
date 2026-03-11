@@ -30,11 +30,12 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
     _libraries: dict[str, dict[str, Any]] = defaultdict(lambda: {})
 
     encoded_language = urllib.parse.quote(language)
+    branch = "main"
 
     if platform == LibraryPlatform.Linux:
-        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties"
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazon.properties"
     elif platform == LibraryPlatform.Windows:
-        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazonwin.properties"
+        url = f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazonwin.properties"
     else:
         raise RuntimeError("Unsupported platform")
 
@@ -48,7 +49,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
         # Windows properties file is missing the libs section, so we need to fetch the Linux one to kickstart Windows libraries
         #  but technically it's better to always supply enough information in the yaml file, so this is a workaround
         request = requests.get(
-            f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/{encoded_language}.amazon.properties",
+            f"https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/{branch}/etc/config/{encoded_language}.amazon.properties",
             timeout=30,
         )
         if not request.ok:
