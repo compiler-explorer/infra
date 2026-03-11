@@ -7,8 +7,6 @@ compilers:
         # Versions 5.x–11.3 shipped with ld <= 2.36.1, which predates SHT_RELR support (binutils 2.38).
         # Ubuntu 24.04's glibc uses SHT_RELR (type 0x13) sections, causing link failures with the old ld.
         # ld-fix: symlinks the bundled ld to gcc-9.5.0's ld (binutils 2.38) at install time.
-        # path_name/s3_path_prefix/untar_dir override the sub-context name so paths stay gcc-{{name}}.
-        # Context substring matching means 'compilers/c++/x86/gcc N.M.0' still resolves these correctly.
         ld-fix:
           path_name: gcc-{{name}}
           s3_path_prefix: gcc-{{name}}
