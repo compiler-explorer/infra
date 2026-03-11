@@ -68,8 +68,8 @@ compilers:
           - 4.9.4
           - renovated-6.5.0
           - 9.5.0
-          - 10.4.0
           - assertions-10.3.0
+          - 10.4.0
           - assertions-10.4.0
           - 10.5.0
           - assertions-10.5.0
