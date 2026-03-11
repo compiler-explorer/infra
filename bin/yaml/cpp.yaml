@@ -4,6 +4,47 @@ compilers:
       gcc:
         type: s3tarballs
         check_exe: bin/g++ --version
+        # Versions 5.x–11.3 shipped with ld <= 2.36.1, which predates SHT_RELR support (binutils 2.38).
+        # Ubuntu 24.04's glibc uses SHT_RELR (type 0x13) sections, causing link failures with the old ld.
+        # ld-fix: symlinks the bundled ld to gcc-9.5.0's ld (binutils 2.38) at install time.
+        ld-fix:
+          path_name: gcc-{{name}}
+          s3_path_prefix: gcc-{{name}}
+          untar_dir: gcc-{{name}}
+          depends:
+            - compilers/c++/x86/gcc 9.5.0
+          after_stage_script:
+            - ln -sf %DEP0%/x86_64-linux-gnu/bin/ld "$CE_STAGING_DIR"/gcc-{{name}}/x86_64-linux-gnu/bin/ld
+          targets:
+            - 5.1.0
+            - 5.2.0
+            - 5.3.0
+            - 5.4.0
+            - 5.5.0
+            - 6.1.0
+            - 6.2.0
+            - 6.3.0
+            - 6.4.0
+            - 7.1.0
+            - 7.2.0
+            - 7.3.0
+            - 7.4.0
+            - 7.5.0
+            - 8.1.0
+            - 8.2.0
+            - 8.3.0
+            - 8.4.0
+            - 8.5.0
+            - 9.1.0
+            - 9.2.0
+            - 9.3.0
+            - 9.4.0
+            - 10.1.0
+            - 10.2.0
+            - 10.3.0
+            - 11.1.0
+            - 11.2.0
+            - 11.3.0
         targets:
           - renovated-3.4.6
           - renovated-4.0.4
@@ -25,44 +66,15 @@ compilers:
           - 4.9.2
           - 4.9.3
           - 4.9.4
-          - 5.1.0
-          - 5.2.0
-          - 5.3.0
-          - 5.4.0
-          - 5.5.0
-          - 6.1.0
-          - 6.2.0
-          - 6.3.0
-          - 6.4.0
           - renovated-6.5.0
-          - 7.1.0
-          - 7.2.0
-          - 7.3.0
-          - 7.4.0
-          - 7.5.0
-          - 8.1.0
-          - 8.2.0
-          - 8.3.0
-          - 8.4.0
-          - 8.5.0
-          - 9.1.0
-          - 9.2.0
-          - 9.3.0
-          - 9.4.0
           - 9.5.0
-          - 10.1.0
-          - 10.2.0
-          - 10.3.0
           - assertions-10.3.0
           - 10.4.0
           - assertions-10.4.0
           - 10.5.0
           - assertions-10.5.0
-          - 11.1.0
           - assertions-11.1.0
-          - 11.2.0
           - assertions-11.2.0
-          - 11.3.0
           - assertions-11.3.0
           - 11.4.0
           - assertions-11.4.0
