@@ -144,8 +144,8 @@ def test_generate_all_libraries_properties():
 
     result = generate_all_libraries_properties(cpp_libraries)
 
-    # Should start with libs= line
-    assert result.startswith("libs=fmt:json\n\n")
+    # Should not contain libs= header (auto-discovery makes it unnecessary)
+    assert "libs=fmt" not in result
 
     # Should contain fmt properties
     assert "libs.fmt.name=fmt" in result
@@ -173,8 +173,6 @@ def test_generate_standalone_library_properties():
     result = generate_standalone_library_properties("fmt", lib_props, specific_version="10.2.1")
 
     lines = result.split("\n")
-    assert lines[0] == "libs=fmt"
-    assert not lines[1]
     assert "libs.fmt.versions.1021.path=/opt/compiler-explorer/libs/fmt/10.2.1/include" in lines
     assert "libs.fmt.versions.1021.version=10.2.1" in lines
 

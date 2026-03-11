@@ -221,33 +221,8 @@ def merge_properties(existing_content, new_content):
     """Merge new properties into existing properties file, preserving structure and comments."""
     new_props = parse_properties_file(new_content)
 
-    new_libs_list = []
-    if "libs" in new_props:
-        new_libs_list = new_props["libs"].split(":")
-
     result_content = existing_content
-
-    # Preserve whether original content had final newline
     original_ends_with_newline = existing_content.endswith("\n")
-
-    lines = result_content.splitlines()
-    for i, line in enumerate(lines):
-        if line.strip().startswith("libs="):
-            existing_libs = []
-            if "=" in line.strip():
-                _, value = line.strip().split("=", 1)
-                existing_libs = [lib for lib in value.split(":") if lib]
-
-            merged_libs = existing_libs.copy()
-            for lib in new_libs_list:
-                if lib not in merged_libs:
-                    merged_libs.append(lib)
-
-            lines[i] = f"libs={':'.join(merged_libs)}"
-            result_content = "\n".join(lines)
-            if original_ends_with_newline:
-                result_content += "\n"
-            break
 
     libraries_to_update = {}
 
@@ -394,14 +369,11 @@ def generate_all_libraries_properties(cpp_libraries):
     Returns:
         String containing all properties in CE format
     """
-    all_ids = []
     properties_txt = ""
 
     for lib_id, lib_info in cpp_libraries.items():
         if should_skip_library(lib_id, lib_info):
             continue
-
-        all_ids.append(lib_id)
 
         name_key = generate_library_property_key(lib_id, "name")
         libverprops = f"{name_key}={lib_id}\n"
@@ -451,8 +423,7 @@ def generate_all_libraries_properties(cpp_libraries):
 
         properties_txt += libverprops + "\n"
 
-    header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-    return header_properties_txt + properties_txt
+    return properties_txt
 
 
 def generate_standalone_library_properties(library_name, lib_props, specific_version=None):
@@ -468,14 +439,10 @@ def generate_standalone_library_properties(library_name, lib_props, specific_ver
     """
     props_copy = lib_props.copy()
 
-    # When generating standalone (no input file), include all properties
     if specific_version and "name" not in props_copy:
         props_copy["name"] = library_name
-        # Note: URL would need to be passed in or retrieved separately
 
     properties_lines = []
-    properties_lines.append(f"libs={library_name}")
-    properties_lines.append("")
 
     for prop_name, value in sorted(props_copy.items()):
         property_key = generate_library_property_key(library_name, prop_name)
@@ -590,26 +557,6 @@ def process_library_specific_properties(input_file, library, lib_props, specific
             update_version_id = version_to_id(specific_version)
         result = update_library_in_properties(existing_content, library, lib_props, update_version_id)
 
-        # If the library wasn't in the libs= list, we need to add it
-        if f"libs.{library}." not in existing_content:
-            # Preserve whether original content had final newline
-            original_ends_with_newline = existing_content.endswith("\n")
-
-            lines = result.splitlines()
-            for i, line in enumerate(lines):
-                if line.strip().startswith("libs="):
-                    # Parse existing libs
-                    if "=" in line:
-                        prefix, libs_value = line.split("=", 1)
-                        existing_libs = [lib for lib in libs_value.split(":") if lib]
-                        if library not in existing_libs:
-                            existing_libs.append(library)
-                            lines[i] = f"{prefix}={':'.join(existing_libs)}"
-                    break
-            result = "\n".join(lines)
-            # Preserve original final newline behavior
-            if original_ends_with_newline and not result.endswith("\n"):
-                result += "\n"
         return result
     else:
         # Generate standalone properties for just this library

@@ -198,14 +198,11 @@ def generate_single_fortran_library_properties(library_name, lib_info, specific_
 
 def generate_all_fortran_libraries_properties(fortran_libraries):
     """Generate properties for all Fortran libraries."""
-    all_ids = []
     properties_txt = ""
 
     for lib_id, lib_info in fortran_libraries.items():
         if should_skip_library(lib_id, lib_info):
             continue
-
-        all_ids.append(lib_id)
 
         name_key = generate_library_property_key(lib_id, "name")
         libverprops = f"{name_key}={lib_id}\n"
@@ -238,15 +235,12 @@ def generate_all_fortran_libraries_properties(fortran_libraries):
 
         properties_txt += libverprops + "\n"
 
-    header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-    return header_properties_txt + properties_txt
+    return properties_txt
 
 
 def generate_standalone_fortran_library_properties(library_name, lib_props, specific_version=None):
     """Generate standalone properties for a single Fortran library."""
     properties_lines = []
-    properties_lines.append(f"libs={library_name}")
-    properties_lines.append("")
 
     for prop_name, value in sorted(lib_props.items()):
         property_key = generate_library_property_key(library_name, prop_name)

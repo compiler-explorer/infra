@@ -1646,17 +1646,7 @@ function Install-MsvceConfigurationFile {
     $file += CompilerOptions 'x64' $_
   }
 
-  $libraryNames = $Libraries.GetEnumerator() | ForEach-Object {
-    if ($null -eq $_.Value) {
-      return
-    }
-
-    $_.Name -replace '-','_'
-  }
-
   if (-not $CProperties) {
-    $file += ('libs=' + ($libraryNames -join ':'))
-
     $Libraries.GetEnumerator() | ForEach-Object {
       if ($null -eq $_.Value) {
         return
