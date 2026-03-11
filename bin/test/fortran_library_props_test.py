@@ -104,8 +104,8 @@ def test_generate_all_fortran_libraries_properties():
 
     result = generate_all_fortran_libraries_properties(fortran_libraries)
 
-    # Should start with libs= line
-    assert result.startswith("libs=json_fortran:http_client\n\n")
+    # Should not contain libs= header (auto-discovery makes it unnecessary)
+    assert "libs=json_fortran" not in result
 
     # Should contain json_fortran properties
     assert "libs.json_fortran.name=json_fortran" in result
@@ -140,8 +140,6 @@ def test_generate_standalone_fortran_library_properties():
     result = generate_standalone_fortran_library_properties("json_fortran", lib_props, specific_version="8.3.0")
 
     lines = result.split("\n")
-    assert lines[0] == "libs=json_fortran"
-    assert not lines[1]
     assert "libs.json_fortran.packagedheaders=true" in lines
     assert "libs.json_fortran.staticliblink=json_fortran" in lines
     assert "libs.json_fortran.versions.830.version=8.3.0" in lines

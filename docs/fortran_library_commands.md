@@ -111,8 +111,6 @@ Fortran libraries use a specific properties format that differs from C++ librari
 
 Example properties output:
 ```properties
-libs=json_fortran:http_client
-
 libs.json_fortran.name=json_fortran
 libs.json_fortran.url=https://github.com/jacobwilliams/json-fortran
 libs.json_fortran.packagedheaders=true

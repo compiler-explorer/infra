@@ -46,13 +46,10 @@ class LibraryYaml:
             libraries_for_language[libid] = dict(type="cratesio", build_type="cargo", targets=[libversion])
 
     def get_ce_properties_for_rust_libraries(self) -> str:
-        all_ids: list[str] = []
         properties_txt = ""
 
         libraries_for_language = self.yaml_doc["libraries"]["rust"]
         for libid in libraries_for_language:
-            all_ids.append(libid)
-
             all_libver_ids: list[str] = []
 
             for libver in libraries_for_language[libid]["targets"]:
@@ -77,9 +74,7 @@ class LibraryYaml:
 
             properties_txt += libverprops + "\n"
 
-        header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-
-        return header_properties_txt + properties_txt
+        return properties_txt
 
     def add_top_rust_crates(self):
         cratelisting = TopRustCrates()
@@ -137,7 +132,6 @@ class LibraryYaml:
         return libverprops
 
     def get_ce_properties_for_cpp_windows_libraries(self, logger) -> str:
-        all_ids: list[str] = []
         properties_txt = ""
 
         [_, linux_libraries] = get_properties_compilers_and_libraries("c++", logger, LibraryPlatform.Linux, False)
@@ -182,7 +176,6 @@ class LibraryYaml:
             reorganised_libs[lookupname].add(linux_libid)
 
         for linux_libid, yamllibids in reorganised_libs.items():
-            all_ids.append(linux_libid)
             linux_lib = linux_libraries[linux_libid]
 
             libname = linux_libid
@@ -270,9 +263,7 @@ class LibraryYaml:
 
             properties_txt += libverprops + "\n"
 
-        header_properties_txt = "libs=" + ":".join(all_ids) + "\n\n"
-
-        return header_properties_txt + properties_txt
+        return properties_txt
 
     @classmethod
     def load_library_yaml_section(cls, language):

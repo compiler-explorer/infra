@@ -43,7 +43,8 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
         raise FetchFailure(f"Fetch failure for {url}: {request}")
     lines = request.text.splitlines(keepends=False)
 
-    if platform == LibraryPlatform.Windows and "libs=\n" in request.text:
+    has_library_properties = any(line.startswith("libs.") for line in lines)
+    if platform == LibraryPlatform.Windows and not has_library_properties:
         # Windows properties file is missing the libs section, so we need to fetch the Linux one to kickstart Windows libraries
         #  but technically it's better to always supply enough information in the yaml file, so this is a workaround
         request = requests.get(
@@ -52,7 +53,7 @@ def get_properties_compilers_and_libraries(language, logger, platform: LibraryPl
         )
         if not request.ok:
             raise FetchFailure(f"Fetch failure for {url}: {request}")
-        lines += request.text[request.text.index("libs=") :].splitlines(keepends=False)
+        lines += [line for line in request.text.splitlines(keepends=False) if line.startswith("libs.")]
 
     logger.debug("Reading properties for groups")
     groups: dict[str, dict[str, Any]] = defaultdict(lambda: {})
