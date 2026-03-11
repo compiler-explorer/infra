@@ -155,6 +155,36 @@ def update_library_in_properties(existing_content, library_name, library_propert
                     # Preserve existing name and url properties instead of overwriting
                     if prop_name in ("name", "url"):
                         result_lines.append(line)
+                    elif prop_name == "versions":
+                        # Merge version lists: keep existing IDs, add only genuinely new versions
+                        _, existing_ver_str = stripped.split("=", 1)
+                        existing_ver_ids = existing_ver_str.split(":") if existing_ver_str else []
+                        new_ver_ids = library_properties[prop_name].split(":")
+
+                        # Build a map of version value -> existing ID from the file
+                        existing_value_to_id = {}
+                        for eid in existing_ver_ids:
+                            ver_prop = f"versions.{eid}.version"
+                            ekey = generate_library_property_key(library_name, ver_prop)
+                            for eline in lines:
+                                if eline.strip().startswith(ekey + "="):
+                                    existing_value_to_id[eline.strip().split("=", 1)[1]] = eid
+                                    break
+
+                        # Map new IDs to their version values
+                        new_id_to_value = {}
+                        for nid in new_ver_ids:
+                            ver_prop = f"versions.{nid}.version"
+                            new_id_to_value[nid] = library_properties.get(ver_prop, "")
+
+                        # Merge: keep existing list, append only versions not already present by value
+                        merged = list(existing_ver_ids)
+                        for nid in new_ver_ids:
+                            ver_value = new_id_to_value.get(nid, "")
+                            if ver_value not in existing_value_to_id and nid not in existing_ver_ids:
+                                merged.append(nid)
+
+                        result_lines.append(f"{key}={':'.join(merged)}")
                     else:
                         result_lines.append(f"{key}={library_properties[prop_name]}")
                 else:
@@ -165,10 +195,35 @@ def update_library_in_properties(existing_content, library_name, library_propert
 
         result_lines.append(line)
 
+    # Collect existing version values (e.g., "1.85.0") to avoid duplicates when version IDs differ
+    existing_version_values = set()
+    for prop_name in seen_props:
+        if prop_name.startswith("versions.") and prop_name.endswith(".version"):
+            ver_id = prop_name.split(".")[1]
+            existing_key = generate_library_property_key(library_name, prop_name)
+            for line in lines:
+                stripped = line.strip()
+                if stripped.startswith(existing_key + "="):
+                    existing_version_values.add(stripped.split("=", 1)[1])
+                    break
+
     props_to_add = []
     for prop_name, value in library_properties.items():
-        if prop_name not in seen_props and not prop_name.startswith("_"):
-            props_to_add.append((prop_name, value))
+        if prop_name.startswith("_"):
+            continue
+        if prop_name in seen_props:
+            continue
+        # Skip version properties whose .version value already exists under a different ID
+        if prop_name.startswith("versions.") and prop_name.endswith(".version") and value in existing_version_values:
+            continue
+        # Skip other per-version properties (path, staticliblink, etc.) if that version value exists
+        if prop_name.startswith("versions.") and not prop_name.endswith(".version") and prop_name != "versions":
+            ver_id = prop_name.split(".")[1]
+            version_prop = f"versions.{ver_id}.version"
+            version_value = library_properties.get(version_prop, "")
+            if version_value in existing_version_values:
+                continue
+        props_to_add.append((prop_name, value))
 
     if props_to_add:
         if last_library_line_idx >= 0:

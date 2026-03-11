@@ -82,11 +82,15 @@ class LibraryYaml:
         for crate in crates:
             self.add_rust_crate(crate["libid"], crate["libversion"])
 
-    def get_libverid(self, libver) -> str:
+    def get_libverid(self, libver, linux_lib=None) -> str:
         if isinstance(libver, dict) and "name" in libver:
             version_name = libver["name"]
         else:
             version_name = libver
+        if linux_lib and "versionprops" in linux_lib:
+            for ver_id, ver_props in linux_lib["versionprops"].items():
+                if ver_props.get("version") == version_name:
+                    return ver_id
         return version_to_id(version_name)
 
     def get_libvername(self, libver) -> str:
@@ -198,13 +202,13 @@ class LibraryYaml:
                 if yamllibid in libraries_for_language:
                     if "targets" in libraries_for_language[yamllibid]:
                         for libver in libraries_for_language[yamllibid]["targets"]:
-                            all_libver_ids.append(self.get_libverid(libver))
+                            all_libver_ids.append(self.get_libverid(libver, linux_lib))
                 if yamllibid in nightly_libraries_for_language:
                     if not isinstance(nightly_libraries_for_language[yamllibid], dict):
                         continue
                     if "targets" in nightly_libraries_for_language[yamllibid]:
                         for libver in nightly_libraries_for_language[yamllibid]["targets"]:
-                            all_libver_ids.append(self.get_libverid(libver))
+                            all_libver_ids.append(self.get_libverid(libver, linux_lib))
 
             versions_property_key = generate_library_property_key(linux_libid, "versions")
             libverprops += f"{versions_property_key}="
@@ -218,10 +222,10 @@ class LibraryYaml:
                 if yamllibid in libraries_for_language:
                     if "targets" in libraries_for_language[yamllibid]:
                         for libver in libraries_for_language[yamllibid]["targets"]:
-                            all_libver_ids.append(self.get_libverid(libver))
+                            all_libver_ids.append(self.get_libverid(libver, linux_lib))
 
                         for libver in libraries_for_language[yamllibid]["targets"]:
-                            libverid = self.get_libverid(libver)
+                            libverid = self.get_libverid(libver, linux_lib)
                             libvername = self.get_libvername(libver)
                             version_property_key = generate_version_property_key(linux_libid, libverid, "version")
                             libverprops += f"{version_property_key}={libvername}\n"
@@ -242,10 +246,10 @@ class LibraryYaml:
                         continue
                     if "targets" in nightly_libraries_for_language[yamllibid]:
                         for libver in nightly_libraries_for_language[yamllibid]["targets"]:
-                            all_libver_ids.append(self.get_libverid(libver))
+                            all_libver_ids.append(self.get_libverid(libver, linux_lib))
 
                         for libver in nightly_libraries_for_language[yamllibid]["targets"]:
-                            libverid = self.get_libverid(libver)
+                            libverid = self.get_libverid(libver, linux_lib)
                             libvername = self.get_libvername(libver)
                             version_property_key = generate_version_property_key(linux_libid, libverid, "version")
                             libverprops += f"{version_property_key}={libvername}\n"
