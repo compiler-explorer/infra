@@ -205,3 +205,44 @@ def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount
         pass
 
     return False
+
+
+def find_bak_candidates(image_references: dict[str, list[Path]], current_time: float) -> list[FileWithAge]:
+    """Find .bak and .DELETE_ME_* items adjacent to manifest-known NFS paths.
+
+    Uses manifests to check only known NFS paths rather than walking the entire
+    NFS tree (which is very slow on EFS).
+
+    Args:
+        image_references: Mapping of image stem -> list of expected NFS destination paths
+        current_time: Current time as float (time.time()) for age calculation
+
+    Returns:
+        List of FileWithAge for found .bak and .DELETE_ME_* items
+    """
+    candidates: list[FileWithAge] = []
+    all_destinations: set[Path] = set()
+    for destinations in image_references.values():
+        all_destinations.update(destinations)
+
+    for dest_path in all_destinations:
+        # Check for .bak sibling
+        bak_path = dest_path.with_name(dest_path.name + ".bak")
+        try:
+            mtime = bak_path.lstat().st_mtime
+            candidates.append(FileWithAge(bak_path, current_time - mtime))
+        except OSError:
+            pass
+
+        # Check for .DELETE_ME_* siblings (from deferred cleanup)
+        try:
+            for delete_me in dest_path.parent.glob(dest_path.name + ".DELETE_ME_*"):
+                try:
+                    mtime = delete_me.lstat().st_mtime
+                    candidates.append(FileWithAge(delete_me, current_time - mtime))
+                except OSError:
+                    pass
+        except OSError:
+            pass
+
+    return candidates

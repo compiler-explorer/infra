@@ -32,7 +32,7 @@ from lib.cefs.formatting import (
     get_installable_current_locations,
 )
 from lib.cefs.fsck import FSCKResults, run_fsck_validation
-from lib.cefs.gc import cleanup_bak_items, delete_image_with_manifest, filter_images_by_age
+from lib.cefs.gc import cleanup_bak_items, delete_image_with_manifest, filter_images_by_age, find_bak_candidates
 from lib.cefs.paths import (
     FileWithAge,
     get_cefs_mount_path,
@@ -697,42 +697,12 @@ GC_DEFAULT_MIN_AGE = "2d"
 
 
 def _run_bak_cleanup(context: CliContext, state: CEFSState, min_age_seconds: float, force: bool) -> None:
-    """Find and remove stale .bak and .DELETE_ME_* items using manifest-known paths.
-
-    Uses manifests to check only known NFS paths rather than walking the entire
-    NFS tree (which is very slow on EFS).
-    """
+    """Find and remove stale .bak and .DELETE_ME_* items using manifest-known paths."""
     current_time = time.time()
     dry_run = context.installation_context.dry_run
 
-    candidates = []
-
-    # Collect all known NFS destination paths from manifests
-    all_destinations: set[Path] = set()
-    for destinations in state.image_references.values():
-        all_destinations.update(destinations)
-
-    _LOGGER.info("Checking %d manifest-known paths for .bak/.DELETE_ME_* items...", len(all_destinations))
-
-    for dest_path in all_destinations:
-        # Check for .bak sibling
-        bak_path = dest_path.with_name(dest_path.name + ".bak")
-        try:
-            mtime = bak_path.lstat().st_mtime
-            candidates.append(FileWithAge(bak_path, current_time - mtime))
-        except OSError:
-            pass  # doesn't exist or no permission
-
-        # Check for .DELETE_ME_* siblings (from deferred cleanup)
-        try:
-            for delete_me in dest_path.parent.glob(dest_path.name + ".DELETE_ME_*"):
-                try:
-                    mtime = delete_me.lstat().st_mtime
-                    candidates.append(FileWithAge(delete_me, current_time - mtime))
-                except OSError:
-                    pass
-        except OSError:
-            pass
+    _LOGGER.info("Checking %d manifest-known paths for .bak/.DELETE_ME_* items...", len(state.image_references))
+    candidates = find_bak_candidates(state.image_references, current_time)
 
     if not candidates:
         _LOGGER.info("No .bak or .DELETE_ME_* items found.")
