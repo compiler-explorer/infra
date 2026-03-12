@@ -16,11 +16,20 @@ on:
         description: 'Timeout for interactive session (minutes)'
         required: false
         default: '30'
+      size:
+        description: 'Runner size'
+        required: false
+        type: choice
+        default: 'small'
+        options:
+          - small
+          - medium
+          - large
 
 jobs:
   adhoc:
     name: Run command on linux-x64
-    runs-on: [self-hosted, ce, linux, x64]
+    runs-on: ${{ inputs.size == 'large' && fromJSON('["self-hosted", "ce", "linux", "x64"]') || fromJSON(format('["self-hosted", "ce", "linux", "x64", "{0}"]', inputs.size)) }}
     # TODO in future consider github environments for this?
     if: github.actor == 'mattgodbolt' || github.actor == 'partouf'
     timeout-minutes: ${{ fromJSON(inputs.timeout_minutes) }}

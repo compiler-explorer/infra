@@ -49,9 +49,18 @@ on:
         description: Build command
         default: build.sh
         required: true
+      size:
+        description: 'Runner size'
+        required: false
+        type: choice
+        default: 'large'
+        options:
+          - small
+          - medium
+          - large
 jobs:
   bespoke-build:
-    runs-on: [ 'self-hosted', 'ce', 'linux', 'x64' ]
+    runs-on: ${{ inputs.size == 'large' && fromJSON('["self-hosted", "ce", "linux", "x64"]') || fromJSON(format('["self-hosted", "ce", "linux", "x64", "{0}"]', inputs.size)) }}
     steps:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
