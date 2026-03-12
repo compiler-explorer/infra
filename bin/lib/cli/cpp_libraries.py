@@ -64,6 +64,11 @@ def cpp_library():
     is_flag=True,
     help="Library requires CMake package installation for headers",
 )
+@click.option(
+    "--check-file",
+    default="",
+    help="File to check for successful clone (default: README.md for header-only, auto-detected for cmake types)",
+)
 def add_cpp_library(
     github_url: str,
     version: str,
@@ -73,6 +78,7 @@ def add_cpp_library(
     static_lib_link: str,
     shared_lib_link: str,
     package_install: bool,
+    check_file: str,
 ):
     """Add or update a C++ library entry in libraries.yaml."""
     if static_lib_link and type not in ["static", "cshared"]:
@@ -117,7 +123,6 @@ def add_cpp_library(
         library_entry = {
             "type": "github",
             "repo": repo_field,
-            "check_file": "README.md",
             "targets": [version],
         }
 
@@ -135,7 +140,7 @@ def add_cpp_library(
             library_entry["lib_type"] = "headeronly"
             library_entry["package_install"] = True
         elif type == "header-only":
-            pass
+            library_entry["check_file"] = check_file or "README.md"
         elif type == "static":
             library_entry["build_type"] = "cmake"
             library_entry["lib_type"] = "static"
@@ -146,6 +151,9 @@ def add_cpp_library(
             library_entry["build_type"] = "cmake"
             library_entry["lib_type"] = "cshared"
             library_entry["use_compiler"] = use_compiler
+
+        if check_file and type != "header-only":
+            library_entry["check_file"] = check_file
 
         if package_install:
             library_entry["package_install"] = True

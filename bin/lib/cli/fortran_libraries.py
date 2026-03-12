@@ -40,7 +40,12 @@ def fortran_library():
     default="",
     help="Prefix for version tags (e.g., 'v' for tags like v3.11.3)",
 )
-def add_fortran_library(github_url, version, target_prefix):
+@click.option(
+    "--check-file",
+    default="",
+    help="File to check for successful clone (default: fpm.toml)",
+)
+def add_fortran_library(github_url, version, target_prefix, check_file):
     """Add a new Fortran library from GitHub URL with version.
 
     All Fortran libraries use FPM (Fortran Package Manager) for building.
@@ -78,7 +83,7 @@ def add_fortran_library(github_url, version, target_prefix):
             "type": "github",
             "repo": repo_field,
             "build_type": "fpm",
-            "check_file": "fpm.toml",
+            "check_file": check_file or "fpm.toml",
             "requires_tree_copy": True,  # Common for FPM libraries
             "targets": [version],
         }
