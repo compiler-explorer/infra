@@ -598,6 +598,16 @@ The `ce_install` command supports a filter system to narrow down installables. F
 
 Library YAML settings, build types, library types (`cshared`, `shared`, `static`, `headeronly`), `package_install` behavior, and per-language configuration are documented in `docs/library_configuration.md`.
 
+## Library Build Status Management
+
+The `ce_install build-status` command group manages build failure records on the Conan proxy server. Failed builds are tracked so they are not re-attempted; these commands allow clearing that status.
+
+- **`ce_install build-status list-failed`** - List failed builds (requires at least one of `--library` or `--compiler-version`)
+- **`ce_install build-status clear-for-library LIBRARY [--version VERSION]`** - Clear failures for a library
+- **`ce_install build-status clear-for-compiler COMPILER_VERSION`** - Clear failures for a compiler (e.g. `g141`, `clang1400`)
+
+See the Build Failure Tracking section in `docs/library_configuration.md` for details.
+
 ## Terraform Integration
 
 - Infrastructure defined in `terraform/` directory

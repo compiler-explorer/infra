@@ -592,6 +592,41 @@ The pipeline, triggered by `ce_install build`:
 The builder checks the Conan proxy to skip already-uploaded builds. Use `--force`
 to rebuild everything.
 
+### Build Failure Tracking
+
+When a build fails, the Conan proxy records the failure so the same build is not
+re-attempted on subsequent runs. This avoids wasting time on known-broken
+configurations.
+
+The failure check uses the library name, version, commit hash, compiler, and
+architecture as a composite key. A build is only skipped if the commit hash
+matches the one that failed -- so a new commit to the library source
+automatically allows a retry.
+
+To manually clear failure records and force a retry, use `ce_install build-status`:
+
+```bash
+# Clear failures for a specific library version
+ce_install build-status clear-for-library fmt --version 10.0.0
+
+# Clear all failures for a library (all versions)
+ce_install build-status clear-for-library fmt
+
+# Clear all failures for a compiler (all libraries)
+ce_install build-status clear-for-compiler g141
+
+# List failed builds (at least one filter is required)
+ce_install build-status list-failed --library fmt
+ce_install build-status list-failed --compiler-version g141
+```
+
+These commands require AWS credentials (for the conan proxy auth token in SSM)
+or the `CONAN_PASSWORD` environment variable.
+
+Alternatively, pass a specific compiler ID to `ce_install build` via the
+`--buildfor` option to bypass the failure check for that build run without
+clearing the stored status.
+
 ## String Interpolation
 
 Properties support Jinja2-style `{{variable}}` expansion. Common variables:

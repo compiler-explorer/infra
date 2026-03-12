@@ -465,7 +465,7 @@ def cli(
 
 
 # Import CLI modules to register commands
-from lib.cli import cefs, cpp_libraries, fortran_libraries  # noqa: F401, E402
+from lib.cli import cefs, conan_builds, cpp_libraries, fortran_libraries  # noqa: F401, E402
 
 
 def get_exe_path_for_installable(installable, destination) -> str | None:
