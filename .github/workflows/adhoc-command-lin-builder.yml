@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Clean workspace
-        run: rm -rf "${{ github.workspace }}"/*
+        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
 
       - name: Checkout repository
         uses: actions/checkout@v5
