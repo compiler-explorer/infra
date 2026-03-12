@@ -8,6 +8,7 @@ import logging
 import shutil
 import subprocess
 import sys
+import time
 import uuid
 from pathlib import Path
 
@@ -21,7 +22,7 @@ from lib.cefs.consolidation import (
     process_consolidation_group,
     validate_space_requirements,
 )
-from lib.cefs.constants import DEFAULT_MIN_AGE
+from lib.cefs.constants import DEFAULT_MIN_AGE, NFS_MAX_RECURSION_DEPTH
 from lib.cefs.conversion import convert_to_cefs
 from lib.cefs.deployment import snapshot_symlink_targets
 from lib.cefs.formatting import (
@@ -30,8 +31,8 @@ from lib.cefs.formatting import (
     get_image_description,
     get_installable_current_locations,
 )
-from lib.cefs.fsck import FSCKResults, run_fsck_validation
-from lib.cefs.gc import delete_image_with_manifest, filter_images_by_age
+from lib.cefs.fsck import FSCKResults, find_files_by_pattern, run_fsck_validation
+from lib.cefs.gc import cleanup_bak_items, delete_image_with_manifest, filter_images_by_age
 from lib.cefs.paths import (
     FileWithAge,
     get_cefs_mount_path,
@@ -692,14 +693,52 @@ def consolidate(
         raise click.ClickException(f"Failed to consolidate {failed_groups} groups")
 
 
+GC_DEFAULT_MIN_AGE = "2d"
+
+
+def _run_bak_cleanup(context: CliContext, min_age_seconds: float, force: bool) -> None:
+    """Scan for and remove old .bak and .DELETE_ME_* items from NFS."""
+    nfs_dir = context.installation_context.destination
+    current_time = time.time()
+
+    _LOGGER.info("Scanning for .bak and .DELETE_ME_* items in %s...", nfs_dir)
+    bak_items = find_files_by_pattern(nfs_dir, "*.bak", current_time, max_depth=NFS_MAX_RECURSION_DEPTH)
+    delete_me_items = find_files_by_pattern(nfs_dir, "*.DELETE_ME_*", current_time, max_depth=NFS_MAX_RECURSION_DEPTH)
+
+    all_items = bak_items + delete_me_items
+    if not all_items:
+        _LOGGER.info("No .bak or .DELETE_ME_* items found.")
+        return
+
+    _LOGGER.info("Found %d .bak and %d .DELETE_ME_* items", len(bak_items), len(delete_me_items))
+
+    dry_run = context.installation_context.dry_run
+    if not dry_run and not force:
+        eligible = sum(1 for item in all_items if item.age_seconds >= min_age_seconds)
+        if eligible > 0 and not click.confirm(f"Delete {eligible} .bak/.DELETE_ME_* items older than the min age?"):
+            _LOGGER.info("Backup cleanup cancelled by user.")
+            return
+
+    result = cleanup_bak_items(all_items, min_age_seconds, dry_run)
+
+    verb = "Would delete" if dry_run else "Deleted"
+    _LOGGER.info(
+        "Backup cleanup: %s %d items, skipped %d (too recent)",
+        verb,
+        result.deleted_count,
+        result.skipped_too_recent,
+    )
+    if result.errors:
+        _LOGGER.error("Backup cleanup encountered %d errors", len(result.errors))
+
+
 @cefs.command()
 @click.pass_obj
 @click.option("--force", is_flag=True, help="Skip confirmation prompt")
-@click.option(
-    "--min-age", default=DEFAULT_MIN_AGE, help="Minimum age of images to consider for deletion (e.g., 1h, 30m, 1d)"
-)
+@click.option("--min-age", default=GC_DEFAULT_MIN_AGE, help="Minimum age for deletion (e.g., 1h, 30m, 2d). Default: 2d")
 @click.option("--include-broken", is_flag=True, help="Include unreferenced broken images in garbage collection")
-def gc(context: CliContext, force: bool, min_age: str, include_broken: bool):
+@click.option("--cleanup-bak", is_flag=True, help="Also remove old .bak and .DELETE_ME_* items from NFS before GC")
+def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cleanup_bak: bool):
     """Garbage collect unreferenced CEFS images using manifests.
 
     Reads manifest files from CEFS images to determine expected symlink locations,
@@ -707,6 +746,9 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool):
     Images without valid references are marked for deletion.
 
     Images with .yaml.inprogress manifests are NEVER deleted (incomplete operations).
+
+    With --cleanup-bak, also removes .bak directories and .DELETE_ME_* items that
+    accumulate when CEFS replaces compiler directories with symlinks.
     """
     _LOGGER.info("Starting CEFS garbage collection using manifest system...")
 
@@ -719,6 +761,9 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool):
 
     now = datetime.datetime.now()
     error_count = 0
+
+    if cleanup_bak:
+        _run_bak_cleanup(context, min_age_seconds, force)
 
     state = CEFSState(
         nfs_dir=context.installation_context.destination,

@@ -5,8 +5,11 @@ from __future__ import annotations
 
 import datetime
 import logging
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from lib.cefs.paths import FileWithAge
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -105,6 +108,82 @@ def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
             # This is non-fatal - image was deleted
 
     return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)
+
+
+@dataclass(frozen=True)
+class BakCleanupResult:
+    """Result of cleaning up .bak and .DELETE_ME_* items."""
+
+    deleted_count: int
+    skipped_too_recent: int
+    errors: list[str] = field(default_factory=list)
+
+
+def delete_bak_item(item_path: Path) -> str | None:
+    """Delete a single .bak or .DELETE_ME_* item (file, symlink, or directory tree).
+
+    Returns an error message on failure, or None on success.
+    """
+    try:
+        if item_path.is_symlink() or item_path.is_file():
+            item_path.unlink()
+        elif item_path.is_dir():
+            shutil.rmtree(item_path)
+        else:
+            return f"Unknown file type, cannot delete: {item_path}"
+    except OSError as e:
+        return f"Failed to delete {item_path}: {e}"
+    return None
+
+
+def cleanup_bak_items(
+    items: list[FileWithAge],
+    min_age_seconds: float,
+    dry_run: bool,
+) -> BakCleanupResult:
+    """Clean up .bak and .DELETE_ME_* items older than min_age.
+
+    Args:
+        items: List of FileWithAge items to consider
+        min_age_seconds: Minimum age in seconds before an item is eligible for deletion
+        dry_run: If True, only report what would be deleted
+
+    Returns:
+        BakCleanupResult with counts and any errors
+    """
+    deleted_count = 0
+    skipped_too_recent = 0
+    errors = []
+
+    for item in items:
+        if item.age_seconds < min_age_seconds:
+            skipped_too_recent += 1
+            _LOGGER.info(
+                "Skipping recent item (age %s): %s",
+                datetime.timedelta(seconds=int(item.age_seconds)),
+                item.path,
+            )
+            continue
+
+        age_str = str(datetime.timedelta(seconds=int(item.age_seconds)))
+        if dry_run:
+            _LOGGER.info("Would delete: %s (age: %s)", item.path, age_str)
+            deleted_count += 1
+            continue
+
+        _LOGGER.info("Deleting: %s (age: %s)", item.path, age_str)
+        error = delete_bak_item(item.path)
+        if error:
+            errors.append(error)
+            _LOGGER.error(error)
+        else:
+            deleted_count += 1
+
+    return BakCleanupResult(
+        deleted_count=deleted_count,
+        skipped_too_recent=skipped_too_recent,
+        errors=errors,
+    )
 
 
 def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount_point: Path) -> bool:
