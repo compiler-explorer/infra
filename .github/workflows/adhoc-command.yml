@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Clean workspace
-        uses: AutoModality/action-clean@v1.1.0
+        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
 
       - name: Checkout repository
         uses: actions/checkout@v5

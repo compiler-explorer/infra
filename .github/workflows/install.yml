@@ -11,8 +11,8 @@ jobs:
   install:
     runs-on: [ 'self-hosted', 'ce', 'linux', 'x64', 'small' ]
     steps:
-      - name: Start from a clean directory
-        uses: AutoModality/action-clean@v1.1.0
+      - name: Clean workspace
+        run: find "$GITHUB_WORKSPACE" -mindepth 1 -delete
       - uses: actions/checkout@v5
       - name: Set up environment
         run: make ce
