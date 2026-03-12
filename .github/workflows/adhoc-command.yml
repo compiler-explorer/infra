@@ -39,7 +39,7 @@ jobs:
         uses: AutoModality/action-clean@v1.1.0
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Show runner information
         run: |

@@ -20,7 +20,7 @@ jobs:
       libraries: ${{ steps.get-libs.outputs.libraries }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python environment
         run: make ce

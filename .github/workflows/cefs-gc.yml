@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Start from a clean directory
         uses: AutoModality/action-clean@v1.1.0
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up environment
         run: make ce
       - name: Run CEFS garbage collection
