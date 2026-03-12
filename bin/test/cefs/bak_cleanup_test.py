@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 from lib.cefs.gc import cleanup_bak_items, delete_bak_item
 from lib.cefs.paths import FileWithAge
-from lib.cli.cefs import _run_bak_cleanup  # noqa: PLC2701
+from lib.cli.cefs import _run_bak_cleanup
 
 
 def test_delete_bak_item_removes_file(tmp_path):
