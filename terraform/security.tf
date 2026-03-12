@@ -733,6 +733,8 @@ resource "aws_security_group_rule" "efs_inbound" {
     "CI-x64"             = data.aws_security_group.linux_x64.id
     "CI-arm64"           = data.aws_security_group.linux_arm64.id
     "CI-lin-builder-x64" = data.aws_security_group.linux_x64_builder.id
+    "CI-x64-small"       = data.aws_security_group.linux_x64_small.id
+    "CI-x64-medium"      = data.aws_security_group.linux_x64_medium.id
   }
   security_group_id        = aws_security_group.efs.id
   type                     = "ingress"
@@ -841,6 +843,20 @@ data "aws_security_group" "linux_x64_builder" {
   filter {
     name   = "tag:ghr:environment"
     values = ["ce-ci-linux-x64-builder"]
+  }
+}
+
+data "aws_security_group" "linux_x64_small" {
+  filter {
+    name   = "tag:ghr:environment"
+    values = ["ce-ci-linux-x64-small"]
+  }
+}
+
+data "aws_security_group" "linux_x64_medium" {
+  filter {
+    name   = "tag:ghr:environment"
+    values = ["ce-ci-linux-x64-medium"]
   }
 }
 
