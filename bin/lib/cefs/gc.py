@@ -5,8 +5,11 @@ from __future__ import annotations
 
 import datetime
 import logging
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from lib.cefs.paths import FileWithAge
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -107,6 +110,82 @@ def delete_image_with_manifest(image_path: Path) -> ImageDeletionResult:
     return ImageDeletionResult(success=True, deleted_size=deleted_size, errors=errors)
 
 
+@dataclass(frozen=True)
+class BakCleanupResult:
+    """Result of cleaning up .bak and .DELETE_ME_* items."""
+
+    deleted_count: int
+    skipped_too_recent: int
+    errors: list[str] = field(default_factory=list)
+
+
+def delete_bak_item(item_path: Path) -> str | None:
+    """Delete a single .bak or .DELETE_ME_* item (file, symlink, or directory tree).
+
+    Returns an error message on failure, or None on success.
+    """
+    try:
+        if item_path.is_symlink() or item_path.is_file():
+            item_path.unlink()
+        elif item_path.is_dir():
+            shutil.rmtree(item_path)
+        else:
+            return f"Unknown file type, cannot delete: {item_path}"
+    except OSError as e:
+        return f"Failed to delete {item_path}: {e}"
+    return None
+
+
+def cleanup_bak_items(
+    items: list[FileWithAge],
+    min_age_seconds: float,
+    dry_run: bool,
+) -> BakCleanupResult:
+    """Clean up .bak and .DELETE_ME_* items older than min_age.
+
+    Args:
+        items: List of FileWithAge items to consider
+        min_age_seconds: Minimum age in seconds before an item is eligible for deletion
+        dry_run: If True, only report what would be deleted
+
+    Returns:
+        BakCleanupResult with counts and any errors
+    """
+    deleted_count = 0
+    skipped_too_recent = 0
+    errors = []
+
+    for item in items:
+        if item.age_seconds < min_age_seconds:
+            skipped_too_recent += 1
+            _LOGGER.info(
+                "Skipping recent item (age %s): %s",
+                datetime.timedelta(seconds=int(item.age_seconds)),
+                item.path,
+            )
+            continue
+
+        age_str = str(datetime.timedelta(seconds=int(item.age_seconds)))
+        if dry_run:
+            _LOGGER.info("Would delete: %s (age: %s)", item.path, age_str)
+            deleted_count += 1
+            continue
+
+        _LOGGER.info("Deleting: %s (age: %s)", item.path, age_str)
+        error = delete_bak_item(item.path)
+        if error:
+            errors.append(error)
+            _LOGGER.error(error)
+        else:
+            deleted_count += 1
+
+    return BakCleanupResult(
+        deleted_count=deleted_count,
+        skipped_too_recent=skipped_too_recent,
+        errors=errors,
+    )
+
+
 def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount_point: Path) -> bool:
     if not symlink_path.is_symlink():
         return False
@@ -126,3 +205,44 @@ def check_if_symlink_references_image(symlink_path: Path, image_stem: str, mount
         pass
 
     return False
+
+
+def find_bak_candidates(image_references: dict[str, list[Path]], current_time: float) -> list[FileWithAge]:
+    """Find .bak and .DELETE_ME_* items adjacent to manifest-known NFS paths.
+
+    Uses manifests to check only known NFS paths rather than walking the entire
+    NFS tree (which is very slow on EFS).
+
+    Args:
+        image_references: Mapping of image stem -> list of expected NFS destination paths
+        current_time: Current time as float (time.time()) for age calculation
+
+    Returns:
+        List of FileWithAge for found .bak and .DELETE_ME_* items
+    """
+    candidates: list[FileWithAge] = []
+    all_destinations: set[Path] = set()
+    for destinations in image_references.values():
+        all_destinations.update(destinations)
+
+    for dest_path in all_destinations:
+        # Check for .bak sibling
+        bak_path = dest_path.with_name(dest_path.name + ".bak")
+        try:
+            mtime = bak_path.lstat().st_mtime
+            candidates.append(FileWithAge(bak_path, current_time - mtime))
+        except OSError:
+            pass
+
+        # Check for .DELETE_ME_* siblings (from deferred cleanup)
+        try:
+            for delete_me in dest_path.parent.glob(dest_path.name + ".DELETE_ME_*"):
+                try:
+                    mtime = delete_me.lstat().st_mtime
+                    candidates.append(FileWithAge(delete_me, current_time - mtime))
+                except OSError:
+                    pass
+        except OSError:
+            pass
+
+    return candidates

@@ -1,0 +1,34 @@
+name: CEFS garbage collection
+
+on:
+  schedule:
+    - cron: '0 9 * * 0'
+  workflow_dispatch:
+    inputs:
+      min-age:
+        description: Minimum age for items to be eligible for deletion
+        default: '2d'
+        required: false
+      include-broken:
+        description: Include unreferenced broken images
+        type: boolean
+        default: false
+        required: false
+
+jobs:
+  gc:
+    if: github.repository == 'compiler-explorer/infra'
+    runs-on: ['admin']
+    steps:
+      - name: Start from a clean directory
+        uses: AutoModality/action-clean@v1.1.0
+      - uses: actions/checkout@v4
+      - name: Set up environment
+        run: make ce
+      - name: Run CEFS garbage collection
+        run: >-
+          sudo bin/ce_install cefs gc
+          --force
+          --cleanup-bak
+          --min-age ${{ github.event.inputs.min-age || '2d' }}
+          ${{ github.event.inputs.include-broken == 'true' && '--include-broken' || '' }}
