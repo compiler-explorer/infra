@@ -22,7 +22,7 @@ from lib.cefs.consolidation import (
     process_consolidation_group,
     validate_space_requirements,
 )
-from lib.cefs.constants import DEFAULT_MIN_AGE, NFS_MAX_RECURSION_DEPTH
+from lib.cefs.constants import DEFAULT_MIN_AGE
 from lib.cefs.conversion import convert_to_cefs
 from lib.cefs.deployment import snapshot_symlink_targets
 from lib.cefs.formatting import (
@@ -31,7 +31,7 @@ from lib.cefs.formatting import (
     get_image_description,
     get_installable_current_locations,
 )
-from lib.cefs.fsck import FSCKResults, find_files_by_pattern, run_fsck_validation
+from lib.cefs.fsck import FSCKResults, run_fsck_validation
 from lib.cefs.gc import cleanup_bak_items, delete_image_with_manifest, filter_images_by_age
 from lib.cefs.paths import (
     FileWithAge,
@@ -696,40 +696,62 @@ def consolidate(
 GC_DEFAULT_MIN_AGE = "2d"
 
 
-def _run_bak_cleanup(context: CliContext, min_age_seconds: float, force: bool) -> None:
-    """Scan for and remove old .bak and .DELETE_ME_* items from NFS."""
-    nfs_dir = context.installation_context.destination
+def _run_bak_cleanup(context: CliContext, state: CEFSState, min_age_seconds: float, force: bool) -> None:
+    """Find and remove stale .bak and .DELETE_ME_* items using manifest-known paths.
+
+    Uses manifests to check only known NFS paths rather than walking the entire
+    NFS tree (which is very slow on EFS).
+    """
     current_time = time.time()
+    dry_run = context.installation_context.dry_run
 
-    _LOGGER.info("Scanning for .bak and .DELETE_ME_* items in %s...", nfs_dir)
-    bak_items = find_files_by_pattern(nfs_dir, "*.bak", current_time, max_depth=NFS_MAX_RECURSION_DEPTH)
-    delete_me_items = find_files_by_pattern(nfs_dir, "*.DELETE_ME_*", current_time, max_depth=NFS_MAX_RECURSION_DEPTH)
+    candidates = []
 
-    all_items = bak_items + delete_me_items
-    if not all_items:
+    # Collect all known NFS destination paths from manifests
+    all_destinations: set[Path] = set()
+    for destinations in state.image_references.values():
+        all_destinations.update(destinations)
+
+    _LOGGER.info("Checking %d manifest-known paths for .bak/.DELETE_ME_* items...", len(all_destinations))
+
+    for dest_path in all_destinations:
+        # Check for .bak sibling
+        bak_path = dest_path.with_name(dest_path.name + ".bak")
+        try:
+            mtime = bak_path.lstat().st_mtime
+            candidates.append(FileWithAge(bak_path, current_time - mtime))
+        except OSError:
+            pass  # doesn't exist or no permission
+
+        # Check for .DELETE_ME_* siblings (from deferred cleanup)
+        try:
+            for delete_me in dest_path.parent.glob(dest_path.name + ".DELETE_ME_*"):
+                try:
+                    mtime = delete_me.lstat().st_mtime
+                    candidates.append(FileWithAge(delete_me, current_time - mtime))
+                except OSError:
+                    pass
+        except OSError:
+            pass
+
+    if not candidates:
         _LOGGER.info("No .bak or .DELETE_ME_* items found.")
         return
 
-    _LOGGER.info("Found %d .bak and %d .DELETE_ME_* items", len(bak_items), len(delete_me_items))
+    _LOGGER.info("Found %d candidate items", len(candidates))
 
-    dry_run = context.installation_context.dry_run
     if not dry_run and not force:
-        eligible = sum(1 for item in all_items if item.age_seconds >= min_age_seconds)
+        eligible = sum(1 for item in candidates if item.age_seconds >= min_age_seconds)
         if eligible > 0 and not click.confirm(f"Delete {eligible} .bak/.DELETE_ME_* items older than the min age?"):
             _LOGGER.info("Backup cleanup cancelled by user.")
             return
 
-    result = cleanup_bak_items(all_items, min_age_seconds, dry_run)
-
+    result = cleanup_bak_items(candidates, min_age_seconds, dry_run)
     verb = "Would delete" if dry_run else "Deleted"
-    _LOGGER.info(
-        "Backup cleanup: %s %d items, skipped %d (too recent)",
-        verb,
-        result.deleted_count,
-        result.skipped_too_recent,
-    )
+    _LOGGER.info("%s %d items, skipped %d (too recent)", verb, result.deleted_count, result.skipped_too_recent)
     if result.errors:
-        _LOGGER.error("Backup cleanup encountered %d errors", len(result.errors))
+        for err in result.errors:
+            _LOGGER.warning("Error during cleanup: %s", err)
 
 
 @cefs.command()
@@ -762,9 +784,6 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
     now = datetime.datetime.now()
     error_count = 0
 
-    if cleanup_bak:
-        _run_bak_cleanup(context, min_age_seconds, force)
-
     state = CEFSState(
         nfs_dir=context.installation_context.destination,
         cefs_image_dir=context.config.cefs.image_dir,
@@ -773,6 +792,9 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
 
     _LOGGER.info("Scanning CEFS images directory and reading manifests...")
     state.scan_cefs_images_with_manifests()
+
+    if cleanup_bak:
+        _run_bak_cleanup(context, state, min_age_seconds, force)
 
     if include_broken:
         _LOGGER.info("Checking symlink references (--include-broken: will scan for actual usage of broken images)...")
