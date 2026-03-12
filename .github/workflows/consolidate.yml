@@ -26,4 +26,4 @@ jobs:
       - name: Consolidate ${{ github.event.inputs.filter }} into ${{ github.event.inputs.max-size }} chunks
         # TODO: finally sort out permissions for this. I hate sudo
         # TODO: remote `--debug` once we're happy
-        run: sudo bin/ce_install --debug cefs consolidate --reconsolidate --max-size ${{ github.event.inputs.max-size }} ${{ github.event.inputs.filter }}
+        run: sudo bin/ce_install --debug cefs consolidate --reconsolidate --max-size ${{ github.event.inputs.max-size || '20G' }} ${{ github.event.inputs.filter }}
