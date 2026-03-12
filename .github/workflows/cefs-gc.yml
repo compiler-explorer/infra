@@ -20,8 +20,8 @@ jobs:
     if: github.repository == 'compiler-explorer/infra'
     runs-on: ['admin']
     steps:
-      - name: Start from a clean directory
-        uses: AutoModality/action-clean@v1.1.0
+      - name: Clean workspace
+        run: rm -rf "${{ github.workspace }}"/*
       - uses: actions/checkout@v5
       - name: Set up environment
         run: make ce
