@@ -134,12 +134,9 @@ class Installable:
 
     def should_build(self, platform: LibraryPlatform) -> bool:
         if platform == LibraryPlatform.Windows:
-            if self.build_config.build_type == "none" and self.build_config.lib_type == "headeronly":
-                return self.is_library
             return (
                 self.is_library
                 and self.build_config.build_type != "manual"
-                and self.build_config.build_type != "none"
                 and self.build_config.build_type != "never"
                 and self.build_config.build_type != "make"
             )

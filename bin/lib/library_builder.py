@@ -156,6 +156,9 @@ class LibraryBuilder:
         if self.platform == LibraryPlatform.Windows:
             self.script_filename = "cebuild.ps1"
 
+        if self.platform == LibraryPlatform.Windows:
+            self.buildconfig.package_install = True
+
         self.completeBuildConfig()
 
     def completeBuildConfig(self):
