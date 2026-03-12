@@ -6,12 +6,32 @@ import click
 
 from lib.cli import cli
 from lib.instance import ConanInstance
-from lib.ssh import exec_remote, exec_remote_to_stdout, run_remote_shell
+from lib.ssh import can_ssh_to, exec_remote, exec_remote_to_stdout, run_remote_shell
 
 
 @cli.group()
 def conan():
     """Conan instance management commands."""
+
+
+@conan.command(name="status")
+def conan_status():
+    """Show the status of the conan instance."""
+    instance = ConanInstance.instance()
+    instance.instance.load()
+    state = instance.instance.state["Name"]
+    print(f"Instance:  {instance.instance.id} ({instance.instance.instance_type})")
+    print(f"State:     {state}")
+    if state != "running":
+        return
+    print(f"Address:   {instance.instance.private_ip_address}")
+    if not can_ssh_to(instance):
+        print("(cannot SSH to instance from here)")
+        return
+    service_output = exec_remote(instance, ["systemctl", "is-active", "ce-conan"], ignore_errors=True).strip()
+    print(f"Service:   {service_output}")
+    disk_output = exec_remote(instance, ["df", "-h", "/", "/home/ce/.conan_server"]).strip()
+    print(f"Disk:\n{disk_output}")
 
 
 @conan.command(name="login")
