@@ -299,8 +299,13 @@ class InstallationContext:
         if self.dry_run:
             _LOGGER.info("Would remove directory %s but in dry-run mode", directory)
         else:
-            shutil.rmtree(str(self.destination / directory), ignore_errors=True)
-            _LOGGER.info("Removing %s", directory)
+            full_path = self.destination / directory
+            if full_path.is_symlink():
+                full_path.unlink()
+                _LOGGER.info("Removing symlink %s", directory)
+            else:
+                shutil.rmtree(str(full_path), ignore_errors=True)
+                _LOGGER.info("Removing %s", directory)
 
     def check_link(self, source: str, link: str) -> bool:
         _LOGGER.debug("check link %s", link)

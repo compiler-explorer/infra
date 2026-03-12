@@ -202,3 +202,60 @@ def test_check_exe_dep():
     installation_b.install_path = "pathy"
     Installable.resolve([installation_a, installation_b])
     assert installation_a.check_call == ["/some/install/dir/pathy/bin/java", "--jar", "path/to/jar"]
+
+
+def make_mock_ic(destination: Path, dry_run: bool = False) -> mock.Mock:
+    ic = mock.create_autospec(InstallationContext, instance=True)
+    ic.destination = destination
+    ic.dry_run = dry_run
+    # Use the real remove_dir implementation
+    ic.remove_dir = lambda directory: InstallationContext.remove_dir(ic, directory)
+    return ic
+
+
+def test_remove_dir_removes_real_directory(tmp_path):
+    """remove_dir should delete real directories."""
+    ic = make_mock_ic(tmp_path)
+
+    real_dir = tmp_path / "some-compiler-20250101"
+    real_dir.mkdir()
+    (real_dir / "bin").mkdir()
+
+    ic.remove_dir("some-compiler-20250101")
+
+    assert not real_dir.exists()
+
+
+def test_remove_dir_removes_symlink(tmp_path):
+    """remove_dir should remove symlinks (CEFS case) rather than silently doing nothing.
+
+    On CEFS, nightly compiler paths are symlinks to /cefs/... squashfs mounts.
+    shutil.rmtree silently fails on symlinks in Python 3.12+ (NotADirectoryError is
+    swallowed by ignore_errors=True), leaving stale symlinks accumulating indefinitely.
+    """
+    ic = make_mock_ic(tmp_path)
+
+    # Simulate a CEFS setup: real dir elsewhere, symlink in the destination
+    cefs_target = tmp_path / "cefs_storage" / "abc123_some-compiler-20250101"
+    cefs_target.mkdir(parents=True)
+    symlink_path = tmp_path / "some-compiler-20250101"
+    symlink_path.symlink_to(cefs_target)
+
+    assert symlink_path.is_symlink()
+
+    ic.remove_dir("some-compiler-20250101")
+
+    assert not symlink_path.exists(follow_symlinks=False), "Symlink should have been removed"
+    assert cefs_target.exists(), "CEFS target should not have been deleted"
+
+
+def test_remove_dir_dry_run_does_nothing(tmp_path):
+    """remove_dir in dry-run mode should not delete anything."""
+    ic = make_mock_ic(tmp_path, dry_run=True)
+
+    real_dir = tmp_path / "some-compiler-20250101"
+    real_dir.mkdir()
+
+    ic.remove_dir("some-compiler-20250101")
+
+    assert real_dir.exists(), "Directory should not be removed in dry-run mode"
