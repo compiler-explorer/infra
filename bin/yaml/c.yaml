@@ -109,6 +109,15 @@ compilers:
         check_file: chibicc
         targets:
           - main
+      archiesdk:
+        type: s3tarballs
+        subdir: archiesdk
+        s3_path_prefix: archiesdk-{{name}}
+        path_name: archiesdk/{{name}}
+        check_exe: bin/arm-archie-gcc --version
+        check_stderr_on_stdout: true
+        targets:
+          - Release-1
       ccc:
         type: nightly
         check_exe: ccc --version
