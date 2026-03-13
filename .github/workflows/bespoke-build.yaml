@@ -16,6 +16,7 @@ on:
         - clang
         - misc
         # rest in alphabetical order
+        - archiesdk
         - bloaty
         - clad
         - clang-18.04
