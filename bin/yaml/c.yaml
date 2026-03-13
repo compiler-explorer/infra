@@ -121,6 +121,15 @@ compilers:
         check_exe: build/lcc --version
         targets:
           - trunk
+    archiesdk:
+      type: s3tarballs
+      subdir: archiesdk
+      s3_path_prefix: archiesdk-{{name}}
+      path_name: archiesdk/{{name}}
+      check_exe: bin/arm-archie-gcc --version
+      check_stderr_on_stdout: true
+      targets:
+        - Release-1
     cross:
       type: s3tarballs
       arch_prefix:
