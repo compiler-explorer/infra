@@ -2079,7 +2079,7 @@ libraries:
         build_type: cmake
         check_file: README.md
         method: nightlyclone
-        repo: microsoft/proxy
+        repo: ngcpp/proxy
         targets:
         - trunk
         type: github
@@ -2456,19 +2456,24 @@ libraries:
     proxy:
       build_type: cmake
       check_file: README.md
-      older:
-        build_type: none
+      ngcpp:
+        repo: ngcpp/proxy
         targets:
-        - 3.0.0
-        - 3.1.0
-        - 3.2.0
-        - 3.2.1
-      repo: microsoft/proxy
-      targets:
-      - 3.3.0
-      - 3.4.0
-      - 4.0.0
-      - 4.0.1
+        - 4.0.2
+      microsoft:
+        repo: microsoft/proxy
+        targets:
+        - 3.3.0
+        - 3.4.0
+        - 4.0.0
+        - 4.0.1
+        older:
+          build_type: none
+          targets:
+          - 3.0.0
+          - 3.1.0
+          - 3.2.0
+          - 3.2.1
       type: github
     pugixml:
       build_type: cmake
