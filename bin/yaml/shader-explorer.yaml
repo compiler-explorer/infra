@@ -8,4 +8,4 @@ compilers:
       strip_components: 1
       check_exe: bin/shader_explorer --version
       targets:
-        - "0.1.0"
+        - "0.1.1"
