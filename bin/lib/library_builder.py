@@ -96,7 +96,7 @@ class BuildStatus(Enum):
     TimedOut = 3
 
 
-build_timeout = 600
+build_timeout = 1200
 
 conanserver_url = "https://conan.compiler-explorer.com"
 
