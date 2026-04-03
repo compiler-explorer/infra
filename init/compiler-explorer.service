@@ -7,6 +7,8 @@ Requires=remote-fs.target
 # but needs After=cloud-init.target, and cloud-init.target is also WantedBy=multi-user.target
 # See: https://serverfault.com/questions/871328/start-service-after-aws-user-data-has-run
 DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
 
 [Service]
 Type=simple
