@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 from lib.installation_context import InstallationContext
 from lib.library_build_config import LibraryBuildConfig
-from lib.library_builder import BuildStatus, LibraryBuilder
+from lib.library_builder import BuildStatus, LibraryBuilder, build_timeout
 from lib.library_platform import LibraryPlatform
 
 BASE = "https://raw.githubusercontent.com/compiler-explorer/compiler-explorer/main/etc/config/"
@@ -262,7 +262,7 @@ def test_execute_build_script_success(mock_subprocess, requests_mock):
     result = builder.executebuildscript("/tmp/buildfolder")
 
     assert result == BuildStatus.Ok
-    mock_subprocess.assert_called_once_with(["./cebuild.sh"], cwd="/tmp/buildfolder", timeout=600)
+    mock_subprocess.assert_called_once_with(["./cebuild.sh"], cwd="/tmp/buildfolder", timeout=build_timeout)
 
 
 @patch("subprocess.call")
