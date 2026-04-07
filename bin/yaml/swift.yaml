@@ -41,18 +41,31 @@ compilers:
       url: https://download.swift.org/{{build}}/ubuntu2204/{{toolchain}}/{{toolchain}}-ubuntu22.04.tar.gz
       targets:
           - '6.2'
+          - name: '6.2.4'
+            dir: swift-6.2.x
+          - name: '6.3'
+            dir: swift-6.3.x
 
     static-sdk:
-      url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-0.0.1.artifactbundle.tar.gz
+      url: https://download.swift.org/{{build}}/static-sdk/{{toolchain}}/{{toolchain}}_static-linux-{{sdk_version}}.artifactbundle.tar.gz
       dir: swift-{{name}}-static-sdk
       strip_components: 2
       check_file: 'swift-linux-musl/swift-sdk.json'
       check_exe: '' # No compiler binary to check
       after_stage_script: '' # Don't need the CoreFoundation workaround
-      targets:
+      sdk-0-0-1:
+        sdk_version: '0.0.1'
+        targets:
           - '6.0.3'
           - '6.1'
           - '6.2'
+      sdk-0-1-0:
+        sdk_version: '0.1.0'
+        targets:
+          - name: '6.2.4'
+            dir: swift-6.2.x-static-sdk
+          - name: '6.3'
+            dir: swift-6.3.x-static-sdk
     nightly:
       if: nightly
       type: restQueryTarballs
