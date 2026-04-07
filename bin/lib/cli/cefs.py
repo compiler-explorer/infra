@@ -821,6 +821,9 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
             raise click.ClickException(f"GC completed with {error_count} errors during analysis")
         return
 
+    installables_by_name = {installable.name: installable for installable in context.get_installables([])}
+    destination_root = context.installation_context.destination
+
     _LOGGER.info("Unreferenced CEFS images to delete:")
     for image_path in unreferenced:
         try:
@@ -838,7 +841,7 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
         )
 
         # Show where each Installable in this image is currently installed
-        for line in get_installable_current_locations(image_path):
+        for line in get_installable_current_locations(image_path, installables_by_name, destination_root):
             _LOGGER.info(line)
 
     if context.installation_context.dry_run:

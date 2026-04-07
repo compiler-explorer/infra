@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import humanfriendly
 import yaml
@@ -17,6 +18,9 @@ from lib.cefs.consolidation import (
 from lib.cefs.paths import describe_cefs_image, get_current_symlink_targets
 from lib.cefs.state import CEFSState
 from lib.cefs_manifest import read_manifest_from_alongside
+
+if TYPE_CHECKING:
+    from lib.installable.installable import Installable
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -195,24 +199,84 @@ def format_usage_statistics(stats, state: CEFSState, verbose: bool, cefs_mount_p
     return lines
 
 
-def get_installable_current_locations(image_path: Path) -> list[str]:
-    """Get information about where each Installable in an image is currently installed."""
+def _classify_destination(path: Path) -> str:
+    if path.is_symlink():
+        try:
+            return f"{path} -> {path.readlink()}"
+        except OSError as e:
+            return f"{path} -> [unreadable: {e}]"
+    if path.is_dir():
+        return f"{path} [directory]"
+    if path.exists():
+        return f"{path} [file]"
+    return "NOT INSTALLED"
+
+
+def classify_installable_location(destination: Path, symlink: Path | None) -> str:
+    """Describe where an installable's content currently lives on disk.
+
+    For nightlies, the manifest stores a dated destination (e.g. gcc-trunk-20250916)
+    while the installable also has a stable un-dated symlink path (e.g. gcc-trunk).
+    If the dated directory is no longer present but the un-dated symlink exists,
+    the image has been superseded by a newer nightly rather than being "not installed".
+    """
+    if symlink is None:
+        return _classify_destination(destination)
+
+    if not symlink.is_symlink():
+        if destination.exists() or destination.is_symlink():
+            return _classify_destination(destination)
+        return "NOT INSTALLED"
+
+    try:
+        symlink_target = symlink.readlink()
+    except OSError as e:
+        return f"{symlink} -> [unreadable: {e}]"
+
+    resolved_target = symlink_target if symlink_target.is_absolute() else (symlink.parent / symlink_target)
+    try:
+        points_to_this = resolved_target.resolve(strict=False) == destination.resolve(strict=False)
+    except OSError:
+        points_to_this = str(resolved_target) == str(destination)
+
+    if points_to_this:
+        return f"{symlink} -> {symlink_target}"
+
+    return f"{symlink} -> {symlink_target} (this image: {destination.name}, superseded)"
+
+
+def _symlink_for_installable(installable: Installable, destination_root: Path) -> Path | None:
+    """Resolve the un-dated symlink path for an installable, if it has one."""
+    install_path_symlink = getattr(installable, "install_path_symlink", None)
+    if install_path_symlink:
+        return destination_root / install_path_symlink
+    path_name_symlink = getattr(installable, "path_name_symlink", None)
+    if path_name_symlink:
+        return destination_root / path_name_symlink
+    return None
+
+
+def get_installable_current_locations(
+    image_path: Path,
+    installables_by_name: dict[str, Installable] | None = None,
+    destination_root: Path | None = None,
+) -> list[str]:
+    """Get information about where each Installable in an image is currently installed.
+
+    When ``installables_by_name`` and ``destination_root`` are provided, looks up the
+    Installable for each manifest entry to discover its un-dated symlink path. This
+    lets us report "superseded" for stale nightly images instead of "NOT INSTALLED".
+    """
     if not (manifest := read_manifest_from_alongside(image_path)):
         return []
 
-    def _classify(path: Path) -> str:
-        if path.is_symlink():
-            try:
-                return f"{path} -> {path.readlink()}"
-            except OSError as e:
-                return f"{path} -> [unreadable: {e}]"
-        if path.is_dir():
-            return f"{path} [directory]"
-        if path.exists():
-            return f"{path} [file]"
-        return "NOT INSTALLED"
-
-    return [
-        f"    └─ {content['name']} → currently: {_classify(Path(content['destination']))}"
-        for content in manifest["contents"]
-    ]
+    lines = []
+    for content in manifest["contents"]:
+        destination = Path(content["destination"])
+        symlink: Path | None = None
+        if installables_by_name is not None and destination_root is not None:
+            installable = installables_by_name.get(content["name"])
+            if installable is not None:
+                symlink = _symlink_for_installable(installable, destination_root)
+        lines.append(f"    └─ {content['name']} → currently: {classify_installable_location(destination, symlink)}")
+    return lines
