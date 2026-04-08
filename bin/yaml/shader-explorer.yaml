@@ -1,0 +1,11 @@
+compilers:
+  shader:
+    shader_explorer:
+      type: tarballs
+      dir: shader-explorer-{{name}}
+      url: https://github.com/NoNaeAbC/shader_explorer/releases/download/v{{name}}/shader_explorer-{{name}}-linux-x86_64.tar.gz
+      compression: gz
+      strip_components: 1
+      check_exe: bin/shader_explorer --version
+      targets:
+        - "0.1.1"
