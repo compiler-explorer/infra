@@ -821,7 +821,9 @@ def gc(context: CliContext, force: bool, min_age: str, include_broken: bool, cle
             raise click.ClickException(f"GC completed with {error_count} errors during analysis")
         return
 
-    installables_by_name = {installable.name: installable for installable in context.get_installables([])}
+    installables_by_name = {
+        installable.name: installable for installable in context.get_installables([], bypass_enable_check=True)
+    }
     destination_root = context.installation_context.destination
 
     _LOGGER.info("Unreferenced CEFS images to delete:")
