@@ -596,8 +596,18 @@ def consolidate(
 
         if recon_candidates:
             _LOGGER.info("Found %d items from consolidated images for reconsolidation", len(recon_candidates))
-            # Reconsolidation candidates are already in the right format
-            cefs_items.extend(recon_candidates)
+            # Filter out reconsolidation candidates whose name already appears as a fresh item.
+            # If both a fresh item and a reconsolidation item have the same name they would
+            # produce the same sanitized subdir_name and race when extracted in parallel.
+            fresh_names = {item.name for item in cefs_items}
+            filtered_recon = [c for c in recon_candidates if c.name not in fresh_names]
+            skipped = len(recon_candidates) - len(filtered_recon)
+            if skipped:
+                _LOGGER.info(
+                    "Skipping %d reconsolidation candidate(s) whose name already appears as a fresh item",
+                    skipped,
+                )
+            cefs_items.extend(filtered_recon)
 
     if not cefs_items:
         _LOGGER.warning("No CEFS items found matching filter: %s", " ".join(filter_) if filter_ else "all")
