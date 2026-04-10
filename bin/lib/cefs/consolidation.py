@@ -683,10 +683,24 @@ def prepare_consolidation_items(
     """
     items_for_consolidation = []
     subdir_mapping = {}
+    seen_subdir_names: dict[str, str] = {}  # subdir_name -> item.name, for duplicate detection
 
     for item in group:
         # Use the installable name as subdirectory name (sanitized for filesystem)
         subdir_name = sanitize_path_for_filename(Path(item.name))
+
+        # Guard against duplicate subdir names within the same group. This can happen when a
+        # fresh item and a reconsolidation item have the same installable name — both produce
+        # the same sanitized subdir_name and parallel workers would race to write to the same
+        # extraction directory (OSError: Directory not empty).
+        if subdir_name in seen_subdir_names:
+            raise ValueError(
+                f"Duplicate subdir name '{subdir_name}' in consolidation group: "
+                f"'{item.name}' (from_reconsolidation={item.from_reconsolidation}) conflicts with "
+                f"'{seen_subdir_names[subdir_name]}'. "
+                f"Fresh items and reconsolidation items with the same name must not appear in the same group."
+            )
+        seen_subdir_names[subdir_name] = item.name
 
         # For reconsolidation items, we already have the extraction path
         if item.from_reconsolidation:
