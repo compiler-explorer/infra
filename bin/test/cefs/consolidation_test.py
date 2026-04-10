@@ -864,27 +864,27 @@ def test_gather_reconsolidation_candidates(tmp_path):
     assert filtered_names == {"tools/small 1.0.0", "tools/small 2.0.0"}
 
 
-def test_prepare_consolidation_items_rejects_duplicate_names(tmp_path):
-    """Test that prepare_consolidation_items raises when a fresh item and reconsolidation item
-    produce the same sanitized subdir_name within the same group.
+def test_duplicate_subdir_names_in_consolidation_group_are_rejected(tmp_path):
+    """Regression test: fresh item + reconsolidation item with the same name must not appear
+    in the same consolidation group.
 
-    This is the root cause of the CEFS consolidation failure where two parallel workers both
-    tried to extract to the same directory:
-      compilers_swift_static-sdk_sdk-0-1-0_6.2.4
-    One was a fresh item 'compilers/swift/static-sdk/sdk-0-1-0 6.2.4', the other a
-    reconsolidation item with the same name from an existing consolidated image.
+    Production failure (2026-04-10, run #24232582644):
+      OSError: [Errno 39] Directory not empty:
+        .tmp_extract_2d3e5ffc/compilers_swift_static-sdk_sdk-0-1-0_6.2.4
+        -> compilers_swift_static-sdk_sdk-0-1-0_6.2.4
+
+    Both 'compilers/swift/static-sdk/sdk-0-1-0 6.2.4' (fresh install) and a
+    reconsolidation candidate from an existing consolidated image produced the
+    same sanitized subdir_name. Parallel workers raced to write the same
+    directory, and the second found it non-empty.
     """
     mount_point = Path("/cefs")
 
-    # Fresh item: compilers/swift/static-sdk/sdk-0-1-0 6.2.4
-    # Sanitized: compilers_swift_static-sdk_sdk-0-1-0_6.2.4
     fresh_path = tmp_path / "swift-static-sdk-6.2.4"
     cefs_target = mount_point / "7e" / "7e37bea4f759832456d69f12_swift-6.2.4-static-sdk"
     fresh_path.symlink_to(cefs_target)
 
-    # Reconsolidation item with the same name (from an existing consolidated image)
-    # Its extraction_path is the sanitized subdir name used when it was originally consolidated
-    recon_path = tmp_path / "swift-static-sdk-6.2.4-recon"  # different nfs_path, same name
+    recon_path = tmp_path / "swift-static-sdk-6.2.4-recon"
 
     group = [
         ConsolidationCandidate(
@@ -895,7 +895,7 @@ def test_prepare_consolidation_items_rejects_duplicate_names(tmp_path):
             from_reconsolidation=False,
         ),
         ConsolidationCandidate(
-            name="compilers/swift/static-sdk/sdk-0-1-0 6.2.4",  # same name!
+            name="compilers/swift/static-sdk/sdk-0-1-0 6.2.4",  # same name as above
             nfs_path=recon_path,
             squashfs_path=Path("/efs/cefs-images/26/26ccf7a2fd1f9d4667de2307_consolidated.sqfs"),
             size=50_000_000,
@@ -904,9 +904,8 @@ def test_prepare_consolidation_items_rejects_duplicate_names(tmp_path):
         ),
     ]
 
-    # Both items produce the same sanitized subdir_name: 'compilers_swift_static-sdk_sdk-0-1-0_6.2.4'
-    # prepare_consolidation_items should detect this and raise, OR
-    # pack_items_into_groups should prevent duplicate names from being in the same group.
-    # Either way, two items with the same name must not appear in the same consolidation group.
-    with pytest.raises((ValueError, AssertionError)):
+    # Both items sanitize to the same subdir_name: 'compilers_swift_static-sdk_sdk-0-1-0_6.2.4'.
+    # prepare_consolidation_items must detect this and raise ValueError — if it silently
+    # returned both, parallel workers would race to extract to the same directory.
+    with pytest.raises(ValueError, match="Duplicate subdir name"):
         prepare_consolidation_items(group, mount_point)
