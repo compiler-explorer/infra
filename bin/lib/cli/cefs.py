@@ -601,13 +601,36 @@ def consolidate(
             # produce the same sanitized subdir_name and race when extracted in parallel.
             fresh_names = {item.name for item in cefs_items}
             filtered_recon = [c for c in recon_candidates if c.name not in fresh_names]
-            skipped = len(recon_candidates) - len(filtered_recon)
-            if skipped:
+            skipped_fresh = len(recon_candidates) - len(filtered_recon)
+            if skipped_fresh:
                 _LOGGER.info(
                     "Skipping %d reconsolidation candidate(s) whose name already appears as a fresh item",
-                    skipped,
+                    skipped_fresh,
                 )
-            cefs_items.extend(filtered_recon)
+
+            # Also deduplicate within reconsolidation candidates: if the same installable name
+            # appears in multiple old consolidated images (e.g. after multiple consolidation
+            # passes), only keep the first occurrence. Keeping duplicates causes a
+            # ValueError("Duplicate subdir name") when both are extracted in parallel.
+            seen_recon_names: set[str] = set()
+            deduped_recon = []
+            for candidate in filtered_recon:
+                if candidate.name in seen_recon_names:
+                    _LOGGER.info(
+                        "Skipping duplicate reconsolidation candidate '%s' (already included from another consolidated image)",
+                        candidate.name,
+                    )
+                else:
+                    seen_recon_names.add(candidate.name)
+                    deduped_recon.append(candidate)
+            skipped_dup = len(filtered_recon) - len(deduped_recon)
+            if skipped_dup:
+                _LOGGER.info(
+                    "Removed %d duplicate reconsolidation candidate(s) appearing in multiple consolidated images",
+                    skipped_dup,
+                )
+
+            cefs_items.extend(deduped_recon)
 
     if not cefs_items:
         _LOGGER.warning("No CEFS items found matching filter: %s", " ".join(filter_) if filter_ else "all")
