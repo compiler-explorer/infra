@@ -44,5 +44,8 @@ compilers:
       os_suffix: linux
       targets:
         - 0.7.9
+    linux_static:
+      os_suffix: linux-static
+      targets:
         - 0.7.10
         - 0.7.11
