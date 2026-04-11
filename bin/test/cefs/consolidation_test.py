@@ -909,3 +909,44 @@ def test_duplicate_subdir_names_in_consolidation_group_are_rejected(tmp_path):
     # returned both, parallel workers would race to extract to the same directory.
     with pytest.raises(ValueError, match="Duplicate subdir name"):
         prepare_consolidation_items(group, mount_point)
+
+
+def test_prepare_consolidation_items_rejects_duplicate_recon_names(tmp_path):
+    """Regression test: two reconsolidation items with the same name must not appear
+    in the same consolidation group.
+
+    Production failure (2026-04-11, run #24277747674):
+      ValueError: Duplicate subdir name 'compilers_swift_post-6-2_6.2.4' in
+      consolidation group: 'compilers/swift/post-6-2 6.2.4' (from_reconsolidation=True)
+      conflicts with 'compilers/swift/post-6-2 6.2.4'.
+
+    This occurs when the same installable appears in multiple old consolidated images
+    (e.g. after multiple consolidation passes). Both reconsolidation candidates
+    produce the same sanitized subdir_name, causing a worker collision.
+
+    The prevention fix deduplicates recon candidates before grouping (cli/cefs.py).
+    The detection fix (consolidation.py) raises ValueError if duplicates slip through.
+    """
+    group = [
+        ConsolidationCandidate(
+            name="compilers/swift/post-6-2 6.2.4",
+            nfs_path=Path("/opt/compiler-explorer/swift-6.2.4"),
+            squashfs_path=Path("/efs/cefs-images/be/bea576f049bf30511b5922d9_consolidated.sqfs"),
+            size=100_000_000,
+            extraction_path=Path("compilers_swift_post-6-2_6.2.4"),
+            from_reconsolidation=True,
+        ),
+        ConsolidationCandidate(
+            name="compilers/swift/post-6-2 6.2.4",  # same name, different source image
+            nfs_path=Path("/opt/compiler-explorer/swift-6.2.4"),
+            squashfs_path=Path("/efs/cefs-images/c0/c0e2a1b07bda1a913eb3a496_consolidated.sqfs"),
+            size=100_000_000,
+            extraction_path=Path("compilers_swift_post-6-2_6.2.4"),
+            from_reconsolidation=True,
+        ),
+    ]
+
+    # Both reconsolidation items produce the same subdir_name.
+    # prepare_consolidation_items must raise ValueError to catch this.
+    with pytest.raises(ValueError, match="Duplicate subdir name"):
+        prepare_consolidation_items(group, Path("/cefs"))
