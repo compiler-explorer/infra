@@ -1263,6 +1263,11 @@ compilers:
             macro_gen: edg-compiler/make_predef_macro_table_v1
             depends:
               - compilers/c++/x86/gcc 15.2.0
+          - name: gcc-experimental-consteval-types
+            edg_version: 'experimental-consteval-types'
+            macro_gen: edg-compiler/make_predef_macro_table_v1
+            depends:
+              - compilers/c++/x86/gcc 15.2.0
     ellccs:
       check_exe: bin/clang++ --version
       dir: ellcc-{{name}}
