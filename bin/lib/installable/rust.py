@@ -59,16 +59,18 @@ class RustInstallable(Installable):
         subprocess.check_call([patchelf, "--set-rpath", rpath, maybe_elf_file])
 
     def stage(self, staging: StagingDir) -> None:
-        arch_std_prefix = f"rust-std-{self.target_name}-"
         suffix = ".tar.gz"
-        architectures = [
-            artifact[len(arch_std_prefix) : -len(suffix)] for artifact in s3_available_rust_artifacts(arch_std_prefix)
+        additional_component_prefixes = ["rust-std", "gcc-x86_64-unknown-linux-gnu", "rustc-codegen-gcc"]
+        additional_components = [
+            artifact.removesuffix(suffix)
+            for prefix in additional_component_prefixes
+            for artifact in s3_available_rust_artifacts(f"{prefix}-{self.target_name}-")
         ]
-        self._logger.info("Installing for these architectures: %s", ", ".join(architectures or ["none"]))
+        self._logger.info("Installing these additional components: %s", ", ".join(additional_components or ["none"]))
         base_path = staging.path / f"rust-{self.target_name}"
         self.do_rust_install(staging, self.base_package, base_path)
-        for architecture in architectures:
-            self.do_rust_install(staging, f"rust-std-{self.target_name}-{architecture}", base_path)
+        for component in additional_components:
+            self.do_rust_install(staging, component, base_path)
         for binary in (base_path / "bin").glob("*"):
             self.maybe_set_rpath(binary, "$ORIGIN/../lib")
         for shared_object in (base_path / "lib").glob("*.so"):
