@@ -1178,6 +1178,35 @@ compilers:
           - 7.1.0
           - 7.1.1
           - 7.2.0
+    aocc:
+      - type: tarballs
+        check_exe: bin/clang++ --version
+        dir: aocc-{{name}}
+        untar_dir: aocc-compiler-{{name}}
+        compression: xz
+        url: https://download.amd.com/developer/eula/aocc-compiler/aocc-compiler-{{name}}.tar
+        targets:
+          - 3.2.0
+          - 4.0.0
+      - type: tarballs
+        check_exe: bin/clang++ --version
+        dir: aocc-{{name}}
+        untar_dir: aocc-compiler-{{name}}
+        compression: xz
+        url: https://download.amd.com/developer/eula/aocc/aocc-{{major}}-{{minor}}/aocc-compiler-{{name}}.tar
+        targets:
+          - name: 4.1.0
+            major: 4
+            minor: 1
+          - name: 4.2.0
+            major: 4
+            minor: 2
+          - name: 5.0.0
+            major: 5
+            minor: 0
+          - name: 5.1.0
+            major: 5
+            minor: 1
     plugins:
       clad:
         path_name: clang-plugins/clad-{{name}}
