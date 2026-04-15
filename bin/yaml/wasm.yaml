@@ -8,12 +8,14 @@ compilers:
       dir: wasmtime-{{name}}
       untar_dir: wasmtime-v{{name}}-x86_64-linux
       targets:
-        - 22.0.0
-        - 21.0.1
         - 20.0.1
+        - 21.0.1
+        - 22.0.0
         - 24.0.5
         - 36.0.3
         - 41.0.0
+        - 42.0.2
+        - 43.0.1
     wasi:
       type: tarballs
       compression: gz
@@ -25,6 +27,9 @@ compilers:
         targets: &wasi-targets
           - "25"
           - "29"
+          - "30"
+          - "31"
+          - "32"
       sysroot:
         url: https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-{{name}}/wasi-sysroot-{{name}}.0.tar.gz
         check_file: VERSION
