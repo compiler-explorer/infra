@@ -10,6 +10,7 @@ export PATH=$PATH:/opt/compiler-explorer/cmake/bin
 
 if install_nightly; then
     echo "Installing trunk versions"
+    ce_install 'wasmtime dev'
 else
     echo "Skipping install of trunk versions"
 fi
