@@ -23,6 +23,10 @@ When writing, especially PRs and commit messages:
 - Build events lambda package: `make events-lambda-package`
 - **NEVER USE THE SYSTEM PYTHON** - always use `uv` to invoke python or pytest or to run experiments with python syntax
 
+## Documentation
+
+This repository has extensive documentation in the `docs/` directory. Before making changes to a subsystem, read the relevant documentation first. Existing CLI commands, library configuration, and infrastructure patterns are already documented -- don't reinvent or guess at behavior that's written down.
+
 ## Important Workflow Requirements
 
 - ALWAYS run pre-commit hooks before committing: `make pre-commit`
