@@ -40,7 +40,6 @@ on:
         - pythran
         - rocm
         - ruby
-        - rust-cg-gcc
         - rust-linux
         - vala
       version:
