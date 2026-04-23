@@ -1,0 +1,32 @@
+# Compiler Explorer infra install recipe for Overt.
+#
+# Destination: compiler-explorer/infra:bin/yaml/overt.yaml
+# Docs: https://github.com/compiler-explorer/infra/blob/main/docs/adding_a_compiler.md
+#
+# This file tells CE's build farm where to download each released Overt
+# version and how to lay it out under /opt/compiler-explorer/overt-<version>/.
+#
+# The release tarball produced by .github/workflows/release.yml has shape:
+#     overt-<version>/
+#       bin/overt              <- single-file self-contained binary
+#       runtime/Overt.Runtime.dll
+#       LICENSE
+#       README.md
+#       VERSION
+#
+# strip_components: 0 keeps the overt-<version>/ prefix so the install path
+# ends up at /opt/compiler-explorer/overt-<version>/bin/overt — matching
+# compiler.overt010.exe in ../config/overt.defaults.properties.
+
+installers:
+  overt:
+    type: tarballs
+    compression: xz
+    url_pattern: https://github.com/paulmooreparks/Overt/releases/download/v{0}/overt-{0}-linux-x64.tar.xz
+    dir_pattern: overt-{0}
+    strip_components: 0
+    check_exe: bin/overt --version
+    targets:
+      # Add each tagged release here as it ships. CE's install farm re-runs
+      # this recipe whenever the list changes.
+      - 0.1.0-preview
