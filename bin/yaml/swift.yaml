@@ -11,6 +11,12 @@ compilers:
     after_stage_script:
       # work around insane installation issue
       - chmod og+r ./usr/lib/swift/CoreFoundation/*
+    oldest:
+      url: https://download.swift.org/{{build}}/ubuntu1510/{{toolchain}}/{{toolchain}}-ubuntu15.10.tar.gz
+      after_stage_script: '' # Don't need the CoreFoundation workaround
+      targets:
+        - '2.2'
+        - '2.2.1'
     older:
       url: https://download.swift.org/{{build}}/ubuntu1604/{{toolchain}}/{{toolchain}}-ubuntu16.04.tar.gz
       targets:
