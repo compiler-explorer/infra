@@ -11,6 +11,7 @@ compilers:
       type: s3tarballs
       check_exe: bin/dxc --version
       targets:
+        - "1.10.2605.2"
         - "1.9.2602"
         - "1.8.2505.1"
         - "1.8.2505"
