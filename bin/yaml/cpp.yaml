@@ -1710,8 +1710,9 @@ compilers:
           - cppx-ext-trunk
           - cppx-p2320-trunk
           - concepts-trunk
-          - embed-trunk
-          - dang-main
+          #- embed-trunk
+          #- dang-main
+          - thephd.dev
           - widberg-main
           - mizvekov-resugar
           - relocatable-trunk
