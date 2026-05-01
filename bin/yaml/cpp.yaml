@@ -1739,6 +1739,7 @@ compilers:
           - p3776-trunk
           - p3822-trunk
           - p3951-trunk
+          - barry-clang-trunk
           - hana-clang-trunk
           - implicit-constexpr-trunk
           - dascandy-contracts-trunk
