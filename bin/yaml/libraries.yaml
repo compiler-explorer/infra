@@ -2154,6 +2154,15 @@ libraries:
         targets:
         - trunk
         type: github
+      phd-embed:
+        build_type: none
+        check_file: include/phd/embed.hpp
+        method: nightlyclone
+        path_name: libs/phd/embed
+        repo: ThePhD/embed
+        targets:
+        - main
+        type: github
       pipes:
         build_type: none
         check_file: include/pipes/pipes.hpp
