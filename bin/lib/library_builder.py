@@ -1647,6 +1647,8 @@ class LibraryBuilder:
                         else:
                             builds_failed = builds_failed + 1
                 except Exception:
+                    # Broad catch is intentional: one bad combination (e.g. conan rejecting a setting)
+                    # must not abort the rest of the batch.
                     self.logger.exception(f"Build of {compiler} {args} failed with an unexpected exception")
                     builds_failed = builds_failed + 1
 
