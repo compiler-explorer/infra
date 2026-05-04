@@ -733,7 +733,7 @@ class LibraryBuilder:
                     f.write("cmake --install . > ceinstall_0.txt 2>&1\n")
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
-                    f.write("make clean || /bin/true\n")
+                    f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")
                 f.write("rm -f *.so*\n")
                 f.write("rm -f *.a\n")
                 f.write(self.script_env("CXXFLAGS", cxx_flags))
@@ -748,12 +748,14 @@ class LibraryBuilder:
                     configurepath = os.path.join(sourcefolder, self.buildconfig.source_folder, "configure")
                     if os.path.exists(configurepath):
                         if self.buildconfig.package_install:
-                            f.write(
-                                f"./configure {configure_flags} --prefix={installfolder}"
-                                f" > {logdir}ceconfiglog.txt 2>&1\n"
-                            )
+                            configure_cmd = f"./configure {configure_flags} --prefix={installfolder}"
                         else:
-                            f.write(f"./configure {configure_flags} > {logdir}ceconfiglog.txt 2>&1\n")
+                            configure_cmd = f"./configure {configure_flags}"
+                        configure_log = f"{logdir}ceconfiglog.txt"
+                        f.write(
+                            f"{configure_cmd} > {configure_log} 2>&1 || "
+                            f"{{ echo 'configure failed:' >&2; cat {configure_log} >&2; exit 1; }}\n"
+                        )
 
                 for line in self.buildconfig.prebuild_script:
                     f.write(f"{line}\n")
