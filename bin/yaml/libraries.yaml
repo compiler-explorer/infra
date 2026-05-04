@@ -429,7 +429,7 @@ libraries:
       postbuild_script_pwsh:
       - echo "skipping zlib check"
       prebuild_script:
-      - curl -sL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
+      - curl -fsL -o zlib.tgz https://conan.compiler-explorer.com/downloadpkg/zlib/1.3.1/%compiler%/%arch%/%libcxx%
       - mkdir -p /tmp/zlib
       - tar xzf zlib.tgz -C /tmp/zlib
       prebuild_script_pwsh:
@@ -2687,7 +2687,7 @@ libraries:
       - echo "postbuild not using abseil"
       prebuild_script:
       - mkdir -p /tmp/abseil-cpp
-      - curl -sL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
+      - curl -fsL https://conan.compiler-explorer.com/downloadpkg/abseil/20250127.0/%compiler%/%arch%/%libcxx%
         -o abseil-cpp-20250127.0.tar.gz
       - tar xzf abseil-cpp-20250127.0.tar.gz -C /tmp/abseil-cpp
       prebuild_script_pwsh:
@@ -3299,7 +3299,7 @@ libraries:
       build_type: fpm
       check_file: fpm.toml
       prebuild_script:
-      - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+      - curl -fsL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
       - tar -xzf curl.tgz
       - cp lib/libcurl-d.so lib/libcurl.so
       - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
@@ -3332,7 +3332,7 @@ libraries:
         check_file: fpm.toml
         method: nightlyclone
         prebuild_script:
-        - curl -sL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
+        - curl -fsL -o curl.tgz https://conan.compiler-explorer.com/downloadcshared/curl/7.83.1
         - tar -xzf curl.tgz
         - cp lib/libcurl-d.so lib/libcurl.so
         - export FPM_CFLAGS="-I/opt/compiler-explorer/libs/curl/7.83.1/include"
