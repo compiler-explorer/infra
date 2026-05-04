@@ -683,7 +683,8 @@ class LibraryBuilder:
                     f'{targetparams} "-DCMAKE_BUILD_TYPE={buildtype}" {toolchainparam} {sysrootparam} '
                     f'"-DCMAKE_CXX_FLAGS{cmake_flags_suffix}={cxx_flags}" "-DCMAKE_C_FLAGS{cmake_flags_suffix}={c_flags}" '
                     f'"-DCMAKE_ASM_FLAGS{cmake_flags_suffix}={asm_flags}" {extracmakeargs} {sourcefolder} '
-                    f"> cecmakelog.txt 2>&1\n"
+                    f"> cecmakelog.txt 2>&1 || "
+                    f"{{ echo 'cmake configure failed:' >&2; tail -200 cecmakelog.txt >&2; exit 1; }}\n"
                 )
                 self.logger.debug(cmakeline)
                 f.write(cmakeline)
@@ -702,11 +703,16 @@ class LibraryBuilder:
 
                 if len(self.buildconfig.make_targets) != 0:
                     if len(self.buildconfig.make_targets) == 1 and self.buildconfig.make_targets[0] == "all":
-                        f.write(f"cmake --build . {extramakeargs} > cemakelog_.txt 2>&1\n")
+                        f.write(
+                            f"cmake --build . {extramakeargs} > cemakelog_.txt 2>&1 || "
+                            f"{{ echo 'cmake --build failed:' >&2; tail -200 cemakelog_.txt >&2; exit 1; }}\n"
+                        )
                     else:
                         for lognum, target in enumerate(self.buildconfig.make_targets):
+                            log_name = f"cemakelog_{lognum}.txt"
                             f.write(
-                                f"cmake --build . {extramakeargs} --target={target} > cemakelog_{lognum}.txt 2>&1\n"
+                                f"cmake --build . {extramakeargs} --target={target} > {log_name} 2>&1 || "
+                                f"{{ echo 'cmake --build {target} failed:' >&2; tail -200 {log_name} >&2; exit 1; }}\n"
                             )
                 else:
                     lognum = 0
@@ -730,7 +736,10 @@ class LibraryBuilder:
                         f.write("}\n")
 
                 if self.buildconfig.package_install:
-                    f.write("cmake --install . > ceinstall_0.txt 2>&1\n")
+                    f.write(
+                        "cmake --install . > ceinstall_0.txt 2>&1 || "
+                        "{ echo 'cmake --install failed:' >&2; tail -200 ceinstall_0.txt >&2; exit 1; }\n"
+                    )
             else:
                 if os.path.exists(os.path.join(sourcefolder, "Makefile")):
                     f.write("make clean > cemakeclean.txt 2>&1 || /bin/true\n")
@@ -754,7 +763,7 @@ class LibraryBuilder:
                         configure_log = f"{logdir}ceconfiglog.txt"
                         f.write(
                             f"{configure_cmd} > {configure_log} 2>&1 || "
-                            f"{{ echo 'configure failed:' >&2; cat {configure_log} >&2; exit 1; }}\n"
+                            f"{{ echo 'configure failed:' >&2; tail -200 {configure_log} >&2; exit 1; }}\n"
                         )
 
                 for line in self.buildconfig.prebuild_script:
