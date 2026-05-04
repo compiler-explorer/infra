@@ -11,26 +11,54 @@ class TestClearForCompiler(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
+    @patch("lib.cli.conan_builds.list_failed_builds")
     @patch("lib.cli.conan_builds.clear_build_status_for_compiler")
-    def test_clear_gcc(self, mock_clear):
+    def test_clear_gcc(self, mock_clear, mock_list):
+        mock_list.return_value = [
+            {"compiler": "gcc", "compiler_version": "g141", "success": False},
+            {"compiler": "gcc", "compiler_version": "g141", "success": False},
+            {"compiler": "clang", "compiler_version": "clang1400", "success": False},
+        ]
         result = self.runner.invoke(build_status, ["clear-for-compiler", "g141"])
         self.assertEqual(result.exit_code, 0)
         mock_clear.assert_called_once_with("gcc", "g141")
-        self.assertIn("Done", result.output)
+        self.assertIn("Cleared 2 failure record(s)", result.output)
 
+    @patch("lib.cli.conan_builds.list_failed_builds")
     @patch("lib.cli.conan_builds.clear_build_status_for_compiler")
-    def test_clear_clang(self, mock_clear):
+    def test_clear_clang(self, mock_clear, mock_list):
+        mock_list.return_value = [{"compiler": "clang", "compiler_version": "clang1400", "success": False}]
         result = self.runner.invoke(build_status, ["clear-for-compiler", "clang1400"])
         self.assertEqual(result.exit_code, 0)
         mock_clear.assert_called_once_with("clang", "clang1400")
+
+    @patch("lib.cli.conan_builds.list_failed_builds")
+    @patch("lib.cli.conan_builds.clear_build_status_for_compiler")
+    def test_no_matching_records_skips_clear(self, mock_clear, mock_list):
+        mock_list.return_value = [{"compiler": "clang", "compiler_version": "clang_barry", "success": False}]
+        result = self.runner.invoke(build_status, ["clear-for-compiler", "clang_barry-trunk"])
+        self.assertEqual(result.exit_code, 0)
+        mock_clear.assert_not_called()
+        self.assertIn("nothing to clear", result.output)
+        self.assertIn("list-failed", result.output)
+
+    @patch("lib.cli.conan_builds.list_failed_builds")
+    @patch("lib.cli.conan_builds.clear_build_status_for_compiler")
+    def test_skips_success_records(self, mock_clear, mock_list):
+        mock_list.return_value = [{"compiler": "gcc", "compiler_version": "g141", "success": True}]
+        result = self.runner.invoke(build_status, ["clear-for-compiler", "g141"])
+        self.assertEqual(result.exit_code, 0)
+        mock_clear.assert_not_called()
 
     def test_unknown_compiler_family(self):
         result = self.runner.invoke(build_status, ["clear-for-compiler", "msvc19"])
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("Cannot infer compiler family", result.output)
 
+    @patch("lib.cli.conan_builds.list_failed_builds")
     @patch("lib.cli.conan_builds.clear_build_status_for_compiler")
-    def test_api_error(self, mock_clear):
+    def test_api_error(self, mock_clear, mock_list):
+        mock_list.return_value = [{"compiler": "gcc", "compiler_version": "g141", "success": False}]
         mock_clear.side_effect = RuntimeError("Connection refused")
         result = self.runner.invoke(build_status, ["clear-for-compiler", "g141"])
         self.assertNotEqual(result.exit_code, 0)
@@ -41,22 +69,45 @@ class TestClearForLibrary(unittest.TestCase):
     def setUp(self):
         self.runner = CliRunner()
 
+    @patch("lib.cli.conan_builds.list_failed_builds")
     @patch("lib.cli.conan_builds.clear_build_status_for_library")
-    def test_clear_all_versions(self, mock_clear):
+    def test_clear_all_versions(self, mock_clear, mock_list):
+        mock_list.return_value = [
+            {"library": "fmt", "library_version": "10.0.0", "success": False},
+            {"library": "fmt", "library_version": "11.0.0", "success": False},
+            {"library": "boost", "library_version": "1.85.0", "success": False},
+        ]
         result = self.runner.invoke(build_status, ["clear-for-library", "fmt"])
         self.assertEqual(result.exit_code, 0)
         mock_clear.assert_called_once_with("fmt", None)
-        self.assertIn("Done", result.output)
+        self.assertIn("Cleared 2 failure record(s)", result.output)
 
+    @patch("lib.cli.conan_builds.list_failed_builds")
     @patch("lib.cli.conan_builds.clear_build_status_for_library")
-    def test_clear_specific_version(self, mock_clear):
+    def test_clear_specific_version(self, mock_clear, mock_list):
+        mock_list.return_value = [
+            {"library": "fmt", "library_version": "10.0.0", "success": False},
+            {"library": "fmt", "library_version": "11.0.0", "success": False},
+        ]
         result = self.runner.invoke(build_status, ["clear-for-library", "fmt", "--version", "10.0.0"])
         self.assertEqual(result.exit_code, 0)
         mock_clear.assert_called_once_with("fmt", "10.0.0")
         self.assertIn("version 10.0.0", result.output)
+        self.assertIn("Cleared 1 failure record(s)", result.output)
 
+    @patch("lib.cli.conan_builds.list_failed_builds")
     @patch("lib.cli.conan_builds.clear_build_status_for_library")
-    def test_api_error(self, mock_clear):
+    def test_no_matching_records_skips_clear(self, mock_clear, mock_list):
+        mock_list.return_value = [{"library": "boost", "library_version": "1.85.0", "success": False}]
+        result = self.runner.invoke(build_status, ["clear-for-library", "fmt"])
+        self.assertEqual(result.exit_code, 0)
+        mock_clear.assert_not_called()
+        self.assertIn("nothing to clear", result.output)
+
+    @patch("lib.cli.conan_builds.list_failed_builds")
+    @patch("lib.cli.conan_builds.clear_build_status_for_library")
+    def test_api_error(self, mock_clear, mock_list):
+        mock_list.return_value = [{"library": "fmt", "library_version": "10.0.0", "success": False}]
         mock_clear.side_effect = RuntimeError("Connection refused")
         result = self.runner.invoke(build_status, ["clear-for-library", "fmt"])
         self.assertNotEqual(result.exit_code, 0)

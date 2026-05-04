@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import click
 
 from lib.conan_api import clear_build_status_for_compiler, clear_build_status_for_library, list_failed_builds
 
 from ..ce_install import cli
+
+
+def _count_matching_failures(predicate: Callable[[dict[str, Any]], bool]) -> int:
+    builds = list_failed_builds()
+    return sum(1 for b in builds if not b.get("success", True) and predicate(b))
 
 
 @cli.group(name="build-status")
@@ -19,16 +27,27 @@ def build_status():
 def clear_for_compiler(compiler_version: str):
     """Clear all build failures for a compiler so libraries will re-attempt building.
 
-    COMPILER_VERSION is the compiler ID as used by the build system (e.g. g101, g141, clang1400).
+    COMPILER_VERSION must match the exact string stored in failure records. Run
+    `ce_install build-status list-failed --compiler-version <id>` first if you
+    are not sure of the exact ID (e.g. it is `clang_barry`, not `clang_barry-trunk`).
     The compiler family is inferred automatically (gcc for g*, clang for clang*).
     """
     compiler = _compiler_family_from_id(compiler_version)
     click.echo(f"Clearing build failures for {compiler} {compiler_version}...")
     try:
+        matching = _count_matching_failures(
+            lambda b: b.get("compiler") == compiler and b.get("compiler_version") == compiler_version
+        )
+        if matching == 0:
+            click.echo(
+                f"No failure records match {compiler} {compiler_version}; nothing to clear. "
+                "Use `list-failed --compiler-version <id>` to find the exact stored ID."
+            )
+            return
         clear_build_status_for_compiler(compiler, compiler_version)
     except RuntimeError as e:
         raise click.ClickException(str(e)) from e
-    click.echo("Done.")
+    click.echo(f"Cleared {matching} failure record(s).")
 
 
 @build_status.command(name="clear-for-library")
@@ -42,10 +61,17 @@ def clear_for_library(library: str, library_version: str | None):
     version_msg = f" version {library_version}" if library_version else ""
     click.echo(f"Clearing build failures for {library}{version_msg}...")
     try:
+        matching = _count_matching_failures(
+            lambda b: b.get("library") == library
+            and (library_version is None or b.get("library_version") == library_version)
+        )
+        if matching == 0:
+            click.echo(f"No failure records match {library}{version_msg}; nothing to clear.")
+            return
         clear_build_status_for_library(library, library_version)
     except RuntimeError as e:
         raise click.ClickException(str(e)) from e
-    click.echo("Done.")
+    click.echo(f"Cleared {matching} failure record(s).")
 
 
 @build_status.command(name="list-failed")

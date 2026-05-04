@@ -618,7 +618,9 @@ The `ce_install build-status` command group manages build failure records on the
 
 - **`ce_install build-status list-failed`** - List failed builds (requires at least one of `--library` or `--compiler-version`; optional `--version` to filter by library version)
 - **`ce_install build-status clear-for-library LIBRARY [--version VERSION]`** - Clear failures for a library
-- **`ce_install build-status clear-for-compiler COMPILER_VERSION`** - Clear failures for a compiler (e.g. `g141`, `clang1400`)
+- **`ce_install build-status clear-for-compiler COMPILER_VERSION`** - Clear failures for a compiler (e.g. `g141`, `clang1400`, `clang_barry`)
+
+The clear commands print the number of records cleared and warn if no rows matched. The `COMPILER_VERSION` must match the exact string stored on the proxy, which can have surprising forms — e.g. it's `clang_barry`, not `clang_barry-trunk` or `clang-barry-clang-trunk`. Run `list-failed --compiler-version <id>` first if you're not sure.
 
 See the Build Failure Tracking section in `docs/library_configuration.md` for details.
 
