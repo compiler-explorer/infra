@@ -1626,25 +1626,29 @@ class LibraryBuilder:
                 build_supported_os, buildtypes, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
                 iteration += 1
-                with self.install_context.new_staging_dir() as staging:
-                    buildstatus = self.makebuildfor(
-                        compiler,
-                        options,
-                        exe,
-                        compilerType,
-                        toolchain,
-                        *args,
-                        self.compilerprops[compiler]["ldPath"],
-                        staging,
-                        self.compilerprops[compiler],
-                        iteration,
-                    )
-                    if buildstatus == BuildStatus.Ok:
-                        builds_succeeded = builds_succeeded + 1
-                    elif buildstatus == BuildStatus.Skipped:
-                        builds_skipped = builds_skipped + 1
-                    else:
-                        builds_failed = builds_failed + 1
+                try:
+                    with self.install_context.new_staging_dir() as staging:
+                        buildstatus = self.makebuildfor(
+                            compiler,
+                            options,
+                            exe,
+                            compilerType,
+                            toolchain,
+                            *args,
+                            self.compilerprops[compiler]["ldPath"],
+                            staging,
+                            self.compilerprops[compiler],
+                            iteration,
+                        )
+                        if buildstatus == BuildStatus.Ok:
+                            builds_succeeded = builds_succeeded + 1
+                        elif buildstatus == BuildStatus.Skipped:
+                            builds_skipped = builds_skipped + 1
+                        else:
+                            builds_failed = builds_failed + 1
+                except Exception:
+                    self.logger.exception(f"Build of {compiler} {args} failed with an unexpected exception")
+                    builds_failed = builds_failed + 1
 
             if builds_succeeded > 0:
                 self.upload_builds()

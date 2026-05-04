@@ -875,23 +875,27 @@ class FortranLibraryBuilder:
             for args in itertools.product(
                 build_supported_os, build_supported_buildtype, archs, stdvers, stdlibs, build_supported_flagscollection
             ):
-                with self.install_context.new_staging_dir() as staging:
-                    buildstatus = self.makebuildfor(
-                        compiler,
-                        options,
-                        exe,
-                        compilerType,
-                        toolchain,
-                        *args,
-                        self.compilerprops[compiler]["ldPath"],
-                        staging,
-                    )
-                    if buildstatus == BuildStatus.Ok:
-                        builds_succeeded = builds_succeeded + 1
-                    elif buildstatus == BuildStatus.Skipped:
-                        builds_skipped = builds_skipped + 1
-                    else:
-                        builds_failed = builds_failed + 1
+                try:
+                    with self.install_context.new_staging_dir() as staging:
+                        buildstatus = self.makebuildfor(
+                            compiler,
+                            options,
+                            exe,
+                            compilerType,
+                            toolchain,
+                            *args,
+                            self.compilerprops[compiler]["ldPath"],
+                            staging,
+                        )
+                        if buildstatus == BuildStatus.Ok:
+                            builds_succeeded = builds_succeeded + 1
+                        elif buildstatus == BuildStatus.Skipped:
+                            builds_skipped = builds_skipped + 1
+                        else:
+                            builds_failed = builds_failed + 1
+                except Exception:
+                    self.logger.exception(f"Build of {compiler} {args} failed with an unexpected exception")
+                    builds_failed = builds_failed + 1
 
             if builds_succeeded > 0:
                 self.upload_builds()
