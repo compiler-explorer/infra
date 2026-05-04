@@ -1700,6 +1700,7 @@ compilers:
           - contracts-GNUext-trunk
           - thomas-healy-trunk
           - trivial-relocation-trunk
+          - gcc.thephd.dev
       clang:
         type: nightly
         check_exe: bin/clang++ --version
@@ -1712,7 +1713,7 @@ compilers:
           - concepts-trunk
           - embed-trunk
           - dang-main
-          - thephd.dev
+          - clang.thephd.dev
           - widberg-main
           - mizvekov-resugar
           - relocatable-trunk
