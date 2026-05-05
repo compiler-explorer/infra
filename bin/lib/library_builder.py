@@ -1338,13 +1338,9 @@ class LibraryBuilder:
 
     def set_as_uploaded(self, buildfolder):
         # We need the conan package_id (a deterministic SHA from compiler+version+libcxx+arch+...)
-        # to PUT annotations against /annotations/{lib}/{ver}/{package_id}.
-        #
-        # get_conan_hash now derives the id by querying the server's /search index, which only
-        # lists packages already on the server. So for a freshly built package that hasn't been
-        # uploaded yet, we must upload first, then ask for the id. (The previous implementation
-        # used `conan info`, which computed the id locally from the recipe and didn't care
-        # whether the package was on the server -- the order did not matter then.)
+        # to PUT annotations against /annotations/{lib}/{ver}/{package_id}. get_conan_hash
+        # derives the id by querying the server's /search index, which only lists packages
+        # already on the server -- so for a freshly built package, we must upload first.
         annotations = self.get_build_annotations(buildfolder)
         if "commithash" not in annotations:
             self.upload_builds()
